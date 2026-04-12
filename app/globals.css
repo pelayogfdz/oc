@@ -1,0 +1,66 @@
+:root {
+  --pulpos-bg: #f3f4f6;
+  --pulpos-sidebar-bg: #1e2532;
+  --pulpos-sidebar-hover: #2a3441;
+  --pulpos-sidebar-text: #9ca3af;
+  --pulpos-sidebar-text-active: #ffffff;
+  --pulpos-primary: #00a896; 
+  --pulpos-primary-hover: #028073;
+  --pulpos-text: #1f2937;
+  --pulpos-text-muted: #6b7280;
+  --pulpos-border: #e5e7eb;
+  --pulpos-card-bg: #ffffff;
+  
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  background: var(--pulpos-bg);
+  color: var(--pulpos-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+/* Utilities */
+.btn-primary {
+  background-color: var(--pulpos-primary);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: var(--pulpos-primary-hover);
+}
+
+.card {
+  background-color: var(--pulpos-card-bg);
+  border: 1px solid var(--pulpos-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}

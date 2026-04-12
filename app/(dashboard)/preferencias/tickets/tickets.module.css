@@ -1,0 +1,276 @@
+.container {
+  display: flex;
+  gap: 20px;
+  width: 100%;
+}
+
+.formBox {
+  flex: 1;
+  background-color: var(--pulpos-card-bg);
+  border: 1px solid var(--pulpos-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.previewBox {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #e5e7eb; /* Soft gray for contrast against the white ticket */
+  border-radius: 8px;
+  padding: 2rem;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 500px;
+  border: 1px solid var(--pulpos-border);
+  position: relative;
+  overflow: hidden;
+  /* subtle pattern */
+  background-image: radial-gradient(#d1d5db 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.headerTitle {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.headerDesc {
+  color: var(--pulpos-text-muted);
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--pulpos-border);
+  padding-bottom: 1rem;
+}
+
+.formGroup {
+  margin-bottom: 1rem;
+}
+
+.formGroup label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: var(--pulpos-text);
+}
+
+.inputField {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--pulpos-border);
+  font-family: inherit;
+  font-size: 0.875rem;
+  transition: border-color 0.2s;
+  background-color: white;
+}
+
+.inputField:focus {
+  outline: none;
+  border-color: var(--pulpos-primary);
+  box-shadow: 0 0 0 2px rgba(0, 168, 150, 0.2);
+}
+
+.checkboxGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.checkboxGroup input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--pulpos-primary);
+  cursor: pointer;
+}
+
+.checkboxGroup label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.saveBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+/* -- TICKET PREVIEW CLASSES -- */
+.previewControls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  width: 100%;
+  justify-content: center;
+  z-index: 10;
+}
+
+.formatBtn {
+  background: white;
+  border: 1px solid var(--pulpos-border);
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.formatBtn.active {
+  background: var(--pulpos-primary);
+  color: white;
+  border-color: var(--pulpos-primary);
+}
+
+.ticketWrapper {
+  display: inline-block;
+  background-color: #fff;
+  color: #000;
+  font-family: 'Courier New', Courier, monospace;
+  width: 320px;
+  min-height: 400px;
+  padding: 20px 15px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  position: relative;
+  transition: width 0.3s ease;
+  z-index: 5;
+}
+
+.ticketWrapper.size58 {
+  width: 240px;
+  font-size: 11px;
+}
+
+.ticketWrapper::before,
+.ticketWrapper::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background-size: 8px 8px;
+}
+
+.ticketWrapper::before {
+  top: -4px;
+  background-image: linear-gradient(135deg, transparent 50%, white 50%),
+                    linear-gradient(225deg, transparent 50%, white 50%);
+  background-position: 0 0, 4px 0;
+}
+
+.ticketWrapper::after {
+  bottom: -4px;
+  background-image: linear-gradient(45deg, white 50%, transparent 50%),
+                    linear-gradient(315deg, white 50%, transparent 50%);
+  background-position: 0 0, 4px 0;
+}
+
+.tHeader {
+  text-align: center;
+  margin-bottom: 12px;
+  word-wrap: break-word;
+}
+
+.tTitle {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.size58 .tTitle { font-size: 0.95rem; }
+
+.tLine {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.size58 .tLine { font-size: 0.7rem; }
+
+.tDivider {
+  border-top: 1px dashed #000;
+  margin: 10px 0;
+}
+
+.tBody {
+  margin-bottom: 15px;
+  font-size: 0.8rem;
+}
+
+.size58 .tBody { font-size: 0.7rem; }
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.itemsTable {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.itemHead {
+  font-weight: bold;
+  border-bottom: 1px solid #000;
+  padding-bottom: 4px;
+  margin-bottom: 6px;
+  display: flex;
+}
+
+.itemRow {
+  display: flex;
+  margin-bottom: 4px;
+}
+
+.colCant { width: 15%; }
+.colDesc { width: 55%; padding-right: 5px; word-wrap: break-word; }
+.colPrice { width: 30%; text-align: right; }
+
+.totalsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.totalRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 20px;
+  width: 100%;
+}
+
+.totalRow span:first-child { text-align: right; width: 120px; }
+.totalRow span:last-child { text-align: right; width: 80px; }
+
+.grandTotal {
+  font-size: 1rem;
+  font-weight: bold;
+  margin-top: 5px;
+}
+
+.size58 .grandTotal { font-size: 0.85rem; }
+
+.tFooter {
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.size58 .tFooter { font-size: 0.7rem; }
+
+.barcode {
+  font-family: monospace;
+  font-size: 1.5rem;
+  letter-spacing: -2px;
+  margin-top: 10px;
+  color: #333;
+}

@@ -1,0 +1,605 @@
+'use client';
+import { useState, useMemo, useEffect } from 'react';
+import { createSale } from '@/app/actions/sale';
+import { createQuote } from '@/app/actions/quote';
+import { searchProducts } from '@/app/actions/product';
+
+export default function POSClient({ products: initialProducts, customers, promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {} }: { products: any[], customers: any[], promotions?: any[], mode?: "SALE" | "QUOTE", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any }) {
+  const [cart, setCart] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [priceList, setPriceList] = useState('price');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [displayedProducts, setDisplayedProducts] = useState<any[]>(initialProducts);
+  
+  // Advanced POS State
+  const [stockFilter, setStockFilter] = useState<'ALL' | 'IN_STOCK' | 'OUT_OF_STOCK'>('ALL');
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  
+  // Checkout Modal State
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Variant Selection State
+  const [selectedProductForVariant, setSelectedProductForVariant] = useState<any | null>(null);
+  
+  const customMethods = (Array.isArray(metodosConfig?.methods) && metodosConfig.methods.length > 0) 
+     ? metodosConfig.methods 
+     : [{ id: 'CASH', name: 'Efectivo' }, { id: 'CARD', name: 'Tarjeta' }, { id: 'TRANSFER', name: 'Transferencia' }];
+
+  const [paymentMethod, setPaymentMethod] = useState(customMethods[0]?.id || 'CASH');
+  
+  const selectedCust = customers.find((c: any) => c.id === selectedCustomerId);
+  const allowedMethods = [...customMethods];
+  if (selectedCust && selectedCust.creditLimit > 0) {
+    allowedMethods.push({ id: 'CREDIT', name: 'Crédito Cta.' });
+  }
+  allowedMethods.push({ id: 'MIXTO', name: 'Mixto' });
+
+  const [amountReceived, setAmountReceived] = useState<number | ''>(''); // Used for pure CASH or MIXED cash amount
+  const [cardAmount, setCardAmount] = useState<number | ''>(''); // Used for MIXED
+  const [notes, setNotes] = useState<string>('');
+
+  const handleCustomerChange = (customerId: string) => {
+    setSelectedCustomerId(customerId);
+    const customer = customers.find((c: any) => c.id === customerId);
+    if (customer && customer.priceList) {
+      setPriceList(customer.priceList || 'price');
+    } else {
+      setPriceList('price');
+    }
+  };
+
+
+  
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await searchProducts(searchTerm, branchId);
+        setDisplayedProducts(results);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, branchId]);
+
+  const getProductPrice = (prod: any) => {
+    // Dynamic price lists check
+    if (priceList.startsWith('priceList_')) {
+      const plId = priceList.replace('priceList_', '');
+      const dynamicPrice = prod.prices?.find((p: any) => p.priceListId === plId);
+      if (dynamicPrice) return dynamicPrice.price;
+    }
+    
+    // Legacy fallback (optional since we're using dynamic mostly)
+    if (priceList === 'wholesalePrice' && prod.wholesalePrice) return prod.wholesalePrice;
+    if (priceList === 'specialPrice' && prod.specialPrice) return prod.specialPrice;
+    
+    return prod.price;
+  };
+
+  const handleProductClick = (product: any) => {
+    if (product.variants && product.variants.length > 0) {
+      setSelectedProductForVariant(product);
+    } else {
+      addToCart(product);
+    }
+  };
+
+  const addToCart = (product: any, variant: any = null) => {
+    // Generate a unique ID for the cart item based on whether it has a variant
+    const cartItemId = variant ? `v_${variant.id}` : product.id;
+    const cartItemName = variant ? `${product.name} (${variant.attribute})` : product.name;
+    const cartItemSku = variant && variant.sku ? variant.sku : product.sku;
+    
+    const exists = cart.find(item => item.cartItemId === cartItemId);
+    
+    if (exists) {
+      setCart(cart.map(item => item.cartItemId === cartItemId ? { ...item, quantity: item.quantity + 1 } : item));
+    } else {
+      setCart([...cart, { 
+        ...product, 
+        cartItemId, 
+        name: cartItemName, 
+        sku: cartItemSku,
+        variantId: variant ? variant.id : null,
+        quantity: 1 
+      }]);
+    }
+  };
+
+  // Recalculate total dynamically with active price list
+  const subTotal = useMemo(() => cart.reduce((sum, item) => sum + (getProductPrice(item) * item.quantity), 0), [cart, priceList]);
+  
+  const discount = useMemo(() => {
+    let d = 0;
+    promotions.forEach(promo => {
+      if (promo.type === 'PERCENTAGE') d += subTotal * (promo.value / 100);
+      else if (promo.type === 'FIXED_DISCOUNT') d += promo.value;
+    });
+    return d > subTotal ? subTotal : d;
+  }, [subTotal, promotions]);
+
+  const total = subTotal - discount;
+  const change = (typeof amountReceived === 'number' ? amountReceived : 0) - total;
+
+  const printTicket = (cartItems: any[], tTotal: number, tChange: number, tDiscount: number, saleId?: string) => {
+    // Generate inner styling for the ticket
+    const style = `
+      body { font-family: 'Courier New', Courier, monospace; font-size: 14px; margin: 0; padding: 10px; color: #000; width: 300px; }
+      .t-header { text-align: center; margin-bottom: 10px; }
+      .t-title { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+      .t-line { font-size: 12px; margin-bottom: 2px; }
+      .t-divider { border-top: 1px dashed #000; margin: 10px 0; }
+      .t-body { font-size: 12px; margin-bottom: 10px; }
+      .info-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+      .items-table { width: 100%; font-size: 12px; }
+      .item-head { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px; }
+      .item-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+      .col-cant { width: 40px; }
+      .col-desc { flex: 1; margin: 0 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+      .col-price { width: 60px; text-align: right; }
+      .totals { font-size: 14px; font-weight: bold; margin-top: 10px; }
+      .total-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+      .t-footer { text-align: center; font-size: 12px; margin-top: 15px; }
+      .qr-container { text-align: center; margin-top: 15px; }
+      .qr-text { font-size: 10px; margin-bottom: 5px; }
+      .qr-folio { font-size: 14px; font-weight: bold; margin-top: 5px; }
+    `;
+
+    const html = `
+      <html>
+        <head><style>${style}</style></head>
+        <body>
+          <div class="t-header">
+            <div class="t-title">${ticketConfig.storeName || 'MI NEGOCIO'}</div>
+            ${ticketConfig.rfc ? `<div class="t-line">RFC: ${ticketConfig.rfc}</div>` : ''}
+            ${ticketConfig.address ? `<div class="t-line">${ticketConfig.address.replace(/\n/g, '<br/>')}</div>` : ''}
+            ${ticketConfig.phone ? `<div class="t-line">Tel: ${ticketConfig.phone}</div>` : ''}
+          </div>
+          ${ticketConfig.headerMsg ? `
+            <div class="t-divider" style="border-top:1px solid #000;"></div>
+            <div class="t-line" style="text-align:center; font-weight:bold;">${ticketConfig.headerMsg}</div>
+          ` : ''}
+          <div class="t-divider"></div>
+          <div class="t-body">
+            <div class="info-row"><span>Fecha:</span><span>${new Date().toLocaleString()}</span></div>
+            <div class="info-row"><span>Atendió:</span><span>Caja</span></div>
+            ${saleId ? `<div class="info-row"><span>Folio Web:</span><span>${saleId.slice(-6).toUpperCase()}</span></div>` : ''}
+          </div>
+          <div class="items-table">
+            <div class="item-head">
+              <span class="col-cant">CANT</span>
+              <span class="col-desc">DESCRIPCIÓN</span>
+              <span class="col-price">IMPORTE</span>
+            </div>
+            ${cartItems.map(item => `
+              <div class="item-row">
+                <span class="col-cant">${item.quantity}</span>
+                <span class="col-desc">${item.name}</span>
+                <span class="col-price">$${(getProductPrice(item) * item.quantity).toFixed(2)}</span>
+              </div>
+            `).join('')}
+          </div>
+          <div class="t-divider"></div>
+          <div class="totals">
+            ${tDiscount > 0 ? `<div class="total-row"><span>Subtotal:</span><span>$${(tTotal + tDiscount).toFixed(2)}</span></div>
+            <div class="total-row" style="color: red;"><span>Descuento:</span><span>-$${tDiscount.toFixed(2)}</span></div>` : ''}
+            <div class="total-row" style="font-size: 16px;"><span>TOTAL:</span><span>$${tTotal.toFixed(2)}</span></div>
+            ${tChange > 0 && typeof amountReceived === 'number' ? `
+            <div class="total-row"><span>Recibido:</span><span>$${amountReceived.toFixed(2)}</span></div>
+            <div class="total-row"><span>Cambio:</span><span>$${tChange.toFixed(2)}</span></div>
+            ` : ''}
+          </div>
+          ${ticketConfig.footerMsg ? `
+            <div class="t-divider"></div>
+            <div class="t-footer">${ticketConfig.footerMsg.replace(/\n/g, '<br/>')}</div>
+          ` : ''}
+          ${saleId ? `
+            <div class="t-divider"></div>
+            <div class="qr-container">
+              <div class="qr-text">Para generar tu factura escanea este código:</div>
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(window.location.origin + '/clientes/portal?ticketId=' + saleId.slice(-6).toUpperCase())}" alt="QR" style="width:120px;height:120px;"/>
+              <div class="qr-folio">FOLIO: ${saleId.slice(-6).toUpperCase()}</div>
+            </div>
+          ` : ''}
+        </body>
+      </html>
+    `;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0px';
+    iframe.style.height = '0px';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+    
+    // Write contents to iframe
+    if (iframe.contentWindow) {
+      iframe.contentWindow.document.open();
+      iframe.contentWindow.document.write(html);
+      iframe.contentWindow.document.close();
+      
+      // Allow image to load before printing
+      iframe.onload = () => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 1000);
+      };
+    }
+  };
+
+  const handleCheckout = async () => {
+    if (cart.length === 0) return;
+    setIsProcessing(true);
+    try {
+      const items = cart.map(item => ({ 
+        productId: item.id, 
+        variantId: item.variantId || null,
+        quantity: item.quantity, 
+        price: getProductPrice(item) 
+      }));
+      
+      const cartBackup = [...cart];
+      const totalBackup = total;
+      const changeBackup = change;
+      const discountBackup = discount;
+
+      let saleId: string | undefined;
+
+      if (mode === 'QUOTE') {
+        const quote = await createQuote(items, total, paymentMethod, selectedCustomerId || null);
+      } else {
+        const cashValue = typeof amountReceived === 'number' ? amountReceived : undefined;
+        const cardValue = typeof cardAmount === 'number' ? cardAmount : undefined;
+        
+        const sale = await createSale(items, total, paymentMethod, selectedCustomerId || null, sessionId, notes, cashValue, cardValue);
+        saleId = sale.id;
+      }
+      
+      setCart([]);
+      setIsCheckoutOpen(false);
+      setAmountReceived('');
+      setCardAmount('');
+      setNotes('');
+      setIsProcessing(false);
+
+      setTimeout(() => {
+         if (mode === 'QUOTE') {
+           alert('¡Cotización creada con éxito! Imprimiendo Ticket...');
+         } else {
+           alert('¡Venta cobrada con éxito! Imprimiendo Ticket...');
+         }
+         printTicket(cartBackup, totalBackup, changeBackup, discountBackup, saleId);
+      }, 100);
+
+    } catch (e) {
+      alert('Error en la venta: ' + String(e));
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', gap: '2rem', height: 'calc(100vh - 200px)' }}>
+      {/* Left: Products */}
+      <div className="card" style={{ flex: 2, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: '1rem' }}>
+          <h2 style={{ fontSize: '1.25rem', whiteSpace: 'nowrap' }}>Inventario</h2>
+          <div style={{ display: 'flex', flex: 1, gap: '0.5rem' }}>
+            <input 
+              type="text" 
+              placeholder="🔍 Buscar por nombre, SKU o código" 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              style={{ padding: '0.75rem 1rem', flex: 1, borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+              autoFocus
+            />
+            <select 
+              value={stockFilter} 
+              onChange={e => setStockFilter(e.target.value as 'ALL' | 'IN_STOCK' | 'OUT_OF_STOCK')}
+              style={{ padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}
+            >
+              <option value="ALL">Todas las existencias</option>
+              <option value="IN_STOCK">Con Existencia</option>
+              <option value="OUT_OF_STOCK">Sin Existencia</option>
+            </select>
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', overflowY: 'auto', alignContent: 'start', paddingRight: '0.5rem', opacity: isSearching ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+          {displayedProducts
+            .filter(prod => {
+              if (stockFilter === 'IN_STOCK') return prod.stock > 0;
+              if (stockFilter === 'OUT_OF_STOCK') return prod.stock <= 0;
+              return true;
+            })
+            .map(prod => (
+            <button key={prod.id} onClick={() => handleProductClick(prod)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--pulpos-border)', padding: '0.75rem 1rem', borderRadius: '4px', textAlign: 'left', backgroundColor: 'white', cursor: 'pointer', transition: 'background-color 0.2s', ':hover': { backgroundColor: '#f8fafc' } } as any}>
+              <div>
+                <div style={{ fontWeight: '600', fontSize: '0.9rem', color: '#1e293b' }}>{prod.name} {prod.variants?.length > 0 && <span style={{fontSize: '0.75rem', backgroundColor: '#e2e8f0', padding: '2px 6px', borderRadius: '4px', marginLeft: '0.5rem'}}>{prod.variants.length} var.</span>}</div>
+                <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.75rem', marginTop: '0.1rem' }}>SKU: {prod.sku || '--'} | Stock: {prod.stock}</div>
+              </div>
+              <div style={{ color: 'var(--pulpos-primary)', fontWeight: 'bold', fontSize: '1rem', textAlign: 'right' }}>
+                ${getProductPrice(prod).toFixed(2)}
+              </div>
+            </button>
+          ))}
+          {displayedProducts.length === 0 && !isSearching && (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+              No se encontraron productos en la base de datos.
+            </div>
+          )}
+          {isSearching && (
+             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+               Buscando en Base de Datos...
+             </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right: Cart */}
+      <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        
+        {/* Ticket Config */}
+        <div style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>
+          <div style={{ marginBottom: '0.75rem' }}>
+            <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.25rem' }}>Cliente</label>
+            <div style={{ position: 'relative' }}>
+              <input 
+                list="customersList"
+                type="text"
+                placeholder="🔎 Buscar o escribir nombre de cliente..."
+                value={customerSearchTerm}
+                onChange={e => {
+                  setCustomerSearchTerm(e.target.value);
+                  const matched = customers.find((c: any) => c.name.toLowerCase() === e.target.value.toLowerCase());
+                  if (matched) handleCustomerChange(matched.id);
+                  else handleCustomerChange('');
+                }}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+              />
+              <datalist id="customersList">
+                <option value="">Público en General</option>
+                {customers.map((c: any) => <option key={c.id} value={c.name} />)}
+              </datalist>
+            </div>
+            {selectedCustomerId && (
+               <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '0.25rem', fontWeight: 'bold' }}>
+                 ✓ Cliente vinculado
+               </div>
+            )}
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.25rem' }}>Lista de Precios del Ticket</label>
+            <select value={priceList} onChange={e => setPriceList(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', fontWeight: 'bold', color: priceList !== 'price' ? 'var(--pulpos-primary)' : 'inherit' }}>
+              <option value="price">Normal (Público General)</option>
+              {/* Note: In a real system you'd pass down pre-fetched priceLists to show options dynamically here too, 
+                  but we inherit the auto-selection from customer or use basic values! */}
+              <option value="wholesalePrice">Mayoreo</option>
+              <option value="specialPrice">Especial (Distribuidor)</option>
+            </select>
+          </div>
+        </div>
+
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Ticket actual</h2>
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {cart.length === 0 && <div style={{ color: 'var(--pulpos-text-muted)', textAlign: 'center', marginTop: '2rem' }}>Ticket vacío</div>}
+          {cart.map(item => {
+            const currentPrice = getProductPrice(item);
+            return (
+              <div key={item.cartItemId} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--pulpos-border)' }}>
+                <div>
+                  <div style={{ fontWeight: '500' }}>{item.name}</div>
+                  <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.875rem' }}>{item.quantity} x ${currentPrice.toFixed(2)}</div>
+                </div>
+                <div style={{ fontWeight: 'bold' }}>${(item.quantity * currentPrice).toFixed(2)}</div>
+              </div>
+            );
+          })}
+        </div>
+        
+        <div style={{ borderTop: '2px solid var(--pulpos-border)', paddingTop: '1rem', marginTop: '1rem' }}>
+          {discount > 0 && (
+            <div style={{ display: 'flex', justifyItems: 'space-between', fontSize: '1rem', color: '#dc2626', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+              <span style={{flex: 1}}>Descuentos Aplicados</span>
+              <span>-${discount.toFixed(2)}</span>
+            </div>
+          )}
+          <div style={{ display: 'flex', justifyItems: 'space-between', fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+            <span style={{flex: 1}}>Total a Cobrar</span>
+            <span style={{ color: 'var(--pulpos-primary)' }}>${total.toFixed(2)}</span>
+          </div>
+          <button onClick={() => setIsCheckoutOpen(true)} disabled={cart.length === 0} className="btn-primary" style={{ width: '100%', fontSize: '1.25rem', padding: '1rem', opacity: cart.length === 0 ? 0.5 : 1 }}>
+            {mode === 'QUOTE' ? 'Generar Cotización' : 'Cobrar Venta'}
+          </button>
+        </div>
+      </div>
+
+      {/* Checkout Modal */}
+      {isCheckoutOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', width: '500px', maxWidth: '90%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', textAlign: 'center' }}>
+               {mode === 'QUOTE' ? 'Finalizar Cotización' : 'Finalizar Venta'}
+            </h2>
+            
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{ fontSize: '1rem', color: 'var(--pulpos-text-muted)' }}>{mode === 'QUOTE' ? 'Total Presupuestado' : 'Total a Pagar'}</div>
+              <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>${total.toFixed(2)}</div>
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>Método de Pago</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '0.5rem' }}>
+                {allowedMethods.map(method => (
+                  <button 
+                    key={method.id}
+                    onClick={() => setPaymentMethod(method.id)}
+                    style={{ 
+                      padding: '0.75rem', borderRadius: '4px', border: '1px solid', 
+                      borderColor: paymentMethod === method.id ? 'var(--pulpos-primary)' : 'var(--pulpos-border)',
+                      backgroundColor: paymentMethod === method.id ? '#eff6ff' : 'white',
+                      color: paymentMethod === method.id ? 'var(--pulpos-primary)' : 'inherit',
+                      fontWeight: paymentMethod === method.id ? 'bold' : 'normal',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {method.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {paymentMethod === 'CREDIT' && selectedCust && selectedCust.creditLimit > 0 && (
+              <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#fef3c7', borderRadius: '8px', border: '1px solid #fde68a' }}>
+                <div style={{ fontWeight: 'bold', color: '#b45309', marginBottom: '0.25rem' }}>Venta a Crédito</div>
+                <div style={{ color: '#d97706', fontSize: '0.9rem' }}>
+                  Límite disp.: ${selectedCust.creditLimit.toFixed(2)} | Días de atraso máx.: {selectedCust.creditDays}
+                </div>
+                {total > selectedCust.creditLimit && (
+                  <div style={{ marginTop: '0.5rem', color: 'red', fontWeight: 'bold' }}>
+                    ⚠️ El total excede el límite de crédito del cliente.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {(paymentMethod === 'CASH' || paymentMethod.toLowerCase().includes('efectivo')) && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>Efectivo Recibido</label>
+                <input 
+                  type="number" 
+                  autoFocus
+                  value={amountReceived}
+                  onChange={e => setAmountReceived(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                  placeholder={`Mínimo $${total.toFixed(2)}`}
+                  style={{ width: '100%', padding: '1rem', fontSize: '1.25rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', textAlign: 'right' }}
+                />
+                {(typeof amountReceived === 'number' && amountReceived >= total) && (
+                  <div style={{ marginTop: '0.5rem', textAlign: 'right', fontSize: '1.1rem', color: '#16a34a', fontWeight: 'bold' }}>
+                    Cambio a entregar: ${change.toFixed(2)}
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {paymentMethod === 'MIXTO' && (
+              <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>Pago en Tarjeta</label>
+                  <input 
+                    type="number" 
+                    value={cardAmount}
+                    onChange={e => {
+                       const v = e.target.value === '' ? '' : parseFloat(e.target.value);
+                       setCardAmount(v);
+                       if (typeof v === 'number' && v <= total) setAmountReceived(total - v);
+                    }}
+                    placeholder={`Monto`}
+                    style={{ width: '100%', padding: '1rem', fontSize: '1.25rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', textAlign: 'right' }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>Pago en Efectivo</label>
+                  <input 
+                    type="number" 
+                    value={amountReceived}
+                    onChange={e => setAmountReceived(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                    placeholder={`Restante`}
+                    style={{ width: '100%', padding: '1rem', fontSize: '1.25rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', textAlign: 'right' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginBottom: '1.5rem' }}>
+               <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>Notas del Ticket (Opcional)</label>
+               <input 
+                  type="text" 
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  placeholder="Ej. Entregar pedido especial..."
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+               />
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+              <button onClick={() => setIsCheckoutOpen(false)} style={{ flex: 1, padding: '1rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', background: 'white' }}>
+                Cancelar
+              </button>
+              <button 
+                onClick={handleCheckout} 
+                disabled={
+                  isProcessing || 
+                  (mode === 'SALE' && paymentMethod === 'CASH' && (typeof amountReceived !== 'number' || amountReceived < total)) ||
+                  (mode === 'SALE' && paymentMethod === 'MIXTO' && (typeof amountReceived !== 'number' || typeof cardAmount !== 'number' || (amountReceived + cardAmount) < total))
+                }
+                className="btn-primary" 
+                style={{ flex: 1, padding: '1rem', fontSize: '1.1rem', opacity: isProcessing ? 0.5 : 1 }}
+              >
+                {isProcessing ? 'Guardando...' : (mode === 'QUOTE' ? 'Guardar Cotización' : 'Confirmar Pago')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Variant Selection Modal */}
+      {selectedProductForVariant && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
+          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', width: '450px', maxWidth: '90%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>
+               Seleccionar Variante
+            </h2>
+            <div style={{ color: 'var(--pulpos-text-muted)', marginBottom: '1.5rem' }}>
+              {selectedProductForVariant.name}
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '50vh', overflowY: 'auto' }}>
+              {selectedProductForVariant.variants.map((v: any) => (
+                <button
+                  key={v.id}
+                  onClick={() => {
+                    addToCart(selectedProductForVariant, v);
+                    setSelectedProductForVariant(null);
+                  }}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '1rem',
+                    border: '1px solid var(--pulpos-border)',
+                    borderRadius: '4px',
+                    backgroundColor: 'white',
+                    cursor: 'pointer',
+                    textAlign: 'left'
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{v.attribute}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--pulpos-text-muted)' }}>SKU: {v.sku || '--'}</div>
+                  </div>
+                  <div style={{ fontSize: '0.875rem', fontWeight: '600', color: v.stock > 0 ? '#16a34a' : '#dc2626' }}>
+                    {v.stock} disp.
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
+              <button onClick={() => setSelectedProductForVariant(null)} style={{ padding: '0.75rem 1.5rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', cursor: 'pointer', background: 'white', fontWeight: 'bold' }}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
