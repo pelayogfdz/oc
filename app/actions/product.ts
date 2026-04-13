@@ -216,9 +216,10 @@ export async function searchProducts(query: string, branchId: string) {
   
   const searchConditions = words.map(word => ({
     OR: [
-      { name: { contains: word } },
-      { sku: { contains: word } },
-      { barcode: { contains: word } }
+      { name: { contains: word, mode: 'insensitive' } },
+      { description: { contains: word, mode: 'insensitive' } },
+      { sku: { contains: word, mode: 'insensitive' } },
+      { barcode: { contains: word, mode: 'insensitive' } }
     ]
   }));
 
