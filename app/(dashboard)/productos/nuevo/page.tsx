@@ -3,6 +3,7 @@ import { createProduct } from "@/app/actions/product";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Image as ImageIcon } from 'lucide-react';
+import ProductFormClient from "./ProductFormClient";
 
 export default async function NuevoProductoPage({ searchParams }: { searchParams: { cloneId?: string } }) {
   const branch = await getActiveBranch();
