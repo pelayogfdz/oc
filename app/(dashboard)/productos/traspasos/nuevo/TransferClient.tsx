@@ -9,6 +9,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
   const [toBranchId, setToBranchId] = useState('');
   const [reason, setReason] = useState('Reabastecimiento');
   const [searchTerm, setSearchTerm] = useState('');
+  const [stockFilter, setStockFilter] = useState('ALL');
   
   const [transferItems, setTransferItems] = useState<any[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -19,6 +20,10 @@ export default function TransferClient({ originBranchId, originBranchName, other
   const removeAccents = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
   const displayedProducts = inventory.filter((p: any) => {
+    // Stock Filter
+    if (stockFilter === 'WITH_STOCK' && p.stock <= 0) return false;
+    if (stockFilter === 'WITHOUT_STOCK' && p.stock > 0) return false;
+
     if (!searchTerm.trim()) return true;
     const searchTerms = removeAccents(searchTerm.toLowerCase().trim()).split(/\s+/);
     const searchableString = removeAccents(`${p.name || ''} ${p.description || ''} ${p.sku || ''} ${p.barcode || ''}`.toLowerCase());
@@ -191,15 +196,27 @@ export default function TransferClient({ originBranchId, originBranchName, other
       {/* Right: Product Selector */}
       <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Buscador de Inventario</h2>
-        <div style={{ position: 'relative', marginBottom: '1rem' }}>
-          <Search size={18} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--pulpos-text-muted)' }} />
-          <input 
-            type="text" 
-            placeholder="Buscar por nombre o SKU..." 
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            style={{ width: '100%', padding: '0.5rem 0.5rem 0.5rem 2.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
-          />
+        
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search size={18} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--pulpos-text-muted)' }} />
+            <input 
+              type="text" 
+              placeholder="Buscar por nombre o SKU..." 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              style={{ width: '100%', padding: '0.5rem 0.5rem 0.5rem 2.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+            />
+          </div>
+          <select 
+            value={stockFilter} 
+            onChange={e => setStockFilter(e.target.value)} 
+            style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', color: 'var(--pulpos-text)', backgroundColor: 'white', minWidth: '130px', fontSize: '0.875rem' }}
+          >
+            <option value="ALL">Todo</option>
+            <option value="WITH_STOCK">Con Stock</option>
+            <option value="WITHOUT_STOCK">Agotados</option>
+          </select>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
