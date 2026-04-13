@@ -3,11 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { FileText, PlusCircle } from 'lucide-react';
 import { revalidatePath } from "next/cache";
 
-async function stampGlobalInvoice(formData: FormData) {
-  'use server';
-  // Simulate global invoice creation
-  revalidatePath('/facturas/globales');
-}
+import { stampGlobalInvoice } from "@/app/actions/facturacion";
 
 export default async function FacturasGlobalesPage() {
   const branch = await getActiveBranch();
@@ -44,7 +40,7 @@ export default async function FacturasGlobalesPage() {
            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#0284c7', marginBottom: '1.5rem' }}>
              ${totalGlobal.toFixed(2)}
            </div>
-           <form action={stampGlobalInvoice}>
+           <form action={async (formData: FormData) => { 'use server'; await stampGlobalInvoice(formData); }}>
              <button type="submit" className="btn-primary" style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '0.5rem', padding: '1rem', backgroundColor: '#0284c7', fontSize: '1.1rem' }}>
                 <PlusCircle size={20} /> Generar Global del Día
              </button>

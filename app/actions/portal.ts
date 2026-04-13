@@ -23,15 +23,46 @@ export async function searchTicket(ticketId: string) {
   }
 }
 
+import { stampInvoice } from "./facturacion";
+
 export async function generateInvoice(ticketId: string, taxData: any) {
   try {
-    // Simulamos la generación y timbrado de un CFDI (Factura electrónica)
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Devolvemos exito puro mock, aunque podríamos registrar que el sale ya está facturado si agregáramos
-    // el booleano isBilled al modelo Sale en un caso robusto.
-    return { success: true };
-  } catch (error) {
-    return { error: "Error al generar y sellar la factura." };
+    const sale = await prisma.sale.findUnique({
+      where: { id: ticketId }
+    });
+
+    if (!sale) return { error: "Ticket inválido." };
+    if (sale.invoiceId) return { error: "El ticket ya fue facturado." };
+
+    // Update or create a basic customer on the fly to hold the tax data
+    const customer = await prisma.customer.create({
+      data: {
+         name: taxData.legalName,
+         legalName: taxData.legalName,
+         taxId: taxData.rfc,
+         email: taxData.email,
+         zipCode: taxData.zipCode,
+         taxRegime: taxData.taxRegime,
+         cfdiUse: taxData.cfdiUse,
+         branchId: sale.branchId
+      }
+    });
+
+    // Link customer to sale
+    await prisma.sale.update({
+       where: { id: ticketId },
+       data: { customerId: customer.id }
+    });
+
+    // Let the central CFDI function do the heavy lifting
+    const facturapiResult = await stampInvoice(ticketId);
+
+    if (!facturapiResult.success) {
+      return { error: facturapiResult.error };
+    }
+
+    return { success: true, invoiceId: facturapiResult.invoiceId };
+  } catch (error: any) {
+    return { error: error.message || "Error al facturar." };
   }
 }

@@ -19,6 +19,32 @@ export async function createSale(
   
   if (items.length === 0) throw new Error("Ticket is empty");
 
+  // Load preferences
+  const branchSettings = await prisma.branchSettings.findUnique({ where: { branchId: branch.id } });
+  const config = branchSettings?.configJson ? JSON.parse(branchSettings.configJson)['ventas'] || {} : {};
+  const permitirVenderSinStock = config.venderSinStock === true;
+  const permitirVenderBajoCosto = config.venderBajoCosto === true;
+
+  // Validate items against preferences
+  for (const item of items) {
+    const product = await prisma.product.findUnique({ where: { id: item.productId } });
+    if (!product) throw new Error("Producto no encontrado");
+
+    let currentStock = product.stock;
+    if (item.variantId) {
+      const variant = await prisma.productVariant.findUnique({ where: { id: item.variantId } });
+      if (variant) currentStock = variant.stock;
+    }
+
+    if (!permitirVenderSinStock && currentStock - item.quantity < 0) {
+      throw new Error(`Inventario insuficiente para: ${product.name}`);
+    }
+
+    if (!permitirVenderBajoCosto && item.price < product.cost) {
+      throw new Error(`Precio por debajo del costo para: ${product.name}`);
+    }
+  }
+
   const sale = await prisma.sale.create({
     data: {
       total,
@@ -66,8 +92,18 @@ export async function createSale(
     });
   }
 
+  // Si fue a crédito, actualizar la deuda del cliente
+  if (paymentMethod === 'CREDIT' && customerId) {
+     await prisma.customer.update({
+        where: { id: customerId },
+        data: { creditBalance: { increment: total } }
+     });
+  }
+
   revalidatePath('/ventas');
   revalidatePath('/productos');
+  if (paymentMethod === 'CREDIT') revalidatePath('/clientes/cobranza');
+  
   return sale;
 }
 

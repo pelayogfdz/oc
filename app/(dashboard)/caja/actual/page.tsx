@@ -1,5 +1,6 @@
 import { getCurrentSession, openSession, addMovement, closeSession } from "@/app/actions/caja";
 import { getActiveUser, getActiveBranch } from "@/app/actions/auth";
+import { getBranchSettings } from "@/app/actions/settings";
 import { formatCurrency } from "@/lib/utils";
 import { Banknote, ArrowDownToLine, ArrowUpFromLine, CheckCircle2, AlertTriangle, ShieldCheck, EyeOff } from 'lucide-react';
 
@@ -8,8 +9,12 @@ export default async function CajaActualPage() {
   if (!branch) { return <div>No hay sucursal activa</div>; }
   const user = await getActiveUser(branch.id);
   const session = await getCurrentSession();
+  const settings = await getBranchSettings();
+  const cajasConfig = settings.configJson ? JSON.parse(settings.configJson)['cajas'] || {} : {};
 
   const isAdminOrManager = user.role === 'ADMIN' || user.role === 'MANAGER';
+  const isBlindCutEnabled = cajasConfig.corteCiego;
+  const hideTotals = isBlindCutEnabled && !isAdminOrManager;
 
   if (!session) {
     return (
@@ -75,7 +80,7 @@ export default async function CajaActualPage() {
           <div className="card" style={{ padding: '1.5rem', backgroundColor: 'var(--pulpos-primary)', color: 'white' }}>
             <div style={{ fontSize: '0.875rem', opacity: 0.8, marginBottom: '0.5rem' }}>Efectivo Calculado en Caja</div>
             <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>
-              {isAdminOrManager ? formatCurrency(expectedAmount) : (
+              {!hideTotals ? formatCurrency(expectedAmount) : (
                 <span style={{ fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <EyeOff size={24} /> Oculto (Corte Ciego)
                 </span>
@@ -85,19 +90,19 @@ export default async function CajaActualPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.875rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ opacity: 0.8 }}>Fondo Inicial:</span>
-                <span>{formatCurrency(session.initialAmount)}</span>
+                <span>{hideTotals ? '***' : formatCurrency(session.initialAmount)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ opacity: 0.8 }}>Ventas (Efectivo):</span>
-                <span>+ {formatCurrency(totalSalesCash)}</span>
+                <span>+ {hideTotals ? '***' : formatCurrency(totalSalesCash)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ opacity: 0.8 }}>Entradas Extra:</span>
-                <span>+ {formatCurrency(totalIn)}</span>
+                <span>+ {hideTotals ? '***' : formatCurrency(totalIn)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ opacity: 0.8 }}>Salidas/Retiros:</span>
-                <span>- {formatCurrency(totalOut)}</span>
+                <span>- {hideTotals ? '***' : formatCurrency(totalOut)}</span>
               </div>
             </div>
           </div>

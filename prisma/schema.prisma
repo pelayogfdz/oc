@@ -23,6 +23,7 @@ model User {
   expenses  Expense[]
   cashSessions CashSession[]
   inventoryMovements InventoryMovement[]
+  customerPayments CustomerPayment[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -46,6 +47,7 @@ model Branch {
   cashSessions  CashSession[]
   inventoryAudits InventoryAudit[]
   storeIntegrations StoreIntegration[]
+  customerPayments  CustomerPayment[]
   settings      BranchSettings?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -94,10 +96,26 @@ model Customer {
   // Crédito y Finanzas
   creditLimit Float    @default(0)
   creditDays  Int      @default(0)
+  creditBalance Float  @default(0) // Debe (lo que el cliente debe)
   priceList   String   @default("price") // price, wholesalePrice, specialPrice
+  
+  payments    CustomerPayment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model CustomerPayment {
+  id          String   @id @default(uuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id])
+  amount      Float
+  reason      String?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  branchId    String?
+  branch      Branch?  @relation(fields: [branchId], references: [id])
+  createdAt   DateTime @default(now())
 }
 
 model Product {

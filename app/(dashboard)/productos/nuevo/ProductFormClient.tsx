@@ -4,10 +4,32 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Image as ImageIcon, Plus, Trash2 } from 'lucide-react';
 import { createProduct } from "@/app/actions/product";
+import { useFormState } from 'react-dom';
+
+const initialState = {
+  error: '',
+  success: false
+};
 
 export default function ProductFormClient({ cloneProduct, suppliers, priceLists, branchId }: any) {
+  const [state, formAction] = useFormState(createProduct, initialState);
   const [hasVariants, setHasVariants] = useState(false);
   const [variants, setVariants] = useState<{ attribute: string, stock: number, sku: string }[]>([]);
+  
+  // States for margin calculation
+  const [cost, setCost] = useState<number>(() => parseFloat(cloneProduct?.cost || "0"));
+  const [price, setPrice] = useState<number>(() => parseFloat(cloneProduct?.price || "0"));
+  
+  const [dynamicPrices, setDynamicPrices] = useState<Record<string, number>>(() => {
+    const init: Record<string, number> = {};
+    if (priceLists && cloneProduct?.prices) {
+      priceLists.forEach((pl: any) => {
+        const p = cloneProduct.prices.find((cp: any) => cp.priceListId === pl.id);
+        if (p) init[pl.id] = parseFloat(p.price) || 0;
+      });
+    }
+    return init;
+  });
 
   const handleAddVariant = () => {
     setVariants([...variants, { attribute: '', stock: 0, sku: '' }]);
@@ -24,7 +46,7 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
   };
 
   return (
-    <form action={createProduct}>
+    <form action={formAction}>
       <input type="hidden" name="branchId" value={branchId} />
       <input type="hidden" name="variantsJson" value={JSON.stringify(variants)} />
       <input type="hidden" name="hasVariants" value={hasVariants ? "1" : "0"} />
@@ -42,6 +64,12 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
           
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.85rem' }}>YouTube Video URL</label>
           <input type="url" name="youtubeUrl" defaultValue={cloneProduct?.youtubeUrl || ''} placeholder="https://www.youtube.com/watch?v=..." style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+          
+          {state?.error && (
+            <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', borderRadius: '6px', fontWeight: 'bold' }}>
+               {state.error}
+            </div>
+          )}
         </div>
       </div>
 
@@ -95,11 +123,14 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: '1.5rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Costo de Compra ($)</label>
-            <input type="number" step="0.01" name="cost" defaultValue={cloneProduct?.cost || "0"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+            <input type="number" step="0.01" name="cost" value={cost} onChange={(e) => setCost(parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Precio Público normal ($) *</label>
-            <input type="number" step="0.01" name="price" defaultValue={cloneProduct?.price || ''} required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+            <input type="number" step="0.01" name="price" value={price} onChange={(e) => setPrice(parseFloat(e.target.value) || 0)} required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+            <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: (price - cost) >= 0 ? '#16a34a' : '#dc2626', fontWeight: '500' }}>
+              Ganancia: ${(price - cost).toFixed(2)} ({ cost > 0 ? (((price - cost) / cost) * 100).toFixed(1) : (price > 0 ? '100' : '0') }% de utilidad sobre costo / { price > 0 ? (((price - cost) / price) * 100).toFixed(1) : '0'}% margen)
+            </div>
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Impuesto / IVA (%)</label>
@@ -109,11 +140,24 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
         {priceLists.length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: '1.5rem', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--pulpos-border)' }}>
               {priceLists.map((pl: any) => {
-                const dynamicPrice = cloneProduct?.prices?.find((p: any) => p.priceListId === pl.id)?.price;
+                const plPrice = dynamicPrices[pl.id] || 0;
                 return (
                   <div key={pl.id}>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Lista: {pl.name} ($)</label>
-                    <input type="number" step="0.01" name={`priceList_${pl.id}`} defaultValue={dynamicPrice || ''} placeholder="Opcional" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                    <input 
+                       type="number" 
+                       step="0.01" 
+                       name={`priceList_${pl.id}`} 
+                       value={dynamicPrices[pl.id] === undefined ? '' : dynamicPrices[pl.id]} 
+                       onChange={(e) => setDynamicPrices({...dynamicPrices, [pl.id]: parseFloat(e.target.value) || 0})}
+                       placeholder="Opcional" 
+                       style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} 
+                    />
+                    {plPrice > 0 && (
+                      <div style={{ marginTop: '0.5rem', fontSize: '0.80rem', color: (plPrice - cost) >= 0 ? '#16a34a' : '#dc2626', fontWeight: '500' }}>
+                        Ganancia: ${(plPrice - cost).toFixed(2)} ({ cost > 0 ? (((plPrice - cost) / cost) * 100).toFixed(1) : '100'}% de utilidad / { (((plPrice - cost) / plPrice) * 100).toFixed(1)}% margen)
+                      </div>
+                    )}
                   </div>
                 );
               })}

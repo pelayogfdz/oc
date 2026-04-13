@@ -31,11 +31,13 @@ export default async function NuevaVentaPage() {
   const settings = await getBranchSettings();
   let ticketConfig = {};
   let metodosConfig = {};
+  let ventasConfig: any = {};
   if (settings.configJson) {
     try {
       const parsed = JSON.parse(settings.configJson);
       ticketConfig = parsed.tickets || {};
       metodosConfig = parsed.metodos || {};
+      ventasConfig = parsed.ventas || {};
     } catch(e) {}
   }
 
@@ -58,7 +60,7 @@ export default async function NuevaVentaPage() {
 
       {/* Solo mostramos el POS pero si no hay sesión estara opacado */}
       <div style={{ filter: !session ? 'blur(8px) grayscale(100%)' : 'none', pointerEvents: !session ? 'none' : 'auto', transition: 'all 0.3s' }}>
-        <POSClient products={products} customers={customers} promotions={promotions} sessionId={session?.id} branchId={branch?.id || ''} ticketConfig={ticketConfig} metodosConfig={metodosConfig} />
+        <POSClient products={products} customers={customers} promotions={promotions} sessionId={session?.id} branchId={branch?.id || ''} ticketConfig={ticketConfig} metodosConfig={metodosConfig} ventasConfig={ventasConfig} />
       </div>
     </div>
   );

@@ -17,13 +17,24 @@ export async function createTransfer(
   if (!payload.toBranchId) throw new Error("Sucursal destino requerida");
   if (payload.items.length === 0) throw new Error("No hay artículos en el traspaso");
 
+  // Retrieve rules
+  const branchSettings = await prisma.branchSettings.findUnique({ where: { branchId: branchFrom.id } });
+  const config = branchSettings?.configJson ? JSON.parse(branchSettings.configJson)['ventas'] || {} : {};
+  const permitirVenderSinStock = config.venderSinStock === true;
+
   // 1. Deduct stock at origin and set transfer IN_TRANSIT
   await prisma.$transaction(async (tx) => {
     for (const item of payload.items) {
       const productFrom = await tx.product.findUnique({ where: { id: item.productId } });
       if (!productFrom) throw new Error(`Producto no encontrado`);
 
-      if (productFrom.stock < item.quantity) {
+      let currentStock = productFrom.stock;
+      if (item.variantId) {
+         const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } });
+         if (variant) currentStock = variant.stock;
+      }
+
+      if (!permitirVenderSinStock && currentStock < item.quantity) {
         throw new Error(`Stock insuficiente para el producto ${productFrom.sku}`);
       }
 

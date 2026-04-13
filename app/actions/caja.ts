@@ -90,10 +90,13 @@ export async function closeSession(formData: FormData) {
   const cashSales = sessionRecord.sales.filter(s => s.paymentMethod === 'CASH');
   const totalSalesCash = cashSales.reduce((acc, sale) => acc + sale.total, 0);
 
+  const mixtoSales = sessionRecord.sales.filter(s => s.paymentMethod === 'MIXTO');
+  const totalSalesMixtoCash = mixtoSales.reduce((acc, sale) => acc + (sale.cashAmount || 0), 0);
+
   const totalIn = sessionRecord.movements.filter(m => m.type === 'IN').reduce((acc, m) => acc + m.amount, 0);
   const totalOut = sessionRecord.movements.filter(m => m.type === 'OUT').reduce((acc, m) => acc + m.amount, 0);
 
-  const expectedAmount = sessionRecord.initialAmount + totalSalesCash + totalIn - totalOut;
+  const expectedAmount = sessionRecord.initialAmount + totalSalesCash + totalSalesMixtoCash + totalIn - totalOut;
   const difference = actualAmount - expectedAmount;
 
   await prisma.cashSession.update({

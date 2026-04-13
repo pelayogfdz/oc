@@ -4,16 +4,17 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
-export async function createProduct(formData: FormData) {
-  const branchId = formData.get('branchId') as string;
-  const sku = formData.get('sku') as string;
-  const barcode = (formData.get('barcode') as string) || null;
-  const name = formData.get('name') as string;
-  const description = formData.get('description') as string;
-  
-  const price = parseFloat(formData.get('price') as string) || 0;
-  const cost = parseFloat(formData.get('cost') as string) || 0;
-  const taxRate = parseFloat(formData.get('taxRate') as string) || 16.0;
+export async function createProduct(prevState: any, formData: FormData) {
+  try {
+    const branchId = formData.get('branchId') as string;
+    const sku = formData.get('sku') as string;
+    const barcode = (formData.get('barcode') as string) || null;
+    const name = formData.get('name') as string;
+    const description = formData.get('description') as string;
+    
+    const price = parseFloat(formData.get('price') as string) || 0;
+    const cost = parseFloat(formData.get('cost') as string) || 0;
+    const taxRate = parseFloat(formData.get('taxRate') as string) || 16.0;
   
   const category = formData.get('category') as string;
   const brand = formData.get('brand') as string;
@@ -44,7 +45,9 @@ export async function createProduct(formData: FormData) {
   const minStock = parseInt(formData.get('minStock') as string, 10) || 0;
   const supplierId = (formData.get('supplierId') as string) || null;
   
-  if (!sku || !name || !branchId) return;
+  if (!sku || !name || !branchId) {
+     return { error: "Faltan campos obligatorios (SKU, Nombre o Sucursal)." };
+  }
 
   const product = await prisma.product.create({
     data: { 
@@ -117,6 +120,11 @@ export async function createProduct(formData: FormData) {
         }
       });
     }
+  }
+
+  } catch (error: any) {
+    console.error("Error creating product:", error);
+    return { error: "Error al crear el producto. Verifique si el SKU ya existe." };
   }
 
   revalidatePath('/productos');

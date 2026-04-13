@@ -8,8 +8,14 @@ export default async function Page() {
   const fields: FieldConfig[] = [
     { 
       name: 'venderSinStock', 
-      label: 'Vender en negativo', 
-      description: 'Permitir crear tickets y descontar stock cuando un producto tiene inventario 0 o inferior.',
+      label: 'Permitir ventas y traspasos sin stock', 
+      description: 'Permitir procesar ventas locales y traspasos a otras sucursales incluso cuando el inventario es 0 o insuficiente.',
+      type: 'boolean' 
+    },
+    { 
+      name: 'venderBajoCosto', 
+      label: 'Vender por debajo del costo', 
+      description: 'Permitir que el precio final de venta de un producto (incluyendo descuentos) sea menor a su costo de compra registrado.',
       type: 'boolean' 
     },
     { 

@@ -119,3 +119,114 @@ export async function stampInvoice(saleId: string) {
     return { success: false, error: error.message || "Error desconocido al timbrar." };
   }
 }
+
+export async function stampGlobalInvoice(formData?: FormData) {
+  try {
+    const branch = await getActiveBranch();
+    
+    const branchSettings = await prisma.branchSettings.findUnique({
+      where: { branchId: branch.id }
+    });
+
+    if (!branchSettings || !branchSettings.configJson) {
+      throw new Error("La sucursal no tiene configuraciones establecidas.");
+    }
+
+    let config: any;
+    try {
+      config = JSON.parse(branchSettings.configJson);
+    } catch(e) {
+      throw new Error("El archivo de configuración de la sucursal es inválido.");
+    }
+
+    const testKey = config.facturacion?.testKey;
+    const liveKey = config.facturacion?.liveKey;
+    const apiKey = testKey || liveKey;
+
+    if (!apiKey) {
+      throw new Error("No hay llaves de Facturapi configuradas en las preferencias de esta Sucursal.");
+    }
+
+    const facturapi = new Facturapi(apiKey);
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    const salesToday = await prisma.sale.findMany({ 
+      where: { 
+        branchId: branch.id, 
+        status: "COMPLETED",
+        createdAt: { gte: today },
+        invoiceId: null // Solo no facturadas
+      },
+      include: {
+        items: {
+          include: { product: true }
+        }
+      }
+    });
+
+    if (salesToday.length === 0) {
+      throw new Error("No hay ventas pendientes de hoy para incluir en la factura global.");
+    }
+
+    // Comprimir todos los items en la factura global
+    const globalItems: any[] = [];
+    for (const sale of salesToday) {
+       for (const item of sale.items) {
+          if (!item.product.satKey || !item.product.satUnit) {
+            throw new Error(`El producto "${item.product.name}" no cuenta con Clave del SAT o Unidad del SAT. Configúralo antes de emitir la factura global.`);
+          }
+          globalItems.push({
+            product: {
+              description: item.product.name,
+              product_key: item.product.satKey,
+              price: Number(item.price),
+              tax_included: true,
+              taxes: [
+                 { type: "IVA", rate: (item.product.taxRate || 16.0) / 100 } 
+              ]
+            },
+            quantity: Number(item.quantity),
+            unit_key: item.product.satUnit
+          });
+       }
+    }
+
+    // Factura Global CFDI 4.0 a Público en General
+    const invoice = await facturapi.invoices.create({
+      customer: {
+        legal_name: "PUBLICO EN GENERAL",
+        tax_id: "XAXX010101000",
+        tax_system: "616",
+        address: {
+          zip: "01000"
+        }
+      },
+      items: globalItems,
+      payment_form: "01",
+      payment_method: "PUE",
+      use: "S01",
+      type: "I",
+      global_info: {
+         periodicity: "01", // Diario
+         months: "01", // Mes actual o generativo (Facturapi usually auto resolves based on month) -> using defaults
+         year: new Date().getFullYear()
+      }
+    } as any);
+
+    // Update sales with invoice Id
+    const saleIds = salesToday.map(s => s.id);
+    await prisma.sale.updateMany({
+       where: { id: { in: saleIds } },
+       data: { invoiceId: invoice.id }
+    });
+
+    revalidatePath('/facturas/globales');
+    return { success: true, invoiceId: invoice.id };
+
+  } catch (error: any) {
+    console.error("Facturapi Global Error:", error);
+    return { success: false, error: error.message || "Error desconocido al timbrar factura global." };
+  }
+}

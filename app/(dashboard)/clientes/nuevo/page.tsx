@@ -1,12 +1,10 @@
-import { crudAction } from "@/app/actions/crud";
+import { createCustomer } from "@/app/actions/customer";
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 
 export default function NuevoCliente() {
   const saveAction = async (formData: FormData) => {
     'use server';
-    await crudAction('customer', formData);
-    redirect('/clientes');
+    await createCustomer(formData);
   };
 
   return (

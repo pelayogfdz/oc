@@ -4,7 +4,7 @@ import { createSale } from '@/app/actions/sale';
 import { createQuote } from '@/app/actions/quote';
 import { searchProducts } from '@/app/actions/product';
 
-export default function POSClient({ products: initialProducts, customers, promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {} }: { products: any[], customers: any[], promotions?: any[], mode?: "SALE" | "QUOTE", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any }) {
+export default function POSClient({ products: initialProducts, customers, promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {} }: { products: any[], customers: any[], promotions?: any[], mode?: "SALE" | "QUOTE", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any }) {
   const [cart, setCart] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [priceList, setPriceList] = useState('price');
@@ -22,6 +22,14 @@ export default function POSClient({ products: initialProducts, customers, promot
   
   // Variant Selection State
   const [selectedProductForVariant, setSelectedProductForVariant] = useState<any | null>(null);
+
+  // Tips State
+  const [tipAmount, setTipAmount] = useState<number>(0);
+  
+  // Manual Discount State
+  const [manualDiscountType, setManualDiscountType] = useState<'$' | '%'>('$');
+  const [manualDiscountValue, setManualDiscountValue] = useState<number | ''>('');
+
   
   const customMethods = (Array.isArray(metodosConfig?.methods) && metodosConfig.methods.length > 0) 
      ? metodosConfig.methods 
@@ -92,6 +100,17 @@ export default function POSClient({ products: initialProducts, customers, promot
   };
 
   const addToCart = (product: any, variant: any = null) => {
+    // Vender Sin Stock validation
+    if (ventasConfig.venderSinStock === false && mode === 'SALE') {
+       const checkStock = variant ? variant.stock : product.stock;
+       const exists = cart.find(item => item.cartItemId === (variant ? `v_${variant.id}` : product.id));
+       const incomingReq = exists ? exists.quantity + 1 : 1;
+       if (checkStock < incomingReq) {
+          alert('STOCK INSUFICIENTE. Habilite "Vender en Negativo" en Preferencias para saltar esta restricción.');
+          return;
+       }
+    }
+
     // Generate a unique ID for the cart item based on whether it has a variant
     const cartItemId = variant ? `v_${variant.id}` : product.id;
     const cartItemName = variant ? `${product.name} (${variant.attribute})` : product.name;
@@ -122,11 +141,30 @@ export default function POSClient({ products: initialProducts, customers, promot
       if (promo.type === 'PERCENTAGE') d += subTotal * (promo.value / 100);
       else if (promo.type === 'FIXED_DISCOUNT') d += promo.value;
     });
+    
+    if (typeof manualDiscountValue === 'number' && manualDiscountValue > 0) {
+      if (manualDiscountType === '$') {
+        d += manualDiscountValue;
+      } else {
+        d += subTotal * (manualDiscountValue / 100);
+      }
+    }
+    
     return d > subTotal ? subTotal : d;
-  }, [subTotal, promotions]);
+  }, [subTotal, promotions, manualDiscountValue, manualDiscountType]);
 
-  const total = subTotal - discount;
-  const change = (typeof amountReceived === 'number' ? amountReceived : 0) - total;
+  let total = subTotal - discount;
+  if (ventasConfig.redondeo === 'redondeo_50') total = Math.round(total * 2) / 2;
+  if (ventasConfig.redondeo === 'redondeo_100') total = Math.round(total);
+  
+  const totalCost = useMemo(() => cart.reduce((sum, item) => sum + (parseFloat(item.cost || '0') * item.quantity), 0), [cart]);
+  const estimatedProfit = total > 0 ? (total - totalCost) : 0;
+  const marginPct = (total > 0 && totalCost > 0) ? ((estimatedProfit / total) * 100).toFixed(1) : (total > 0 ? '100' : '0'); 
+  const markupPct = totalCost > 0 ? ((estimatedProfit / totalCost) * 100).toFixed(1) : (total > 0 ? '100' : '0');
+
+  const finalTotalWithTip = total + tipAmount;
+
+  const change = (typeof amountReceived === 'number' ? amountReceived : 0) - finalTotalWithTip;
 
   const printTicket = (cartItems: any[], tTotal: number, tChange: number, tDiscount: number, saleId?: string) => {
     // Generate inner styling for the ticket
@@ -190,7 +228,8 @@ export default function POSClient({ products: initialProducts, customers, promot
           <div class="totals">
             ${tDiscount > 0 ? `<div class="total-row"><span>Subtotal:</span><span>$${(tTotal + tDiscount).toFixed(2)}</span></div>
             <div class="total-row" style="color: red;"><span>Descuento:</span><span>-$${tDiscount.toFixed(2)}</span></div>` : ''}
-            <div class="total-row" style="font-size: 16px;"><span>TOTAL:</span><span>$${tTotal.toFixed(2)}</span></div>
+            ${tipAmount > 0 ? `<div class="total-row"><span>Propina:</span><span>+$${tipAmount.toFixed(2)}</span></div>` : ''}
+            <div class="total-row" style="font-size: 16px;"><span>TOTAL:</span><span>$${(tTotal + tipAmount).toFixed(2)}</span></div>
             ${tChange > 0 && typeof amountReceived === 'number' ? `
             <div class="total-row"><span>Recibido:</span><span>$${amountReceived.toFixed(2)}</span></div>
             <div class="total-row"><span>Cambio:</span><span>$${tChange.toFixed(2)}</span></div>
@@ -255,12 +294,12 @@ export default function POSClient({ products: initialProducts, customers, promot
       let saleId: string | undefined;
 
       if (mode === 'QUOTE') {
-        const quote = await createQuote(items, total, paymentMethod, selectedCustomerId || null);
+        const quote = await createQuote(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null);
       } else {
         const cashValue = typeof amountReceived === 'number' ? amountReceived : undefined;
         const cardValue = typeof cardAmount === 'number' ? cardAmount : undefined;
         
-        const sale = await createSale(items, total, paymentMethod, selectedCustomerId || null, sessionId, notes, cashValue, cardValue);
+        const sale = await createSale(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null, sessionId, notes, cashValue, cardValue);
         saleId = sale.id;
       }
       
@@ -269,6 +308,8 @@ export default function POSClient({ products: initialProducts, customers, promot
       setAmountReceived('');
       setCardAmount('');
       setNotes('');
+      setTipAmount(0);
+      setManualDiscountValue('');
       setIsProcessing(false);
 
       setTimeout(() => {
@@ -405,16 +446,47 @@ export default function POSClient({ products: initialProducts, customers, promot
         </div>
         
         <div style={{ borderTop: '2px solid var(--pulpos-border)', paddingTop: '1rem', marginTop: '1rem' }}>
+          
+          {/* Opciones de Descuento Manual */}
+          {cart.length > 0 && ventasConfig.bloquearDescuentos !== true && (
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '0.25rem' }}>Descuento Manual al Total</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <select 
+                  value={manualDiscountType} 
+                  onChange={e => setManualDiscountType(e.target.value as '$' | '%')} 
+                  style={{ width: '60px', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+                >
+                  <option value="$">$</option>
+                  <option value="%">%</option>
+                </select>
+                <input 
+                  type="number" 
+                  min="0"
+                  placeholder="Monto"
+                  value={manualDiscountValue}
+                  onChange={e => setManualDiscountValue(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                  style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', textAlign: 'right' }}
+                />
+              </div>
+            </div>
+          )}
+
           {discount > 0 && (
             <div style={{ display: 'flex', justifyItems: 'space-between', fontSize: '1rem', color: '#dc2626', fontWeight: 'bold', marginBottom: '0.5rem' }}>
               <span style={{flex: 1}}>Descuentos Aplicados</span>
               <span>-${discount.toFixed(2)}</span>
             </div>
           )}
-          <div style={{ display: 'flex', justifyItems: 'space-between', fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', justifyItems: 'space-between', fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>
             <span style={{flex: 1}}>Total a Cobrar</span>
             <span style={{ color: 'var(--pulpos-primary)' }}>${total.toFixed(2)}</span>
           </div>
+          {cart.length > 0 && (
+             <div style={{ textAlign: 'right', fontSize: '0.85rem', color: estimatedProfit > 0 ? '#16a34a' : '#dc2626', marginBottom: '1rem', fontWeight: '500' }}>
+               Ganancia neta: ${estimatedProfit.toFixed(2)} ({markupPct}% utilidad / {marginPct}% margen {mode === 'QUOTE' ? 'de cotización' : 'de venta'})
+             </div>
+          )}
           <button onClick={() => setIsCheckoutOpen(true)} disabled={cart.length === 0} className="btn-primary" style={{ width: '100%', fontSize: '1.25rem', padding: '1rem', opacity: cart.length === 0 ? 0.5 : 1 }}>
             {mode === 'QUOTE' ? 'Generar Cotización' : 'Cobrar Venta'}
           </button>
@@ -429,10 +501,30 @@ export default function POSClient({ products: initialProducts, customers, promot
                {mode === 'QUOTE' ? 'Finalizar Cotización' : 'Finalizar Venta'}
             </h2>
             
-            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
               <div style={{ fontSize: '1rem', color: 'var(--pulpos-text-muted)' }}>{mode === 'QUOTE' ? 'Total Presupuestado' : 'Total a Pagar'}</div>
-              <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>${total.toFixed(2)}</div>
+              <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>${finalTotalWithTip.toFixed(2)}</div>
             </div>
+
+            {ventasConfig.solicitarPropinas && (
+               <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '1.5rem' }}>
+                 <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>Añadir Propina</label>
+                 <div style={{ display: 'flex', gap: '0.5rem' }}>
+                   {[10, 15, 20].map(pct => {
+                     const amt = total * (pct / 100);
+                     return (
+                       <button
+                         key={pct}
+                         onClick={() => setTipAmount(tipAmount === amt ? 0 : amt)}
+                         style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: '1px solid', borderColor: tipAmount === amt ? '#10b981' : 'var(--pulpos-border)', backgroundColor: tipAmount === amt ? '#d1fae5' : 'white', cursor: 'pointer', fontWeight: tipAmount === amt ? 'bold' : 'normal' }}
+                       >
+                         {pct}% (${amt.toFixed(2)})
+                       </button>
+                     );
+                   })}
+                 </div>
+               </div>
+            )}
 
             <div style={{ marginBottom: '1.5rem' }}>
               <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>Método de Pago</label>
@@ -478,10 +570,10 @@ export default function POSClient({ products: initialProducts, customers, promot
                   autoFocus
                   value={amountReceived}
                   onChange={e => setAmountReceived(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                  placeholder={`Mínimo $${total.toFixed(2)}`}
+                  placeholder={`Mínimo $${finalTotalWithTip.toFixed(2)}`}
                   style={{ width: '100%', padding: '1rem', fontSize: '1.25rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', textAlign: 'right' }}
                 />
-                {(typeof amountReceived === 'number' && amountReceived >= total) && (
+                {(typeof amountReceived === 'number' && amountReceived >= finalTotalWithTip) && (
                   <div style={{ marginTop: '0.5rem', textAlign: 'right', fontSize: '1.1rem', color: '#16a34a', fontWeight: 'bold' }}>
                     Cambio a entregar: ${change.toFixed(2)}
                   </div>
@@ -499,7 +591,7 @@ export default function POSClient({ products: initialProducts, customers, promot
                     onChange={e => {
                        const v = e.target.value === '' ? '' : parseFloat(e.target.value);
                        setCardAmount(v);
-                       if (typeof v === 'number' && v <= total) setAmountReceived(total - v);
+                       if (typeof v === 'number' && v <= finalTotalWithTip) setAmountReceived(finalTotalWithTip - v);
                     }}
                     placeholder={`Monto`}
                     style={{ width: '100%', padding: '1rem', fontSize: '1.25rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', textAlign: 'right' }}
@@ -537,8 +629,8 @@ export default function POSClient({ products: initialProducts, customers, promot
                 onClick={handleCheckout} 
                 disabled={
                   isProcessing || 
-                  (mode === 'SALE' && paymentMethod === 'CASH' && (typeof amountReceived !== 'number' || amountReceived < total)) ||
-                  (mode === 'SALE' && paymentMethod === 'MIXTO' && (typeof amountReceived !== 'number' || typeof cardAmount !== 'number' || (amountReceived + cardAmount) < total))
+                  (mode === 'SALE' && paymentMethod === 'CASH' && (typeof amountReceived !== 'number' || amountReceived < finalTotalWithTip)) ||
+                  (mode === 'SALE' && paymentMethod === 'MIXTO' && (typeof amountReceived !== 'number' || typeof cardAmount !== 'number' || (amountReceived + cardAmount) < finalTotalWithTip))
                 }
                 className="btn-primary" 
                 style={{ flex: 1, padding: '1rem', fontSize: '1.1rem', opacity: isProcessing ? 0.5 : 1 }}
