@@ -16,11 +16,15 @@ export default function TransferClient({ originBranchId, originBranchName, other
   // Variant Modal
   const [selectedProductForVariant, setSelectedProductForVariant] = useState<any | null>(null);
 
+  const removeAccents = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
   const displayedProducts = inventory.filter((p: any) => {
-    const search = searchTerm.toLowerCase();
-    return (p.name || '').toLowerCase().includes(search) || 
-           (p.sku && p.sku.toLowerCase().includes(search)) ||
-           (p.barcode && p.barcode.toLowerCase().includes(search));
+    if (!searchTerm.trim()) return true;
+    const searchTerms = removeAccents(searchTerm.toLowerCase().trim()).split(/\s+/);
+    const searchableString = removeAccents(`${p.name || ''} ${p.description || ''} ${p.sku || ''} ${p.barcode || ''}`.toLowerCase());
+    
+    // Todas las palabras deben coincidir (sin importar orden ni acentos)
+    return searchTerms.every(term => searchableString.includes(term));
   }).slice(0, 50); // Muestra 50 por si acaso hay muchos resultados
 
   const handleProductClick = (product: any) => {
