@@ -4,7 +4,7 @@ import { createTransfer } from '@/app/actions/transfer';
 import { useRouter } from 'next/navigation';
 import { Truck, ArrowRight, Trash2, Search } from 'lucide-react';
 
-export default function TransferClient({ originBranchId, originBranchName, otherBranches, inventory }: any) {
+export default function TransferClient({ originBranchId, originBranchName, otherBranches, inventory, ventasConfig = {} }: any) {
   const router = useRouter();
   const [toBranchId, setToBranchId] = useState('');
   const [reason, setReason] = useState('Reabastecimiento');
@@ -16,10 +16,12 @@ export default function TransferClient({ originBranchId, originBranchName, other
   // Variant Modal
   const [selectedProductForVariant, setSelectedProductForVariant] = useState<any | null>(null);
 
-  const displayedProducts = inventory.filter((p: any) => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase()))
-  ).slice(0, 15); // Show top 15 results
+  const displayedProducts = inventory.filter((p: any) => {
+    const search = searchTerm.toLowerCase();
+    return (p.name || '').toLowerCase().includes(search) || 
+           (p.sku && p.sku.toLowerCase().includes(search)) ||
+           (p.barcode && p.barcode.toLowerCase().includes(search));
+  }).slice(0, 50); // Muestra 50 por si acaso hay muchos resultados
 
   const handleProductClick = (product: any) => {
     if (product.variants && product.variants.length > 0) {
@@ -37,10 +39,16 @@ export default function TransferClient({ originBranchId, originBranchName, other
 
     const existing = transferItems.find(i => i.listId === listId);
     if (existing) {
-      if (existing.quantity >= maxStock) return; // Cannot exceed stock
+      if (!ventasConfig.venderSinStock && existing.quantity >= maxStock) {
+          alert('Cantidad excede el stock disponible.');
+          return;
+      }
       setTransferItems(transferItems.map(i => i.listId === listId ? { ...i, quantity: i.quantity + 1 } : i));
     } else {
-      if (maxStock <= 0) return; // Cannot transfer 0 stock
+      if (!ventasConfig.venderSinStock && maxStock <= 0) {
+          alert('Este producto no tiene stock y los traspasos sin stock están desactivados.');
+          return;
+      }
       setTransferItems([...transferItems, {
         listId,
         productId: product.id,
@@ -62,7 +70,10 @@ export default function TransferClient({ originBranchId, originBranchName, other
     if (isNaN(parsed) || parsed < 1) return;
     setTransferItems(transferItems.map(i => {
       if (i.listId === listId) {
-         return { ...i, quantity: Math.min(parsed, i.maxStock) }; // Limit to max stock
+         if (!ventasConfig.venderSinStock && parsed > i.maxStock) {
+           return { ...i, quantity: i.maxStock };
+         }
+         return { ...i, quantity: parsed };
       }
       return i;
     }));
@@ -192,12 +203,12 @@ export default function TransferClient({ originBranchId, originBranchName, other
              <button 
                key={prod.id} 
                onClick={() => handleProductClick(prod)}
-               disabled={prod.stock <= 0}
+               disabled={!ventasConfig.venderSinStock && prod.stock <= 0}
                style={{ 
                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
                  padding: '0.75rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', 
-                 backgroundColor: '#fafafa', cursor: prod.stock > 0 ? 'pointer' : 'not-allowed',
-                 textAlign: 'left', opacity: prod.stock > 0 ? 1 : 0.5
+                 backgroundColor: '#fafafa', cursor: (ventasConfig.venderSinStock || prod.stock > 0) ? 'pointer' : 'not-allowed',
+                 textAlign: 'left', opacity: (ventasConfig.venderSinStock || prod.stock > 0) ? 1 : 0.5
                }}
              >
                <div>
@@ -237,7 +248,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
                     handleAdd(selectedProductForVariant, v);
                     setSelectedProductForVariant(null);
                   }}
-                  disabled={v.stock <= 0}
+                  disabled={!ventasConfig.venderSinStock && v.stock <= 0}
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',
@@ -246,9 +257,9 @@ export default function TransferClient({ originBranchId, originBranchName, other
                     border: '1px solid var(--pulpos-border)',
                     borderRadius: '4px',
                     backgroundColor: 'white',
-                    cursor: v.stock > 0 ? 'pointer' : 'not-allowed',
+                    cursor: (ventasConfig.venderSinStock || v.stock > 0) ? 'pointer' : 'not-allowed',
                     textAlign: 'left',
-                    opacity: v.stock > 0 ? 1 : 0.5
+                    opacity: (ventasConfig.venderSinStock || v.stock > 0) ? 1 : 0.5
                   }}
                 >
                   <div>

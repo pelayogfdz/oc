@@ -1,6 +1,7 @@
 import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import TransferClient from "./TransferClient";
+import { getBranchSettings } from "@/app/actions/settings";
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,9 @@ export default async function NuevoTraspasoPage() {
     include: { variants: true }
   });
 
+  const settings = await getBranchSettings();
+  const ventasConfig = settings.configJson ? JSON.parse(settings.configJson)['ventas'] || {} : {};
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
       <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Nuevo Traspaso a Sucursal</h1>
@@ -26,6 +30,7 @@ export default async function NuevoTraspasoPage() {
          originBranchName={branch?.name || ''} 
          otherBranches={branches} 
          inventory={originProducts} 
+         ventasConfig={ventasConfig}
       />
     </div>
   );
