@@ -15,7 +15,7 @@ export async function createQuote(
   
   if (items.length === 0) throw new Error("Quote is empty");
 
-  await prisma.quote.create({
+  const quote = await prisma.quote.create({
     data: {
       total,
       paymentMethod,
@@ -33,6 +33,7 @@ export async function createQuote(
   });
 
   revalidatePath('/ventas/cotizaciones');
+  return quote;
 }
 
 export async function convertQuoteToSale(quoteId: string) {

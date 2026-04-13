@@ -89,7 +89,7 @@ export async function receiveTransfer(transferId: string) {
       
       // Find identical SKU in destination branch
       let productTo = await tx.product.findFirst({
-        where: { sku: productFrom.sku, branchId: transfer.toBranchId }
+        where: { sku: productFrom.sku, branchId: transfer.toBranchId! }
       });
 
       if (!productTo) {
@@ -109,7 +109,7 @@ export async function receiveTransfer(transferId: string) {
             unit: productFrom.unit,
             stock: 0,
             minStock: productFrom.minStock,
-            branchId: transfer.toBranchId
+            branchId: transfer.toBranchId!
           }
         });
       }

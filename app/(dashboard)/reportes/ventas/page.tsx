@@ -13,9 +13,7 @@ export default async function Page() {
     include: { 
       items: { 
         include: { 
-          product: {
-            include: { category: true } // Need category for group by Category
-          } 
+          product: true 
         } 
       },
       user: true 

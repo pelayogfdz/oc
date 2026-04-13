@@ -171,7 +171,7 @@ export default function SalesReportClient({ sales }: { sales: any[] }) {
                  cy="50%" 
                  outerRadius={120} 
                  fill="#8884d8" 
-                 label={(e) => `${e.key} (${((e.value / globalRevenue) * 100).toFixed(1)}%)`}
+                 label={(e: any) => `${String(e.name || e.key)} (${((e.value / globalRevenue) * 100).toFixed(1)}%)`}
                  labelLine={true}
                >
                  {groupedData.slice(0,15).map((entry, index) => (

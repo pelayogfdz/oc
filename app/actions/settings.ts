@@ -64,7 +64,7 @@ export async function updateAdvancedConfig(moduleKey: string, formData: FormData
     settings = await prisma.branchSettings.create({ data: { branchId: branch.id } });
   }
 
-  let currentJson = {};
+  let currentJson: Record<string, any> = {};
   if (settings.configJson) {
     try {
       const parsed = JSON.parse(settings.configJson);

@@ -19,6 +19,9 @@ export async function getActiveBranch() {
   if (!branch) {
     branch = await prisma.branch.findFirst();
   }
+  if (!branch) {
+    throw new Error('No branch exists in the database. Please seed the database first.');
+  }
   return branch;
 }
 

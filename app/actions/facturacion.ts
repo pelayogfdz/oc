@@ -70,7 +70,7 @@ export async function stampInvoice(saleId: string) {
       customerData = {
         legal_name: sale.customer.legalName || sale.customer.name,
         tax_id: sale.customer.taxId,
-        tax_system: sale.customer.taxSystem || "601",
+        tax_system: (sale.customer as any).taxSystem || "601",
         address: {
           zip: sale.customer.zipCode || "01000"
         }
@@ -86,7 +86,7 @@ export async function stampInvoice(saleId: string) {
         product: {
           description: item.product.name,
           product_key: item.product.satKey,
-          price: Number(item.unitPrice),
+          price: Number(item.price),
           tax_included: true,
           taxes: [
              { type: "IVA", rate: (item.product.taxRate || 16.0) / 100 } 

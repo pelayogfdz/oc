@@ -68,6 +68,7 @@ export async function createSale(
 
   revalidatePath('/ventas');
   revalidatePath('/productos');
+  return sale;
 }
 
 export async function refundSale(formData: FormData) {

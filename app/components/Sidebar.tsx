@@ -18,7 +18,7 @@ type MenuItem = {
 type MenuNode = {
   title: string;
   path?: string; // If it's a direct link
-  icon?: JSX.Element;
+  icon?: React.ReactNode;
   badge?: string;
   items?: MenuItem[]; // If it's a dropdown
 };
