@@ -2,7 +2,7 @@ export default function LoginPage() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyItems: 'center', justifyContent: 'center' }}>
       <div className="card" style={{ width: '400px' }}>
-        <h1 style={{ marginBottom: '1.5rem', textAlign: 'center', color: 'var(--pulpos-primary)' }}>Pulpos Clone</h1>
+        <h1 style={{ marginBottom: '1.5rem', textAlign: 'center', color: 'var(--pulpos-primary)' }}>CAANMA</h1>
         <form style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Email / Correo electrónico</label>

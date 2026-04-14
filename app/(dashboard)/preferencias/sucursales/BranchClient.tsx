@@ -138,9 +138,9 @@ export default function BranchClient({ branches, currentBranchId }: { branches: 
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div className="card" style={{ width: '400px', padding: '2rem', textAlign: 'center' }}>
             <Trash2 size={48} color="#ef4444" style={{ margin: '0 auto 1rem' }} />
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>¿Eliminar Sucursal?</h2>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>¿Archivar Sucursal?</h2>
             <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-              Esta acción eliminará de forma permanente la configuración de esta sucursal. No podrá deshacerse. Asegúrate de que no tenga inventario asociado activamante.
+              Esta acción archivará esta sucursal y la ocultará del panel principal. El inventario actual y el historial de ventas seguirán asociados de forma segura para no corromper la bitácora financiera.
             </p>
             <div style={{ display: 'flex', gap: '1rem' }}>
               <button onClick={() => setDeleteConfirmId(null)} style={{ flex: 1, padding: '0.75rem', border: '1px solid var(--pulpos-border)', borderRadius: '6px', background: 'white', cursor: 'pointer' }}>
@@ -151,7 +151,7 @@ export default function BranchClient({ branches, currentBranchId }: { branches: 
                 disabled={isProcessing}
                 style={{ flex: 1, padding: '0.75rem', borderRadius: '6px', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold', opacity: isProcessing ? 0.5 : 1 }}
               >
-                {isProcessing ? 'Eliminando...' : 'Sí, Eliminar'}
+                {isProcessing ? 'Archivando...' : 'Sí, Archivar'}
               </button>
             </div>
           </div>

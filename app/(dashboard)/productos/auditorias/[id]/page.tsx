@@ -21,12 +21,15 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
 
   const products = await prisma.product.findMany({
     where: { branchId: branch.id, isActive: true },
-    select: { id: true, name: true, sku: true, stock: true }
+    select: { id: true, name: true, sku: true, stock: true, categoryId: true, brandId: true }
   });
+
+  const categories = await prisma.category.findMany({ where: { branchId: branch.id }, select: { id: true, name: true } });
+  const brands = await prisma.brand.findMany({ select: { id: true, name: true } });
 
   return (
     <div style={{ padding: '2rem' }}>
-      <AuditDetailClient audit={audit} products={products} />
+      <AuditDetailClient audit={audit} products={products} categories={categories} brands={brands} />
     </div>
   );
 }

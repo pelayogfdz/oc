@@ -161,10 +161,14 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
           {/* Finanzas y Precios */}
           <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
             <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>Finanzas y Precios</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Costo de Compra ($)</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Costo de Reposición ($)</label>
                 <input type="number" step="0.01" name="cost" defaultValue={product.cost} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Costo Promedio ($)</label>
+                <input type="number" step="0.01" name="averageCost" defaultValue={product.averageCost || 0} readOnly title="Calculado ponderadamente según historial de compras" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', backgroundColor: '#f3f4f6', cursor: 'not-allowed', color: 'var(--pulpos-text-muted)' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Precio Público normal ($) *</label>

@@ -6,7 +6,7 @@ import { Save, UploadCloud, Download, CheckCircle, AlertTriangle, ArrowRight, Up
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-export default function AuditDetailClient({ audit, products }: { audit: any, products: any[] }) {
+export default function AuditDetailClient({ audit, products, categories, brands }: { audit: any, products: any[], categories: any[], brands: any[] }) {
   const router = useRouter();
 
   // Phase logic
@@ -22,6 +22,8 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
   const [editingCounts, setEditingCounts] = useState<{ [key: string]: string }>({});
   const [isPending, setIsPending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState('ALL');
+  const [filterBrand, setFilterBrand] = useState('ALL');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize editing counts based on the current Phase
@@ -53,7 +55,12 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
 
   const getCurrentFilterTarget = () => {
     if (isCompleted) return audit.items.map((i: any) => ({ ...i.product, finalCount: i.finalCount, systemStock: i.systemStock, expectedDiff: i.finalCount - i.systemStock }));
-    if (isPhase1) return products;
+    if (isPhase1) {
+       let list = products;
+       if (filterCategory !== 'ALL') list = list.filter(p => p.categoryId === filterCategory);
+       if (filterBrand !== 'ALL') list = list.filter(p => p.brandId === filterBrand);
+       return list;
+    }
     if (isPhase2) return audit.items.filter((i: any) => i.count1 !== i.systemStock).map((i: any) => i.product);
     if (isPhase3) return audit.items.filter((i: any) => i.count1 !== i.count2 && i.count2 !== null).map((i: any) => i.product);
     return [];
@@ -120,13 +127,21 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
     setIsPending(true);
     try {
       if (!isCompleted) {
-        // Collect what was typed
+        // Collect what was typed or implicitly 0
         const payload: { productId: string, count: number }[] = [];
-        Object.entries(editingCounts).forEach(([pid, val]) => {
-          if (val !== "") {
+        currentProducts.forEach((p: any) => {
+          const val = editingCounts[p.id];
+          if (val !== undefined && val !== "") {
             const parsed = parseInt(val, 10);
             if (!isNaN(parsed)) {
-              payload.push({ productId: pid, count: parsed });
+              payload.push({ productId: p.id, count: parsed });
+            }
+          } else {
+            // En Auditorías, si se dejó vacío pero el sistema dice que hay dinero/stock,
+            // se asume que encontraron 0 piezas, provocando una Discrepancia.
+            const sysStock = isPhase1 ? p.stock : (audit.items.find((i:any) => i.productId === p.id)?.systemStock || 0);
+            if (sysStock > 0) {
+              payload.push({ productId: p.id, count: 0 });
             }
           }
         });
@@ -200,13 +215,35 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
           </div>
           <div style={{ display: 'flex', gap: '1rem' }}>
              {isPhase1 && (
-               <input 
-                 type="text" 
-                 placeholder="Buscar por nombre o SKU..." 
-                 value={searchQuery}
-                 onChange={e => setSearchQuery(e.target.value)}
-                 style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: '1px solid #bae6fd', outline: 'none' }}
-               />
+               <div style={{ display: 'flex', gap: '0.5rem' }}>
+                 <select 
+                   value={filterBrand} 
+                   onChange={e => setFilterBrand(e.target.value)} 
+                   style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #bae6fd', outline: 'none' }}
+                   title="Filtrar por Marca"
+                 >
+                   <option value="ALL">Todas las Marcas</option>
+                   {brands?.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                 </select>
+                 
+                 <select 
+                   value={filterCategory} 
+                   onChange={e => setFilterCategory(e.target.value)} 
+                   style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #bae6fd', outline: 'none' }}
+                   title="Filtrar por Categoría"
+                 >
+                   <option value="ALL">Todas las Categorías</option>
+                   {categories?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                 </select>
+
+                 <input 
+                   type="text" 
+                   placeholder="Buscar nombre o SKU..." 
+                   value={searchQuery}
+                   onChange={e => setSearchQuery(e.target.value)}
+                   style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: '1px solid #bae6fd', outline: 'none', width: '200px' }}
+                 />
+               </div>
              )}
              <button onClick={handleDownloadTemplate} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'white' }}>
                <Download size={18} /> Descargar Plantilla .CSV
@@ -268,7 +305,11 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
                  const others = currentProducts.filter((p: any) => editingCounts[p.id] === undefined && !audit.items.some((i: any) => i.productId === p.id));
                  displayList = [...editedOrCounted, ...others.slice(0, 50)];
               } else if (isPhase1 && searchQuery.trim() !== '') {
-                 displayList = currentProducts.filter((p:any) => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 100);
+                 const queryTerms = searchQuery.toLowerCase().trim().split(/\s+/);
+                 displayList = currentProducts.filter((p: any) => {
+                   const searchSpace = `${p.name} ${p.sku} ${p.barcode || ''}`.toLowerCase();
+                   return queryTerms.every(term => searchSpace.includes(term));
+                 }).slice(0, 100);
               }
               return displayList.map((p: any) => {
               // Pre-fetch related audit item info for phase 2/3

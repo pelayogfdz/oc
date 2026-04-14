@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { getActiveBranch } from './auth';
+import { getActiveBranch, getActiveUser } from './auth';
 
 export async function createTransfer(
   payload: {
@@ -21,6 +21,8 @@ export async function createTransfer(
   const branchSettings = await prisma.branchSettings.findUnique({ where: { branchId: branchFrom.id } });
   const config = branchSettings?.configJson ? JSON.parse(branchSettings.configJson)['ventas'] || {} : {};
   const permitirVenderSinStock = config.venderSinStock === true;
+
+  const authUser = await getActiveUser(branchFrom.id);
 
   // 1. Deduct stock at origin and set transfer IN_TRANSIT
   await prisma.$transaction(async (tx) => {
@@ -61,16 +63,26 @@ export async function createTransfer(
       });
     }
 
-    await tx.transfer.create({
+      // Fetch products to capture current costs
+      const itemCosts: Record<string, { cost: number, averageCost: number }> = {};
+      for (const item of payload.items) {
+         const p = await tx.product.findUnique({ where: { id: item.productId }, select: { id: true, cost: true, averageCost: true } });
+         if (p) itemCosts[p.id] = { cost: p.cost || 0, averageCost: p.averageCost || 0 };
+      }
+
+      await tx.transfer.create({
       data: {
         branchId: branchFrom.id,
         toBranchId: payload.toBranchId,
         status: "IN_TRANSIT",
+        createdById: authUser.id,
         items: {
           create: payload.items.map(i => ({
             productId: i.productId,
             variantId: i.variantId || null,
-            quantity: i.quantity
+            quantity: i.quantity,
+            cost: itemCosts[i.productId]?.cost || 0,
+            averageCost: itemCosts[i.productId]?.averageCost || 0
           }))
         }
       }
@@ -92,6 +104,8 @@ export async function receiveTransfer(transferId: string) {
   if (!transfer) throw new Error("Traspaso no encontrado");
   if (transfer.status !== "IN_TRANSIT") throw new Error("El traspaso no está en tránsito");
   if (transfer.toBranchId !== branchActive?.id) throw new Error("No tienes permiso para recibir en esta sucursal");
+
+  const authUser = await getActiveUser(branchActive.id);
 
   await prisma.$transaction(async (tx) => {
     for (const item of transfer.items) {
@@ -167,7 +181,10 @@ export async function receiveTransfer(transferId: string) {
 
     await tx.transfer.update({
       where: { id: transfer.id },
-      data: { status: "COMPLETED" }
+      data: { 
+         status: "COMPLETED",
+         receivedById: authUser.id
+      }
     });
   });
 

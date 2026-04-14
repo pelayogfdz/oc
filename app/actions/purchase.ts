@@ -15,42 +15,55 @@ export async function createPurchase(
   
   if (items.length === 0) throw new Error("List is empty");
 
-  const purchase = await prisma.purchase.create({
-    data: {
-      total,
-      paymentMethod,
-      supplierId,
-      branchId: branch.id,
-      userId: user.id,
-      items: {
-        create: items.map(item => ({
-          quantity: item.quantity,
-          cost: item.cost,
-          productId: item.productId
-        }))
+  await prisma.$transaction(async (tx) => {
+    const purchase = await tx.purchase.create({
+      data: {
+        total,
+        paymentMethod,
+        supplierId,
+        branchId: branch.id,
+        userId: user.id,
+        items: {
+          create: items.map(item => ({
+            quantity: item.quantity,
+            cost: item.cost,
+            productId: item.productId
+          }))
+        }
       }
+    });
+
+    // Increment stock, Recalculate Average Cost & Register Kardex Movement
+    for (const item of items) {
+      const product = await tx.product.findUnique({ where: { id: item.productId } });
+      if (!product) continue;
+
+      const currentStock = product.stock > 0 ? product.stock : 0;
+      const currentAverage = product.averageCost || 0;
+      
+      const totalValue = (currentStock * currentAverage) + (item.quantity * item.cost);
+      const newStock = currentStock + item.quantity;
+      const newAverageCost = newStock > 0 ? totalValue / newStock : 0;
+
+      await tx.product.update({
+        where: { id: item.productId },
+        data: { 
+          stock: { increment: item.quantity },
+          averageCost: newAverageCost,
+          cost: item.cost // Update replacement cost (cost) with the latest purchase cost
+        }
+      });
+      
+      await tx.inventoryMovement.create({
+        data: {
+          productId: item.productId,
+          type: 'IN',
+          quantity: item.quantity,
+          reason: `Compra #${purchase.id.slice(0, 8)}`
+        }
+      });
     }
   });
-
-  // Increment stock & Register Kardex Movement
-  for (const item of items) {
-    await prisma.product.update({
-      where: { id: item.productId },
-      data: { 
-        stock: { increment: item.quantity },
-        cost: item.cost // Always update standard cost with the latest purchase cost (simplest approach for MVP)
-      }
-    });
-    
-    await prisma.inventoryMovement.create({
-      data: {
-        productId: item.productId,
-        type: 'IN',
-        quantity: item.quantity,
-        reason: `Compra #${purchase.id.slice(0, 8)}`
-      }
-    });
-  }
 
   revalidatePath('/productos/compras');
   revalidatePath('/productos');

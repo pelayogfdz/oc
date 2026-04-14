@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Search, Save, Trash, Image as ImageIcon, ArrowRightLeft, Package } from 'lucide-react';
 import { createInventoryAdjustment } from '@/app/actions/adjustment';
 import { searchProducts } from '@/app/actions/product';
+import { useRouter } from 'next/navigation';
 
 export default function AdjustmentClient({ branchId, initialProducts }: { branchId: string, initialProducts: any[] }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -13,6 +14,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
   const [reason, setReason] = useState('Ajuste General');
   const [items, setItems] = useState<any[]>([]);
   const [isPending, setIsPending] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const delayFn = setTimeout(async () => {
@@ -56,8 +58,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
       }));
       await createInventoryAdjustment(payload, reason);
       alert('¡Ajuste de inventario aplicado correctamente!');
-      setItems([]);
-      setReason('');
+      window.location.href = '/productos/ajustes';
     } catch (e: any) {
       alert(e.message || 'Error ajustando inventario');
     } finally {

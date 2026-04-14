@@ -143,7 +143,7 @@ export default function Sidebar() {
       <div style={{ padding: '1.5rem', marginBottom: '0.5rem' }}>
         <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ color: '#00d0bb', fontSize: '2rem', lineHeight: 1 }}>*</span> 
-          pulpos
+          CAANMA
           <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: '#94a3b8', verticalAlign: 'top', marginLeft: '0.25rem' }}>PRO</span>
         </div>
       </div>

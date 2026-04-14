@@ -9,15 +9,15 @@ export async function getActiveBranch() {
   const branchId = cookieStore.get('pulpos_active_branch')?.value;
   
   if (branchId) {
-    const branch = await prisma.branch.findUnique({ where: { id: branchId } });
+    const branch = await prisma.branch.findFirst({ where: { id: branchId, isActive: true } });
     if (branch) return branch;
   }
   
   let branch = await prisma.branch.findFirst({
-    where: { name: { not: 'OFFICE CITY' } }
+    where: { name: { not: 'OFFICE CITY' }, isActive: true }
   });
   if (!branch) {
-    branch = await prisma.branch.findFirst();
+    branch = await prisma.branch.findFirst({ where: { isActive: true } });
   }
   if (!branch) {
     throw new Error('No branch exists in the database. Please seed the database first.');

@@ -24,7 +24,7 @@ export async function createInventoryAdjustment(
     });
 
     // Determine IN or OUT for Kardex logic purely logging the difference
-    const type = item.difference > 0 ? 'IN' : item.difference < 0 ? 'OUT' : 'ADJUSTMENT';
+    const type = 'ADJUSTMENT';
 
     await prisma.inventoryMovement.create({
       data: {

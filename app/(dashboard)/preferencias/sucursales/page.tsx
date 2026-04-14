@@ -31,6 +31,7 @@ export default async function SucursalesPage() {
   const currentBranch = await getActiveBranch();
   // An ADMIN should view all branches across the company. Since MVP implies 1 tenant, we query all.
   const branches = await prisma.branch.findMany({
+    where: { isActive: true },
     include: { 
       _count: { select: { users: true, products: true } },
       settings: true

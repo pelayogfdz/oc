@@ -14,7 +14,7 @@ export default async function Page() {
         { toBranchId: branch.id }
       ]
     },
-    include: { toBranch: true, branch: true }
+    include: { toBranch: true, branch: true, createdBy: true, receivedBy: true }
   });
   const SpecificIcon = (Icons as any)['Truck'] || Icons.Box;
 
@@ -37,7 +37,7 @@ export default async function Page() {
             <tr>
               <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Traspaso ID</th>
               <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Sucursal Destino</th>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Fecha</th>
+              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Información</th>
               <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Estado</th>
               <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Acciones</th>
             </tr>
@@ -57,7 +57,11 @@ export default async function Page() {
                 <td style={{ padding: '1rem' }}>
                   {isIncoming ? (item.branch?.name || 'Central') : (item.toBranch?.name || 'Otra')}
                 </td>
-                <td style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>{new Date(item.createdAt).toLocaleString()}</td>
+                <td style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>
+                  <div style={{ marginBottom: '0.2rem' }}>{new Date(item.createdAt).toLocaleString()}</div>
+                  {item.createdBy && <div><span style={{fontWeight: 500}}>Enviado por:</span> {item.createdBy.name}</div>}
+                  {item.receivedBy && <div><span style={{fontWeight: 500}}>Recibido por:</span> {item.receivedBy.name}</div>}
+                </td>
                 <td style={{ padding: '1rem' }}>
                   <span style={{ 
                     backgroundColor: item.status === 'COMPLETED' ? '#dcfce7' : '#fef9c3', 
@@ -71,10 +75,13 @@ export default async function Page() {
                   </span>
                 </td>
                 <td style={{ padding: '1rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <Link href={`/productos/traspasos/${item.id}`} style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '0.4rem 0.75rem', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
+                       Ver Detalle
+                    </Link>
                     {isIncoming && item.status === 'IN_TRANSIT' && (
                        <form action={async () => { 'use server'; const t = await import('@/app/actions/transfer'); await t.receiveTransfer(item.id); }}>
-                          <button style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-                            Recibir Stock
+                          <button style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '0.4rem 0.75rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                            Recibir
                           </button>
                        </form>
                     )}
