@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { getActiveBranch, getBranchFilter } from "@/app/actions/auth";
+import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, getBranchFilter } from "@/lib/utils";
 import { BarChart3, TrendingUp, Package, History, DollarSign, Users, Award, TrendingDown, BookOpen } from 'lucide-react';
 
 export default async function ReportesHubPage() {

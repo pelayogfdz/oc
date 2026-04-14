@@ -43,6 +43,4 @@ export async function getActiveUser(branchId: string) {
   }
   return user;
 }
-export function getBranchFilter(branch: any) {
-  return branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
-}
+

@@ -4,3 +4,6 @@ export function formatCurrency(amount: number) {
     currency: 'MXN'
   }).format(amount);
 }
+export function getBranchFilter(branch: any) {
+  return branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
+}

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { getActiveBranch } from "@/app/actions/auth";
-import { getBranchFilter } from "@/app/actions/auth";
+import { getBranchFilter } from "@/lib/utils";
 
 export default async function VentasPage() {
   const branch = await getActiveBranch();

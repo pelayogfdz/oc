@@ -1,4 +1,5 @@
-import { getActiveBranch, getBranchFilter } from "@/app/actions/auth";
+import { getActiveBranch } from "@/app/actions/auth";
+import { getBranchFilter } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import { BarChart3, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
