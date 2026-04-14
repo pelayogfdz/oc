@@ -7,8 +7,23 @@ export default async function Header() {
   const currentUser = await getActiveUser(currentBranch?.id || '');
   
   const branches = await prisma.branch.findMany({
+    where: { isActive: true },
     orderBy: { name: 'asc' }
   });
+
+  // Filter branches based on permissions
+  let visibleBranches = branches;
+  const isGlobal = currentUser?.role === 'ADMIN' || currentUser?.permissions?.includes('GLOBAL_VIEW');
+  
+  if (!isGlobal && currentUser?.permissions) {
+    visibleBranches = branches.filter(b => currentUser.permissions?.includes(`__BRANCH_${b.id}`));
+    // Fallback if no branches assigned
+    if (visibleBranches.length === 0 && branches.length > 0) visibleBranches = [branches[0]];
+  }
+
+  const finalOptions = isGlobal 
+    ? [{ id: 'GLOBAL', name: '🌎 Todas las Sucursales' }, ...visibleBranches]
+    : visibleBranches;
 
   return (
     <header style={{
@@ -24,7 +39,7 @@ export default async function Header() {
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <div style={{ textAlign: 'right' }}>
           <div style={{ marginBottom: '0.25rem' }}>
-            <BranchSelector branches={branches} currentBranchId={currentBranch?.id || ''} />
+            <BranchSelector branches={finalOptions} currentBranchId={currentBranch?.id || ''} />
           </div>
           <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.75rem' }}>{currentUser?.name || 'Usuario'}</div>
         </div>

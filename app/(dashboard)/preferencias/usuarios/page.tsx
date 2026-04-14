@@ -5,13 +5,16 @@ import UserClient from "./UserClient";
 export default async function UsuariosPage() {
   const branch = await getActiveBranch();
   if (!branch) return <div>No hay sucursal seleccionada.</div>;
-  const users = await prisma.user.findMany({
-    where: { branchId: branch.id }
-  });
+  
+  // Get all active branches to assign to users
+  const branches = await prisma.branch.findMany({ where: { isActive: true } });
+  
+  // Show all users for the business
+  const users = await prisma.user.findMany();
 
   return (
     <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '2rem', border: '1px solid var(--pulpos-border)' }}>
-      <UserClient initialUsers={users} />
+      <UserClient initialUsers={users} branches={branches} />
     </div>
   );
 }

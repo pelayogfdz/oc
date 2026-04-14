@@ -1,14 +1,16 @@
-import { getActiveBranch } from "@/app/actions/auth";
+import { getActiveBranch, getBranchFilter } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import { BarChart3, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function Page() {
   const branch = await getActiveBranch();
+  const isGlobal = branch.id === 'GLOBAL';
   
   // Fake or dynamic query based on module
   const products = await prisma.product.findMany({ 
-    where: { branchId: branch.id, isActive: true },
+    where: { ...getBranchFilter(branch), isActive: true },
+    include: { branch: true },
     orderBy: { name: 'asc' }
   });
 
@@ -60,7 +62,10 @@ export default async function Page() {
               const capital = (p.cost || 0) * (p.stock || 0);
               return (
                 <tr key={p.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                  <td style={{ padding: '1rem', fontWeight: '500' }}>{p.name} {p.sku ? `(${p.sku})` : ''}</td>
+                  <td style={{ padding: '1rem', fontWeight: '500' }}>
+                    {p.name} {p.sku ? `(${p.sku})` : ''}
+                    {isGlobal && <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--pulpos-text-muted)' }}>Sucursal: {p.branch?.name}</span>}
+                  </td>
                   <td style={{ padding: '1rem', fontWeight: 'bold', color: (p.stock || 0) <= 0 ? '#ef4444' : 'inherit' }}>{p.stock}</td>
                   <td style={{ padding: '1rem' }}>${(p.cost || 0).toFixed(2)}</td>
                   <td style={{ padding: '1rem', fontWeight: 'bold', color: '#ef4444' }}>${capital.toFixed(2)}</td>

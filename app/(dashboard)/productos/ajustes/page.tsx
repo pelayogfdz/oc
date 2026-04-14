@@ -14,16 +14,11 @@ export default async function Page() {
   }
 
   // Fetch only adjustments (including backwards compatibility for older adjustments saved as IN/OUT)
+  // Fetch only adjustments
   const data = await prisma.inventoryMovement.findMany({ 
     where: { 
       product: { branchId: branch.id },
-      NOT: [
-        { reason: { startsWith: 'Venta #' } },
-        { reason: { startsWith: 'Compra #' } },
-        { reason: { startsWith: 'Traspaso salida hacia sucursal' } },
-        { reason: { startsWith: 'Recepción de traspaso' } },
-        { reason: { startsWith: 'Auditoría' } }
-      ]
+      type: 'ADJUSTMENT'
     }, 
     include: { 
       product: true,

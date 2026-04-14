@@ -191,3 +191,9 @@ export async function receiveTransfer(transferId: string) {
   revalidatePath('/productos');
   revalidatePath('/productos/traspasos');
 }
+export async function deleteTransfer(id: string) {
+  // Cascading soft approach: First delete items
+  await prisma.transferItem.deleteMany({ where: { transferId: id } });
+  await prisma.transfer.delete({ where: { id } });
+  revalidatePath('/productos/traspasos');
+}

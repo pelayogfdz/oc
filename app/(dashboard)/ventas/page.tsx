@@ -1,14 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { getActiveBranch } from "@/app/actions/auth";
+import { getBranchFilter } from "@/app/actions/auth";
 
 export default async function VentasPage() {
   const branch = await getActiveBranch();
   
   const sales = await prisma.sale.findMany({
-    where: { branchId: branch.id },
+    where: getBranchFilter(branch),
     include: {
       user: true,
+      branch: true,
       items: {
         include: {
           product: true
@@ -52,7 +54,7 @@ export default async function VentasPage() {
                   {new Date(sale.createdAt).toLocaleString()}
                 </td>
                 <td style={{ padding: '1rem' }}>
-                  <div style={{ fontWeight: '500' }}>{branch.name}</div>
+                  <div style={{ fontWeight: '500' }}>{sale.branch?.name || branch.name}</div>
                   <div style={{ fontSize: '0.875rem', color: 'var(--pulpos-text-muted)' }}>Vendió: {sale.user.name}</div>
                 </td>
                 <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--pulpos-text-muted)' }}>

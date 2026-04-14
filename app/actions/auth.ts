@@ -9,6 +9,9 @@ export async function getActiveBranch() {
   const branchId = cookieStore.get('pulpos_active_branch')?.value;
   
   if (branchId) {
+    if (branchId === 'GLOBAL') {
+      return { id: 'GLOBAL', name: 'Todas las Sucursales', location: 'Corporativo', isActive: true, deletedAt: null };
+    }
     const branch = await prisma.branch.findFirst({ where: { id: branchId, isActive: true } });
     if (branch) return branch;
   }
@@ -39,4 +42,7 @@ export async function getActiveUser(branchId: string) {
     });
   }
   return user;
+}
+export function getBranchFilter(branch: any) {
+  return branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
 }

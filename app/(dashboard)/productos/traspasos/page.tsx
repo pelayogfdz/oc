@@ -86,7 +86,7 @@ export default async function Page() {
                        </form>
                     )}
                     {!isIncoming && (
-                      <form action={async () => { 'use server'; await deleteEntity('transfer', item.id); }}>
+                      <form action={async () => { 'use server'; await import('@/app/actions/transfer').then(m => m.deleteTransfer(item.id)); }}>
                          <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={16}/></button>
                       </form>
                     )}

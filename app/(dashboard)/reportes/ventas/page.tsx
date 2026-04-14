@@ -1,4 +1,4 @@
-import { getActiveBranch } from "@/app/actions/auth";
+import { getActiveBranch, getBranchFilter } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import { BarChart3, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -9,8 +9,9 @@ export default async function Page() {
   
   // We fetch ALL sales for this branch to let the Client group and filter them dynamically.
   const sales = await prisma.sale.findMany({ 
-    where: { branchId: branch.id, status: "COMPLETED" }, 
+    where: { ...getBranchFilter(branch), status: "COMPLETED" }, 
     include: { 
+      branch: true,
       items: { 
         include: { 
           product: true 

@@ -3,7 +3,8 @@ import { getActiveBranch } from '@/app/actions/auth';
 import { notFound } from 'next/navigation';
 import TransferDetailClient from './TransferDetailClient';
 
-export default async function TransferDetailPage({ params }: { params: { id: string } }) {
+export default async function TransferDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const branch = await getActiveBranch();
   if (!branch) return notFound();
 

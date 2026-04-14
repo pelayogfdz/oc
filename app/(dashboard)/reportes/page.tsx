@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getActiveBranch } from "@/app/actions/auth";
+import { getActiveBranch, getBranchFilter } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/utils";
 import { BarChart3, TrendingUp, Package, History, DollarSign, Users, Award, TrendingDown, BookOpen } from 'lucide-react';
@@ -8,8 +8,8 @@ export default async function ReportesHubPage() {
   const branch = await getActiveBranch();
   
   // KPI Rapidos
-  const sales = await prisma.sale.findMany({ where: { branchId: branch.id, status: 'COMPLETED' }, include: { items: { include: { product: true } } } });
-  const gastos = await prisma.expense.findMany({ where: { branchId: branch.id } });
+  const sales = await prisma.sale.findMany({ where: { ...getBranchFilter(branch), status: 'COMPLETED' }, include: { items: { include: { product: true } } } });
+  const gastos = await prisma.expense.findMany({ where: getBranchFilter(branch) });
   
   const totalSales = sales.reduce((acc, sale) => acc + sale.total, 0);
   const totalCost = sales.reduce((acc, sale) => acc + sale.items.reduce((s, i) => s + ((i.product?.cost || 0) * i.quantity), 0), 0);

@@ -61,21 +61,37 @@ const PERMISSION_MODULES = [
   }
 ];
 
-export default function UserClient({ initialUsers }: { initialUsers: any[] }) {
+export default function UserClient({ initialUsers, branches }: { initialUsers: any[], branches: any[] }) {
   const [users, setUsers] = useState(initialUsers);
   const [isEditing, setIsEditing] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState('pos');
+  const [activeTab, setActiveTab] = useState('branches');
   
   // State for permissions mapping
   const [perms, setPerms] = useState<Record<string, boolean>>({});
+
+  // Dynamically create a module for Branch Assignments
+  const dynamicModules = [
+    {
+      id: 'branches',
+      name: 'Acceso a Sucursales',
+      permissions: [
+        { id: 'GLOBAL_VIEW', label: '⭐ Visibilidad Global (Acceso Administrativo a TODAS las sucursales)' },
+        ...branches.map(b => ({
+          id: `__BRANCH_${b.id}`,
+          label: `Acceso a Sucursal: ${b.name}`
+        }))
+      ]
+    },
+    ...PERMISSION_MODULES
+  ];
 
   const handlePermissionChange = (id: string, value: boolean) => {
     setPerms(prev => ({ ...prev, [id]: value }));
   };
 
   const handleSelectAll = (moduleId: string) => {
-    const module = PERMISSION_MODULES.find(m => m.id === moduleId);
+    const module = dynamicModules.find(m => m.id === moduleId);
     if (!module) return;
     const newPerms = { ...perms };
     module.permissions.forEach(p => {
@@ -88,13 +104,13 @@ export default function UserClient({ initialUsers }: { initialUsers: any[] }) {
     setIsEditing(true);
     setEditingUser(null);
     setPerms({});
-    setActiveTab('pos');
+    setActiveTab('branches');
   };
 
   const openEditUser = (user: any) => {
     setIsEditing(true);
     setEditingUser(user);
-    setActiveTab('pos');
+    setActiveTab('branches');
     
     try {
       const parsed = user.permissions ? JSON.parse(user.permissions) : {};
@@ -277,7 +293,7 @@ export default function UserClient({ initialUsers }: { initialUsers: any[] }) {
             <div style={{ display: 'flex' }}>
               {/* Left Tabs */}
               <div style={{ width: '250px', borderRight: '1px solid var(--pulpos-border)', backgroundColor: '#f8fafc' }}>
-                {PERMISSION_MODULES.map(mod => (
+                {dynamicModules.map(mod => (
                   <button
                     key={mod.id}
                     type="button"
@@ -304,7 +320,7 @@ export default function UserClient({ initialUsers }: { initialUsers: any[] }) {
               
               {/* Right Content Panels */}
               <div style={{ flex: 1, padding: '1.5rem' }}>
-                {PERMISSION_MODULES.map(mod => (
+                {dynamicModules.map(mod => (
                   <div key={mod.id} style={{ display: activeTab === mod.id ? 'block' : 'none' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                       <h5 style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{mod.name}</h5>
