@@ -29,6 +29,8 @@ const navStructure: MenuNode[] = [
     title: 'Productos', icon: <Tag size={20} />, 
     items: [
       { name: 'Productos', path: '/productos' },
+      { name: 'Precios Masivos', path: '/productos/precios-masivos', badge: 'Precios' },
+      { name: 'Costos Proveedor', path: '/productos/costos-proveedor', badge: 'Costos' },
       { name: 'Traspasos', path: '/productos/traspasos' },
       { name: 'Ajuste de Inventario', path: '/productos/ajustes' },
       { name: 'Auditorías (Físico)', path: '/productos/auditorias' },

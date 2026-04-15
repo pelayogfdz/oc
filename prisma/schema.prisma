@@ -347,6 +347,7 @@ model Purchase {
   supplier      Supplier?      @relation(fields: [supplierId], references: [id])
   total         Float
   paymentMethod String         @default("CASH") // CASH, CARD, TRANSFER
+  freightCost   Float?         @default(0)
   status        String         @default("COMPLETED") // COMPLETED, PENDING
   createdAt     DateTime       @default(now())
   items         PurchaseItem[]

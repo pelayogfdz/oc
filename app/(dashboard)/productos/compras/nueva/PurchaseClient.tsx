@@ -14,6 +14,7 @@ export default function PurchaseClient({ products: initialProducts, suppliers, b
   
   const [showCheckout, setShowCheckout] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('CASH');
+  const [freightCost, setFreightCost] = useState<number>(0);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
@@ -31,7 +32,8 @@ export default function PurchaseClient({ products: initialProducts, suppliers, b
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm, branchId]);
 
-  const total = cart.reduce((acc, item) => acc + (item.cost * item.quantity), 0);
+  const itemsTotal = cart.reduce((acc, item) => acc + (item.cost * item.quantity), 0);
+  const total = itemsTotal + freightCost;
 
   const addToCart = (product: any) => {
     setCart(prev => {
@@ -60,7 +62,7 @@ export default function PurchaseClient({ products: initialProducts, suppliers, b
   const handleCheckout = async () => {
     try {
       const items = cart.map(i => ({ productId: i.id, quantity: i.quantity, cost: i.cost }));
-      await createPurchase(items, total, paymentMethod, selectedSupplierId || null);
+      await createPurchase(items, total, paymentMethod, selectedSupplierId || null, freightCost);
       alert('¡Compra registrada y stock actualizado con éxito!');
       setCart([]);
       setShowCheckout(false);
@@ -147,7 +149,7 @@ export default function PurchaseClient({ products: initialProducts, suppliers, b
 
         {/* Customer / Config */}
         <div style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>
-          <div>
+          <div style={{ marginBottom: '1rem' }}>
             <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.25rem' }}>Proveedor asignado</label>
             <select value={selectedSupplierId} onChange={e => setSelectedSupplierId(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}>
               <option value="">(Sin Proveedor / Compra Express)</option>
@@ -155,6 +157,11 @@ export default function PurchaseClient({ products: initialProducts, suppliers, b
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
+          </div>
+          <div>
+             <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.25rem' }}>(+) Agregar Flete Externo (Opcional)</label>
+             <input type="number" step="0.01" min="0" placeholder="$0.00" value={freightCost || ''} onChange={e => setFreightCost(parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+             <small style={{ display: 'block', fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', marginTop: '0.25rem' }}>El flete se prorrateará en el Costo Promedio según valor.</small>
           </div>
         </div>
 
@@ -206,7 +213,17 @@ export default function PurchaseClient({ products: initialProducts, suppliers, b
         {/* Cart Footer */}
         <div style={{ padding: '1.5rem', backgroundColor: '#f8fafc', borderTop: '1px solid var(--pulpos-border)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontSize: '1.25rem', fontWeight: 'bold' }}>
-            <span>Total Compra</span>
+            <span>Total Mercancía</span>
+            <span style={{ color: 'var(--pulpos-text)', fontSize: '1.25rem' }}>${itemsTotal.toFixed(2)}</span>
+          </div>
+          {freightCost > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontSize: '1rem', color: '#ef4444' }}>
+              <span>(+) Flete Absorber</span>
+              <span>${freightCost.toFixed(2)}</span>
+            </div>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontSize: '1.25rem', fontWeight: 'bold' }}>
+            <span>Gran Total</span>
             <span style={{ color: 'var(--pulpos-primary)', fontSize: '1.5rem' }}>${total.toFixed(2)}</span>
           </div>
           
