@@ -7,22 +7,64 @@ import { bulkUpdatePrices } from '@/app/actions/bulkPrice';
 // Utility: round to nearest whole peso (no cents)
 const roundPeso = (n: number) => Math.round(n);
 
-type PriceList = 'price' | 'wholesalePrice' | 'specialPrice';
+type BasePriceList = 'price' | 'wholesalePrice' | 'specialPrice';
 
-const PRICE_LISTS: { key: PriceList; label: string; newKey: '_newPrice' | '_newWholesale' | '_newSpecial' }[] = [
-  { key: 'price', label: 'Precio Público', newKey: '_newPrice' },
-  { key: 'wholesalePrice', label: 'Precio Mayoreo', newKey: '_newWholesale' },
-  { key: 'specialPrice', label: 'Precio Especial', newKey: '_newSpecial' },
-];
+type NormalizedPriceList = {
+  key: string;
+  label: string;
+  newKey: string;
+  isDynamic: boolean;
+};
 
-export default function PreciosMasivosClient({ initProducts, brands, categories, branchId }: { initProducts: any[], brands: string[], categories: string[], branchId: string }) {
-  const [products, setProducts] = useState(initProducts.map(p => ({
-    ...p,
-    _newPrice: p.price,
-    _newWholesale: p.wholesalePrice ?? '',
-    _newSpecial: p.specialPrice ?? '',
-    _modified: false
-  })));
+export default function PreciosMasivosClient({ 
+  initProducts, 
+  brands, 
+  categories, 
+  branchId, 
+  dynamicPriceLists 
+}: { 
+  initProducts: any[], 
+  brands: string[], 
+  categories: string[], 
+  branchId: string, 
+  dynamicPriceLists: any[] 
+}) {
+
+  // Construimos todas las listas de precios combinadas
+  const PRICE_LISTS: NormalizedPriceList[] = useMemo(() => {
+    const defaultLists: NormalizedPriceList[] = [
+      { key: 'price', label: 'Precio Público', newKey: '_new_price', isDynamic: false },
+      { key: 'wholesalePrice', label: 'Precio Mayoreo', newKey: '_new_wholesalePrice', isDynamic: false },
+      { key: 'specialPrice', label: 'Precio Especial', newKey: '_new_specialPrice', isDynamic: false },
+    ];
+    
+    const dLists = dynamicPriceLists.map(dl => ({
+      key: dl.id,
+      label: dl.name,
+      newKey: `_new_dynamic_${dl.id}`,
+      isDynamic: true
+    }));
+
+    return [...defaultLists, ...dLists];
+  }, [dynamicPriceLists]);
+
+  const [products, setProducts] = useState(() => initProducts.map(p => {
+    const stateObj: any = {
+      ...p,
+      _new_price: p.price,
+      _new_wholesalePrice: p.wholesalePrice ?? '',
+      _new_specialPrice: p.specialPrice ?? '',
+      _modified: false
+    };
+
+    dynamicPriceLists.forEach(dl => {
+      const pp = p.productPrices?.find((x: any) => x.priceListId === dl.id);
+      stateObj[`dynamic_${dl.id}`] = pp ? pp.price : '';
+      stateObj[`_new_dynamic_${dl.id}`] = pp ? pp.price : '';
+    });
+
+    return stateObj;
+  }));
 
   const [brandFilter, setBrandFilter] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
@@ -30,8 +72,8 @@ export default function PreciosMasivosClient({ initProducts, brands, categories,
   const [isSaving, setIsSaving] = useState(false);
 
   // Active price list tab
-  const [activePriceList, setActivePriceList] = useState<PriceList>('price');
-  const activeList = PRICE_LISTS.find(l => l.key === activePriceList)!;
+  const [activePriceListKey, setActivePriceListKey] = useState<string>('price');
+  const activeList = PRICE_LISTS.find(l => l.key === activePriceListKey)!;
 
   // Global margin applicator
   const [globalMargin, setGlobalMargin] = useState<string>('');
@@ -45,36 +87,51 @@ export default function PreciosMasivosClient({ initProducts, brands, categories,
     });
   }, [products, brandFilter, categoryFilter, searchTerm]);
 
-  // Apply global margin to filtered products for the active price list
+  // Apply global margin (Margen de Utilidad sobre Venta)
   const applyGlobalMargin = () => {
     const margin = parseFloat(globalMargin);
-    if (isNaN(margin) || margin <= -100) { alert('Ingresa un margen válido (ejemplo: 30 para 30%).'); return; }
-    const factor = 1 + (margin / 100);
+    if (isNaN(margin) || margin >= 100) { alert('Ingresa un Margen de Utilidad válido (menor a 100%).'); return; }
+    
+    // Formula Margen (sobre precio de venta): Precio = Costo / (1 - Margen%)
+    const factor = 1 - (margin / 100);
     const filteredIds = new Set(displayedProducts.map(p => p.id));
 
     setProducts(prev => prev.map(p => {
       if (!filteredIds.has(p.id) || p.cost <= 0) return p;
-      const newPriceRaw = p.cost * factor;
+      const newPriceRaw = p.cost / factor;
       const newPriceRounded = roundPeso(newPriceRaw);
 
       const updatedField = activeList.newKey;
-      const originalVal = p[activeList.key] ?? '';
-      const isModified = newPriceRounded !== (originalVal === '' ? 0 : Number(originalVal));
+      const originalField = activeList.isDynamic ? `dynamic_${activeList.key}` : activeList.key;
+      const originalVal = p[originalField] ?? '';
+      
+      const next = { ...p, [updatedField]: newPriceRounded };
+      
+      // Determine if at least one field changed overall to set _modified
+      let isModified = false;
+      PRICE_LISTS.forEach(l => {
+        const origField = l.isDynamic ? `dynamic_${l.key}` : l.key;
+        if (next[l.newKey] !== (next[origField] ?? '')) isModified = true;
+      });
 
-      return { ...p, [updatedField]: newPriceRounded, _modified: isModified };
+      return { ...next, _modified: isModified };
     }));
   };
 
-  const handleChange = (id: string, field: '_newPrice' | '_newWholesale' | '_newSpecial', value: string) => {
+  const handleChange = (id: string, field: string, value: string) => {
     const val = value === '' ? '' : parseFloat(value);
     if (val !== '' && isNaN(val as number)) return;
 
     setProducts(prev => prev.map(p => {
       if (p.id !== id) return p;
       const next = { ...p, [field]: val };
-      const isModified = next._newPrice !== p.price ||
-                         next._newWholesale !== (p.wholesalePrice ?? '') ||
-                         next._newSpecial !== (p.specialPrice ?? '');
+      
+      let isModified = false;
+      PRICE_LISTS.forEach(l => {
+        const origField = l.isDynamic ? `dynamic_${l.key}` : l.key;
+        if (next[l.newKey] !== (next[origField] ?? '')) isModified = true;
+      });
+
       return { ...next, _modified: isModified };
     }));
   };
@@ -85,23 +142,44 @@ export default function PreciosMasivosClient({ initProducts, brands, categories,
 
     setIsSaving(true);
     try {
-      const updates = modified.map(p => ({
-        id: p.id,
-        price: roundPeso(Number(p._newPrice) || 0),
-        wholesalePrice: p._newWholesale === '' ? undefined : roundPeso(Number(p._newWholesale)),
-        specialPrice: p._newSpecial === '' ? undefined : roundPeso(Number(p._newSpecial)),
-      }));
-      await bulkUpdatePrices(updates);
+      const updates = [];
+      const dynamicUpdates = [];
+
+      for (const p of modified) {
+        // Collect base fields
+        updates.push({
+          id: p.id,
+          price: roundPeso(Number(p._new_price) || 0),
+          wholesalePrice: p._new_wholesalePrice === '' ? null : roundPeso(Number(p._new_wholesalePrice)),
+          specialPrice: p._new_specialPrice === '' ? null : roundPeso(Number(p._new_specialPrice)),
+        });
+
+        // Collect dynamic lists fields
+        dynamicPriceLists.forEach(dl => {
+          const val = p[`_new_dynamic_${dl.id}`];
+          const orig = p[`dynamic_${dl.id}`] ?? '';
+          if (val !== orig) {
+            dynamicUpdates.push({
+              productId: p.id,
+              priceListId: dl.id,
+              price: val === '' ? null : roundPeso(Number(val))
+            });
+          }
+        });
+      }
+
+      await bulkUpdatePrices(updates, dynamicUpdates);
+      
       alert('¡Precios actualizados con éxito!');
+      
       setProducts(prev => prev.map(p => {
         if (!p._modified) return p;
-        return {
-          ...p,
-          price: p._newPrice,
-          wholesalePrice: p._newWholesale === '' ? null : p._newWholesale,
-          specialPrice: p._newSpecial === '' ? null : p._newSpecial,
-          _modified: false
-        };
+        const commitObj: any = { ...p, _modified: false };
+        PRICE_LISTS.forEach(l => {
+          const origField = l.isDynamic ? `dynamic_${l.key}` : l.key;
+          commitObj[origField] = commitObj[l.newKey] === '' ? null : commitObj[l.newKey];
+        });
+        return commitObj;
       }));
     } catch (e) {
       console.error(e);
@@ -129,21 +207,22 @@ export default function PreciosMasivosClient({ initProducts, brands, categories,
       </div>
 
       {/* Price List Tabs */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: '1.5rem', borderBottom: '2px solid var(--pulpos-border)' }}>
+      <div style={{ display: 'flex', gap: 0, marginBottom: '1.5rem', borderBottom: '2px solid var(--pulpos-border)', overflowX: 'auto' }}>
         {PRICE_LISTS.map(list => (
           <button
             key={list.key}
-            onClick={() => setActivePriceList(list.key)}
+            onClick={() => setActivePriceListKey(list.key)}
             style={{
               padding: '0.6rem 1.25rem',
               border: 'none',
-              borderBottom: activePriceList === list.key ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
+              borderBottom: activePriceListKey === list.key ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
               marginBottom: '-2px',
               background: 'none',
               cursor: 'pointer',
-              fontWeight: activePriceList === list.key ? 'bold' : 'normal',
-              color: activePriceList === list.key ? 'var(--pulpos-primary)' : 'var(--pulpos-text-muted)',
+              fontWeight: activePriceListKey === list.key ? 'bold' : 'normal',
+              color: activePriceListKey === list.key ? 'var(--pulpos-primary)' : 'var(--pulpos-text-muted)',
               fontSize: '0.9rem',
+              whiteSpace: 'nowrap',
               transition: 'all 0.15s'
             }}
           >
@@ -159,7 +238,7 @@ export default function PreciosMasivosClient({ initProducts, brands, categories,
           <div style={{ flex: 1 }}>
             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.4rem', color: '#16a34a' }}>
               <Percent size={14} style={{ display: 'inline', marginRight: '4px' }} />
-              Margen Global (%) — aplica a productos de la selección actual
+              Margen de Utilidad Global (%) — aplica a selección actual
             </label>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <input
@@ -170,14 +249,14 @@ export default function PreciosMasivosClient({ initProducts, brands, categories,
                 onChange={e => setGlobalMargin(e.target.value)}
                 style={{ width: '100px', padding: '0.5rem', borderRadius: '4px', border: '1px solid #86efac', fontSize: '1rem' }}
               />
-              <span style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.85rem' }}>% sobre costo → afecta <strong>{activeList.label}</strong></span>
+              <span style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.85rem' }}>% de margen → para <strong>{activeList?.label}</strong></span>
             </div>
           </div>
           <button onClick={applyGlobalMargin} style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', padding: '0.6rem 1.25rem', background: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.875rem' }}>
             <Zap size={16} /> Aplicar Margen
           </button>
           <span style={{ fontSize: '0.75rem', color: '#16a34a', maxWidth: '180px', lineHeight: 1.4 }}>
-            Los precios se redondean automáticamente al peso más cercano (sin centavos).
+            Fórmula de Utilidad sobre venta. Se redondea al peso entero.
           </span>
         </div>
 
@@ -205,18 +284,18 @@ export default function PreciosMasivosClient({ initProducts, brands, categories,
       </div>
 
       {/* Table */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
           <thead style={{ backgroundColor: '#f8fafc' }}>
             <tr>
               <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--pulpos-border)' }}>SKU</th>
-              <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Producto</th>
+              <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--pulpos-border)', minWidth: '200px' }}>Producto</th>
               <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Costo</th>
-              <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--pulpos-border)', color: 'var(--pulpos-primary)' }}>
-                {activeList.label} <span style={{ fontWeight: 'normal', fontSize: '0.75rem' }}>(activa)</span>
+              <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--pulpos-border)', color: 'var(--pulpos-primary)', minWidth: '150px' }}>
+                {activeList?.label} <span style={{ fontWeight: 'normal', fontSize: '0.75rem' }}>(activa)</span>
               </th>
-              {PRICE_LISTS.filter(l => l.key !== activePriceList).map(l => (
-                <th key={l.key} style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--pulpos-border)', color: 'var(--pulpos-text-muted)', fontWeight: 'normal', fontSize: '0.8rem' }}>
+              {PRICE_LISTS.filter(l => l.key !== activePriceListKey).map(l => (
+                <th key={l.key} style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--pulpos-border)', color: 'var(--pulpos-text-muted)', fontWeight: 'normal', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                   {l.label}
                 </th>
               ))}
@@ -224,11 +303,18 @@ export default function PreciosMasivosClient({ initProducts, brands, categories,
           </thead>
           <tbody>
             {displayedProducts.map(p => {
+              if (!activeList) return null;
               const activeNewKey = activeList.newKey;
               const activeVal = p[activeNewKey];
-              const margen = p.cost > 0 && activeVal !== '' ? ((Number(activeVal) - p.cost) / p.cost) * 100 : 0;
-              const isActiveModified = p._modified && activeVal !== (p[activeList.key] ?? '');
-              const otherLists = PRICE_LISTS.filter(l => l.key !== activePriceList);
+              const originalField = activeList.isDynamic ? `dynamic_${activeList.key}` : activeList.key;
+              
+              // Margen de Utilidad sobre venta = (Precio - Costo) / Precio
+              const margen = p.cost > 0 && activeVal !== '' && Number(activeVal) > 0 
+                ? ((Number(activeVal) - p.cost) / Number(activeVal)) * 100 
+                : 0;
+
+              const isActiveModified = p._modified && activeVal !== (p[originalField] ?? '');
+              const otherLists = PRICE_LISTS.filter(l => l.key !== activePriceListKey);
 
               return (
                 <tr key={p.id} style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: p._modified ? '#fefce8' : 'transparent' }}>
@@ -277,7 +363,7 @@ export default function PreciosMasivosClient({ initProducts, brands, categories,
               );
             })}
             {displayedProducts.length === 0 && (
-              <tr><td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>No hay productos que coincidan.</td></tr>
+              <tr><td colSpan={5 + PRICE_LISTS.length} style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>No hay productos que coincidan.</td></tr>
             )}
           </tbody>
         </table>

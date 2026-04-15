@@ -22,10 +22,20 @@ export default async function PreciosMasivosPage() {
   });
   const categories = categoryList.map(c => c.category).filter(Boolean) as string[];
 
-  const initialProducts = await prisma.product.findMany({
-    where: { branchId: branch.id, isActive: true },
-    select: { id: true, sku: true, name: true, brand: true, category: true, cost: true, price: true, wholesalePrice: true, specialPrice: true }
+  const dynamicPriceLists = await prisma.priceList.findMany({
+    where: { branchId: branch.id }
   });
 
-  return <PreciosMasivosClient initProducts={initialProducts} brands={brands} categories={categories} branchId={branch.id} />;
+  const initialProducts = await prisma.product.findMany({
+    where: { branchId: branch.id, isActive: true },
+    select: { 
+      id: true, sku: true, name: true, brand: true, category: true, cost: true, 
+      price: true, wholesalePrice: true, specialPrice: true,
+      productPrices: {
+        select: { priceListId: true, price: true }
+      }
+    }
+  });
+
+  return <PreciosMasivosClient initProducts={initialProducts} brands={brands} categories={categories} branchId={branch.id} dynamicPriceLists={dynamicPriceLists} />;
 }
