@@ -31,7 +31,7 @@ export default async function PreciosMasivosPage() {
     select: { 
       id: true, sku: true, name: true, brand: true, category: true, cost: true, 
       price: true, wholesalePrice: true, specialPrice: true,
-      productPrices: {
+      prices: {
         select: { priceListId: true, price: true }
       }
     }

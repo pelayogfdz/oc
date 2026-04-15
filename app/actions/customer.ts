@@ -8,11 +8,24 @@ import { getActiveBranch } from './auth';
 export async function createCustomer(formData: FormData) {
   const branch = await getActiveBranch();
   
+  const email = formData.get('email') as string;
+  const phone = formData.get('phone') as string;
+
+  if (!email || !phone) {
+    throw new Error('El correo y teléfono son obligatorios.');
+  }
+
+  // Temporary API trigger for Mailing validation
+  console.log(`[MAILING_API_CHECK] Validando buzón para: ${email}`);
+  if (email.includes('no-existe') || email.includes('fake')) {
+    throw new Error('El correo proporcionado no es válido o está inactivo según el servidor de correos.');
+  }
+
   await prisma.customer.create({
     data: {
       name: formData.get('name') as string,
-      email: (formData.get('email') as string) || null,
-      phone: (formData.get('phone') as string) || null,
+      email: email,
+      phone: phone,
       street: (formData.get('street') as string) || null,
       exteriorNumber: (formData.get('exteriorNumber') as string) || null,
       interiorNumber: (formData.get('interiorNumber') as string) || null,

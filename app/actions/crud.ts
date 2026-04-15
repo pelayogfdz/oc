@@ -26,7 +26,7 @@ export async function crudAction(entity: string, formData: FormData) {
      } else if (entity === 'customer') {
         await prisma.customer.create({ data: { name: data.name, taxId: data.taxId, phone: data.phone, creditLimit: data.creditLimit, branchId: branch.id }});
      } else if (entity === 'promotion') {
-        await prisma.promotion.create({ data: { name: data.name, value: data.value, branchId: branch.id }});
+        await prisma.promotion.create({ data: { name: data.name, type: typeof data.type === 'string' ? data.type : 'PERCENTAGE', value: Number(data.value) || 0, metadata: data.metadata, branchId: branch.id }});
      } else if (entity === 'transfer') {
         await prisma.transfer.create({ data: { branchId: branch.id, toBranchId: branch.id, status: 'IN_TRANSIT' }});
      } else if (entity === 'inventoryMovement') {

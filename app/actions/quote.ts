@@ -36,6 +36,22 @@ export async function createQuote(
   return quote;
 }
 
+export async function getQuoteForPOS(quoteId: string) {
+  const quote = await prisma.quote.findUnique({
+    where: { id: quoteId },
+    include: { 
+      items: {
+        include: { product: true }
+      } 
+    }
+  });
+  
+  if (!quote) throw new Error("Cotización no encontrada.");
+  if (quote.status === "CONVERTED") throw new Error("Esta cotización ya fue convertida a venta.");
+  
+  return quote;
+}
+
 export async function convertQuoteToSale(quoteId: string) {
   const quote = await prisma.quote.findUnique({
     where: { id: quoteId },

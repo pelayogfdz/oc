@@ -1,10 +1,12 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { createSale } from '@/app/actions/sale';
-import { createQuote } from '@/app/actions/quote';
+import { createQuote, getQuoteForPOS } from '@/app/actions/quote';
 import { searchProducts } from '@/app/actions/product';
+import { useSearchParams } from 'next/navigation';
 
-export default function POSClient({ products: initialProducts, customers, promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {} }: { products: any[], customers: any[], promotions?: any[], mode?: "SALE" | "QUOTE", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any }) {
+export default function POSClient({ products: initialProducts, customers, promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {}, dynamicPriceLists = [] }: { products: any[], customers: any[], promotions?: any[], mode?: "SALE" | "QUOTE", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any, dynamicPriceLists?: any[] }) {
+  const searchParams = useSearchParams();
   const [cart, setCart] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [priceList, setPriceList] = useState('price');
@@ -20,6 +22,11 @@ export default function POSClient({ products: initialProducts, customers, promot
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
+  // Load Quote State
+  const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
+  const [quoteSearchId, setQuoteSearchId] = useState('');
+  const [isLoadingQuote, setIsLoadingQuote] = useState(false);
+
   // Variant Selection State
   const [selectedProductForVariant, setSelectedProductForVariant] = useState<any | null>(null);
 
@@ -57,6 +64,45 @@ export default function POSClient({ products: initialProducts, customers, promot
       setPriceList('price');
     }
   };
+
+  const handleLoadQuote = async (incomingId?: string) => {
+    const idToLoad = incomingId || quoteSearchId.trim();
+    if (!idToLoad) return;
+    
+    setIsLoadingQuote(true);
+    try {
+      const quote = await getQuoteForPOS(idToLoad);
+      
+      // Load cart
+      const newCart = quote.items.map((item: any) => ({
+        ...item.product,
+        cartItemId: Math.random().toString(36).substr(2, 9),
+        quantity: item.quantity,
+        cartPrice: item.price
+      }));
+      setCart(newCart);
+      
+      // Load Customer
+      if (quote.customerId) {
+        handleCustomerChange(quote.customerId);
+      }
+      
+      setIsQuoteModalOpen(false);
+      setQuoteSearchId('');
+      if (!incomingId) alert("Cotización cargada correctamente.");
+    } catch (e: any) {
+      alert("Error al cargar la cotización: " + e.message);
+    } finally {
+      setIsLoadingQuote(false);
+    }
+  };
+
+  useEffect(() => {
+    const qId = searchParams.get('quoteId');
+    if (qId) {
+      handleLoadQuote(qId);
+    }
+  }, [searchParams]);
 
 
   
@@ -138,8 +184,38 @@ export default function POSClient({ products: initialProducts, customers, promot
   const discount = useMemo(() => {
     let d = 0;
     promotions.forEach(promo => {
-      if (promo.type === 'PERCENTAGE') d += subTotal * (promo.value / 100);
-      else if (promo.type === 'FIXED_DISCOUNT') d += promo.value;
+      const meta = promo.metadata ? JSON.parse(promo.metadata) : { targetType: 'ALL' };
+      
+      let applicableCartItems = cart;
+      
+      if (meta.targetType === 'CATEGORY') {
+        applicableCartItems = cart.filter(item => meta.applyToCategories?.includes(item.category));
+      } else if (meta.targetType === 'BRAND') {
+        applicableCartItems = cart.filter(item => meta.applyToBrands?.includes(item.brand));
+      } else if (meta.targetType === 'PRODUCTS') {
+        applicableCartItems = cart.filter(item => meta.applyToProducts?.includes(item.id));
+      }
+      
+      const applicableSubTotal = applicableCartItems.reduce((sum, item) => sum + (getProductPrice(item) * item.quantity), 0);
+      const applicableQuantity = applicableCartItems.reduce((sum, item) => sum + item.quantity, 0);
+
+      if (applicableSubTotal > 0) {
+        if (promo.type === 'PERCENTAGE') {
+          d += applicableSubTotal * (promo.value / 100);
+        } else if (promo.type === 'FIXED_AMOUNT') { // updated to match FIXED_AMOUNT
+          // Apply fixed amount once if valid
+          d += promo.value;
+        } else if (promo.type === 'BOGO') {
+          // BOGO Logic: Group by product to handle 2x1. For every 2 items of the same applicable product, 1 is free (the cheapest if mixed, but since it's grouped by product, it's the product price).
+          // Assuming simple 2x1 for now where `promo.value` could represent N (pay N, get 1 free). But default is 2x1 so pay 1 get 1 free.
+          applicableCartItems.forEach(item => {
+             const freeItems = Math.floor(item.quantity / 2);
+             if (freeItems > 0) {
+               d += freeItems * getProductPrice(item);
+             }
+          });
+        }
+      }
     });
     
     if (typeof manualDiscountValue === 'number' && manualDiscountValue > 0) {
@@ -151,7 +227,7 @@ export default function POSClient({ products: initialProducts, customers, promot
     }
     
     return d > subTotal ? subTotal : d;
-  }, [subTotal, promotions, manualDiscountValue, manualDiscountType]);
+  }, [subTotal, cart, promotions, manualDiscountValue, manualDiscountType]);
 
   let total = subTotal - discount;
   if (ventasConfig.redondeo === 'redondeo_50') total = Math.round(total * 2) / 2;
@@ -332,7 +408,18 @@ export default function POSClient({ products: initialProducts, customers, promot
       {/* Left: Products */}
       <div className="card" style={{ flex: 2, display: 'flex', flexDirection: 'column', position: 'relative' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: '1rem' }}>
-          <h2 style={{ fontSize: '1.25rem', whiteSpace: 'nowrap' }}>Inventario</h2>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <h2 style={{ fontSize: '1.25rem', whiteSpace: 'nowrap' }}>Inventario</h2>
+            {mode === 'SALE' && (
+              <button 
+                onClick={() => setIsQuoteModalOpen(true)}
+                className="btn btn-secondary" 
+                style={{ whiteSpace: 'nowrap', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+              >
+                Cargar Cotización
+              </button>
+            )}
+          </div>
           <div style={{ display: 'flex', flex: 1, gap: '0.5rem' }}>
             <input 
               type="text" 
@@ -393,7 +480,6 @@ export default function POSClient({ products: initialProducts, customers, promot
             <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.25rem' }}>Cliente</label>
             <div style={{ position: 'relative' }}>
               <input 
-                list="customersList"
                 type="text"
                 placeholder="🔎 Buscar o escribir nombre de cliente..."
                 value={customerSearchTerm}
@@ -405,10 +491,25 @@ export default function POSClient({ products: initialProducts, customers, promot
                 }}
                 style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
               />
-              <datalist id="customersList">
-                <option value="">Público en General</option>
-                {customers.map((c: any) => <option key={c.id} value={c.name} />)}
-              </datalist>
+              {customerSearchTerm && !selectedCustomerId && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid var(--pulpos-border)', borderRadius: '4px', zIndex: 10, maxHeight: '200px', overflowY: 'auto', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                  <div 
+                    onClick={() => { setCustomerSearchTerm('Público en General'); handleCustomerChange(''); }}
+                    style={{ padding: '0.5rem', cursor: 'pointer', borderBottom: '1px solid var(--pulpos-border)' }}
+                  >
+                    Público en General
+                  </div>
+                  {customers.filter((c:any) => c.name.toLowerCase().includes(customerSearchTerm.toLowerCase())).map((c: any) => (
+                    <div 
+                      key={c.id} 
+                      onClick={() => { setCustomerSearchTerm(c.name); handleCustomerChange(c.id); }}
+                      style={{ padding: '0.5rem', cursor: 'pointer', borderBottom: '1px solid var(--pulpos-border)' }}
+                    >
+                      {c.name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             {selectedCustomerId && (
                <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '0.25rem', fontWeight: 'bold' }}>
@@ -420,10 +521,11 @@ export default function POSClient({ products: initialProducts, customers, promot
             <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.25rem' }}>Lista de Precios del Ticket</label>
             <select value={priceList} onChange={e => setPriceList(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', fontWeight: 'bold', color: priceList !== 'price' ? 'var(--pulpos-primary)' : 'inherit' }}>
               <option value="price">Normal (Público General)</option>
-              {/* Note: In a real system you'd pass down pre-fetched priceLists to show options dynamically here too, 
-                  but we inherit the auto-selection from customer or use basic values! */}
               <option value="wholesalePrice">Mayoreo</option>
               <option value="specialPrice">Especial (Distribuidor)</option>
+              {dynamicPriceLists.map((pl: any) => (
+                <option key={pl.id} value={`priceList_${pl.id}`}>{pl.name}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -437,9 +539,37 @@ export default function POSClient({ products: initialProducts, customers, promot
               <div key={item.cartItemId} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--pulpos-border)' }}>
                 <div>
                   <div style={{ fontWeight: '500' }}>{item.name}</div>
-                  <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.875rem' }}>{item.quantity} x ${currentPrice.toFixed(2)}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      value={item.quantity} 
+                      onChange={e => {
+                        const newQ = parseInt(e.target.value) || 1;
+                        if (ventasConfig.venderSinStock === false && mode === 'SALE') {
+                           if (item.stock < newQ) {
+                             alert('STOCK INSUFICIENTE.');
+                             return;
+                           }
+                        }
+                        setCart(cart.map(c => c.cartItemId === item.cartItemId ? { ...c, quantity: newQ } : c));
+                      }}
+                      style={{ width: '60px', padding: '0.25rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', textAlign: 'center' }} 
+                    />
+                    <span style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.875rem' }}>
+                      x ${currentPrice.toFixed(2)}
+                    </span>
+                  </div>
                 </div>
-                <div style={{ fontWeight: 'bold' }}>${(item.quantity * currentPrice).toFixed(2)}</div>
+                <div style={{ fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+                  <span>${(item.quantity * currentPrice).toFixed(2)}</span>
+                  <button 
+                     onClick={() => setCart(cart.filter(c => c.cartItemId !== item.cartItemId))}
+                     style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', marginTop: '0.25rem', textDecoration: 'underline' }}
+                  >
+                    Eliminar
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -506,7 +636,7 @@ export default function POSClient({ products: initialProducts, customers, promot
               <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>${finalTotalWithTip.toFixed(2)}</div>
             </div>
 
-            {ventasConfig.solicitarPropinas && (
+            {mode !== 'QUOTE' && ventasConfig.solicitarPropinas && (
                <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '1.5rem' }}>
                  <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>Añadir Propina</label>
                  <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -526,29 +656,31 @@ export default function POSClient({ products: initialProducts, customers, promot
                </div>
             )}
 
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>Método de Pago</label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '0.5rem' }}>
-                {allowedMethods.map(method => (
-                  <button 
-                    key={method.id}
-                    onClick={() => setPaymentMethod(method.id)}
-                    style={{ 
-                      padding: '0.75rem', borderRadius: '4px', border: '1px solid', 
-                      borderColor: paymentMethod === method.id ? 'var(--pulpos-primary)' : 'var(--pulpos-border)',
-                      backgroundColor: paymentMethod === method.id ? '#eff6ff' : 'white',
-                      color: paymentMethod === method.id ? 'var(--pulpos-primary)' : 'inherit',
-                      fontWeight: paymentMethod === method.id ? 'bold' : 'normal',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {method.name}
-                  </button>
-                ))}
+            {mode !== 'QUOTE' && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>Método de Pago</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '0.5rem' }}>
+                  {allowedMethods.map(method => (
+                    <button 
+                      key={method.id}
+                      onClick={() => setPaymentMethod(method.id)}
+                      style={{ 
+                        padding: '0.75rem', borderRadius: '4px', border: '1px solid', 
+                        borderColor: paymentMethod === method.id ? 'var(--pulpos-primary)' : 'var(--pulpos-border)',
+                        backgroundColor: paymentMethod === method.id ? '#eff6ff' : 'white',
+                        color: paymentMethod === method.id ? 'var(--pulpos-primary)' : 'inherit',
+                        fontWeight: paymentMethod === method.id ? 'bold' : 'normal',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {method.name}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {paymentMethod === 'CREDIT' && selectedCust && selectedCust.creditLimit > 0 && (
+            {mode !== 'QUOTE' && paymentMethod === 'CREDIT' && selectedCust && selectedCust.creditLimit > 0 && (
               <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#fef3c7', borderRadius: '8px', border: '1px solid #fde68a' }}>
                 <div style={{ fontWeight: 'bold', color: '#b45309', marginBottom: '0.25rem' }}>Venta a Crédito</div>
                 <div style={{ color: '#d97706', fontSize: '0.9rem' }}>
@@ -562,7 +694,7 @@ export default function POSClient({ products: initialProducts, customers, promot
               </div>
             )}
 
-            {(paymentMethod === 'CASH' || paymentMethod.toLowerCase().includes('efectivo')) && (
+            {mode !== 'QUOTE' && (paymentMethod === 'CASH' || paymentMethod.toLowerCase().includes('efectivo')) && (
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>Efectivo Recibido</label>
                 <input 
@@ -637,6 +769,42 @@ export default function POSClient({ products: initialProducts, customers, promot
               >
                 {isProcessing ? 'Guardando...' : (mode === 'QUOTE' ? 'Guardar Cotización' : 'Confirmar Pago')}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Load Quote Modal */}
+      {isQuoteModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', width: '400px', maxWidth: '90%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Cargar Cotización</h2>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#1e293b' }}>ID de Cotización</label>
+              <input 
+                type="text" 
+                value={quoteSearchId} 
+                onChange={(e) => setQuoteSearchId(e.target.value)}
+                placeholder="Ej. cm71vxa23..."
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+                autoFocus
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+               <button 
+                 onClick={() => setIsQuoteModalOpen(false)}
+                 style={{ padding: '0.75rem 1.5rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', background: 'white', cursor: 'pointer', fontWeight: 'bold', color: 'var(--pulpos-text-muted)' }}
+                 disabled={isLoadingQuote}
+               >
+                 Cancelar
+               </button>
+               <button 
+                 onClick={handleLoadQuote}
+                 style={{ padding: '0.75rem 1.5rem', border: 'none', borderRadius: '4px', backgroundColor: 'var(--pulpos-primary)', color: 'white', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}
+                 disabled={!quoteSearchId.trim() || isLoadingQuote}
+               >
+                 {isLoadingQuote ? 'Cargando...' : 'Cargar'}
+               </button>
             </div>
           </div>
         </div>

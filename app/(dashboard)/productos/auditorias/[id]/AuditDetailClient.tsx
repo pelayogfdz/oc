@@ -6,7 +6,7 @@ import { Save, UploadCloud, Download, CheckCircle, AlertTriangle, ArrowRight, Up
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-export default function AuditDetailClient({ audit, products, categories, brands }: { audit: any, products: any[], categories: any[], brands: any[] }) {
+export default function AuditDetailClient({ audit, products }: { audit: any, products: any[] }) {
   const router = useRouter();
 
   // Phase logic
@@ -57,8 +57,8 @@ export default function AuditDetailClient({ audit, products, categories, brands 
     if (isCompleted) return audit.items.map((i: any) => ({ ...i.product, finalCount: i.finalCount, systemStock: i.systemStock, expectedDiff: i.finalCount - i.systemStock }));
     if (isPhase1) {
        let list = products;
-       if (filterCategory !== 'ALL') list = list.filter(p => p.categoryId === filterCategory);
-       if (filterBrand !== 'ALL') list = list.filter(p => p.brandId === filterBrand);
+       if (filterCategory !== 'ALL') list = list.filter(p => p.category === filterCategory);
+       if (filterBrand !== 'ALL') list = list.filter(p => p.brand === filterBrand);
        return list;
     }
     if (isPhase2) return audit.items.filter((i: any) => i.count1 !== i.systemStock).map((i: any) => i.product);
@@ -223,7 +223,7 @@ export default function AuditDetailClient({ audit, products, categories, brands 
                    title="Filtrar por Marca"
                  >
                    <option value="ALL">Todas las Marcas</option>
-                   {brands?.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                   {Array.from(new Set(products.map(p => p.brand).filter(Boolean))).map(b => <option key={b as string} value={b as string}>{b as string}</option>)}
                  </select>
                  
                  <select 
@@ -233,7 +233,7 @@ export default function AuditDetailClient({ audit, products, categories, brands 
                    title="Filtrar por Categoría"
                  >
                    <option value="ALL">Todas las Categorías</option>
-                   {categories?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                   {Array.from(new Set(products.map(p => p.category).filter(Boolean))).map(c => <option key={c as string} value={c as string}>{c as string}</option>)}
                  </select>
 
                  <input 

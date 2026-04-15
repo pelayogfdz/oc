@@ -12,27 +12,33 @@ export async function createInventoryAdjustment(
   if (!branch) return;
   const user = await getActiveUser(branch.id);
 
+  // Create the parent Adjustment Document
+  const doc = await prisma.inventoryAdjustmentDoc.create({
+    data: {
+      branchId: branch.id,
+      reason: reason,
+      userId: user.id
+    }
+  });
+
+  // Since we also update product stock, we'll do an array of promises or a sequential loop
   for (const item of items) {
-    // Validate that the stock hasn't wildly changed 
     const currentProduct = await prisma.product.findUnique({ where: { id: item.productId } });
     if (!currentProduct) continue;
 
-    // Apply the adjustment (replace the current stock with the counted manual stock)
     await prisma.product.update({
       where: { id: item.productId },
       data: { stock: item.newStock }
     });
 
-    // Determine IN or OUT for Kardex logic purely logging the difference
-    const type = 'ADJUSTMENT';
-
     await prisma.inventoryMovement.create({
       data: {
         productId: item.productId,
-        type: type,
-        quantity: item.difference, // Negative if we lost stock, positive if we found stock
+        type: 'ADJUSTMENT',
+        quantity: item.difference,
         reason: `Ajuste Inventario Físico: ${reason}`,
-        userId: user.id
+        userId: user.id,
+        adjustmentDocId: doc.id
       }
     });
   }

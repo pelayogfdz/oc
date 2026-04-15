@@ -143,7 +143,7 @@ export default function PreciosMasivosClient({
     setIsSaving(true);
     try {
       const updates = [];
-      const dynamicUpdates = [];
+      const dynamicUpdates: any[] = [];
 
       for (const p of modified) {
         // Collect base fields

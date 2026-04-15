@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import { getBranchSettings } from "@/app/actions/settings";
@@ -24,6 +25,10 @@ export default async function NuevaVentaPage() {
 
   const promotions = await prisma.promotion.findMany({
     where: { branchId: branch?.id || '', active: true }
+  });
+
+  const dynamicPriceLists = await prisma.priceList.findMany({
+    where: { branchId: branch?.id || '' }
   });
 
   const session = await getCurrentSession();
@@ -60,7 +65,21 @@ export default async function NuevaVentaPage() {
 
       {/* Solo mostramos el POS pero si no hay sesión estara opacado */}
       <div style={{ filter: !session ? 'blur(8px) grayscale(100%)' : 'none', pointerEvents: !session ? 'none' : 'auto', transition: 'all 0.3s' }}>
-        <POSClient products={products} customers={customers} promotions={promotions} sessionId={session?.id} branchId={branch?.id || ''} ticketConfig={ticketConfig} metodosConfig={metodosConfig} ventasConfig={ventasConfig} />
+        {session && (
+          <Suspense fallback={<div>Cargando Caja...</div>}>
+            <POSClient 
+              products={products} 
+              customers={customers} 
+              promotions={promotions}
+              dynamicPriceLists={dynamicPriceLists}
+              sessionId={session.id} 
+              branchId={branch?.id || ''} 
+              ticketConfig={ticketConfig} 
+              metodosConfig={metodosConfig}
+              ventasConfig={ventasConfig}
+            />
+          </Suspense>
+        )}
       </div>
     </div>
   );

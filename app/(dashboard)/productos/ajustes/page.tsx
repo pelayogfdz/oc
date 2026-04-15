@@ -15,14 +15,15 @@ export default async function Page() {
 
   // Fetch only adjustments (including backwards compatibility for older adjustments saved as IN/OUT)
   // Fetch only adjustments
-  const data = await prisma.inventoryMovement.findMany({ 
-    where: { 
-      product: { branchId: branch.id },
-      type: 'ADJUSTMENT'
-    }, 
+  const docs = await prisma.inventoryAdjustmentDoc.findMany({ 
+    where: { branchId: branch.id },
     include: { 
-      product: true,
-      user: true // Fetching user who made the adjustment
+      user: true,
+      movements: {
+        include: {
+          product: true
+        }
+      }
     }, 
     take: 50, 
     orderBy: { createdAt: "desc" } 
@@ -50,7 +51,7 @@ export default async function Page() {
         </div>
       </div>
 
-      <AdjustmentHistoryClient data={data} />
+      <AdjustmentHistoryClient data={docs} />
     </div>
   );
 }
