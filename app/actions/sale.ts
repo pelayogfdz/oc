@@ -14,97 +14,101 @@ export async function createSale(
   cashAmount?: number,
   cardAmount?: number
 ) {
-  const branch = await getActiveBranch();
-  const user = await getActiveUser(branch.id);
-  
-  if (items.length === 0) throw new Error("Ticket is empty");
+  try {
+    const branch = await getActiveBranch();
+    const user = await getActiveUser(branch.id);
+    
+    if (items.length === 0) throw new Error("Ticket is empty");
 
-  // Load preferences
-  const branchSettings = await prisma.branchSettings.findUnique({ where: { branchId: branch.id } });
-  const config = branchSettings?.configJson ? JSON.parse(branchSettings.configJson)['ventas'] || {} : {};
-  const permitirVenderSinStock = config.venderSinStock === true;
-  const permitirVenderBajoCosto = config.venderBajoCosto === true;
+    // Load preferences
+    const branchSettings = await prisma.branchSettings.findUnique({ where: { branchId: branch.id } });
+    const config = branchSettings?.configJson ? JSON.parse(branchSettings.configJson)['ventas'] || {} : {};
+    const permitirVenderSinStock = config.venderSinStock === true;
+    const permitirVenderBajoCosto = config.venderBajoCosto === true;
 
-  // Validate items against preferences
-  for (const item of items) {
-    const product = await prisma.product.findUnique({ where: { id: item.productId } });
-    if (!product) throw new Error("Producto no encontrado");
+    // Validate items against preferences
+    for (const item of items) {
+      const product = await prisma.product.findUnique({ where: { id: item.productId } });
+      if (!product) throw new Error("Producto no encontrado");
 
-    let currentStock = product.stock;
-    if (item.variantId) {
-      const variant = await prisma.productVariant.findUnique({ where: { id: item.variantId } });
-      if (variant) currentStock = variant.stock;
-    }
+      let currentStock = product.stock;
+      if (item.variantId) {
+        const variant = await prisma.productVariant.findUnique({ where: { id: item.variantId } });
+        if (variant) currentStock = variant.stock;
+      }
 
-    if (!permitirVenderSinStock && currentStock - item.quantity < 0) {
-      throw new Error(`Inventario insuficiente para: ${product.name}`);
-    }
+      if (!permitirVenderSinStock && currentStock - item.quantity < 0) {
+        throw new Error(`Inventario insuficiente para: ${product.name}`);
+      }
 
-    if (!permitirVenderBajoCosto && item.price < product.cost) {
-      throw new Error(`Precio por debajo del costo para: ${product.name}`);
-    }
-  }
-
-  const sale = await prisma.sale.create({
-    data: {
-      total,
-      paymentMethod,
-      customerId,
-      cashSessionId,
-      notes,
-      cashAmount,
-      cardAmount,
-      branchId: branch.id,
-      userId: user.id,
-      items: {
-        create: items.map(item => ({
-          quantity: item.quantity,
-          price: item.price,
-          productId: item.productId,
-          variantId: item.variantId || null
-        }))
+      if (!permitirVenderBajoCosto && item.price < product.cost) {
+        throw new Error(`Precio por debajo del costo para: ${product.name}`);
       }
     }
-  });
 
-  // Deduct stock & Register Kardex Movement
-  for (const item of items) {
-    await prisma.product.update({
-      where: { id: item.productId },
-      data: { stock: { decrement: item.quantity } }
+    const sale = await prisma.sale.create({
+      data: {
+        total,
+        paymentMethod,
+        customerId,
+        cashSessionId,
+        notes,
+        cashAmount,
+        cardAmount,
+        branchId: branch.id,
+        userId: user.id,
+        items: {
+          create: items.map(item => ({
+            quantity: item.quantity,
+            price: item.price,
+            productId: item.productId,
+            variantId: item.variantId || null
+          }))
+        }
+      }
     });
-    
-    if (item.variantId) {
-      await prisma.productVariant.update({
-        where: { id: item.variantId },
+
+    // Deduct stock & Register Kardex Movement
+    for (const item of items) {
+      await prisma.product.update({
+        where: { id: item.productId },
         data: { stock: { decrement: item.quantity } }
       });
-    }
-    
-    await prisma.inventoryMovement.create({
-      data: {
-        productId: item.productId,
-        variantId: item.variantId || null,
-        type: 'OUT',
-        quantity: -item.quantity,
-        reason: `Venta #${sale.id.slice(0, 8)}`
+      
+      if (item.variantId) {
+        await prisma.productVariant.update({
+          where: { id: item.variantId },
+          data: { stock: { decrement: item.quantity } }
+        });
       }
-    });
-  }
+      
+      await prisma.inventoryMovement.create({
+        data: {
+          productId: item.productId,
+          variantId: item.variantId || null,
+          type: 'OUT',
+          quantity: -item.quantity,
+          reason: `Venta #${sale.id.slice(0, 8)}`
+        }
+      });
+    }
 
-  // Si fue a crédito, actualizar la deuda del cliente
-  if (paymentMethod === 'CREDIT' && customerId) {
-     await prisma.customer.update({
-        where: { id: customerId },
-        data: { creditBalance: { increment: total } }
-     });
-  }
+    // Si fue a crédito, actualizar la deuda del cliente
+    if (paymentMethod === 'CREDIT' && customerId) {
+       await prisma.customer.update({
+          where: { id: customerId },
+          data: { creditBalance: { increment: total } }
+       });
+    }
 
-  revalidatePath('/ventas');
-  revalidatePath('/productos');
-  if (paymentMethod === 'CREDIT') revalidatePath('/clientes/cobranza');
-  
-  return sale;
+    revalidatePath('/ventas');
+    revalidatePath('/productos');
+    if (paymentMethod === 'CREDIT') revalidatePath('/clientes/cobranza');
+    
+    return { success: true, sale };
+  } catch (error: any) {
+    return { success: false, error: error.message || String(error) };
+  }
 }
 
 export async function refundSale(formData: FormData) {

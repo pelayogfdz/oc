@@ -375,8 +375,11 @@ export default function POSClient({ products: initialProducts, customers, promot
         const cashValue = typeof amountReceived === 'number' ? amountReceived : undefined;
         const cardValue = typeof cardAmount === 'number' ? cardAmount : undefined;
         
-        const sale = await createSale(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null, sessionId, notes, cashValue, cardValue);
-        saleId = sale.id;
+        const response = await createSale(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null, sessionId, notes, cashValue, cardValue);
+        if (!response.success) {
+          throw new Error(response.error);
+        }
+        saleId = response.sale.id;
       }
       
       setCart([]);
