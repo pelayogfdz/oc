@@ -49,11 +49,16 @@ export default async function Page() {
                   ${item.creditLimit?.toFixed(2) || '0.00'}
                 </td>
                 <td style={{ padding: '1rem' }}>
-                    <form action={async () => { 'use server'; await deleteEntity('customer', item.id); }}>
-                       <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                         <Trash2 size={16}/> 
-                       </button>
-                    </form>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <Link href={`/clientes/${item.id}/editar`} style={{ color: '#0ea5e9', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Icons.Edit size={16} />
+                      </Link>
+                      <form action={async () => { 'use server'; await deleteEntity('customer', item.id); }}>
+                         <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                           <Trash2 size={16}/> 
+                         </button>
+                      </form>
+                    </div>
                 </td>
               </tr>
             ))}

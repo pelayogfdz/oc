@@ -52,11 +52,21 @@ export default async function CotizacionesPage() {
                     ${quote.total.toFixed(2)}
                   </td>
                   <td style={{ padding: '1rem' }}>
-                    {quote.status === 'PENDING' ? (
-                      <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#fef9c3', color: '#854d0e', borderRadius: '12px' }}>PENDIENTE</span>
-                    ) : (
-                      <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '12px' }}>CONVERTIDA A VENTA</span>
-                    )}
+                    {(() => {
+                      if (quote.status === 'CONVERTED') {
+                        return <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '12px' }}>CONVERTIDA VERDE</span>;
+                      }
+                      
+                      const diffDays = (new Date().getTime() - new Date(quote.createdAt).getTime()) / (1000 * 3600 * 24);
+                      
+                      if (diffDays > 30) {
+                         return <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#fee2e2', color: '#991b1b', borderRadius: '12px' }}>ATORADA</span>;
+                      } else if (diffDays > 7) {
+                         return <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#fef9c3', color: '#854d0e', borderRadius: '12px' }}>PENDIENTE</span>;
+                      } else {
+                         return <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#e0f2fe', color: '#075985', borderRadius: '12px' }}>PENDIENTE (NUEVA)</span>;
+                      }
+                    })()}
                   </td>
                   <td style={{ padding: '1rem', textAlign: 'right', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', alignItems: 'center' }}>
                     <Link href={`/ventas/cotizaciones/${quote.id}/imprimir`} target="_blank" style={{ fontSize: '0.85rem', padding: '0.4rem 0.75rem', border: '1px solid #8b5cf6', backgroundColor: '#f5f3ff', color: '#7c3aed', borderRadius: '4px', textDecoration: 'none', fontWeight: 'bold' }}>

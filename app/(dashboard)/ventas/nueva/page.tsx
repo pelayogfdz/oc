@@ -31,6 +31,12 @@ export default async function NuevaVentaPage() {
     where: { branchId: branch?.id || '' }
   });
 
+  const pendingQuotes = await prisma.quote.findMany({
+    where: { branchId: branch?.id || '', status: 'PENDING' },
+    orderBy: { createdAt: 'desc' },
+    take: 20
+  });
+
   const session = await getCurrentSession();
 
   const settings = await getBranchSettings();
@@ -72,6 +78,7 @@ export default async function NuevaVentaPage() {
               customers={customers} 
               promotions={promotions}
               dynamicPriceLists={dynamicPriceLists}
+              pendingQuotes={pendingQuotes}
               sessionId={session.id} 
               branchId={branch?.id || ''} 
               ticketConfig={ticketConfig} 

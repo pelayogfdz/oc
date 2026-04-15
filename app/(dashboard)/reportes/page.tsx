@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, getBranchFilter } from "@/lib/utils";
-import { BarChart3, TrendingUp, Package, History, DollarSign, Users, Award, TrendingDown, BookOpen, Clock } from 'lucide-react';
+import { BarChart3, TrendingUp, Package, History, DollarSign, Users, Award, TrendingDown, BookOpen, Clock, CheckCircle } from 'lucide-react';
 
 export default async function ReportesHubPage() {
   const branch = await getActiveBranch();
@@ -24,6 +24,7 @@ export default async function ReportesHubPage() {
     { title: "Valoración de Inventario", icon: <Package size={24} color="#8b5cf6" />, desc: "Capital actual congelado en tus almacenes a costo y precio retail.", path: "/reportes/inventario" },
     { title: "Cobertura de Inventario", icon: <Clock size={24} color="#ec4899" />, desc: "Antigüedad del stock y ritmo de ventas para pronosticar vida útil.", path: "/reportes/antiguedad" },
     { title: "Estados de Cuenta", icon: <BookOpen size={24} color="#64748b" />, desc: "Análisis de deudores, cuentas por cobrar y líneas de crédito B2B.", path: "/reportes/cartera" },
+    { title: "Cotizaciones Convertidas", icon: <CheckCircle size={24} color="#16a34a" />, desc: "Métricas de monto recuperado e historial de cotizaciones exitosas.", path: "/reportes/cotizaciones" },
   ];
 
   return (

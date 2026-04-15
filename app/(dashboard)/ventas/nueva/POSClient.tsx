@@ -5,7 +5,7 @@ import { createQuote, getQuoteForPOS } from '@/app/actions/quote';
 import { searchProducts } from '@/app/actions/product';
 import { useSearchParams } from 'next/navigation';
 
-export default function POSClient({ products: initialProducts, customers, promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {}, dynamicPriceLists = [] }: { products: any[], customers: any[], promotions?: any[], mode?: "SALE" | "QUOTE", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any, dynamicPriceLists?: any[] }) {
+export default function POSClient({ products: initialProducts, customers, promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {}, dynamicPriceLists = [], pendingQuotes = [] }: { products: any[], customers: any[], promotions?: any[], mode?: "SALE" | "QUOTE", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any, dynamicPriceLists?: any[], pendingQuotes?: any[] }) {
   const searchParams = useSearchParams();
   const [cart, setCart] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -777,19 +777,53 @@ export default function POSClient({ products: initialProducts, customers, promot
       {/* Load Quote Modal */}
       {isQuoteModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', width: '400px', maxWidth: '90%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', width: '500px', maxWidth: '90%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', maxHeight: '80vh' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Cargar Cotización</h2>
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#1e293b' }}>ID de Cotización</label>
+            
+            <div style={{ marginBottom: '1rem' }}>
               <input 
                 type="text" 
                 value={quoteSearchId} 
                 onChange={(e) => setQuoteSearchId(e.target.value)}
-                placeholder="Ej. cm71vxa23..."
+                placeholder="🔍 Buscar ID de Cotización..."
                 style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
                 autoFocus
               />
             </div>
+
+            <div style={{ overflowY: 'auto', flex: 1, marginBottom: '1.5rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px' }}>
+               {pendingQuotes.filter(q => q.id.includes(quoteSearchId.trim())).map(quote => (
+                 <button 
+                    key={quote.id} 
+                    onClick={() => handleLoadQuote(quote.id)}
+                    style={{ 
+                      width: '100%', 
+                      padding: '1rem', 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center', 
+                      borderBottom: '1px solid var(--pulpos-border)', 
+                      backgroundColor: 'white', 
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                 >
+                    <div>
+                      <div style={{ fontWeight: 'bold', color: '#1e293b' }}>Cotización #{quote.id.slice(0, 8)}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--pulpos-text-muted)' }}>{new Date(quote.createdAt).toLocaleString()}</div>
+                    </div>
+                    <div style={{ fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>
+                      ${quote.total.toFixed(2)}
+                    </div>
+                 </button>
+               ))}
+               {pendingQuotes.length === 0 && (
+                 <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                    No hay cotizaciones pendientes en esta sucursal.
+                 </div>
+               )}
+            </div>
+
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                <button 
                  onClick={() => setIsQuoteModalOpen(false)}
@@ -797,13 +831,6 @@ export default function POSClient({ products: initialProducts, customers, promot
                  disabled={isLoadingQuote}
                >
                  Cancelar
-               </button>
-               <button 
-                 onClick={handleLoadQuote}
-                 style={{ padding: '0.75rem 1.5rem', border: 'none', borderRadius: '4px', backgroundColor: 'var(--pulpos-primary)', color: 'white', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}
-                 disabled={!quoteSearchId.trim() || isLoadingQuote}
-               >
-                 {isLoadingQuote ? 'Cargando...' : 'Cargar'}
                </button>
             </div>
           </div>
