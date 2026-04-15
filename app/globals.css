@@ -118,3 +118,38 @@ button {
     display: none !important;
   }
 }
+
+/* ------------------------------------- */
+/* Print Styles */
+/* ------------------------------------- */
+@media print {
+  /* Ocultar barra lateral en impresión */
+  .dashboard-sidebar, .sidebar-overlay, .mobile-menu-toggle {
+    display: none !important;
+  }
+
+  /* Ocultar header principal en impresión */
+  .dashboard-header {
+    display: none !important;
+  }
+
+  /* El contenido principal debe tomar toda la hoja, sin márgenes laterales extra */
+  .dashboard-main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* Utilidad para forzar que ciertos botones o cajas no salgan en papel */
+  .no-print, .btn-primary, .btn-secondary, button {
+    display: none !important;
+  }
+
+  /* Asegurarse que el fondo del documento aparezca blanco puro */
+  body, html {
+    background-color: white !important;
+    margin: 0 !important;
+  }
+}

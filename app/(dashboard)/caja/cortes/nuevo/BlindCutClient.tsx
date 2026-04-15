@@ -22,6 +22,7 @@ const DENOMINATIONS = [
 export default function BlindCutClient({ sessionId }: { sessionId: string }) {
   const router = useRouter();
   const [mode, setMode] = useState<'TOTAL' | 'DENOMINATIONS'>('DENOMINATIONS');
+  const [isClosed, setIsClosed] = useState(false);
   
   // Total string state
   const [declaredTotalInput, setDeclaredTotalInput] = useState('');
@@ -60,13 +61,44 @@ export default function BlindCutClient({ sessionId }: { sessionId: string }) {
       
       await closeSession(formData);
       
-      alert('Corte Z realizado exitosamente.');
-      router.push('/caja/cortes');
+      setIsClosed(true);
+      // Wait a moment for DOM update, then auto-print
+      setTimeout(() => window.print(), 500);
     } catch (err: any) {
       alert("Error cerrando caja: " + err.message);
       setIsSubmitting(false);
     }
   };
+
+  if (isClosed) {
+    return (
+      <div className="card" style={{ padding: '3rem 2rem', textAlign: 'center' }}>
+        <div style={{ width: '80px', height: '80px', backgroundColor: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: '#16a34a' }}>
+           <LogOut size={40} />
+        </div>
+        <h2 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem' }}>¡Corte de Caja Completo!</h2>
+        <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '2rem', fontSize: '1.1rem' }}>
+          La sesión se ha cerrado de forma blindada (Corte Z).
+        </p>
+        
+        <div style={{ padding: '2rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px dashed var(--pulpos-border)', marginBottom: '2rem', display: 'inline-block', textAlign: 'left', minWidth: '300px' }}>
+          <h3 style={{ borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem', marginBottom: '1rem', fontWeight: 'bold' }}>TICKET DE CIERRE N° {sessionId.slice(-6).toUpperCase()}</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}><span>Fecha:</span> <strong>{new Date().toLocaleString('es-MX')}</strong></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}><span>Declarado en Bóveda:</span> <strong>{formatCurrency(finalAmount)}</strong></div>
+          <p style={{ fontSize: '0.8rem', color: 'var(--pulpos-text-muted)', marginTop: '1.5rem', textAlign: 'center' }}>-- Firma Cajero --<br/><br/><br/></p>
+        </div>
+
+        <div className="no-print" style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+          <button onClick={() => window.print()} style={{ padding: '1rem 2rem', backgroundColor: 'var(--pulpos-primary)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer' }}>
+             Re-Imprimir Ticket
+          </button>
+          <button onClick={() => router.push('/caja/actual')} style={{ padding: '1rem 2rem', backgroundColor: 'white', color: 'var(--pulpos-text-muted)', border: '1px solid var(--pulpos-border)', borderRadius: '8px', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer' }}>
+             Ver Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="card" style={{ padding: '2rem' }}>

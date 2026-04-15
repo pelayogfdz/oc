@@ -74,9 +74,9 @@ export default async function CajaActualPage() {
         {/* Modal-like logic via details/summary or a separate page. For simplicity, we use a basic form embedded */}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: '2rem' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
         {/* Left Col: Resumen y Cierre */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div className="card" style={{ padding: '1.5rem', backgroundColor: 'var(--pulpos-primary)', color: 'white' }}>
             <div style={{ fontSize: '0.875rem', opacity: 0.8, marginBottom: '0.5rem' }}>Efectivo Calculado en Caja</div>
             <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>
@@ -121,7 +121,7 @@ export default async function CajaActualPage() {
         </div>
 
         {/* Right Col: Movimientos */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ flex: '3 1 500px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
           {/* Botones de Movimiento Rápido */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -153,10 +153,10 @@ export default async function CajaActualPage() {
           </div>
 
           {/* Historial de Movimientos de la sesion actual */}
-          <div className="card" style={{ padding: '1.5rem', flex: 1 }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Desglose de Movimientos</h2>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+          <div className="card" style={{ padding: '0', flex: 1, overflow: 'hidden' }}>
+            <h2 style={{ fontSize: '1.25rem', padding: '1.5rem 1.5rem 0.5rem', fontWeight: 'bold', margin: 0 }}>Desglose de Movimientos</h2>
+            <div className="table-responsive">
+              <table style={{ width: '100%', minWidth: '600px', textAlign: 'left', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--pulpos-border)', color: 'var(--pulpos-text-muted)' }}>
                     <th style={{ padding: '0.75rem 0' }}>Hora</th>
