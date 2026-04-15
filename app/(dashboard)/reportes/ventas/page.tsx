@@ -10,7 +10,10 @@ export default async function Page() {
   
   // We fetch ALL sales for this branch to let the Client group and filter them dynamically.
   const sales = await prisma.sale.findMany({ 
-    where: { ...getBranchFilter(branch), status: "COMPLETED" }, 
+    where: { 
+      ...getBranchFilter(branch), 
+      status: { in: ["COMPLETED", "RETURNED"] } 
+    }, 
     include: { 
       branch: true,
       items: { 

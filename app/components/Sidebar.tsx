@@ -2,11 +2,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useMobileMenu } from './MobileMenuContext';
 import { 
   Home, Users, Tag, Package, Calculator, ArrowRightLeft, 
   BarChart3, Settings, Truck, PackageCheck,
   ChevronDown, ChevronUp, PlusCircle, Headset, Banknote, 
-  FileText, Library, BookOpen, UserCircle, Briefcase, HandCoins
+  FileText, Library, BookOpen, UserCircle, Briefcase, HandCoins, X
 } from 'lucide-react';
 
 type MenuItem = {
@@ -94,6 +95,7 @@ const footerNodes: MenuNode[] = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const { isMobileMenuOpen, closeMenu } = useMobileMenu();
 
   // Auto-expand group if currently on a sub-path
   useEffect(() => {
@@ -130,14 +132,19 @@ export default function Sidebar() {
   };
 
   return (
-    <aside style={{ 
-      width: '260px', 
-      backgroundColor: '#1B232D', /* Pulpos Dark Navy */
-      color: '#cbd5e1', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      height: '100vh',
-      boxShadow: '2px 0 10px rgba(0,0,0,0.1)',
+    <>
+      <div 
+        className={`sidebar-overlay ${isMobileMenuOpen ? 'open' : ''}`} 
+        onClick={closeMenu} 
+      />
+      <aside className={`dashboard-sidebar ${isMobileMenuOpen ? 'open' : ''}`} style={{ 
+        backgroundColor: '#1B232D', /* Pulpos Dark Navy */
+        color: '#cbd5e1', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        height: '100vh',
+        boxShadow: '2px 0 10px rgba(0,0,0,0.1)',
+
       overflowY: 'auto',
       fontSize: '0.9rem'
     }}>
@@ -292,5 +299,6 @@ export default function Sidebar() {
       </nav>
       
     </aside>
+    </>
   );
 }

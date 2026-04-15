@@ -1,6 +1,7 @@
 import { getActiveBranch, getActiveUser } from '@/app/actions/auth';
 import { prisma } from '@/lib/prisma';
 import BranchSelector from './BranchSelector';
+import MobileMenuToggle from './MobileMenuToggle';
 
 export default async function Header() {
   const currentBranch = await getActiveBranch();
@@ -26,18 +27,21 @@ export default async function Header() {
     : visibleBranches;
 
   return (
-    <header style={{
+    <header className="dashboard-header" style={{
       height: '64px',
       backgroundColor: 'var(--pulpos-card-bg)',
       borderBottom: '1px solid var(--pulpos-border)',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'flex-end',
-      padding: '0 2rem',
+      justifyContent: 'space-between',
+      padding: '0 1rem',
       flexShrink: 0
     }}>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <MobileMenuToggle />
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <div style={{ textAlign: 'right' }}>
+        <div className="header-user-info" style={{ textAlign: 'right' }}>
           <div style={{ marginBottom: '0.25rem' }}>
             <BranchSelector branches={finalOptions} currentBranchId={currentBranch?.id || ''} />
           </div>

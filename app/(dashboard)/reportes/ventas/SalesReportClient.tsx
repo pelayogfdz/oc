@@ -1,4 +1,5 @@
 'use client';
+
 import { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Calendar, Filter, Download } from 'lucide-react';
@@ -7,31 +8,39 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 
 export default function SalesReportClient({ sales }: { sales: any[] }) {
   const [datePreset, setDatePreset] = useState('ALL'); // ALL, TODAY, YESTERDAY, 7DAYS, 30DAYS
-  const [groupBy, setGroupBy] = useState('DATE'); // DATE, PRODUCT, CATEGORY, PAYMENT_METHOD, USER, CUSTOMER
+  const [groupBy, setGroupBy] = useState('DATE'); // DATE, PRODUCT, CATEGORY, PAYMENT_METHOD, USER
 
-  // Filter by Date
+  // Filter by Date using proper boundary logic
   const filteredSales = useMemo(() => {
     if (datePreset === 'ALL') return sales;
-    const now = new Date();
+    const nowLocal = new Date();
+    
+    // Construct boundary dates relative to LOCAL time
+    const todayStart = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), nowLocal.getDate(), 0, 0, 0);
+    const todayEnd = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), nowLocal.getDate(), 23, 59, 59);
+
     return sales.filter(s => {
-      const d = new Date(s.createdAt);
+      const d = new Date(s.createdAt); // assuming server stores as UTC, new Date() converts to local
+
       if (datePreset === 'TODAY') {
-        return d.toDateString() === now.toDateString();
+        return d >= todayStart && d <= todayEnd;
       }
       if (datePreset === 'YESTERDAY') {
-        const y = new Date(now);
-        y.setDate(now.getDate() - 1);
-        return d.toDateString() === y.toDateString();
+        const yStart = new Date(todayStart);
+        yStart.setDate(todayStart.getDate() - 1);
+        const yEnd = new Date(todayEnd);
+        yEnd.setDate(todayEnd.getDate() - 1);
+        return d >= yStart && d <= yEnd;
       }
       if (datePreset === '7DAYS') {
-        const p = new Date(now);
-        p.setDate(now.getDate() - 7);
-        return d >= p;
+        const pStart = new Date(todayStart);
+        pStart.setDate(todayStart.getDate() - 7);
+        return d >= pStart && d <= todayEnd;
       }
       if (datePreset === '30DAYS') {
-        const p = new Date(now);
-        p.setDate(now.getDate() - 30);
-        return d >= p;
+        const pStart = new Date(todayStart);
+        pStart.setDate(todayStart.getDate() - 30);
+        return d >= pStart && d <= todayEnd;
       }
       return true;
     });
@@ -42,8 +51,8 @@ export default function SalesReportClient({ sales }: { sales: any[] }) {
     const map = new Map<string, { key: string, salesCount: number, revenue: number, cost: number, returnAmount: number }>();
 
     filteredSales.forEach(sale => {
-      if (sale.status === 'CANCELLED') return; // skip fully cancelled depending on logic, or handle return
-      const isReturn = sale.status === 'RETURNED'; // example logic
+      const isReturn = sale.status === 'RETURNED'; 
+      
       const dateKey = new Date(sale.createdAt).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' });
       
       let itemsToProcess = [{ keyPart: '', itemTotal: sale.total, itemCost: sale.items.reduce((acc: number, i: any) => acc + ((i.product?.cost || 0) * i.quantity), 0) }];
@@ -55,9 +64,9 @@ export default function SalesReportClient({ sales }: { sales: any[] }) {
       } else if (groupBy === 'USER') {
         itemsToProcess[0].keyPart = sale.user?.name || 'Desconocido';
       } else if (groupBy === 'PRODUCT' || groupBy === 'CATEGORY') {
-        // We must flatten by items
+        // Flatten by items
         itemsToProcess = sale.items.map((i: any) => ({
-          keyPart: groupBy === 'PRODUCT' ? (i.product?.name || 'Sin Nombre') : (i.product?.category?.name || 'Sin Categoría'),
+          keyPart: groupBy === 'PRODUCT' ? (i.product?.name || 'Sin Nombre') : (i.product?.category || 'Sin Categoría'),
           itemTotal: i.price * i.quantity,
           itemCost: (i.product?.cost || 0) * i.quantity
         }));
@@ -92,12 +101,12 @@ export default function SalesReportClient({ sales }: { sales: any[] }) {
   return (
     <div>
       {/* Dynamic Filters Bar */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', backgroundColor: 'white', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', backgroundColor: 'var(--pulpos-card-bg)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}>
         <div style={{ flex: 1, minWidth: '200px' }}>
-          <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Rango de Fechas</label>
+          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Rango de Fechas</label>
           <div style={{ position: 'relative' }}>
             <Calendar size={18} style={{ position: 'absolute', left: '10px', top: '10px', color: '#94a3b8' }} />
-            <select className="input-field" value={datePreset} onChange={e => setDatePreset(e.target.value)} style={{ paddingLeft: '2.5rem', width: '100%' }}>
+            <select className="input-field" value={datePreset} onChange={e => setDatePreset(e.target.value)} style={{ paddingLeft: '2.5rem', width: '100%', padding: '0.6rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'var(--pulpos-bg)', fontSize: '0.9rem' }}>
               <option value="ALL">Histórico Completo</option>
               <option value="TODAY">Hoy</option>
               <option value="YESTERDAY">Ayer</option>
@@ -108,10 +117,10 @@ export default function SalesReportClient({ sales }: { sales: any[] }) {
         </div>
 
         <div style={{ flex: 1, minWidth: '200px' }}>
-          <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Agrupado Por</label>
+          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Agrupado Por</label>
           <div style={{ position: 'relative' }}>
             <Filter size={18} style={{ position: 'absolute', left: '10px', top: '10px', color: '#94a3b8' }} />
-            <select className="input-field" value={groupBy} onChange={e => setGroupBy(e.target.value)} style={{ paddingLeft: '2.5rem', width: '100%' }}>
+            <select className="input-field" value={groupBy} onChange={e => setGroupBy(e.target.value)} style={{ paddingLeft: '2.5rem', width: '100%', padding: '0.6rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'var(--pulpos-bg)', fontSize: '0.9rem' }}>
               <option value="DATE">Fecha de Emisión</option>
               <option value="PRODUCT">Producto</option>
               <option value="CATEGORY">Categoría</option>
@@ -123,29 +132,29 @@ export default function SalesReportClient({ sales }: { sales: any[] }) {
       </div>
 
       {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        <div className="card" style={{ padding: '1.5rem' }}>
-          <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', marginBottom: '0.5rem' }}>VENTAS BRUTAS</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#0f172a' }}>${globalRevenue.toFixed(2)}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+        <div className="card" style={{ padding: '1.2rem', borderLeft: '4px solid #94a3b8' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', marginBottom: '0.25rem' }}>VENTAS BRUTAS</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#0f172a' }}>${globalRevenue.toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
         </div>
-        <div className="card" style={{ padding: '1.5rem' }}>
-          <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', marginBottom: '0.5rem' }}>REEMBOLSOS</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#ef4444' }}>${globalReturns.toFixed(2)}</div>
+        <div className="card" style={{ padding: '1.2rem', borderLeft: '4px solid #ef4444' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', marginBottom: '0.25rem' }}>REEMBOLSOS</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444' }}>${globalReturns.toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
         </div>
-        <div className="card" style={{ padding: '1.5rem' }}>
-          <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', marginBottom: '0.5rem' }}>VENTA NETA</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#10b981' }}>${netRevenue.toFixed(2)}</div>
+        <div className="card" style={{ padding: '1.2rem', borderLeft: '4px solid #10b981' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', marginBottom: '0.25rem' }}>VENTA NETA</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>${netRevenue.toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
         </div>
-        <div className="card" style={{ padding: '1.5rem' }}>
-          <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', marginBottom: '0.5rem' }}>UTILIDAD (MARGEN)</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>${grossProfit.toFixed(2)}</div>
-          <div style={{ fontSize: '0.85rem', color: '#f59e0b', marginTop: '0.25rem', fontWeight: 'bold' }}>{marginStr}</div>
+        <div className="card" style={{ padding: '1.2rem', borderLeft: '4px solid var(--pulpos-primary)' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', marginBottom: '0.25rem' }}>UTILIDAD BRUTA (MARGEN)</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>${grossProfit.toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+          <div style={{ fontSize: '0.8rem', color: '#f59e0b', marginTop: '0.1rem', fontWeight: 'bold' }}>{marginStr}</div>
         </div>
       </div>
 
       {/* Chart Section */}
       <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem', height: '400px' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>
+        <h3 style={{ fontSize: '1.05rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>
           {groupBy === 'DATE' ? 'Tendencia de Ventas' : `Distribución por ${
             groupBy === 'PRODUCT' ? 'Producto' : 
             groupBy === 'CATEGORY' ? 'Categoría' : 
@@ -156,22 +165,22 @@ export default function SalesReportClient({ sales }: { sales: any[] }) {
         <ResponsiveContainer width="100%" height="100%">
           {groupBy === 'DATE' ? (
              <BarChart data={groupedData.slice().reverse()}>
-               <XAxis dataKey="key" stroke="#94a3b8" fontSize={12} />
-               <YAxis stroke="#94a3b8" fontSize={12} />
+               <XAxis dataKey="key" stroke="#94a3b8" fontSize={11} tickMargin={8} />
+               <YAxis stroke="#94a3b8" fontSize={11} />
                <Tooltip cursor={{fill: '#f1f5f9'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'}} />
                <Bar dataKey="revenue" name="Ingresos" fill="var(--pulpos-primary)" radius={[4, 4, 0, 0]} />
              </BarChart>
           ) : (
              <PieChart>
                <Pie 
-                 data={groupedData.slice(0, 15)} // Top 15 to keep pie readable
+                 data={groupedData.slice(0, 15)} 
                  dataKey="revenue" 
                  nameKey="key" 
                  cx="50%" 
                  cy="50%" 
-                 outerRadius={120} 
+                 outerRadius={100} 
                  fill="#8884d8" 
-                 label={(e: any) => `${String(e.name || e.key)} (${((e.value / globalRevenue) * 100).toFixed(1)}%)`}
+                 label={(e: any) => `${String(e.name || e.key)}`}
                  labelLine={true}
                >
                  {groupedData.slice(0,15).map((entry, index) => (
@@ -187,32 +196,37 @@ export default function SalesReportClient({ sales }: { sales: any[] }) {
       {/* Dynamic Data Table */}
       <div className="card" style={{ padding: 0 }}>
         <div style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-           <h3 style={{ fontWeight: 'bold' }}>Desglose Analítico</h3>
-           <button className="btn-secondary" style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>
-             <Download size={14} style={{ display: 'inline', marginRight: '0.5rem' }} /> Exportar CSV
+           <h3 style={{ fontWeight: 'bold', fontSize: '1.05rem' }}>Desglose Analítico</h3>
+           <button className="btn-secondary" style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', background: 'var(--pulpos-bg)', cursor: 'pointer' }}>
+             <Download size={14} style={{ display: 'inline', marginRight: '0.4rem' }} /> Exportar CSV
            </button>
         </div>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <div className="table-responsive">
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', fontSize: '0.85rem' }}>
             <thead style={{ backgroundColor: '#f8fafc' }}>
               <tr>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Agrupación ({groupBy})</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Transacciones</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Ingreso Neto</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Costo</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Utilidad Bruta</th>
+                <th style={{ padding: '0.8rem 1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Agrupación ({groupBy})</th>
+                <th style={{ padding: '0.8rem 1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Transacciones</th>
+                <th style={{ padding: '0.8rem 1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Ingreso Neto</th>
+                <th style={{ padding: '0.8rem 1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Costo</th>
+                <th style={{ padding: '0.8rem 1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Utilidad Bruta</th>
               </tr>
             </thead>
             <tbody>
               {groupedData.map((d, i) => {
                 const profit = d.revenue - d.cost;
+                const localMarginText = d.revenue > 0 ? ((profit / d.revenue) * 100).toFixed(1) + '%' : '0%';
+                
                 return (
                 <tr key={i} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                  <td style={{ padding: '1rem', fontWeight: '500' }}>{d.key}</td>
-                  <td style={{ padding: '1rem', color: '#64748b' }}>{d.salesCount}</td>
-                  <td style={{ padding: '1rem', fontWeight: 'bold', color: '#10b981' }}>${d.revenue.toFixed(2)}</td>
-                  <td style={{ padding: '1rem', color: '#ef4444' }}>${d.cost.toFixed(2)}</td>
-                  <td style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>${profit.toFixed(2)}</td>
+                  <td style={{ padding: '0.8rem 1rem', fontWeight: '500' }}>{d.key}</td>
+                  <td style={{ padding: '0.8rem 1rem', color: '#64748b' }}>{d.salesCount}</td>
+                  <td style={{ padding: '0.8rem 1rem', fontWeight: 'bold', color: '#10b981' }}>${d.revenue.toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                  <td style={{ padding: '0.8rem 1rem', color: '#ef4444' }}>${d.cost.toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                  <td style={{ padding: '0.8rem 1rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>
+                    ${profit.toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    <small style={{ color: 'var(--pulpos-text-muted)', marginLeft: '6px', fontWeight: 'normal' }}>({localMarginText})</small>
+                  </td>
                 </tr>
               )})}
               {groupedData.length === 0 && (
