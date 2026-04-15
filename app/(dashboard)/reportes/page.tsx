@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, getBranchFilter } from "@/lib/utils";
-import { BarChart3, TrendingUp, Package, History, DollarSign, Users, Award, TrendingDown, BookOpen } from 'lucide-react';
+import { BarChart3, TrendingUp, Package, History, DollarSign, Users, Award, TrendingDown, BookOpen, Clock } from 'lucide-react';
 
 export default async function ReportesHubPage() {
   const branch = await getActiveBranch();
@@ -22,6 +22,7 @@ export default async function ReportesHubPage() {
     { title: "Productos Estrella", icon: <Award size={24} color="#f59e0b" />, desc: "Top productos más vendidos y los que generan más utilidad.", path: "/reportes/productos" },
     { title: "Flujo de Gastos / OpEx", icon: <TrendingDown size={24} color="#ef4444" />, desc: "Desglose de gastos administrativos (renta, nómina, servicios).", path: "/reportes/gastos" },
     { title: "Valoración de Inventario", icon: <Package size={24} color="#8b5cf6" />, desc: "Capital actual congelado en tus almacenes a costo y precio retail.", path: "/reportes/inventario" },
+    { title: "Cobertura de Inventario", icon: <Clock size={24} color="#ec4899" />, desc: "Antigüedad del stock y ritmo de ventas para pronosticar vida útil.", path: "/reportes/antiguedad" },
     { title: "Estados de Cuenta", icon: <BookOpen size={24} color="#64748b" />, desc: "Análisis de deudores, cuentas por cobrar y líneas de crédito B2B.", path: "/reportes/cartera" },
   ];
 
