@@ -10,6 +10,7 @@ export async function createInventoryAdjustment(
 ) {
   const branch = await getActiveBranch();
   if (!branch) return;
+  if (branch.id === 'GLOBAL') throw new Error('Debes seleccionar una sucursal específica para realizar esta acción.');
   const user = await getActiveUser(branch.id);
 
   // Create the parent Adjustment Document

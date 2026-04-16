@@ -5,11 +5,13 @@ import { PlusCircle, ShoppingCart } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+import { getBranchFilter } from '@/lib/utils';
+
 export default async function ComprasPage() {
   const branch = await getActiveBranch();
 
   const purchases = await prisma.purchase.findMany({
-    where: { branchId: branch.id },
+    where: getBranchFilter(branch),
     include: {
       supplier: true,
       user: true,

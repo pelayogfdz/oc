@@ -11,6 +11,7 @@ export async function createQuote(
   customerId: string | null = null
 ) {
   const branch = await getActiveBranch();
+  if (branch.id === 'GLOBAL') throw new Error("Debes seleccionar una sucursal específica para realizar esta acción.");
   const user = await getActiveUser(branch.id);
   
   if (items.length === 0) throw new Error("Quote is empty");

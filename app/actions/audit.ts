@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 export async function createAudit(name: string) {
   const branch = await getActiveBranch();
   if (!branch) throw new Error("Branch not found");
+  if (branch.id === 'GLOBAL') throw new Error("Debes seleccionar una sucursal específica para realizar esta acción.");
 
   const audit = await prisma.inventoryAudit.create({
     data: {
@@ -45,6 +46,7 @@ export async function updateAuditStatus(auditId: string, status: string) {
 export async function submitAuditCount(auditId: string, countPhase: 1 | 2 | 3, items: { productId: string, count: number }[]) {
   const branch = await getActiveBranch();
   if (!branch) throw new Error("Branch not found");
+  if (branch.id === 'GLOBAL') throw new Error("Debes seleccionar una sucursal específica para realizar esta acción.");
 
   // 1. Get all targeted products to fetch their current system stock
   const productIds = items.map(i => i.productId);
@@ -87,6 +89,7 @@ export async function submitAuditCount(auditId: string, countPhase: 1 | 2 | 3, i
 export async function finalizeAudit(auditId: string) {
   const branch = await getActiveBranch();
   if (!branch) throw new Error("Branch not found");
+  if (branch.id === 'GLOBAL') throw new Error("Debes seleccionar una sucursal específica para realizar esta acción.");
 
   const audit = await prisma.inventoryAudit.findUnique({
     where: { id: auditId },

@@ -5,16 +5,21 @@ import { FileText, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { deleteEntity } from '@/app/actions/crud';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Page() {
   const branch = await getActiveBranch();
+  const whereClause = branch.id === 'GLOBAL' ? {} : { 
+    OR: [
+      { branchId: branch.id },
+      { toBranchId: branch.id }
+    ]
+  };
+
   const data = await prisma.transfer.findMany({ 
-    where: { 
-      OR: [
-        { branchId: branch.id },
-        { toBranchId: branch.id }
-      ]
-    },
-    include: { toBranch: true, branch: true, createdBy: true, receivedBy: true }
+    where: whereClause,
+    include: { toBranch: true, branch: true, createdBy: true, receivedBy: true },
+    orderBy: { createdAt: 'desc' }
   });
   const SpecificIcon = (Icons as any)['Truck'] || Icons.Box;
 

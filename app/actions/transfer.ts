@@ -14,6 +14,7 @@ export async function createTransfer(
   const branchFrom = await getActiveBranch();
   
   if (!branchFrom?.id) throw new Error("No hay sucursal origen activa");
+  if (branchFrom.id === 'GLOBAL') throw new Error("Debes seleccionar una sucursal específica para realizar esta acción.");
   if (!payload.toBranchId) throw new Error("Sucursal destino requerida");
   if (payload.items.length === 0) throw new Error("No hay artículos en el traspaso");
 
@@ -95,6 +96,7 @@ export async function createTransfer(
 
 export async function receiveTransfer(transferId: string) {
   const branchActive = await getActiveBranch();
+  if (branchActive?.id === 'GLOBAL') throw new Error("Debes seleccionar una sucursal específica para realizar esta acción.");
   
   const transfer = await prisma.transfer.findUnique({
     where: { id: transferId },

@@ -24,6 +24,7 @@ export async function getCurrentSession() {
 
 export async function openSession(formData: FormData) {
   const branch = await getActiveBranch();
+  if (branch.id === 'GLOBAL') throw new Error("Debes seleccionar una sucursal específica para abrir caja.");
   const session = await getActiveUser(branch.id);
   if (!session) throw new Error("No autenticado");
 

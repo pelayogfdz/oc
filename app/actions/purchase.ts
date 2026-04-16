@@ -12,6 +12,7 @@ export async function createPurchase(
   freightCost: number = 0
 ) {
   const branch = await getActiveBranch();
+  if (branch.id === 'GLOBAL') throw new Error('Debes seleccionar una sucursal específica para realizar esta acción.');
   const user = await getActiveUser(branch.id);
   
   if (items.length === 0) throw new Error("List is empty");
