@@ -29,6 +29,43 @@ export default async function Page() {
     orderBy: { createdAt: "desc" } 
   });
 
+  // Fetch orphan movements that are NOT tied to docs and are NOT automatic system operations
+  const rawOrphans = await prisma.inventoryMovement.findMany({
+    where: {
+      product: { branchId: branch.id },
+      adjustmentDocId: null,
+    },
+    include: {
+      product: true,
+      user: true,
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 100
+  });
+
+  const orphanMovements = rawOrphans.filter(mov => {
+    const r = mov.reason || '';
+    return !r.startsWith('Venta directa') &&
+           !r.startsWith('Devolución de Venta') &&
+           !r.startsWith('Liquidación de Cotización') &&
+           !r.startsWith('Traspaso') &&
+           !r.toLowerCase().includes('venta a crédito');
+  });
+
+  const pseudoDocs = orphanMovements.map(mov => ({
+    id: mov.id,
+    branchId: branch.id,
+    createdAt: mov.createdAt,
+    reason: mov.reason,
+    userId: mov.userId,
+    user: mov.user,
+    movements: [mov]
+  }));
+
+  const combinedDocs = [...docs, ...pseudoDocs]
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, 50);
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
@@ -51,7 +88,7 @@ export default async function Page() {
         </div>
       </div>
 
-      <AdjustmentHistoryClient data={docs} />
+      <AdjustmentHistoryClient data={combinedDocs} />
     </div>
   );
 }
