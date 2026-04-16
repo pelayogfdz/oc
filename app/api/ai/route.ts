@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/app/actions/auth';
+import { getActiveUser } from '@/app/actions/auth';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export async function POST(req: Request) {
   try {
-    const user = await getAuthUser();
+    const { prompt, branchContext, userContext } = await req.json();
+
+    const user = await getActiveUser(branchContext?.id || 'GLOBAL');
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
-
-    const { prompt, branchContext, userContext } = await req.json();
 
     if (!prompt) {
       return NextResponse.json({ error: 'El prompt es requerido' }, { status: 400 });
