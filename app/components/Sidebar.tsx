@@ -191,6 +191,7 @@ export default function Sidebar() {
               <Link 
                 key={node.title}
                 href={node.path} 
+                onClick={() => { if (isMobileMenuOpen) closeMenu(); }}
                 style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
@@ -249,6 +250,7 @@ export default function Sidebar() {
                       <Link 
                         key={item.name}
                         href={item.path} 
+                        onClick={() => { if (isMobileMenuOpen) closeMenu(); }}
                         style={{ 
                           display: 'flex',
                           alignItems: 'center',
@@ -281,6 +283,7 @@ export default function Sidebar() {
           <Link 
             key={node.title}
             href={node.path!} 
+            onClick={() => { if (isMobileMenuOpen) closeMenu(); }}
             style={{ 
               display: 'flex', 
               alignItems: 'center', 
