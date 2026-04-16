@@ -1,12 +1,12 @@
-import { getAuthUser, getActiveBranch } from "@/app/actions/auth";
+import { getActiveUser, getActiveBranch } from "@/app/actions/auth";
 import { redirect } from "next/navigation";
 import AIClient from "./AIClient";
 
 export const dynamic = 'force-dynamic';
 
 export default async function AIPage() {
-  const user = await getAuthUser();
   const branch = await getActiveBranch();
+  const user = await getActiveUser(branch?.id || 'GLOBAL');
 
   if (!user) {
     redirect('/login');
