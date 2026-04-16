@@ -50,13 +50,20 @@ export default function AIClient({ user, branch }: { user: any, branch: any }) {
       });
 
       if (!res.ok) {
-        throw new Error('Error de conexión con el Asistente AI.');
+        let errorDetails = '';
+        try {
+          const errData = await res.json();
+          errorDetails = errData.error || res.statusText;
+        } catch(e) {
+          errorDetails = res.statusText;
+        }
+        throw new Error(`Detalle del servidor: ${errorDetails}`);
       }
 
       const data = await res.json();
       
       if (data.error) {
-        setMessages(prev => [...prev, { role: 'model', content: `**Error:** ${data.error}` }]);
+        setMessages(prev => [...prev, { role: 'model', content: `**Error de API:** ${data.error}` }]);
       } else {
         setMessages(prev => [...prev, { role: 'model', content: data.text }]);
       }
