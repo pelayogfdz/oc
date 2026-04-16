@@ -20,9 +20,10 @@ export default async function Page() {
     where: whereDocs,
     include: { 
       user: true,
+      branch: true,
       movements: {
         include: {
-          product: true
+          product: { include: { branch: true } }
         }
       }
     }, 
@@ -39,7 +40,7 @@ export default async function Page() {
   const rawOrphans = await prisma.inventoryMovement.findMany({
     where: whereOrphans,
     include: {
-      product: true,
+      product: { include: { branch: true } },
       user: true,
     },
     orderBy: { createdAt: 'desc' },
@@ -49,6 +50,8 @@ export default async function Page() {
   const orphanMovements = rawOrphans.filter(mov => {
     const r = mov.reason || '';
     return !r.startsWith('Venta directa') &&
+           !r.startsWith('Venta #') &&
+           !r.startsWith('Por Cotización convertida') &&
            !r.startsWith('Devolución de Venta') &&
            !r.startsWith('Liquidación de Cotización') &&
            !r.startsWith('Traspaso') &&
@@ -57,7 +60,8 @@ export default async function Page() {
 
   const pseudoDocs = orphanMovements.map(mov => ({
     id: mov.id,
-    branchId: branch.id,
+    branchId: mov.product?.branchId || branch.id,
+    branch: mov.product?.branch || null,
     createdAt: mov.createdAt,
     reason: mov.reason,
     userId: mov.userId,

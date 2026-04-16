@@ -13,6 +13,7 @@ export default function AdjustmentHistoryClient({ data }: { data: any[] }) {
           <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--pulpos-border)' }}>
             <tr>
               <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem' }}>Fecha</th>
+              <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem' }}>Sucursal</th>
               <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem' }}>ID Doc</th>
               <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem' }}>Motivo</th>
               <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem' }}>Cant. Movimientos</th>
@@ -31,6 +32,11 @@ export default function AdjustmentHistoryClient({ data }: { data: any[] }) {
                 >
                   <td style={{ padding: '1rem', fontSize: '0.9rem', color: '#475569' }}>
                     {new Date(doc.createdAt).toLocaleString()}
+                  </td>
+                  <td style={{ padding: '1rem', fontSize: '0.9rem', color: '#0f172a', fontWeight: 'bold' }}>
+                    <span style={{ backgroundColor: '#f1f5f9', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                      {doc.branch?.name || 'Sistema'}
+                    </span>
                   </td>
                   <td style={{ padding: '1rem', fontSize: '0.9rem', color: '#0f172a', fontWeight: '500' }}>
                     {doc.id.substring(0, 8)}...

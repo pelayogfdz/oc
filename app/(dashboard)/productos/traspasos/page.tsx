@@ -1,7 +1,7 @@
 import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import * as Icons from 'lucide-react';
-import { FileText, Plus, Trash2 } from 'lucide-react';
+import { FileText, Plus, Trash2, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { deleteEntity } from '@/app/actions/crud';
 
@@ -42,7 +42,7 @@ export default async function Page() {
             <thead style={{ backgroundColor: '#f8fafc' }}>
               <tr>
                 <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Traspaso ID</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Sucursal Destino</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Ruta (Origen → Destino)</th>
                 <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Información</th>
                 <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Estado</th>
                 <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'right' }}>Acciones</th>
@@ -61,7 +61,10 @@ export default async function Page() {
                     </span>
                   </td>
                   <td style={{ padding: '1rem' }}>
-                    {isIncoming ? (item.branch?.name || 'Central') : (item.toBranch?.name || 'Otra')}
+                    <div style={{ fontWeight: '500', color: '#0f172a' }}>{item.branch?.name || 'Central'}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                      <ArrowRight size={12} /> {item.toBranch?.name || 'N/A'}
+                    </div>
                   </td>
                   <td style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>
                     <div style={{ marginBottom: '0.2rem' }}>{new Date(item.createdAt).toLocaleString()}</div>
