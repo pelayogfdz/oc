@@ -13,9 +13,12 @@ export default function ExportButton({ products }: { products: any[] }) {
     
     // Filas
     const rows = products.map(p => {
+      const safeSku = p.sku ? p.sku.replace(/"/g, '""') : '';
+      const safeBarcode = p.barcode ? p.barcode.replace(/"/g, '""') : '';
+      
       return [
-        p.sku,
-        p.barcode || '',
+        `="${safeSku}"`,
+        safeBarcode ? `="${safeBarcode}"` : '',
         `"${p.name.replace(/"/g, '""')}"`,
         p.price,
         p.wholesalePrice || '',

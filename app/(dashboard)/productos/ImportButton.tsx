@@ -22,7 +22,13 @@ export default function ImportButton() {
       
       const records = lines.slice(1).map(line => {
         // Regex to split by comma except inside quotes
-        const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
+        const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => {
+          let clean = v.trim().replace(/^"|"$/g, '');
+          if (clean.startsWith('="') && clean.endsWith('"')) {
+            clean = clean.substring(2, clean.length - 1).replace(/""/g, '"');
+          }
+          return clean;
+        });
         const obj: any = {};
         headers.forEach((h, i) => {
           obj[h] = values[i] || '';
