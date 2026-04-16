@@ -64,6 +64,7 @@ export default function AuditListClient({ initialAudits }: { initialAudits: any[
             <thead>
               <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--pulpos-border)' }}>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b' }}>Nombre</th>
+                <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b' }}>Sucursal</th>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b' }}>Estado y Fase</th>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b' }}>Fecha</th>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b' }}>Productos Contados</th>
@@ -74,6 +75,11 @@ export default function AuditListClient({ initialAudits }: { initialAudits: any[
               {initialAudits.map(audit => (
                 <tr key={audit.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
                   <td style={{ padding: '1rem', fontWeight: 'bold', color: '#0f172a' }}>{audit.name}</td>
+                  <td style={{ padding: '1rem' }}>
+                    <span style={{ backgroundColor: '#f1f5f9', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>
+                      {audit.branch?.name || 'Central'}
+                    </span>
+                  </td>
                   <td style={{ padding: '1rem' }}>
                     <span style={{ 
                       padding: '0.25rem 0.75rem', 

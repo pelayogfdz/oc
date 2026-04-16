@@ -7,11 +7,12 @@ import ConvertButton from "./ConvertButton";
 export default async function CotizacionesPage() {
   const branch = await getActiveBranch();
   const quotes = await prisma.quote.findMany({
-    where: { branchId: branch.id },
+    where: branch.id === 'GLOBAL' ? {} : { branchId: branch.id },
     orderBy: { createdAt: 'desc' },
     include: {
       user: true,
       customer: true,
+      branch: true,
       items: { include: { product: true } }
     }
   });
@@ -32,6 +33,7 @@ export default async function CotizacionesPage() {
               <tr style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: '#f9fafb' }}>
                 <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>ID Cotización</th>
                 <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Fecha</th>
+                <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Sucursal</th>
                 <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Cliente</th>
                 <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Creado por</th>
                 <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Total</th>
@@ -45,6 +47,11 @@ export default async function CotizacionesPage() {
                   <td style={{ padding: '1rem', fontWeight: '500' }}>#{quote.id.slice(0, 8).toUpperCase()}</td>
                   <td style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>
                     {new Date(quote.createdAt).toLocaleString('es-MX')}
+                  </td>
+                  <td style={{ padding: '1rem' }}>
+                    <span style={{ backgroundColor: '#f1f5f9', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>
+                      {quote.branch?.name || 'Central'}
+                    </span>
                   </td>
                   <td style={{ padding: '1rem' }}>{quote.customer?.name || 'Público en General'}</td>
                   <td style={{ padding: '1rem' }}>{quote.user.name}</td>

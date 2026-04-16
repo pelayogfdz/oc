@@ -26,9 +26,10 @@ export async function getAudits() {
   if (!branch) return [];
 
   return await prisma.inventoryAudit.findMany({
-    where: { branchId: branch.id },
+    where: branch.id === 'GLOBAL' ? {} : { branchId: branch.id },
     orderBy: { createdAt: 'desc' },
     include: {
+      branch: true,
       _count: { select: { items: true } }
     }
   });

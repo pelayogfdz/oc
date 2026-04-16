@@ -7,7 +7,7 @@ import {
   Home, Users, Tag, Package, Calculator, ArrowRightLeft, 
   BarChart3, Settings, Truck, PackageCheck,
   ChevronDown, ChevronUp, PlusCircle, Headset, Banknote, 
-  FileText, Library, BookOpen, UserCircle, Briefcase, HandCoins, X
+  FileText, Library, BookOpen, UserCircle, Briefcase, HandCoins, X, Sparkles
 } from 'lucide-react';
 
 type MenuItem = {
@@ -62,6 +62,7 @@ const navStructure: MenuNode[] = [
     ]
   },
   { title: 'Reportes', path: '/reportes', icon: <BarChart3 size={20} /> },
+  { title: 'Inteligencia Artificial', path: '/ia', icon: <Sparkles size={20} className="text-purple-500" />, badge: 'Gemini' },
   { 
     title: 'Compras y Gastos', icon: <PackageCheck size={20} />, 
     items: [
