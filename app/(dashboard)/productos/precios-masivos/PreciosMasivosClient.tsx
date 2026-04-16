@@ -82,7 +82,17 @@ export default function PreciosMasivosClient({
     return products.filter(p => {
       if (brandFilter && p.brand !== brandFilter) return false;
       if (categoryFilter && p.category !== categoryFilter) return false;
-      if (searchTerm && !p.name.toLowerCase().includes(searchTerm.toLowerCase()) && !(p.sku || '').toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (searchTerm) {
+        const words = searchTerm.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+        const matchesAll = words.every(word => {
+          return (
+            (p.name && p.name.toLowerCase().includes(word)) ||
+            (p.sku && p.sku.toLowerCase().includes(word)) ||
+            (p.barcode && p.barcode.toLowerCase().includes(word))
+          );
+        });
+        if (!matchesAll) return false;
+      }
       return true;
     });
   }, [products, brandFilter, categoryFilter, searchTerm]);
