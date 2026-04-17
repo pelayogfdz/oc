@@ -27,8 +27,6 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
       if (res.success) {
         alert('Configuración guardada exitosamente.');
         router.refresh();
-      } else {
-        alert('Error al guardar: ' + res.error);
       }
     } catch (e: any) {
       alert('Error: ' + e.message);

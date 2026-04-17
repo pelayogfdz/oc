@@ -35,15 +35,15 @@ model User {
   updatedAt                 DateTime                 @updatedAt
 
   // Jerarquía y Comisiones (Coordinador -> Líder -> Vendedor)
-  managerId                 String?
-  manager                   User?                    @relation("UserManager", fields: [managerId], references: [id])
-  subordinates              User[]                   @relation("UserManager")
+  managerId    String?
+  manager      User?   @relation("UserManager", fields: [managerId], references: [id])
+  subordinates User[]  @relation("UserManager")
 
-  commissionRole            String?                  // 'VENDEDOR', 'LIDER', 'COORDINADOR'
-  commissionPct             Float                    @default(0) // Porcentaje de comisión 
-  monthlyGoal               Float                    @default(0) // Meta individual o de equipo
-  bonusAmount               Float                    @default(0) // Bono personal central
-  teamBonusAmount           Float                    @default(0) // Bono que se otorga extra a los subordinados si el equipo llega a la meta
+  commissionRole  String? // 'VENDEDOR', 'LIDER', 'COORDINADOR'
+  commissionPct   Float   @default(0) // Porcentaje de comisión 
+  monthlyGoal     Float   @default(0) // Meta individual o de equipo
+  bonusAmount     Float   @default(0) // Bono personal central
+  teamBonusAmount Float   @default(0) // Bono que se otorga extra a los subordinados si el equipo llega a la meta
 }
 
 model Branch {

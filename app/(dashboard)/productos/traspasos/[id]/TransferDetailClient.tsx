@@ -232,7 +232,7 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
                        />
                        {(item.quantity - (dispatchQuantities[item.id] ?? item.quantity)) > 0 && (
                          <div style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '0.25rem' }}>
-                            Faltan {item.quantity - (dispatchQuantities[item.id] ?? item.quantity)} -> Compras
+                            Faltan {item.quantity - (dispatchQuantities[item.id] ?? item.quantity)} -&gt; Compras
                          </div>
                        )}
                      </td>
