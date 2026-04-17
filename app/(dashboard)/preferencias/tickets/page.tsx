@@ -32,6 +32,13 @@ export default async function Page() {
       placeholder: 'https://...'
     },
     { 
+      name: 'autofacturacionUrl', 
+      label: 'URL de Portal Externo de Autofacturación', 
+      description: 'Si usas otro sistema (Facturapi, FacturaTech), pon la liga pública. El código QR integrará ?ticketId= al final para precargar datos.',
+      type: 'text',
+      placeholder: 'https://miportal.com/facturar'
+    },
+    { 
       name: 'anchoTicket', 
       label: 'Compatibilidad de Ancho Térmico', 
       description: 'Generalmente impresoras Epson/Xprinter usan 58mm o 80mm.',
