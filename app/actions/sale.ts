@@ -12,7 +12,8 @@ export async function createSale(
   cashSessionId?: string,
   notes?: string,
   cashAmount?: number,
-  cardAmount?: number
+  cardAmount?: number,
+  billingData?: { rfc: string; name: string; zipCode: string; regime: string; use: string }
 ) {
   try {
     const branch = await getActiveBranch();
@@ -99,6 +100,20 @@ export async function createSale(
        await prisma.customer.update({
           where: { id: customerId },
           data: { creditBalance: { increment: total } }
+       });
+    }
+
+    // Si se solicitó factura, actualizar datos fiscales del cliente si existe
+    if (billingData && customerId) {
+       await prisma.customer.update({
+          where: { id: customerId },
+          data: {
+             taxId: billingData.rfc,
+             legalName: billingData.name,
+             zipCode: billingData.zipCode,
+             taxRegime: billingData.regime,
+             cfdiUse: billingData.use
+          }
        });
     }
 

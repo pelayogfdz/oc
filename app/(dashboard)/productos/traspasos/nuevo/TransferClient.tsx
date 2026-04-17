@@ -1,12 +1,12 @@
 'use client';
 import { useState } from 'react';
-import { createTransfer } from '@/app/actions/transfer';
+import { requestTransfer } from '@/app/actions/transfer';
 import { useRouter } from 'next/navigation';
 import { Truck, ArrowRight, Trash2, Search } from 'lucide-react';
 
 export default function TransferClient({ originBranchId, originBranchName, otherBranches, inventory, ventasConfig = {} }: any) {
   const router = useRouter();
-  const [toBranchId, setToBranchId] = useState('');
+  const [fromBranchId, setFromBranchId] = useState('');
   const [reason, setReason] = useState('Reabastecimiento');
   const [searchTerm, setSearchTerm] = useState('');
   const [stockFilter, setStockFilter] = useState('ALL');
@@ -89,15 +89,15 @@ export default function TransferClient({ originBranchId, originBranchName, other
   };
 
   const handleSubmit = async () => {
-    if (!toBranchId || transferItems.length === 0) return;
+    if (!fromBranchId || transferItems.length === 0) return;
     setIsProcessing(true);
     try {
-      await createTransfer({
-        toBranchId,
+      await requestTransfer({
+        fromBranchId,
         reason,
         items: transferItems.map(i => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity }))
       });
-      alert('Traspaso en tránsito enviado correctamente.');
+      alert('Solicitud de traspaso enviada correctamente.');
       router.push('/productos/traspasos');
     } catch (e: any) {
       alert("Error: " + e.message);
@@ -112,18 +112,18 @@ export default function TransferClient({ originBranchId, originBranchName, other
         
         <div className="card" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
            <div style={{ flex: 1 }}>
-             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Origen</label>
-             <div style={{ padding: '0.75rem', backgroundColor: '#f1f5f9', borderRadius: '4px', border: '1px solid var(--pulpos-border)', color: '#475569', fontWeight: '500' }}>
-               {originBranchName}
-             </div>
-           </div>
-           <div><ArrowRight color="#94a3b8" /></div>
-           <div style={{ flex: 1 }}>
-             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Destino <span style={{color:'red'}}>*</span></label>
-             <select value={toBranchId} onChange={e => setToBranchId(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', fontWeight: 'bold' }}>
+             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Solicitar A (Surte) <span style={{color:'red'}}>*</span></label>
+             <select value={fromBranchId} onChange={e => setFromBranchId(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', fontWeight: 'bold' }}>
                <option value="">-- Seleccionar Sucursal --</option>
                {otherBranches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
              </select>
+           </div>
+           <div><ArrowRight color="#94a3b8" /></div>
+           <div style={{ flex: 1 }}>
+             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Recibe (Mi Sucursal)</label>
+             <div style={{ padding: '0.75rem', backgroundColor: '#f1f5f9', borderRadius: '4px', border: '1px solid var(--pulpos-border)', color: '#475569', fontWeight: '500' }}>
+               {originBranchName}
+             </div>
            </div>
            <div style={{ flex: 1 }}>
              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Motivo</label>
@@ -183,10 +183,10 @@ export default function TransferClient({ originBranchId, originBranchName, other
              <button 
                 className="btn-primary" 
                 onClick={handleSubmit} 
-                disabled={isProcessing || !toBranchId || transferItems.length === 0}
-                style={{ padding: '1rem 2rem', fontSize: '1.1rem', opacity: (!toBranchId || transferItems.length === 0 || isProcessing) ? 0.5 : 1 }}
+                disabled={isProcessing || !fromBranchId || transferItems.length === 0}
+                style={{ padding: '1rem 2rem', fontSize: '1.1rem', opacity: (!fromBranchId || transferItems.length === 0 || isProcessing) ? 0.5 : 1 }}
              >
-               {isProcessing ? 'Enviando Traspaso...' : 'Iniciar Traspaso (En Tránsito)'}
+               {isProcessing ? 'Enviando...' : 'Crear Solicitud de Traspaso'}
              </button>
           </div>
         </div>

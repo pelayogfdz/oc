@@ -4,93 +4,187 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { getActiveBranch, getActiveUser } from './auth';
 
-export async function createTransfer(
+export async function requestTransfer(
   payload: {
-    toBranchId: string;
+    fromBranchId: string; // The branch that will supply the goods
     reason: string;
-    items: { productId: string; variantId?: string | null; quantity: number }[];
+    items: { productId: string; variantId?: string | null; quantity: number }[]; // Products from the DESTINATION (requesting) branch
   }
 ) {
-  const branchFrom = await getActiveBranch();
+  const branchActive = await getActiveBranch(); // This is the DESTINATION (toBranchId)
   
-  if (!branchFrom?.id) throw new Error("No hay sucursal origen activa");
-  if (branchFrom.id === 'GLOBAL') throw new Error("Debes seleccionar una sucursal específica para realizar esta acción.");
-  if (!payload.toBranchId) throw new Error("Sucursal destino requerida");
-  if (payload.items.length === 0) throw new Error("No hay artículos en el traspaso");
+  if (!branchActive?.id) throw new Error("No hay sucursal activa");
+  if (branchActive.id === 'GLOBAL') throw new Error("Debes seleccionar una sucursal específica para realizar esta acción.");
+  if (!payload.fromBranchId) throw new Error("Sucursal origen requerida");
+  if (payload.items.length === 0) throw new Error("No hay artículos en la solicitud");
 
-  // Retrieve rules
-  const branchSettings = await prisma.branchSettings.findUnique({ where: { branchId: branchFrom.id } });
-  const config = branchSettings?.configJson ? JSON.parse(branchSettings.configJson)['ventas'] || {} : {};
-  const permitirVenderSinStock = config.venderSinStock === true;
+  const authUser = await getActiveUser(branchActive.id);
 
-  const authUser = await getActiveUser(branchFrom.id);
+  // Here, we just CREATE the request. We do NOT deduct stock yet.
+  // The items here are mapped to the DESTINATION's catalog so they know what they asked for.
+  await prisma.transfer.create({
+    data: {
+      branchId: payload.fromBranchId, // Quien surte
+      toBranchId: branchActive.id,    // Quien pide
+      status: "REQUESTED",
+      requestedById: authUser.id,
+      items: {
+        create: payload.items.map(i => ({
+          productId: i.productId,
+          variantId: i.variantId || null,
+          quantity: i.quantity,
+          cost: 0, // Costs aren't known until the origin fulfills it
+          averageCost: 0
+        }))
+      }
+    }
+  });
 
-  // 1. Deduct stock at origin and set transfer IN_TRANSIT
+  revalidatePath('/productos');
+  revalidatePath('/productos/traspasos');
+}
+
+export async function approveTransfer(transferId: string) {
+  const branchActive = await getActiveBranch();
+  if (branchActive?.id === 'GLOBAL') throw new Error("Acción no permitida en vista global");
+
+  const transfer = await prisma.transfer.findUnique({ where: { id: transferId } });
+  if (!transfer) throw new Error("Traspaso no encontrado");
+  if (transfer.status !== 'REQUESTED') throw new Error("El traspaso no está en estado de solicitud");
+  if (transfer.branchId !== branchActive.id) throw new Error("No eres la sucursal origen para aprobar esto");
+
+  const authUser = await getActiveUser(branchActive.id);
+
+  await prisma.transfer.update({
+    where: { id: transferId },
+    data: {
+      status: 'CREATED',
+      createdById: authUser.id
+    }
+  });
+
+  revalidatePath('/productos/traspasos');
+}
+
+export async function dispatchTransfer(transferId: string, itemQuantities: Record<string, number>) {
+  const branchActive = await getActiveBranch(); // Origins
+  if (branchActive?.id === 'GLOBAL') throw new Error("Vista global no permitida.");
+
+  const transfer = await prisma.transfer.findUnique({
+    where: { id: transferId },
+    include: { items: { include: { product: true, variant: true } } }
+  });
+
+  if (!transfer) throw new Error("Traspaso no encontrado");
+  if (transfer.status !== 'CREATED' && transfer.status !== 'REQUESTED') throw new Error("Estatus inválido para surtir");
+  if (transfer.branchId !== branchActive.id) throw new Error("Sólo la sucursal de origen puede surtir el traspaso");
+
+  const authUser = await getActiveUser(branchActive.id);
+
   await prisma.$transaction(async (tx) => {
-    for (const item of payload.items) {
-      const productFrom = await tx.product.findUnique({ where: { id: item.productId } });
-      if (!productFrom) throw new Error(`Producto no encontrado`);
+    for (const item of transfer.items) {
+      const requestedQty = item.quantity;
+      const dispatchedQty = itemQuantities[item.id] ?? requestedQty; // The user can adjust this down
+      const missingQty = requestedQty - dispatchedQty;
 
-      let currentStock = productFrom.stock;
-      if (item.variantId) {
-         const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } });
-         if (variant) currentStock = variant.stock;
-      }
+      // 1. Find product in ORIGIN branch by matching SKU
+      const productToSearch = item.product;
+      const variantToSearch = item.variant;
 
-      if (!permitirVenderSinStock && currentStock < item.quantity) {
-        throw new Error(`Stock insuficiente para el producto ${productFrom.sku}`);
-      }
-
-      await tx.product.update({
-        where: { id: productFrom.id },
-        data: { stock: { decrement: item.quantity } }
+      const originProduct = await tx.product.findFirst({
+        where: { sku: productToSearch.sku, branchId: transfer.branchId! }
       });
-      
-      if (item.variantId) {
-        await tx.productVariant.update({
-          where: { id: item.variantId },
-          data: { stock: { decrement: item.quantity } }
+
+      if (!originProduct) {
+        throw new Error(`Producto SKU: ${productToSearch.sku} no existe en origen.`);
+      }
+
+      let originVariantId = null;
+      if (variantToSearch) {
+        const originVariant = await tx.productVariant.findFirst({
+          where: { productId: originProduct.id, sku: variantToSearch.sku, attribute: variantToSearch.attribute }
+        });
+        if (!originVariant) throw new Error(`Variante ${variantToSearch.attribute} no encontrada en origen.`);
+        originVariantId = originVariant.id;
+
+        if (originVariant.stock < dispatchedQty) {
+           throw new Error(`Stock insuficiente para variante ${variantToSearch.attribute} (Disp: ${originVariant.stock})`);
+        }
+      } else {
+        if (originProduct.stock < dispatchedQty) {
+           throw new Error(`Stock insuficiente para producto SKU: ${productToSearch.sku} (Disp: ${originProduct.stock})`);
+        }
+      }
+
+      // 2. Deduct stock at Origin
+      if (dispatchedQty > 0) {
+        await tx.product.update({
+          where: { id: originProduct.id },
+          data: { stock: { decrement: dispatchedQty } }
+        });
+
+        if (originVariantId) {
+          await tx.productVariant.update({
+            where: { id: originVariantId },
+            data: { stock: { decrement: dispatchedQty } }
+          });
+        }
+
+        await tx.inventoryMovement.create({
+          data: {
+            productId: originProduct.id,
+            variantId: originVariantId,
+            type: 'OUT',
+            quantity: -dispatchedQty,
+            reason: `Traspaso surtido hacia sucursal ID: ${transfer.toBranchId}`
+          }
+        });
+          
+        // Update TransferItem with dispatched qty & known cost from origin
+        await tx.transferItem.update({
+           where: { id: item.id },
+           data: { 
+             quantity: dispatchedQty,
+             cost: originProduct.cost,
+             averageCost: originProduct.averageCost
+           }
         });
       }
 
-      await tx.inventoryMovement.create({
-        data: {
-          productId: productFrom.id,
-          variantId: item.variantId || null,
-          type: 'OUT',
-          quantity: -item.quantity,
-          reason: `Traspaso salida hacia sucursal (ID: ${payload.toBranchId}). Motivo: ${payload.reason}`
+      // 3. Create Purchase Request for missing
+      if (missingQty > 0) {
+        await tx.purchaseRequest.create({
+          data: {
+            branchId: transfer.branchId!, // La orden de compra la hará la sucursal origen
+            productId: originProduct.id,
+            quantity: missingQty,
+            status: "PENDING",
+            transferId: transfer.id,
+            requestedById: authUser.id
+          }
+        });
+        
+        // If dispatched 0, the transfer item should just be deleted or updated to 0. We updated it above if > 0.
+        if (dispatchedQty === 0) {
+          await tx.transferItem.update({
+             where: { id: item.id },
+             data: { quantity: 0, cost: 0, averageCost: 0 }
+          });
         }
-      });
+      }
     }
 
-      // Fetch products to capture current costs
-      const itemCosts: Record<string, { cost: number, averageCost: number }> = {};
-      for (const item of payload.items) {
-         const p = await tx.product.findUnique({ where: { id: item.productId }, select: { id: true, cost: true, averageCost: true } });
-         if (p) itemCosts[p.id] = { cost: p.cost || 0, averageCost: p.averageCost || 0 };
-      }
-
-      await tx.transfer.create({
+    // 4. Update transfer status
+    await tx.transfer.update({
+      where: { id: transfer.id },
       data: {
-        branchId: branchFrom.id,
-        toBranchId: payload.toBranchId,
-        status: "IN_TRANSIT",
-        createdById: authUser.id,
-        items: {
-          create: payload.items.map(i => ({
-            productId: i.productId,
-            variantId: i.variantId || null,
-            quantity: i.quantity,
-            cost: itemCosts[i.productId]?.cost || 0,
-            averageCost: itemCosts[i.productId]?.averageCost || 0
-          }))
-        }
+        status: 'DISPATCHED',
+        dispatchedById: authUser.id,
+        dispatchedAt: new Date()
       }
     });
   });
 
-  revalidatePath('/productos');
   revalidatePath('/productos/traspasos');
 }
 
@@ -104,76 +198,34 @@ export async function receiveTransfer(transferId: string) {
   });
 
   if (!transfer) throw new Error("Traspaso no encontrado");
-  if (transfer.status !== "IN_TRANSIT") throw new Error("El traspaso no está en tránsito");
+  if (transfer.status !== "DISPATCHED") throw new Error("El traspaso no está en tránsito / surtido");
   if (transfer.toBranchId !== branchActive?.id) throw new Error("No tienes permiso para recibir en esta sucursal");
 
   const authUser = await getActiveUser(branchActive.id);
 
   await prisma.$transaction(async (tx) => {
     for (const item of transfer.items) {
-      const productFrom = item.product;
-      const variantFrom = item.variant;
-      
-      // Find identical SKU in destination branch
-      let productTo = await tx.product.findFirst({
-        where: { sku: productFrom.sku, branchId: transfer.toBranchId! }
-      });
+      if (item.quantity <= 0) continue; // Skip items that were entirely unfulfilled
 
-      if (!productTo) {
-        // Auto-create product at destination
-        productTo = await tx.product.create({
-          data: {
-            sku: productFrom.sku,
-            barcode: productFrom.barcode,
-            name: productFrom.name,
-            description: productFrom.description,
-            price: productFrom.price,
-            cost: productFrom.cost,
-            category: productFrom.category,
-            brand: productFrom.brand,
-            imageUrl: productFrom.imageUrl,
-            isActive: true,
-            unit: productFrom.unit,
-            stock: 0,
-            minStock: productFrom.minStock,
-            branchId: transfer.toBranchId!
-          }
-        });
-      }
+      const productTo = item.product; // Note: these belong to Dest branch originally, so they are already mapped!
+      const variantTo = item.variant;
 
       await tx.product.update({
         where: { id: productTo.id },
         data: { stock: { increment: item.quantity } }
       });
       
-      let finalVariantId = null;
-      if (variantFrom) {
-         let variantTo = await tx.productVariant.findFirst({
-           where: { productId: productTo.id, sku: variantFrom.sku, attribute: variantFrom.attribute }
-         });
-         
-         if (!variantTo) {
-            variantTo = await tx.productVariant.create({
-               data: {
-                 productId: productTo.id,
-                 attribute: variantFrom.attribute,
-                 sku: variantFrom.sku,
-                 stock: 0
-               }
-            });
-         }
-         
+      if (variantTo) {
          await tx.productVariant.update({
            where: { id: variantTo.id },
            data: { stock: { increment: item.quantity } }
          });
-         finalVariantId = variantTo.id;
       }
 
       await tx.inventoryMovement.create({
         data: {
           productId: productTo.id,
-          variantId: finalVariantId,
+          variantId: variantTo?.id || null,
           type: 'IN',
           quantity: item.quantity,
           reason: `Recepción de traspaso ID: ${transfer.id}`
@@ -184,8 +236,9 @@ export async function receiveTransfer(transferId: string) {
     await tx.transfer.update({
       where: { id: transfer.id },
       data: { 
-         status: "COMPLETED",
-         receivedById: authUser.id
+         status: "RECEIVED",
+         receivedById: authUser.id,
+         receivedAt: new Date()
       }
     });
   });
@@ -193,8 +246,8 @@ export async function receiveTransfer(transferId: string) {
   revalidatePath('/productos');
   revalidatePath('/productos/traspasos');
 }
+
 export async function deleteTransfer(id: string) {
-  // Cascading soft approach: First delete items
   await prisma.transferItem.deleteMany({ where: { transferId: id } });
   await prisma.transfer.delete({ where: { id } });
   revalidatePath('/productos/traspasos');

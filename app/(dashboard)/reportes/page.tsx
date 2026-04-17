@@ -25,6 +25,7 @@ export default async function ReportesHubPage() {
     { title: "Cobertura de Inventario", icon: <Clock size={24} color="#ec4899" />, desc: "Antigüedad del stock y ritmo de ventas para pronosticar vida útil.", path: "/reportes/antiguedad" },
     { title: "Estados de Cuenta", icon: <BookOpen size={24} color="#64748b" />, desc: "Análisis de deudores, cuentas por cobrar y líneas de crédito B2B.", path: "/reportes/cartera" },
     { title: "Cotizaciones Convertidas", icon: <CheckCircle size={24} color="#16a34a" />, desc: "Métricas de monto recuperado e historial de cotizaciones exitosas.", path: "/reportes/cotizaciones" },
+    { title: "Comisiones y Desempeño", icon: <Users size={24} color="#6366f1" />, desc: "Jerarquía de ventas, metas de equipo y cálculo dinámico de bonos.", path: "/reportes/comisiones" },
   ];
 
   return (

@@ -1,20 +1,19 @@
-import { getBranchSettings } from "@/app/actions/settings";
-import SettingsFormClient from "../SettingsFormClient";
+import { getUsersHierarchy } from "@/app/actions/commissions";
+import CommissionManagerClient from "./CommissionManagerClient";
 
 export default async function Page() {
-  const settings = await getBranchSettings();
-  const config = settings.configJson ? JSON.parse(settings.configJson)['vendedores'] || {} : {};
+  const users = await getUsersHierarchy();
 
   return (
-    <SettingsFormClient 
-      moduleKey="vendedores"
-      title="Vendedores y Comisiones"
-      description="Configura las comisiones base para tus vendedores."
-      initialConfig={config}
-      fields={[
-        { name: 'tasaComision', label: 'Tasa de Comisión Base (%)', type: 'text', placeholder: '' },
-        { name: 'metaMensual', label: 'Meta Mensual Global ($)', type: 'text', placeholder: '' }
-      ]}
-    />
+    <div className="p-2 sm:p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Vendedores y Comisiones</h1>
+        <p className="text-[var(--pulpos-text-muted)] mt-1">
+          Configura cuotas, métricas monetarias y jerarquías organizacionales del equipo de ventas.
+        </p>
+      </div>
+
+      <CommissionManagerClient initialUsers={users} />
+    </div>
   );
 }

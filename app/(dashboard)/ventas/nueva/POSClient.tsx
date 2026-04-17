@@ -21,6 +21,14 @@ export default function POSClient({ products: initialProducts, customers, promot
   // Checkout Modal State
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [documentType, setDocumentType] = useState<'TICKET' | 'FACTURA'>('TICKET');
+  
+  // Billing Data State (for Factura)
+  const [billRfc, setBillRfc] = useState('');
+  const [billName, setBillName] = useState('');
+  const [billZipCode, setBillZipCode] = useState('');
+  const [billRegime, setBillRegime] = useState('601'); // General de Ley Personas Morales
+  const [billUse, setBillUse] = useState('G03'); // Gastos en general
   
   // Load Quote State
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
@@ -62,6 +70,19 @@ export default function POSClient({ products: initialProducts, customers, promot
       setPriceList(customer.priceList || 'price');
     } else {
       setPriceList('price');
+    }
+    
+    // Auto-fill billing data if available
+    if (customer) {
+       setBillRfc(customer.taxId || '');
+       setBillName(customer.legalName || customer.name || '');
+       setBillZipCode(customer.zipCode || '');
+       if (customer.taxRegime) setBillRegime(customer.taxRegime);
+       if (customer.cfdiUse) setBillUse(customer.cfdiUse);
+    } else {
+       setBillRfc('');
+       setBillName('');
+       setBillZipCode('');
     }
   };
 
@@ -387,7 +408,21 @@ export default function POSClient({ products: initialProducts, customers, promot
         const cashValue = typeof amountReceived === 'number' ? amountReceived : undefined;
         const cardValue = typeof cardAmount === 'number' ? cardAmount : undefined;
         
-        const response = await createSale(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null, sessionId, notes, cashValue, cardValue);
+        let finalNotes = notes;
+        let billingData = undefined;
+
+        if (documentType === 'FACTURA') {
+           finalNotes = (notes ? notes + '\n\n' : '') + `[REQUIERE FACTURA] RFC: ${billRfc} | Nombre: ${billName} | CP: ${billZipCode} | Reg: ${billRegime} | Uso: ${billUse}`;
+           billingData = {
+              rfc: billRfc,
+              name: billName,
+              zipCode: billZipCode,
+              regime: billRegime,
+              use: billUse
+           };
+        }
+
+        const response = await createSale(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null, sessionId, finalNotes, cashValue, cardValue, billingData);
         if (!response.success) {
           throw new Error(response.error);
         }
@@ -646,6 +681,21 @@ export default function POSClient({ products: initialProducts, customers, promot
                {mode === 'QUOTE' ? 'Finalizar Cotización' : 'Finalizar Venta'}
             </h2>
             
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '1rem' }}>
+               <button 
+                 onClick={() => setDocumentType('TICKET')} 
+                 style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: 'none', backgroundColor: documentType === 'TICKET' ? 'var(--pulpos-primary)' : '#f1f5f9', color: documentType === 'TICKET' ? 'white' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}
+               >
+                  Emitir Ticket
+               </button>
+               <button 
+                 onClick={() => setDocumentType('FACTURA')} 
+                 style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: 'none', backgroundColor: documentType === 'FACTURA' ? '#10b981' : '#f1f5f9', color: documentType === 'FACTURA' ? 'white' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}
+               >
+                  Emitir Factura
+               </button>
+            </div>
+            
             <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
               <div style={{ fontSize: '1rem', color: 'var(--pulpos-text-muted)' }}>{mode === 'QUOTE' ? 'Total Presupuestado' : 'Total a Pagar'}</div>
               <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>${finalTotalWithTip.toFixed(2)}</div>
@@ -767,6 +817,51 @@ export default function POSClient({ products: initialProducts, customers, promot
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
                />
             </div>
+
+            {documentType === 'FACTURA' && (
+              <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                 <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#166534', marginBottom: '1rem' }}>Datos de Facturación CFDI 4.0</h3>
+                 
+                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', color: '#166534', fontWeight: 'bold', marginBottom: '0.25rem' }}>RFC *</label>
+                      <input type="text" value={billRfc} onChange={e => setBillRfc(e.target.value.toUpperCase())} placeholder="XAXX010101000" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #bbf7d0' }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', color: '#166534', fontWeight: 'bold', marginBottom: '0.25rem' }}>Cód. Postal *</label>
+                      <input type="text" value={billZipCode} onChange={e => setBillZipCode(e.target.value)} placeholder="Ej: 76000" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #bbf7d0' }} />
+                    </div>
+                 </div>
+
+                 <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.85rem', color: '#166534', fontWeight: 'bold', marginBottom: '0.25rem' }}>Razón Social *</label>
+                    <input type="text" value={billName} onChange={e => setBillName(e.target.value.toUpperCase())} placeholder="NOMBRE COMPLETO S.A. DE C.V." style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #bbf7d0' }} />
+                 </div>
+
+                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', color: '#166534', fontWeight: 'bold', marginBottom: '0.25rem' }}>Régimen Fiscal</label>
+                      <select value={billRegime} onChange={e => setBillRegime(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #bbf7d0', backgroundColor: 'white' }}>
+                        <option value="601">601 - General de Ley Personas Morales</option>
+                        <option value="603">603 - Personas Morales con Fines no Lucrativos</option>
+                        <option value="612">612 - Personas Físicas con Actividades Empresariales</option>
+                        <option value="616">616 - Sin obligaciones fiscales</option>
+                        <option value="621">621 - Incorporación Fiscal</option>
+                        <option value="626">626 - Régimen Simplificado de Confianza (RESICO)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', color: '#166534', fontWeight: 'bold', marginBottom: '0.25rem' }}>Uso de CFDI</label>
+                      <select value={billUse} onChange={e => setBillUse(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #bbf7d0', backgroundColor: 'white' }}>
+                        <option value="G01">G01 - Adquisición de mercancias</option>
+                        <option value="G03">G03 - Gastos en general</option>
+                        <option value="P01">P01 - Por definir</option>
+                        <option value="D01">D01 - Honorarios médicos</option>
+                      </select>
+                    </div>
+                 </div>
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
               <button onClick={() => setIsCheckoutOpen(false)} style={{ flex: 1, padding: '1rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', background: 'white' }}>

@@ -45,6 +45,7 @@ Instrucciones Maestras:
 4. Conoces absolutamente todos los productos. Si alguien pregunta por un producto, llama a la función 'consultar_inventario' pasando el string de búsqueda. El resultado incluirá existencias reales, precios y COSTOS de última compra.
 5. Puedes consolidar toda información y crear "Reportes de Ventas", "Análisis de Rentabilidad", "Recomendaciones de Compra" juntando datos de tus diferentes herramientas. Formula tu opinión profesional.
 6. Responde en español de forma amable, experta en finanzas/retail y concisa. Si te piden un reporte o tabla, usa Markdown para crear tablas elegantes e información estructurada.
+7. CRÍTICO: Si el usuario te pregunta explícitamente por "todas las tiendas", "todas las sucursales" o de forma general sin especificar la sucursal activa, **DEBES usar el parámetro searchAllBranches: true** en tus llamadas a las herramientas para traer información de toda la empresa sin restricciones.
 `;
 
     const fullPrompt = `${systemPrompt}\n\nPregunta del usuario:\n${prompt}`;

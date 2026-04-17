@@ -4,6 +4,7 @@ import * as Icons from 'lucide-react';
 import { FileText, Plus, Trash2, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { deleteEntity } from '@/app/actions/crud';
+import DashboardMatrix from './DashboardMatrix';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +37,9 @@ export default async function Page() {
           <Plus size={18} /> Nuevo Registro
         </Link>
       </div>
+
+      <DashboardMatrix activeBranch={branch} />
+
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="table-responsive">
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>

@@ -12,6 +12,10 @@ export const aiFunctionDeclarations: FunctionDeclaration[] = [
         diasAtras: {
           type: SchemaType.NUMBER,
           description: "Número de días atrás a reportar. Ejemplo: 0 para hoy, 7 para la última semana. Por defecto es 0."
+        },
+        searchAllBranches: {
+          type: SchemaType.BOOLEAN,
+          description: "Si es true, busca en todas las sucursales sin restricción en lugar de solo en la sucursal activa."
         }
       }
     }
@@ -25,6 +29,10 @@ export const aiFunctionDeclarations: FunctionDeclaration[] = [
         query: {
           type: SchemaType.STRING,
           description: "Término de búsqueda, nombre del producto o parte del código SKU."
+        },
+        searchAllBranches: {
+          type: SchemaType.BOOLEAN,
+          description: "Si es true, busca el inventario consolidado en todas las sucursales."
         }
       },
       required: ["query"]
@@ -35,7 +43,12 @@ export const aiFunctionDeclarations: FunctionDeclaration[] = [
     description: "Busca todos los productos en la sucursal actual cuyo inventario esté en cero o por debajo de su mínimo configurado.",
     parameters: {
       type: SchemaType.OBJECT,
-      properties: {}
+      properties: {
+        searchAllBranches: {
+          type: SchemaType.BOOLEAN,
+          description: "Si es true, alerta sobre productos de todas las tiendas de la empresa."
+        }
+      }
     }
   },
   {
@@ -43,7 +56,12 @@ export const aiFunctionDeclarations: FunctionDeclaration[] = [
     description: "Obtiene una lista de los clientes que le deben dinero a la empresa (saldo a favor en contra).",
     parameters: {
       type: SchemaType.OBJECT,
-      properties: {}
+      properties: {
+        searchAllBranches: {
+          type: SchemaType.BOOLEAN,
+          description: "Si es true, busca cuentas por cobrar de todas las sucursales."
+        }
+      }
     }
   },
   {
@@ -55,6 +73,10 @@ export const aiFunctionDeclarations: FunctionDeclaration[] = [
         diasAtras: {
           type: SchemaType.NUMBER,
           description: "Número de días atrás. Ejemplo 0 es hoy, 30 es el último mes. Por defecto 0."
+        },
+        searchAllBranches: {
+          type: SchemaType.BOOLEAN,
+          description: "Si es true, calcula los gastos de todas las sucursales juntas."
         }
       }
     }
@@ -62,7 +84,7 @@ export const aiFunctionDeclarations: FunctionDeclaration[] = [
 ];
 
 export async function executeAiFunction(functionName: string, callArgs: any, branchContext: any) {
-  const branchId = branchContext?.id === 'GLOBAL' ? undefined : branchContext?.id;
+  const branchId = (branchContext?.id === 'GLOBAL' || callArgs?.searchAllBranches) ? undefined : branchContext?.id;
   const whereBranch = branchId ? { branchId } : {};
 
   switch (functionName) {
