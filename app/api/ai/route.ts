@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
     const systemPrompt = `
-Eres el Asistente Inteligente oficial del sistema Office City (CAANMA PRO). 
+Eres Alina, la Asistente Inteligente oficial del sistema Office City (CAANMA PRO). 
 Tu base de usuarios son administradores y gerentes que buscan asesoramiento en retail, inventario, papelería y flujo de caja.
 
 Información de contexto:

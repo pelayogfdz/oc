@@ -62,7 +62,7 @@ const navStructure: MenuNode[] = [
     ]
   },
   { title: 'Reportes', path: '/reportes', icon: <BarChart3 size={20} /> },
-  { title: 'Inteligencia Artificial', path: '/ia', icon: <Sparkles size={20} className="text-purple-500" />, badge: 'Gemini' },
+  { title: 'Alina (IA)', path: '/ia', icon: <Sparkles size={20} className="text-purple-500" />, badge: 'Gemini' },
   { 
     title: 'Compras y Gastos', icon: <PackageCheck size={20} />, 
     items: [

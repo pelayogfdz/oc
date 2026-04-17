@@ -13,7 +13,7 @@ export default function AIClient({ user, branch }: { user: any, branch: any }) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'model',
-      content: `¡Hola ${user.name}! Soy tu Asistente de Negocios Inteligente de Office City.\n\nPuedes preguntarme sobre ventas, inventario, realizar comparaciones o simplemente pedirme que analice algún escenario. ¿En qué te ayudo hoy?`
+      content: `¡Hola ${user.name}! Soy Alina, tu Asistente de Negocios Inteligente de Office City.\n\nPuedes preguntarme sobre ventas, inventario, realizar comparaciones o simplemente pedirme que analice algún escenario. ¿En qué te ayudo hoy?`
     }
   ]);
   const [input, setInput] = useState('');
@@ -84,7 +84,7 @@ export default function AIClient({ user, branch }: { user: any, branch: any }) {
           <Sparkles size={24} color="#4f46e5" />
         </div>
         <div>
-          <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a' }}>Asistente Inteligente</h1>
+          <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a' }}>Alina (Asistente IA)</h1>
           <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>Conectado a Google Gemini</p>
         </div>
       </div>
@@ -138,7 +138,7 @@ export default function AIClient({ user, branch }: { user: any, branch: any }) {
             </div>
             <div style={{ padding: '1rem', borderRadius: '12px', borderTopLeftRadius: '0px', backgroundColor: '#ffffff', border: '1px solid #e0e7ff', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Loader2 size={16} className="lucide-spin" color="#4f46e5" />
-              <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Gemini está pensando...</span>
+              <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Alina está pensando...</span>
             </div>
           </div>
         )}
