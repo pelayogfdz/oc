@@ -324,16 +324,16 @@ export default function POSClient({ products: initialProducts, customers, promot
             // Si el portal base ya tiene algún parámetro (ej. https://x.com/facturar?empresa=1), agregamos con &
             // Si no tiene, agregamos con ?
             const separator = billingBaseUrl.includes('?') ? '&' : '?';
-            const finalUrl = \`\${billingBaseUrl}\${separator}ticketId=\${ticketIdParam}\`;
+            const finalUrl = `${billingBaseUrl}${separator}ticketId=${ticketIdParam}`;
             
-            return \`
+            return `
             <div class="t-divider"></div>
             <div class="qr-container">
               <div class="qr-text">Para generar tu factura escanea este código:</div>
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=\${encodeURIComponent(finalUrl)}" alt="QR" style="width:120px;height:120px;"/>
-              <div class="qr-folio">FOLIO: \${ticketIdParam}</div>
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(finalUrl)}" alt="QR" style="width:120px;height:120px;"/>
+              <div class="qr-folio">FOLIO: ${ticketIdParam}</div>
             </div>
-          \`;
+          `;
           })() : ''}
         </body>
       </html>
@@ -391,7 +391,7 @@ export default function POSClient({ products: initialProducts, customers, promot
         if (!response.success) {
           throw new Error(response.error);
         }
-        saleId = response.sale.id;
+        saleId = response.sale?.id;
       }
       
       setCart([]);
