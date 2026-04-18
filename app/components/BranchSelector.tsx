@@ -23,10 +23,10 @@ export default function BranchSelector({ branches, currentBranchId }: { branches
         padding: '0.25rem 0.5rem',
         borderRadius: '4px',
         border: '1px solid var(--pulpos-border)',
-        backgroundColor: '#f8fafc',
+        backgroundColor: 'var(--pulpos-bg)',
         cursor: 'pointer',
         outline: 'none',
-        color: '#1e293b',
+        color: 'var(--pulpos-text)',
         maxWidth: '200px'
       }}
     >

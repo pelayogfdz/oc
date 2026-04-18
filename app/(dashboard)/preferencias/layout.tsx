@@ -47,7 +47,7 @@ export default function PreferenciasLayout({ children }: { children: React.React
                 borderRadius: '6px',
                 textDecoration: 'none',
                 color: isActive ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
-                backgroundColor: isActive ? '#e0f2fe' : 'transparent',
+                backgroundColor: isActive ? 'var(--pulpos-sidebar-hover)' : 'transparent',
                 fontWeight: isActive ? 'bold' : '500',
                 fontSize: '0.9rem',
                 transition: 'background 0.2s'

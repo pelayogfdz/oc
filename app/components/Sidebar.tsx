@@ -139,8 +139,8 @@ export default function Sidebar() {
         onClick={closeMenu} 
       />
       <aside className={`dashboard-sidebar ${isMobileMenuOpen ? 'open' : ''}`} style={{ 
-        backgroundColor: '#1B232D', /* Pulpos Dark Navy */
-        color: '#cbd5e1', 
+        backgroundColor: 'var(--pulpos-sidebar-bg)',
+        color: 'var(--pulpos-sidebar-text)', 
         display: 'flex', 
         flexDirection: 'column', 
         height: '100vh',
@@ -151,8 +151,8 @@ export default function Sidebar() {
     }}>
       {/* Brand Header */}
       <div style={{ padding: '1.5rem', marginBottom: '0.5rem' }}>
-        <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ color: '#00d0bb', fontSize: '2rem', lineHeight: 1 }}>*</span> 
+        <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: 'var(--pulpos-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ color: 'var(--pulpos-primary)', fontSize: '2rem', lineHeight: 1 }}>*</span> 
           CAANMA
           <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: '#94a3b8', verticalAlign: 'top', marginLeft: '0.25rem' }}>PRO</span>
         </div>
@@ -165,8 +165,8 @@ export default function Sidebar() {
           alignItems: 'center', 
           gap: '0.75rem', 
           width: '100%', 
-          backgroundColor: '#374151', 
-          color: '#bae6fd', 
+          backgroundColor: 'var(--pulpos-primary)', 
+          color: 'white', 
           padding: '0.75rem 1rem', 
           borderRadius: '8px', 
           textDecoration: 'none',
@@ -174,7 +174,7 @@ export default function Sidebar() {
           transition: 'background 0.2s',
           fontSize: '1rem'
         }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '50%', color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px' }}>
+          <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '50%', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px' }}>
             <span style={{ fontSize: '16px', lineHeight: 1, fontWeight: 'bold' }}>+</span>
           </div>
           Nueva Venta
@@ -200,8 +200,8 @@ export default function Sidebar() {
                   padding: '0.75rem 1rem', 
                   borderRadius: '6px', 
                   textDecoration: 'none', 
-                  backgroundColor: NodeActive ? '#0f172a' : 'transparent',
-                  color: NodeActive ? '#00d0bb' : '#e2e8f0',
+                  backgroundColor: NodeActive ? 'var(--pulpos-sidebar-hover)' : 'transparent',
+                  color: NodeActive ? 'var(--pulpos-primary)' : 'inherit',
                   fontWeight: NodeActive ? 'bold' : '500',
                   transition: 'background 0.2s'
                 }}
@@ -209,7 +209,7 @@ export default function Sidebar() {
                 {node.icon}
                 <span style={{ flex: 1 }}>{node.title}</span>
                 {node.badge && (
-                  <span style={{ backgroundColor: '#ccfbf1', color: '#0f766e', fontSize: '0.7rem', padding: '0.1rem 0.5rem', borderRadius: '12px', fontWeight: 'bold' }}>
+                  <span style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', fontSize: '0.7rem', padding: '0.1rem 0.5rem', borderRadius: '12px', fontWeight: 'bold' }}>
                     {node.badge}
                   </span>
                 )}
@@ -231,12 +231,12 @@ export default function Sidebar() {
                   padding: '0.75rem 1rem', 
                   borderRadius: '6px', 
                   cursor: 'pointer',
-                  color: NodeActive && !isOpen ? '#00d0bb' : '#e2e8f0', // In pulpos, active parents look highlighted if closed
+                  color: NodeActive && !isOpen ? 'var(--pulpos-primary)' : 'inherit', // In pulpos, active parents look highlighted if closed
                   fontWeight: '500',
                   transition: 'background 0.2s'
                 }}
               >
-                <div style={{ color: NodeActive && !isOpen ? '#00d0bb' : '#94a3b8' }}>
+                <div style={{ color: NodeActive && !isOpen ? 'var(--pulpos-primary)' : 'inherit' }}>
                   {node.icon}
                 </div>
                 <span style={{ flex: 1 }}>{node.title}</span>
@@ -257,14 +257,14 @@ export default function Sidebar() {
                           alignItems: 'center',
                           padding: '0.4rem 0', 
                           textDecoration: 'none', 
-                          color: ItemActive ? '#38bdf8' : '#e2e8f0', // highlight style for inner links
+                          color: ItemActive ? 'var(--pulpos-primary)' : 'inherit', // highlight style for inner links
                           fontWeight: ItemActive ? 'bold' : '500',
                           fontSize: '0.85rem'
                         }}
                       >
                         <span style={{ flex: 1 }}>{item.name}</span>
                         {item.badge && (
-                          <span style={{ backgroundColor: '#ccfbf1', color: '#0f766e', fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '12px', fontWeight: 'bold', marginRight: '0.5rem' }}>
+                          <span style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '12px', fontWeight: 'bold', marginRight: '0.5rem' }}>
                             {item.badge}
                           </span>
                         )}
@@ -292,7 +292,7 @@ export default function Sidebar() {
               padding: '0.75rem 1rem', 
               borderRadius: '6px', 
               textDecoration: 'none', 
-              color: '#94a3b8',
+              color: 'var(--pulpos-text-muted)',
               fontWeight: '500'
             }}
           >

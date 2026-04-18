@@ -1,18 +1,19 @@
 :root {
-  --pulpos-bg: #f3f4f6;
-  --pulpos-sidebar-bg: #1e2532;
-  --pulpos-sidebar-hover: #2a3441;
-  --pulpos-sidebar-text: #9ca3af;
-  --pulpos-sidebar-text-active: #ffffff;
-  --pulpos-primary: #00a896; 
-  --pulpos-primary-hover: #028073;
-  --pulpos-text: #1f2937;
-  --pulpos-text-muted: #6b7280;
-  --pulpos-border: #e5e7eb;
+  --pulpos-bg: #f8fafc;
+  --pulpos-sidebar-bg: #ffffff;
+  --pulpos-sidebar-hover: #f1f5f9;
+  --pulpos-sidebar-text: #64748b;
+  --pulpos-sidebar-text-active: #8b5cf6;
+  --pulpos-primary: #8b5cf6; 
+  --pulpos-primary-hover: #7c3aed;
+  --pulpos-text: #334155;
+  --pulpos-text-muted: #94a3b8;
+  --pulpos-border: #f1f5f9;
   --pulpos-card-bg: #ffffff;
   
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 }
+
 
 * {
   box-sizing: border-box;

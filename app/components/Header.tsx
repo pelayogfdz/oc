@@ -47,7 +47,7 @@ export default async function Header() {
           </div>
           <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.75rem' }}>{currentUser?.name || 'Usuario'}</div>
         </div>
-        <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#1f2937' }}>
+        <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--pulpos-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'white' }}>
           {currentUser?.name ? currentUser.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'US'}
         </div>
       </div>
