@@ -26,11 +26,11 @@ type MenuNode = {
 
 const navStructure: MenuNode[] = [
   { title: 'Inicio', path: '/', icon: <Home size={20} /> },
-  { title: 'Alina (IA)', path: '/ia', icon: <Sparkles size={20} className="text-purple-500" />, badge: 'Gemini' },
+  { title: 'Asistente IA (Alina)', path: '/ia', icon: <Sparkles size={20} className="text-purple-500" />, badge: 'Gemini' },
   { 
     title: 'Ventas', icon: <Banknote size={20} />, 
     items: [
-      { name: 'Ventas', path: '/ventas' },
+      { name: 'Punto de Venta', path: '/ventas' },
       { name: 'Promociones y Descuentos', path: '/ventas/promociones' },
       { name: 'Devoluciones', path: '/ventas/devoluciones' },
       { name: 'Cotizaciones', path: '/ventas/cotizaciones' },
@@ -39,54 +39,55 @@ const navStructure: MenuNode[] = [
   { 
     title: 'Caja', icon: <Briefcase size={20} />, 
     items: [
-      { name: 'Caja Actual', path: '/caja/actual' },
-      { name: 'Cortes Históricos', path: '/caja/cortes' },
+      { name: 'Apertura y Corte de Caja', path: '/caja/actual' },
+      { name: 'Histórico de Cortes', path: '/caja/cortes' },
     ]
   },
   { 
-    title: 'Facturas', icon: <FileText size={20} />, 
+    title: 'Facturación', icon: <FileText size={20} />, 
     items: [
-      { name: 'Facturas por Ventas', path: '/facturas/ventas' },
-      { name: 'Facturas Globales', path: '/facturas/globales' },
+      { name: 'Facturación CFDI 4.0', path: '/facturas/ventas' },
+      { name: 'Factura Global (Público en General)', path: '/facturas/globales' },
+      { name: 'Complementos de Pago (REP)', path: '/facturas/complementos', badge: 'REP' },
     ]
   },
   { 
     title: 'Clientes', icon: <UserCircle size={20} />, 
     items: [
-      { name: 'Directorio', path: '/clientes' },
-      { name: 'Cuentas por Cobrar', path: '/clientes/cobranza', badge: 'Cuentas' },
+      { name: 'Directorio de Clientes', path: '/clientes' },
+      { name: 'Cobranza (CxC)', path: '/clientes/cobranza', badge: 'Pendientes' },
       { name: 'Portal de Autofacturación', path: '/clientes/portal' },
     ]
   },
   { 
-    title: 'Productos', icon: <Tag size={20} />, 
+    title: 'Inventario y Productos', icon: <Tag size={20} />, 
     items: [
-      { name: 'Productos', path: '/productos' },
-      { name: 'Precios Masivos', path: '/productos/precios-masivos', badge: 'Precios' },
-      { name: 'Costos Proveedor', path: '/productos/costos-proveedor', badge: 'Costos' },
-      { name: 'Traspasos', path: '/productos/traspasos' },
-      { name: 'Ajuste de Inventario', path: '/productos/ajustes' },
-      { name: 'Auditorías (Físico)', path: '/productos/auditorias' },
+      { name: 'Catálogo de Productos', path: '/productos' },
+      { name: 'Actualización Masiva de Precios', path: '/productos/precios-masivos', badge: 'Precios' },
+      { name: 'Costos y Proveedores', path: '/productos/costos-proveedor', badge: 'Costos' },
+      { name: 'Traspasos entre Sucursales', path: '/productos/traspasos' },
+      { name: 'Ajustes de Inventario', path: '/productos/ajustes' },
+      { name: 'Toma Física de Inventario', path: '/productos/auditorias' },
     ]
   },
   { 
     title: 'Compras y Gastos', icon: <PackageCheck size={20} />, 
     items: [
-      { name: 'Compras a Proveedores', path: '/productos/compras' },
-      { name: 'Gastos Operativos', path: '/productos/gastos' },
+      { name: 'Órdenes de Compra', path: '/productos/compras' },
+      { name: 'Registro de Gastos', path: '/productos/gastos' },
       { name: 'Directorio de Proveedores', path: '/proveedores' },
-      { name: 'Cuentas por Pagar', path: '/proveedores/cuentas', badge: 'Pasivos' },
+      { name: 'Cuentas por Pagar (CxP)', path: '/proveedores/cuentas', badge: 'Pasivos' },
     ]
   },
   { 
     title: 'Ventas Online', icon: <Library size={20} />, badge: 'Enlace',
     items: [
-      { name: 'Portal de Integraciones', path: '/integraciones' },
-      { name: 'Catálogo de Tienda B2C', path: '/catalogo' },
+      { name: 'Integraciones (Mercado Libre/Amazon)', path: '/integraciones' },
+      { name: 'Catálogo E-commerce B2C', path: '/catalogo' },
     ]
   },
   { title: 'Finanzas', path: '/conciliacion', icon: <HandCoins size={20} /> },
-  { title: 'Reportes', path: '/reportes', icon: <BarChart3 size={20} /> },
+  { title: 'Reportes y BI', path: '/reportes', icon: <BarChart3 size={20} /> },
 ];
 
 const footerNodes: MenuNode[] = [
