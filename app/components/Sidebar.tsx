@@ -113,7 +113,7 @@ export default function Sidebar() {
 
   const toggleGroup = (title: string, e: React.MouseEvent) => {
     e.preventDefault();
-    setOpenGroups(prev => ({ ...prev, [title]: !prev[title] }));
+    setOpenGroups(prev => ({ [title]: !prev[title] }));
   };
 
   const isNodeActive = (node: MenuNode) => {
