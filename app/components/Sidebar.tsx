@@ -26,6 +26,38 @@ type MenuNode = {
 
 const navStructure: MenuNode[] = [
   { title: 'Inicio', path: '/', icon: <Home size={20} /> },
+  { title: 'Alina (IA)', path: '/ia', icon: <Sparkles size={20} className="text-purple-500" />, badge: 'Gemini' },
+  { 
+    title: 'Ventas', icon: <Banknote size={20} />, 
+    items: [
+      { name: 'Ventas', path: '/ventas' },
+      { name: 'Promociones y Descuentos', path: '/ventas/promociones' },
+      { name: 'Devoluciones', path: '/ventas/devoluciones' },
+      { name: 'Cotizaciones', path: '/ventas/cotizaciones' },
+    ]
+  },
+  { 
+    title: 'Caja', icon: <Briefcase size={20} />, 
+    items: [
+      { name: 'Caja Actual', path: '/caja/actual' },
+      { name: 'Cortes Históricos', path: '/caja/cortes' },
+    ]
+  },
+  { 
+    title: 'Facturas', icon: <FileText size={20} />, 
+    items: [
+      { name: 'Facturas por Ventas', path: '/facturas/ventas' },
+      { name: 'Facturas Globales', path: '/facturas/globales' },
+    ]
+  },
+  { 
+    title: 'Clientes', icon: <UserCircle size={20} />, 
+    items: [
+      { name: 'Directorio', path: '/clientes' },
+      { name: 'Cuentas por Cobrar', path: '/clientes/cobranza', badge: 'Cuentas' },
+      { name: 'Portal de Autofacturación', path: '/clientes/portal' },
+    ]
+  },
   { 
     title: 'Productos', icon: <Tag size={20} />, 
     items: [
@@ -38,32 +70,6 @@ const navStructure: MenuNode[] = [
     ]
   },
   { 
-    title: 'Ventas', icon: <Banknote size={20} />, 
-    items: [
-      { name: 'Ventas', path: '/ventas' },
-      { name: 'Promociones y Descuentos', path: '/ventas/promociones' },
-      { name: 'Devoluciones', path: '/ventas/devoluciones' },
-      { name: 'Cotizaciones', path: '/ventas/cotizaciones' },
-    ]
-  },
-  { 
-    title: 'Clientes', icon: <UserCircle size={20} />, 
-    items: [
-      { name: 'Directorio', path: '/clientes' },
-      { name: 'Cuentas por Cobrar', path: '/clientes/cobranza', badge: 'Cuentas' },
-      { name: 'Portal de Autofacturación', path: '/clientes/portal' },
-    ]
-  },
-  { 
-    title: 'Caja', icon: <Briefcase size={20} />, 
-    items: [
-      { name: 'Caja Actual', path: '/caja/actual' },
-      { name: 'Cortes Históricos', path: '/caja/cortes' },
-    ]
-  },
-  { title: 'Reportes', path: '/reportes', icon: <BarChart3 size={20} /> },
-  { title: 'Alina (IA)', path: '/ia', icon: <Sparkles size={20} className="text-purple-500" />, badge: 'Gemini' },
-  { 
     title: 'Compras y Gastos', icon: <PackageCheck size={20} />, 
     items: [
       { name: 'Compras a Proveedores', path: '/productos/compras' },
@@ -73,20 +79,14 @@ const navStructure: MenuNode[] = [
     ]
   },
   { 
-    title: 'Facturas', icon: <FileText size={20} />, 
-    items: [
-      { name: 'Facturas por Ventas', path: '/facturas/ventas' },
-      { name: 'Facturas Globales', path: '/facturas/globales' },
-    ]
-  },
-  { 
-    title: 'Omnicanalidad', icon: <Library size={20} />, badge: 'Enlace',
+    title: 'Ventas Online', icon: <Library size={20} />, badge: 'Enlace',
     items: [
       { name: 'Portal de Integraciones', path: '/integraciones' },
       { name: 'Catálogo de Tienda B2C', path: '/catalogo' },
     ]
   },
-  { title: 'Conciliación Bancaria', path: '/conciliacion', icon: <HandCoins size={20} /> },
+  { title: 'Finanzas', path: '/conciliacion', icon: <HandCoins size={20} /> },
+  { title: 'Reportes', path: '/reportes', icon: <BarChart3 size={20} /> },
 ];
 
 const footerNodes: MenuNode[] = [
