@@ -3,6 +3,9 @@ const CACHE_NAME = 'caanma-offline-v1';
 // Recursos mínimos para que la app cargue (App Router)
 const ASSETS_TO_CACHE = [
   '/',
+  '/ventas/nueva',
+  '/productos/pedidos/nuevo',
+  '/productos/traspasos',
   '/manifest.json',
   '/icon-192x192.png',
   '/icon-512x512.png'

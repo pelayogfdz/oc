@@ -182,35 +182,48 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   const refreshCatalogs = async () => {
     if (!navigator.onLine) return;
     try {
-      const { syncAllCatalogs } = await import('../actions/sync');
-      const data = await syncAllCatalogs();
+      const { syncBasicCatalogs, syncProductsPage } = await import('../actions/sync');
+      setShowToast({ message: 'Preparando sincronización de catálogos...', type: 'warn' });
       
-      await db.transaction('rw', db.products, db.customers, db.suppliers, db.branches, db.settings, async () => {
-        await db.products.clear();
-        await db.products.bulkAdd(data.products);
-        
+      const basicData = await syncBasicCatalogs();
+      
+      await db.transaction('rw', db.customers, db.suppliers, db.branches, db.settings, async () => {
         await db.customers.clear();
-        await db.customers.bulkAdd(data.customers);
+        await db.customers.bulkAdd(basicData.customers);
         
         await db.suppliers.clear();
-        await db.suppliers.bulkAdd(data.suppliers);
+        await db.suppliers.bulkAdd(basicData.suppliers);
         
         await db.branches.clear();
-        await db.branches.bulkAdd(data.branches);
+        await db.branches.bulkAdd(basicData.branches);
         
-        if (data.settings) {
+        if (basicData.settings) {
           await db.settings.clear();
           await db.settings.add({
             id: 'branch_config',
-            ventasConfig: JSON.parse(data.settings.configJson || '{}').ventas || {},
-            ticketConfig: JSON.parse(data.settings.configJson || '{}').tickets || {},
-            metodosConfig: JSON.parse(data.settings.configJson || '{}').metodos || {}
+            ventasConfig: JSON.parse(basicData.settings.configJson || '{}').ventas || {},
+            ticketConfig: JSON.parse(basicData.settings.configJson || '{}').tickets || {},
+            metodosConfig: JSON.parse(basicData.settings.configJson || '{}').metodos || {}
           });
         }
       });
+
+      const totalProducts = basicData.totalProducts;
+      const pageSize = 1500;
+      const totalPages = Math.ceil(totalProducts / pageSize);
+      
+      await db.products.clear();
+      
+      for (let i = 1; i <= totalPages; i++) {
+        setShowToast({ message: `Descargando Catálogo de Productos... (${i}/${totalPages})`, type: 'warn' });
+        const productsChunk = await syncProductsPage(i, pageSize);
+        await db.products.bulkAdd(productsChunk);
+      }
+
       setShowToast({ message: 'Catálogos Offline Actualizados', type: 'success' });
     } catch (e) {
       console.error('Failed to sync catalogs', e);
+      setShowToast({ message: 'Error descargando catálogos en Offline', type: 'error' });
     }
   };
 

@@ -93,7 +93,7 @@ export class CAANMAOfflineDB extends Dexie {
 
   constructor() {
     super('CAANMAOfflineDB');
-    this.version(1).stores({
+    this.version(15).stores({
       pendingSales: 'id, timestamp, synced',
       pendingTransfers: 'id, timestamp, synced',
       pendingPurchases: 'id, timestamp, synced',
