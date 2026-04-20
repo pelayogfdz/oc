@@ -4,9 +4,11 @@ import { createSale } from '@/app/actions/sale';
 import { createQuote, getQuoteForPOS } from '@/app/actions/quote';
 import { searchProducts } from '@/app/actions/product';
 import { useSearchParams } from 'next/navigation';
+import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 
 export default function POSClient({ products: initialProducts, customers, promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {}, dynamicPriceLists = [], pendingQuotes = [] }: { products: any[], customers: any[], promotions?: any[], mode?: "SALE" | "QUOTE", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any, dynamicPriceLists?: any[], pendingQuotes?: any[] }) {
   const searchParams = useSearchParams();
+  const { isOnline, pushOfflineSale } = useOfflineSync();
   const [cart, setCart] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [priceList, setPriceList] = useState('price');
@@ -422,11 +424,31 @@ export default function POSClient({ products: initialProducts, customers, promot
            };
         }
 
-        const response = await createSale(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null, sessionId, finalNotes, cashValue, cardValue, billingData);
-        if (!response.success) {
-          throw new Error(response.error);
+        if (!isOnline) {
+          // OFFLINE MODE INTERCEPTION
+          await pushOfflineSale({
+             items,
+             total: finalTotalWithTip,
+             paymentMethod,
+             // Guardamos todo el payload que requeriría el backend:
+             ...{
+                customerId: selectedCustomerId || null,
+                sessionId,
+                notes: finalNotes,
+                cashValue,
+                cardValue,
+                billingData
+             }
+          });
+          saleId = `OFFLINE-${Date.now()}`;
+        } else {
+          // ONLINE MODE
+          const response = await createSale(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null, sessionId, finalNotes, cashValue, cardValue, billingData);
+          if (!response.success) {
+            throw new Error(response.error);
+          }
+          saleId = response.sale?.id;
         }
-        saleId = response.sale?.id;
       }
       
       setCart([]);

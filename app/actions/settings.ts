@@ -5,8 +5,13 @@ import { getActiveBranch } from './auth';
 import { revalidatePath } from 'next/cache';
 
 export async function updateBranchSettings(formData: FormData) {
-  const branch = await getActiveBranch();
+  let branch = await getActiveBranch();
   if (!branch) throw new Error("No branch active");
+  if (branch.id === 'GLOBAL') {
+    const realBranch = await prisma.branch.findFirst({ where: { isActive: true } });
+    if (!realBranch) throw new Error("No real branch exists to store settings");
+    branch = realBranch;
+  }
   
   const ticketHeader = formData.get('ticketHeader') as string;
   const ticketFooter = formData.get('ticketFooter') as string;
@@ -38,8 +43,13 @@ export async function updateBranchSettings(formData: FormData) {
 }
 
 export async function getBranchSettings() {
-  const branch = await getActiveBranch();
+  let branch = await getActiveBranch();
   if (!branch) throw new Error("No branch active");
+  if (branch.id === 'GLOBAL') {
+    const realBranch = await prisma.branch.findFirst({ where: { isActive: true } });
+    if (!realBranch) throw new Error("No real branch exists to store settings");
+    branch = realBranch;
+  }
 
   let settings = await prisma.branchSettings.findUnique({
     where: { branchId: branch.id }
@@ -55,8 +65,13 @@ export async function getBranchSettings() {
 }
 
 export async function updateAdvancedConfig(moduleKey: string, formData: FormData) {
-  const branch = await getActiveBranch();
+  let branch = await getActiveBranch();
   if (!branch) throw new Error("No branch active");
+  if (branch.id === 'GLOBAL') {
+    const realBranch = await prisma.branch.findFirst({ where: { isActive: true } });
+    if (!realBranch) throw new Error("No real branch exists to store settings");
+    branch = realBranch;
+  }
 
   let settings = await prisma.branchSettings.findUnique({ where: { branchId: branch.id } });
   
@@ -95,8 +110,13 @@ export async function updateAdvancedConfig(moduleKey: string, formData: FormData
 }
 
 export async function updateAdvancedJSONConfig(moduleKey: string, payload: any) {
-  const branch = await getActiveBranch();
+  let branch = await getActiveBranch();
   if (!branch) throw new Error("No branch active");
+  if (branch.id === 'GLOBAL') {
+    const realBranch = await prisma.branch.findFirst({ where: { isActive: true } });
+    if (!realBranch) throw new Error("No real branch exists to store settings");
+    branch = realBranch;
+  }
 
   let settings = await prisma.branchSettings.findUnique({ where: { branchId: branch.id } });
   

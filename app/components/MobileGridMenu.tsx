@@ -17,22 +17,14 @@ export default function MobileGridMenu() {
   if (!isMobileMenuOpen) return null;
 
   const gridItems = [
-    { title: 'Compras y Gastos', path: '/productos/compras', icon: <ShoppingBag size={24} color="#8b5cf6" /> },
-    { title: 'Proveedores', path: '/proveedores', icon: <Truck size={24} color="#0d9488" /> },
+    { title: 'Compras y Gastos', path: '/productos/pedidos', icon: <ShoppingBag size={24} color="#8b5cf6" /> },
     { title: 'Ventas', path: '/ventas', icon: <Banknote size={24} color="#16a34a" /> },
-    { title: 'Cotizaciones', path: '/ventas/cotizaciones', icon: <FileText size={24} color="#16a34a" /> },
     { title: 'Facturas', path: '/facturas/ventas', icon: <FileText size={24} color="#16a34a" /> },
     { title: 'Facturas Globales', path: '/facturas/globales', icon: <FileText size={24} color="#16a34a" /> },
-    { title: 'Promociones', path: '/ventas/promociones', icon: <Percent size={24} color="#0284c7" /> },
-    { title: 'Reportes', path: '/reportes', icon: <BarChart3 size={24} color="#0284c7" /> },
     { title: 'Productos', path: '/productos', icon: <Tag size={24} color="#ea580c" /> },
     { title: 'Traspasos', path: '/productos/traspasos', icon: <ArrowRight size={24} color="#ea580c" /> },
-    { title: 'Caja Actual', path: '/caja/actual', icon: <Briefcase size={24} color="#ea580c" /> },
-    { title: 'Cortes Históricos', path: '/caja/cortes', icon: <Calendar size={24} color="#ea580c" /> },
     { title: 'Clientes', path: '/clientes', icon: <Users size={24} color="#0891b2" /> },
     { title: 'Portal de Clientes', path: '/clientes/portal', icon: <UserCircle size={24} color="#0891b2" /> },
-    { title: 'Catálogo en Línea', path: '/catalogo', icon: <Store size={24} color="#c026d3" /> },
-    { title: 'Conciliaciones', path: '/conciliacion', icon: <Landmark size={24} color="#e11d48" /> },
   ];
 
   return (

@@ -203,28 +203,30 @@ export default function Sidebar() {
         })}
 
 
-
-        {/* Footer Items */}
-        {footerNodes.map(node => (
-          <Link 
-            key={node.title}
-            href={node.path!} 
-            onClick={() => { if (isMobileMenuOpen) closeMenu(); }}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '1rem', 
-              padding: '0.75rem 1rem', 
-              borderRadius: '6px', 
-              textDecoration: 'none', 
-              color: 'var(--pulpos-text-muted)',
-              fontWeight: '500'
-            }}
-          >
-            {node.icon}
-            {node.title}
-          </Link>
-        ))}
+        {/* Footer Items Wrapper */}
+        <div style={{ marginTop: 'auto' }}>
+          {/* Footer Items */}
+          {footerNodes.map(node => (
+            <Link 
+              key={node.title}
+              href={node.path!} 
+              onClick={() => { if (isMobileMenuOpen) closeMenu(); }}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '1rem', 
+                padding: '0.75rem 1rem', 
+                borderRadius: '6px', 
+                textDecoration: 'none', 
+                color: 'var(--pulpos-text-muted)',
+                fontWeight: '500'
+              }}
+            >
+              {node.icon}
+              {node.title}
+            </Link>
+          ))}
+        </div>
       </nav>
       
     </aside>

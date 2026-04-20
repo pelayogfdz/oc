@@ -5,10 +5,11 @@ import { getActiveBranch, getActiveUser } from './auth';
 
 export async function getUsersHierarchy() {
   const branch = await getActiveBranch();
-  if (branch.id === 'GLOBAL') throw new Error('A branch must be selected.');
+  
+  const whereClause = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
 
   const users = await prisma.user.findMany({
-    where: { branchId: branch.id },
+    where: whereClause,
     include: {
       manager: true,
       subordinates: true
@@ -20,12 +21,15 @@ export async function getUsersHierarchy() {
 
 export async function updateCommissionProfile(userId: string, data: any) {
   const branch = await getActiveBranch();
-  if (branch.id === 'GLOBAL') throw new Error('A branch must be selected.');
   
-  // Basic validation that user belongs to branch
+  // Basic validation that user exists and belongs to branch (unless global)
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user || user.branchId !== branch.id) {
-    throw new Error('User not found or does not belong to this branch.');
+  if (!user) {
+    throw new Error('User not found.');
+  }
+  
+  if (branch.id !== 'GLOBAL' && user.branchId !== branch.id) {
+    throw new Error('User does not belong to this branch.');
   }
 
   // Prevent cyclical references later? For now just assign.
@@ -50,15 +54,16 @@ export async function updateCommissionProfile(userId: string, data: any) {
 
 export async function getCommissionReport(month: number, year: number) {
   const branch = await getActiveBranch();
-  if (branch.id === 'GLOBAL') throw new Error('A branch must be selected.');
 
   // Dates for the month
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
-  // 1. Fetch all users from the branch
+  // 1. Fetch all users from the branch (or all branches if GLOBAL)
+  const whereClause = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
+
   const users = await prisma.user.findMany({
-    where: { branchId: branch.id },
+    where: whereClause,
     select: {
       id: true,
       name: true,
