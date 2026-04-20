@@ -48,6 +48,35 @@ export async function createSale(
       }
     }
 
+    let dueDate = null;
+    let balanceDue = 0;
+
+    // CxC Validation
+    if (paymentMethod === 'CREDIT' && customerId) {
+      const customer = await prisma.customer.findUnique({ where: { id: customerId } });
+      if (!customer) throw new Error("Cliente no encontrado para la venta a crédito.");
+      if (customer.creditLimit <= 0) throw new Error("El cliente no tiene línea de crédito autorizada.");
+      
+      if ((customer.creditBalance + total) > customer.creditLimit) {
+        throw new Error(`El cliente excede su límite de crédito. Disponible: $${(customer.creditLimit - customer.creditBalance).toFixed(2)}`);
+      }
+
+      const overdueSales = await prisma.sale.findFirst({
+        where: {
+           customerId,
+           balanceDue: { gt: 0 },
+           dueDate: { lt: new Date() }
+        }
+      });
+      if (overdueSales) {
+        throw new Error("El cliente tiene facturas vencidas. No se puede otorgar nuevo crédito hasta liquidar.");
+      }
+
+      dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + customer.creditDays);
+      balanceDue = total;
+    }
+
     const sale = await prisma.sale.create({
       data: {
         total,
@@ -59,6 +88,8 @@ export async function createSale(
         cardAmount,
         branchId: branch.id,
         userId: user.id,
+        dueDate,
+        balanceDue,
         items: {
           create: items.map(item => ({
             quantity: item.quantity,
@@ -95,7 +126,7 @@ export async function createSale(
       });
     }
 
-    // Si fue a crédito, actualizar la deuda del cliente
+    // Si fue a crédito, actualizar la bolsa global del cliente
     if (paymentMethod === 'CREDIT' && customerId) {
        await prisma.customer.update({
           where: { id: customerId },

@@ -18,6 +18,32 @@ export async function createPurchase(
   if (items.length === 0) throw new Error("List is empty");
 
   await prisma.$transaction(async (tx) => {
+    let dueDate = null;
+    let balanceDue = 0;
+
+    // CxP (Cuentas por Pagar) Validation
+    if (paymentMethod === 'CREDIT') {
+      if (!supplierId) throw new Error("Se requiere un proveedor para compras a crédito.");
+      
+      const supplier = await tx.supplier.findUnique({ where: { id: supplierId } });
+      if (!supplier) throw new Error("Proveedor no encontrado.");
+      if (supplier.creditLimit <= 0) throw new Error("El proveedor no te ha otorgado límite de crédito en el sistema.");
+      
+      if ((supplier.creditBalance + total) > supplier.creditLimit) {
+        throw new Error(`Excedes el límite de crédito con este proveedor. Límite disponible: $${(supplier.creditLimit - supplier.creditBalance).toFixed(2)}`);
+      }
+
+      dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + supplier.creditDays);
+      balanceDue = total;
+
+      // Incrementar la deuda con el proveedor
+      await tx.supplier.update({
+        where: { id: supplierId },
+        data: { creditBalance: { increment: total } }
+      });
+    }
+
     const purchase = await tx.purchase.create({
       data: {
         total,
@@ -26,6 +52,8 @@ export async function createPurchase(
         freightCost,
         branchId: branch.id,
         userId: user.id,
+        dueDate,
+        balanceDue,
         items: {
           create: items.map(item => ({
             quantity: item.quantity,

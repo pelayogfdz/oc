@@ -26,6 +26,7 @@ model User {
   inventoryMovements        InventoryMovement[]
   inventoryAdjustmentDocs   InventoryAdjustmentDoc[]
   customerPayments          CustomerPayment[]
+  supplierPayments          SupplierPayment[]
   returns                   SaleReturn[]
   transfersCreated          Transfer[]               @relation("TransferCreatedBy")
   transfersReceived         Transfer[]               @relation("TransferReceivedBy")
@@ -69,6 +70,7 @@ model Branch {
   inventoryAdjustmentDocs InventoryAdjustmentDoc[]
   storeIntegrations       StoreIntegration[]
   customerPayments        CustomerPayment[]
+  supplierPayments        SupplierPayment[]
   settings                BranchSettings?
   returns                 SaleReturn[]
   purchaseRequests        PurchaseRequest[]
@@ -140,6 +142,33 @@ model CustomerPayment {
   user       User     @relation(fields: [userId], references: [id])
   branchId   String?
   branch     Branch?  @relation(fields: [branchId], references: [id])
+
+  saleId     String?
+  sale       Sale?    @relation(fields: [saleId], references: [id])
+  cfdiStatus String   @default("NONE") // NONE, REQUESTED, TIMBRADO
+  cfdiUrlPdf String?
+  cfdiUrlXml String?
+
+  createdAt  DateTime @default(now())
+}
+
+model SupplierPayment {
+  id         String   @id @default(uuid())
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+  amount     Float
+  reason     String?
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  branchId   String?
+  branch     Branch?  @relation(fields: [branchId], references: [id])
+
+  purchaseId String?
+  purchase   Purchase? @relation(fields: [purchaseId], references: [id])
+  cfdiStatus String    @default("NONE") // NONE, REQUESTED, TIMBRADO
+  cfdiUrlPdf String?
+  cfdiUrlXml String?
+
   createdAt  DateTime @default(now())
 }
 
@@ -243,11 +272,14 @@ model Sale {
 
   invoiceId     String?
   satCreditNote String?
+  dueDate       DateTime? // Vencimiento si es a crédito
+  balanceDue    Float     @default(0) // Saldo pendiente
 
   items     SaleItem[]
   returns   SaleReturn[]
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
+  payments  CustomerPayment[] // Pagos a esta factura
 }
 
 model SaleItem {
@@ -405,6 +437,10 @@ model Supplier {
   // Crédito
   creditLimit Float @default(0)
   creditDays  Int   @default(0)
+  creditBalance Float @default(0) // Saldo global deudor
+  storeCredit   Float @default(0) // Saldo a favor / Anticipos
+
+  payments    SupplierPayment[]
 }
 
 model Purchase {
@@ -416,11 +452,16 @@ model Purchase {
   supplierId    String?
   supplier      Supplier?      @relation(fields: [supplierId], references: [id])
   total         Float
-  paymentMethod String         @default("CASH") // CASH, CARD, TRANSFER
+  paymentMethod String         @default("CASH") // CASH, CARD, TRANSFER, CREDIT
   freightCost   Float?         @default(0)
   status        String         @default("COMPLETED") // COMPLETED, PENDING
+  
+  dueDate       DateTime?      // Vencimiento si es a crédito
+  balanceDue    Float          @default(0) // Saldo pendiente
+  
   createdAt     DateTime       @default(now())
   items         PurchaseItem[]
+  payments      SupplierPayment[] // Pagos a esta factura
 }
 
 model PurchaseItem {

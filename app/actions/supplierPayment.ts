@@ -4,18 +4,18 @@ import { prisma } from '@/lib/prisma';
 import { getActiveBranch, getActiveUser } from './auth';
 import { revalidatePath } from 'next/cache';
 
-export async function addCustomerPaymentBatch(
-  customerId: string, 
+export async function addSupplierPaymentBatch(
+  supplierId: string, 
   totalAmount: number, 
   paymentMethod: string,
-  saleIds: string[] = [],
+  purchaseIds: string[] = [],
   requestCfdi: boolean = false
 ) {
   const branch = await getActiveBranch();
   const user = await getActiveUser(branch.id);
   
-  const customer = await prisma.customer.findUnique({ where: { id: customerId } });
-  if (!customer) throw new Error("Customer not found.");
+  const supplier = await prisma.supplier.findUnique({ where: { id: supplierId } });
+  if (!supplier) throw new Error("Supplier not found.");
   
   if (totalAmount <= 0) throw new Error("Amount must be greater than zero.");
   
@@ -25,7 +25,7 @@ export async function addCustomerPaymentBatch(
     currentSession = await prisma.cashSession.findFirst({
       where: { userId: user.id, branchId: branch.id, status: 'OPEN' }
     });
-    if (!currentSession) throw new Error("Debes abrir una caja para recibir abonos en efectivo.");
+    if (!currentSession) throw new Error("Debes abrir una caja para hacer retiros de pago en efectivo.");
   }
 
   // Create cash movement if CASH (Single movement for the entire transaction)
@@ -33,11 +33,11 @@ export async function addCustomerPaymentBatch(
      await prisma.cashMovement.create({
         data: {
            sessionId: currentSession.id,
-           type: 'IN',
+           type: 'OUT',
            amount: totalAmount,
-           reason: saleIds.length > 0 
-              ? `Pago a Facturas Múltiples: ${customer.name}` 
-              : `Depósito Saldo a Favor: ${customer.name}`
+           reason: purchaseIds.length > 0 
+              ? `Pago a Proveedor MúltIPLE: ${supplier.name}` 
+              : `Abono/Anticipo Proveedor: ${supplier.name}`
         }
      });
   }
@@ -45,64 +45,64 @@ export async function addCustomerPaymentBatch(
   let remainingAmount = totalAmount;
   let totalEffectiveToDebt = 0;
 
-  if (saleIds.length > 0) {
-    const sales = await prisma.sale.findMany({
-       where: { id: { in: saleIds }, balanceDue: { gt: 0 } },
+  if (purchaseIds.length > 0) {
+    const purchases = await prisma.purchase.findMany({
+       where: { id: { in: purchaseIds }, balanceDue: { gt: 0 } },
        orderBy: { createdAt: 'asc' } // Oldest first
     });
 
-    for (const sale of sales) {
+    for (const purchase of purchases) {
        if (remainingAmount <= 0) break;
 
-       const deduct = Math.min(remainingAmount, sale.balanceDue);
+       const deduct = Math.min(remainingAmount, purchase.balanceDue);
        remainingAmount -= deduct;
        totalEffectiveToDebt += deduct;
 
-       // Update Individual Sale
-       await prisma.sale.update({
-          where: { id: sale.id },
-          data: { balanceDue: sale.balanceDue - deduct }
+       // Update Individual Purchase
+       await prisma.purchase.update({
+          where: { id: purchase.id },
+          data: { balanceDue: purchase.balanceDue - deduct }
        });
 
        // Create Specific Payment Record
-       await prisma.customerPayment.create({
+       await prisma.supplierPayment.create({
           data: {
-             customerId,
+             supplierId,
              amount: deduct,
-             reason: `Abono a Ticket #${sale.id.slice(0,8)} (${paymentMethod})`,
+             reason: `Abono a Factura de Compra #${purchase.id.slice(0,8)} (${paymentMethod})`,
              userId: user.id,
              branchId: branch.id,
-             saleId: sale.id,
+             purchaseId: purchase.id,
              cfdiStatus: requestCfdi ? "REQUESTED" : "NONE"
           }
        });
     }
   }
 
-  // If there's excess (or if saleIds was empty, meaning 100% storeCredit)
+  // If there's excess (or if purchaseIds was empty, meaning 100% storeCredit)
   if (remainingAmount > 0) {
-      await prisma.customerPayment.create({
+      await prisma.supplierPayment.create({
           data: {
-             customerId,
+             supplierId,
              amount: remainingAmount,
-             reason: `Depósito a Saldo a Favor (${paymentMethod})`,
+             reason: `Anticipo/Saldo a Favor con Proveedor (${paymentMethod})`,
              userId: user.id,
              branchId: branch.id,
-             saleId: null,
+             purchaseId: null,
              cfdiStatus: "NONE"
           }
        });
   }
   
   // Decrease credit balance structurally
-  await prisma.customer.update({
-     where: { id: customerId },
+  await prisma.supplier.update({
+     where: { id: supplierId },
      data: { 
         creditBalance: { decrement: totalEffectiveToDebt },
         storeCredit: { increment: remainingAmount }
      }
   });
 
-  revalidatePath('/clientes/cobranza');
+  revalidatePath('/proveedores/cuentas');
   revalidatePath('/caja/actual');
 }
