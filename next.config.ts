@@ -4,9 +4,18 @@ import withPWAInit from "@ducanh2912/next-pwa";
 
 const withPWA = withPWAInit({
   dest: "public",
-  disable: true,
-  register: false,
+  disable: false, // Re-activamos obligatoriamente para que Chrome apruebe la instalación Desktop
+  register: true,
   skipWaiting: true,
+  workboxOptions: {
+    // Forzamos a que ignore el caché y siempre traiga datos frescos del servidor (Online Only)
+    runtimeCaching: [
+      {
+        urlPattern: /.*/i,
+        handler: 'NetworkOnly',
+      }
+    ]
+  }
 });
 
 const nextConfig: NextConfig = {
