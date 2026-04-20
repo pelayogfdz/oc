@@ -33,9 +33,14 @@ export default async function Page() {
             Traspasos de Inventario
           </h1>
         </div>
-        <Link href="/productos/traspasos/nuevo" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--pulpos-primary)', borderColor: 'var(--pulpos-primary)', color: 'white', textDecoration: 'none' }}>
-          <Plus size={18} /> Nuevo Registro
-        </Link>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <Link href="/productos/traspasos/solicitar" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155', padding: '0.5rem 1rem', borderRadius: '4px', textDecoration: 'none', fontWeight: 'bold' }}>
+            Solicitar Traspaso
+          </Link>
+          <Link href="/productos/traspasos/salida" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--pulpos-primary)', borderColor: 'var(--pulpos-primary)', color: 'white', textDecoration: 'none' }}>
+            <ArrowRight size={18} /> Enviar Traspaso Directo
+          </Link>
+        </div>
       </div>
 
       <DashboardMatrix activeBranch={branch} />

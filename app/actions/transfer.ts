@@ -66,6 +66,104 @@ export async function approveTransfer(transferId: string) {
   revalidatePath('/productos/traspasos');
 }
 
+export async function dispatchDirectTransfer(
+  payload: {
+    toBranchId: string; // The destination branch
+    reason: string;
+    items: { productId: string; variantId?: string | null; quantity: number }[]; // Products from the ORIGIN branch
+  }
+) {
+  const branchActive = await getActiveBranch(); // This is the ORIGIN
+  if (branchActive?.id === 'GLOBAL') throw new Error("Debes seleccionar una sucursal específica para realizar esta acción.");
+  if (!payload.toBranchId) throw new Error("Sucursal destino requerida");
+  if (payload.items.length === 0) throw new Error("No hay artículos para enviar");
+
+  const authUser = await getActiveUser(branchActive.id);
+
+  await prisma.$transaction(async (tx) => {
+    // We create the Transfer and Items immediately as DISPATCHED
+    const transfer = await tx.transfer.create({
+      data: {
+        branchId: branchActive.id, // Origen
+        toBranchId: payload.toBranchId, // Destino
+        status: "DISPATCHED",
+        createdById: authUser.id,
+        dispatchedById: authUser.id,
+        dispatchedAt: new Date()
+      }
+    });
+
+    for (const item of payload.items) {
+      const dispatchedQty = item.quantity;
+      if (dispatchedQty <= 0) continue;
+
+      const originProduct = await tx.product.findUnique({ where: { id: item.productId } });
+      if (!originProduct) throw new Error(`Producto no encontrado en origen.`);
+
+      let originVariantId = item.variantId || null;
+
+      // 1. Deduct stock at Origin
+      await tx.product.update({
+        where: { id: originProduct.id },
+        data: { stock: { decrement: dispatchedQty } }
+      });
+
+      if (originVariantId) {
+        await tx.productVariant.update({
+          where: { id: originVariantId },
+          data: { stock: { decrement: dispatchedQty } }
+        });
+      }
+
+      await tx.inventoryMovement.create({
+        data: {
+          productId: originProduct.id,
+          variantId: originVariantId,
+          type: 'OUT',
+          quantity: -dispatchedQty,
+          reason: payload.reason || `Traspaso enviado directo a sucursal ID: ${payload.toBranchId}`
+        }
+      });
+        
+      // 2. Create the TransferItem mapped to Destination product 
+      // (Actually, to make it receive smoothly, we map it to Origin product IDs now, 
+      // but receiveTransfer assumes the item.product refers to DESTINATION catalog.
+      // Wait: the database uses global catalog? No, each branch has its own Product.
+      // Let's find the matching SKU in DESTINATION.)
+      const destProduct = await tx.product.findFirst({
+         where: { sku: originProduct.sku, branchId: payload.toBranchId }
+      });
+      if (!destProduct) throw new Error(`El producto SKU: ${originProduct.sku} no existe todavía en la sucursal destino. Deberás crearlo allá primero o usar el actualizador masivo.`);
+      
+      let destVariantId = null;
+      if (originVariantId) {
+         const originVariant = await tx.productVariant.findUnique({ where: { id: originVariantId } });
+         const destVariant = await tx.productVariant.findFirst({
+            where: { productId: destProduct.id, sku: originVariant?.sku, attribute: originVariant?.attribute }
+         });
+         // If destination doesn't have the variant, we gracefully just pass null or throw?
+         // Let's enforce existence:
+         if (!destVariant) throw new Error(`La variante SKU: ${originVariant?.sku} no existe en destino.`);
+         destVariantId = destVariant.id;
+      }
+
+      await tx.transferItem.create({
+        data: {
+          transferId: transfer.id,
+          productId: destProduct.id,
+          variantId: destVariantId,
+          quantity: dispatchedQty,
+          cost: originProduct.cost,
+          averageCost: originProduct.averageCost
+        }
+      });
+    }
+  });
+
+  revalidatePath('/productos');
+  revalidatePath('/productos/traspasos');
+}
+
 export async function dispatchTransfer(transferId: string, itemQuantities: Record<string, number>) {
   const branchActive = await getActiveBranch(); // Origins
   if (branchActive?.id === 'GLOBAL') throw new Error("Vista global no permitida.");
