@@ -88,6 +88,8 @@ export const navStructure: MenuNode[] = [
     title: 'Finanzas', icon: <Landmark size={20} />, 
     items: [
       { name: 'Conciliación Bancaria', path: '/finanzas/conciliacion' },
+      { name: 'Cobranza (CxC)', path: '/clientes/cobranza', badge: 'Ingresos' },
+      { name: 'Cuentas por Pagar (CxP)', path: '/proveedores/cuentas', badge: 'Egresos' },
     ]
   },
   { 
