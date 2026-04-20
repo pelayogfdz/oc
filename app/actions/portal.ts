@@ -66,3 +66,42 @@ export async function generateInvoice(ticketId: string, taxData: any) {
     return { error: error.message || "Error al facturar." };
   }
 }
+
+export async function searchB2BInvoices(rfc: string) {
+  try {
+    const sales = await prisma.sale.findMany({
+      where: {
+        customer: {
+          taxId: { equals: rfc, mode: 'insensitive' }
+        },
+        invoiceId: {
+          not: null
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        createdAt: true,
+        total: true,
+        invoiceId: true,
+        status: true
+      }
+    });
+
+    if (sales.length === 0) {
+      return { error: 'No se encontraron facturas timbradas para el RFC proporcionado.' };
+    }
+
+    return { 
+      invoices: sales.map(s => ({
+        id: s.id,
+        date: s.createdAt,
+        total: s.total,
+        uuid: s.invoiceId,
+        status: "Timbrada"
+      }))
+    };
+  } catch (error) {
+    return { error: "Error de servidor al buscar facturas B2B." };
+  }
+}
