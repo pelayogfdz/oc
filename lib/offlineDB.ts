@@ -80,10 +80,40 @@ export interface OfflineSettings {
   metodosConfig: any;
 }
 
+export interface OfflinePendingProduct {
+  id: string; // Temp local id
+  branchId: string;
+  name: string;
+  sku: string;
+  barcode: string | null;
+  stock: number;
+  minStock: number;
+  cost: number;
+  price: number;
+  taxRate: number;
+  category: string;
+  brand: string;
+  unit: string;
+  isActive: boolean;
+  supplierId: string | null;
+  variantsJson: string; // The UI sends this
+  hasVariants: boolean;
+  imageUrl?: string;
+  youtubeUrl?: string;
+  satKey?: string;
+  satUnit?: string;
+  description?: string;
+  timestamp: string;
+  synced: boolean;
+  // Dynamic prices mapping to priceList ids.
+  dynamicPrices?: Record<string, number>; 
+}
+
 export class CAANMAOfflineDB extends Dexie {
   pendingSales!: Table<OfflineSale>;
   pendingTransfers!: Table<OfflineTransfer>;
   pendingPurchases!: Table<OfflinePurchase>;
+  pendingProducts!: Table<OfflinePendingProduct>;
   
   products!: Table<OfflineProduct>;
   customers!: Table<OfflineCustomer>;
@@ -93,10 +123,11 @@ export class CAANMAOfflineDB extends Dexie {
 
   constructor() {
     super('CAANMAOfflineDB');
-    this.version(15).stores({
+    this.version(16).stores({
       pendingSales: 'id, timestamp, synced',
       pendingTransfers: 'id, timestamp, synced',
       pendingPurchases: 'id, timestamp, synced',
+      pendingProducts: 'id, timestamp, synced',
       products: 'id, branchId, sku, barcode, name',
       customers: 'id, branchId, name',
       suppliers: 'id, name',

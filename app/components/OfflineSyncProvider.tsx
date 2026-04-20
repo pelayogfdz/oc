@@ -10,6 +10,7 @@ interface OfflineContextType {
   pushOfflineSale: (sale: Omit<OfflineSale, 'id' | 'timestamp' | 'synced'>) => Promise<void>;
   pushOfflineTransfer: (transferParams: any) => Promise<void>;
   pushOfflinePurchase: (purchaseParams: any) => Promise<void>;
+  pushOfflineProduct: (productParams: any) => Promise<void>;
   forceSync: () => Promise<void>;
   refreshCatalogs: () => Promise<void>;
 }
@@ -20,6 +21,7 @@ const OfflineContext = createContext<OfflineContextType>({
   pushOfflineSale: async () => {},
   pushOfflineTransfer: async () => {},
   pushOfflinePurchase: async () => {},
+  pushOfflineProduct: async () => {},
   forceSync: async () => {},
   refreshCatalogs: async () => {},
 });
@@ -30,6 +32,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   const [pendingSales, setPendingSales] = useState<OfflineSale[]>([]);
   const [pendingTransfers, setPendingTransfers] = useState<any[]>([]);
   const [pendingPurchases, setPendingPurchases] = useState<any[]>([]);
+  const [pendingProducts, setPendingProducts] = useState<any[]>([]);
   const [showToast, setShowToast] = useState<{message: string, type: 'success' | 'warn' | 'error'} | null>(null);
 
   // Initialize Network status
@@ -69,6 +72,8 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       setPendingTransfers(transfers);
       const purchases = await db.pendingPurchases.toArray();
       setPendingPurchases(purchases);
+      const products = await db.pendingProducts.toArray();
+      setPendingProducts(products);
     } catch (e) {
       console.error('Error loading offline DB', e);
     }
@@ -128,6 +133,41 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
     }
   };
 
+  const pushOfflineProduct = async (productParams: any) => {
+    try {
+      const newProduct = {
+        ...productParams,
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        synced: false
+      };
+      await db.pendingProducts.add(newProduct);
+      setPendingProducts(prev => [...prev, newProduct]);
+      
+      // Mirror to products table so it's instantly available offline for search/sale
+      const mirrorProduct = {
+        id: crypto.randomUUID(), // fake id
+        branchId: newProduct.branchId,
+        name: newProduct.name,
+        sku: newProduct.sku,
+        barcode: newProduct.barcode,
+        stock: Number(newProduct.stock) || 0,
+        cost: Number(newProduct.cost) || 0,
+        averageCost: Number(newProduct.cost) || 0,
+        price: Number(newProduct.price) || 0,
+        category: newProduct.category,
+        variants: JSON.parse(newProduct.variantsJson || '[]'),
+        prices: [] 
+      };
+      await db.products.add(mirrorProduct);
+
+      if (!isOnline) setShowToast({ message: 'Producto registrado localmente.', type: 'warn' });
+      else forceSync();
+    } catch (e) {
+      setShowToast({ message: 'Error guardando producto offline', type: 'error' });
+    }
+  };
+
   const forceSync = async () => {
     if (!navigator.onLine) return;
     try {
@@ -168,6 +208,56 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
           await db.pendingPurchases.delete(p.id);
           syncedAny = true;
         } catch (e) { console.error('Sync error purchase', e); }
+      }
+
+      // Sync Products
+      const products = await db.pendingProducts.toArray();
+      for (const p of products) {
+        try {
+          // Import dynamic to avoid circular reqs
+          const { createProduct } = await import('../actions/product');
+          const formData = new FormData();
+          formData.append('branchId', p.branchId);
+          formData.append('name', p.name);
+          formData.append('sku', p.sku);
+          if (p.barcode) formData.append('barcode', p.barcode);
+          formData.append('stock', p.stock.toString());
+          formData.append('minStock', p.minStock.toString());
+          formData.append('cost', p.cost.toString());
+          formData.append('price', p.price.toString());
+          formData.append('taxRate', p.taxRate.toString());
+          formData.append('category', p.category);
+          formData.append('brand', p.brand);
+          formData.append('unit', p.unit);
+          formData.append('isActive', p.isActive.toString());
+          if (p.supplierId) formData.append('supplierId', p.supplierId);
+          formData.append('hasVariants', p.hasVariants ? "1" : "0");
+          formData.append('variantsJson', p.variantsJson);
+          if (p.imageUrl) formData.append('imageUrl', p.imageUrl);
+          if (p.youtubeUrl) formData.append('youtubeUrl', p.youtubeUrl);
+          if (p.satKey) formData.append('satKey', p.satKey);
+          if (p.satUnit) formData.append('satUnit', p.satUnit);
+          if (p.description) formData.append('description', p.description);
+
+          if (p.dynamicPrices) {
+             Object.entries(p.dynamicPrices).forEach(([listId, val]) => {
+                formData.append(`priceList_${listId}`, val.toString());
+             });
+          }
+
+          // Use formstate logic by passing an initial state. createProduct is (prevState, formData)
+          const result = await createProduct({} as any, formData);
+          if (result && result.error) {
+             console.error('Failed to sync offline product', p.name, result.error);
+             // We can choose to keep it in DB if it failed validation, or delete. Let's keep it if it failed? Actually, we'll delete it to not block the queue, but in a real enterprise app, we'd flag it as failed. 
+             // To be robust, let's just delete it for now once attempted if it's a hard error, but skip deletion if network error.
+             throw new Error(result.error);
+          }
+          await db.pendingProducts.delete(p.id);
+          syncedAny = true;
+        } catch (e: any) { 
+          console.error('Sync error product', e); 
+        }
       }
 
       if (syncedAny) {
@@ -228,7 +318,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   };
 
   return (
-    <OfflineContext.Provider value={{ isOnline, pendingSales, pushOfflineSale, forceSync, pushOfflineTransfer, pushOfflinePurchase, refreshCatalogs }}>
+    <OfflineContext.Provider value={{ isOnline, pendingSales, pushOfflineSale, forceSync, pushOfflineTransfer, pushOfflinePurchase, pushOfflineProduct, refreshCatalogs }}>
       {children}
       {showToast && (
         <div style={{ position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)', backgroundColor: showToast.type === 'error' ? '#ef4444' : showToast.type === 'warn' ? '#fbbf24' : '#10b981', color: showToast.type === 'warn' ? '#000' : '#fff', padding: '12px 24px', borderRadius: '8px', zIndex: 9999, fontWeight: 600 }}>{showToast.message}</div>

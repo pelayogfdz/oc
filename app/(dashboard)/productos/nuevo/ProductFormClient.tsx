@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Image as ImageIcon, Plus, Trash2 } from 'lucide-react';
 import { createProduct } from "@/app/actions/product";
 import { useFormState } from 'react-dom';
+import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 
 const initialState = {
   error: '',
@@ -12,6 +13,7 @@ const initialState = {
 };
 
 export default function ProductFormClient({ cloneProduct, suppliers, priceLists, branchId }: any) {
+  const { isOnline, pushOfflineProduct } = useOfflineSync();
   const [state, formAction] = useFormState(createProduct, initialState);
   const [hasVariants, setHasVariants] = useState(false);
   const [variants, setVariants] = useState<{ attribute: string, stock: number, sku: string }[]>([]);
@@ -46,7 +48,22 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
   };
 
   return (
-    <form action={formAction}>
+    <form action={formAction} onSubmit={(e) => {
+      if (!isOnline) {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        const productParams: any = {};
+        formData.forEach((value, key) => {
+          productParams[key] = value;
+        });
+        
+        // Push to offline queue
+        pushOfflineProduct(productParams);
+        
+        // Programmatic Navigation to List
+        window.location.href = '/productos';
+      }
+    }}>
       <input type="hidden" name="branchId" value={branchId} />
       <input type="hidden" name="variantsJson" value={JSON.stringify(variants)} />
       <input type="hidden" name="hasVariants" value={hasVariants ? "1" : "0"} />
