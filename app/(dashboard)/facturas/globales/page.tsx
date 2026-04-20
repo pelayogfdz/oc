@@ -27,7 +27,7 @@ export default async function FacturasGlobalesPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <FileText size={28} color="#0284c7" />
+            <FileText size={28} color="var(--pulpos-primary)" />
             Facturacion Global
           </h1>
           <p style={{ color: 'var(--pulpos-text-muted)', marginTop: '0.25rem' }}>Emite la factura al público en general con todas las ventas del día, semana o mes.</p>
@@ -35,17 +35,17 @@ export default async function FacturasGlobalesPage() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: '2rem' }}>
-        <div className="card" style={{ padding: '1.5rem', textAlign: 'center', backgroundColor: '#f0f9ff', borderColor: '#bae6fd' }}>
-           <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0369a1', marginBottom: '1rem' }}>Total Ventas al Público Hoy</h2>
-           <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#0284c7', marginBottom: '1.5rem' }}>
+        <div className="card" style={{ padding: '1.5rem', textAlign: 'center', backgroundColor: 'var(--pulpos-bg)', borderColor: 'var(--pulpos-border)' }}>
+           <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--pulpos-foreground)', marginBottom: '1rem' }}>Total Ventas al Público Hoy</h2>
+           <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--pulpos-primary)', marginBottom: '1.5rem' }}>
              ${totalGlobal.toFixed(2)}
            </div>
            <form action={async (formData: FormData) => { 'use server'; await stampGlobalInvoice(formData); }}>
-             <button type="submit" className="btn-primary" style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '0.5rem', padding: '1rem', backgroundColor: '#0284c7', fontSize: '1.1rem' }}>
+             <button type="submit" className="btn-primary" style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '0.5rem', padding: '1rem', backgroundColor: 'var(--pulpos-primary)', fontSize: '1.1rem' }}>
                 <PlusCircle size={20} /> Generar Global del Día
              </button>
            </form>
-           <p style={{ fontSize: '0.8rem', color: '#0ea5e9', marginTop: '1rem' }}>
+           <p style={{ fontSize: '0.8rem', color: 'var(--pulpos-text-muted)', marginTop: '1rem' }}>
              Solo incluye ventas que no han sido facturadas a RFC individuales.
            </p>
         </div>

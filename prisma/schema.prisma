@@ -20,6 +20,7 @@ model User {
   sales                     Sale[]
   quotes                    Quote[]
   purchases                 Purchase[]
+  purchaseOrders            PurchaseOrder[]
   expenses                  Expense[]
   cashSessions              CashSession[]
   inventoryMovements        InventoryMovement[]
@@ -60,6 +61,7 @@ model Branch {
   promotions              Promotion[]
   suppliers               Supplier[]
   purchases               Purchase[]
+  purchaseOrders          PurchaseOrder[]
   expenses                Expense[]
   priceLists              PriceList[]
   cashSessions            CashSession[]
@@ -170,6 +172,7 @@ model Product {
   quoteItems          QuoteItem[]
   transferItems       TransferItem[]
   purchaseItems       PurchaseItem[]
+  purchaseOrderItems  PurchaseOrderItem[]
   supplierId          String?
   supplier            Supplier?            @relation(fields: [supplierId], references: [id])
   prices              ProductPrice[]
@@ -385,6 +388,7 @@ model Supplier {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   purchases      Purchase[]
+  purchaseOrders PurchaseOrder[]
   products       Product[]
 
   // Datos Fiscales
@@ -578,4 +582,30 @@ model PurchaseRequest {
   requestedBy   User     @relation(fields: [requestedById], references: [id])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model PurchaseOrder {
+  id            String              @id @default(uuid())
+  branchId      String?
+  branch        Branch?             @relation(fields: [branchId], references: [id])
+  supplierId    String?
+  supplier      Supplier?           @relation(fields: [supplierId], references: [id])
+  userId        String
+  user          User                @relation(fields: [userId], references: [id])
+  total         Float
+  status        String              @default("PENDING")
+  notes         String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  items         PurchaseOrderItem[]
+}
+
+model PurchaseOrderItem {
+  id              String         @id @default(uuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder  @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product        @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity        Int
+  cost            Float
 }

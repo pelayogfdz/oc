@@ -19,7 +19,7 @@ export default async function FacturasVentasPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <FileText size={28} color="#06b6d4" />
+            <FileText size={28} color="var(--pulpos-primary)" />
             Facturas Timbradas
           </h1>
           <p style={{ color: 'var(--pulpos-text-muted)', marginTop: '0.25rem' }}>
@@ -61,7 +61,7 @@ export default async function FacturasVentasPage() {
                       await stampInvoice(formData.get('id') as string);
                     }}>
                       <input type="hidden" name="id" value={sale.id} />
-                      <button type="submit" style={{ backgroundColor: '#f1f5f9', color: '#06b6d4', padding: '0.5rem 1rem', borderRadius: '4px', border: '1px solid #bae6fd', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <button type="submit" style={{ backgroundColor: 'var(--pulpos-bg)', color: 'var(--pulpos-primary)', padding: '0.5rem 1rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Send size={16} /> Timbrar CFDI
                       </button>
                     </form>

@@ -7,7 +7,7 @@ import {
   Home, Users, Tag, Package, Calculator, ArrowRightLeft, 
   BarChart3, Settings, Truck, PackageCheck,
   ChevronDown, ChevronUp, PlusCircle, Headset, Banknote, 
-  FileText, Library, BookOpen, UserCircle, Briefcase, HandCoins, X, Sparkles
+  FileText, Library, BookOpen, UserCircle, Briefcase, HandCoins, X, Sparkles, ShoppingCart
 } from 'lucide-react';
 
 type MenuItem = {
@@ -71,9 +71,10 @@ const navStructure: MenuNode[] = [
     ]
   },
   { 
-    title: 'Compras y Gastos', icon: <PackageCheck size={20} />, 
+    title: 'Compras y Gastos', icon: <ShoppingCart size={20} />, 
     items: [
       { name: 'Órdenes de Compra', path: '/productos/compras' },
+      { name: 'Pedidos', path: '/productos/pedidos' },
       { name: 'Registro de Gastos', path: '/productos/gastos' },
       { name: 'Directorio de Proveedores', path: '/proveedores' },
       { name: 'Cuentas por Pagar (CxP)', path: '/proveedores/cuentas', badge: 'Pasivos' },
