@@ -36,8 +36,12 @@ export default function InstallPWAButton() {
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) {
-       // Si no hay prompt guardado, alertar al usuario cómo hacerlo manualmente si gusta
-       alert("No es posible instalar automáticamente ahora. Asegúrate de estar en Chrome o Edge, o instálalo desde la barra URL.");
+       alert(
+         "El botón de instalación automática no está disponible en este momento. Esto suele suceder si:\n\n" +
+         "1. Ya tienes la aplicación instalada en tu equipo sin saberlo.\n" +
+         "2. Rechazaste la instalación previamente.\n\n" +
+         "Para forzar la instalación, busca un ícono de un monitor con una flecha en el lado derecho de tu BARRA DE DIRECCIONES (junto a la estrella de Favoritos) en Google Chrome o Edge y haz clic ahí."
+       );
        return;
     }
     deferredPrompt.prompt();
