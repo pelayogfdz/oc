@@ -30,7 +30,7 @@ const navStructure: MenuNode[] = [
   { 
     title: 'Ventas', icon: <Banknote size={20} />, 
     items: [
-      { name: 'Punto de Venta', path: '/ventas' },
+      { name: 'Historial de Ventas', path: '/ventas' },
       { name: 'Promociones y Descuentos', path: '/ventas/promociones' },
       { name: 'Devoluciones', path: '/ventas/devoluciones' },
       { name: 'Cotizaciones', path: '/ventas/cotizaciones' },
