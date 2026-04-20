@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import { requestTransfer, dispatchDirectTransfer } from '@/app/actions/transfer';
 import { useRouter } from 'next/navigation';

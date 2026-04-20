@@ -28,5 +28,15 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Pass-through puro. Toda petición va a la red viva.
   // Bypass de cualquier caché local.
-  event.respondWith(fetch(event.request));
+  event.respondWith(
+    fetch(event.request).catch(() => {
+      // Chrome PWA Installability offline check corta la red físicamente para verificar si la PWA "falla".
+      // Si dejamos que tire error de red, nos apaga el botón de instalar Desktop.
+      // Al devolver una respuesta genérica 200 OK HTML, Chrome aprueba la instalación.
+      return new Response(
+        '<html><body style="font-family:sans-serif;text-align:center;padding:50px;"><h2>Sin Conexión</h2><p>Estás desconectado. Reconecta a internet para usar el ERP en tiempo real.</p></body></html>',
+        { headers: { 'Content-Type': 'text/html' } }
+      );
+    })
+  );
 });
