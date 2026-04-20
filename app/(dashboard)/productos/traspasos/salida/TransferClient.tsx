@@ -1,17 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { requestTransfer, dispatchDirectTransfer } from '@/app/actions/transfer';
 import { useRouter } from 'next/navigation';
 import { Truck, ArrowRight, Trash2, Search } from 'lucide-react';
+import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 
-export default function TransferClient({ originBranchId, originBranchName, otherBranches, inventory, ventasConfig = {}, isDirectDispatch = false }: any) {
+export default function TransferClient({ originBranchId, originBranchName, otherBranches: initialOtherBranches, inventory: initialInventory, ventasConfig = {}, isDirectDispatch = false }: any) {
   const router = useRouter();
+  const { isOnline, pushOfflineTransfer } = useOfflineSync();
   const [targetBranchId, setTargetBranchId] = useState('');
   const [reason, setReason] = useState(isDirectDispatch ? 'Traspaso Directo' : 'Reabastecimiento');
   const [searchTerm, setSearchTerm] = useState('');
   const [stockFilter, setStockFilter] = useState('ALL');
   
+  const [inventory, setInventory] = useState(initialInventory || []);
+  const [otherBranches, setOtherBranches] = useState(initialOtherBranches || []);
+
+  useEffect(() => {
+    if (!isOnline) {
+      import('@/lib/offlineDB').then(({ db }) => {
+        db.products.toArray().then(res => setInventory(res.length ? res : initialInventory));
+        db.branches.toArray().then(res => {
+          if (res.length) {
+            setOtherBranches(res.filter(b => b.id !== originBranchId && b.id !== 'GLOBAL'));
+          } else {
+            setOtherBranches(initialOtherBranches);
+          }
+        });
+      });
+    } else {
+      setInventory(initialInventory);
+      setOtherBranches(initialOtherBranches);
+    }
+  }, [isOnline, initialInventory, initialOtherBranches, originBranchId]);
+
   const [transferItems, setTransferItems] = useState<any[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -93,20 +116,24 @@ export default function TransferClient({ originBranchId, originBranchName, other
     if (!targetBranchId || transferItems.length === 0) return;
     setIsProcessing(true);
     try {
-      if (isDirectDispatch) {
-         await dispatchDirectTransfer({
-            toBranchId: targetBranchId,
+      const itemsPayload = transferItems.map(i => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity }));
+      
+      if (!isOnline) {
+         await pushOfflineTransfer({
+            fromBranchId: isDirectDispatch ? originBranchId : targetBranchId,
+            toBranchId: isDirectDispatch ? targetBranchId : originBranchId,
             reason,
-            items: transferItems.map(i => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity }))
+            items: itemsPayload,
+            isDirectDispatch
          });
-         alert('Traspaso directo enviado correctamente.');
       } else {
-         await requestTransfer({
-            fromBranchId: targetBranchId,
-            reason,
-            items: transferItems.map(i => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity }))
-         });
-         alert('Solicitud de traspaso enviada correctamente.');
+         if (isDirectDispatch) {
+            await dispatchDirectTransfer({ toBranchId: targetBranchId, reason, items: itemsPayload });
+            alert('Traspaso directo enviado correctamente.');
+         } else {
+            await requestTransfer({ fromBranchId: targetBranchId, reason, items: itemsPayload });
+            alert('Solicitud de traspaso enviada correctamente.');
+         }
       }
       router.push('/productos/traspasos');
     } catch (e: any) {

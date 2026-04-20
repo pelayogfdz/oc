@@ -16,6 +16,23 @@ export default function POSClient({ products: initialProducts, customers, promot
   const [isSearching, setIsSearching] = useState(false);
   const [displayedProducts, setDisplayedProducts] = useState<any[]>(initialProducts);
   
+  // Offline Data Mirrors
+  const [activeCustomers, setActiveCustomers] = useState<any[]>(customers);
+  
+  useEffect(() => {
+    if (!isOnline) {
+      import('@/lib/offlineDB').then(({ db }) => {
+        db.customers.toArray().then(res => setActiveCustomers(res.length ? res : customers));
+        db.products.orderBy('name').limit(50).toArray().then(res => {
+          if (res.length) setDisplayedProducts(res);
+        });
+      });
+    } else {
+      setActiveCustomers(customers);
+      if (searchTerm === '') setDisplayedProducts(initialProducts);
+    }
+  }, [isOnline, customers, initialProducts, searchTerm]);
+
   // Advanced POS State
   const [stockFilter, setStockFilter] = useState<'ALL' | 'IN_STOCK' | 'OUT_OF_STOCK'>('ALL');
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
@@ -54,7 +71,7 @@ export default function POSClient({ products: initialProducts, customers, promot
 
   const [paymentMethod, setPaymentMethod] = useState(customMethods[0]?.id || 'CASH');
   
-  const selectedCust = customers.find((c: any) => c.id === selectedCustomerId);
+  const selectedCust = activeCustomers.find((c: any) => c.id === selectedCustomerId);
   const allowedMethods = [...customMethods];
   if (selectedCust && selectedCust.creditLimit > 0) {
     allowedMethods.push({ id: 'CREDIT', name: 'Crédito Cta.' });
@@ -67,7 +84,7 @@ export default function POSClient({ products: initialProducts, customers, promot
 
   const handleCustomerChange = (customerId: string) => {
     setSelectedCustomerId(customerId);
-    const customer = customers.find((c: any) => c.id === customerId);
+    const customer = activeCustomers.find((c: any) => c.id === customerId);
     if (customer && customer.priceList) {
       setPriceList(customer.priceList || 'price');
     } else {
@@ -133,8 +150,21 @@ export default function POSClient({ products: initialProducts, customers, promot
     const delayDebounceFn = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const results = await searchProducts(searchTerm, branchId);
-        setDisplayedProducts(results);
+        if (!isOnline && searchTerm.trim() !== '') {
+           const { db } = await import('@/lib/offlineDB');
+           const lowerTerm = searchTerm.toLowerCase();
+           const results = await db.products.filter(p => 
+             p.name.toLowerCase().includes(lowerTerm) || 
+             (p.sku && p.sku.toLowerCase().includes(lowerTerm)) || 
+             (p.barcode && p.barcode.includes(lowerTerm))
+           ).limit(50).toArray();
+           setDisplayedProducts(results);
+        } else if (searchTerm.trim() !== '') {
+           const results = await searchProducts(searchTerm, branchId);
+           setDisplayedProducts(results);
+        } else {
+           if (isOnline) setDisplayedProducts(initialProducts);
+        }
       } catch (e) {
         console.error(e);
       } finally {

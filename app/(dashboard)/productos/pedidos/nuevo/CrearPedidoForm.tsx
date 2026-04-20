@@ -1,22 +1,39 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Save, Wand2 } from 'lucide-react';
 import { createPurchaseOrder } from '@/app/actions/pedidos';
+import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 
 export default function CrearPedidoForm({ suppliers, products }: { suppliers: any[], products: any[] }) {
   const router = useRouter();
+  const { isOnline, pushOfflinePurchase } = useOfflineSync();
   const [supplierId, setSupplierId] = useState('');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<{ productId: string, name: string, quantity: number, cost: number }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [availableProducts, setAvailableProducts] = useState(products || []);
+  const [availableSuppliers, setAvailableSuppliers] = useState(suppliers || []);
+
+  useEffect(() => {
+    if (!isOnline) {
+      import('@/lib/offlineDB').then(({ db }) => {
+        db.products.toArray().then(res => setAvailableProducts(res.length ? res : products));
+        db.suppliers.toArray().then(res => setAvailableSuppliers(res.length ? res : suppliers));
+      });
+    } else {
+      setAvailableProducts(products);
+      setAvailableSuppliers(suppliers);
+    }
+  }, [isOnline, products, suppliers]);
+
   const total = items.reduce((sum, item) => sum + (item.quantity * item.cost), 0);
 
   const handleAddItem = (productId: string) => {
     if(!productId) return;
-    const p = products.find(prod => prod.id === productId);
+    const p = availableProducts.find(prod => prod.id === productId);
     if(p) {
       if(items.some(i => i.productId === productId)) return;
       setItems([...items, { productId: p.id, name: p.name, quantity: 1, cost: p.cost }]);
@@ -31,7 +48,7 @@ export default function CrearPedidoForm({ suppliers, products }: { suppliers: an
 
   const generateSuggested = () => {
     const suggested: { productId: string, name: string, quantity: number, cost: number }[] = [];
-    products.forEach(p => {
+    availableProducts.forEach(p => {
       // Sugeridos de compra según faltantes
       if (p.stock <= p.minStock) {
         const required = Math.max(1, p.minStock - p.stock);
@@ -54,7 +71,17 @@ export default function CrearPedidoForm({ suppliers, products }: { suppliers: an
     if (items.length === 0) return alert('Debes agregar al menos un artículo.');
     setIsSubmitting(true);
     try {
-      await createPurchaseOrder(supplierId || null, notes, items, total);
+      if (!isOnline) {
+        await pushOfflinePurchase({
+          supplierId: supplierId || null,
+          notes,
+          items,
+          total
+        });
+        alert('Pedido guardado en modo Offline. Se sincronizará al recuperar conexión.');
+      } else {
+        await createPurchaseOrder(supplierId || null, notes, items, total);
+      }
       router.push('/productos/pedidos');
     } catch (err: any) {
       alert('Error: ' + err.message);
@@ -71,7 +98,7 @@ export default function CrearPedidoForm({ suppliers, products }: { suppliers: an
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '0.9rem' }}>Proveedor (Opcional)</label>
               <select className="input" value={supplierId} onChange={(e) => setSupplierId(e.target.value)} style={{ width: '100%' }}>
                 <option value="">-- Seleccionar --</option>
-                {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                {availableSuppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
             <div>
@@ -93,7 +120,7 @@ export default function CrearPedidoForm({ suppliers, products }: { suppliers: an
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
         <select className="input" style={{ flexGrow: 1 }} onChange={(e) => { handleAddItem(e.target.value); e.target.value=''; }}>
           <option value="">+ Buscar un producto de la sucursal para agregar manualmente...</option>
-          {products.map(p => <option key={p.id} value={p.id}>{p.name} (Stock: {p.stock})</option>)}
+          {availableProducts.map((p: any) => <option key={p.id} value={p.id}>{p.name} (Stock: {p.stock})</option>)}
         </select>
       </div>
 

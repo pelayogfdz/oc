@@ -1,0 +1,6 @@
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+/workbox-*.js
+  Cache-Control: public, max-age=0, must-revalidate
+/manifest.json
+  Cache-Control: public, max-age=0, must-revalidate
