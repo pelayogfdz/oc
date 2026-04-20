@@ -3,8 +3,9 @@
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+import { cache } from 'react';
 
-export async function getActiveBranch() {
+export const getActiveBranch = cache(async () => {
   const cookieStore = await cookies();
   const branchId = cookieStore.get('pulpos_active_branch')?.value;
   
@@ -26,7 +27,7 @@ export async function getActiveBranch() {
     throw new Error('No branch exists in the database. Please seed the database first.');
   }
   return branch;
-}
+});
 
 export async function setActiveBranch(branchId: string) {
   const cookieStore = await cookies();
@@ -34,7 +35,7 @@ export async function setActiveBranch(branchId: string) {
   revalidatePath('/', 'layout');
 }
 
-export async function getActiveUser(branchId: string) {
+export const getActiveUser = cache(async (branchId: string) => {
   let user = await prisma.user.findFirst();
   if (!user) {
     user = await prisma.user.create({
@@ -42,5 +43,4 @@ export async function getActiveUser(branchId: string) {
     });
   }
   return user;
-}
-
+});
