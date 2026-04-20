@@ -1,8 +1,8 @@
 {
   "name": "CAANMA PRO",
   "short_name": "CAANMA",
-  "description": "CAANMA ERP Offline First POS Desktop App",
-  "start_url": "/ventas/nueva",
+  "description": "CAANMA ERP POS Desktop App",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#8b5cf6",

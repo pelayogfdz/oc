@@ -8,11 +8,12 @@ const withPWA = withPWAInit({
   register: true,
   skipWaiting: true,
   workboxOptions: {
-    // Forzamos a que ignore el caché y siempre traiga datos frescos del servidor (Online Only)
+    // Forzamos a que siempre priorice la red en vivo (NetworkFirst). Si falla, tira de caché.
+    // Esto es NECESARIO porque Chrome bloquea la instalación Desktop si la app no tiene fallback offline.
     runtimeCaching: [
       {
         urlPattern: /.*/i,
-        handler: 'NetworkOnly',
+        handler: 'NetworkFirst',
       }
     ]
   }
