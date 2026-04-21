@@ -550,12 +550,12 @@ export default function POSClient({ products: initialProducts, customers, promot
               return true;
             })
             .map(prod => (
-            <button key={prod.id} onClick={() => handleProductClick(prod)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--pulpos-border)', padding: '0.75rem 1rem', borderRadius: '4px', textAlign: 'left', backgroundColor: 'white', cursor: 'pointer', transition: 'background-color 0.2s', ':hover': { backgroundColor: '#f8fafc' } } as any}>
+            <button key={prod.id} onClick={() => handleProductClick(prod)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--pulpos-border)', padding: '1rem', borderRadius: '6px', textAlign: 'left', backgroundColor: 'white', cursor: 'pointer', transition: 'background-color 0.2s', ':hover': { backgroundColor: '#f8fafc' } } as any}>
               <div>
-                <div style={{ fontWeight: '600', fontSize: '0.9rem', color: '#1e293b' }}>{prod.name} {prod.variants?.length > 0 && <span style={{fontSize: '0.75rem', backgroundColor: '#e2e8f0', padding: '2px 6px', borderRadius: '4px', marginLeft: '0.5rem'}}>{prod.variants.length} var.</span>}</div>
-                <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.75rem', marginTop: '0.1rem' }}>SKU: {prod.sku || '--'} | Stock: {prod.stock}</div>
+                <div style={{ fontWeight: '600', fontSize: '1.2rem', color: '#1e293b' }}>{prod.name} {prod.variants?.length > 0 && <span style={{fontSize: '0.85rem', backgroundColor: '#e2e8f0', padding: '2px 6px', borderRadius: '4px', marginLeft: '0.5rem'}}>{prod.variants.length} var.</span>}</div>
+                <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.9rem', marginTop: '0.2rem' }}>SKU: {prod.sku || '--'} | Stock: {prod.stock}</div>
               </div>
-              <div style={{ color: 'var(--pulpos-primary)', fontWeight: 'bold', fontSize: '1rem', textAlign: 'right' }}>
+              <div style={{ color: 'var(--pulpos-primary)', fontWeight: 'bold', fontSize: '1.25rem', textAlign: 'right' }}>
                 ${getProductPrice(prod).toFixed(2)}
               </div>
             </button>
@@ -579,7 +579,7 @@ export default function POSClient({ products: initialProducts, customers, promot
         {/* Ticket Config */}
         <div style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>
           <div style={{ marginBottom: '0.75rem' }}>
-            <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.25rem' }}>Cliente</label>
+            <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--pulpos-text-muted)', marginBottom: '0.25rem' }}>Cliente</label>
             <div style={{ position: 'relative' }}>
               <input 
                 type="text"
@@ -591,13 +591,13 @@ export default function POSClient({ products: initialProducts, customers, promot
                   if (matched) handleCustomerChange(matched.id);
                   else handleCustomerChange('');
                 }}
-                style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+                style={{ width: '100%', padding: '0.85rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
               />
               {customerSearchTerm && !selectedCustomerId && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid var(--pulpos-border)', borderRadius: '4px', zIndex: 10, maxHeight: '200px', overflowY: 'auto', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid var(--pulpos-border)', borderRadius: '4px', zIndex: 10, maxHeight: '250px', overflowY: 'auto', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
                   <div 
                     onClick={() => { setCustomerSearchTerm('Público en General'); handleCustomerChange(''); }}
-                    style={{ padding: '0.5rem', cursor: 'pointer', borderBottom: '1px solid var(--pulpos-border)' }}
+                    style={{ padding: '1rem', fontSize: '1.1rem', cursor: 'pointer', borderBottom: '1px solid var(--pulpos-border)' }}
                   >
                     Público en General
                   </div>
@@ -605,7 +605,7 @@ export default function POSClient({ products: initialProducts, customers, promot
                     <div 
                       key={c.id} 
                       onClick={() => { setCustomerSearchTerm(c.name); handleCustomerChange(c.id); }}
-                      style={{ padding: '0.5rem', cursor: 'pointer', borderBottom: '1px solid var(--pulpos-border)' }}
+                      style={{ padding: '1rem', fontSize: '1.1rem', cursor: 'pointer', borderBottom: '1px solid var(--pulpos-border)' }}
                     >
                       {c.name}
                     </div>
@@ -799,13 +799,13 @@ export default function POSClient({ products: initialProducts, customers, promot
 
             {mode !== 'QUOTE' && paymentMethod === 'CREDIT' && selectedCust && selectedCust.creditLimit > 0 && (
               <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#fef3c7', borderRadius: '8px', border: '1px solid #fde68a' }}>
-                <div style={{ fontWeight: 'bold', color: '#b45309', marginBottom: '0.25rem' }}>Venta a Crédito</div>
-                <div style={{ color: '#d97706', fontSize: '0.9rem' }}>
-                  Límite disp.: ${selectedCust.creditLimit.toFixed(2)} | Días de atraso máx.: {selectedCust.creditDays}
+                <div style={{ fontWeight: 'bold', color: '#b45309', marginBottom: '0.25rem', fontSize: '1.2rem' }}>Venta a Crédito</div>
+                <div style={{ color: '#d97706', fontSize: '1.1rem' }}>
+                  Límite disp.: ${ (selectedCust.creditLimit - (selectedCust.creditBalance || 0)).toFixed(2) } | Días máx.: {selectedCust.creditDays}
                 </div>
-                {total > selectedCust.creditLimit && (
-                  <div style={{ marginTop: '0.5rem', color: 'red', fontWeight: 'bold' }}>
-                    ⚠️ El total excede el límite de crédito del cliente.
+                {total > (selectedCust.creditLimit - (selectedCust.creditBalance || 0)) && (
+                  <div style={{ marginTop: '0.5rem', color: 'red', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                    ⚠️ El total excede el límite de crédito disponible.
                   </div>
                 )}
               </div>

@@ -18,7 +18,7 @@ export async function requestTransfer(
   if (!payload.fromBranchId) throw new Error("Sucursal origen requerida");
   if (payload.items.length === 0) throw new Error("No hay artículos en la solicitud");
 
-  const authUser = await getActiveUser(branchActive.id);
+  const authUser = await getActiveUser();
 
   // Here, we just CREATE the request. We do NOT deduct stock yet.
   // The items here are mapped to the DESTINATION's catalog so they know what they asked for.
@@ -53,7 +53,7 @@ export async function approveTransfer(transferId: string) {
   if (transfer.status !== 'REQUESTED') throw new Error("El traspaso no está en estado de solicitud");
   if (transfer.branchId !== branchActive.id) throw new Error("No eres la sucursal origen para aprobar esto");
 
-  const authUser = await getActiveUser(branchActive.id);
+  const authUser = await getActiveUser();
 
   await prisma.transfer.update({
     where: { id: transferId },
@@ -78,7 +78,7 @@ export async function dispatchDirectTransfer(
   if (!payload.toBranchId) throw new Error("Sucursal destino requerida");
   if (payload.items.length === 0) throw new Error("No hay artículos para enviar");
 
-  const authUser = await getActiveUser(branchActive.id);
+  const authUser = await getActiveUser();
 
   await prisma.$transaction(async (tx) => {
     // We create the Transfer and Items immediately as DISPATCHED
@@ -177,7 +177,7 @@ export async function dispatchTransfer(transferId: string, itemQuantities: Recor
   if (transfer.status !== 'CREATED' && transfer.status !== 'REQUESTED') throw new Error("Estatus inválido para surtir");
   if (transfer.branchId !== branchActive.id) throw new Error("Sólo la sucursal de origen puede surtir el traspaso");
 
-  const authUser = await getActiveUser(branchActive.id);
+  const authUser = await getActiveUser();
 
   await prisma.$transaction(async (tx) => {
     for (const item of transfer.items) {
@@ -299,7 +299,7 @@ export async function receiveTransfer(transferId: string) {
   if (transfer.status !== "DISPATCHED") throw new Error("El traspaso no está en tránsito / surtido");
   if (transfer.toBranchId !== branchActive?.id) throw new Error("No tienes permiso para recibir en esta sucursal");
 
-  const authUser = await getActiveUser(branchActive.id);
+  const authUser = await getActiveUser();
 
   await prisma.$transaction(async (tx) => {
     for (const item of transfer.items) {

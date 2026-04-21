@@ -18,7 +18,7 @@ export async function createSale(
   try {
     const branch = await getActiveBranch();
     if (branch.id === 'GLOBAL') throw new Error('Debes seleccionar una sucursal específica para realizar esta acción.');
-    const user = await getActiveUser(branch.id);
+    const user = await getActiveUser();
     
     if (items.length === 0) throw new Error("Ticket is empty");
 
@@ -126,12 +126,22 @@ export async function createSale(
       });
     }
 
-    // Si fue a crédito, actualizar la bolsa global del cliente
-    if (paymentMethod === 'CREDIT' && customerId) {
-       await prisma.customer.update({
-          where: { id: customerId },
-          data: { creditBalance: { increment: total } }
-       });
+    // Si fue a crédito, actualizar la deuda. Si no, Cashback Loyalty Engine (Add 3% to store credit).
+    if (customerId) {
+        if (paymentMethod === 'CREDIT') {
+           await prisma.customer.update({
+              where: { id: customerId },
+              data: { creditBalance: { increment: total } }
+           });
+        } else {
+           // Cashback Engine B2B SaaS Value Add
+           const rewardPoints = parseFloat((total * 0.03).toFixed(2));
+           await prisma.customer.update({
+             where: { id: customerId },
+             data: { storeCredit: { increment: rewardPoints } }
+           });
+           console.log(`[Loyalty] Recompensado ${rewardPoints} a cliente ${customerId}`);
+        }
     }
 
     // Si se solicitó factura, actualizar datos fiscales del cliente si existe

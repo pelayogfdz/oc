@@ -147,7 +147,7 @@ export default async function EditarClientePage({ params }: { params: Promise<{ 
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-           <Link href="/clientes" style={{ padding: '0.75rem 2rem', textDecoration: 'none', color: 'var(--pulpos-text)', border: '1px solid var(--pulpos-border)', borderRadius: '4px', fontWeight: 'bold' }}>Cancelar</Link>
+           <Link href={`/clientes/${id}`} style={{ padding: '0.75rem 2rem', textDecoration: 'none', color: 'var(--pulpos-text)', border: '1px solid var(--pulpos-border)', borderRadius: '4px', fontWeight: 'bold' }}>Cancelar</Link>
            <button className="btn-primary" type="submit" style={{ padding: '0.75rem 3rem', fontSize: '1.1rem' }}>Guardar Cambios</button>
         </div>
       </form>

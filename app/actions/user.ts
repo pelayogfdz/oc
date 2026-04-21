@@ -10,6 +10,7 @@ export async function createUser(formData: FormData) {
   const password = formData.get('password') as string;
   const role = formData.get('role') as string;
   const permissions = formData.get('permissions') as string;
+  const commissionRole = formData.get('commissionRole') as string || 'VENDEDOR';
   
   const branch = await getActiveBranch();
   if (!branch) throw new Error("No branch active");
@@ -22,6 +23,7 @@ export async function createUser(formData: FormData) {
       email,
       password,
       role,
+      commissionRole,
       branchId: branch.id,
       permissions
     } as any
@@ -35,10 +37,11 @@ export async function updateUser(id: string, formData: FormData) {
   const name = formData.get('name') as string;
   const email = formData.get('email') as string;
   const role = formData.get('role') as string;
+  const commissionRole = formData.get('commissionRole') as string;
   const permissions = formData.get('permissions') as string;
   const password = formData.get('password') as string;
   
-  const updateData: any = { name, email, role, permissions };
+  const updateData: any = { name, email, role, commissionRole, permissions };
   if (password) {
     updateData.password = password;
   }

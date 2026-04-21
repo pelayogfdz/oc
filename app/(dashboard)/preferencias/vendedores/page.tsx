@@ -1,5 +1,5 @@
 import { getUsersHierarchy } from "@/app/actions/commissions";
-import CommissionManagerClient from "./CommissionManagerClient";
+import CommissionTabs from "./CommissionTabs";
 
 export default async function Page() {
   const users = await getUsersHierarchy();
@@ -13,7 +13,7 @@ export default async function Page() {
         </p>
       </div>
 
-      <CommissionManagerClient initialUsers={users} />
+      <CommissionTabs initialUsers={users} />
     </div>
   );
 }

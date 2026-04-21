@@ -193,6 +193,7 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
             <th style={{ padding: '0.75rem 0', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Nombre Empleado</th>
             <th style={{ padding: '0.75rem 0', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Correo (Login)</th>
             <th style={{ padding: '0.75rem 0', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Nivel Base</th>
+            <th style={{ padding: '0.75rem 0', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Puesto Ventas</th>
             <th style={{ padding: '0.75rem 0', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Permisos ACL</th>
             <th style={{ padding: '0.75rem 0', textAlign: 'right' }}>Acciones</th>
           </tr>
@@ -217,6 +218,11 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
                   gap: '0.25rem'
                 }}>
                   <Shield size={12} /> {u.role === 'ADMIN' ? 'Administrador' : (u.role === 'MANAGER' ? 'Encargado' : 'Empleado')}
+                </span>
+              </td>
+              <td style={{ padding: '1rem 0' }}>
+                <span style={{ fontWeight: 'bold', color: 'var(--pulpos-primary)', fontSize: '0.85rem' }}>
+                  {u.commissionRole || 'VENDEDOR'}
                 </span>
               </td>
               <td>
@@ -260,7 +266,7 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
         
         <form onSubmit={handleSubmit}>
           {/* Datos Básicos */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: '1rem', marginBottom: '2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0,1fr))', gap: '1rem', marginBottom: '2rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Nombre Completo</label>
               <input type="text" name="name" defaultValue={editingUser?.name || ''} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
@@ -274,11 +280,19 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
               <input type="password" name="password" required={!editingUser} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Nivel Base</label>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Nivel Base (Acceso)</label>
               <select name="role" defaultValue={editingUser?.role || 'USER'} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}>
                 <option value="USER">Cajero / Vendedor</option>
                 <option value="MANAGER">Encargado</option>
                 <option value="ADMIN">Administrador VIP</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--pulpos-primary)' }}>Puesto Ventas (Comisiones)</label>
+              <select name="commissionRole" defaultValue={editingUser?.commissionRole || 'VENDEDOR'} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-primary)', backgroundColor: 'white' }}>
+                <option value="VENDEDOR">Vendedor Base</option>
+                <option value="LIDER">Líder de Equipo</option>
+                <option value="COORDINADOR">Coordinador General</option>
               </select>
             </div>
           </div>

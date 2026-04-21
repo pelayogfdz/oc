@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function AIPage() {
   const branch = await getActiveBranch();
-  const user = await getActiveUser(branch?.id || 'GLOBAL');
+  const user = await getActiveUser();
 
   if (!user) {
     redirect('/login');

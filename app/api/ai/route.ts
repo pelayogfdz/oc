@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   try {
     const { prompt, branchContext, userContext } = await req.json();
 
-    const user = await getActiveUser(branchContext?.id || 'GLOBAL');
+    const user = await getActiveUser();
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }

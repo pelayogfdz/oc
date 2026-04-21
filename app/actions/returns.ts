@@ -15,7 +15,7 @@ export async function createSaleReturn(
   if (!branch) throw new Error("No branch active");
   if (branch.id === 'GLOBAL') throw new Error("Debes seleccionar una sucursal específica para realizar esta acción.");
 
-  const user = await getActiveUser(branch.id);
+  const user = await getActiveUser();
 
   const sale = await prisma.sale.findUnique({
     where: { id: saleId },

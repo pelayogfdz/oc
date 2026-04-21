@@ -12,7 +12,7 @@ export async function addSupplierPaymentBatch(
   requestCfdi: boolean = false
 ) {
   const branch = await getActiveBranch();
-  const user = await getActiveUser(branch.id);
+  const user = await getActiveUser();
   
   const supplier = await prisma.supplier.findUnique({ where: { id: supplierId } });
   if (!supplier) throw new Error("Supplier not found.");

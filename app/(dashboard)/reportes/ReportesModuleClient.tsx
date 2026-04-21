@@ -6,12 +6,12 @@ import Link from 'next/link';
 
 export default function ReportesModuleClient({ initialMetrics }: { initialMetrics: any }) {
   const reports = [
-    { title: 'Ventas y Ganancias', icon: <TrendingUp size={24} color="#16a34a" />, description: 'Márgenes de ganancia, tickets promedios y cortes.', route: '/ventas' },
-    { title: 'Inventario Valorizado', icon: <Package size={24} color="#0ea5e9" />, description: 'Valor total de tu mercancía y productos más vendidos.', route: '/productos' },
-    { title: 'Corte de Caja', icon: <Calculator size={24} color="#d946ef" />, description: 'Auditoría de ingresos, egresos y control de efectivo.', route: '/preferencias/cajas' },
+    { title: 'Ventas y Ganancias', icon: <TrendingUp size={24} color="#16a34a" />, description: 'Márgenes de ganancia, tickets promedios y cortes.', route: '/reportes/ventas-desglose' },
+    { title: 'Inventario Valorizado', icon: <Package size={24} color="#0ea5e9" />, description: 'Valor total de tu mercancía y productos más vendidos.', route: '/reportes/inventario-valorizado' },
+    { title: 'Corte de Caja', icon: <Calculator size={24} color="#d946ef" />, description: 'Auditoría de ingresos, egresos y control de efectivo.', route: '/caja/actual' },
     { title: 'Comisiones (Vendedores)', icon: <Users size={24} color="#f59e0b" />, description: 'Nómina variable por empleado, metas alcanzadas.', route: '/preferencias/vendedores' },
-    { title: 'Reporte de Turnos', icon: <Clock size={24} color="#8b5cf6" />, description: 'Aperturas y cierres por cajero, bitácora de anomalías.', route: '#' },
-    { title: 'Analítica General', icon: <BarChart3 size={24} color="#ef4444" />, description: 'KPIs globales, comparativa mes con mes.', route: '#' },
+    { title: 'Reporte de Turnos', icon: <Clock size={24} color="#8b5cf6" />, description: 'Aperturas y cierres por cajero, bitácora de anomalías.', route: '/caja/cortes' },
+    { title: 'Analítica General', icon: <BarChart3 size={24} color="#ef4444" />, description: 'KPIs globales, comparativa mes con mes.', route: '/reportes/general' },
   ];
 
   return (

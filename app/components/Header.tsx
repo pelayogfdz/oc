@@ -7,7 +7,7 @@ import PwaInstallButton from './PwaInstallButton';
 
 export default async function Header() {
   const currentBranch = await getActiveBranch();
-  const currentUser = await getActiveUser(currentBranch?.id || '');
+  const currentUser = await getActiveUser();
   
   const branches = await prisma.branch.findMany({
     where: { isActive: true },

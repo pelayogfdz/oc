@@ -30,7 +30,7 @@ export default async function Page() {
             <tr>
               <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Cliente</th>
               <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Contacto</th>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Límite de Crédito</th>
+              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Deuda Total</th>
               <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Acciones</th>
             </tr>
           </thead>
@@ -45,13 +45,13 @@ export default async function Page() {
                   <div>{item.email || '- Sin Correo -'}</div>
                   <div style={{ marginTop: '0.25rem' }}>{item.phone || '- Sin Teléfono -'}</div>
                 </td>
-                <td style={{ padding: '1rem', fontWeight: 'bold', color: item.creditLimit > 0 ? '#10b981' : '#64748b' }}>
-                  ${item.creditLimit?.toFixed(2) || '0.00'}
+                <td style={{ padding: '1rem', fontWeight: 'bold', color: item.creditBalance > 0 ? '#ef4444' : '#10b981' }}>
+                  ${Math.max(0, item.creditBalance || 0).toFixed(2)}
                 </td>
                 <td style={{ padding: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <Link href={`/clientes/${item.id}/editar`} style={{ color: '#0ea5e9', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <Icons.Edit size={16} />
+                      <Link href={`/clientes/${item.id}`} style={{ backgroundColor: 'white', color: '#475569', padding: '0.5rem 1rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 'bold', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                        <Icons.User size={16} /> Ver Perfil
                       </Link>
                       <form action={async () => { 'use server'; await deleteEntity('customer', item.id); }}>
                          <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>

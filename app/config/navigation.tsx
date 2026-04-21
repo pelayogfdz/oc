@@ -47,12 +47,11 @@ export const navStructure: MenuNode[] = [
     ]
   },
   { 
-    title: 'Clientes', icon: <UserCircle size={20} />, 
+    title: 'Clientes', icon: <UserCircle size={20} />,
     items: [
       { name: 'Directorio de Clientes', path: '/clientes' },
-      { name: 'Cobranza (CxC)', path: '/clientes/cobranza', badge: 'Pendientes' },
-      { name: 'Portal de Autofacturación', path: '/clientes/portal' },
-      { name: 'Portal de Clientes B2B', path: '/clientes/b2b' },
+      { name: 'Crédito y Cobranza (CxC)', path: '/clientes/cobranza', badge: 'Activos' },
+      { name: 'Portal B2B', path: '/clientes/b2b' }
     ]
   },
   { 
@@ -80,6 +79,8 @@ export const navStructure: MenuNode[] = [
     title: 'Ventas Online', icon: <MonitorSmartphone size={20} />, 
     items: [
       { name: 'Tu Catálogo en Línea B2C', path: '/catalogo', badge: 'Nuevo' },
+      { name: 'Portal de Clientes B2B', path: '/clientes/b2b' },
+      { name: 'Portal de Autofacturación', path: '/clientes/portal' },
       { name: 'Integraciones (Mercado Libre/Amazon)', path: '/integraciones' },
       { name: 'Órdenes Web', path: '/catalogo/ordenes' },
     ]
@@ -88,7 +89,6 @@ export const navStructure: MenuNode[] = [
     title: 'Finanzas', icon: <Landmark size={20} />, 
     items: [
       { name: 'Conciliación Bancaria', path: '/finanzas/conciliacion' },
-      { name: 'Cobranza (CxC)', path: '/clientes/cobranza', badge: 'Ingresos' },
       { name: 'Cuentas por Pagar (CxP)', path: '/proveedores/cuentas', badge: 'Egresos' },
     ]
   },

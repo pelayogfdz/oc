@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 
 export async function getCurrentSession() {
   const branch = await getActiveBranch();
-  const session = await getActiveUser(branch.id);
+  const session = await getActiveUser();
   if (!session) return null;
 
   return await prisma.cashSession.findFirst({
@@ -25,7 +25,7 @@ export async function getCurrentSession() {
 export async function openSession(formData: FormData) {
   const branch = await getActiveBranch();
   if (branch.id === 'GLOBAL') throw new Error("Debes seleccionar una sucursal específica para abrir caja.");
-  const session = await getActiveUser(branch.id);
+  const session = await getActiveUser();
   if (!session) throw new Error("No autenticado");
 
   const initialAmount = parseFloat(formData.get('initialAmount') as string) || 0;

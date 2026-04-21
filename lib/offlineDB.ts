@@ -1,6 +1,12 @@
 import Dexie, { Table } from 'dexie';
 
-export interface OfflineSale {
+export interface DLQMetadata {
+  retryCount: number;
+  errorMessage?: string;
+  failed: boolean;
+}
+
+export interface OfflineSale extends DLQMetadata {
   id: string;
   items: any[];
   total: number;
@@ -15,7 +21,7 @@ export interface OfflineSale {
   synced: boolean;
 }
 
-export interface OfflineTransfer {
+export interface OfflineTransfer extends DLQMetadata {
   id: string;
   fromBranchId: string;
   toBranchId?: string;
@@ -26,7 +32,7 @@ export interface OfflineTransfer {
   synced: boolean;
 }
 
-export interface OfflinePurchase {
+export interface OfflinePurchase extends DLQMetadata {
   id: string;
   supplierId: string;
   reason: string;
@@ -35,6 +41,11 @@ export interface OfflinePurchase {
   items: any[];
   timestamp: string;
   synced: boolean;
+  isDirectPurchase?: boolean;
+  total?: number;
+  paymentMethod?: string;
+  freightCost?: number;
+  notes?: string;
 }
 
 // Estos son los catálogos espejo
@@ -55,17 +66,26 @@ export interface OfflineProduct {
 
 export interface OfflineCustomer {
   id: string;
-  branchId: string;
+  branchId?: string | null;
   name: string;
   email: string | null;
   phone: string | null;
+  street?: string | null;
+  exteriorNumber?: string | null;
+  storeCredit?: number;
+  priceList?: string;
 }
 
 export interface OfflineSupplier {
   id: string;
   name: string;
-  contact: string | null;
-  email: string | null;
+  contact?: string | null;
+  email?: string | null;
+  branchId?: string | null;
+  phone?: string | null;
+  street?: string | null;
+  exteriorNumber?: string | null;
+  storeCredit?: number;
 }
 
 export interface OfflineBranch {
@@ -80,7 +100,7 @@ export interface OfflineSettings {
   metodosConfig: any;
 }
 
-export interface OfflinePendingProduct {
+export interface OfflinePendingProduct extends DLQMetadata {
   id: string; // Temp local id
   branchId: string;
   name: string;
@@ -105,7 +125,6 @@ export interface OfflinePendingProduct {
   description?: string;
   timestamp: string;
   synced: boolean;
-  // Dynamic prices mapping to priceList ids.
   dynamicPrices?: Record<string, number>; 
 }
 
@@ -123,11 +142,11 @@ export class CAANMAOfflineDB extends Dexie {
 
   constructor() {
     super('CAANMAOfflineDB');
-    this.version(16).stores({
-      pendingSales: 'id, timestamp, synced',
-      pendingTransfers: 'id, timestamp, synced',
-      pendingPurchases: 'id, timestamp, synced',
-      pendingProducts: 'id, timestamp, synced',
+    this.version(17).stores({
+      pendingSales: 'id, timestamp, synced, failed',
+      pendingTransfers: 'id, timestamp, synced, failed',
+      pendingPurchases: 'id, timestamp, synced, failed',
+      pendingProducts: 'id, timestamp, synced, failed',
       products: 'id, branchId, sku, barcode, name',
       customers: 'id, branchId, name',
       suppliers: 'id, name',

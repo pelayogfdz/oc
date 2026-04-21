@@ -7,6 +7,7 @@ import { createSale } from '../actions/sale';
 interface OfflineContextType {
   isOnline: boolean;
   pendingSales: OfflineSale[];
+  syncMessage: string | null;
   pushOfflineSale: (sale: Omit<OfflineSale, 'id' | 'timestamp' | 'synced'>) => Promise<void>;
   pushOfflineTransfer: (transferParams: any) => Promise<void>;
   pushOfflinePurchase: (purchaseParams: any) => Promise<void>;
@@ -18,6 +19,7 @@ interface OfflineContextType {
 const OfflineContext = createContext<OfflineContextType>({
   isOnline: true,
   pendingSales: [],
+  syncMessage: null,
   pushOfflineSale: async () => {},
   pushOfflineTransfer: async () => {},
   pushOfflinePurchase: async () => {},
@@ -34,6 +36,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   const [pendingPurchases, setPendingPurchases] = useState<any[]>([]);
   const [pendingProducts, setPendingProducts] = useState<any[]>([]);
   const [showToast, setShowToast] = useState<{message: string, type: 'success' | 'warn' | 'error'} | null>(null);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   // Initialize Network status
   useEffect(() => {
@@ -79,13 +82,15 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
     }
   };
 
-  const pushOfflineSale = async (saleParams: Omit<OfflineSale, 'id' | 'timestamp' | 'synced'>) => {
+  const pushOfflineSale = async (saleParams: Omit<OfflineSale, 'id' | 'timestamp' | 'synced' | 'retryCount' | 'failed' | 'errorMessage'>) => {
     try {
       const newSale: OfflineSale = {
         ...saleParams,
         id: crypto.randomUUID(), 
         timestamp: new Date().toISOString(),
-        synced: false
+        synced: false,
+        retryCount: 0,
+        failed: false
       };
       await db.pendingSales.add(newSale);
       setPendingSales(prev => [...prev, newSale]);
@@ -105,7 +110,9 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
         ...transferParams,
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
-        synced: false
+        synced: false,
+        retryCount: 0,
+        failed: false
       };
       await db.pendingTransfers.add(newTransfer);
       setPendingTransfers(prev => [...prev, newTransfer]);
@@ -122,7 +129,9 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
         ...purchaseParams,
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
-        synced: false
+        synced: false,
+        retryCount: 0,
+        failed: false
       };
       await db.pendingPurchases.add(newPurchase);
       setPendingPurchases(prev => [...prev, newPurchase]);
@@ -139,7 +148,9 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
         ...productParams,
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
-        synced: false
+        synced: false,
+        retryCount: 0,
+        failed: false
       };
       await db.pendingProducts.add(newProduct);
       setPendingProducts(prev => [...prev, newProduct]);
@@ -176,18 +187,25 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       // Sync Sales
       const sales = await db.pendingSales.toArray();
       for (const sale of sales) {
+        if (sale.failed && sale.retryCount >= 5) continue;
         try {
+          // Dynamic import to avoid cycles
+          const { createSale } = await import('../actions/sale');
           await createSale(sale.items, sale.total, sale.paymentMethod, sale.customerId, sale.sessionId, sale.notes, sale.cashValue, sale.cardValue, sale.billingData);
           await db.pendingSales.delete(sale.id);
           syncedAny = true;
-        } catch (e) { console.error('Sync error sale', e); }
+        } catch (e: any) { 
+          console.error('Sync error sale', e);
+          const newCount = (sale.retryCount || 0) + 1;
+          await db.pendingSales.update(sale.id, { retryCount: newCount, failed: newCount >= 5, errorMessage: e?.message || 'Error Desconocido' });
+        }
       }
 
       // Sync Transfers
       const transfers = await db.pendingTransfers.toArray();
       for (const t of transfers) {
+        if (t.failed && t.retryCount >= 5) continue;
         try {
-           // We dynamically import actions to avoid circular dependencies
            const { requestTransfer, dispatchDirectTransfer } = await import('../actions/transfer');
            if (t.isDirectDispatch) {
              await dispatchDirectTransfer({ toBranchId: t.toBranchId!, reason: t.reason, items: t.items });
@@ -196,25 +214,39 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
            }
            await db.pendingTransfers.delete(t.id);
            syncedAny = true;
-        } catch (e) { console.error('Sync error transfer', e); }
+        } catch (e: any) { 
+           console.error('Sync error transfer', e);
+           const newCount = (t.retryCount || 0) + 1;
+           await db.pendingTransfers.update(t.id, { retryCount: newCount, failed: newCount >= 5, errorMessage: e?.message });
+        }
       }
 
-      // Sync Purchases (Pedidos)
+      // Sync Purchases & Purchase Orders
       const purchases = await db.pendingPurchases.toArray();
       for (const p of purchases) {
+        if (p.failed && p.retryCount >= 5) continue;
         try {
-          const { createPurchaseOrder } = await import('../actions/pedidos');
-          await createPurchaseOrder(p.supplierId, p.notes, p.items, p.total);
+          if (p.isDirectPurchase) {
+            const { createPurchase } = await import('../actions/purchase');
+            await createPurchase(p.items, p.total, p.paymentMethod || 'CASH', p.supplierId, p.freightCost || 0);
+          } else {
+            const { createPurchaseOrder } = await import('../actions/pedidos');
+            await createPurchaseOrder(p.supplierId, p.notes, p.items, p.total);
+          }
           await db.pendingPurchases.delete(p.id);
           syncedAny = true;
-        } catch (e) { console.error('Sync error purchase', e); }
+        } catch (e: any) { 
+           console.error('Sync error purchase', e);
+           const newCount = (p.retryCount || 0) + 1;
+           await db.pendingPurchases.update(p.id, { retryCount: newCount, failed: newCount >= 5, errorMessage: e?.message });
+        }
       }
 
       // Sync Products
       const products = await db.pendingProducts.toArray();
       for (const p of products) {
+        if (p.failed && p.retryCount >= 5) continue;
         try {
-          // Import dynamic to avoid circular reqs
           const { createProduct } = await import('../actions/product');
           const formData = new FormData();
           formData.append('branchId', p.branchId);
@@ -245,18 +277,16 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
              });
           }
 
-          // Use formstate logic by passing an initial state. createProduct is (prevState, formData)
           const result = await createProduct({} as any, formData);
           if (result && result.error) {
-             console.error('Failed to sync offline product', p.name, result.error);
-             // We can choose to keep it in DB if it failed validation, or delete. Let's keep it if it failed? Actually, we'll delete it to not block the queue, but in a real enterprise app, we'd flag it as failed. 
-             // To be robust, let's just delete it for now once attempted if it's a hard error, but skip deletion if network error.
              throw new Error(result.error);
           }
           await db.pendingProducts.delete(p.id);
           syncedAny = true;
         } catch (e: any) { 
           console.error('Sync error product', e); 
+          const newCount = (p.retryCount || 0) + 1;
+          await db.pendingProducts.update(p.id, { retryCount: newCount, failed: newCount >= 5, errorMessage: e?.message });
         }
       }
 
@@ -305,20 +335,21 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       await db.products.clear();
       
       for (let i = 1; i <= totalPages; i++) {
-        setShowToast({ message: `Descargando Catálogo de Productos... (${i}/${totalPages})`, type: 'warn' });
+        setSyncMessage(`Sincronizando Catálogo... (${i}/${totalPages})`);
         const productsChunk = await syncProductsPage(i, pageSize);
         await db.products.bulkAdd(productsChunk);
       }
 
-      setShowToast({ message: 'Catálogos Offline Actualizados', type: 'success' });
+      setSyncMessage(null);
     } catch (e) {
       console.error('Failed to sync catalogs', e);
+      setSyncMessage(null);
       setShowToast({ message: 'Error descargando catálogos en Offline', type: 'error' });
     }
   };
 
   return (
-    <OfflineContext.Provider value={{ isOnline, pendingSales, pushOfflineSale, forceSync, pushOfflineTransfer, pushOfflinePurchase, pushOfflineProduct, refreshCatalogs }}>
+    <OfflineContext.Provider value={{ isOnline, pendingSales, syncMessage, pushOfflineSale, forceSync, pushOfflineTransfer, pushOfflinePurchase, pushOfflineProduct, refreshCatalogs }}>
       {children}
       {showToast && (
         <div style={{ position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)', backgroundColor: showToast.type === 'error' ? '#ef4444' : showToast.type === 'warn' ? '#fbbf24' : '#10b981', color: showToast.type === 'warn' ? '#000' : '#fff', padding: '12px 24px', borderRadius: '8px', zIndex: 9999, fontWeight: 600 }}>{showToast.message}</div>

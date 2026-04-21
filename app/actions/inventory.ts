@@ -31,7 +31,7 @@ export async function adjustInventory(formData: FormData) {
 
   const branch = await getActiveBranch();
   if (branch.id === 'GLOBAL') throw new Error('Debes seleccionar una sucursal específica para realizar esta acción.');
-  const user = await getActiveUser(branch.id); // Although not directly referenced in movement yet schema-wise
+  const user = await getActiveUser(); // Although not directly referenced in movement yet schema-wise
 
   await prisma.$transaction(async (tx) => {
     // 1. Update product stock

@@ -8,18 +8,18 @@ export async function addCustomerPaymentBatch(
   customerId: string, 
   totalAmount: number, 
   paymentMethod: string,
-  saleIds: string[] = [],
-  requestCfdi: boolean = false
+  salePayments: { id: string, amount: number }[] = [],
+  requestCfdi: boolean = false,
+  paymentDate?: string
 ) {
   const branch = await getActiveBranch();
-  const user = await getActiveUser(branch.id);
+  const user = await getActiveUser();
   
   const customer = await prisma.customer.findUnique({ where: { id: customerId } });
   if (!customer) throw new Error("Customer not found.");
   
   if (totalAmount <= 0) throw new Error("Amount must be greater than zero.");
   
-  // Make sure we have an open session before we can take cash
   let currentSession = null;
   if (paymentMethod === 'CASH') {
     currentSession = await prisma.cashSession.findFirst({
@@ -28,14 +28,13 @@ export async function addCustomerPaymentBatch(
     if (!currentSession) throw new Error("Debes abrir una caja para recibir abonos en efectivo.");
   }
 
-  // Create cash movement if CASH (Single movement for the entire transaction)
   if (paymentMethod === 'CASH' && currentSession) {
      await prisma.cashMovement.create({
         data: {
            sessionId: currentSession.id,
            type: 'IN',
            amount: totalAmount,
-           reason: saleIds.length > 0 
+           reason: salePayments.length > 0 
               ? `Pago a Facturas Múltiples: ${customer.name}` 
               : `Depósito Saldo a Favor: ${customer.name}`
         }
@@ -45,26 +44,27 @@ export async function addCustomerPaymentBatch(
   let remainingAmount = totalAmount;
   let totalEffectiveToDebt = 0;
 
-  if (saleIds.length > 0) {
+  if (salePayments.length > 0) {
+    const saleIds = salePayments.map(sp => sp.id);
     const sales = await prisma.sale.findMany({
-       where: { id: { in: saleIds }, balanceDue: { gt: 0 } },
-       orderBy: { createdAt: 'asc' } // Oldest first
+       where: { id: { in: saleIds }, balanceDue: { gt: 0 } }
     });
 
-    for (const sale of sales) {
-       if (remainingAmount <= 0) break;
+    for (const paymentReq of salePayments) {
+       const sale = sales.find(s => s.id === paymentReq.id);
+       if (!sale || remainingAmount <= 0) continue;
 
-       const deduct = Math.min(remainingAmount, sale.balanceDue);
+       const deduct = Math.min(remainingAmount, paymentReq.amount, sale.balanceDue);
+       if (deduct <= 0) continue;
+
        remainingAmount -= deduct;
        totalEffectiveToDebt += deduct;
 
-       // Update Individual Sale
        await prisma.sale.update({
           where: { id: sale.id },
           data: { balanceDue: sale.balanceDue - deduct }
        });
 
-       // Create Specific Payment Record
        await prisma.customerPayment.create({
           data: {
              customerId,
@@ -73,13 +73,13 @@ export async function addCustomerPaymentBatch(
              userId: user.id,
              branchId: branch.id,
              saleId: sale.id,
+             paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
              cfdiStatus: requestCfdi ? "REQUESTED" : "NONE"
           }
        });
     }
   }
 
-  // If there's excess (or if saleIds was empty, meaning 100% storeCredit)
   if (remainingAmount > 0) {
       await prisma.customerPayment.create({
           data: {
@@ -94,7 +94,6 @@ export async function addCustomerPaymentBatch(
        });
   }
   
-  // Decrease credit balance structurally
   await prisma.customer.update({
      where: { id: customerId },
      data: { 
@@ -105,4 +104,54 @@ export async function addCustomerPaymentBatch(
 
   revalidatePath('/clientes/cobranza');
   revalidatePath('/caja/actual');
+}
+
+export async function deleteCustomerPayment(paymentId: string) {
+  const branch = await getActiveBranch();
+  const user = await getActiveUser();
+  
+  const payment = await prisma.customerPayment.findUnique({ where: { id: paymentId } });
+  if (!payment) throw new Error("Payment not found");
+  
+  if (payment.cfdiStatus === 'INVOICED') {
+      throw new Error("No se puede eliminar un abono que ya fue facturado (REP Timbrado). Cancela la factura primero.");
+  }
+  
+  if (payment.saleId) {
+      await prisma.sale.update({
+          where: { id: payment.saleId },
+          data: { balanceDue: { increment: payment.amount } }
+      });
+      
+      await prisma.customer.update({
+          where: { id: payment.customerId },
+          data: { creditBalance: { increment: payment.amount } }
+      });
+  } else {
+      await prisma.customer.update({
+          where: { id: payment.customerId },
+          data: { storeCredit: { decrement: payment.amount } }
+      });
+  }
+  
+  if (payment.reason.includes('CASH') || payment.reason.includes('Efectivo')) {
+     const currentSession = await prisma.cashSession.findFirst({
+        where: { userId: user.id, branchId: branch.id, status: 'OPEN' }
+     });
+     
+     if (currentSession) {
+         await prisma.cashMovement.create({
+            data: {
+               sessionId: currentSession.id,
+               type: 'OUT',
+               amount: payment.amount,
+               reason: `Reversión de Abono: ${paymentId.slice(0,8)}`
+            }
+         });
+     }
+  }
+
+  await prisma.customerPayment.delete({ where: { id: paymentId } });
+  
+  revalidatePath(`/clientes/${payment.customerId}`);
 }
