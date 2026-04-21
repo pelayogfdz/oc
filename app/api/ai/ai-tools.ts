@@ -80,6 +80,45 @@ export const aiFunctionDeclarations: FunctionDeclaration[] = [
         }
       }
     }
+  },
+  {
+    name: "obtener_proveedores",
+    description: "Obtiene una lista de los proveedores de la empresa, incluyendo cuánto les debemos (creditBalance) y sus datos principales.",
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        searchAllBranches: {
+          type: SchemaType.BOOLEAN,
+          description: "Si es true, busca proveedores de todas las sucursales."
+        }
+      }
+    }
+  },
+  {
+    name: "analisis_clientes",
+    description: "Obtiene los clientes principales ordenados por límite de crédito o saldo a favor, útil para saber a quién ofrecer más productos.",
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        searchAllBranches: {
+          type: SchemaType.BOOLEAN,
+          description: "Si es true, analiza clientes de toda la empresa."
+        }
+      }
+    }
+  },
+  {
+    name: "analisis_productos",
+    description: "Analiza el catálogo de productos para encontrar los productos más caros o de mayor valor en el inventario.",
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        searchAllBranches: {
+          type: SchemaType.BOOLEAN,
+          description: "Si es true, analiza el catálogo de toda la empresa."
+        }
+      }
+    }
   }
 ];
 
@@ -197,6 +236,50 @@ export async function executeAiFunction(functionName: string, callArgs: any, bra
         montoTotalEgresos: totalGastos,
         gastoPorCategorias: grouped,
         detalleTopOperacionales: expenses.slice(0, 5)
+      };
+    }
+
+    case 'obtener_proveedores': {
+      const suppliers = await prisma.supplier.findMany({
+        where: whereBranch,
+        select: { name: true, creditBalance: true, creditDays: true, phone: true },
+        take: 20
+      });
+      
+      const totalDebt = suppliers.reduce((acc, s) => acc + s.creditBalance, 0);
+      return {
+        totalDeudaAProveedores: totalDebt,
+        cantidadProveedores: suppliers.length,
+        listaProveedores: suppliers,
+        nota: "Haz un resumen de a qué proveedores le debemos más dinero."
+      };
+    }
+
+    case 'analisis_clientes': {
+      const topCustomers = await prisma.customer.findMany({
+        where: whereBranch,
+        orderBy: { creditLimit: 'desc' },
+        select: { name: true, creditLimit: true, storeCredit: true, phone: true },
+        take: 10
+      });
+      
+      return {
+        clientesVIP: topCustomers,
+        nota: "Menciona a los clientes con mayor límite de crédito o saldo a favor."
+      };
+    }
+
+    case 'analisis_productos': {
+      const topProducts = await prisma.product.findMany({
+        where: { ...whereBranch, isActive: true },
+        orderBy: { price: 'desc' },
+        select: { name: true, sku: true, price: true, stock: true },
+        take: 10
+      });
+
+      return {
+        productosMasCaros: topProducts,
+        nota: "Haz una lista de los productos de mayor valor unitario en el inventario."
       };
     }
 
