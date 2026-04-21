@@ -1,9 +1,6 @@
 [build]
   command = "npm run build"
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
-
 [functions]
   # Configures all functions to include the Prisma engine
   included_files = ["node_modules/.prisma/client/**/*", "node_modules/@prisma/client/**/*", "prisma/**/*"]
