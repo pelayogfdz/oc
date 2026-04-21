@@ -335,8 +335,14 @@ export function ProductDetailClient({
                ))}
              </tbody>
           </table>
-          <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px dashed var(--pulpos-border)', textAlign: 'center', fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>
-             Para nivelar inventarios, visita el módulo de <a href={`/inventario/traspasos`} style={{ color: 'var(--pulpos-primary)', fontWeight: 'bold' }}>Traspasos</a> e ingresa el SKU {product.sku}.
+          <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', marginTop: '2rem' }}>
+            <h3 style={{ fontWeight: 'bold', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Icons.Truck size={18} color="var(--pulpos-primary)" />
+              Sugerencia de Abastecimiento
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--pulpos-text-muted)' }}>
+              Para nivelar inventarios, visita el módulo de <a href={`/productos/traspasos`} style={{ color: 'var(--pulpos-primary)', fontWeight: 'bold' }}>Traspasos</a> e ingresa el SKU {product.sku}.
+            </p>
           </div>
         </div>
       )}
