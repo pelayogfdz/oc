@@ -1,7 +1,7 @@
 import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import Link from 'next/link';
-import { Image as ImageIcon, MoreVertical, Filter, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import ExportButton from './ExportButton';
 import ImportButton from './ImportButton';
 import ProductListClient from './ProductListClient';
@@ -16,6 +16,8 @@ export default async function ProductosPage() {
     take: 50
   });
 
+  const safeProducts = JSON.parse(JSON.stringify(products));
+
   return (
     <div>
       {/* Header section identical to Pulpos */}
@@ -23,14 +25,14 @@ export default async function ProductosPage() {
         <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Productos e Inventario</h1>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <ImportButton />
-          <ExportButton products={products} />
+          <ExportButton products={safeProducts} />
           <Link href="/productos/nuevo" className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.5rem 1.5rem' }}>
             <Plus size={18} /> Nuevo Producto
           </Link>
         </div>
       </div>
 
-      <ProductListClient initialProducts={products} branchId={branch?.id || ''} />
+      <ProductListClient initialProducts={safeProducts} branchId={branch?.id || ''} />
     </div>
   );
 }
