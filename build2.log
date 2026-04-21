@@ -1,0 +1,129 @@
+
+> pulpos_clone@0.1.0 build
+> prisma generate && next build
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+
+✔ Generated Prisma Client (v5.20.0) to .\node_modules\@prisma\client in 504ms
+
+Start by importing your Prisma Client (See: http://pris.ly/d/importing-client)
+
+Tip: Curious about the SQL queries Prisma ORM generates? Optimize helps you enhance your visibility: https://pris.ly/tip-2-optimize
+
+▲ Next.js 16.2.2 (Turbopack)
+- Environments: .env
+- Experiments (use with caution):
+  · serverActions
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 13.5s
+  Skipping validation of types
+  Finished TypeScript config validation in 36ms ...
+  Collecting page data using 15 workers ...
+⚠ Using edge runtime on a page currently disables static generation for that page
+  Generating static pages using 15 workers (0/60) ...
+  Generating static pages using 15 workers (15/60) 
+  Generating static pages using 15 workers (30/60) 
+  Generating static pages using 15 workers (45/60) 
+Error fetching metrics Error [PrismaClientInitializationError]: 
+Invalid `prisma.sale.findMany()` invocation:
+
+
+Error querying the database: ERROR: Your project has exceeded the data transfer quota. Upgrade your plan to increase limits.
+    at async d (C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\.next\server\chunks\ssr\_0l.phle._.js:1:158)
+    at async e (C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\.next\server\chunks\ssr\[root-of-the-server]__0y.sdk.._.js:1:2151) {
+  clientVersion: '5.20.0',
+  errorCode: undefined
+}
+✓ Generating static pages using 15 workers (60/60) in 1880ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /api/ai
+├ ƒ /api/auth/login
+├ ƒ /api/cron/sat-invoicing
+├ ƒ /api/icon
+├ ƒ /api/mercadolibre/sync
+├ ƒ /api/mercadolibre/webhooks
+├ ƒ /caja/actual
+├ ƒ /caja/cortes
+├ ƒ /catalogo
+├ ƒ /catalogo/ordenes
+├ ƒ /clientes
+├ ƒ /clientes/[id]
+├ ƒ /clientes/[id]/editar
+├ ƒ /clientes/b2b
+├ ƒ /clientes/cobranza
+├ ƒ /clientes/nuevo
+├ ƒ /clientes/portal
+├ ƒ /facturas
+├ ƒ /facturas/complementos
+├ ƒ /facturas/globales
+├ ƒ /facturas/ventas
+├ ƒ /finanzas/conciliacion
+├ ƒ /ia
+├ ƒ /integraciones
+├ ○ /login
+├ ƒ /preferencias
+├ ƒ /preferencias/bancos
+├ ƒ /preferencias/cajas
+├ ƒ /preferencias/clientes
+├ ƒ /preferencias/cotizaciones
+├ ƒ /preferencias/fabricacion
+├ ƒ /preferencias/facturacion
+├ ƒ /preferencias/general
+├ ƒ /preferencias/impresoras
+├ ƒ /preferencias/listas-de-precios
+├ ƒ /preferencias/metodos
+├ ƒ /preferencias/notificaciones
+├ ƒ /preferencias/productos
+├ ƒ /preferencias/recargas
+├ ƒ /preferencias/sucursales
+├ ƒ /preferencias/tickets
+├ ƒ /preferencias/usuarios
+├ ƒ /preferencias/vendedores
+├ ƒ /preferencias/ventas
+├ ƒ /productos
+├ ƒ /productos/[id]
+├ ƒ /productos/ajustes
+├ ƒ /productos/auditorias
+├ ƒ /productos/compras
+├ ƒ /productos/compras/nuevo
+├ ƒ /productos/costos-proveedor
+├ ƒ /productos/gastos
+├ ƒ /productos/nuevo
+├ ƒ /productos/pedidos
+├ ƒ /productos/pedidos/nuevo
+├ ƒ /productos/precios-masivos
+├ ƒ /productos/traspasos
+├ ƒ /productos/traspasos/[id]
+├ ƒ /productos/traspasos/[id]/imprimir
+├ ƒ /productos/traspasos/salida
+├ ƒ /productos/traspasos/solicitar
+├ ƒ /proveedores
+├ ƒ /proveedores/cuentas
+├ ƒ /proveedores/nuevo
+├ ƒ /reportes
+├ ƒ /reportes/general
+├ ƒ /reportes/inventario-valorizado
+├ ƒ /reportes/ventas-desglose
+├ ƒ /tienda/[branchId]
+├ ƒ /ventas
+├ ƒ /ventas/[id]
+├ ƒ /ventas/[id]/imprimir
+├ ƒ /ventas/[id]/imprimir-cotizacion
+├ ƒ /ventas/cotizaciones
+├ ƒ /ventas/devoluciones
+├ ƒ /ventas/nueva
+└ ƒ /ventas/promociones
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

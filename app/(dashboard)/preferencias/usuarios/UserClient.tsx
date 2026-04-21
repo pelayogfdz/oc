@@ -266,7 +266,7 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
         
         <form onSubmit={handleSubmit}>
           {/* Datos Básicos */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0,1fr))', gap: '1rem', marginBottom: '2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: '1rem', marginBottom: '2rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Nombre Completo</label>
               <input type="text" name="name" defaultValue={editingUser?.name || ''} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
@@ -294,6 +294,14 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
                 <option value="LIDER">Líder de Equipo</option>
                 <option value="COORDINADOR">Coordinador General</option>
               </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#16a34a' }}>% Comisión (Ej: 0.05)</label>
+              <input type="number" step="0.01" min="0" max="1" name="commissionPct" defaultValue={editingUser?.commissionPct || 0} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #16a34a', backgroundColor: 'white' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#16a34a' }}>Meta Mensual ($)</label>
+              <input type="number" step="100" min="0" name="monthlyGoal" defaultValue={editingUser?.monthlyGoal || 0} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #16a34a', backgroundColor: 'white' }} />
             </div>
           </div>
 
