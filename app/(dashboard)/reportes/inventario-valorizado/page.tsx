@@ -3,6 +3,7 @@ import InventarioValorizadoClient from "./InventarioValorizadoClient";
 
 export default async function InventarioValorizadoPage() {
   const data = await getInventoryValuationData();
+  const safeData = JSON.parse(JSON.stringify(data));
 
-  return <InventarioValorizadoClient data={data} />;
+  return <InventarioValorizadoClient data={safeData} />;
 }

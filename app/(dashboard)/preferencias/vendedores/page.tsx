@@ -3,6 +3,9 @@ import CommissionTabs from "./CommissionTabs";
 
 export default async function Page() {
   const users = await getUsersHierarchy();
+  
+  // Fix Next.js Client Component Date serialization issues
+  const safeUsers = JSON.parse(JSON.stringify(users));
 
   return (
     <div className="p-2 sm:p-6">
@@ -13,7 +16,7 @@ export default async function Page() {
         </p>
       </div>
 
-      <CommissionTabs initialUsers={users} />
+      <CommissionTabs initialUsers={safeUsers} />
     </div>
   );
 }

@@ -19,6 +19,9 @@ export default async function CobranzaGlobalPage() {
     orderBy: { createdAt: 'desc' }
   });
 
+  // Fix Next.js Date Serialization
+  const safeData = JSON.parse(JSON.stringify(pendingSales));
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', fontFamily: 'var(--font-geist-sans)' }}>
       <div style={{ marginBottom: '2rem' }}>
@@ -26,7 +29,7 @@ export default async function CobranzaGlobalPage() {
         <p style={{ color: 'var(--pulpos-text-muted)' }}>Módulo central de facturas pendientes y deudas de clientes.</p>
       </div>
 
-      <CobranzaGlobalClient initialData={pendingSales} />
+      <CobranzaGlobalClient initialData={safeData} />
     </div>
   );
 }

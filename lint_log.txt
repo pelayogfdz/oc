@@ -1,0 +1,714 @@
+
+> pulpos_clone@0.1.0 lint
+> eslint
+
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(auth)\login\page.tsx
+  33:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\caja\actual\CajaActualClient.tsx
+    6:52   warning  'Ban' is defined but never used           @typescript-eslint/no-unused-vars
+    8:72   warning  'userName' is defined but never used      @typescript-eslint/no-unused-vars
+    8:102  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   32:19   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   53:19   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   71:19   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  109:53   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  110:54   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  111:63   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:69   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  114:55   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  114:103  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  115:56   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  115:105  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\catalogo\CatalogoClient.tsx
+    7:76  error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+   26:19  error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  147:39  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  147:57  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\catalogo\page.tsx
+  10:14  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\clientes\[id]\ClientProfile.tsx
+    7:34   warning  'Briefcase' is defined but never used     @typescript-eslint/no-unused-vars
+   11:82   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   11:94   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   11:111  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   22:40   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   25:29   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   70:19   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   81:20   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  196:44   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  325:37   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  360:37   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\clientes\cobranza\CobranzaGlobalClient.tsx
+   8:78  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  50:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\clientes\page.tsx
+  11:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\clientes\portal\PortalClient.tsx
+  17:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  20:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\facturas\globales\page.tsx
+  4:10  warning  'revalidatePath' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\facturas\ventas\page.tsx
+  42:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\ia\AIClient.tsx
+   12:60  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   12:73  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   57:17  warning  'e' is defined but never used                                                                                        @typescript-eslint/no-unused-vars
+   71:21  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  118:16  error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  122:28  warning  'node' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+  123:25  warning  'node' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+  124:25  warning  'node' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+  125:27  warning  'node' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+  125:52  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\page.tsx
+  5:10  warning  'formatCurrency' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\preferencias\SettingsFormClient.tsx
+  24:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:69  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  33:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  44:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\preferencias\layout.tsx
+  4:77   warning  'MapPin' is defined but never used  @typescript-eslint/no-unused-vars
+  4:139  warning  'Zap' is defined but never used     @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\preferencias\metodos\PaymentMethodsConfigClient.tsx
+  15:88  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\preferencias\metodos\page.tsx
+  10:14  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\preferencias\recargas\RecargasConfigClient.tsx
+   8:82  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  33:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\preferencias\recargas\page.tsx
+  10:14  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\preferencias\sucursales\BranchClient.tsx
+    7:81   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+    8:54   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   25:14   warning  'err' is defined but never used           @typescript-eslint/no-unused-vars
+   25:19   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   36:19   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  108:126  warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+  118:126  warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\preferencias\sucursales\page.tsx
+  3:23  warning  'MapPin' is defined but never used  @typescript-eslint/no-unused-vars
+  3:31  warning  'Trash2' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\preferencias\tickets\TicketConfiguratorClient.tsx
+  13:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  55:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\preferencias\usuarios\UserClient.tsx
+    4:60  warning  'ChevronDown' is defined but never used                                                                  @typescript-eslint/no-unused-vars
+    4:87  warning  'X' is defined but never used                                                                            @typescript-eslint/no-unused-vars
+   64:80  error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+   64:97  error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+   66:10  warning  'isEditing' is assigned a value but never used                                                           @typescript-eslint/no-unused-vars
+   67:50  error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+   94:5   error    Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+  110:31  error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+  119:20  error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+  161:19  error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+  171:21  error    Unexpected any. Specify a different type                                                                 @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\preferencias\vendedores\CommissionManagerClient.tsx
+    8:83   error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+   56:17   error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  123:172  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  123:181  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  286:79   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  286:85   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\preferencias\vendedores\CommissionReportClient.tsx
+   7:50  warning  'initialUsers' is defined but never used                                                                        @typescript-eslint/no-unused-vars
+   7:82  error    Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  11:48  error    Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  18:17  error    Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  27:6   warning  React Hook useEffect has a missing dependency: 'fetchReport'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\preferencias\vendedores\CommissionTabs.tsx
+  8:74  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\ExportButton.tsx
+  4:64  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\ImportButton.tsx
+  32:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  41:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\ProductListClient.tsx
+    8:93   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   12:62   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  110:102  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  169:38   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  208:244  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  219:39   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\[id]\ProductDetailClient.tsx
+  17:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  18:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  19:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  20:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  21:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\[id]\page.tsx
+   86:39  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  148:38  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\compras\nuevo\CrearCompraForm.tsx
+    5:24  warning  'ShoppingBag' is defined but never used   @typescript-eslint/no-unused-vars
+    9:79  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+    9:96  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   72:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  111:38  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\compras\page.tsx
+  55:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\nuevo\ProductFormClient.tsx
+   15:94  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   28:31  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   29:49  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   46:28  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   55:30  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   74:37  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  163:36  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  262:36  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\nuevo\page.tsx
+  2:10  warning  'createProduct' is defined but never used  @typescript-eslint/no-unused-vars
+  5:19  warning  'ImageIcon' is defined but never used      @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\page.tsx
+  4:19  warning  'ImageIcon' is defined but never used     @typescript-eslint/no-unused-vars
+  4:30  warning  'MoreVertical' is defined but never used  @typescript-eslint/no-unused-vars
+  4:44  warning  'Filter' is defined but never used        @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\pedidos\nuevo\CrearPedidoForm.tsx
+    5:10  warning  'Plus' is defined but never used                                 @typescript-eslint/no-unused-vars
+    9:79  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+    9:96  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+   86:19  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  123:38  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  169:74  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  169:91  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\pedidos\page.tsx
+   3:50  warning  'Search' is defined but never used        @typescript-eslint/no-unused-vars
+  57:35  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\traspasos\DashboardMatrix.tsx
+   3:49  warning  'activeBranch' is defined but never used   @typescript-eslint/no-unused-vars
+   3:81  error    Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  50:47  warning  'type' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\traspasos\[id]\TransferDetailClient.tsx
+    9:82  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   19:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   32:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   45:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   58:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  206:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  256:64  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\traspasos\[id]\imprimir\page.tsx
+  80:38  warning  'i' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\traspasos\page.tsx
+   4:20  warning  'Plus' is defined but never used          @typescript-eslint/no-unused-vars
+   6:10  warning  'deleteEntity' is defined but never used  @typescript-eslint/no-unused-vars
+  25:34  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  61:32  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\traspasos\salida\TransferClient.tsx
+    9:189  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   38:54   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   42:78   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   46:50   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   59:40   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   67:31   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   67:45   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  102:36   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  139:17   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  162:44   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  174:44   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  279:41   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  321:59   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\traspasos\salida\page.tsx
+  15:49  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  15:70  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\traspasos\solicitar\TransferClient.tsx
+    7:42   warning  'originBranchId' is defined but never used  @typescript-eslint/no-unused-vars
+    7:123  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+   14:54   error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+   18:78   error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+   22:50   error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+   35:40   error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+   43:31   error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+   43:45   error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+   78:36   error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  102:17   error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  118:39   error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  223:41   error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  265:59   error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\productos\traspasos\solicitar\page.tsx
+  15:49  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  15:70  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\proveedores\cuentas\CuentasPorPagarClient.tsx
+    4:21  warning  'Search' is defined but never used        @typescript-eslint/no-unused-vars
+    7:75  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+    8:60  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+    9:62  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   30:37  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   57:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   99:59  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  106:64  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  107:37  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  107:44  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  108:44  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  240:30  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  241:61  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\proveedores\page.tsx
+  11:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\reportes\ReportesModuleClient.tsx
+  7:84  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\reportes\general\GeneralAnalyticsClient.tsx
+  7:66  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  8:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\reportes\inventario-valorizado\InventarioValorizadoClient.tsx
+   4:103  warning  'Legend' is defined but never used        @typescript-eslint/no-unused-vars
+   8:70   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  11:55   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  87:44   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\reportes\ventas-desglose\VentasDesgloseClient.tsx
+    6:18  warning  'Filter' is defined but never used        @typescript-eslint/no-unused-vars
+   11:78  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   29:47  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:40  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  160:45  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  179:73  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\ventas\[id]\imprimir\page.tsx
+  7:9  warning  'branch' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\ventas\[id]\page.tsx
+  9:9  warning  'branch' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\ventas\nueva\POSClient.tsx
+     9:244  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+     9:262  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+     9:282  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+     9:367  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+     9:388  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+     9:408  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+     9:433  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+     9:456  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+    12:36   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+    17:62   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+    20:58   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+    58:78   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+    74:49   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+    87:47   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   117:46   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   133:17   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   145:6    warning  React Hook useEffect has a missing dependency: 'handleLoadQuote'. Either include it or remove the dependency array                                                                                                                                                                                            react-hooks/exhaustive-deps
+   176:6    warning  React Hook useEffect has missing dependencies: 'initialProducts' and 'isOnline'. Either include them or remove the dependency array. If 'setDisplayedProducts' needs the current value of 'initialProducts', you can also switch to useReducer instead of useState and read 'initialProducts' in the reducer  react-hooks/exhaustive-deps
+   178:34   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   182:50   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   193:40   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   201:31   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   201:45   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   235:112  warning  React Hook useMemo has a missing dependency: 'getProductPrice'. Either include it or remove the dependency array                                                                                                                                                                                              react-hooks/exhaustive-deps
+   253:13   warning  'applicableQuantity' is assigned a value but never used                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+   283:6    warning  React Hook useMemo has a missing dependency: 'getProductPrice'. Either include it or remove the dependency array                                                                                                                                                                                              react-hooks/exhaustive-deps
+   298:35   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   373:17   error    'billingBaseUrl' is never reassigned. Use 'const' instead                                                                                                                                                                                                                                                     prefer-const
+   438:15   warning  'quote' is assigned a value but never used                                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+   553:384  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   590:54   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   604:40   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   604:121  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   628:43   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+  1014:59   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\ventas\nueva\page.tsx
+  19:59  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  19:80  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  55:21  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  62:13  warning  'e' is defined but never used                                    @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\actions\auth.ts
+  7:19  warning  'createSession' is defined but never used  @typescript-eslint/no-unused-vars
+  7:34  warning  'deleteSession' is defined but never used  @typescript-eslint/no-unused-vars
+  8:8   warning  'bcrypt' is defined but never used         @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\actions\branch.ts
+  39:17  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  41:63  warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\actions\bulkCost.ts
+  14:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\actions\commissions.ts
+   4:27  warning  'getActiveUser' is defined but never used  @typescript-eslint/no-unused-vars
+  22:69  error    Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\actions\crud.ts
+   5:10  warning  'redirect' is defined but never used      @typescript-eslint/no-unused-vars
+  10:15  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  15:28  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  58:12  warning  'err' is defined but never used           @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\actions\facturacion.ts
+   21:17  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   24:13  warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+   73:39  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  117:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  123:42  warning  'formData' is defined but never used      @typescript-eslint/no-unused-vars
+  135:17  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  138:13  warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+  174:24  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  216:10  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  228:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\actions\import.ts
+  7:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\actions\pedidos.ts
+  41:9   warning  'branch' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  62:11  warning  'purchase' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\actions\portal.ts
+   21:12  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+   28:66  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   65:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  104:12  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\actions\price-list.ts
+  17:9  warning  'priceList' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\actions\product.ts
+    7:48  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+   19:9   warning  'category' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   29:17  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  125:19  error    Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\actions\quote.ts
+  68:9  warning  'sale' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\actions\sale.ts
+  166:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\actions\settings.ts
+   82:35  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   94:33  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:76  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  123:49  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  125:20  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  129:14  warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\actions\transfer.ts
+  103:11  error  'originVariantId' is never reassigned. Use 'const' instead  prefer-const
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\actions\user.ts
+  29:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  44:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\api\ai\ai-tools.ts
+   86:73  error  Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
+   86:93  error  Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
+   92:11  error  'diasAtras' is never reassigned. Use 'const' instead   prefer-const
+   93:11  error  'targetDate' is never reassigned. Use 'const' instead  prefer-const
+   94:11  error  'endDate' is never reassigned. Use 'const' instead     prefer-const
+  177:11  error  'diasAtras' is never reassigned. Use 'const' instead   prefer-const
+  178:11  error  'targetDate' is never reassigned. Use 'const' instead  prefer-const
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\api\ai\route.ts
+  79:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\api\cron\sat-invoicing\route.ts
+   1:1   error  Do not use "@ts-nocheck" because it alters compilation errors  @typescript-eslint/ban-ts-comment
+  59:19  error  Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\api\icon\route.tsx
+  35:12  warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+  35:15  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\api\mercadolibre\sync\route.ts
+  6:28  warning  'req' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\components\BranchSelector.tsx
+  6:83  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\components\InstallPWAButton.tsx
+   7:56  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  12:43  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  28:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\components\InstallPWAButton.tsx:28:7
+  26 |
+  27 |     if (window.matchMedia('(display-mode: standalone)').matches) {
+> 28 |       setIsInstalled(true);
+     |       ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  29 |     }
+  30 |
+  31 |     return () => {  react-hooks/set-state-in-effect
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\components\MobileGridMenu.tsx
+   7:16  warning  'Truck' is defined but never used              @typescript-eslint/no-unused-vars
+   8:3   warning  'Percent' is defined but never used            @typescript-eslint/no-unused-vars
+   8:12  warning  'BarChart3' is defined but never used          @typescript-eslint/no-unused-vars
+   9:3   warning  'Briefcase' is defined but never used          @typescript-eslint/no-unused-vars
+   9:14  warning  'Calendar' is defined but never used           @typescript-eslint/no-unused-vars
+  10:3   warning  'Store' is defined but never used              @typescript-eslint/no-unused-vars
+  10:10  warning  'Landmark' is defined but never used           @typescript-eslint/no-unused-vars
+  15:9   warning  'pathname' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\components\MobileMenuContext.tsx
+  26:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\components\MobileMenuContext.tsx:26:5
+  24 |   // Close menu on navigation
+  25 |   useEffect(() => {
+> 26 |     setMobileMenuOpen(false);
+     |     ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  27 |   }, [pathname]);
+  28 |
+  29 |   const closeMenu = () => setMobileMenuOpen(false);  react-hooks/set-state-in-effect
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\components\OfflineSyncProvider.tsx
+    5:10  warning  'createSale' is defined but never used                                                                        @typescript-eslint/no-unused-vars
+   12:41  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   13:41  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   14:39  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   35:10  warning  'pendingTransfers' is assigned a value but never used                                                         @typescript-eslint/no-unused-vars
+   35:60  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   36:10  warning  'pendingPurchases' is assigned a value but never used                                                         @typescript-eslint/no-unused-vars
+   36:60  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   37:10  warning  'pendingProducts' is assigned a value but never used                                                          @typescript-eslint/no-unused-vars
+   37:58  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   68:6   warning  React Hook useEffect has a missing dependency: 'forceSync'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  102:14  warning  'error' is defined but never used                                                                             @typescript-eslint/no-unused-vars
+  107:54  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  121:14  warning  'e' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+  126:54  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  140:14  warning  'e' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+  145:52  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  177:14  warning  'e' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+  197:21  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  217:21  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  238:21  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  280:52  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  286:21  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\components\PwaInstallButton.tsx
+   7:56  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-explicit-any
+  13:50  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-explicit-any
+  14:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\components\PwaInstallButton.tsx:14:5
+  12 |     const standsAlone = window.matchMedia('(display-mode: standalone)').matches;
+  13 |     const isIosStandalone = (window.navigator as any).standalone === true;
+> 14 |     setIsInstalled(standsAlone || isIosStandalone);
+     |     ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  15 |
+  16 |     const handleBeforeInstallPrompt = (e: any) => {
+  17 |       e.preventDefault();  react-hooks/set-state-in-effect
+  16:43  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\components\Sidebar.tsx
+   7:3   warning  'Home' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+   7:9   warning  'Users' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   7:16  warning  'Tag' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+   7:21  warning  'Package' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+   7:30  warning  'Calculator' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+   7:42  warning  'ArrowRightLeft' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+   8:3   warning  'BarChart3' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+   8:14  warning  'Settings' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+   8:24  warning  'Truck' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   8:31  warning  'PackageCheck' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+   9:27  warning  'PlusCircle' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+   9:39  warning  'Headset' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+   9:48  warning  'Banknote' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+  10:3   warning  'FileText' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+  10:13  warning  'Library' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+  10:22  warning  'BookOpen' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+  10:32  warning  'UserCircle' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+  10:44  warning  'Briefcase' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+  10:55  warning  'HandCoins' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+  10:66  warning  'X' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+  10:69  warning  'Sparkles' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+  10:79  warning  'ShoppingCart' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+  13:6   warning  'MenuItem' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+  36:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\components\Sidebar.tsx:36:5
+  34 |       }
+  35 |     });
+> 36 |     setOpenGroups(newOpenGroups);
+     |     ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  37 |   }, []); // Only run once on mount
+  38 |
+  39 |   const toggleGroup = (title: string, e: React.MouseEvent) => {  react-hooks/set-state-in-effect
+  37:6   warning  React Hook useEffect has missing dependencies: 'openGroups' and 'pathname'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     react-hooks/exhaustive-deps
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\config\navigation.tsx
+  3:3   warning  'Home' is defined but never used            @typescript-eslint/no-unused-vars
+  3:14  warning  'Package' is defined but never used         @typescript-eslint/no-unused-vars
+  3:35  warning  'ArrowRightLeft' is defined but never used  @typescript-eslint/no-unused-vars
+  5:53  warning  'Inbox' is defined but never used           @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\tienda\[branchId]\PublicStoreClient.tsx
+   7:28   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   9:107  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   9:122  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  19:32   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  93:23   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\tienda\[branchId]\page.tsx
+  23:15  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\check_movs.js
+  1:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\clean.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\fix_sales.js
+  1:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\generate-icons.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\import_excel.js
+  1:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\lib\offlineDB.ts
+   11:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   19:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   29:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   41:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   63:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   64:11  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   98:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   99:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  100:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\lib\session.ts
+  14:40  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  28:12  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\lib\utils.ts
+  8:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\prisma.config.ts
+  1:1  error  Do not use "@ts-nocheck" because it alters compilation errors  @typescript-eslint/ban-ts-comment
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\test_db.js
+  1:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\test_excel.js
+  1:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\test_prisma.js
+  1:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\test_prisma_2.js
+  1:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\test_prisma_3.js
+  1:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\test_query.js
+  1:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\tmp_check_db.js
+  1:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\tmp_check_hp.js
+  1:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\tmp_check_hp2.js
+  1:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\tmp_check_hp3.js
+  1:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\tmp_check_products.js
+  1:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\tmp_check_rows.js
+  1:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\v2_import_excel.js
+   1:26  error    A `require()` style import is forbidden       @typescript-eslint/no-require-imports
+   2:14  error    A `require()` style import is forbidden       @typescript-eslint/no-require-imports
+  18:9   warning  'headers' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\v3_import_fast.js
+  1:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  3:16  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\v4_import_upsert.js
+  1:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+✖ 426 problems (303 errors, 123 warnings)
+  7 errors and 0 warnings potentially fixable with the `--fix` option.
+
