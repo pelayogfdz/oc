@@ -169,6 +169,7 @@ model CustomerPayment {
   cfdiStatus String   @default("NONE") // NONE, REQUESTED, TIMBRADO
   cfdiUrlPdf String?
   cfdiUrlXml String?
+  paymentDate DateTime?
 
   createdAt  DateTime @default(now())
 }

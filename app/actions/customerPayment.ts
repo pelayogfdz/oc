@@ -12,6 +12,7 @@ export async function addCustomerPaymentBatch(
   requestCfdi: boolean = false,
   paymentDate?: string
 ) {
+  try {
   const branch = await getActiveBranch();
   const user = await getActiveUser();
   
@@ -104,9 +105,14 @@ export async function addCustomerPaymentBatch(
 
   revalidatePath('/clientes/cobranza');
   revalidatePath('/caja/actual');
+  return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || String(err) };
+  }
 }
 
 export async function deleteCustomerPayment(paymentId: string) {
+  try {
   const branch = await getActiveBranch();
   const user = await getActiveUser();
   
@@ -154,4 +160,8 @@ export async function deleteCustomerPayment(paymentId: string) {
   await prisma.customerPayment.delete({ where: { id: paymentId } });
   
   revalidatePath(`/clientes/${payment.customerId}`);
+  return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || String(err) };
+  }
 }

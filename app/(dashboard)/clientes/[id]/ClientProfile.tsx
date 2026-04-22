@@ -53,7 +53,7 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
     setLoading(true);
     try {
       const salePayments = Object.entries(selectedSales).map(([id, amount]) => ({ id, amount: Number(amount) }));
-      await addCustomerPaymentBatch(
+      const response = await addCustomerPaymentBatch(
         customer.id, 
         parseFloat(globalAmount), 
         paymentMethod, 
@@ -61,6 +61,10 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
         requestCfdi,
         paymentDate ? new Date(paymentDate).toISOString() : undefined
       );
+
+      if (!response?.success) {
+        throw new Error(response?.error || 'Error desconocido al procesar el pago');
+      }
       
       setSelectedSales({});
       setGlobalAmount('');
@@ -77,7 +81,8 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
   const handleDeletePayment = async (id: string) => {
      if (!confirm("¿Seguro que deseas eliminar este abono? Esto revertirá saldos e ingresos en caja.")) return;
      try {
-        await deleteCustomerPayment(id);
+        const response = await deleteCustomerPayment(id);
+        if (!response?.success) throw new Error(response?.error || 'Error desconocido');
      } catch (err: any) {
         alert(err.message);
      }

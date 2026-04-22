@@ -3,11 +3,12 @@ import { useState, useMemo, useEffect } from 'react';
 import { createSale } from '@/app/actions/sale';
 import { createQuote, getQuoteForPOS } from '@/app/actions/quote';
 import { searchProducts } from '@/app/actions/product';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 
 export default function POSClient({ products: initialProducts, customers, promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {}, dynamicPriceLists = [], pendingQuotes = [] }: { products: any[], customers: any[], promotions?: any[], mode?: "SALE" | "QUOTE", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any, dynamicPriceLists?: any[], pendingQuotes?: any[] }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { isOnline, pushOfflineSale } = useOfflineSync();
   const [cart, setCart] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -497,6 +498,10 @@ export default function POSClient({ products: initialProducts, customers, promot
            alert('¡Venta cobrada con éxito! Imprimiendo Ticket...');
          }
          printTicket(cartBackup, totalBackup, changeBackup, discountBackup, saleId);
+         if (mode !== 'QUOTE') {
+            router.push('/ventas');
+            router.refresh();
+         }
       }, 100);
 
     } catch (e) {
