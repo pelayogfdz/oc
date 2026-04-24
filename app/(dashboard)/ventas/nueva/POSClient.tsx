@@ -1,5 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
+import { Image as ImageIcon } from 'lucide-react';
 import { createSale } from '@/app/actions/sale';
 import { createQuote, getQuoteForPOS } from '@/app/actions/quote';
 import { searchProducts } from '@/app/actions/product';
@@ -547,7 +548,7 @@ export default function POSClient({ products: initialProducts, customers, promot
             </select>
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', overflowY: 'auto', alignContent: 'start', paddingRight: '0.5rem', opacity: isSearching ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1rem', overflowY: 'auto', alignContent: 'start', paddingRight: '0.5rem', opacity: isSearching ? 0.5 : 1, transition: 'opacity 0.2s' }}>
           {displayedProducts
             .filter(prod => {
               if (stockFilter === 'IN_STOCK') return prod.stock > 0;
@@ -555,13 +556,35 @@ export default function POSClient({ products: initialProducts, customers, promot
               return true;
             })
             .map(prod => (
-            <button key={prod.id} onClick={() => handleProductClick(prod)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--pulpos-border)', padding: '1rem', borderRadius: '6px', textAlign: 'left', backgroundColor: 'white', cursor: 'pointer', transition: 'background-color 0.2s', ':hover': { backgroundColor: '#f8fafc' } } as any}>
-              <div>
-                <div style={{ fontWeight: '600', fontSize: '1.2rem', color: '#1e293b' }}>{prod.name} {prod.variants?.length > 0 && <span style={{fontSize: '0.85rem', backgroundColor: '#e2e8f0', padding: '2px 6px', borderRadius: '4px', marginLeft: '0.5rem'}}>{prod.variants.length} var.</span>}</div>
-                <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.9rem', marginTop: '0.2rem' }}>SKU: {prod.sku || '--'} | Stock: {prod.stock}</div>
+            <button key={prod.id} onClick={() => handleProductClick(prod)} style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--pulpos-border)', borderRadius: '12px', textAlign: 'left', backgroundColor: 'white', cursor: 'pointer', transition: 'transform 0.1s, box-shadow 0.1s', overflow: 'hidden' } as any}
+            onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)'; }}
+            onMouseOut={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+            >
+              {/* Product Image Wrapper */}
+              <div style={{ width: '100%', height: '120px', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid var(--pulpos-border)' }}>
+                {prod.imageUrl ? (
+                  <img src={prod.imageUrl} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <ImageIcon size={32} color="#cbd5e1" />
+                )}
               </div>
-              <div style={{ color: 'var(--pulpos-primary)', fontWeight: 'bold', fontSize: '1.25rem', textAlign: 'right' }}>
-                ${getProductPrice(prod).toFixed(2)}
+              
+              {/* Product Info */}
+              <div style={{ padding: '0.75rem', width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: '40px' }}>
+                    {prod.name}
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                  <div style={{ color: 'var(--pulpos-primary)', fontWeight: '900', fontSize: '1.1rem' }}>
+                    ${getProductPrice(prod).toFixed(2)}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: prod.stock <= 0 ? '#dc2626' : 'var(--pulpos-text-muted)' }}>
+                    {prod.stock} {prod.unit || 'u'}
+                  </div>
+                </div>
               </div>
             </button>
           ))}

@@ -67,3 +67,8 @@ export async function verifyActiveTenantSession() {
   }
   return { tenantId: user.tenantId, userId: user.id, role: user.role };
 }
+
+export async function logout() {
+  await deleteSession();
+  revalidatePath('/', 'layout');
+}

@@ -9,7 +9,7 @@ export default async function CobranzaGlobalPage() {
   
   const pendingSales = await prisma.sale.findMany({
     where: { 
-      branchId: branch?.id,
+      ...(branch?.id !== 'GLOBAL' ? { branchId: branch?.id } : {}),
       paymentMethod: 'CREDIT',
       balanceDue: { gt: 0 }
     },

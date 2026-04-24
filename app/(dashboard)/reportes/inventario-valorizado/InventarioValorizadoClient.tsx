@@ -3,10 +3,25 @@
 import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
-import { Search, PackageOpen, TrendingDown, DollarSign } from 'lucide-react';
+import { Search, PackageOpen, TrendingDown, DollarSign, Loader2 } from 'lucide-react';
+import ReportFilterBar, { ReportFilterState } from '@/components/ui/ReportFilterBar';
+import { getInventoryValuationData } from '@/app/actions/reportes';
 
-export default function InventarioValorizadoClient({ data }: { data: any }) {
+export default function InventarioValorizadoClient({ initialData, initialBranchId }: { initialData: any, initialBranchId: string }) {
+  const [data, setData] = useState(initialData);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const handleFilterChange = async (filters: ReportFilterState) => {
+    setLoading(true);
+    try {
+      const newData = await getInventoryValuationData(filters.branchId);
+      setData(newData);
+    } catch (e) {
+      console.error(e);
+    }
+    setLoading(false);
+  };
 
   const filteredInventory = data.inventory.filter((i: any) => 
     i.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -20,8 +35,23 @@ export default function InventarioValorizadoClient({ data }: { data: any }) {
         <p style={{ color: 'var(--pulpos-text-muted)' }}>Conoce qué productos amarran tu capital y cuál es tu ganancia potencial.</p>
       </div>
 
+      <ReportFilterBar 
+        onFilterChange={handleFilterChange} 
+        disabled={loading} 
+        showDateRange={false}
+        showUser={false}
+        initialBranchId={initialBranchId}
+      />
+
+      {loading && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--pulpos-primary)', fontWeight: 'bold' }}>
+          <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+          Calculando valuación de inventario...
+        </div>
+      )}
+
       {/* KPI Widgets */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+      <div style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.2s', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
         <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
             <div style={{ padding: '0.5rem', backgroundColor: '#fee2e2', borderRadius: '8px' }}><PackageOpen size={20} color="#ef4444" /></div>
@@ -47,7 +77,7 @@ export default function InventarioValorizadoClient({ data }: { data: any }) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 400px', gap: '2rem', alignItems: 'start' }}>
+      <div style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.2s', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 400px', gap: '2rem', alignItems: 'start' }}>
         
         {/* Tabla Analítica */}
         <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>

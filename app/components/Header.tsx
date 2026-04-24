@@ -1,4 +1,4 @@
-import { getActiveBranch, getActiveUser } from '@/app/actions/auth';
+import { getActiveBranch, getActiveUser, logout } from '@/app/actions/auth';
 import { prisma } from '@/lib/prisma';
 import BranchSelector from './BranchSelector';
 import MobileMenuToggle from './MobileMenuToggle';
@@ -46,14 +46,23 @@ export default async function Header() {
         <PwaInstallButton />
         <HeaderNetworkStatus />
 
-        <div className="header-user-info" style={{ textAlign: 'right' }}>
-          <div style={{ marginBottom: '0.25rem' }}>
-            <BranchSelector branches={finalOptions} currentBranchId={currentBranch?.id || ''} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div className="header-user-info" style={{ textAlign: 'right' }}>
+            <div style={{ marginBottom: '0.25rem' }}>
+              <BranchSelector branches={finalOptions} currentBranchId={currentBranch?.id || ''} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.75rem' }}>{currentUser?.name || 'Usuario'}</span>
+              <form action={async () => { 'use server'; await logout(); }} style={{ margin: 0, padding: 0 }}>
+                 <button type="submit" style={{ background: 'none', border: 'none', padding: 0, margin: 0, color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline', fontWeight: 'bold' }}>
+                   Salir
+                 </button>
+              </form>
+            </div>
           </div>
-          <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.75rem' }}>{currentUser?.name || 'Usuario'}</div>
-        </div>
-        <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--pulpos-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'white' }}>
-          {currentUser?.name ? currentUser.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'US'}
+          <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--pulpos-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'white' }}>
+            {currentUser?.name ? currentUser.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'US'}
+          </div>
         </div>
       </div>
     </header>

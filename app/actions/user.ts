@@ -13,6 +13,10 @@ export async function createUser(formData: FormData) {
   const commissionRole = formData.get('commissionRole') as string || 'VENDEDOR';
   const commissionPct = parseFloat(formData.get('commissionPct') as string || '0');
   const monthlyGoal = parseFloat(formData.get('monthlyGoal') as string || '0');
+  const bonusAmount = parseFloat(formData.get('bonusAmount') as string || '0');
+  const teamBonusAmount = parseFloat(formData.get('teamBonusAmount') as string || '0');
+  const rawManagerId = formData.get('managerId') as string;
+  const managerId = rawManagerId && rawManagerId !== 'NONE' ? rawManagerId : null;
   
   const branch = await getActiveBranch();
   if (!branch) throw new Error("No branch active");
@@ -28,7 +32,11 @@ export async function createUser(formData: FormData) {
       commissionRole,
       commissionPct,
       monthlyGoal,
+      bonusAmount,
+      teamBonusAmount,
+      managerId,
       branchId: branch.id,
+      tenantId: branch.tenantId,
       permissions
     } as any
   });
@@ -44,10 +52,14 @@ export async function updateUser(id: string, formData: FormData) {
   const commissionRole = formData.get('commissionRole') as string;
   const commissionPct = parseFloat(formData.get('commissionPct') as string || '0');
   const monthlyGoal = parseFloat(formData.get('monthlyGoal') as string || '0');
+  const bonusAmount = parseFloat(formData.get('bonusAmount') as string || '0');
+  const teamBonusAmount = parseFloat(formData.get('teamBonusAmount') as string || '0');
+  const rawManagerId = formData.get('managerId') as string;
+  const managerId = rawManagerId && rawManagerId !== 'NONE' ? rawManagerId : null;
   const permissions = formData.get('permissions') as string;
   const password = formData.get('password') as string;
   
-  const updateData: any = { name, email, role, commissionRole, commissionPct, monthlyGoal, permissions };
+  const updateData: any = { name, email, role, commissionRole, commissionPct, monthlyGoal, bonusAmount, teamBonusAmount, managerId, permissions };
   if (password) {
     updateData.password = password;
   }

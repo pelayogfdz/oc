@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { requestTransfer, dispatchDirectTransfer } from '@/app/actions/transfer';
 import { useRouter } from 'next/navigation';
-import { Truck, ArrowRight, Trash2, Search } from 'lucide-react';
+import { Truck, ArrowRight, Trash2, Search, Image as ImageIcon } from 'lucide-react';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 
 export default function TransferClient({ originBranchId, originBranchName, otherBranches: initialOtherBranches, inventory: initialInventory, ventasConfig = {}, isDirectDispatch = false }: any) {
@@ -89,7 +89,8 @@ export default function TransferClient({ originBranchId, originBranchName, other
         name,
         sku,
         maxStock,
-        quantity: 1
+        quantity: 1,
+        imageUrl: product.imageUrl
       }]);
     }
   };
@@ -211,7 +212,16 @@ export default function TransferClient({ originBranchId, originBranchName, other
                <tbody>
                  {transferItems.map(item => (
                    <tr key={item.listId} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                     <td style={{ padding: '0.75rem 0.5rem', fontWeight: '500' }}>{item.name}</td>
+                     <td style={{ padding: '0.75rem 0.5rem', fontWeight: '500' }}>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                         {item.imageUrl && (
+                           <div style={{ width: '32px', height: '32px', backgroundColor: '#f1f5f9', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                             <img src={item.imageUrl} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                           </div>
+                         )}
+                         {item.name}
+                       </div>
+                     </td>
                      <td style={{ padding: '0.75rem 0.5rem', color: 'var(--pulpos-text-muted)', fontSize: '0.875rem' }}>{item.sku || '--'}</td>
                      <td style={{ padding: '0.75rem 0.5rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -275,28 +285,34 @@ export default function TransferClient({ originBranchId, originBranchName, other
           </select>
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div style={{ flex: 1, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem', alignContent: 'start' }}>
           {displayedProducts.map((prod: any) => (
              <button 
                key={prod.id} 
                onClick={() => handleProductClick(prod)}
                disabled={!ventasConfig.venderSinStock && prod.stock <= 0}
                style={{ 
-                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                 padding: '0.75rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', 
-                 backgroundColor: '#fafafa', cursor: (ventasConfig.venderSinStock || prod.stock > 0) ? 'pointer' : 'not-allowed',
-                 textAlign: 'left', opacity: (ventasConfig.venderSinStock || prod.stock > 0) ? 1 : 0.5
-               }}
+                 display: 'flex', flexDirection: 'column',
+                 border: '1px solid var(--pulpos-border)', borderRadius: '8px', overflow: 'hidden',
+                 backgroundColor: 'white', cursor: (ventasConfig.venderSinStock || prod.stock > 0) ? 'pointer' : 'not-allowed',
+                 textAlign: 'left', opacity: (ventasConfig.venderSinStock || prod.stock > 0) ? 1 : 0.5,
+                 transition: 'box-shadow 0.2s', ':hover': { boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }
+               } as any}
              >
-               <div>
-                  <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#1e293b' }}>
-                    {prod.name}
-                    {prod.variants?.length > 0 && <span style={{fontSize: '0.75rem', backgroundColor: '#e2e8f0', padding: '2px 6px', borderRadius: '4px', marginLeft: '0.5rem'}}>{prod.variants.length} var.</span>}
-                  </div>
-                  <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.75rem' }}>SKU: {prod.sku || '--'}</div>
+               <div style={{ height: '90px', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                 {prod.imageUrl ? <img src={prod.imageUrl} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon color="#cbd5e1" size={32} />}
                </div>
-               <div style={{ fontWeight: 'bold', color: prod.stock > 0 ? '#16a34a' : '#ef4444' }}>
-                 {prod.stock} disp.
+               <div style={{ padding: '0.75rem', width: '100%' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: '#1e293b', marginBottom: '0.25rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: '34px' }}>
+                    {prod.name}
+                  </div>
+                  {prod.variants?.length > 0 && <div style={{fontSize: '0.7rem', backgroundColor: '#e2e8f0', padding: '2px 4px', borderRadius: '4px', display: 'inline-block', marginBottom: '0.25rem'}}>{prod.variants.length} var.</div>}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
+                    <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.75rem' }}>{prod.sku || '--'}</div>
+                    <div style={{ fontWeight: 'bold', fontSize: '0.8rem', color: prod.stock > 0 ? '#16a34a' : '#ef4444' }}>
+                      {prod.stock} disp.
+                    </div>
+                  </div>
                </div>
              </button>
           ))}

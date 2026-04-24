@@ -70,6 +70,8 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
   // State for permissions mapping
   const [perms, setPerms] = useState<Record<string, boolean>>({});
 
+  const potentialManagers = users.filter(u => u.commissionRole === 'LIDER' || u.commissionRole === 'COORDINADOR');
+
   // Dynamically create a module for Branch Assignments
   const dynamicModules = [
     {
@@ -266,7 +268,7 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
         
         <form onSubmit={handleSubmit}>
           {/* Datos Básicos */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: '1rem', marginBottom: '2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: '1rem', marginBottom: '2rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Nombre Completo</label>
               <input type="text" name="name" defaultValue={editingUser?.name || ''} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
@@ -302,6 +304,23 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
             <div>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#16a34a' }}>Meta Mensual ($)</label>
               <input type="number" step="100" min="0" name="monthlyGoal" defaultValue={editingUser?.monthlyGoal || 0} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #16a34a', backgroundColor: 'white' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#f59e0b' }}>Jefe Inmediato (Opcional)</label>
+              <select name="managerId" defaultValue={editingUser?.managerId || 'NONE'} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #f59e0b', backgroundColor: 'white' }}>
+                <option value="NONE">Ninguno / Independiente</option>
+                {potentialManagers.map(m => (
+                  <option key={m.id} value={m.id}>{m.name} ({m.commissionRole})</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#8b5cf6' }}>Bono Personal ($)</label>
+              <input type="number" step="10" min="0" name="bonusAmount" defaultValue={editingUser?.bonusAmount || 0} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #8b5cf6', backgroundColor: 'white' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#8b5cf6' }}>Bono de Equipo ($)</label>
+              <input type="number" step="10" min="0" name="teamBonusAmount" defaultValue={editingUser?.teamBonusAmount || 0} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #8b5cf6', backgroundColor: 'white' }} />
             </div>
           </div>
 

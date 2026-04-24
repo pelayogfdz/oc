@@ -3,17 +3,21 @@
 import { prisma } from '@/lib/prisma';
 import { getActiveBranch } from './auth';
 
-export async function getGeneralAnalyticsData(daysBack: number = 30) {
+export async function getGeneralAnalyticsData(startDate: Date, endDate: Date, branchIdFilter?: string, userIdFilter?: string) {
   const branch = await getActiveBranch();
-  if (branch.id === 'GLOBAL') throw new Error('Global reporting not implemented');
-
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - daysBack);
+  
+  let branchCondition: any = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
+  if (branchIdFilter && branchIdFilter !== 'ALL') {
+    branchCondition = { branchId: branchIdFilter };
+  }
+  
+  const userCondition = (userIdFilter && userIdFilter !== 'ALL') ? { userId: userIdFilter } : {};
 
   const sales = await prisma.sale.findMany({
     where: {
-      branchId: branch.id,
-      createdAt: { gte: startDate }
+      ...branchCondition,
+      ...userCondition,
+      createdAt: { gte: startDate, lte: endDate }
     },
     include: {
       items: {
@@ -28,6 +32,18 @@ export async function getGeneralAnalyticsData(daysBack: number = 30) {
   // Aggregate by day
   const dailyData: Record<string, { date: string, Ventas: number, Ganancia: number, Tickets: number }> = {};
   
+  // Fill all dates in range
+  let currentDate = new Date(startDate);
+  currentDate.setHours(0,0,0,0);
+  const end = new Date(endDate);
+  end.setHours(23,59,59,999);
+  
+  while (currentDate <= end) {
+    const dStr = currentDate.toISOString().split('T')[0];
+    dailyData[dStr] = { date: dStr, Ventas: 0, Ganancia: 0, Tickets: 0 };
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
   let totalRevenue = 0;
   let totalCost = 0;
 
@@ -65,17 +81,21 @@ export async function getGeneralAnalyticsData(daysBack: number = 30) {
   };
 }
 
-export async function getSalesDetailData(daysBack: number = 30) {
+export async function getSalesDetailData(startDate: Date, endDate: Date, branchIdFilter?: string, userIdFilter?: string) {
   const branch = await getActiveBranch();
-  if (branch.id === 'GLOBAL') throw new Error('Global reporting not implemented');
-
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - daysBack);
+  
+  let branchCondition: any = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
+  if (branchIdFilter && branchIdFilter !== 'ALL') {
+    branchCondition = { branchId: branchIdFilter };
+  }
+  
+  const userCondition = (userIdFilter && userIdFilter !== 'ALL') ? { userId: userIdFilter } : {};
 
   const sales = await prisma.sale.findMany({
     where: {
-      branchId: branch.id,
-      createdAt: { gte: startDate }
+      ...branchCondition,
+      ...userCondition,
+      createdAt: { gte: startDate, lte: endDate }
     },
     include: {
       user: true,
@@ -119,16 +139,42 @@ export async function getSalesDetailData(daysBack: number = 30) {
     value: salesByUser[name]
   })).sort((a,b) => b.value - a.value);
 
-  return { sales: mappedSales, pieData };
+  // Aggregate for chart data
+  const dailyData: Record<string, { date: string, Ventas: number }> = {};
+  let currentDate = new Date(startDate);
+  currentDate.setHours(0,0,0,0);
+  const end = new Date(endDate);
+  end.setHours(23,59,59,999);
+  
+  while (currentDate <= end) {
+    const dStr = currentDate.toISOString().split('T')[0];
+    dailyData[dStr] = { date: dStr, Ventas: 0 };
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  sales.forEach(sale => {
+    const dStr = sale.createdAt.toISOString().split('T')[0];
+    if (dailyData[dStr]) {
+      dailyData[dStr].Ventas += sale.total;
+    }
+  });
+
+  const chartData = Object.values(dailyData);
+
+  return { sales: mappedSales, pieData, chartData };
 }
 
-export async function getInventoryValuationData() {
+export async function getInventoryValuationData(branchIdFilter?: string) {
   const branch = await getActiveBranch();
-  if (branch.id === 'GLOBAL') throw new Error('Global reporting not implemented');
+  
+  let branchCondition: any = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
+  if (branchIdFilter && branchIdFilter !== 'ALL') {
+    branchCondition = { branchId: branchIdFilter };
+  }
 
   const products = await prisma.product.findMany({
     where: {
-      branchId: branch.id,
+      ...branchCondition,
       stock: { gt: 0 }
     },
     orderBy: { stock: 'desc' }
@@ -171,4 +217,25 @@ export async function getInventoryValuationData() {
     capitalLocked,
     topStockVolume
   };
+}
+
+export async function getAvailableFilters() {
+  const branch = await getActiveBranch();
+  
+  let branches = [];
+  if (branch.id === 'GLOBAL') {
+    branches = await prisma.branch.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' }
+    });
+  } else {
+    branches = [{ id: branch.id, name: branch.name }];
+  }
+
+  const users = await prisma.user.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' }
+  });
+
+  return { branches, users };
 }
