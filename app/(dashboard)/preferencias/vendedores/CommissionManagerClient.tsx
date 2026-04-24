@@ -61,14 +61,15 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
   };
 
   const roles = [
-    { label: 'Vendedor', value: 'VENDEDOR' },
-    { label: 'Líder', value: 'LIDER' },
-    { label: 'Coordinador', value: 'COORDINADOR' }
+    { label: 'Vendedor Base', value: 'VENDEDOR' },
+    { label: 'Líder Secundario', value: 'LIDER_SECUNDARIO' },
+    { label: 'Líder de Equipo', value: 'LIDER' },
+    { label: 'Coordinador General', value: 'COORDINADOR' }
   ];
 
   const coordinators = useMemo(() => users.filter(u => u.commissionRole === 'COORDINADOR'), [users]);
   const leaders = useMemo(() => users.filter(u => u.commissionRole === 'LIDER'), [users]);
-  const vendors = useMemo(() => users.filter(u => u.commissionRole === 'VENDEDOR'), [users]);
+  const vendors = useMemo(() => users.filter(u => u.commissionRole === 'VENDEDOR' || u.commissionRole === 'LIDER_SECUNDARIO'), [users]);
 
   // Vendedores sin líder (managerId === null o no apunta a un lider v'alido)
   const unassignedVendors = vendors.filter(v => !v.managerId || v.managerId === 'NONE' || !leaders.find(l => l.id === v.managerId));

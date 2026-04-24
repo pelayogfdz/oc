@@ -150,6 +150,16 @@ export async function getCommissionReport(month: number, year: number) {
       
       // Bonus de equipo (Se inyecta abajo si su líder llega a la meta)
     } 
+    else if (stat.role === 'LIDER_SECUNDARIO') {
+      // Ganan comisión sobre Venta Personal
+      stat.commissionsEarned = stat.personalSales * (stat.commissionPct / 100);
+      
+      // Bono Individual si llega a cuota
+      if (stat.monthlyGoal > 0 && stat.personalSales >= stat.monthlyGoal) {
+        stat.bonusEarned = stat.bonusAmount;
+        stat.unlockedBonus = true;
+      }
+    }
     else if (stat.role === 'LIDER') {
       // Ganan comisión sobre Venta Personal (a veces cero si solo ganan por equipo, pero dejamos flexible)
       stat.commissionsEarned = stat.personalSales * (stat.commissionPct / 100);
@@ -161,7 +171,7 @@ export async function getCommissionReport(month: number, year: number) {
         
         // Repartir bono de equipo a subordinados
         for (const sub of rawStats) {
-          if (sub.managerId === stat.id && sub.role === 'VENDEDOR') {
+          if (sub.managerId === stat.id && (sub.role === 'VENDEDOR' || sub.role === 'LIDER_SECUNDARIO')) {
             sub.teamBonusEarned += stat.teamBonusAmount;
           }
         }
@@ -178,6 +188,31 @@ export async function getCommissionReport(month: number, year: number) {
     }
 
     stat.totalEarned = stat.commissionsEarned + stat.bonusEarned + stat.teamBonusEarned;
+  }
+
+  // D) Split Lider Secundario Commissions (Se lleva la mitad de la comisión del líder)
+  const secondaryLeadersByManager = new Map<string, any[]>();
+  for (const stat of rawStats) {
+    if (stat.role === 'LIDER_SECUNDARIO' && stat.managerId) {
+      if (!secondaryLeadersByManager.has(stat.managerId)) {
+        secondaryLeadersByManager.set(stat.managerId, []);
+      }
+      secondaryLeadersByManager.get(stat.managerId)!.push(stat);
+    }
+  }
+
+  for (const [managerId, secLeaders] of secondaryLeadersByManager.entries()) {
+    const leader = statsMap.get(managerId);
+    if (leader && (leader.role === 'LIDER' || leader.role === 'COORDINADOR')) {
+      const splitAmount = (leader.commissionsEarned / 2) / secLeaders.length;
+      leader.commissionsEarned -= (leader.commissionsEarned / 2);
+      
+      for (const secLeader of secLeaders) {
+        secLeader.commissionsEarned += splitAmount;
+        secLeader.totalEarned = secLeader.commissionsEarned + secLeader.bonusEarned + secLeader.teamBonusEarned;
+      }
+      leader.totalEarned = leader.commissionsEarned + leader.bonusEarned + leader.teamBonusEarned;
+    }
   }
 
   return rawStats;

@@ -293,6 +293,7 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--pulpos-primary)' }}>Puesto Ventas (Comisiones)</label>
               <select name="commissionRole" defaultValue={editingUser?.commissionRole || 'VENDEDOR'} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-primary)', backgroundColor: 'white' }}>
                 <option value="VENDEDOR">Vendedor Base</option>
+                <option value="LIDER_SECUNDARIO">Líder Secundario</option>
                 <option value="LIDER">Líder de Equipo</option>
                 <option value="COORDINADOR">Coordinador General</option>
               </select>
