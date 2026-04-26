@@ -157,7 +157,7 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
                 <XAxis type="number" tickFormatter={(v) => `$${v}`} tick={{fontSize: 10}} />
                 <YAxis dataKey="name" type="category" width={100} tick={{fontSize: 10}} />
-                <RechartsTooltip formatter={(value: number) => formatCurrency(value)} />
+                <RechartsTooltip formatter={(value: any) => formatCurrency(Number(value))} />
                 <Bar dataKey="costValue" fill="#ef4444" radius={[0, 4, 4, 0]} name="Capital Amarrado" />
               </BarChart>
             </ResponsiveContainer>

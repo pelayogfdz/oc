@@ -73,7 +73,7 @@ button {
 }
 
 /* App-like Mobile Layout */
-.mobile-bottom-nav, .mobile-grid-overlay {
+.mobile-bottom-nav, .mobile-grid-overlay, .mobile-menu-toggle {
   display: none;
 }
 
@@ -101,6 +101,24 @@ button {
 
   .header-user-info {
     display: none !important;
+  }
+  .desktop-menu-toggle {
+    display: none !important;
+  }
+
+  /* Desktop Sidebar Collapse */
+  .desktop-sidebar-wrapper {
+    width: 250px;
+    flex-shrink: 0;
+    transition: width 0.3s ease;
+    overflow: hidden;
+  }
+  .desktop-sidebar-wrapper.sidebar-collapsed {
+    width: 0;
+  }
+
+  .desktop-sidebar-wrapper .dashboard-sidebar {
+    width: 250px;
   }
 
   /* Bottom Navigation Bar */
@@ -257,3 +275,6 @@ button {
     margin: 0 !important;
   }
 }
+  
+.desktop-sidebar-wrapper { transition: width 0.3s ease; width: 280px; }  
+.desktop-sidebar-wrapper.sidebar-collapsed { width: 0; overflow: hidden; } 

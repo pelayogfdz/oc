@@ -4,15 +4,15 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { getActiveBranch } from './auth';
 
-export async function createPromotion(formData: FormData) {
+export async function createPromotion(name: string, type: string, value: number) {
   const branch = await getActiveBranch();
   
   await prisma.promotion.create({
     data: {
-      name: formData.get('name') as string,
-      type: formData.get('type') as string, // PERCENTAGE, FIXED_DISCOUNT
-      value: parseFloat(formData.get('value') as string) || 0,
-      active: formData.get('active') === 'on',
+      name,
+      type,
+      value,
+      active: true,
       branchId: branch.id
     }
   });

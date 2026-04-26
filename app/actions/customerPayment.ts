@@ -140,7 +140,7 @@ export async function deleteCustomerPayment(paymentId: string) {
       });
   }
   
-  if (payment.reason.includes('CASH') || payment.reason.includes('Efectivo')) {
+  if (payment.reason?.includes('CASH') || payment.reason?.includes('Efectivo')) {
      const currentSession = await prisma.cashSession.findFirst({
         where: { userId: user.id, branchId: branch.id, status: 'OPEN' }
      });

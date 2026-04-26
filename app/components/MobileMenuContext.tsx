@@ -8,6 +8,8 @@ interface MobileMenuContextType {
   setMobileMenuOpen: (o: boolean) => void;
   closeMenu: () => void;
   toggleMenu: () => void;
+  isDesktopSidebarCollapsed: boolean;
+  toggleDesktopSidebar: () => void;
 }
 
 const MobileMenuContext = createContext<MobileMenuContextType>({
@@ -15,10 +17,13 @@ const MobileMenuContext = createContext<MobileMenuContextType>({
   setMobileMenuOpen: () => {},
   closeMenu: () => {},
   toggleMenu: () => {},
+  isDesktopSidebarCollapsed: false,
+  toggleDesktopSidebar: () => {},
 });
 
 export const MobileMenuProvider = ({ children }: { children: React.ReactNode }) => {
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isDesktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
   const pathname = usePathname();
 
   // Close menu on navigation
@@ -28,9 +33,13 @@ export const MobileMenuProvider = ({ children }: { children: React.ReactNode }) 
 
   const closeMenu = () => setMobileMenuOpen(false);
   const toggleMenu = () => setMobileMenuOpen(!isMobileMenuOpen);
+  const toggleDesktopSidebar = () => setDesktopSidebarCollapsed(!isDesktopSidebarCollapsed);
 
   return (
-    <MobileMenuContext.Provider value={{ isMobileMenuOpen, setMobileMenuOpen, closeMenu, toggleMenu }}>
+    <MobileMenuContext.Provider value={{ 
+      isMobileMenuOpen, setMobileMenuOpen, closeMenu, toggleMenu,
+      isDesktopSidebarCollapsed, toggleDesktopSidebar 
+    }}>
       {children}
     </MobileMenuContext.Provider>
   );

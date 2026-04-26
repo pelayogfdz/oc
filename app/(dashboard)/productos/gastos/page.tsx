@@ -11,7 +11,7 @@ async function createExpense(formData: FormData) {
   const amount = parseFloat(formData.get('amount') as string);
   
   const branch = await getActiveBranch();
-  const user = await getActiveUser(branch.id);
+  const user = await getActiveUser();
   
   await prisma.expense.create({
     data: {

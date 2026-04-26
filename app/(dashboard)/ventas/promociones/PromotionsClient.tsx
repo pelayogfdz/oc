@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { createPromotion, togglePromotionStatus, deletePromotion } from '@/app/actions/promotion';
+import { createPromotion, togglePromotion, deletePromotion } from '@/app/actions/promotion';
 import { Trash2 } from 'lucide-react';
 
 export default function PromotionsClient({ initialPromos }: { initialPromos: any[] }) {
@@ -87,7 +87,7 @@ export default function PromotionsClient({ initialPromos }: { initialPromos: any
                 </td>
                 <td style={{ padding: '1rem', textAlign: 'center' }}>
                   <button 
-                    onClick={() => togglePromotionStatus(promo.id, promo.active)}
+                    onClick={() => togglePromotion(promo.id, !promo.active)}
                     style={{ 
                       padding: '0.25rem 0.75rem', 
                       borderRadius: '12px', 

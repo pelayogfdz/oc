@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { requestTransfer } from '@/app/actions/transfer';
 import { useRouter } from 'next/navigation';
 import { Truck, ArrowRight, Trash2, Search } from 'lucide-react';
+import ProductTableUI from '@/app/components/ProductTableUI';
 
 export default function TransferClient({ originBranchId, originBranchName, otherBranches, inventory, ventasConfig = {} }: any) {
   const router = useRouter();
@@ -219,34 +220,16 @@ export default function TransferClient({ originBranchId, originBranchName, other
           </select>
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {displayedProducts.map((prod: any) => (
-             <button 
-               key={prod.id} 
-               onClick={() => handleProductClick(prod)}
-               disabled={!ventasConfig.venderSinStock && prod.stock <= 0}
-               style={{ 
-                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                 padding: '0.75rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', 
-                 backgroundColor: '#fafafa', cursor: (ventasConfig.venderSinStock || prod.stock > 0) ? 'pointer' : 'not-allowed',
-                 textAlign: 'left', opacity: (ventasConfig.venderSinStock || prod.stock > 0) ? 1 : 0.5
-               }}
-             >
-               <div>
-                  <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#1e293b' }}>
-                    {prod.name}
-                    {prod.variants?.length > 0 && <span style={{fontSize: '0.75rem', backgroundColor: '#e2e8f0', padding: '2px 6px', borderRadius: '4px', marginLeft: '0.5rem'}}>{prod.variants.length} var.</span>}
-                  </div>
-                  <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.75rem' }}>SKU: {prod.sku || '--'}</div>
-               </div>
-               <div style={{ fontWeight: 'bold', color: prod.stock > 0 ? '#16a34a' : '#ef4444' }}>
-                 {prod.stock} disp.
-               </div>
-             </button>
-          ))}
-          {displayedProducts.length === 0 && (
-             <div style={{ textAlign: 'center', color: 'var(--pulpos-text-muted)', marginTop: '2rem' }}>No se encontraron productos.</div>
-          )}
+        <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
+           <ProductTableUI 
+             products={displayedProducts}
+             showCheckboxes={false}
+             onRowClick={(prod) => {
+               if (ventasConfig.venderSinStock || prod.stock > 0) {
+                 handleProductClick(prod);
+               }
+             }}
+           />
         </div>
       </div>
 

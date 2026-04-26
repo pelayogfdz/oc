@@ -2,8 +2,8 @@ import { getActiveBranch, getActiveUser, logout } from '@/app/actions/auth';
 import { prisma } from '@/lib/prisma';
 import BranchSelector from './BranchSelector';
 import MobileMenuToggle from './MobileMenuToggle';
+import DesktopMenuToggle from './DesktopMenuToggle';
 import HeaderNetworkStatus from './HeaderNetworkStatus';
-import PwaInstallButton from './PwaInstallButton';
 
 export default async function Header() {
   const currentBranch = await getActiveBranch();
@@ -39,11 +39,11 @@ export default async function Header() {
       padding: '0 1rem',
       flexShrink: 0
     }}>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <MobileMenuToggle />
+        <DesktopMenuToggle />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <PwaInstallButton />
         <HeaderNetworkStatus />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

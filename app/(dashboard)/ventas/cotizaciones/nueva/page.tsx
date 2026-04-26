@@ -21,7 +21,7 @@ export default async function NuevaCotizacionPage() {
   return (
     <div>
       <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', color: '#854d0e' }}>Crear Nueva Cotización</h1>
-      <POSClient products={products} customers={customers} promotions={promotions} mode="QUOTE" />
+      <POSClient products={products} customers={customers} promotions={promotions} mode="QUOTE" branchId={branch.id} />
     </div>
   );
 }

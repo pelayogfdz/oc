@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Trash2, Save, ShoppingBag, Image as ImageIcon, Search } from 'lucide-react';
 import { createPurchase } from '@/app/actions/purchase';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
+import ProductTableUI from '@/app/components/ProductTableUI';
 
 export default function CrearCompraForm({ suppliers, products }: { suppliers: any[], products: any[] }) {
   const router = useRouter();
@@ -125,27 +126,12 @@ export default function CrearCompraForm({ suppliers, products }: { suppliers: an
         </div>
         
         {searchTerm && (
-           <div style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', maxHeight: '300px', overflowY: 'auto' }}>
-             {filteredProducts.slice(0, 10).map((p: any) => (
-               <button 
-                 key={p.id} 
-                 type="button"
-                 onClick={() => handleAddItem(p.id)}
-                 style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--pulpos-border)', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'white', cursor: 'pointer', textAlign: 'left', transition: 'box-shadow 0.2s', ':hover': { boxShadow: '0 4px 6px rgba(0,0,0,0.1)' } } as any}
-               >
-                 <div style={{ height: '100px', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-                   {p.imageUrl ? <img src={p.imageUrl} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon color="#cbd5e1" size={32} />}
-                 </div>
-                 <div style={{ padding: '0.75rem' }}>
-                   <div style={{ fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.25rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.name}</div>
-                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--pulpos-text-muted)' }}>
-                     <span>Stock: {p.stock}</span>
-                     <span>${parseFloat(p.cost || 0).toFixed(2)}</span>
-                   </div>
-                 </div>
-               </button>
-             ))}
-             {filteredProducts.length === 0 && <div style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>No se encontraron productos.</div>}
+           <div style={{ marginTop: '1rem', maxHeight: '400px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
+             <ProductTableUI 
+                products={filteredProducts.slice(0, 10)}
+                showCheckboxes={false}
+                onRowClick={(p) => handleAddItem(p.id)}
+             />
            </div>
         )}
       </div>

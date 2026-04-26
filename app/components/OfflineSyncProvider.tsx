@@ -8,7 +8,7 @@ interface OfflineContextType {
   isOnline: boolean;
   pendingSales: OfflineSale[];
   syncMessage: string | null;
-  pushOfflineSale: (sale: Omit<OfflineSale, 'id' | 'timestamp' | 'synced'>) => Promise<void>;
+  pushOfflineSale: (sale: Omit<OfflineSale, 'id' | 'timestamp' | 'synced' | 'retryCount' | 'failed' | 'errorMessage'>) => Promise<void>;
   pushOfflineTransfer: (transferParams: any) => Promise<void>;
   pushOfflinePurchase: (purchaseParams: any) => Promise<void>;
   pushOfflineProduct: (productParams: any) => Promise<void>;
@@ -228,10 +228,10 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
         try {
           if (p.isDirectPurchase) {
             const { createPurchase } = await import('../actions/purchase');
-            await createPurchase(p.items, p.total, p.paymentMethod || 'CASH', p.supplierId, p.freightCost || 0);
+            await createPurchase(p.items, p.total || 0, p.paymentMethod || 'CASH', p.supplierId || '', p.freightCost || 0);
           } else {
             const { createPurchaseOrder } = await import('../actions/pedidos');
-            await createPurchaseOrder(p.supplierId, p.notes, p.items, p.total);
+            await createPurchaseOrder(p.supplierId || null, p.notes || '', p.items, p.total || 0);
           }
           await db.pendingPurchases.delete(p.id);
           syncedAny = true;
@@ -351,9 +351,6 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   return (
     <OfflineContext.Provider value={{ isOnline, pendingSales, syncMessage, pushOfflineSale, forceSync, pushOfflineTransfer, pushOfflinePurchase, pushOfflineProduct, refreshCatalogs }}>
       {children}
-      {showToast && (
-        <div style={{ position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)', backgroundColor: showToast.type === 'error' ? '#ef4444' : showToast.type === 'warn' ? '#fbbf24' : '#10b981', color: showToast.type === 'warn' ? '#000' : '#fff', padding: '12px 24px', borderRadius: '8px', zIndex: 9999, fontWeight: 600 }}>{showToast.message}</div>
-      )}
     </OfflineContext.Provider>
   );
 }

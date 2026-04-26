@@ -1,11 +1,12 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
-import { Image as ImageIcon } from 'lucide-react';
+import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp } from 'lucide-react';
 import { createSale } from '@/app/actions/sale';
 import { createQuote, getQuoteForPOS } from '@/app/actions/quote';
 import { searchProducts } from '@/app/actions/product';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
+import ProductTableUI from '@/app/components/ProductTableUI';
 
 export default function POSClient({ products: initialProducts, customers, promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {}, dynamicPriceLists = [], pendingQuotes = [] }: { products: any[], customers: any[], promotions?: any[], mode?: "SALE" | "QUOTE", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any, dynamicPriceLists?: any[], pendingQuotes?: any[] }) {
   const searchParams = useSearchParams();
@@ -38,6 +39,8 @@ export default function POSClient({ products: initialProducts, customers, promot
   // Advanced POS State
   const [stockFilter, setStockFilter] = useState<'ALL' | 'IN_STOCK' | 'OUT_OF_STOCK'>('ALL');
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterCategory, setFilterCategory] = useState('ALL');
   
   // Checkout Modal State
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -156,9 +159,9 @@ export default function POSClient({ products: initialProducts, customers, promot
            const { db } = await import('@/lib/offlineDB');
            const lowerTerm = searchTerm.toLowerCase();
            const results = await db.products.filter(p => 
-             p.name.toLowerCase().includes(lowerTerm) || 
+             Boolean(p.name.toLowerCase().includes(lowerTerm) || 
              (p.sku && p.sku.toLowerCase().includes(lowerTerm)) || 
-             (p.barcode && p.barcode.includes(lowerTerm))
+             (p.barcode && p.barcode.includes(lowerTerm)))
            ).limit(50).toArray();
            setDisplayedProducts(results);
         } else if (searchTerm.trim() !== '') {
@@ -470,8 +473,10 @@ export default function POSClient({ products: initialProducts, customers, promot
                 cashValue,
                 cardValue,
                 billingData
-             }
-          });
+             },
+             retryCount: 0,
+             failed: false
+          } as any);
           saleId = `OFFLINE-${Date.now()}`;
         } else {
           // ONLINE MODE
@@ -514,80 +519,112 @@ export default function POSClient({ products: initialProducts, customers, promot
   return (
     <div style={{ display: 'flex', gap: '2rem', height: 'calc(100vh - 200px)' }}>
       {/* Left: Products */}
-      <div className="card" style={{ flex: 2, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: '1rem' }}>
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <h2 style={{ fontSize: '1.25rem', whiteSpace: 'nowrap' }}>Inventario</h2>
-            {mode === 'SALE' && (
-              <button 
-                onClick={() => setIsQuoteModalOpen(true)}
-                className="btn btn-secondary" 
-                style={{ whiteSpace: 'nowrap', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
-              >
-                Cargar Cotización
-              </button>
-            )}
-          </div>
-          <div style={{ display: 'flex', flex: 1, gap: '0.5rem' }}>
+      <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        {/* Toolbar */}
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flexGrow: 1, maxWidth: '500px' }}>
+            <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             <input 
               type="text" 
-              placeholder="🔍 Buscar por nombre, SKU o código" 
+              placeholder="Buscar por nombre, SKU o código de barras" 
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              style={{ padding: '0.75rem 1rem', flex: 1, borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+              style={{ 
+                padding: '0.6rem 1rem 0.6rem 2.5rem', 
+                width: '100%', 
+                borderRadius: '8px', 
+                border: '1px solid #e2e8f0', 
+                backgroundColor: 'white', 
+                fontSize: '0.95rem',
+                outline: 'none'
+              }}
               autoFocus
             />
-            <select 
-              value={stockFilter} 
-              onChange={e => setStockFilter(e.target.value as 'ALL' | 'IN_STOCK' | 'OUT_OF_STOCK')}
-              style={{ padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}
-            >
-              <option value="ALL">Todas las existencias</option>
-              <option value="IN_STOCK">Con Existencia</option>
-              <option value="OUT_OF_STOCK">Sin Existencia</option>
-            </select>
           </div>
+          
+          <button 
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: '0.5rem', 
+              backgroundColor: showAdvancedFilters ? '#f1f5f9' : 'white', 
+              border: '1px solid #e2e8f0', 
+              padding: '0.6rem 1rem', 
+              borderRadius: '8px', 
+              fontWeight: '500', 
+              cursor: 'pointer',
+              fontSize: '0.95rem'
+            }}>
+            <Filter size={16} /> Filtrar
+          </button>
+
+          <button 
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: '0.5rem', 
+              backgroundColor: 'white', 
+              border: '1px solid #e2e8f0', 
+              padding: '0.6rem 1rem', 
+              borderRadius: '8px', 
+              fontWeight: '500', 
+              cursor: 'pointer',
+              fontSize: '0.95rem'
+            }}>
+            <MapPin size={16} /> Ubicación
+          </button>
+
+          <button 
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: '0.5rem', 
+              backgroundColor: 'white', 
+              border: '1px solid #e2e8f0', 
+              padding: '0.6rem 1rem', 
+              borderRadius: '8px', 
+              fontWeight: '500', 
+              cursor: 'pointer',
+              fontSize: '0.95rem'
+            }}>
+            <ArrowDownUp size={16} /> Ordenar
+          </button>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1rem', overflowY: 'auto', alignContent: 'start', paddingRight: '0.5rem', opacity: isSearching ? 0.5 : 1, transition: 'opacity 0.2s' }}>
-          {displayedProducts
-            .filter(prod => {
+
+        {/* Advanced Filters Panel */}
+        {showAdvancedFilters && (
+          <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '8px', marginBottom: '1.5rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Categoría</label>
+              <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
+                <option value="ALL">Todas</option>
+                {Array.from(new Set(initialProducts.map(p => p.category).filter(Boolean))).map((cat: any) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Filtrar por Stock</label>
+              <select value={stockFilter} onChange={e => setStockFilter(e.target.value as any)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
+                <option value="ALL">Todas las existencias</option>
+                <option value="IN_STOCK">Con Existencia</option>
+                <option value="OUT_OF_STOCK">Sin Existencia</option>
+              </select>
+            </div>
+            <div style={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end' }}>
+               <button onClick={() => { setFilterCategory('ALL'); setStockFilter('ALL'); }} style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '500' }}>
+                 Limpiar Filtros
+               </button>
+            </div>
+          </div>
+        )}
+        <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '12px', opacity: isSearching ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+          <ProductTableUI 
+            products={displayedProducts.filter(prod => {
               if (stockFilter === 'IN_STOCK') return prod.stock > 0;
               if (stockFilter === 'OUT_OF_STOCK') return prod.stock <= 0;
+              if (filterCategory !== 'ALL' && prod.category !== filterCategory) return false;
               return true;
-            })
-            .map(prod => (
-            <button key={prod.id} onClick={() => handleProductClick(prod)} style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--pulpos-border)', borderRadius: '12px', textAlign: 'left', backgroundColor: 'white', cursor: 'pointer', transition: 'transform 0.1s, box-shadow 0.1s', overflow: 'hidden' } as any}
-            onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)'; }}
-            onMouseOut={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
-            >
-              {/* Product Image Wrapper */}
-              <div style={{ width: '100%', height: '120px', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid var(--pulpos-border)' }}>
-                {prod.imageUrl ? (
-                  <img src={prod.imageUrl} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <ImageIcon size={32} color="#cbd5e1" />
-                )}
-              </div>
-              
-              {/* Product Info */}
-              <div style={{ padding: '0.75rem', width: '100%' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: '40px' }}>
-                    {prod.name}
-                  </div>
-                </div>
-                
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
-                  <div style={{ color: 'var(--pulpos-primary)', fontWeight: '900', fontSize: '1.1rem' }}>
-                    ${getProductPrice(prod).toFixed(2)}
-                  </div>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: prod.stock <= 0 ? '#dc2626' : 'var(--pulpos-text-muted)' }}>
-                    {prod.stock} {prod.unit || 'u'}
-                  </div>
-                </div>
-              </div>
-            </button>
-          ))}
+            })}
+            showCheckboxes={false}
+            onRowClick={(prod) => handleProductClick(prod)}
+            priceExtractor={(prod) => getProductPrice(prod)}
+          />
           {displayedProducts.length === 0 && !isSearching && (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
               No se encontraron productos en la base de datos.
@@ -602,7 +639,7 @@ export default function POSClient({ products: initialProducts, customers, promot
       </div>
 
       {/* Right: Cart */}
-      <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div className="card" style={{ flex: 1.2, display: 'flex', flexDirection: 'column' }}>
         
         {/* Ticket Config */}
         <div style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { adjustInventory } from '@/app/actions/inventory';
 import { createVariant, deleteVariant } from '@/app/actions/variant';
+import { Truck } from 'lucide-react';
 
 // ProductDetailClient handles the tab navigation state
 export function ProductDetailClient({ 
@@ -337,7 +338,7 @@ export function ProductDetailClient({
           </table>
           <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', marginTop: '2rem' }}>
             <h3 style={{ fontWeight: 'bold', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Icons.Truck size={18} color="var(--pulpos-primary)" />
+              <Truck size={18} color="var(--pulpos-primary)" />
               Sugerencia de Abastecimiento
             </h3>
             <p style={{ fontSize: '0.9rem', color: 'var(--pulpos-text-muted)' }}>
