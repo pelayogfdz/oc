@@ -11,7 +11,9 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
     include: {
       user: true,
       customer: true,
-      branch: true,
+      branch: {
+        include: { settings: true }
+      },
       items: {
         include: { product: true, variant: true }
       }
@@ -20,10 +22,14 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
 
   if (!sale) return notFound();
 
-  // Uncommenting this could restrict visibility to branch level:
-  // if (sale.branchId !== branch.id && sale.branchId !== null) {
-  //   return <div>No autorizado para ver esta venta.</div>;
-  // }
+  let config: any = {};
+  if (sale.branch?.settings?.configJson) {
+    try {
+      config = JSON.parse(sale.branch.settings.configJson);
+    } catch(e) {}
+  }
+  const ticketConfig = config.formatos_ticket || {};
+  const { logoUrl, showProductSKU, showCashierName, footerNotes } = ticketConfig;
 
   // Auto-print script
   const printScript = `
@@ -40,7 +46,12 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
       
       {/* Ticket Header */}
       <div style={{ textAlign: 'center', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px dashed #ccc' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: '0 0 0.25rem 0' }}>{sale.branch?.name || 'SUCURSAL PRINCIPAL'}</h1>
+        {logoUrl && (
+          <img src={logoUrl} alt="Logo" style={{ maxWidth: '200px', maxHeight: '100px', objectFit: 'contain', margin: '0 auto 1rem auto', display: 'block' }} />
+        )}
+        {!logoUrl && (
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: '0 0 0.25rem 0' }}>{sale.branch?.name || 'SUCURSAL PRINCIPAL'}</h1>
+        )}
         <p style={{ margin: '0 0 0.25rem 0' }}>Ticket de Venta</p>
         <p style={{ margin: '0' }}>Folio: <strong>{sale.id.slice(0, 8).toUpperCase()}</strong></p>
         <p style={{ margin: '0.25rem 0 0 0' }}>{new Date(sale.createdAt).toLocaleString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
@@ -48,10 +59,12 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
 
       {/* Info Vendedor y Cliente */}
       <div style={{ marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-          <span>Le Atendió:</span>
-          <strong>{sale.user.name}</strong>
-        </div>
+        {showCashierName !== false && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+            <span>Le Atendió:</span>
+            <strong>{sale.user.name}</strong>
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
           <span>Cliente:</span>
           <strong>{sale.customer?.name || 'PUBLICO EN GENERAL'}</strong>
@@ -86,6 +99,7 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
               <td style={{ padding: '0.5rem 0', verticalAlign: 'top' }}>
                 <div>{item.product?.name || 'Desconocido'}</div>
                 {item.variant && <div style={{ fontSize: '0.85em', color: '#666' }}>Var: {item.variant.attribute}</div>}
+                {showProductSKU && item.product?.sku && <div style={{ fontSize: '0.85em', color: '#666' }}>SKU: {item.product.sku}</div>}
               </td>
               <td style={{ padding: '0.5rem 0', verticalAlign: 'top', textAlign: 'right' }}>
                 ${(item.price * item.quantity).toLocaleString('es-MX', {minimumFractionDigits: 2})}
@@ -122,7 +136,7 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
       </div>
 
       <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '11px', color: '#555' }}>
-        <p>¡Gracias por su compra!</p>
+        <p>{footerNotes || '¡Gracias por su compra!'}</p>
         <p>CAANMA PRO v1.0</p>
       </div>
 

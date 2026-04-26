@@ -107,94 +107,8 @@ export default function TransferClient({ originBranchId, originBranchName, other
   };
 
   return (
-    <div style={{ display: 'flex', gap: '2rem' }}>
-      {/* Left: Wizard Form & Cart */}
-      <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        
-        <div className="card" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-           <div style={{ flex: 1 }}>
-             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Solicitar A (Surte) <span style={{color:'red'}}>*</span></label>
-             <select value={fromBranchId} onChange={e => setFromBranchId(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', fontWeight: 'bold' }}>
-               <option value="">-- Seleccionar Sucursal --</option>
-               {otherBranches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
-             </select>
-           </div>
-           <div><ArrowRight color="#94a3b8" /></div>
-           <div style={{ flex: 1 }}>
-             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Recibe (Mi Sucursal)</label>
-             <div style={{ padding: '0.75rem', backgroundColor: '#f1f5f9', borderRadius: '4px', border: '1px solid var(--pulpos-border)', color: '#475569', fontWeight: '500' }}>
-               {originBranchName}
-             </div>
-           </div>
-           <div style={{ flex: 1 }}>
-             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Motivo</label>
-             <input type="text" value={reason} onChange={e => setReason(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-           </div>
-        </div>
-
-        <div className="card" style={{ flex: 1 }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Truck size={20} /> Artículos a Traspasar
-          </h2>
-          
-          {transferItems.length === 0 && (
-             <div style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--pulpos-text-muted)', border: '2px dashed var(--pulpos-border)', borderRadius: '8px' }}>
-               No has agregado productos.<br/>Búscalos en el panel derecho y agrégalos al paquete.
-             </div>
-          )}
-
-          {transferItems.length > 0 && (
-             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-               <thead>
-                 <tr style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                   <th style={{ padding: '0.5rem' }}>Producto</th>
-                   <th style={{ padding: '0.5rem' }}>SKU</th>
-                   <th style={{ padding: '0.5rem', width: '100px' }}>Cant.</th>
-                   <th style={{ padding: '0.5rem', width: '50px' }}></th>
-                 </tr>
-               </thead>
-               <tbody>
-                 {transferItems.map(item => (
-                   <tr key={item.listId} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                     <td style={{ padding: '0.75rem 0.5rem', fontWeight: '500' }}>{item.name}</td>
-                     <td style={{ padding: '0.75rem 0.5rem', color: 'var(--pulpos-text-muted)', fontSize: '0.875rem' }}>{item.sku || '--'}</td>
-                     <td style={{ padding: '0.75rem 0.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <input 
-                            type="number" 
-                            min="1" 
-                            max={item.maxStock}
-                            value={item.quantity} 
-                            onChange={e => updateQuantity(item.listId, Number(e.target.value))}
-                            style={{ width: '60px', padding: '0.25rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', textAlign: 'center' }}
-                          />
-                          <span style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)' }}>/ {item.maxStock}</span>
-                        </div>
-                     </td>
-                     <td style={{ padding: '0.75rem 0.5rem' }}>
-                       <button onClick={() => removeItem(item.listId)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={18}/></button>
-                     </td>
-                   </tr>
-                 ))}
-               </tbody>
-             </table>
-          )}
-
-          <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
-             <button 
-                className="btn-primary" 
-                onClick={handleSubmit} 
-                disabled={isProcessing || !fromBranchId || transferItems.length === 0}
-                style={{ padding: '1rem 2rem', fontSize: '1.1rem', opacity: (!fromBranchId || transferItems.length === 0 || isProcessing) ? 0.5 : 1 }}
-             >
-               {isProcessing ? 'Enviando...' : 'Crear Solicitud de Traspaso'}
-             </button>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Right: Product Selector */}
+    <div style={{ display: 'flex', gap: '2rem', height: 'calc(100vh - 200px)' }}>
+      {/* Left: Product Selector */}
       <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Buscador de Inventario</h2>
         
@@ -231,6 +145,95 @@ export default function TransferClient({ originBranchId, originBranchName, other
              }}
            />
         </div>
+      </div>
+
+      {/* Right: Wizard Form & Cart */}
+      <div style={{ width: '450px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+           <div>
+             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Solicitar A (Surte) <span style={{color:'red'}}>*</span></label>
+             <select value={fromBranchId} onChange={e => setFromBranchId(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', fontWeight: 'bold' }}>
+               <option value="">-- Seleccionar Sucursal --</option>
+               {otherBranches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+             </select>
+           </div>
+           
+           <div>
+             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Recibe (Mi Sucursal)</label>
+             <div style={{ padding: '0.75rem', backgroundColor: '#f1f5f9', borderRadius: '4px', border: '1px solid var(--pulpos-border)', color: '#475569', fontWeight: '500' }}>
+               {originBranchName}
+             </div>
+           </div>
+           <div>
+             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Motivo</label>
+             <input type="text" value={reason} onChange={e => setReason(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+           </div>
+        </div>
+
+        <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Truck size={20} /> Artículos a Traspasar
+          </h2>
+          
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+          {transferItems.length === 0 && (
+             <div style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--pulpos-text-muted)', border: '2px dashed var(--pulpos-border)', borderRadius: '8px' }}>
+               No has agregado productos.<br/>Búscalos en el panel izquierdo y agrégalos al paquete.
+             </div>
+          )}
+
+          {transferItems.length > 0 && (
+             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+               <thead>
+                 <tr style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                   <th style={{ padding: '0.5rem' }}>Producto</th>
+                   <th style={{ padding: '0.5rem', width: '100px' }}>Cant.</th>
+                   <th style={{ padding: '0.5rem', width: '30px' }}></th>
+                 </tr>
+               </thead>
+               <tbody>
+                 {transferItems.map(item => (
+                   <tr key={item.listId} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                     <td style={{ padding: '0.75rem 0.5rem', fontWeight: '500' }}>
+                        <div>{item.name}</div>
+                        <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.75rem' }}>{item.sku || '--'}</div>
+                     </td>
+                     <td style={{ padding: '0.75rem 0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <input 
+                            type="number" 
+                            min="1" 
+                            max={item.maxStock}
+                            value={item.quantity} 
+                            onChange={e => updateQuantity(item.listId, Number(e.target.value))}
+                            style={{ width: '60px', padding: '0.25rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', textAlign: 'center' }}
+                          />
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', marginTop: '0.2rem' }}>de {item.maxStock} disp.</div>
+                     </td>
+                     <td style={{ padding: '0.75rem 0.5rem' }}>
+                       <button onClick={() => removeItem(item.listId)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={18}/></button>
+                     </td>
+                   </tr>
+                 ))}
+               </tbody>
+             </table>
+          )}
+          </div>
+
+          <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px dashed #cbd5e1', display: 'flex', justifyContent: 'center' }}>
+             <button 
+                className="btn-primary" 
+                onClick={handleSubmit} 
+                disabled={isProcessing || !fromBranchId || transferItems.length === 0}
+                style={{ width: '100%', padding: '1rem', fontSize: '1.1rem', opacity: (!fromBranchId || transferItems.length === 0 || isProcessing) ? 0.5 : 1 }}
+             >
+               {isProcessing ? 'Enviando...' : 'Crear Solicitud de Traspaso'}
+             </button>
+          </div>
+        </div>
+
       </div>
 
        {/* Variant Selection Modal */}

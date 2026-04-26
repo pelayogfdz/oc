@@ -36,6 +36,20 @@ export default function POSClient({ products: initialProducts, customers, promot
     }
   }, [isOnline, customers, initialProducts, searchTerm]);
 
+  // Default to "Público en General"
+  useEffect(() => {
+    if (!selectedCustomerId && activeCustomers.length > 0) {
+      const defaultCustomer = activeCustomers.find(c => 
+        c.name.toLowerCase().includes('público en general') || 
+        c.name.toLowerCase().includes('publico en general')
+      );
+      if (defaultCustomer) {
+        setSelectedCustomerId(defaultCustomer.id);
+        setCustomerSearchTerm(defaultCustomer.name);
+      }
+    }
+  }, [activeCustomers, selectedCustomerId]);
+
   // Advanced POS State
   const [stockFilter, setStockFilter] = useState<'ALL' | 'IN_STOCK' | 'OUT_OF_STOCK'>('ALL');
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
