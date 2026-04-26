@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Image as ImageIcon, Plus, Trash2 } from 'lucide-react';
+import { Image as ImageIcon, Plus, Trash2, Camera } from 'lucide-react';
 import { createProduct } from "@/app/actions/product";
 import { useFormState } from 'react-dom';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
@@ -21,6 +21,50 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
   // States for margin calculation
   const [cost, setCost] = useState<number>(() => parseFloat(cloneProduct?.cost || "0"));
   const [price, setPrice] = useState<number>(() => parseFloat(cloneProduct?.price || "0"));
+  
+  const [previewImage, setPreviewImage] = useState(cloneProduct?.imageUrl || '');
+
+  const handleCapturePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          
+          const input = document.querySelector('input[name="imageUrl"]') as HTMLInputElement;
+          if (input) {
+            input.value = dataUrl;
+            setPreviewImage(dataUrl);
+          }
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   
   const [dynamicPrices, setDynamicPrices] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {};
@@ -69,15 +113,23 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
       <input type="hidden" name="hasVariants" value={hasVariants ? "1" : "0"} />
       
       {/* Imagen */}
-      <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem', display: 'flex', gap: '2rem', alignItems: 'center' }}>
-        <div style={{ width: '100px', height: '100px', backgroundColor: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', overflow: 'hidden' }}>
-          {cloneProduct?.imageUrl ? <img src={cloneProduct.imageUrl} style={{width: '100%', height: '100%', objectFit: 'cover'}} alt="thumb"/> : <ImageIcon size={32} />}
+      <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem', display: 'flex', gap: '2rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ width: '100px', height: '100px', backgroundColor: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', overflow: 'hidden', flexShrink: 0 }}>
+          {previewImage ? <img src={previewImage} style={{width: '100%', height: '100%', objectFit: 'cover'}} alt="thumb"/> : <ImageIcon size={32} />}
         </div>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: '250px' }}>
           <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Multimedia del Producto</h2>
-          <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.875rem', marginBottom: '1rem' }}>Ingresa la URL de la miniatura y opcionalmente un video reseña o instructivo de YouTube.</p>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.85rem' }}>Imagen URL</label>
-          <input type="url" name="imageUrl" defaultValue={cloneProduct?.imageUrl || ''} placeholder="https://ejemplo.com/foto.jpg" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', marginBottom: '1rem' }} />
+          <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.875rem', marginBottom: '1rem' }}>Sube una foto desde la cámara o ingresa una URL.</p>
+          
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', backgroundColor: 'white', border: '1px solid var(--pulpos-primary)', color: 'var(--pulpos-primary)', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+              <Camera size={18} /> Tomar Foto o Subir
+              <input type="file" accept="image/*" capture="environment" onChange={handleCapturePhoto} style={{ display: 'none' }} />
+            </label>
+          </div>
+
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.85rem' }}>Imagen URL (o Base64)</label>
+          <input type="text" name="imageUrl" defaultValue={cloneProduct?.imageUrl || ''} onChange={e => setPreviewImage(e.target.value)} placeholder="https://ejemplo.com/foto.jpg" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', marginBottom: '1rem' }} />
           
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.85rem' }}>YouTube Video URL</label>
           <input type="url" name="youtubeUrl" defaultValue={cloneProduct?.youtubeUrl || ''} placeholder="https://www.youtube.com/watch?v=..." style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />

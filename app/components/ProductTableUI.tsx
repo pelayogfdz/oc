@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 
@@ -15,7 +15,7 @@ interface ProductTableUIProps {
   priceExtractor?: (product: any) => number;
 }
 
-export default function ProductTableUI({
+const ProductTableUI = memo(function ProductTableUI({
   products,
   showCheckboxes = true,
   selectedIds = [],
@@ -137,4 +137,6 @@ export default function ProductTableUI({
       </div>
     </div>
   );
-}
+});
+
+export default ProductTableUI;

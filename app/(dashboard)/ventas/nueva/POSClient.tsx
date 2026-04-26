@@ -1,12 +1,13 @@
 'use client';
-import { useState, useMemo, useEffect } from 'react';
-import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp } from 'lucide-react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera } from 'lucide-react';
 import { createSale } from '@/app/actions/sale';
 import { createQuote, getQuoteForPOS } from '@/app/actions/quote';
 import { searchProducts } from '@/app/actions/product';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import ProductTableUI from '@/app/components/ProductTableUI';
+import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 
 export default function POSClient({ products: initialProducts, customers, promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {}, impresorasConfig = {}, dynamicPriceLists = [], pendingQuotes = [] }: { products: any[], customers: any[], promotions?: any[], mode?: "SALE" | "QUOTE", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any, impresorasConfig?: any, dynamicPriceLists?: any[], pendingQuotes?: any[] }) {
   const searchParams = useSearchParams();
@@ -55,6 +56,7 @@ export default function POSClient({ products: initialProducts, customers, promot
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterCategory, setFilterCategory] = useState('ALL');
+  const [showScanner, setShowScanner] = useState(false);
   
   // Checkout Modal State
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -194,7 +196,7 @@ export default function POSClient({ products: initialProducts, customers, promot
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm, branchId]);
 
-  const getProductPrice = (prod: any) => {
+  const getProductPrice = useCallback((prod: any) => {
     // Dynamic price lists check
     if (priceList.startsWith('priceList_')) {
       const plId = priceList.replace('priceList_', '');
@@ -207,48 +209,57 @@ export default function POSClient({ products: initialProducts, customers, promot
     if (priceList === 'specialPrice' && prod.specialPrice) return prod.specialPrice;
     
     return prod.price;
-  };
+  }, [priceList]);
 
-  const handleProductClick = (product: any) => {
+  const addToCart = useCallback((product: any, variant: any = null) => {
+    setCart(prevCart => {
+      const cartItemId = variant ? `v_${variant.id}` : product.id;
+      const checkStock = variant ? variant.stock : product.stock;
+      const exists = prevCart.find(item => item.cartItemId === cartItemId);
+      const incomingReq = exists ? exists.quantity + 1 : 1;
+
+      // Vender Sin Stock validation
+      if (ventasConfig.venderSinStock === false && mode === 'SALE') {
+         if (checkStock < incomingReq) {
+            alert('STOCK INSUFICIENTE. Habilite "Vender en Negativo" en Preferencias para saltar esta restricción.');
+            return prevCart;
+         }
+      }
+
+      const cartItemName = variant ? `${product.name} (${variant.attribute})` : product.name;
+      const cartItemSku = variant && variant.sku ? variant.sku : product.sku;
+      
+      if (exists) {
+        return prevCart.map(item => item.cartItemId === cartItemId ? { ...item, quantity: item.quantity + 1 } : item);
+      } else {
+        return [...prevCart, { 
+          ...product, 
+          cartItemId, 
+          name: cartItemName, 
+          sku: cartItemSku,
+          variantId: variant ? variant.id : null,
+          quantity: 1 
+        }];
+      }
+    });
+  }, [ventasConfig.venderSinStock, mode]);
+
+  const handleProductClick = useCallback((product: any) => {
     if (product.variants && product.variants.length > 0) {
       setSelectedProductForVariant(product);
     } else {
       addToCart(product);
     }
-  };
+  }, [addToCart]);
 
-  const addToCart = (product: any, variant: any = null) => {
-    // Vender Sin Stock validation
-    if (ventasConfig.venderSinStock === false && mode === 'SALE') {
-       const checkStock = variant ? variant.stock : product.stock;
-       const exists = cart.find(item => item.cartItemId === (variant ? `v_${variant.id}` : product.id));
-       const incomingReq = exists ? exists.quantity + 1 : 1;
-       if (checkStock < incomingReq) {
-          alert('STOCK INSUFICIENTE. Habilite "Vender en Negativo" en Preferencias para saltar esta restricción.');
-          return;
-       }
-    }
-
-    // Generate a unique ID for the cart item based on whether it has a variant
-    const cartItemId = variant ? `v_${variant.id}` : product.id;
-    const cartItemName = variant ? `${product.name} (${variant.attribute})` : product.name;
-    const cartItemSku = variant && variant.sku ? variant.sku : product.sku;
-    
-    const exists = cart.find(item => item.cartItemId === cartItemId);
-    
-    if (exists) {
-      setCart(cart.map(item => item.cartItemId === cartItemId ? { ...item, quantity: item.quantity + 1 } : item));
-    } else {
-      setCart([...cart, { 
-        ...product, 
-        cartItemId, 
-        name: cartItemName, 
-        sku: cartItemSku,
-        variantId: variant ? variant.id : null,
-        quantity: 1 
-      }]);
-    }
-  };
+  const filteredProducts = useMemo(() => {
+    return displayedProducts.filter(prod => {
+      if (stockFilter === 'IN_STOCK') return prod.stock > 0;
+      if (stockFilter === 'OUT_OF_STOCK') return prod.stock <= 0;
+      if (filterCategory !== 'ALL' && prod.category !== filterCategory) return false;
+      return true;
+    });
+  }, [displayedProducts, stockFilter, filterCategory]);
 
   // Recalculate total dynamically with active price list
   const subTotal = useMemo(() => cart.reduce((sum, item) => sum + (getProductPrice(item) * item.quantity), 0), [cart, priceList]);
@@ -536,6 +547,15 @@ export default function POSClient({ products: initialProducts, customers, promot
 
   return (
     <div style={{ display: 'flex', gap: '2rem', height: 'calc(100vh - 200px)' }}>
+      {showScanner && (
+        <BarcodeScannerModal 
+          onScan={(decodedText) => {
+            setSearchTerm(decodedText);
+            setShowScanner(false);
+          }} 
+          onClose={() => setShowScanner(false)} 
+        />
+      )}
       {/* Left: Products */}
       <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
         {/* Toolbar */}
@@ -558,6 +578,25 @@ export default function POSClient({ products: initialProducts, customers, promot
               }}
               autoFocus
             />
+            <button 
+              onClick={() => setShowScanner(true)}
+              style={{
+                position: 'absolute',
+                right: '10px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--pulpos-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '4px'
+              }}
+              title="Escanear Código de Barras"
+            >
+              <Camera size={18} />
+            </button>
           </div>
           
           <button 
@@ -633,15 +672,10 @@ export default function POSClient({ products: initialProducts, customers, promot
         )}
         <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '12px', opacity: isSearching ? 0.5 : 1, transition: 'opacity 0.2s' }}>
           <ProductTableUI 
-            products={displayedProducts.filter(prod => {
-              if (stockFilter === 'IN_STOCK') return prod.stock > 0;
-              if (stockFilter === 'OUT_OF_STOCK') return prod.stock <= 0;
-              if (filterCategory !== 'ALL' && prod.category !== filterCategory) return false;
-              return true;
-            })}
+            products={filteredProducts}
             showCheckboxes={false}
-            onRowClick={(prod) => handleProductClick(prod)}
-            priceExtractor={(prod) => getProductPrice(prod)}
+            onRowClick={handleProductClick}
+            priceExtractor={getProductPrice}
           />
           {displayedProducts.length === 0 && !isSearching && (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>

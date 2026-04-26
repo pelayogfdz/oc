@@ -6,12 +6,19 @@ import Link from 'next/link';
 
 export default function ReportesModuleClient({ initialMetrics }: { initialMetrics: any }) {
   const reports = [
-    { title: 'Ventas y Ganancias', icon: <TrendingUp size={24} color="#16a34a" />, description: 'Márgenes de ganancia, tickets promedios y cortes.', route: '/reportes/ventas-desglose' },
-    { title: 'Inventario Valorizado', icon: <Package size={24} color="#0ea5e9" />, description: 'Valor total de tu mercancía y productos más vendidos.', route: '/reportes/inventario-valorizado' },
+    { title: 'Resumen de Ventas', icon: <TrendingUp size={24} color="#16a34a" />, description: 'Ventas totales, devoluciones y tickets promedio.', route: '/reportes/ventas-desglose' },
+    { title: 'Ventas por Producto', icon: <Package size={24} color="#0ea5e9" />, description: 'Análisis detallado de ventas a nivel producto.', route: '/reportes/ventas-por-producto' },
+    { title: 'Utilidad', icon: <Calculator size={24} color="#d946ef" />, description: 'Márgenes de ganancia y rentabilidad.', route: '/reportes/utilidad' },
+    { title: 'Impuestos', icon: <BarChart3 size={24} color="#f59e0b" />, description: 'Desglose de IVA, retenciones y otros impuestos.', route: '/reportes/impuestos' },
+    { title: 'Top Productos', icon: <TrendingUp size={24} color="#8b5cf6" />, description: 'Tus artículos más vendidos y rentables.', route: '/reportes/top-productos' },
+    { title: 'Top Clientes', icon: <Users size={24} color="#ef4444" />, description: 'Mejores compradores y su historial.', route: '/reportes/top-clientes' },
+    { title: 'Top Categorías', icon: <Package size={24} color="#10b981" />, description: 'Categorías que más ingresos generan.', route: '/reportes/top-categorias' },
+    { title: 'Ventas por Vendedor', icon: <Users size={24} color="#3b82f6" />, description: 'Rendimiento y comisiones por cajero/vendedor.', route: '/reportes/ventas-por-vendedor' },
+    { title: 'Inventario Valorizado', icon: <Package size={24} color="#6366f1" />, description: 'Valor total de tu mercancía a costo y precio venta.', route: '/reportes/inventario-valorizado' },
+    { title: 'Bitácora de Inventario', icon: <Clock size={24} color="#8b5cf6" />, description: 'Movimientos, ajustes, entradas y salidas.', route: '/reportes/bitacora-inventario' },
+    { title: 'Gastos', icon: <Calculator size={24} color="#ef4444" />, description: 'Registro y análisis de egresos operativos.', route: '/reportes/gastos' },
     { title: 'Corte de Caja', icon: <Calculator size={24} color="#d946ef" />, description: 'Auditoría de ingresos, egresos y control de efectivo.', route: '/caja/actual' },
-    { title: 'Comisiones (Vendedores)', icon: <Users size={24} color="#f59e0b" />, description: 'Nómina variable por empleado, metas alcanzadas.', route: '/preferencias/vendedores' },
     { title: 'Reporte de Turnos', icon: <Clock size={24} color="#8b5cf6" />, description: 'Aperturas y cierres por cajero, bitácora de anomalías.', route: '/caja/cortes' },
-    { title: 'Analítica General', icon: <BarChart3 size={24} color="#ef4444" />, description: 'KPIs globales, comparativa mes con mes.', route: '/reportes/general' },
   ];
 
   return (

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { Filter, MapPin, ArrowDownUp, Search, MoreVertical } from 'lucide-react';
+import { Filter, MapPin, ArrowDownUp, Search, MoreVertical, Camera } from 'lucide-react';
 import { searchProducts, deleteProduct } from '@/app/actions/product';
 import ProductTableUI from '@/app/components/ProductTableUI';
+import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 
 export default function ProductListClient({ initialProducts, branchId }: { initialProducts: any[], branchId: string }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -12,6 +13,7 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
   const [displayedProducts, setDisplayedProducts] = useState<any[]>(initialProducts);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [showScanner, setShowScanner] = useState(false);
 
   // Advanced Filters
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -35,7 +37,7 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm, branchId]);
 
-  const filteredProducts = displayedProducts.filter(p => {
+  const filteredProducts = useMemo(() => displayedProducts.filter(p => {
     if (filterCategory !== 'ALL' && p.category !== filterCategory) return false;
     
     // Status Filter
@@ -48,26 +50,67 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
     if (filterStock === 'LOW_STOCK' && p.stock > (p.minStock || 0)) return false;
 
     return true;
-  });
+  }), [displayedProducts, filterCategory, filterStatus, filterStock]);
 
-  const handleToggleSelectAll = () => {
+  const handleToggleSelectAll = useCallback(() => {
     if (selectedIds.length === filteredProducts.length) {
       setSelectedIds([]);
     } else {
       setSelectedIds(filteredProducts.map(p => p.id));
     }
-  };
+  }, [selectedIds, filteredProducts]);
 
-  const handleToggleSelect = (id: string) => {
-    if (selectedIds.includes(id)) {
-      setSelectedIds(selectedIds.filter(selId => selId !== id));
-    } else {
-      setSelectedIds([...selectedIds, id]);
-    }
-  };
+  const handleToggleSelect = useCallback((id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(selId => selId !== id) : [...prev, id]);
+  }, []);
+
+  const renderCustomActions = useCallback((prod: any) => (
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      <button 
+        onClick={(e) => { e.stopPropagation(); setOpenDropdownId(openDropdownId === prod.id ? null : prod.id); }}
+        style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8', padding: '0.25rem' }}
+      >
+        <MoreVertical size={18} />
+      </button>
+      {openDropdownId === prod.id && (
+        <div style={{ position: 'absolute', right: '100%', top: '50%', transform: 'translateY(-50%)', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 50, width: '150px', overflow: 'hidden' }}>
+          <Link href={`/productos/nuevo?cloneId=${prod.id}`} style={{ display: 'block', padding: '0.75rem 1rem', textDecoration: 'none', color: '#1e293b', fontSize: '0.9rem', textAlign: 'left' } as any}>Clonar</Link>
+          <Link href={`/productos/${prod.id}`} style={{ display: 'block', padding: '0.75rem 1rem', textDecoration: 'none', color: '#1e293b', fontSize: '0.9rem', textAlign: 'left' }}>Editar</Link>
+          <button onClick={(e) => {
+            e.stopPropagation();
+            const url = `/productos/etiquetas?ids=${prod.id}`;
+            window.open(url, '_blank', 'width=400,height=600');
+            setOpenDropdownId(null);
+          }} style={{ width: '100%', display: 'block', padding: '0.75rem 1rem', border: 'none', background: 'none', color: '#1e293b', textAlign: 'left', cursor: 'pointer', fontSize: '0.9rem' }}>
+            Imprimir Etiqueta
+          </button>
+          <button onClick={async (e) => {
+            e.stopPropagation();
+            if(confirm('¿Eliminar producto definitivamente?')) {
+              try {
+                await deleteProduct(prod.id);
+                setDisplayedProducts(prev => prev.filter(p => p.id !== prod.id));
+              } catch (e: any) { alert("Error eliminando: " + e.message); }
+            }
+          }} style={{ width: '100%', display: 'block', padding: '0.75rem 1rem', border: 'none', background: 'none', color: '#ef4444', textAlign: 'left', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' }}>
+            Eliminar
+          </button>
+        </div>
+      )}
+    </div>
+  ), [openDropdownId]);
 
   return (
     <div style={{ fontFamily: 'var(--font-geist-sans)' }}>
+      {showScanner && (
+        <BarcodeScannerModal 
+          onScan={(decodedText) => {
+            setSearchTerm(decodedText);
+            setShowScanner(false);
+          }} 
+          onClose={() => setShowScanner(false)} 
+        />
+      )}
       {/* Toolbar */}
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>
         <div style={{ position: 'relative', flexGrow: 1, maxWidth: '500px' }}>
@@ -87,6 +130,25 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
               outline: 'none'
             }}
           />
+          <button 
+            onClick={() => setShowScanner(true)}
+            style={{
+              position: 'absolute',
+              right: '10px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--pulpos-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '4px'
+            }}
+            title="Escanear Código de Barras"
+          >
+            <Camera size={18} />
+          </button>
         </div>
         
         <button 
@@ -192,41 +254,7 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
           selectedIds={selectedIds}
           onToggleSelect={handleToggleSelect}
           onToggleSelectAll={handleToggleSelectAll}
-          renderCustomActions={(prod) => (
-            <div style={{ position: 'relative', display: 'inline-block' }}>
-              <button 
-                onClick={(e) => { e.stopPropagation(); setOpenDropdownId(openDropdownId === prod.id ? null : prod.id); }}
-                style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8', padding: '0.25rem' }}
-              >
-                <MoreVertical size={18} />
-              </button>
-              {openDropdownId === prod.id && (
-                <div style={{ position: 'absolute', right: '100%', top: '50%', transform: 'translateY(-50%)', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 50, width: '150px', overflow: 'hidden' }}>
-                  <Link href={`/productos/nuevo?cloneId=${prod.id}`} style={{ display: 'block', padding: '0.75rem 1rem', textDecoration: 'none', color: '#1e293b', fontSize: '0.9rem', textAlign: 'left' } as any}>Clonar</Link>
-                  <Link href={`/productos/${prod.id}`} style={{ display: 'block', padding: '0.75rem 1rem', textDecoration: 'none', color: '#1e293b', fontSize: '0.9rem', textAlign: 'left' }}>Editar</Link>
-                  <button onClick={(e) => {
-                    e.stopPropagation();
-                    const url = `/productos/etiquetas?ids=${prod.id}`;
-                    window.open(url, '_blank', 'width=400,height=600');
-                    setOpenDropdownId(null);
-                  }} style={{ width: '100%', display: 'block', padding: '0.75rem 1rem', border: 'none', background: 'none', color: '#1e293b', textAlign: 'left', cursor: 'pointer', fontSize: '0.9rem' }}>
-                    Imprimir Etiqueta
-                  </button>
-                  <button onClick={async (e) => {
-                    e.stopPropagation();
-                    if(confirm('¿Eliminar producto definitivamente?')) {
-                      try {
-                        await deleteProduct(prod.id);
-                        setDisplayedProducts(displayedProducts.filter(p => p.id !== prod.id));
-                      } catch (e: any) { alert("Error eliminando: " + e.message); }
-                    }
-                  }} style={{ width: '100%', display: 'block', padding: '0.75rem 1rem', border: 'none', background: 'none', color: '#ef4444', textAlign: 'left', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                    Eliminar
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          renderCustomActions={renderCustomActions}
         />
       </div>
     </div>
