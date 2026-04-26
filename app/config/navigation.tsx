@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   Home, Tag, Package, Calculator, ArrowRightLeft, 
   Settings, UserCircle, ShoppingCart, Banknote, FileText,
-  Sparkles, MonitorSmartphone, Landmark, BarChart3, Inbox
+  Sparkles, MonitorSmartphone, Landmark, BarChart3, Inbox, Briefcase
 } from 'lucide-react';
 
 export type MenuItem = {
@@ -20,6 +20,7 @@ export type MenuNode = {
 };
 
 export const navStructure: MenuNode[] = [
+  { title: 'Mi Portal', path: '/mi-portal', icon: <UserCircle size={20} /> },
   { title: 'IA', path: '/ia', icon: <Sparkles size={20} /> },
   { 
     title: 'Ventas', icon: <Banknote size={20} />, 
@@ -83,6 +84,14 @@ export const navStructure: MenuNode[] = [
       { name: 'Portal de Autofacturación', path: '/clientes/portal' },
       { name: 'Integraciones (Mercado Libre/Amazon)', path: '/integraciones' },
       { name: 'Órdenes Web', path: '/catalogo/ordenes' },
+    ]
+  },
+  { 
+    title: 'Recursos Humanos', icon: <Briefcase size={20} />, 
+    items: [
+      { name: 'Monitoreo de Asistencia', path: '/rh/monitoreo' },
+      { name: 'Reportes y Nómina', path: '/rh/reportes' },
+      { name: 'Trámites y Avisos', path: '/rh/tramites' },
     ]
   },
   { 
