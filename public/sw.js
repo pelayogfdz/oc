@@ -1,4 +1,4 @@
-const CACHE_NAME = 'caanma-offline-v1';
+const CACHE_NAME = 'caanma-offline-v2';
 
 // Recursos mínimos para que la app cargue (App Router)
 const ASSETS_TO_CACHE = [
@@ -23,7 +23,20 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Borrando caché antigua:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => {
+      return self.clients.claim();
+    })
+  );
 });
 
 self.addEventListener('fetch', (event) => {
