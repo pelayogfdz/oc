@@ -18,26 +18,45 @@ export async function createUser(formData: FormData) {
   const rawManagerId = formData.get('managerId') as string;
   const managerId = rawManagerId && rawManagerId !== 'NONE' ? rawManagerId : null;
   
+  // HR & Payroll fields
+  const rfc = formData.get('rfc') as string;
+  const curp = formData.get('curp') as string;
+  const nss = formData.get('nss') as string;
+  const taxRegime = formData.get('taxRegime') as string;
+  const address = formData.get('address') as string;
+  const phone = formData.get('phone') as string;
+  const hireDateRaw = formData.get('hireDate') as string;
+  const birthDateRaw = formData.get('birthDate') as string;
+  const hireDate = hireDateRaw ? new Date(hireDateRaw) : null;
+  const birthDate = birthDateRaw ? new Date(birthDateRaw) : null;
+  
+  const payrollType = formData.get('payrollType') as string;
+  const dailySalary = parseFloat(formData.get('dailySalary') as string || '0');
+  const bankName = formData.get('bankName') as string;
+  const bankAccount = formData.get('bankAccount') as string;
+  
+  const bonusPunctuality = parseFloat(formData.get('bonusPunctuality') as string || '0');
+  const bonusRule = formData.get('bonusRule') as string;
+  const bonusMethod = formData.get('bonusMethod') as string;
+  const overtimeBonus = parseFloat(formData.get('overtimeBonus') as string || '0');
+  const groceryBonus = parseFloat(formData.get('groceryBonus') as string || '0');
+  const transportBonus = parseFloat(formData.get('transportBonus') as string || '0');
+  
+  const reqGps = formData.get('reqGps') === 'on';
+  const reqPhoto = formData.get('reqPhoto') === 'on';
+  const workScheduleMatrix = formData.get('workScheduleMatrix') as string;
+  
   const branch = await getActiveBranch();
   if (!branch) throw new Error("No branch active");
   
   await prisma.user.create({
-    // We use any because the 'permissions' field might not be recognized by the stale Prisma Engine types due to EPERM Windows lock.
-    // The SQLite DB has been synced so the query itself will work via standard execute or casting.
     data: {
-      name,
-      email,
-      password,
-      role,
-      commissionRole,
-      commissionPct,
-      monthlyGoal,
-      bonusAmount,
-      teamBonusAmount,
-      managerId,
-      branchId: branch.id,
-      tenantId: branch.tenantId,
-      permissions
+      name, email, password, role, commissionRole, commissionPct, monthlyGoal, bonusAmount, teamBonusAmount, managerId,
+      branchId: branch.id, tenantId: branch.tenantId, permissions,
+      rfc, curp, nss, taxRegime, address, phone, hireDate, birthDate,
+      payrollType, dailySalary, bankName, bankAccount,
+      bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus,
+      reqGps, reqPhoto, workScheduleMatrix
     } as any
   });
   
@@ -59,7 +78,42 @@ export async function updateUser(id: string, formData: FormData) {
   const permissions = formData.get('permissions') as string;
   const password = formData.get('password') as string;
   
-  const updateData: any = { name, email, role, commissionRole, commissionPct, monthlyGoal, bonusAmount, teamBonusAmount, managerId, permissions };
+  // HR & Payroll fields
+  const rfc = formData.get('rfc') as string;
+  const curp = formData.get('curp') as string;
+  const nss = formData.get('nss') as string;
+  const taxRegime = formData.get('taxRegime') as string;
+  const address = formData.get('address') as string;
+  const phone = formData.get('phone') as string;
+  const hireDateRaw = formData.get('hireDate') as string;
+  const birthDateRaw = formData.get('birthDate') as string;
+  const hireDate = hireDateRaw ? new Date(hireDateRaw) : null;
+  const birthDate = birthDateRaw ? new Date(birthDateRaw) : null;
+  
+  const payrollType = formData.get('payrollType') as string;
+  const dailySalary = parseFloat(formData.get('dailySalary') as string || '0');
+  const bankName = formData.get('bankName') as string;
+  const bankAccount = formData.get('bankAccount') as string;
+  
+  const bonusPunctuality = parseFloat(formData.get('bonusPunctuality') as string || '0');
+  const bonusRule = formData.get('bonusRule') as string;
+  const bonusMethod = formData.get('bonusMethod') as string;
+  const overtimeBonus = parseFloat(formData.get('overtimeBonus') as string || '0');
+  const groceryBonus = parseFloat(formData.get('groceryBonus') as string || '0');
+  const transportBonus = parseFloat(formData.get('transportBonus') as string || '0');
+  
+  const reqGps = formData.get('reqGps') === 'on';
+  const reqPhoto = formData.get('reqPhoto') === 'on';
+  const workScheduleMatrix = formData.get('workScheduleMatrix') as string;
+  
+  const updateData: any = { 
+    name, email, role, commissionRole, commissionPct, monthlyGoal, bonusAmount, teamBonusAmount, managerId, permissions,
+    rfc, curp, nss, taxRegime, address, phone, hireDate, birthDate,
+    payrollType, dailySalary, bankName, bankAccount,
+    bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus,
+    reqGps, reqPhoto, workScheduleMatrix
+  };
+  
   if (password) {
     updateData.password = password;
   }

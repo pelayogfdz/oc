@@ -63,6 +63,37 @@ model User {
   monthlyGoal     Float   @default(0) // Meta individual o de equipo
   bonusAmount     Float   @default(0) // Bono personal central
   teamBonusAmount Float   @default(0) // Bono que se otorga extra a los subordinados si el equipo llega a la meta
+
+  // --- HR & Payroll (MCOMX Integration) ---
+  rfc                 String?
+  curp                String?
+  nss                 String?
+  taxRegime           String?
+  address             String?
+  phone               String?
+  hireDate            DateTime?
+  birthDate           DateTime?
+  
+  payrollType         String? // 'SEMANAL', 'QUINCENAL', etc.
+  dailySalary         Float   @default(0)
+  bankName            String?
+  bankAccount         String?
+  
+  bonusPunctuality    Float   @default(0)
+  bonusRule           String?
+  bonusMethod         String?
+  overtimeBonus       Float   @default(0)
+  groceryBonus        Float   @default(0)
+  transportBonus      Float   @default(0)
+  
+  faceDescriptor      String? // JSON array or string
+  reqGps              Boolean @default(false)
+  reqPhoto            Boolean @default(false)
+  
+  workScheduleMatrix  String? // JSON string containing schedule Mon-Sun
+  
+  attendanceLogs      AttendanceLog[]
+  leaveRequests       LeaveRequest[]
 }
 
 model Branch {
@@ -98,6 +129,8 @@ model Branch {
   isActive                Boolean                  @default(true)
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
+  
+  hrLocation              HrLocation?
 }
 
 model BranchSettings {
@@ -672,3 +705,48 @@ model PurchaseOrderItem {
   quantity        Int
   cost            Float
 }
+
+model AttendanceLog {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   // 'IN' or 'OUT'
+  timestamp   DateTime @default(now())
+  lat         Float?
+  lng         Float?
+  photoUrl    String?  // Could be base64 or a URL
+  deviceInfo  String?
+  status      String   @default("OK") // OK, LATE, MANUAL, etc.
+}
+
+model LeaveRequest {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   // 'VACATION', 'PERM_PAID', 'PERM_UNPAID'
+  startDate   DateTime
+  endDate     DateTime
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  title       String
+  youtubeUrl  String
+  description String?
+  createdAt   DateTime @default(now())
+}
+
+model HrLocation {
+  id          String   @id @default(uuid())
+  name        String
+  lat         Float
+  lng         Float
+  radius      Float    @default(50) // in meters
+  branchId    String?  @unique
+  branch      Branch?  @relation(fields: [branchId], references: [id])
+}
+

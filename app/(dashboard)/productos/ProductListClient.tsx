@@ -176,7 +176,7 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
             <span style={{ color: '#1e3a8a', fontWeight: '500' }}>{selectedIds.length} productos seleccionados</span>
             <button 
               onClick={() => {
-                const url = \`/productos/etiquetas?ids=\${selectedIds.join(',')}\`;
+                const url = `/productos/etiquetas?ids=${selectedIds.join(',')}`;
                 window.open(url, '_blank', 'width=400,height=600');
               }}
               style={{ backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
@@ -206,7 +206,7 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
                   <Link href={`/productos/${prod.id}`} style={{ display: 'block', padding: '0.75rem 1rem', textDecoration: 'none', color: '#1e293b', fontSize: '0.9rem', textAlign: 'left' }}>Editar</Link>
                   <button onClick={(e) => {
                     e.stopPropagation();
-                    const url = \`/productos/etiquetas?ids=\${prod.id}\`;
+                    const url = `/productos/etiquetas?ids=${prod.id}`;
                     window.open(url, '_blank', 'width=400,height=600');
                     setOpenDropdownId(null);
                   }} style={{ width: '100%', display: 'block', padding: '0.75rem 1rem', border: 'none', background: 'none', color: '#1e293b', textAlign: 'left', cursor: 'pointer', fontSize: '0.9rem' }}>

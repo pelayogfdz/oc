@@ -138,7 +138,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
 
       if (confirm('Operación realizada correctamente. ¿Deseas imprimir etiquetas para los productos seleccionados?')) {
         const ids = transferItems.map(i => i.productId).join(',');
-        window.open(\`/productos/etiquetas?ids=\${ids}\`, '_blank', 'width=400,height=600');
+        window.open(`/productos/etiquetas?ids=${ids}`, '_blank', 'width=400,height=600');
       }
 
       router.push('/productos/traspasos');

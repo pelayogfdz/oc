@@ -51,7 +51,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
       `}} />
       
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', borderBottom: \`2px solid \${primaryColor}\`, paddingBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', borderBottom: `2px solid ${primaryColor}`, paddingBottom: '1.5rem' }}>
         <div>
           {logoUrl ? (
             <img src={logoUrl} alt="Logo" style={{ maxWidth: '250px', maxHeight: '100px', objectFit: 'contain' }} />
