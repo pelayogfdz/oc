@@ -171,6 +171,21 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
       )}
 
       <div style={{ opacity: isSearching ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+        {selectedIds.length > 0 && (
+          <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: '#1e3a8a', fontWeight: '500' }}>{selectedIds.length} productos seleccionados</span>
+            <button 
+              onClick={() => {
+                const url = \`/productos/etiquetas?ids=\${selectedIds.join(',')}\`;
+                window.open(url, '_blank', 'width=400,height=600');
+              }}
+              style={{ backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              Imprimir Etiquetas Seleccionadas
+            </button>
+          </div>
+        )}
+
         <ProductTableUI 
           products={filteredProducts}
           showCheckboxes={true}
@@ -189,6 +204,14 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
                 <div style={{ position: 'absolute', right: '100%', top: '50%', transform: 'translateY(-50%)', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 50, width: '150px', overflow: 'hidden' }}>
                   <Link href={`/productos/nuevo?cloneId=${prod.id}`} style={{ display: 'block', padding: '0.75rem 1rem', textDecoration: 'none', color: '#1e293b', fontSize: '0.9rem', textAlign: 'left' } as any}>Clonar</Link>
                   <Link href={`/productos/${prod.id}`} style={{ display: 'block', padding: '0.75rem 1rem', textDecoration: 'none', color: '#1e293b', fontSize: '0.9rem', textAlign: 'left' }}>Editar</Link>
+                  <button onClick={(e) => {
+                    e.stopPropagation();
+                    const url = \`/productos/etiquetas?ids=\${prod.id}\`;
+                    window.open(url, '_blank', 'width=400,height=600');
+                    setOpenDropdownId(null);
+                  }} style={{ width: '100%', display: 'block', padding: '0.75rem 1rem', border: 'none', background: 'none', color: '#1e293b', textAlign: 'left', cursor: 'pointer', fontSize: '0.9rem' }}>
+                    Imprimir Etiqueta
+                  </button>
                   <button onClick={async (e) => {
                     e.stopPropagation();
                     if(confirm('¿Eliminar producto definitivamente?')) {

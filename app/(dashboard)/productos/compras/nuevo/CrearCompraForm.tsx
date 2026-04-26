@@ -67,6 +67,12 @@ export default function CrearCompraForm({ suppliers, products }: { suppliers: an
       } else {
         await createPurchase(items, total, paymentMethod, supplierId || null, freightCost);
       }
+
+      if (confirm('Compra registrada con éxito. ¿Deseas imprimir etiquetas para los productos ingresados?')) {
+        const ids = items.map(i => i.productId).join(',');
+        window.open(\`/productos/etiquetas?ids=\${ids}\`, '_blank', 'width=400,height=600');
+      }
+      
       router.push('/productos/compras');
     } catch (err: any) {
       alert('Error al registrar compra: ' + err.message);

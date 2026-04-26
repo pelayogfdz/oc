@@ -98,10 +98,16 @@ export default function TransferClient({ originBranchId, originBranchName, other
         reason,
         items: transferItems.map(i => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity }))
       });
-      alert('Solicitud de traspaso enviada correctamente.');
+
+      if (confirm('Solicitud de traspaso enviada correctamente. ¿Deseas imprimir etiquetas para los productos solicitados?')) {
+        const ids = transferItems.map(i => i.productId).join(',');
+        window.open(\`/productos/etiquetas?ids=\${ids}\`, '_blank', 'width=400,height=600');
+      }
+
       router.push('/productos/traspasos');
     } catch (e: any) {
       alert("Error: " + e.message);
+    } finally {
       setIsProcessing(false);
     }
   };
