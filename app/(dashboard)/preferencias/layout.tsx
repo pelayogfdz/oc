@@ -9,6 +9,7 @@ const prefTabs = [
   { name: 'Vendedores y Comisiones', path: '/preferencias/vendedores', icon: <Star size={18} /> },
   { name: 'Impresoras Térmicas', path: '/preferencias/impresoras', icon: <HardDrive size={18} /> },
   { name: 'Plantillas de Tickets', path: '/preferencias/tickets', icon: <LayoutTemplate size={18} /> },
+  { name: 'Formatos de Documento', path: '/preferencias/formatos', icon: <FileText size={18} /> },
   { name: 'Sucursales y Almacenes', path: '/preferencias/sucursales', icon: <Store size={18} /> },
   { name: 'Punto de Venta', path: '/preferencias/ventas', icon: <Banknote size={18} /> },
   { name: 'Cotizaciones', path: '/preferencias/cotizaciones', icon: <FileText size={18} /> },

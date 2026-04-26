@@ -53,12 +53,14 @@ export default async function NuevaVentaPage() {
   let ticketConfig = {};
   let metodosConfig = {};
   let ventasConfig: any = {};
+  let impresorasConfig = {};
   if (settings.configJson) {
     try {
       const parsed = JSON.parse(settings.configJson);
       ticketConfig = parsed.tickets || {};
       metodosConfig = parsed.metodos || {};
       ventasConfig = parsed.ventas || {};
+      impresorasConfig = parsed.impresoras || {};
     } catch(e) {}
   }
 
@@ -94,6 +96,7 @@ export default async function NuevaVentaPage() {
               ticketConfig={ticketConfig} 
               metodosConfig={metodosConfig}
               ventasConfig={ventasConfig}
+              impresorasConfig={impresorasConfig}
             />
           </Suspense>
         )}

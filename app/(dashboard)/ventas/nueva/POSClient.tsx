@@ -8,7 +8,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import ProductTableUI from '@/app/components/ProductTableUI';
 
-export default function POSClient({ products: initialProducts, customers, promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {}, dynamicPriceLists = [], pendingQuotes = [] }: { products: any[], customers: any[], promotions?: any[], mode?: "SALE" | "QUOTE", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any, dynamicPriceLists?: any[], pendingQuotes?: any[] }) {
+export default function POSClient({ products: initialProducts, customers, promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {}, impresorasConfig = {}, dynamicPriceLists = [], pendingQuotes = [] }: { products: any[], customers: any[], promotions?: any[], mode?: "SALE" | "QUOTE", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any, impresorasConfig?: any, dynamicPriceLists?: any[], pendingQuotes?: any[] }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isOnline, pushOfflineSale } = useOfflineSync();
@@ -497,11 +497,15 @@ export default function POSClient({ products: initialProducts, customers, promot
       setManualDiscountValue('');
       setIsProcessing(false);
 
+      const isAutoPrint = impresorasConfig.printAutomatically === 'true' || impresorasConfig.printAutomatically === true;
+
       setTimeout(() => {
-         if (mode === 'QUOTE') {
-           alert('¡Cotización creada con éxito! Imprimiendo Ticket...');
-         } else {
-           alert('¡Venta cobrada con éxito! Imprimiendo Ticket...');
+         if (!isAutoPrint) {
+           if (mode === 'QUOTE') {
+             alert('¡Cotización creada con éxito! Imprimiendo Ticket...');
+           } else {
+             alert('¡Venta cobrada con éxito! Imprimiendo Ticket...');
+           }
          }
          printTicket(cartBackup, totalBackup, changeBackup, discountBackup, saleId);
          if (mode !== 'QUOTE') {
