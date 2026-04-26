@@ -1,18 +1,19 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { cookies } from "next/headers";
+import { decrypt } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import PortalEmpleadoClient from "./PortalEmpleadoClient";
 
 export default async function MiPortalPage() {
-  const session = await getServerSession(authOptions);
+  const sessionCookie = (await cookies()).get('session')?.value;
+  const session = await decrypt(sessionCookie);
   
-  if (!session?.user) {
+  if (!session?.userId) {
     redirect("/login");
   }
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: session.userId },
     include: {
       attendanceLogs: {
         where: {

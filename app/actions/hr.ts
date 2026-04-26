@@ -1,8 +1,8 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { cookies } from 'next/headers';
+import { decrypt } from '@/lib/session';
 import { revalidatePath } from 'next/cache';
 
 export async function registerAttendance(data: {
@@ -13,9 +13,10 @@ export async function registerAttendance(data: {
   photoUrl?: string;
   deviceInfo?: string;
 }) {
-  const session = await getServerSession(authOptions);
+  const sessionCookie = (await cookies()).get('session')?.value;
+  const session = await decrypt(sessionCookie);
   
-  if (!session?.user || session.user.id !== data.userId) {
+  if (!session?.userId || session.userId !== data.userId) {
     throw new Error("No autorizado");
   }
 

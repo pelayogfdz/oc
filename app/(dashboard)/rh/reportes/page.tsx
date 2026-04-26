@@ -1,17 +1,18 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { cookies } from "next/headers";
+import { decrypt } from "@/lib/session";
 import { redirect } from "next/navigation";
 import ReportesClient from "./ReportesClient";
 
 export default async function ReportesPage() {
-  const session = await getServerSession(authOptions);
+  const sessionCookie = (await cookies()).get('session')?.value;
+  const session = await decrypt(sessionCookie);
   
-  if (!session?.user) {
+  if (!session?.userId) {
     redirect("/login");
   }
 
   // Admin/RH view
-  if (session.user.role !== "ADMIN" && session.user.role !== "MANAGER") {
+  if (session.role !== "ADMIN" && session.role !== "MANAGER") {
     return <div>No tienes permisos para ver esta sección.</div>;
   }
 
