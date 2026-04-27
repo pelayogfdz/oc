@@ -8,6 +8,43 @@ export default function PortalEmpleadoClient({ user }: { user: any }) {
   const [isRegistering, setIsRegistering] = useState(false);
   const [locationStatus, setLocationStatus] = useState<string>('Buscando ubicación...');
   const [currentCoords, setCurrentCoords] = useState<{lat: number, lng: number} | null>(null);
+  const [photoBase64, setPhotoBase64] = useState<string | null>(null);
+
+  const handleImageCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 600;
+          const MAX_HEIGHT = 600;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          setPhotoBase64(canvas.toDataURL('image/jpeg', 0.6));
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Simple geo tracking on load (mock for now if geolocation API isn't permitted in dev)
   useState(() => {
@@ -29,13 +66,16 @@ export default function PortalEmpleadoClient({ user }: { user: any }) {
       if (user.reqGps && !currentCoords) {
         throw new Error("Se requiere ubicación GPS activa para registrar asistencia.");
       }
+      if (user.reqPhoto && !photoBase64) {
+        throw new Error("Se requiere una foto de asistencia (selfie) para registrar tu entrada/salida.");
+      }
       
       await registerAttendance({
         userId: user.id,
         type,
         latitude: currentCoords?.lat,
         longitude: currentCoords?.lng,
-        photoUrl: undefined, // To be implemented with webcam if user.reqPhoto is true
+        photoUrl: photoBase64 || undefined,
         deviceInfo: navigator.userAgent
       });
       alert('Registro guardado correctamente');
@@ -71,6 +111,32 @@ export default function PortalEmpleadoClient({ user }: { user: any }) {
             <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '2rem' }}>
               Registra tu entrada y salida del turno laboral. 
             </p>
+
+            {user.reqPhoto && !hasCheckedIn && (
+              <div style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                {photoBase64 ? (
+                  <div style={{ position: 'relative', width: '150px', height: '150px', borderRadius: '50%', overflow: 'hidden', border: '4px solid #16a34a' }}>
+                    <img src={photoBase64} alt="Selfie" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                ) : (
+                  <label style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    width: '150px', height: '150px', borderRadius: '50%', backgroundColor: '#e2e8f0',
+                    cursor: 'pointer', color: '#64748b', border: '2px dashed #94a3b8'
+                  }}>
+                    <Camera size={32} style={{ marginBottom: '0.5rem' }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Tomar Selfie</span>
+                    <input type="file" accept="image/*" capture="user" onChange={handleImageCapture} style={{ display: 'none' }} />
+                  </label>
+                )}
+                {photoBase64 && (
+                  <label style={{ color: 'var(--pulpos-primary)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                    Retomar Foto
+                    <input type="file" accept="image/*" capture="user" onChange={handleImageCapture} style={{ display: 'none' }} />
+                  </label>
+                )}
+              </div>
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
               <button 
