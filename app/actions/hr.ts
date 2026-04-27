@@ -53,5 +53,11 @@ export async function registerAttendance(data: {
   });
 
   revalidatePath('/mi-portal');
-  return { success: true, log };
+  return { 
+    success: true, 
+    log: {
+      ...log,
+      timestamp: log.timestamp.toISOString() // Serialize Date to string
+    } 
+  };
 }

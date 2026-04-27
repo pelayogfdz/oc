@@ -23,6 +23,13 @@
 
 html, body {
   height: 100%;
+  font-size: 16px; /* Base size */
+}
+
+@media (max-width: 768px) {
+  html, body {
+    font-size: 14px; /* Scale down slightly on mobile to fit more content and look premium */
+  }
 }
 
 body {
@@ -30,6 +37,7 @@ body {
   color: var(--pulpos-text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a {
