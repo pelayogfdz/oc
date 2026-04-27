@@ -83,7 +83,7 @@ export default function PublicStoreClient({ branchName, config, products }: { br
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '1rem' }}>
           {filteredProducts.map(product => {
             const qty = getQty(product.id);
             return (
@@ -129,7 +129,7 @@ export default function PublicStoreClient({ branchName, config, products }: { br
       {showCart && (
         <>
           <div onClick={() => setShowCart(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 40 }} />
-          <div style={{ position: 'fixed', top: 0, bottom: 0, right: 0, width: '400px', maxWidth: '100%', backgroundColor: 'white', zIndex: 50, display: 'flex', flexDirection: 'column', boxShadow: '-5px 0 25px rgba(0,0,0,0.1)' }}>
+          <div className="cart-slideout">
              <div style={{ padding: '1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h2 style={{ fontWeight: 'bold', fontSize: '1.25rem' }}>Tu Pedido</h2>
                 <button onClick={() => setShowCart(false)} style={{ border: 'none', background: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>

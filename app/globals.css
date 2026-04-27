@@ -247,6 +247,84 @@ button {
     color: var(--pulpos-text);
     line-height: 1.2;
   }
+
+  /* Responsive Table -> Cards */
+  table.responsive-table {
+    display: block;
+    width: 100%;
+  }
+  table.responsive-table thead {
+    display: none;
+  }
+  table.responsive-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.5rem;
+  }
+  table.responsive-table tr {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--pulpos-border);
+    border-radius: 12px;
+    padding: 1rem;
+    background-color: white !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    position: relative;
+  }
+  table.responsive-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0 !important;
+    border-bottom: 1px solid #f8fafc !important;
+    text-align: right !important;
+  }
+  table.responsive-table td:last-child {
+    border-bottom: none !important;
+  }
+  table.responsive-table td::before {
+    content: attr(data-label);
+    font-weight: bold;
+    color: var(--pulpos-text-muted);
+    font-size: 0.85rem;
+    text-align: left;
+    margin-right: 1rem;
+  }
+  /* Don't show data-label for specific cells if they are pure actions */
+  table.responsive-table td.no-label::before {
+    display: none;
+  }
+  table.responsive-table td.full-width {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cart-slideout {
+    top: auto !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 85vh !important;
+    border-top-left-radius: 20px !important;
+    border-top-right-radius: 20px !important;
+    box-shadow: 0 -5px 25px rgba(0,0,0,0.1) !important;
+  }
+}
+
+.cart-slideout {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 400px;
+  max-width: 100%;
+  background-color: white;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -5px 0 25px rgba(0,0,0,0.1);
 }
 
 /* ------------------------------------- */

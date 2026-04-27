@@ -112,8 +112,8 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
         />
       )}
       {/* Toolbar */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>
-        <div style={{ position: 'relative', flexGrow: 1, maxWidth: '500px' }}>
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flexGrow: 1, minWidth: '250px', maxWidth: '500px' }}>
           <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
           <input 
             type="text" 
