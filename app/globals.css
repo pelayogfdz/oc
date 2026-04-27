@@ -80,6 +80,16 @@ button {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Ocultar flechas del input number */
+.no-spinners::-webkit-outer-spin-button,
+.no-spinners::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spinners {
+  -moz-appearance: textfield;
+}
+
 /* App-like Mobile Layout */
 .mobile-bottom-nav, .mobile-grid-overlay, .mobile-menu-toggle {
   display: none;

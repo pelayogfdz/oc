@@ -759,22 +759,45 @@ export default function POSClient({ products: initialProducts, customers, promot
                 <div>
                   <div style={{ fontWeight: '500' }}>{item.name}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-                    <input 
-                      type="number" 
-                      min="1" 
-                      value={item.quantity} 
-                      onChange={e => {
-                        const newQ = parseInt(e.target.value) || 1;
-                        if (ventasConfig.venderSinStock === false && mode === 'SALE') {
-                           if (item.stock < newQ) {
-                             alert('STOCK INSUFICIENTE.');
-                             return;
-                           }
-                        }
-                        setCart(cart.map(c => c.cartItemId === item.cartItemId ? { ...c, quantity: newQ } : c));
-                      }}
-                      style={{ width: '60px', padding: '0.25rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', textAlign: 'center' }} 
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--pulpos-border)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <button 
+                        onClick={() => {
+                          const newQ = Math.max(1, item.quantity - 1);
+                          setCart(cart.map(c => c.cartItemId === item.cartItemId ? { ...c, quantity: newQ } : c));
+                        }}
+                        style={{ padding: '0.25rem 0.6rem', background: '#f8fafc', borderRight: '1px solid var(--pulpos-border)', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem', color: '#64748b' }}
+                      >-</button>
+                      <input 
+                        type="number" 
+                        min="1" 
+                        value={item.quantity} 
+                        onChange={e => {
+                          const newQ = parseInt(e.target.value) || 1;
+                          if (ventasConfig.venderSinStock === false && mode === 'SALE') {
+                             if (item.stock < newQ) {
+                               alert('STOCK INSUFICIENTE.');
+                               return;
+                             }
+                          }
+                          setCart(cart.map(c => c.cartItemId === item.cartItemId ? { ...c, quantity: newQ } : c));
+                        }}
+                        className="no-spinners"
+                        style={{ width: '40px', padding: '0.25rem 0', border: 'none', textAlign: 'center', outline: 'none', fontWeight: '500', fontSize: '0.95rem' }} 
+                      />
+                      <button 
+                        onClick={() => {
+                          const newQ = item.quantity + 1;
+                          if (ventasConfig.venderSinStock === false && mode === 'SALE') {
+                             if (item.stock < newQ) {
+                               alert('STOCK INSUFICIENTE.');
+                               return;
+                             }
+                          }
+                          setCart(cart.map(c => c.cartItemId === item.cartItemId ? { ...c, quantity: newQ } : c));
+                        }}
+                        style={{ padding: '0.25rem 0.6rem', background: '#f8fafc', borderLeft: '1px solid var(--pulpos-border)', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem', color: '#64748b' }}
+                      >+</button>
+                    </div>
                     <span style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.875rem' }}>
                       x ${currentPrice.toFixed(2)}
                     </span>
