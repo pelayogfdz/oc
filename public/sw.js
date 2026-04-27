@@ -1,4 +1,4 @@
-const CACHE_NAME = 'caanma-offline-v3';
+const CACHE_NAME = 'caanma-offline-v4';
 
 // Recursos mínimos para que la app cargue (App Router)
 const ASSETS_TO_CACHE = [
