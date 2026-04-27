@@ -74,20 +74,20 @@ export default function PortalEmpleadoClient({ user }: { user: any }) {
         </div>
       )}
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}>
         {/* Main Column */}
         <div style={{ flex: '1 1 min(100%, 300px)', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
           {/* Action Card */}
-          <div className="card" style={{ padding: '2rem', textAlign: 'center', backgroundColor: '#f8fafc' }}>
+          <div className="card" style={{ padding: '1.5rem', textAlign: 'center', backgroundColor: '#f8fafc' }}>
             <Clock size={48} color="var(--pulpos-primary)" style={{ margin: '0 auto 1rem auto' }} />
             <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Control de Asistencia</h2>
-            <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '2rem' }}>
+            <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
               Registra tu entrada y salida del turno laboral. 
             </p>
 
             {(user.reqPhoto && !hasCheckedIn) && (
-              <div style={{ marginBottom: '2rem' }}>
+              <div style={{ marginBottom: '1.5rem' }}>
                 <FaceRecognitionClient user={user} onFaceMatched={setFaceMatched} onPhotoCaptured={setPhotoUrl} />
               </div>
             )}
@@ -97,15 +97,16 @@ export default function PortalEmpleadoClient({ user }: { user: any }) {
                 onClick={() => handleCheckIn('CHECK_IN')}
                 disabled={isRegistering || hasCheckedIn || (user.reqPhoto && !faceMatched)}
                 style={{ 
-                  padding: '1rem 2rem', 
-                  fontSize: '1.1rem', 
+                  padding: '0.85rem 1.5rem', 
+                  fontSize: '1rem', 
                   fontWeight: 'bold',
                   backgroundColor: hasCheckedIn ? '#e2e8f0' : '#16a34a',
                   color: hasCheckedIn ? '#94a3b8' : 'white',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: hasCheckedIn ? 'not-allowed' : 'pointer',
-                  flex: '1 1 200px'
+                  flex: '1 1 100%',
+                  minWidth: '150px'
                 }}
               >
                 Entrada (Check-In)
@@ -115,22 +116,23 @@ export default function PortalEmpleadoClient({ user }: { user: any }) {
                 onClick={() => handleCheckIn('CHECK_OUT')}
                 disabled={isRegistering || !hasCheckedIn || hasCheckedOut || (user.reqPhoto && !faceMatched && false /* Optional: require face for checkout too? let's not for now */)}
                 style={{ 
-                  padding: '1rem 2rem', 
-                  fontSize: '1.1rem', 
+                  padding: '0.85rem 1.5rem', 
+                  fontSize: '1rem', 
                   fontWeight: 'bold',
                   backgroundColor: (!hasCheckedIn || hasCheckedOut) ? '#e2e8f0' : '#ea580c',
                   color: (!hasCheckedIn || hasCheckedOut) ? '#94a3b8' : 'white',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: (!hasCheckedIn || hasCheckedOut) ? 'not-allowed' : 'pointer',
-                  flex: '1 1 200px'
+                  flex: '1 1 100%',
+                  minWidth: '150px'
                 }}
               >
                 Salida (Check-Out)
               </button>
             </div>
 
-            <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center', gap: '2rem', fontSize: '0.85rem', color: '#64748b', flexWrap: 'wrap' }}>
+            <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center', gap: '1rem', fontSize: '0.8rem', color: '#64748b', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <MapPin size={16} color={currentCoords ? '#16a34a' : '#ef4444'} />
                 {locationStatus}
