@@ -60,3 +60,25 @@ export async function registerAttendance(data: {
     } 
   };
 }
+
+export async function registerFaceDescriptor(data: {
+  userId: string;
+  descriptor: string;
+}) {
+  const sessionCookie = (await cookies()).get('session')?.value;
+  const session = await decrypt(sessionCookie);
+  
+  if (!session?.userId || session.userId !== data.userId) {
+    throw new Error("No autorizado");
+  }
+
+  await prisma.user.update({
+    where: { id: data.userId },
+    data: {
+      faceDescriptor: data.descriptor
+    }
+  });
+
+  revalidatePath('/mi-portal');
+  return { success: true };
+}
