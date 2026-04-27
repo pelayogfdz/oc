@@ -231,7 +231,7 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
 
                     {isExpanded && (
                       <div style={{ padding: '0', borderTop: '1px solid var(--pulpos-border)' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                           <thead>
                             <tr style={{ backgroundColor: '#f1f5f9', color: '#64748b', fontSize: '0.8rem' }}>
                               <th style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--pulpos-border)' }}>Colaborador</th>
@@ -243,23 +243,23 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
                           <tbody>
                             {teamMembers.map(vendor => (
                               <tr key={vendor.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                                <td style={{ padding: '0.75rem 1.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <td data-label="Colaborador" style={{ padding: '0.75rem 1.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
                                   {vendor.name}
                                 </td>
-                                <td style={{ padding: '0.75rem 1.5rem' }}>
+                                <td data-label="% de Comisión" style={{ padding: '0.75rem 1.5rem' }}>
                                   <div style={{ display: 'flex', alignItems: 'center' }}>
                                     <input type="number" min="0" step="0.01" value={vendor.commissionPct || 0} onChange={e => handleChange(vendor.id, 'commissionPct', e.target.value)} style={{ width: '60px', padding: '0.4rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px 0 0 4px', borderRight: 'none', textAlign: 'center', outline: 'none' }} />
                                     <div style={{ padding: '0.4rem', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)', borderRadius: '0 4px 4px 0', fontSize: '0.8rem' }}>%</div>
                                   </div>
                                 </td>
-                                <td style={{ padding: '0.75rem 1.5rem' }}>
+                                <td data-label="Equipo Asignado" style={{ padding: '0.75rem 1.5rem' }}>
                                   <select value={vendor.managerId || 'NONE'} onChange={e => handleChange(vendor.id, 'managerId', e.target.value)} style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', fontSize: '0.85rem' }}>
                                     <option value="NONE">- Quitar de este equipo -</option>
                                     {leaders.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                                   </select>
                                 </td>
-                                <td style={{ padding: '0.75rem 1.5rem' }}>
+                                <td data-label="Rol Actual" style={{ padding: '0.75rem 1.5rem' }}>
                                   <select value={vendor.commissionRole} onChange={e => handleChange(vendor.id, 'commissionRole', e.target.value)} style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', fontSize: '0.85rem' }}>
                                     {roles.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                                   </select>
@@ -303,7 +303,7 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
             <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem' }}>Estos usuarios figuran debajo de nadie y operan exclusivamente para su bono/comisión personal.</p>
 
             <div style={{ backgroundColor: 'white', border: '1px solid #fcd34d', borderRadius: '8px', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                  <thead>
                    <tr style={{ backgroundColor: '#fffbeb', color: '#b45309', fontSize: '0.85rem' }}>
                      <th style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid #fde68a' }}>Colaborador</th>
@@ -315,23 +315,23 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
                  <tbody>
                    {unassignedVendors.map(vendor => (
                      <tr key={vendor.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                       <td style={{ padding: '0.75rem 1.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                       <td data-label="Colaborador" style={{ padding: '0.75rem 1.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1' }}></div>
                          {vendor.name}
                        </td>
-                       <td style={{ padding: '0.75rem 1.5rem' }}>
+                       <td data-label="% de Comisión" style={{ padding: '0.75rem 1.5rem' }}>
                          <div style={{ display: 'flex', alignItems: 'center' }}>
                            <input type="number" min="0" step="0.01" value={vendor.commissionPct || 0} onChange={e => handleChange(vendor.id, 'commissionPct', e.target.value)} style={{ width: '80px', padding: '0.4rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px 0 0 4px', borderRight: 'none', textAlign: 'center', outline: 'none' }} />
                            <div style={{ padding: '0.4rem', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)', borderRadius: '0 4px 4px 0', fontSize: '0.8rem' }}>%</div>
                          </div>
                        </td>
-                       <td style={{ padding: '0.75rem 1.5rem' }}>
+                       <td data-label="Jefe Inmediato (Opcional)" style={{ padding: '0.75rem 1.5rem' }}>
                          <select value={vendor.managerId || 'NONE'} onChange={e => handleChange(vendor.id, 'managerId', e.target.value)} style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid #fbbf24', fontSize: '0.85rem', outline: 'none' }}>
                            <option value="NONE">- Asignar a un equipo -</option>
                            {leaders.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                          </select>
                        </td>
-                       <td style={{ padding: '0.75rem 1.5rem' }}>
+                       <td data-label="Rol Actual" style={{ padding: '0.75rem 1.5rem' }}>
                          <select value={vendor.commissionRole} onChange={e => handleChange(vendor.id, 'commissionRole', e.target.value)} style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', fontSize: '0.85rem' }}>
                            {roles.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                          </select>

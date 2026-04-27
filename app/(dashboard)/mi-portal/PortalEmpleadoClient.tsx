@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Clock, MapPin, CalendarDays, CheckCircle2, AlertTriangle, FileText } from 'lucide-react';
 import { registerAttendance } from '@/app/actions/hr';
 import FaceRecognitionClient from './FaceRecognitionClient';
@@ -10,9 +10,11 @@ export default function PortalEmpleadoClient({ user }: { user: any }) {
   const [locationStatus, setLocationStatus] = useState<string>('Buscando ubicación...');
   const [currentCoords, setCurrentCoords] = useState<{lat: number, lng: number} | null>(null);
   const [faceMatched, setFaceMatched] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Simple geo tracking on load (mock for now if geolocation API isn't permitted in dev)
-  useState(() => {
+  // Simple geo tracking on load
+  useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((pos) => {
         setCurrentCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
@@ -23,7 +25,7 @@ export default function PortalEmpleadoClient({ user }: { user: any }) {
     } else {
       setLocationStatus('Geolocalización no soportada por el navegador');
     }
-  });
+  }, []);
 
   const handleCheckIn = async (type: 'CHECK_IN' | 'CHECK_OUT') => {
     setIsRegistering(true);
@@ -32,7 +34,7 @@ export default function PortalEmpleadoClient({ user }: { user: any }) {
         throw new Error("Se requiere ubicación GPS activa para registrar asistencia.");
       }
       if (user.reqPhoto && !faceMatched) {
-        throw new Error("Se requiere validación facial exitosa para registrar tu entrada/salida.");
+        throw new Error("Se requiere foto de selfie exitosa para registrar tu entrada/salida.");
       }
       
       await registerAttendance({
@@ -40,13 +42,13 @@ export default function PortalEmpleadoClient({ user }: { user: any }) {
         type,
         latitude: currentCoords?.lat,
         longitude: currentCoords?.lng,
-        photoUrl: undefined, // En vez de foto manual, usamos la confianza del face-api que ya validó en cliente
+        photoUrl: photoUrl || undefined,
         deviceInfo: navigator.userAgent
       });
       alert('Registro guardado correctamente');
       window.location.reload();
     } catch (e: any) {
-      alert("Error al registrar: " + e.message);
+      setErrorMsg("Error al registrar: " + e.message);
     } finally {
       setIsRegistering(false);
     }
@@ -65,9 +67,16 @@ export default function PortalEmpleadoClient({ user }: { user: any }) {
         Bienvenido, {user.name}
       </p>
 
+      {errorMsg && (
+        <div style={{ padding: '1rem', marginBottom: '1.5rem', backgroundColor: '#fef2f2', border: '1px solid #f87171', color: '#ef4444', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <AlertTriangle size={20} />
+          {errorMsg}
+        </div>
+      )}
+
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
         {/* Main Column */}
-        <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ flex: '1 1 min(100%, 300px)', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
           {/* Action Card */}
           <div className="card" style={{ padding: '2rem', textAlign: 'center', backgroundColor: '#f8fafc' }}>
@@ -77,9 +86,9 @@ export default function PortalEmpleadoClient({ user }: { user: any }) {
               Registra tu entrada y salida del turno laboral. 
             </p>
 
-            {user.reqPhoto && !hasCheckedIn && (
+            {(user.reqPhoto && !hasCheckedIn) && (
               <div style={{ marginBottom: '2rem' }}>
-                <FaceRecognitionClient user={user} onFaceMatched={setFaceMatched} />
+                <FaceRecognitionClient user={user} onFaceMatched={setFaceMatched} onPhotoCaptured={setPhotoUrl} />
               </div>
             )}
 
@@ -96,7 +105,7 @@ export default function PortalEmpleadoClient({ user }: { user: any }) {
                   border: 'none',
                   borderRadius: '8px',
                   cursor: hasCheckedIn ? 'not-allowed' : 'pointer',
-                  minWidth: '200px'
+                  flex: '1 1 200px'
                 }}
               >
                 Entrada (Check-In)
@@ -114,20 +123,20 @@ export default function PortalEmpleadoClient({ user }: { user: any }) {
                   border: 'none',
                   borderRadius: '8px',
                   cursor: (!hasCheckedIn || hasCheckedOut) ? 'not-allowed' : 'pointer',
-                  minWidth: '200px'
+                  flex: '1 1 200px'
                 }}
               >
                 Salida (Check-Out)
               </button>
             </div>
 
-            <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center', gap: '2rem', fontSize: '0.85rem', color: '#64748b' }}>
+            <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center', gap: '2rem', fontSize: '0.85rem', color: '#64748b', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <MapPin size={16} color={currentCoords ? '#16a34a' : '#ef4444'} />
                 {locationStatus}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Camera size={16} color={user.reqPhoto ? '#3b82f6' : '#94a3b8'} />
+                <CheckCircle2 size={16} color={user.reqPhoto ? '#3b82f6' : '#94a3b8'} />
                 {user.reqPhoto ? 'Foto Requerida' : 'Foto Opcional'}
               </div>
             </div>
@@ -146,7 +155,7 @@ export default function PortalEmpleadoClient({ user }: { user: any }) {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {todayLogs.map((log: any) => (
-                  <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                  <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '8px', flexWrap: 'wrap', gap: '0.5rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                       <div style={{ padding: '0.5rem', backgroundColor: log.type === 'CHECK_IN' ? '#dcfce7' : '#ffedd5', borderRadius: '50%' }}>
                         {log.type === 'CHECK_IN' ? <CheckCircle2 size={24} color="#16a34a" /> : <AlertTriangle size={24} color="#ea580c" />}
@@ -173,7 +182,7 @@ export default function PortalEmpleadoClient({ user }: { user: any }) {
         </div>
 
         {/* Sidebar Column */}
-        <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '1.5rem', minWidth: '300px' }}>
+        <div style={{ flex: '1 1 min(100%, 300px)', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
           <div className="card">
             <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1rem' }}>Resumen Semanal</h3>

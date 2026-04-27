@@ -67,7 +67,7 @@ export default function PromotionsClient({ initialPromos }: { initialPromos: any
       </div>
 
       <div className="card" style={{ padding: '0' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: '#f9fafb' }}>
               <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Nombre</th>
@@ -79,13 +79,13 @@ export default function PromotionsClient({ initialPromos }: { initialPromos: any
           <tbody>
             {initialPromos.map(promo => (
               <tr key={promo.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                <td style={{ padding: '1rem', fontWeight: 'bold' }}>{promo.name}</td>
-                <td style={{ padding: '1rem' }}>
+                <td data-label="Nombre" style={{ padding: '1rem', fontWeight: 'bold' }}>{promo.name}</td>
+                <td data-label="Mecánica" style={{ padding: '1rem' }}>
                   <span style={{ color: 'var(--pulpos-primary)', fontWeight: 'bold' }}>
                     {promo.type === 'PERCENTAGE' ? `Descuento ${promo.value}%` : `Descuento $${promo.value}`}
                   </span>
                 </td>
-                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                <td data-label="Estado" style={{ padding: '1rem', textAlign: 'center' }}>
                   <button 
                     onClick={() => togglePromotion(promo.id, !promo.active)}
                     style={{ 
@@ -102,7 +102,7 @@ export default function PromotionsClient({ initialPromos }: { initialPromos: any
                     {promo.active ? 'ACTIVA' : 'INACTIVA'}
                   </button>
                 </td>
-                <td style={{ padding: '1rem', textAlign: 'right' }}>
+                <td data-label="Eliminar" style={{ padding: '1rem', textAlign: 'right' }}>
                   <button onClick={() => deletePromotion(promo.id)} style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}>
                      <Trash2 size={20} />
                   </button>

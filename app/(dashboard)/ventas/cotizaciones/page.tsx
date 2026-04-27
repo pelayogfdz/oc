@@ -26,7 +26,7 @@ export default async function CotizacionesPage() {
       </div>
 
       <div className="card" style={{ padding: '0' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: '#f9fafb' }}>
               <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>ID Cotización</th>
@@ -41,23 +41,23 @@ export default async function CotizacionesPage() {
           <tbody>
             {quotes.map(quote => (
               <tr key={quote.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                <td style={{ padding: '1rem', fontWeight: '500' }}>#{quote.id.slice(0, 8).toUpperCase()}</td>
-                <td style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>
+                <td data-label="ID Cotización" style={{ padding: '1rem', fontWeight: '500' }}>#{quote.id.slice(0, 8).toUpperCase()}</td>
+                <td data-label="Fecha" style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>
                   {new Date(quote.createdAt).toLocaleString('es-MX')}
                 </td>
-                <td style={{ padding: '1rem' }}>{quote.customer?.name || 'Público en General'}</td>
-                <td style={{ padding: '1rem' }}>{quote.user.name}</td>
-                <td style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>
+                <td data-label="Cliente" style={{ padding: '1rem' }}>{quote.customer?.name || 'Público en General'}</td>
+                <td data-label="Creado por" style={{ padding: '1rem' }}>{quote.user.name}</td>
+                <td data-label="Total" style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>
                   ${quote.total.toFixed(2)}
                 </td>
-                <td style={{ padding: '1rem' }}>
+                <td data-label="Estado" style={{ padding: '1rem' }}>
                   {quote.status === 'PENDING' ? (
                     <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#fef9c3', color: '#854d0e', borderRadius: '12px' }}>PENDIENTE</span>
                   ) : (
                     <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '12px' }}>CONVERTIDA A VENTA</span>
                   )}
                 </td>
-                <td style={{ padding: '1rem', textAlign: 'right' }}>
+                <td data-label="Acción" style={{ padding: '1rem', textAlign: 'right' }}>
                   {quote.status === 'PENDING' && (
                     <ConvertButton quoteId={quote.id} />
                   )}

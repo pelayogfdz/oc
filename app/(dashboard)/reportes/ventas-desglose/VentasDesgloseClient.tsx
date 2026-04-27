@@ -111,7 +111,7 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
             </div>
 
             <div style={{ overflowX: 'auto', maxHeight: '500px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10 }}>
                   <tr style={{ borderBottom: '2px solid var(--pulpos-border)', color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>
                     <th style={{ padding: '0.75rem 0.5rem' }}>Fecha</th>
@@ -127,11 +127,11 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
                 <tbody>
                   {filteredSales.map((s: any) => (
                     <tr key={s.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                      <td style={{ padding: '1rem 0.5rem', fontSize: '0.9rem' }}>{formatDate(s.date)}</td>
-                      <td style={{ padding: '1rem 0.5rem', fontSize: '0.9rem', color: 'var(--pulpos-primary)', fontFamily: 'monospace' }}>{s.id.split('-')[0]}</td>
-                      <td style={{ padding: '1rem 0.5rem' }}>{s.customer}</td>
-                      <td style={{ padding: '1rem 0.5rem', color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>{s.user}</td>
-                      <td style={{ padding: '1rem 0.5rem' }}>
+                      <td data-label="Fecha" style={{ padding: '1rem 0.5rem', fontSize: '0.9rem' }}>{formatDate(s.date)}</td>
+                      <td data-label="ID Ticket" style={{ padding: '1rem 0.5rem', fontSize: '0.9rem', color: 'var(--pulpos-primary)', fontFamily: 'monospace' }}>{s.id.split('-')[0]}</td>
+                      <td data-label="Cliente" style={{ padding: '1rem 0.5rem' }}>{s.customer}</td>
+                      <td data-label="Cajero" style={{ padding: '1rem 0.5rem', color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>{s.user}</td>
+                      <td data-label="Método" style={{ padding: '1rem 0.5rem' }}>
                         <span style={{ 
                           padding: '0.25rem 0.5rem', 
                           borderRadius: '9999px', 
@@ -143,9 +143,9 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
                           {s.method}
                         </span>
                       </td>
-                      <td style={{ padding: '1rem 0.5rem', textAlign: 'right', fontWeight: 'bold' }}>{formatCurrency(s.total)}</td>
-                      <td style={{ padding: '1rem 0.5rem', textAlign: 'right', color: '#16a34a' }}>{formatCurrency(s.profit)}</td>
-                      <td style={{ padding: '1rem 0.5rem', textAlign: 'center' }}>
+                      <td data-label="Total" style={{ padding: '1rem 0.5rem', textAlign: 'right', fontWeight: 'bold' }}>{formatCurrency(s.total)}</td>
+                      <td data-label="Ganancia" style={{ padding: '1rem 0.5rem', textAlign: 'right', color: '#16a34a' }}>{formatCurrency(s.profit)}</td>
+                      <td data-label="Acciones" style={{ padding: '1rem 0.5rem', textAlign: 'center' }}>
                         <button style={{ padding: '0.25rem', color: 'var(--pulpos-primary)' }}>
                           <Eye size={18} />
                         </button>

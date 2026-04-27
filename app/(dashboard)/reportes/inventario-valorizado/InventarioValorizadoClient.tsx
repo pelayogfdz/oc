@@ -102,7 +102,7 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
           </div>
 
           <div style={{ overflowX: 'auto', maxHeight: '500px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead style={{ position: 'sticky', top: 0, backgroundColor: 'white' }}>
                 <tr style={{ borderBottom: '2px solid var(--pulpos-border)', color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>
                   <th style={{ padding: '0.75rem 0.5rem' }}>SKU</th>
@@ -116,9 +116,9 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
               <tbody>
                 {filteredInventory.map((i: any) => (
                   <tr key={i.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                    <td style={{ padding: '1rem 0.5rem', fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', fontFamily: 'monospace' }}>{i.sku}</td>
-                    <td style={{ padding: '1rem 0.5rem', fontWeight: '500' }}>{i.name}</td>
-                    <td style={{ padding: '1rem 0.5rem', textAlign: 'center' }}>
+                    <td data-label="SKU" style={{ padding: '1rem 0.5rem', fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', fontFamily: 'monospace' }}>{i.sku}</td>
+                    <td data-label="Producto" style={{ padding: '1rem 0.5rem', fontWeight: '500' }}>{i.name}</td>
+                    <td data-label="Stock" style={{ padding: '1rem 0.5rem', textAlign: 'center' }}>
                       <span style={{ 
                         padding: '0.25rem 0.5rem', 
                         borderRadius: '9999px', 
@@ -130,9 +130,9 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
                         {i.stock}
                       </span>
                     </td>
-                    <td style={{ padding: '1rem 0.5rem', textAlign: 'right', color: 'var(--pulpos-text-muted)' }}>{formatCurrency(i.cost)}</td>
-                    <td style={{ padding: '1rem 0.5rem', textAlign: 'right', fontWeight: 'bold', color: '#ef4444' }}>{formatCurrency(i.costValue)}</td>
-                    <td style={{ padding: '1rem 0.5rem', textAlign: 'center' }}>
+                    <td data-label="Costo U." style={{ padding: '1rem 0.5rem', textAlign: 'right', color: 'var(--pulpos-text-muted)' }}>{formatCurrency(i.cost)}</td>
+                    <td data-label="Capital Det." style={{ padding: '1rem 0.5rem', textAlign: 'right', fontWeight: 'bold', color: '#ef4444' }}>{formatCurrency(i.costValue)}</td>
+                    <td data-label="Margen %" style={{ padding: '1rem 0.5rem', textAlign: 'center' }}>
                       <span style={{ color: i.margin < 15 ? '#ef4444' : i.margin > 40 ? '#16a34a' : '#f59e0b', fontWeight: 'bold' }}>
                         {i.margin.toFixed(1)}%
                       </span>

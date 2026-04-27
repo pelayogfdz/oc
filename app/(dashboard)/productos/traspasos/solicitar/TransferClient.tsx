@@ -190,7 +190,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
           )}
 
           {transferItems.length > 0 && (
-             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+             <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                <thead>
                  <tr style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
                    <th style={{ padding: '0.5rem' }}>Producto</th>
@@ -201,11 +201,11 @@ export default function TransferClient({ originBranchId, originBranchName, other
                <tbody>
                  {transferItems.map(item => (
                    <tr key={item.listId} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                     <td style={{ padding: '0.75rem 0.5rem', fontWeight: '500' }}>
+                     <td data-label="Producto" style={{ padding: '0.75rem 0.5rem', fontWeight: '500' }}>
                         <div>{item.name}</div>
                         <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.75rem' }}>{item.sku || '--'}</div>
                      </td>
-                     <td style={{ padding: '0.75rem 0.5rem' }}>
+                     <td data-label="Cant." style={{ padding: '0.75rem 0.5rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <input 
                             type="number" 
@@ -218,7 +218,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
                         </div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', marginTop: '0.2rem' }}>de {item.maxStock} disp.</div>
                      </td>
-                     <td style={{ padding: '0.75rem 0.5rem' }}>
+                     <td data-label="Acciones" style={{ padding: '0.75rem 0.5rem' }}>
                        <button onClick={() => removeItem(item.listId)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={18}/></button>
                      </td>
                    </tr>

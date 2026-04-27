@@ -182,7 +182,7 @@ export function ProductDetailClient({
             </form>
           )}
 
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: '#f9fafb' }}>
                 <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Fecha</th>
@@ -194,8 +194,8 @@ export function ProductDetailClient({
             <tbody>
               {movements.map(mov => (
                 <tr key={mov.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                  <td style={{ padding: '1rem' }}>{new Date(mov.createdAt).toLocaleString()}</td>
-                  <td style={{ padding: '1rem' }}>
+                  <td data-label="Fecha" style={{ padding: '1rem' }}>{new Date(mov.createdAt).toLocaleString()}</td>
+                  <td data-label="Tipo" style={{ padding: '1rem' }}>
                     <span style={{ 
                       padding: '0.25rem 0.5rem', 
                       borderRadius: '12px', 
@@ -207,8 +207,8 @@ export function ProductDetailClient({
                       {mov.type}
                     </span>
                   </td>
-                  <td style={{ padding: '1rem' }}>{mov.reason}</td>
-                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: mov.quantity > 0 ? '#16a34a' : '#dc2626' }}>
+                  <td data-label="Motivo" style={{ padding: '1rem' }}>{mov.reason}</td>
+                  <td data-label="Cantidad" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: mov.quantity > 0 ? '#16a34a' : '#dc2626' }}>
                     {mov.quantity > 0 ? '+' : ''}{mov.quantity}
                   </td>
                 </tr>
@@ -227,7 +227,7 @@ export function ProductDetailClient({
 
       {activeTab === 'sales' && (
         <div className="card">
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: '#f9fafb' }}>
                 <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Venta N° (ID)</th>
@@ -238,9 +238,9 @@ export function ProductDetailClient({
             <tbody>
               {sales.map(s => (
                 <tr key={s.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                  <td style={{ padding: '1rem', fontFamily: 'monospace' }}>{s.saleId.slice(0, 8)}...</td>
-                  <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>{s.quantity}</td>
-                  <td style={{ padding: '1rem', textAlign: 'right' }}>${(s.quantity * s.price).toFixed(2)}</td>
+                  <td data-label="Venta N° (ID)" style={{ padding: '1rem', fontFamily: 'monospace' }}>{s.saleId.slice(0, 8)}...</td>
+                  <td data-label="Unidades Vendidas" style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>{s.quantity}</td>
+                  <td data-label="Subtotal Generado" style={{ padding: '1rem', textAlign: 'right' }}>${(s.quantity * s.price).toFixed(2)}</td>
                 </tr>
               ))}
               {sales.length === 0 && (
@@ -267,7 +267,7 @@ export function ProductDetailClient({
              <button type="submit" className="btn-primary" style={{ padding: '0 2rem' }}>+ Agregar</button>
           </form>
 
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
              <thead>
                <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid var(--pulpos-border)' }}>
                  <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>Atributo</th>
@@ -278,9 +278,9 @@ export function ProductDetailClient({
              <tbody>
                {variants?.map(v => (
                  <tr key={v.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                   <td style={{ padding: '1rem', fontWeight: 'bold' }}>{v.attribute}</td>
-                   <td style={{ padding: '1rem' }}>{v.sku || '-'}</td>
-                   <td style={{ padding: '1rem', textAlign: 'center' }}>
+                   <td data-label="Atributo" style={{ padding: '1rem', fontWeight: 'bold' }}>{v.attribute}</td>
+                   <td data-label="SKU Propio" style={{ padding: '1rem' }}>{v.sku || '-'}</td>
+                   <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }}>
                      <form action={deleteVariant} style={{ display: 'inline' }}>
                         <input type="hidden" name="variantId" value={v.id} />
                         <input type="hidden" name="productId" value={product.id} />
@@ -304,7 +304,7 @@ export function ProductDetailClient({
           <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', fontWeight: 'bold' }}>Inventario Transversal (Red de Sucursales)</h2>
           <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '2rem', fontSize: '0.875rem' }}>Visualiza la existencia de este mismo artículo (por SKU) a lo largo de toda tu empresa matriz para facilitar traspasos o redireccionar ventas.</p>
           
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
              <thead>
                <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid var(--pulpos-border)' }}>
                  <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', width: '60%' }}>Sucursal / Almacén</th>
@@ -315,21 +315,21 @@ export function ProductDetailClient({
              <tbody>
                {siblingProducts.map(sp => (
                  <tr key={sp.id} style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: sp.id === product.id ? '#f0fdf4' : 'transparent' }}>
-                   <td style={{ padding: '1rem' }}>
+                   <td data-label="Sucursal / Almacén" style={{ padding: '1rem' }}>
                      <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                        {sp.branch?.name || 'Desconocida'}
                        {sp.id === product.id && <span style={{ fontSize: '0.65rem', backgroundColor: '#22c55e', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>ACTUAL</span>}
                      </div>
                      <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)' }}>{sp.branch?.location || '-'}</div>
                    </td>
-                   <td style={{ padding: '1rem', textAlign: 'right' }}>
+                   <td data-label="Estado del Producto" style={{ padding: '1rem', textAlign: 'right' }}>
                      {sp.isActive ? (
                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '12px' }}>Activo</span>
                      ) : (
                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#f1f5f9', color: '#475569', borderRadius: '12px' }}>Inactivo</span>
                      )}
                    </td>
-                   <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', fontSize: '1.1rem', color: sp.stock > 0 ? '#1e293b' : '#ef4444' }}>
+                   <td data-label="Stock Disponible" style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', fontSize: '1.1rem', color: sp.stock > 0 ? '#1e293b' : '#ef4444' }}>
                      {sp.stock} <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--pulpos-text-muted)' }}>{sp.unit}</span>
                    </td>
                  </tr>

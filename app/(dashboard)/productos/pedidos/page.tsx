@@ -41,7 +41,7 @@ export default async function PurchaseOrdersPage() {
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="table-responsive">
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
+          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
             <thead style={{ backgroundColor: 'var(--pulpos-bg)' }}>
               <tr>
                 <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Folio / Fecha</th>
@@ -56,23 +56,23 @@ export default async function PurchaseOrdersPage() {
             <tbody>
               {orders.map((order: any) => (
                 <tr key={order.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                  <td style={{ padding: '1rem' }}>
+                  <td data-label="Folio / Fecha" style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: '500' }}>#{order.id.substring(0,8).toUpperCase()}</div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--pulpos-text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</div>
                   </td>
-                  <td style={{ padding: '1rem' }}>
+                  <td data-label="Proveedor" style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: 'bold' }}>{order.supplier?.name || 'Por Definir'}</div>
                   </td>
-                  <td style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>
+                  <td data-label="Sucursal Solicitante" style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>
                     {order.branch?.name || 'Central'}
                   </td>
-                  <td style={{ padding: '1rem' }}>
+                  <td data-label="Artículos" style={{ padding: '1rem' }}>
                     {order.items.length} líneas
                   </td>
-                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>
+                  <td data-label="Total Estimado" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>
                     ${order.total.toFixed(2)}
                   </td>
-                  <td style={{ padding: '1rem', textAlign: 'center' }}>
+                  <td data-label="Estado" style={{ padding: '1rem', textAlign: 'center' }}>
                     <span style={{ 
                       backgroundColor: order.status === 'RECEIVED' ? '#dcfce7' : '#fef9c3', 
                       color: order.status === 'RECEIVED' ? '#166534' : '#854d0e', 
@@ -87,7 +87,7 @@ export default async function PurchaseOrdersPage() {
                       {order.status === 'RECEIVED' ? <><CheckCircle size={12}/> RECIBIDO</> : <><Clock size={12}/> PENDIENTE</>}
                     </span>
                   </td>
-                  <td style={{ padding: '1rem', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end' }}>
+                  <td data-label="Acciones" style={{ padding: '1rem', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end' }}>
                      {order.status === 'PENDING' && (
                         <form action={async () => { 'use server'; const t = await import('@/app/actions/pedidos'); await t.receivePurchaseOrder(order.id); }}>
                           <button type="submit" style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '0.4rem 0.75rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '4px' }}>

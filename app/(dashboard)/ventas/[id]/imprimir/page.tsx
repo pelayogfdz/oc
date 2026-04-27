@@ -84,7 +84,7 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
       <div style={{ borderBottom: '1px dashed #ccc', marginBottom: '1rem' }}></div>
 
       {/* Items Table */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', marginBottom: '1rem' }}>
+      <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', marginBottom: '1rem' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid #000' }}>
             <th style={{ paddingBottom: '0.5rem', fontWeight: 'bold' }}>Cant</th>

@@ -51,7 +51,7 @@ export default function ReportesModuleClient({ initialMetrics }: { initialMetric
 
        <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Todos los Reportes</h2>
        
-       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
+       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1.5rem' }}>
           {reports.map((report, idx) => (
              <Link href={report.route} key={idx} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)', height: '100%', transition: 'all 0.2s', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}

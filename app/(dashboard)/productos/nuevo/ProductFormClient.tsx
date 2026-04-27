@@ -250,7 +250,7 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
 
         {hasVariants && (
           <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-            <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', marginBottom: '1rem' }}>
+            <table className="responsive-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', marginBottom: '1rem' }}>
               <thead>
                 <tr>
                   <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>Atributo (Ej. Talla 27, Rojo)</th>

@@ -226,7 +226,7 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
          </div>
       )}
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+      <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
         <thead style={{ backgroundColor: '#f8fafc' }}>
           <tr>
             <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Proveedor</th>
@@ -242,7 +242,7 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
             
             return (
               <tr key={s.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                <td style={{ padding: '1rem' }}>
+                <td data-label="Proveedor" style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Truck size={18} color="var(--pulpos-text-muted)" />
                     {s.name}
@@ -251,10 +251,10 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
                      Plazo Acordado: {s.creditDays} días
                   </div>
                 </td>
-                <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: s.creditBalance > 0 ? '#dc2626' : '#22c55e' }}>
+                <td data-label="Deuda Total" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: s.creditBalance > 0 ? '#dc2626' : '#22c55e' }}>
                   ${(s.creditBalance || 0).toFixed(2)}
                 </td>
-                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                <td data-label="Estado" style={{ padding: '1rem', textAlign: 'center' }}>
                    {overduePurchases.length > 0 ? (
                       <span style={{ padding: '0.25rem 0.5rem', backgroundColor: '#fef2f2', color: '#ef4444', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                         <AlertTriangle size={14} /> {overduePurchases.length} Vencida(s)
@@ -269,13 +269,13 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
                       </span>
                    )}
                 </td>
-                <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--pulpos-text-muted)' }}>
+                <td data-label="Límite Disponible" style={{ padding: '1rem', textAlign: 'right', color: 'var(--pulpos-text-muted)' }}>
                   <div style={{ fontWeight: '500' }}>
                     ${(s.creditLimit - (s.creditBalance || 0)).toFixed(2)}
                   </div>
                   <div style={{ fontSize: '0.75rem' }}>de ${(s.creditLimit || 0).toFixed(2)}</div>
                 </td>
-                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }}>
                   <button 
                      onClick={() => { setSelectedSupplier(s); setSelectedPurchases([]); setAmount(''); setIsGeneralPayment(false); }} 
                      style={{ backgroundColor: 'white', color: '#475569', padding: '0.5rem 1rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}

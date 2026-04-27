@@ -317,7 +317,7 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
 
       {activeTab === 'ventas' && (
          <div className="card" style={{ padding: 0 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                <thead style={{ backgroundColor: '#f8fafc' }}>
                   <tr>
                      <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Ticket / Factura</th>
@@ -351,7 +351,7 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
 
       {activeTab === 'pagos' && (
          <div className="card" style={{ padding: 0 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                <thead style={{ backgroundColor: '#f8fafc' }}>
                   <tr>
                      <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>ID Pago</th>

@@ -25,7 +25,7 @@ export default async function Page() {
       </div>
 
       <div className="card" style={{ padding: 0 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead style={{ backgroundColor: '#f8fafc' }}>
             <tr>
               <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Proveedor</th>
@@ -37,20 +37,20 @@ export default async function Page() {
           <tbody>
             {data.map((item: any) => (
               <tr key={item.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                <td style={{ padding: '1rem' }}>
+                <td data-label="Proveedor" style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: 'bold', fontSize: '1rem', color: '#0f172a' }}>{item.name}</div>
                   {item.taxId && <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', marginTop: '0.25rem' }}>RFC: {item.taxId}</div>}
                 </td>
-                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>
+                <td data-label="Contacto" style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>
                   <div>{item.email || '- Sin Correo -'}</div>
                   <div style={{ marginTop: '0.25rem' }}>{item.phone || '- Sin Teléfono -'}</div>
                 </td>
-                <td style={{ padding: '1rem', fontWeight: 'bold', color: item.creditLimit > 0 ? '#10b981' : '#64748b' }}>
+                <td data-label="Límite de Crédito" style={{ padding: '1rem', fontWeight: 'bold', color: item.creditLimit > 0 ? '#10b981' : '#64748b' }}>
                   ${item.creditLimit?.toFixed(2) || '0.00'}
                 </td>
-                <td style={{ padding: '1rem' }}>
+                <td data-label="Acciones" style={{ padding: '1rem' }}>
                     <form action={async () => { 'use server'; await deleteEntity('supplier', item.id); }}>
-                       <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                       <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem' }}>
                          <Trash2 size={16}/> 
                        </button>
                     </form>

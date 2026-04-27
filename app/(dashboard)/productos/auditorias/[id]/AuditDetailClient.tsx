@@ -222,7 +222,7 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
       {/* Main Table Layer */}
       <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--pulpos-border)', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
         
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f8fafc', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', zIndex: 10 }}>
             <tr>
               <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--pulpos-border)' }}>Producto</th>

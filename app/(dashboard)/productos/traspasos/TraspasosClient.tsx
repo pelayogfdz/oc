@@ -148,7 +148,7 @@ export default function TraspasosClient({ initialTransfers, currentBranchId }: {
         </div>
       ) : (
         <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
+          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ backgroundColor: '#f8fafc' }}>
               <tr>
                 <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Traspaso ID</th>
@@ -164,24 +164,24 @@ export default function TraspasosClient({ initialTransfers, currentBranchId }: {
                 
                 return (
                 <tr key={item.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                  <td style={{ padding: '1rem', fontWeight: '500' }}>
+                  <td data-label="Traspaso ID" style={{ padding: '1rem', fontWeight: '500' }}>
                     <div style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>#{item.id.substring(0,8).toUpperCase()}</div>
                     <span style={{ fontSize: '10px', padding: '2px 4px', borderRadius: '4px', display: 'inline-block', backgroundColor: isIncoming ? '#e0e7ff' : '#f1f5f9', color: isIncoming ? '#4338ca' : '#475569', marginTop: '4px' }}>
                        {isIncoming ? 'ENTRANTE' : 'SALIENTE'}
                     </span>
                   </td>
-                  <td style={{ padding: '1rem' }}>
+                  <td data-label="Ruta (Origen → Destino)" style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: 'bold', color: '#0f172a' }}>{item.branch?.name || 'Central'}</div>
                     <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
                       <ArrowRight size={12} /> {item.toBranch?.name || 'N/A'}
                     </div>
                   </td>
-                  <td style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>
+                  <td data-label="Información" style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>
                     <div style={{ marginBottom: '0.2rem' }}>{new Date(item.createdAt).toLocaleString()}</div>
                     {item.createdBy && <div><span style={{fontWeight: 500}}>Enviado por:</span> {item.createdBy.name}</div>}
                     {item.receivedBy && <div><span style={{fontWeight: 500}}>Recibido por:</span> {item.receivedBy.name}</div>}
                   </td>
-                  <td style={{ padding: '1rem' }}>
+                  <td data-label="Estado" style={{ padding: '1rem' }}>
                     <span style={{ 
                       backgroundColor: item.status === 'COMPLETED' ? '#dcfce7' : item.status === 'IN_TRANSIT' ? '#fef9c3' : '#f1f5f9', 
                       color: item.status === 'COMPLETED' ? '#166534' : item.status === 'IN_TRANSIT' ? '#854d0e' : '#475569', 
@@ -193,7 +193,7 @@ export default function TraspasosClient({ initialTransfers, currentBranchId }: {
                       {item.status === 'COMPLETED' ? 'COMPLETADO' : item.status === 'IN_TRANSIT' ? 'EN TRÁNSITO' : item.status}
                     </span>
                   </td>
-                    <td style={{ padding: '1rem', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end' }}>
+                    <td data-label="Acciones" style={{ padding: '1rem', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                       <Link href={`/productos/traspasos/${item.id}/imprimir`} target="_blank" style={{ backgroundColor: 'white', color: 'var(--pulpos-primary)', border: '1px solid var(--pulpos-primary)', padding: '0.4rem 0.75rem', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
                          Imprimir
                       </Link>

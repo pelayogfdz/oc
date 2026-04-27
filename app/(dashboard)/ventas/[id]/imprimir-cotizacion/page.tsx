@@ -83,7 +83,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
       </div>
 
       {/* Items Table */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', marginBottom: '2rem' }}>
+      <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', marginBottom: '2rem' }}>
         <thead>
           <tr style={{ backgroundColor: primaryColor, color: 'white' }}>
             {showProductImages && <th style={{ padding: '0.75rem', width: '60px' }}>Img</th>}

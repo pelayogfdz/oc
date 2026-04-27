@@ -33,7 +33,7 @@ export default async function VentasPage() {
       </div>
 
       <div className="card">
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: '#f9fafb' }}>
               <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>ID Venta</th>
@@ -48,23 +48,23 @@ export default async function VentasPage() {
           <tbody>
             {sales.map(sale => (
               <tr key={sale.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                <td style={{ padding: '1rem', fontFamily: 'monospace' }}>
+                <td data-label="ID Venta" style={{ padding: '1rem', fontFamily: 'monospace' }}>
                   {sale.id.slice(0, 8)}
                 </td>
-                <td style={{ padding: '1rem' }}>
+                <td data-label="Fecha / Hora" style={{ padding: '1rem' }}>
                   {new Date(sale.createdAt).toLocaleString()}
                 </td>
-                <td style={{ padding: '1rem' }}>
+                <td data-label="Sucursal / Vendedor" style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: '500' }}>{sale.branch?.name || branch.name}</div>
                   <div style={{ fontSize: '0.875rem', color: 'var(--pulpos-text-muted)' }}>Vendió: {sale.user.name}</div>
                 </td>
-                <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--pulpos-text-muted)' }}>
+                <td data-label="Artículos" style={{ padding: '1rem', textAlign: 'right', color: 'var(--pulpos-text-muted)' }}>
                   {sale.items.reduce((sum, item) => sum + item.quantity, 0)} Pzas
                 </td>
-                <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>
+                <td data-label="Total" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>
                   ${sale.total.toFixed(2)}
                 </td>
-                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                <td data-label="Estado" style={{ padding: '1rem', textAlign: 'center' }}>
                   <span style={{ 
                     padding: '0.25rem 0.5rem', 
                     borderRadius: '12px', 
@@ -76,7 +76,7 @@ export default async function VentasPage() {
                     {sale.status === 'COMPLETED' ? 'Completado' : sale.status}
                   </span>
                 </td>
-                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }}>
                   <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                     <Link href={`/ventas/${sale.id}`} style={{ padding: '0.25rem', color: '#64748b', display: 'flex', alignItems: 'center' }} title="Ver Detalle">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>

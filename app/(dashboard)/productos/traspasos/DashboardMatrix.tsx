@@ -56,7 +56,7 @@ export default async function DashboardMatrix({ activeBranch }: { activeBranch: 
 
   return (
     <div className="card" style={{ padding: '0', overflowX: 'auto', marginBottom: '2rem' }}>
-      <table style={{ minWidth: '800px', width: '100%', borderCollapse: 'collapse', textAlign: 'center' }}>
+      <table className="responsive-table" style={{ minWidth: '800px', width: '100%', borderCollapse: 'collapse', textAlign: 'center' }}>
         <thead>
           <tr style={{ backgroundColor: '#1e293b', color: 'white' }}>
             <th style={{ padding: '0.75rem', borderRight: '1px solid #334155' }}></th>

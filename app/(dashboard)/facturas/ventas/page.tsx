@@ -29,7 +29,7 @@ export default async function FacturasVentasPage() {
       </div>
 
       <div className="card" style={{ padding: 0 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead style={{ backgroundColor: '#f8fafc' }}>
             <tr>
               <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Fecha / Venta</th>
@@ -41,18 +41,18 @@ export default async function FacturasVentasPage() {
           <tbody>
             {sales.map((sale: any) => (
               <tr key={sale.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                <td style={{ padding: '1rem' }}>
+                <td data-label="Fecha / Venta" style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: '500' }}>#{sale.id.substring(0,8).toUpperCase()}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)' }}>{sale.createdAt.toLocaleDateString()} {sale.createdAt.toLocaleTimeString()}</div>
                 </td>
-                <td style={{ padding: '1rem' }}>
+                <td data-label="Cliente Fiscal" style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: 'bold' }}>{sale.customer?.legalName || sale.customer?.name || 'Público en General'}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)' }}>RFC: {sale.customer?.taxId || 'XAXX010101000'}</div>
                 </td>
-                <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>
+                <td data-label="Monto" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>
                   ${sale.total.toFixed(2)}
                 </td>
-                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }}>
                   {sale.invoiceId ? (
                      <span style={{ color: '#166534', fontWeight: 'bold' }}>Facturado</span>
                   ) : (

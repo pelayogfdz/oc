@@ -98,7 +98,7 @@ export default async function GastosPage() {
           <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', display: 'flex', justifyContent: 'space-between' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Historial del Periodo</h2>
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ backgroundColor: '#f8fafc' }}>
               <tr style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
                 <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>Fecha</th>
@@ -110,17 +110,17 @@ export default async function GastosPage() {
             <tbody>
               {expenses.map(e => (
                 <tr key={e.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                  <td style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>{e.createdAt.toLocaleDateString()}</td>
-                  <td style={{ padding: '1rem' }}>
+                  <td data-label="Fecha" style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>{e.createdAt.toLocaleDateString()}</td>
+                  <td data-label="Categoría" style={{ padding: '1rem' }}>
                     <span style={{ backgroundColor: '#f1f5f9', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
                       {e.category}
                     </span>
                   </td>
-                  <td style={{ padding: '1rem' }}>
+                  <td data-label="Concepto" style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: '500' }}>{e.reason}</div>
                     <div style={{ fontSize: '0.7rem', color: 'var(--pulpos-text-muted)' }}>Registrado por: {e.user.name}</div>
                   </td>
-                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: '#dc2626' }}>
+                  <td data-label="Monto" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: '#dc2626' }}>
                     -{formatCurrency(e.amount)}
                   </td>
                 </tr>

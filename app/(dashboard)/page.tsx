@@ -78,7 +78,7 @@ export default async function DashboardPage() {
         <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #f3f4f6' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Actividad Reciente</h2>
           {todaySales.length > 0 ? (
-             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+             <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                <thead>
                  <tr style={{ borderBottom: '2px solid #f3f4f6', textAlign: 'left' }}>
                    <th style={{ padding: '0.75rem 0', color: '#6b7280', fontSize: '0.875rem' }}>Ticket</th>
@@ -89,11 +89,11 @@ export default async function DashboardPage() {
                <tbody>
                  {todaySales.slice(0, 5).map(sale => (
                    <tr key={sale.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                     <td style={{ padding: '1rem 0', fontSize: '0.9rem', fontWeight: '500' }}>#{sale.id.slice(-6).toUpperCase()}</td>
-                     <td style={{ padding: '1rem 0', fontSize: '0.9rem', color: '#6b7280' }}>
+                     <td data-label="Ticket" style={{ padding: '1rem 0', fontSize: '0.9rem', fontWeight: '500' }}>#{sale.id.slice(-6).toUpperCase()}</td>
+                     <td data-label="Hora" style={{ padding: '1rem 0', fontSize: '0.9rem', color: '#6b7280' }}>
                        {sale.createdAt.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
                      </td>
-                     <td style={{ padding: '1rem 0', fontSize: '0.9rem', fontWeight: 'bold', color: '#10b981' }}>
+                     <td data-label="Total" style={{ padding: '1rem 0', fontSize: '0.9rem', fontWeight: 'bold', color: '#10b981' }}>
                        {formatter.format(sale.total)}
                      </td>
                    </tr>

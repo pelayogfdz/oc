@@ -37,8 +37,8 @@ export default async function CortesCajaPage() {
         </Link>
       </div>
 
-      <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--pulpos-border)', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--pulpos-border)' }}>
             <tr>
               <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', fontSize: '0.85rem' }}>TURNO</th>
@@ -52,7 +52,7 @@ export default async function CortesCajaPage() {
           <tbody>
             {sessions.map((session, i) => (
               <tr key={session.id} style={{ borderBottom: i === sessions.length - 1 ? 'none' : '1px solid var(--pulpos-border)' }}>
-                <td style={{ padding: '1rem' }}>
+                <td data-label="Turno" style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
                     {format(new Date(session.closedAt!), "dd MMM yyyy", { locale: es })}
                   </div>
@@ -60,11 +60,11 @@ export default async function CortesCajaPage() {
                     {format(new Date(session.closedAt!), "HH:mm a", { locale: es })}
                   </div>
                 </td>
-                <td style={{ padding: '1rem', fontSize: '0.9rem' }}>{session.user.name}</td>
-                <td style={{ padding: '1rem', fontSize: '0.9rem' }}>{formatCurrency(session.initialAmount)}</td>
-                <td style={{ padding: '1rem', fontSize: '0.9rem', fontWeight: 'bold' }}>{formatCurrency(session.expectedAmount || 0)}</td>
-                <td style={{ padding: '1rem', fontSize: '0.9rem', fontWeight: 'bold', color: '#a21caf' }}>{formatCurrency(session.actualAmount || 0)}</td>
-                <td style={{ padding: '1rem', fontSize: '1rem', fontWeight: 'bold', color: (session.difference || 0) < 0 ? '#ef4444' : (session.difference || 0) > 0 ? '#10b981' : '#64748b' }}>
+                <td data-label="Cajero" style={{ padding: '1rem', fontSize: '0.9rem' }}>{session.user.name}</td>
+                <td data-label="Inicial" style={{ padding: '1rem', fontSize: '0.9rem' }}>{formatCurrency(session.initialAmount)}</td>
+                <td data-label="Esperado (Sistema)" style={{ padding: '1rem', fontSize: '0.9rem', fontWeight: 'bold' }}>{formatCurrency(session.expectedAmount || 0)}</td>
+                <td data-label="Físico (Real)" style={{ padding: '1rem', fontSize: '0.9rem', fontWeight: 'bold', color: '#a21caf' }}>{formatCurrency(session.actualAmount || 0)}</td>
+                <td data-label="Sobrante/Faltante" style={{ padding: '1rem', fontSize: '1rem', fontWeight: 'bold', color: (session.difference || 0) < 0 ? '#ef4444' : (session.difference || 0) > 0 ? '#10b981' : '#64748b' }}>
                   {(session.difference || 0) > 0 ? '+' : ''}{formatCurrency(session.difference || 0)}
                 </td>
               </tr>

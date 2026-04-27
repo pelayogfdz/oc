@@ -130,7 +130,7 @@ export default function ComprasClient({ initialPurchases }: { initialPurchases: 
         </div>
       ) : (
         <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
              <thead>
               <tr style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: '#f9fafb' }}>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)' }}>Folio / Fecha</th>
@@ -144,21 +144,21 @@ export default function ComprasClient({ initialPurchases }: { initialPurchases: 
             <tbody>
               {filteredPurchases.map(purchase => (
                 <tr key={purchase.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                  <td style={{ padding: '1rem' }}>
+                  <td data-label="Folio / Fecha" style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: 'bold', fontFamily: 'monospace', color: '#1e293b' }}>#{purchase.id.substring(0,8).toUpperCase()}</div>
                     <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
                       <Calendar size={12} /> {new Date(purchase.createdAt).toLocaleDateString()}
                     </div>
                   </td>
-                  <td style={{ padding: '1rem', fontWeight: 'bold', color: '#1e293b' }}>
+                  <td data-label="Proveedor" style={{ padding: '1rem', fontWeight: 'bold', color: '#1e293b' }}>
                     {purchase.supplier?.name || 'General / Varios'}
                   </td>
-                  <td style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>
+                  <td data-label="Sucursal" style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                        <Store size={14} /> {purchase.branch?.name || 'Central'}
                     </div>
                   </td>
-                  <td style={{ padding: '1rem' }}>
+                  <td data-label="Forma de Pago" style={{ padding: '1rem' }}>
                     <span style={{ 
                       backgroundColor: purchase.paymentMethod === 'CREDIT' ? '#fee2e2' : '#f1f5f9', 
                       color: purchase.paymentMethod === 'CREDIT' ? '#b91c1c' : '#475569',
@@ -179,10 +179,10 @@ export default function ComprasClient({ initialPurchases }: { initialPurchases: 
                       }
                     </span>
                   </td>
-                  <td style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>
+                  <td data-label="Artículos" style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>
                     {purchase.items?.length || 0} líneas
                   </td>
-                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--pulpos-primary)' }}>
+                  <td data-label="Total" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--pulpos-primary)' }}>
                     ${purchase.total?.toFixed(2)}
                   </td>
                 </tr>

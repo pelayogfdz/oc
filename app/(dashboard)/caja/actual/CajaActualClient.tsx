@@ -139,7 +139,7 @@ export default function CajaActualClient({ initialSession, branchName, userName 
           </div>
        </div>
 
-       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fdf4ff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #f0abfc', marginBottom: '2rem' }}>
+       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fdf4ff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #f0abfc', marginBottom: '2rem' }}>
           <div>
             <h3 style={{ fontSize: '1.1rem', color: '#a21caf', fontWeight: 'bold', marginBottom: '0.5rem' }}>Efectivo TOTAL Esperado en Caja</h3>
             <p style={{ color: '#86198f', fontSize: '0.9rem' }}>Este es el dinero que deberías tener físicamente al cerrar.</p>
@@ -149,7 +149,7 @@ export default function CajaActualClient({ initialSession, branchName, userName 
           </div>
        </div>
 
-       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '3rem' }}>
+       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginBottom: '3rem' }}>
           <button onClick={() => { setMovementType('IN'); setIsMovementModalOpen(true); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: '#f0f9ff', color: '#0369a1', padding: '1rem', border: '1px dashed #7dd3fc', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
              <ArrowUpRight size={20} /> Registrar Entrada de Dinero
           </button>

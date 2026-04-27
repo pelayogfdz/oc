@@ -47,7 +47,7 @@ export default async function ConciliacionPage() {
         </div>
 
         <div className="card" style={{ padding: 0 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ backgroundColor: '#f8fafc' }}>
               <tr>
                 <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Fecha de Corte</th>
@@ -59,17 +59,17 @@ export default async function ConciliacionPage() {
             <tbody>
               {sessions.map((item: any) => (
                 <tr key={item.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                  <td style={{ padding: '1rem' }}>
+                  <td data-label="Fecha de Corte" style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: '500' }}>{item.closedAt?.toLocaleString() || 'Desconocido'}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)' }}>Cajero: {item.user?.name}</div>
                   </td>
-                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: '#0f172a' }}>
+                  <td data-label="Monto A Depositar" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: '#0f172a' }}>
                     ${(item.actualAmount || item.expectedAmount || 0).toFixed(2)}
                   </td>
-                  <td style={{ padding: '1rem' }}>
+                  <td data-label="Estado" style={{ padding: '1rem' }}>
                      <span style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>PENDIENTE BANCARIO</span>
                   </td>
-                  <td style={{ padding: '1rem', textAlign: 'center' }}>
+                  <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }}>
                      <form action={reconcileSession}>
                        <input type="hidden" name="id" value={item.id} />
                        <button type="submit" style={{ backgroundColor: '#f1f5f9', color: '#059669', padding: '0.5rem 1rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>

@@ -546,7 +546,7 @@ export default function POSClient({ products: initialProducts, customers, promot
   };
 
   return (
-    <div style={{ display: 'flex', gap: '2rem', height: 'calc(100vh - 200px)' }}>
+    <div className="pos-layout">
       {showScanner && (
         <BarcodeScannerModal 
           onScan={(decodedText) => {
@@ -691,7 +691,7 @@ export default function POSClient({ products: initialProducts, customers, promot
       </div>
 
       {/* Right: Cart */}
-      <div className="card" style={{ flex: 1.2, display: 'flex', flexDirection: 'column' }}>
+      <div className="card pos-cart">
         
         {/* Ticket Config */}
         <div style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>

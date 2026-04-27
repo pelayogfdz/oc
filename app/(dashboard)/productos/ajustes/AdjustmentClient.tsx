@@ -165,7 +165,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
               <p style={{ fontSize: '1.1rem' }}>No hay productos en el manifiesto.</p>
             </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f8fafc', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', zIndex: 10 }}>
                 <tr>
                   <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--pulpos-border)' }}>Producto</th>
@@ -182,14 +182,14 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
                   
                   return (
                     <tr key={item.id} style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: isModified ? '#f0fdf4' : 'transparent', transition: 'background-color 0.2s' }}>
-                      <td style={{ padding: '1rem' }}>
+                      <td data-label="Producto" style={{ padding: '1rem' }}>
                         <div style={{ fontWeight: 'bold', color: '#0f172a' }}>{item.name}</div>
                         <div style={{ fontSize: '0.8rem', color: 'var(--pulpos-text-muted)' }}>{item.sku || 'Sin SKU'}</div>
                       </td>
-                      <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', color: '#64748b', fontSize: '1.1rem' }}>
+                      <td data-label="Stock Actual" style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', color: '#64748b', fontSize: '1.1rem' }}>
                         {item.oldStock}
                       </td>
-                      <td style={{ padding: '1rem', textAlign: 'center' }}>
+                      <td data-label="Nuevo Stock" style={{ padding: '1rem', textAlign: 'center' }}>
                         <input 
                           type="number" 
                           value={item.newStock}
@@ -208,7 +208,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
                           }}
                         />
                       </td>
-                      <td style={{ padding: '1rem', textAlign: 'center' }}>
+                      <td data-label="Diferencia" style={{ padding: '1rem', textAlign: 'center' }}>
                         {isModified ? (
                           <span style={{ 
                             display: 'inline-block', 
@@ -225,7 +225,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
                           <span style={{ color: '#cbd5e1' }}>--</span>
                         )}
                       </td>
-                      <td style={{ padding: '1rem', textAlign: 'right' }}>
+                      <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'right' }}>
                         <button onClick={() => removeItem(item.id)} style={{ padding: '0.5rem', color: '#ef4444', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: '4px' }} title="Quitar de lista">
                           <Trash size={18} />
                         </button>

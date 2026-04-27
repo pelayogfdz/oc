@@ -186,7 +186,7 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
           </div>
         </div>
         
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--pulpos-border)' }}>
               <th style={{ padding: '1rem', color: '#64748b', fontWeight: 500 }}>Producto</th>
@@ -211,17 +211,17 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
               
               return (
                 <tr key={item.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                  <td style={{ padding: '1rem' }}>
+                  <td data-label="Producto" style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: 'bold', color: '#0f172a' }}>{productName}</div>
                     <div style={{ fontSize: '0.8rem', color: '#64748b' }}>SKU: {sku || 'N/A'}</div>
                   </td>
-                  <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                  <td data-label="Solicitados" style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', fontSize: '1.1rem' }}>
                      {/* Solicitados (or dispatched if status > CREATED) */}
                      {transfer.status === 'REQUESTED' || transfer.status === 'CREATED' ? item.quantity : `${item.quantity} (Surtidos)`}
                   </td>
                   
                   {isOrigin && transfer.status === 'CREATED' && (
-                     <td style={{ padding: '1rem', textAlign: 'center' }}>
+                     <td data-label="A Surtir" style={{ padding: '1rem', textAlign: 'center' }}>
                        <input 
                          type="number" 
                          min="0"
@@ -240,8 +240,8 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
 
                   {transfer.status === 'DISPATCHED' || transfer.status === 'RECEIVED' ? (
                      <>
-                       <td style={{ padding: '1rem', textAlign: 'right', color: '#0f172a' }}>${costToShow.toFixed(2)}</td>
-                       <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>${totalCost.toFixed(2)}</td>
+                       <td data-label="Costo Promedio" style={{ padding: '1rem', textAlign: 'right', color: '#0f172a' }}>${costToShow.toFixed(2)}</td>
+                       <td data-label="Total" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>${totalCost.toFixed(2)}</td>
                      </>
                   ) : null}
                 </tr>

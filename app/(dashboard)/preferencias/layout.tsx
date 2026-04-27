@@ -31,10 +31,10 @@ export default function PreferenciasLayout({ children }: { children: React.React
   const pathname = usePathname();
 
   return (
-    <div style={{ display: 'flex', gap: '2rem', maxWidth: '1200px', margin: '0 auto', minHeight: 'calc(100vh - 100px)' }}>
+    <div className="preferences-layout">
       
       {/* 18-tab Sidebar */}
-      <aside style={{ width: '280px', flexShrink: 0, backgroundColor: 'white', borderRadius: '8px', border: '1px solid var(--pulpos-border)', padding: '1rem 0', display: 'flex', flexDirection: 'column', gap: '0.25rem', overflowY: 'auto' }}>
+      <aside className="preferences-sidebar">
         <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '1rem', paddingLeft: '1rem' }}>PREFERENCIAS</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0 1rem' }}>
           {prefTabs.map(tab => {

@@ -119,7 +119,7 @@ export default function AIClient({ user, branch }: { user: any, branch: any }) {
               <ReactMarkdown 
                 remarkPlugins={[remarkGfm]}
                 components={{
-                  table: ({node, ...props}) => <table style={{borderCollapse: 'collapse', width: '100%', marginBottom: '1rem'}} {...props} />,
+                  table: ({node, ...props}) => <table className="responsive-table" style={{borderCollapse: 'collapse', width: '100%', marginBottom: '1rem'}} {...props} />,
                   th: ({node, ...props}) => <th style={{border: '1px solid #cbd5e1', padding: '8px', backgroundColor: '#f1f5f9', fontWeight: 'bold'}} {...props} />,
                   td: ({node, ...props}) => <td style={{border: '1px solid #cbd5e1', padding: '8px'}} {...props} />,
                   code: ({node, inline, ...props}: any) => inline ? <code style={{backgroundColor: '#f1f5f9', padding: '2px 4px', borderRadius: '4px', border: '1px solid #e2e8f0'}} {...props} /> : <pre style={{backgroundColor: '#1e293b', color: '#f8fafc', padding: '1rem', borderRadius: '8px', overflowX: 'auto'}}><code {...props} /></pre>

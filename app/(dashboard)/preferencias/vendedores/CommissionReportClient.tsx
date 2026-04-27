@@ -100,7 +100,7 @@ export default function CommissionReportClient({ initialUsers }: { initialUsers:
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ backgroundColor: '#f8fafc', color: '#475569', fontSize: '0.85rem' }}>
                 <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Empleado</th>
@@ -128,16 +128,16 @@ export default function CommissionReportClient({ initialUsers }: { initialUsers:
               ) : (
                 reportData.sort((a,b) => b.totalEarned - a.totalEarned).map(row => (
                   <tr key={row.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                    <td style={{ padding: '1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <td data-label="Empleado" style={{ padding: '1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <div style={{ 
                         width: '10px', height: '10px', borderRadius: '50%', 
                         backgroundColor: row.role === 'COORDINADOR' ? '#4f46e5' : (row.role === 'LIDER' ? '#10b981' : '#f59e0b') 
                       }}></div>
                       {row.name}
                     </td>
-                    <td style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b' }}>{row.role}</td>
+                    <td data-label="Puesto" style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b' }}>{row.role}</td>
                     
-                    <td style={{ padding: '1rem' }}>
+                    <td data-label="Venta Base Computable" style={{ padding: '1rem' }}>
                       {/* Venta Base */}
                       <span style={{ fontWeight: 'bold' }}>{formatCurrency(row.totalSalesBase)}</span>
                       {row.monthlyGoal > 0 && (
@@ -148,12 +148,12 @@ export default function CommissionReportClient({ initialUsers }: { initialUsers:
                       )}
                     </td>
 
-                    <td style={{ padding: '1rem', color: '#0369a1', fontWeight: 'bold' }}>
+                    <td data-label="Comisión %" style={{ padding: '1rem', color: '#0369a1', fontWeight: 'bold' }}>
                       <div>{formatCurrency(row.commissionsEarned)}</div>
                       <div style={{ fontSize: '0.75rem', fontWeight: 'normal' }}>({row.commissionPct}%)</div>
                     </td>
 
-                    <td style={{ padding: '1rem', color: '#16a34a', fontWeight: 'bold' }}>
+                    <td data-label="Bonos (Ind / Eq)" style={{ padding: '1rem', color: '#16a34a', fontWeight: 'bold' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                          <span>{formatCurrency(row.bonusEarned + row.teamBonusEarned)}</span>
                          {row.unlockedBonus && <Award size={14} color="#eab308" />}
@@ -166,7 +166,7 @@ export default function CommissionReportClient({ initialUsers }: { initialUsers:
                       )}
                     </td>
 
-                    <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', fontSize: '1.2rem', backgroundColor: '#f8fafc', color: row.totalEarned > 0 ? '#15803d' : '#64748b' }}>
+                    <td data-label="Total a Liquidar" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', fontSize: '1.2rem', backgroundColor: '#f8fafc', color: row.totalEarned > 0 ? '#15803d' : '#64748b' }}>
                       {formatCurrency(row.totalEarned)}
                     </td>
                   </tr>

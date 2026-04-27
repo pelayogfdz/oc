@@ -70,7 +70,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
         </div>
 
         {/* Items Table */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', marginBottom: '2rem' }}>
+        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', marginBottom: '2rem' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid #cbd5e1', backgroundColor: '#f8fafc' }}>
               <th style={{ padding: '1rem', color: '#475569' }}>Descripción del Artículo</th>
@@ -82,14 +82,14 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
           <tbody>
             {sale.items.map((item) => (
               <tr key={item.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '1rem' }}>
+                <td data-label="Descripción del Artículo" style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: 'bold', color: '#0f172a' }}>{item.product?.name || 'Desconocido'}</div>
                   {item.variant && <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Var: {item.variant.attribute}</div>}
                   <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>SKU: {item.product?.sku || '--'}</div>
                 </td>
-                <td style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'center', color: '#0f172a' }}>{item.quantity}</td>
-                <td style={{ padding: '1rem', textAlign: 'right', color: '#0f172a' }}>${item.price.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
-                <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: '#0f172a' }}>${(item.price * item.quantity).toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                <td data-label="Cant." style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'center', color: '#0f172a' }}>{item.quantity}</td>
+                <td data-label="Precio Unit." style={{ padding: '1rem', textAlign: 'right', color: '#0f172a' }}>${item.price.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                <td data-label="Subtotal" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: '#0f172a' }}>${(item.price * item.quantity).toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
               </tr>
             ))}
           </tbody>

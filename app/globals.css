@@ -327,6 +327,64 @@ button {
   box-shadow: -5px 0 25px rgba(0,0,0,0.1);
 }
 
+.pos-layout {
+  display: flex;
+  gap: 2rem;
+  height: calc(100vh - 200px);
+}
+
+.pos-cart {
+  width: 350px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 768px) {
+  .pos-layout {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 150px);
+    gap: 1rem;
+  }
+  .pos-cart {
+    width: 100%;
+    margin-top: 1rem;
+  }
+}
+
+.preferences-layout {
+  display: flex;
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: calc(100vh - 100px);
+}
+
+.preferences-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  background-color: white;
+  border-radius: 8px;
+  border: 1px solid var(--pulpos-border);
+  padding: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .preferences-layout {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .preferences-sidebar {
+    width: 100%;
+    max-height: 300px; /* Limit height so tabs don't consume entire screen */
+  }
+}
+
 /* ------------------------------------- */
 /* Print Styles */
 /* ------------------------------------- */

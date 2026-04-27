@@ -68,7 +68,7 @@ export default async function PrintTransferPage({ params }: { params: { id: stri
 
       {/* Items Table */}
       <h3 style={{ marginBottom: '1rem' }}>Detalle de Artículos</h3>
-      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', marginBottom: '3rem' }}>
+      <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', marginBottom: '3rem' }}>
         <thead>
           <tr style={{ borderBottom: '2px solid black', backgroundColor: '#f9f9f9' }}>
             <th style={{ padding: '0.75rem', width: '60px' }}>Cant.</th>

@@ -60,7 +60,7 @@ export default function AuditListClient({ initialAudits }: { initialAudits: any[
             <p>Comienza tu primer inventario físico presionando el botón "Nueva Auditoría".</p>
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--pulpos-border)' }}>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b' }}>Nombre</th>
@@ -73,8 +73,8 @@ export default function AuditListClient({ initialAudits }: { initialAudits: any[
             <tbody>
               {initialAudits.map(audit => (
                 <tr key={audit.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                  <td style={{ padding: '1rem', fontWeight: 'bold', color: '#0f172a' }}>{audit.name}</td>
-                  <td style={{ padding: '1rem' }}>
+                  <td data-label="Nombre" style={{ padding: '1rem', fontWeight: 'bold', color: '#0f172a' }}>{audit.name}</td>
+                  <td data-label="Estado y Fase" style={{ padding: '1rem' }}>
                     <span style={{ 
                       padding: '0.25rem 0.75rem', 
                       borderRadius: '16px', 
@@ -88,16 +88,16 @@ export default function AuditListClient({ initialAudits }: { initialAudits: any[
                        audit.status === 'COUNT_2' ? 'Fase 2: Diferencias' : 'Fase 3: Aclaraciones'}
                     </span>
                   </td>
-                  <td style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>
+                  <td data-label="Fecha" style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <Calendar size={16} />
                       {new Date(audit.createdAt).toLocaleDateString()}
                     </div>
                   </td>
-                  <td style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold' }}>
+                  <td data-label="Productos Contados" style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold' }}>
                     {audit._count.items}
                   </td>
-                  <td style={{ padding: '1rem', textAlign: 'right' }}>
+                  <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'right' }}>
                     <Link href={`/productos/auditorias/${audit.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#3b82f6', fontWeight: 'bold', textDecoration: 'none' }}>
                       {audit.status === 'COMPLETED' ? 'Ver Bitácora' : 'Continuar Conteo'} <ChevronRight size={18} />
                     </Link>

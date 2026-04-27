@@ -189,15 +189,15 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
         </div>
       </div>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', marginBottom: '3rem' }}>
+      <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', marginBottom: '3rem' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-            <th style={{ padding: '0.75rem 0', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Nombre Empleado</th>
-            <th style={{ padding: '0.75rem 0', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Correo (Login)</th>
-            <th style={{ padding: '0.75rem 0', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Nivel Base</th>
-            <th style={{ padding: '0.75rem 0', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Puesto Ventas</th>
-            <th style={{ padding: '0.75rem 0', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Permisos ACL</th>
-            <th style={{ padding: '0.75rem 0', textAlign: 'right' }}>Acciones</th>
+            <th style={{ padding: '0.75rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Nombre Empleado</th>
+            <th style={{ padding: '0.75rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Correo (Login)</th>
+            <th style={{ padding: '0.75rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Nivel Base</th>
+            <th style={{ padding: '0.75rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Puesto Ventas</th>
+            <th style={{ padding: '0.75rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Permisos ACL</th>
+            <th style={{ padding: '0.75rem', textAlign: 'right' }}>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -205,9 +205,9 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
             const hasCustomPerms = u.permissions && u.permissions !== '[]';
             return (
             <tr key={u.id || i} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-              <td style={{ padding: '1rem 0', fontWeight: 'bold' }}>{u.name}</td>
-              <td style={{ padding: '1rem 0', color: 'var(--pulpos-text-muted)' }}>{u.email}</td>
-              <td style={{ padding: '1rem 0' }}>
+              <td data-label="Nombre Empleado" style={{ padding: '1rem', fontWeight: 'bold' }}>{u.name}</td>
+              <td data-label="Correo (Login)" style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>{u.email}</td>
+              <td data-label="Nivel Base" style={{ padding: '1rem' }}>
                 <span style={{ 
                   backgroundColor: u.role === 'ADMIN' ? '#fee2e2' : (u.role === 'MANAGER' ? '#fef3c7' : '#e0f2fe'), 
                   color: u.role === 'ADMIN' ? '#991b1b' : (u.role === 'MANAGER' ? '#92400e' : '#075985'), 
@@ -222,17 +222,17 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
                   <Shield size={12} /> {u.role === 'ADMIN' ? 'Administrador' : (u.role === 'MANAGER' ? 'Encargado' : 'Empleado')}
                 </span>
               </td>
-              <td style={{ padding: '1rem 0' }}>
+              <td data-label="Puesto Ventas" style={{ padding: '1rem' }}>
                 <span style={{ fontWeight: 'bold', color: 'var(--pulpos-primary)', fontSize: '0.85rem' }}>
                   {u.commissionRole || 'VENDEDOR'}
                 </span>
               </td>
-              <td>
+              <td data-label="Permisos ACL" style={{ padding: '1rem' }}>
                 <span style={{ fontSize: '0.75rem', backgroundColor: hasCustomPerms ? '#dcfce7' : '#f1f5f9', color: hasCustomPerms ? '#166534' : '#64748b', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>
                   {hasCustomPerms ? 'Modificados ✔️' : 'Por Defecto'}
                 </span>
               </td>
-              <td style={{ padding: '1rem 0', textAlign: 'right' }}>
+              <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'right' }}>
                 <button onClick={() => {
                     openEditUser(u);
                     // scroll to form
