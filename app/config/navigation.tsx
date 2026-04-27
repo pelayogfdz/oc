@@ -112,5 +112,6 @@ export const navStructure: MenuNode[] = [
 
 export const footerNodes: MenuNode[] = [
   { title: 'Preferencias', path: '/preferencias', icon: <Settings size={20} /> },
+  { title: 'Etiquetas', path: '/preferencias/etiquetas', icon: <Tag size={20} /> },
 ];
 

@@ -70,7 +70,8 @@ export default function CrearCompraForm({ suppliers, products }: { suppliers: an
 
       if (confirm('Compra registrada con éxito. ¿Deseas imprimir etiquetas para los productos ingresados?')) {
         const ids = items.map(i => i.productId).join(',');
-        window.open(`/productos/etiquetas?ids=${ids}`, '_blank', 'width=400,height=600');
+        const qtys = items.map(i => i.quantity).join(',');
+        window.open(`/productos/etiquetas?ids=${ids}&qtys=${qtys}`, '_blank', 'width=400,height=600');
       }
       
       router.push('/productos/compras');

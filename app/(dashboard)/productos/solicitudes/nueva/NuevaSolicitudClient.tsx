@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Plus, Trash2, Package, ShoppingCart, Send } from 'lucide-react';
 import { createPurchaseRequests } from '@/app/actions/purchaseRequest';
+import { searchProducts } from '@/app/actions/product';
 
 type CatalogProduct = { id: string; name: string; sku: string | null; stock: number };
 
@@ -16,18 +17,35 @@ type RequestItem = {
   isPreProduct: boolean;
 };
 
-export default function NuevaSolicitudClient({ products }: { products: CatalogProduct[] }) {
+export default function NuevaSolicitudClient({ branchId }: { branchId: string }) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [items, setItems] = useState<RequestItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [filteredProducts, setFilteredProducts] = useState<CatalogProduct[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
-  const filteredProducts = searchTerm.trim().length > 1 
-    ? products.filter(p => 
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase()))
-      ).slice(0, 5)
-    : [];
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (searchTerm.trim().length > 1) {
+        setIsSearching(true);
+        try {
+          const results = await searchProducts(searchTerm, branchId);
+          // Remove duplicates by name just in case they are cloned items without variants
+          const uniqueResults = results.filter((v: any, i: number, a: any[]) => a.findIndex(t => (t.name === v.name)) === i);
+          setFilteredProducts(uniqueResults.slice(0, 8));
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setFilteredProducts([]);
+      }
+    }, 400);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, branchId]);
 
   const handleAddCatalogProduct = (product: CatalogProduct) => {
     // Check if already in list

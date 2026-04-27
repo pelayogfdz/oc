@@ -432,3 +432,49 @@ button {
   
 .desktop-sidebar-wrapper { transition: width 0.3s ease; width: 280px; }  
 .desktop-sidebar-wrapper.sidebar-collapsed { width: 0; overflow: hidden; } 
+
+/* ------------------------------------- */
+/* Desktop Title Layout Optimization */
+/* ------------------------------------- */
+@media (min-width: 769px) {
+  /* Ocultar h1 y subtítulos dentro del contenido principal porque ahora viven en el header */
+  .dashboard-main h1 {
+    display: none !important;
+  }
+  .dashboard-main h1 + p,
+  .dashboard-main h1 + span {
+    display: none !important;
+  }
+  
+  /* Reducir el margen inferior del contenedor de cabecera en las páginas */
+  .dashboard-main > div > div:has(> div > h1),
+  .dashboard-main > div:has(> div > h1),
+  .dashboard-main > div > div:has(> h1) {
+    margin-bottom: 1rem !important;
+    min-height: 40px;
+  }
+}
+
+
+/* Apply to all screen sizes */
+.dashboard-main h1 {
+  display: none !important;
+}
+.dashboard-main h1 + p,
+.dashboard-main h1 + span {
+  display: none !important;
+}
+.dashboard-main > div > div:has(> div > h1),
+.dashboard-main > div:has(> div > h1),
+.dashboard-main > div > div:has(> h1) {
+  margin-bottom: 0.5rem !important;
+  min-height: 40px;
+}
+
+
+@media (min-width: 769px) {
+  .header-module-subtitle {
+    display: inline-block !important;
+  }
+}
+

@@ -8,16 +8,6 @@ export const dynamic = 'force-dynamic';
 export default async function NuevaSolicitudPage() {
   const branch = await getActiveBranch();
   
-  const products = await prisma.product.findMany({
-    where: branch.id === 'GLOBAL' ? {} : { branchId: branch.id },
-    select: {
-      id: true,
-      name: true,
-      sku: true,
-      stock: true
-    }
-  });
-
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div style={{ marginBottom: '2rem' }}>
@@ -30,7 +20,7 @@ export default async function NuevaSolicitudPage() {
         </p>
       </div>
 
-      <NuevaSolicitudClient products={products} />
+      <NuevaSolicitudClient branchId={branch.id} />
     </div>
   );
 }
