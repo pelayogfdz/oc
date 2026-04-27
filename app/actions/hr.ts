@@ -44,11 +44,10 @@ export async function registerAttendance(data: {
       type: data.type,
       status,
       timestamp: new Date(),
-      latitude: data.latitude,
-      longitude: data.longitude,
+      lat: data.latitude,
+      lng: data.longitude,
       photoUrl: data.photoUrl,
-      deviceInfo: data.deviceInfo,
-      branchId: user.branchId || undefined
+      deviceInfo: data.deviceInfo
     }
   });
 
