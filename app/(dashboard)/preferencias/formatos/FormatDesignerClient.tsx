@@ -8,7 +8,7 @@ export default function FormatDesignerClient({ configJson }: { configJson: any }
 
   const tabs = [
     { id: 'cotizacion', label: 'Cotizaciones', icon: <FileText size={18} /> },
-    { id: 'ordenCompra', label: 'Órdenes de Compra', icon: <FileText size={18} /> },
+    { id: 'ordenCompra', label: 'Compras', icon: <FileText size={18} /> },
     { id: 'factura', label: 'Facturas / Ventas (A4)', icon: <Receipt size={18} /> },
     { id: 'ticket', label: 'Tickets Térmicos', icon: <Receipt size={18} /> },
   ];

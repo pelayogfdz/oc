@@ -20,6 +20,14 @@ export default async function NuevoPedidoPage() {
     where: query
   });
 
+  const pendingRequests = await prisma.purchaseRequest.findMany({
+    where: { ...query, status: 'PENDING' },
+    include: {
+      requestedBy: true,
+      product: true
+    }
+  });
+
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -40,7 +48,7 @@ export default async function NuevoPedidoPage() {
         </div>
       </div>
 
-      <CrearPedidoForm products={products} suppliers={suppliers} />
+      <CrearPedidoForm products={products} suppliers={suppliers} pendingRequests={pendingRequests} />
     </div>
   );
 }

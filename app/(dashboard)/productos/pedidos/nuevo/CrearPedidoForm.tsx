@@ -7,12 +7,12 @@ import { createPurchaseOrder } from '@/app/actions/pedidos';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import ProductTableUI from '@/app/components/ProductTableUI';
 
-export default function CrearPedidoForm({ suppliers, products }: { suppliers: any[], products: any[] }) {
+export default function CrearPedidoForm({ suppliers, products, pendingRequests }: { suppliers: any[], products: any[], pendingRequests?: any[] }) {
   const router = useRouter();
   const { isOnline, pushOfflinePurchase } = useOfflineSync();
   const [supplierId, setSupplierId] = useState('');
   const [notes, setNotes] = useState('');
-  const [items, setItems] = useState<{ productId: string, name: string, quantity: number, cost: number }[]>([]);
+  const [items, setItems] = useState<{ productId: string, name: string, quantity: number, cost: number, requestId?: string }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [availableProducts, setAvailableProducts] = useState(products || []);
@@ -170,6 +170,48 @@ export default function CrearPedidoForm({ suppliers, products }: { suppliers: an
         )}
 
         <div style={{ flex: 1, overflowY: 'auto' }}>
+          {/* Solicitudes Pendientes */}
+          {pendingRequests && pendingRequests.length > 0 && (
+            <div style={{ padding: '1rem', marginBottom: '1rem', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#b45309', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Filter size={16} /> Solicitudes Pendientes
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {pendingRequests.map((req: any) => {
+                  const isAdded = items.some(i => i.requestId === req.id);
+                  return (
+                    <div key={req.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #fde68a' }}>
+                      <div>
+                        <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
+                          {req.product ? req.product.name : <span>{req.preProductName} <span style={{fontSize:'0.7rem', color:'#ef4444'}}>(Pre-producto)</span></span>}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                          Cant: {req.quantity} | Por: {req.requestedBy?.name}
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          if (req.product) {
+                            if (!isAdded) {
+                              setItems([...items, { productId: req.product.id, name: req.product.name, quantity: req.quantity, cost: req.product.cost, requestId: req.id }]);
+                            }
+                          } else {
+                            alert('Este es un "Pre-producto" que no existe en el catálogo. Por favor, asegúrate de crear el producto real en el catálogo o búscalo manualmente si ya existe, y luego agrégalo al pedido.');
+                          }
+                        }}
+                        disabled={isAdded || !req.product}
+                        className="btn-primary"
+                        style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', opacity: (isAdded || !req.product) ? 0.5 : 1 }}
+                      >
+                        {isAdded ? 'Agregado' : 'Añadir al pedido'}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           <ProductTableUI 
             products={filteredProducts}
             showCheckboxes={false}

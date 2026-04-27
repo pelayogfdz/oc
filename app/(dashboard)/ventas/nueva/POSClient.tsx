@@ -102,8 +102,9 @@ export default function POSClient({ products: initialProducts, customers, promot
   const [amountReceived, setAmountReceived] = useState<number | ''>(''); // Used for pure CASH or MIXED cash amount
   const [cardAmount, setCardAmount] = useState<number | ''>(''); // Used for MIXED
   const [notes, setNotes] = useState<string>('');
+  const [loadedQuoteId, setLoadedQuoteId] = useState<string | null>(null);
 
-  const handleCustomerChange = (customerId: string) => {
+  const handleCustomerChange = async (customerId: string) => {
     setSelectedCustomerId(customerId);
     const customer = activeCustomers.find((c: any) => c.id === customerId);
     if (customer && customer.priceList) {
@@ -133,6 +134,8 @@ export default function POSClient({ products: initialProducts, customers, promot
     setIsLoadingQuote(true);
     try {
       const quote = await getQuoteForPOS(idToLoad);
+      
+      setLoadedQuoteId(quote.id);
       
       // Load cart
       const newCart = quote.items.map((item: any) => ({
@@ -505,7 +508,7 @@ export default function POSClient({ products: initialProducts, customers, promot
           saleId = `OFFLINE-${Date.now()}`;
         } else {
           // ONLINE MODE
-          const response = await createSale(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null, sessionId, finalNotes, cashValue, cardValue, billingData);
+          const response = await createSale(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null, sessionId, finalNotes, cashValue, cardValue, billingData, loadedQuoteId || undefined);
           if (!response.success) {
             throw new Error(response.error);
           }
@@ -535,8 +538,10 @@ export default function POSClient({ products: initialProducts, customers, promot
          printTicket(cartBackup, totalBackup, changeBackup, discountBackup, saleId);
          if (mode !== 'QUOTE') {
             router.push('/ventas');
-            router.refresh();
+         } else {
+            router.push('/ventas/cotizaciones');
          }
+         router.refresh();
       }, 100);
 
     } catch (e) {

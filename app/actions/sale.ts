@@ -13,7 +13,8 @@ export async function createSale(
   notes?: string,
   cashAmount?: number,
   cardAmount?: number,
-  billingData?: { rfc: string; name: string; zipCode: string; regime: string; use: string }
+  billingData?: { rfc: string; name: string; zipCode: string; regime: string; use: string },
+  quoteIdToConvert?: string
 ) {
   try {
     const branch = await getActiveBranch();
@@ -22,6 +23,12 @@ export async function createSale(
     
     if (items.length === 0) throw new Error("Ticket is empty");
 
+    if (customerId) {
+      const customerCheck = await prisma.customer.findUnique({ where: { id: customerId } });
+      if (customerCheck?.isBlocked) {
+        throw new Error("OPERACIÓN RECHAZADA: Este cliente está bloqueado por administración y no puede realizar compras.");
+      }
+    }
     // Load preferences
     const branchSettings = await prisma.branchSettings.findUnique({ where: { branchId: branch.id } });
     const config = branchSettings?.configJson ? JSON.parse(branchSettings.configJson)['ventas'] || {} : {};
@@ -156,6 +163,14 @@ export async function createSale(
              cfdiUse: billingData.use
           }
        });
+    }
+
+    if (quoteIdToConvert) {
+       await prisma.quote.update({
+          where: { id: quoteIdToConvert },
+          data: { status: 'CONVERTED' }
+       });
+       revalidatePath('/ventas/cotizaciones');
     }
 
     revalidatePath('/ventas');

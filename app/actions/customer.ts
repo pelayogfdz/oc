@@ -76,3 +76,13 @@ export async function updateCustomer(id: string, formData: FormData) {
   revalidatePath('/clientes');
   redirect('/clientes');
 }
+
+export async function toggleCustomerBlock(id: string, isBlocked: boolean) {
+  await prisma.customer.update({
+    where: { id },
+    data: { isBlocked }
+  });
+  
+  revalidatePath('/clientes');
+  revalidatePath(`/clientes/${id}`);
+}

@@ -7,6 +7,7 @@ import {
   MapPin, Mail, Phone, Building, Briefcase, FileText, CheckCircle, Square, AlertTriangle, CheckSquare, Trash2
 } from 'lucide-react';
 import { addCustomerPaymentBatch, deleteCustomerPayment } from '@/app/actions/customerPayment';
+import { toggleCustomerBlock } from '@/app/actions/customer';
 
 export default function ClientProfile({ customer, sales, payments }: { customer: any, sales: any[], payments: any[] }) {
   const [activeTab, setActiveTab] = useState('resumen');
@@ -88,22 +89,51 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
      }
   };
 
+  const handleToggleBlock = async () => {
+    if (!confirm(`¿Seguro que deseas ${customer.isBlocked ? 'DESBLOQUEAR' : 'BLOQUEAR'} a este cliente?`)) return;
+    try {
+      await toggleCustomerBlock(customer.id, !customer.isBlocked);
+    } catch (e: any) {
+      alert(e.message);
+    }
+  };
+
   return (
     <div>
       {/* Header Profile */}
-      <div className="card" style={{ padding: '2rem', display: 'flex', gap: '2rem', alignItems: 'flex-start', marginBottom: '2rem' }}>
-        <div style={{ padding: '1.5rem', backgroundColor: '#f1f5f9', borderRadius: '50%' }}>
-          <UserCircle size={64} color="#64748b" />
+      <div className="card" style={{ padding: '2rem', display: 'flex', gap: '2rem', alignItems: 'flex-start', marginBottom: '2rem', position: 'relative', overflow: 'hidden' }}>
+        {customer.isBlocked && (
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: '#ef4444', color: 'white', textAlign: 'center', padding: '0.25rem', fontSize: '0.75rem', fontWeight: 'bold' }}>
+            CLIENTE BLOQUEADO PARA VENTAS
+          </div>
+        )}
+        <div style={{ padding: '1.5rem', backgroundColor: customer.isBlocked ? '#fee2e2' : '#f1f5f9', borderRadius: '50%', marginTop: customer.isBlocked ? '1rem' : '0' }}>
+          <UserCircle size={64} color={customer.isBlocked ? '#ef4444' : '#64748b'} />
         </div>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, marginTop: customer.isBlocked ? '1rem' : '0' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#0f172a', margin: '0 0 0.5rem 0' }}>{customer.name}</h1>
+              <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: customer.isBlocked ? '#ef4444' : '#0f172a', margin: '0 0 0.5rem 0' }}>{customer.name}</h1>
               {customer.taxId && <div style={{ display: 'inline-block', backgroundColor: '#eef2ff', color: '#4f46e5', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '1rem' }}>RFC: {customer.taxId}</div>}
             </div>
-            <Link href={`/clientes/${customer.id}/editar`} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
-              <Edit size={16} /> Editar Perfil
-            </Link>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button 
+                onClick={handleToggleBlock}
+                className={customer.isBlocked ? "btn-secondary" : "btn-danger"}
+                style={{ 
+                   display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                   backgroundColor: customer.isBlocked ? '#f1f5f9' : '#fee2e2', 
+                   color: customer.isBlocked ? '#0f172a' : '#ef4444', 
+                   border: customer.isBlocked ? '1px solid #e2e8f0' : '1px solid #fca5a5', 
+                   padding: '0.5rem 1rem', borderRadius: '6px', fontWeight: '500', cursor: 'pointer' 
+                }}
+              >
+                <AlertTriangle size={16} /> {customer.isBlocked ? 'Desbloquear' : 'Bloquear'}
+              </button>
+              <Link href={`/clientes/${customer.id}/editar`} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
+                <Edit size={16} /> Editar Perfil
+              </Link>
+            </div>
           </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginTop: '1rem' }}>

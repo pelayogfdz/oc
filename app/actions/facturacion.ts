@@ -97,13 +97,28 @@ export async function stampInvoice(saleId: string) {
       };
     });
 
+    let payment_form = "01"; // Efectivo por default
+    let payment_method = "PUE";
+    let cfdiUse = "S01";
+
+    if (sale.paymentMethod === 'CREDIT') {
+      payment_form = "99"; // Por definir
+      payment_method = "PPD"; // Pago en Parcialidades o Diferido
+    }
+
+    if (sale.customer && sale.customer.cfdiUse) {
+      cfdiUse = sale.customer.cfdiUse;
+    } else if (customerData.tax_id !== "XAXX010101000") {
+      cfdiUse = "G03"; // Gastos en general como default seguro para RFC conocidos
+    }
+
     // Generate Invoice
     const invoice = await facturapi.invoices.create({
       customer: customerData,
       items: items,
-      payment_form: "01", // Efectivo default
-      payment_method: "PUE", // Pago en una sola exhibición
-      use: "S01" // Sin efectos fiscales for publico general, or G03 for normal. We'll use S01 as safe default.
+      payment_form: payment_form,
+      payment_method: payment_method,
+      use: cfdiUse
     });
 
     // Update the Sale record with the Invoice ID (requires a schema addition ideally, but for now we'll use a hack or just update status if we added it)
@@ -228,5 +243,44 @@ export async function stampGlobalInvoice(formData?: FormData) {
   } catch (error: any) {
     console.error("Facturapi Global Error:", error);
     return { success: false, error: error.message || "Error desconocido al timbrar factura global." };
+  }
+}
+
+export async function createPaymentReceipt(invoiceId: string, amount: number, paymentForm: string, paymentDate: Date) {
+  try {
+    const branch = await getActiveBranch();
+    
+    const branchSettings = await prisma.branchSettings.findUnique({
+      where: { branchId: branch.id }
+    });
+
+    if (!branchSettings || !branchSettings.configJson) {
+      throw new Error("La sucursal no tiene configuraciones establecidas.");
+    }
+
+    const config = JSON.parse(branchSettings.configJson);
+    const apiKey = config.facturacion?.testKey || config.facturacion?.liveKey;
+
+    if (!apiKey) {
+      throw new Error("No hay llaves de Facturapi configuradas en las preferencias.");
+    }
+
+    const facturapi = new Facturapi(apiKey);
+
+    const receipt = await facturapi.receipts.create({
+      payment_form: paymentForm,
+      date: paymentDate,
+      invoices: [
+        {
+          id: invoiceId,
+          amount: amount
+        }
+      ]
+    });
+
+    return { success: true, receiptId: receipt.id };
+  } catch (error: any) {
+    console.error("Facturapi Receipt Error:", error);
+    return { success: false, error: error.message || "Error desconocido al emitir el recibo de pago." };
   }
 }

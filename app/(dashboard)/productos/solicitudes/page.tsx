@@ -1,23 +1,20 @@
 import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
-import { ShoppingCart, Plus } from 'lucide-react';
+import { ClipboardList, Plus } from 'lucide-react';
 import Link from 'next/link';
-import ComprasClient from './ComprasClient';
+import SolicitudesClient from './SolicitudesClient';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ComprasPage() {
+export default async function SolicitudesPage() {
   const branch = await getActiveBranch();
   
-  const purchases = await prisma.purchase.findMany({
+  const requests = await prisma.purchaseRequest.findMany({
     where: branch.id === 'GLOBAL' ? {} : { branchId: branch.id },
     include: {
-      supplier: true,
-      user: true,
-      branch: true,
-      items: {
-        include: { product: true }
-      }
+      requestedBy: true,
+      product: true,
+      branch: true
     },
     orderBy: { createdAt: 'desc' }
   });
@@ -27,19 +24,19 @@ export default async function ComprasPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <ShoppingCart size={28} color="var(--pulpos-primary)" />
-            Compras
+            <ClipboardList size={28} color="var(--pulpos-primary)" />
+            Solicitudes
           </h1>
           <p style={{ color: 'var(--pulpos-text-muted)', marginTop: '0.25rem' }}>
-            Historial de compras directas ingresadas al inventario.
+            Lista de productos solicitados por los ejecutivos de ventas para compras.
           </p>
         </div>
-        <Link href="/productos/compras/nuevo" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--pulpos-primary)', borderColor: 'var(--pulpos-primary)', color: 'white', textDecoration: 'none' }}>
-          <Plus size={18} /> Nueva Compra Directa
+        <Link href="/productos/solicitudes/nueva" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--pulpos-primary)', borderColor: 'var(--pulpos-primary)', color: 'white', textDecoration: 'none' }}>
+          <Plus size={18} /> Nueva Solicitud
         </Link>
       </div>
 
-      <ComprasClient initialPurchases={purchases} />
+      <SolicitudesClient initialRequests={requests} />
     </div>
   );
 }

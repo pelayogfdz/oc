@@ -51,7 +51,7 @@ export default function ComprasClient({ initialPurchases }: { initialPurchases: 
         <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--pulpos-text-muted)', backgroundColor: 'white', borderRadius: '12px', border: '1px dashed var(--pulpos-border)' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
             <ShoppingCart size={64} color="#e2e8f0" />
-            <p style={{ fontSize: '1.2rem', fontWeight: '500' }}>No se encontraron órdenes de compra.</p>
+            <p style={{ fontSize: '1.2rem', fontWeight: '500' }}>No se encontraron compras.</p>
           </div>
         </div>
       ) : viewMode === 'grid' ? (

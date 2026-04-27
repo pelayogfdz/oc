@@ -69,7 +69,8 @@ export const navStructure: MenuNode[] = [
   { 
     title: 'Compras y Gastos', icon: <ShoppingCart size={20} />, 
     items: [
-      { name: 'Órdenes de Compra', path: '/productos/compras' },
+      { name: 'Compras', path: '/productos/compras' },
+      { name: 'Solicitudes', path: '/productos/solicitudes', badge: 'Nuevo' },
       { name: 'Pedidos a Proveedores', path: '/productos/pedidos' },
       { name: 'Registro de Gastos', path: '/productos/gastos' },
       { name: 'Directorio de Proveedores', path: '/proveedores' },

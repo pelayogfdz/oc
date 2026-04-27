@@ -4,6 +4,7 @@ import BranchSelector from './BranchSelector';
 import MobileMenuToggle from './MobileMenuToggle';
 import DesktopMenuToggle from './DesktopMenuToggle';
 import HeaderNetworkStatus from './HeaderNetworkStatus';
+import HeaderTitle from './HeaderTitle';
 
 export default async function Header() {
   const currentBranch = await getActiveBranch();
@@ -42,6 +43,7 @@ export default async function Header() {
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <MobileMenuToggle />
         <DesktopMenuToggle />
+        <HeaderTitle />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <HeaderNetworkStatus />

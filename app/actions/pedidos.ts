@@ -7,7 +7,7 @@ import { getActiveBranch, getActiveUser } from './auth';
 export async function createPurchaseOrder(
   supplierId: string | null,
   notes: string | null,
-  items: { productId: string; quantity: number; cost: number }[],
+  items: { productId: string; quantity: number; cost: number; requestId?: string }[],
   total: number
 ) {
   const branch = await getActiveBranch();
@@ -16,25 +16,36 @@ export async function createPurchaseOrder(
   
   if (items.length === 0) throw new Error("List is empty");
 
-  await prisma.purchaseOrder.create({
-    data: {
-      total,
-      supplierId,
-      notes,
-      branchId: branch.id,
-      userId: user.id,
-      status: 'PENDING',
-      items: {
-        create: items.map(item => ({
-          quantity: item.quantity,
-          cost: item.cost,
-          productId: item.productId
-        }))
+  await prisma.$transaction(async (tx) => {
+    await tx.purchaseOrder.create({
+      data: {
+        total,
+        supplierId,
+        notes,
+        branchId: branch.id,
+        userId: user.id,
+        status: 'PENDING',
+        items: {
+          create: items.map(item => ({
+            quantity: item.quantity,
+            cost: item.cost,
+            productId: item.productId
+          }))
+        }
       }
+    });
+
+    const requestIds = items.map(i => i.requestId).filter(Boolean) as string[];
+    if (requestIds.length > 0) {
+      await tx.purchaseRequest.updateMany({
+        where: { id: { in: requestIds } },
+        data: { status: 'ORDERED' }
+      });
     }
   });
 
   revalidatePath('/productos/pedidos');
+  revalidatePath('/productos/solicitudes');
 }
 
 export async function receivePurchaseOrder(orderId: string, freightCost: number = 0) {
