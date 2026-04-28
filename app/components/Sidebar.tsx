@@ -98,31 +98,33 @@ export default function Sidebar({ isSuperAdmin }: { isSuperAdmin?: boolean }) {
       </div>
       
       {/* Nueva Venta Button */}
-      <div style={{ padding: '0 1rem', marginBottom: '1rem' }}>
-        <Link href="/ventas/nueva" style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '0.75rem', 
-          width: '100%', 
-          backgroundColor: 'var(--pulpos-primary)', 
-          color: 'white', 
-          padding: '0.75rem 1rem', 
-          borderRadius: '8px', 
-          textDecoration: 'none',
-          fontWeight: 'bold',
-          transition: 'background 0.2s',
-          fontSize: '1rem'
-        }}>
-          <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '50%', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px' }}>
-            <span style={{ fontSize: '16px', lineHeight: 1, fontWeight: 'bold' }}>+</span>
-          </div>
-          Nueva Venta
-        </Link>
-      </div>
+      {!isSuperAdmin && (
+        <div style={{ padding: '0 1rem', marginBottom: '1rem' }}>
+          <Link href="/ventas/nueva" style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.75rem', 
+            width: '100%', 
+            backgroundColor: 'var(--pulpos-primary)', 
+            color: 'white', 
+            padding: '0.75rem 1rem', 
+            borderRadius: '8px', 
+            textDecoration: 'none',
+            fontWeight: 'bold',
+            transition: 'background 0.2s',
+            fontSize: '1rem'
+          }}>
+            <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '50%', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px' }}>
+              <span style={{ fontSize: '16px', lineHeight: 1, fontWeight: 'bold' }}>+</span>
+            </div>
+            Nueva Venta
+          </Link>
+        </div>
+      )}
 
       {/* Main Navigation */}
       <nav style={{ flex: 1, padding: '0.5rem 1rem 2rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-        {navStructure.map((node) => {
+        {!isSuperAdmin && navStructure.map((node) => {
           const NodeActive = isNodeActive(node);
           
           if (node.path) {
@@ -219,7 +221,7 @@ export default function Sidebar({ isSuperAdmin }: { isSuperAdmin?: boolean }) {
 
         {/* Footer Items Wrapper */}
         <div style={{ marginTop: 'auto' }}>
-          {footerNodes.map(node => (
+          {!isSuperAdmin && footerNodes.map(node => (
             <Link 
               key={node.title}
               href={node.path!} 
@@ -258,7 +260,7 @@ export default function Sidebar({ isSuperAdmin }: { isSuperAdmin?: boolean }) {
               }}
             >
               <ShieldAlert size={20} />
-              Super Admin
+              Panel Global (Negocio)
             </Link>
           )}
         </div>

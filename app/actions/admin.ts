@@ -138,3 +138,25 @@ export async function updateTenantCustomPricing(tenantId: string, data: { custom
 
   return { success: true };
 }
+
+export async function toggleTenantStatus(tenantId: string, isActive: boolean) {
+  await requireSuperAdmin();
+
+  await prisma.tenant.update({
+    where: { id: tenantId },
+    data: { isActive }
+  });
+
+  return { success: true };
+}
+
+export async function editTenant(tenantId: string, name: string) {
+  await requireSuperAdmin();
+
+  await prisma.tenant.update({
+    where: { id: tenantId },
+    data: { name }
+  });
+
+  return { success: true };
+}

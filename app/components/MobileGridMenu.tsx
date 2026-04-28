@@ -51,7 +51,7 @@ export default function MobileGridMenu({ isSuperAdmin }: { isSuperAdmin?: boolea
       </div>
       <div className="mobile-grid-content" style={{ padding: '1rem', backgroundColor: '#f8fafc', minHeight: '100%' }}>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {navStructure.map((node) => {
+          {!isSuperAdmin && navStructure.map((node) => {
             const NodeActive = isNodeActive(node);
             
             if (node.path) {
@@ -121,10 +121,12 @@ export default function MobileGridMenu({ isSuperAdmin }: { isSuperAdmin?: boolea
             );
           })}
 
-          <div style={{ height: '1px', backgroundColor: 'var(--pulpos-border)', margin: '1rem 0' }} />
+          {!isSuperAdmin && (
+            <div style={{ height: '1px', backgroundColor: 'var(--pulpos-border)', margin: '1rem 0' }} />
+          )}
 
           {/* Footer Items */}
-          {footerNodes.map(node => (
+          {!isSuperAdmin && footerNodes.map(node => (
             <Link 
               key={node.title}
               href={node.path!} 
@@ -153,7 +155,7 @@ export default function MobileGridMenu({ isSuperAdmin }: { isSuperAdmin?: boolea
               }}
             >
               <ShieldAlert size={20} />
-              <span style={{ flex: 1 }}>Super Admin</span>
+              <span style={{ flex: 1 }}>Panel Global (Negocio)</span>
             </Link>
           )}
         </nav>

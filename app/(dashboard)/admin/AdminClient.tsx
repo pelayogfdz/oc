@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { updateSystemMPCredentials, addTenantGiftCredits, updateSystemPricing, updateTenantCustomPricing } from '@/app/actions/admin';
-import { Save, Building2, Users, Coins, CreditCard, ShieldAlert, CheckCircle2, DollarSign, Settings } from 'lucide-react';
+import { updateSystemMPCredentials, addTenantGiftCredits, updateSystemPricing, updateTenantCustomPricing, editTenant, toggleTenantStatus } from '@/app/actions/admin';
+import { Save, Building2, Users, Coins, CreditCard, ShieldAlert, CheckCircle2, DollarSign, Settings, Edit, Power, PowerOff } from 'lucide-react';
 
 export default function AdminClient({ initialData }: { initialData: any }) {
   const { tenants, settings } = initialData;
@@ -22,6 +22,10 @@ export default function AdminClient({ initialData }: { initialData: any }) {
   const [customBasePrice, setCustomBasePrice] = useState<number | ''>('');
   const [customUserPrice, setCustomUserPrice] = useState<number | ''>('');
   const [isSavingTenantPricing, setIsSavingTenantPricing] = useState(false);
+
+  const [editingTenant, setEditingTenant] = useState<any>(null);
+  const [tenantName, setTenantName] = useState('');
+  const [isSavingTenant, setIsSavingTenant] = useState(false);
 
   const handleSaveMP = async () => {
     setIsSavingMP(true);
@@ -85,6 +89,31 @@ export default function AdminClient({ initialData }: { initialData: any }) {
     setPricingTenant(t);
     setCustomBasePrice(t.customBasePrice !== null ? t.customBasePrice : '');
     setCustomUserPrice(t.customUserPrice !== null ? t.customUserPrice : '');
+  };
+
+  const handleEditTenant = async () => {
+    if (!editingTenant || !tenantName.trim()) return;
+    setIsSavingTenant(true);
+    try {
+      await editTenant(editingTenant.id, tenantName);
+      alert('Organización actualizada.');
+      setEditingTenant(null);
+      window.location.reload();
+    } catch (e: any) {
+      alert('Error: ' + e.message);
+    } finally {
+      setIsSavingTenant(false);
+    }
+  };
+
+  const handleToggleTenant = async (t: any) => {
+    if (!confirm(`¿Estás seguro de que deseas ${t.isActive ? 'desactivar' : 'activar'} la organización ${t.name}?`)) return;
+    try {
+      await toggleTenantStatus(t.id, !t.isActive);
+      window.location.reload();
+    } catch (e: any) {
+      alert('Error: ' + e.message);
+    }
   };
 
   return (
@@ -247,16 +276,30 @@ export default function AdminClient({ initialData }: { initialData: any }) {
                     )}
                   </td>
                   <td style={{ padding: '1rem 0.75rem' }}>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <button 
+                        onClick={() => { setEditingTenant(t); setTenantName(t.name); }}
+                        style={{ padding: '0.5rem 0.75rem', backgroundColor: '#f1f5f9', color: '#475569', borderRadius: '4px', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                        title="Editar Nombre"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleToggleTenant(t)}
+                        style={{ padding: '0.5rem 0.75rem', backgroundColor: t.isActive ? '#fee2e2' : '#dcfce3', color: t.isActive ? '#dc2626' : '#16a34a', borderRadius: '4px', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                        title={t.isActive ? "Desactivar" : "Activar"}
+                      >
+                        {t.isActive ? <PowerOff size={16} /> : <Power size={16} />}
+                      </button>
                       <button 
                         onClick={() => openPricingModal(t)}
-                        style={{ padding: '0.5rem 1rem', backgroundColor: '#e0f2fe', color: '#0369a1', borderRadius: '4px', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                        style={{ padding: '0.5rem 0.75rem', backgroundColor: '#e0f2fe', color: '#0369a1', borderRadius: '4px', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                       >
                         <Settings size={16} /> Precios
                       </button>
                       <button 
                         onClick={() => setSelectedTenant(t)}
-                        style={{ padding: '0.5rem 1rem', backgroundColor: '#f3e8ff', color: '#7e22ce', borderRadius: '4px', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                        style={{ padding: '0.5rem 0.75rem', backgroundColor: '#f3e8ff', color: '#7e22ce', borderRadius: '4px', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                       >
                         <Coins size={16} /> Créditos
                       </button>
@@ -360,6 +403,41 @@ export default function AdminClient({ initialData }: { initialData: any }) {
                 style={{ padding: '0.75rem 1.5rem', backgroundColor: '#0369a1', color: 'white', borderRadius: '6px', fontWeight: 'bold', border: 'none', cursor: isSavingTenantPricing ? 'not-allowed' : 'pointer' }}
               >
                 {isSavingTenantPricing ? 'Guardando...' : 'Guardar Precios'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for Editing Tenant */}
+      {editingTenant && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Editar Organización</h3>
+            
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Nombre de la Organización</label>
+              <input 
+                type="text" 
+                value={tenantName}
+                onChange={e => setTenantName(e.target.value)}
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '1.1rem' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+              <button 
+                onClick={() => setEditingTenant(null)}
+                style={{ padding: '0.75rem 1.5rem', backgroundColor: 'transparent', color: '#64748b', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleEditTenant}
+                disabled={isSavingTenant}
+                style={{ padding: '0.75rem 1.5rem', backgroundColor: '#475569', color: 'white', borderRadius: '6px', fontWeight: 'bold', border: 'none', cursor: isSavingTenant ? 'not-allowed' : 'pointer' }}
+              >
+                {isSavingTenant ? 'Guardando...' : 'Guardar Cambios'}
               </button>
             </div>
           </div>

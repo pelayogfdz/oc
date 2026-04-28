@@ -51,7 +51,9 @@ export default async function Header() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div className="header-user-info" style={{ textAlign: 'right' }}>
             <div style={{ marginBottom: '0.25rem' }}>
-              <BranchSelector branches={finalOptions} currentBranchId={currentBranch?.id || ''} />
+              {!(currentUser?.isSuperAdmin || currentUser?.email === 'pelayogfdz@gmail.com') && (
+                <BranchSelector branches={finalOptions} currentBranchId={currentBranch?.id || ''} />
+              )}
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.75rem' }}>{currentUser?.name || 'Usuario'}</span>
