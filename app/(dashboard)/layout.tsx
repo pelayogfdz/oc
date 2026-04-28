@@ -32,7 +32,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       if (user.tenant) {
         subscriptionStatus = user.tenant.subscriptionStatus;
       }
-      isSuperAdmin = user.email === 'pelayogfdz@gmail.com';
+      isSuperAdmin = user.email?.toLowerCase() === 'pelayogfdz@gmail.com';
     }
   }
 

@@ -20,7 +20,7 @@ async function requireSuperAdmin() {
     select: { email: true, isSuperAdmin: true }
   });
 
-  if (!user || user.email !== 'pelayogfdz@gmail.com') {
+  if (!user || user.email?.toLowerCase() !== 'pelayogfdz@gmail.com') {
     throw new Error('No tienes permisos de Super Administrador');
   }
 

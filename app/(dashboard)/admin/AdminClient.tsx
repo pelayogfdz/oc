@@ -248,9 +248,9 @@ export default function AdminClient({ initialData }: { initialData: any }) {
             </thead>
             <tbody>
               {tenants.map((t: any) => {
-                const effectiveBase = t.customBasePrice !== null ? t.customBasePrice : settings.basePrice;
-                const effectiveUserPrice = t.customUserPrice !== null ? t.customUserPrice : settings.userPrice;
-                const total = effectiveBase + (t._count.users * effectiveUserPrice);
+                const effectiveBase = t.customBasePrice !== null ? t.customBasePrice : (settings?.basePrice || 0);
+                const effectiveUserPrice = t.customUserPrice !== null ? t.customUserPrice : (settings?.userPrice || 0);
+                const total = effectiveBase + (t._count?.users || 0) * effectiveUserPrice;
                 
                 return (
                 <tr key={t.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
