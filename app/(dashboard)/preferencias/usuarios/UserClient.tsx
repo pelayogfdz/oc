@@ -195,23 +195,10 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    // Filter out only active permissions
-    const activePermKeys = Object.keys(perms).filter(k => perms[k] === true);
-    // Overwrite the permissions field with JSON
-    formData.set('permissions', JSON.stringify(activePermKeys));
-
     try {
       if (editingUser) {
         await updateUser(editingUser.id, formData);
-        
-        // Optimistic update
-        const updated = [...users];
-        const idx = updated.findIndex(u => u.id === editingUser.id);
-        const newData = Object.fromEntries(formData.entries());
-        if(idx >= 0) {
-           updated[idx] = { ...updated[idx], ...newData };
-           setUsers(updated);
-        }
+        window.location.reload();
       } else {
         await createUser(formData);
         window.location.reload(); // Quick refresh instead of complex optimistic insert
@@ -612,6 +599,28 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
                 )}
                 <input type="hidden" name="faceDescriptor" value={faceDescriptor} />
                 <input type="hidden" name="baselinePhoto" value={baselinePhoto} />
+                <input type="hidden" name="permissions" value={JSON.stringify(Object.keys(perms).filter(k => perms[k] === true))} />
+              </div>
+
+              <div style={{ padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)', marginTop: '1rem' }}>
+                <h5 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--pulpos-primary)' }}>Coordenadas Excepcionales (Home Office / Fuera de Oficina)</h5>
+                <p style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', marginBottom: '1rem' }}>
+                  Si el empleado hace Home Office, define aquí sus coordenadas. Esto ignorará las coordenadas de la sucursal al validar el GPS.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Latitud</label>
+                    <input type="number" step="any" name="homeLat" defaultValue={editingUser?.homeLat || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Longitud</label>
+                    <input type="number" step="any" name="homeLng" defaultValue={editingUser?.homeLng || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Radio (mts)</label>
+                    <input type="number" step="any" name="homeRadius" defaultValue={editingUser?.homeRadius || ''} placeholder="50" style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

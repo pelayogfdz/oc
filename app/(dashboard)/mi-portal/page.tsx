@@ -12,20 +12,22 @@ export default async function MiPortalPage() {
     redirect("/login");
   }
 
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
     include: {
       attendanceLogs: {
         where: {
           timestamp: {
-            gte: new Date(new Date().setHours(0, 0, 0, 0))
+            gte: sevenDaysAgo
           }
         },
-        orderBy: { timestamp: 'asc' }
+        orderBy: { timestamp: 'desc' }
       },
-      leaveRequests: {
-        where: { type: 'VACATION' }
-      }
+      leaveRequests: true
     }
   });
 
@@ -51,7 +53,7 @@ export default async function MiPortalPage() {
 
   const totalVacationDays = calculateVacationDays(user.hireDate);
   const usedVacationDays = user.leaveRequests
-    .filter(req => req.status === 'APPROVED')
+    .filter(req => req.status === 'APPROVED' && req.type === 'VACATION')
     .reduce((acc, req) => {
       const diffTime = Math.abs(req.endDate.getTime() - req.startDate.getTime());
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 

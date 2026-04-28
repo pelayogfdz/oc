@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Clock, MapPin, CalendarDays, CheckCircle2, AlertTriangle, FileText } from 'lucide-react';
-import { registerAttendance } from '@/app/actions/hr';
+import { Clock, MapPin, CalendarDays, CheckCircle2, AlertTriangle, FileText, User, Camera } from 'lucide-react';
+import { registerAttendance, createLeaveRequest, registerFaceDescriptor } from '@/app/actions/hr';
 import FaceRecognitionClient from './FaceRecognitionClient';
 
 export default function PortalEmpleadoClient({ 
@@ -22,6 +22,17 @@ export default function PortalEmpleadoClient({
   const [faceMatched, setFaceMatched] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const [leaveType, setLeaveType] = useState('PAID_LEAVE');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [reason, setReason] = useState('');
+  const [isSubmittingLeave, setIsSubmittingLeave] = useState(false);
+
+  const [isEnrollingFace, setIsEnrollingFace] = useState(false);
+  const [enrollStatus, setEnrollStatus] = useState('');
+  const enrollFileInputRef = useRef<HTMLInputElement>(null);
 
   // Simple geo tracking on load
   useEffect(() => {
@@ -64,7 +75,82 @@ export default function PortalEmpleadoClient({
     }
   };
 
-  const todayLogs = user.attendanceLogs || [];
+  const handleLeaveRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingLeave(true);
+    try {
+      await createLeaveRequest({
+        userId: user.id,
+        type: leaveType,
+        startDate,
+        endDate,
+        reason
+      });
+      alert('Solicitud enviada correctamente');
+      setIsLeaveModalOpen(false);
+      window.location.reload();
+    } catch (e: any) {
+      alert("Error: " + e.message);
+    } finally {
+      setIsSubmittingLeave(false);
+    }
+  };
+
+  const handleEnrollFace = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsEnrollingFace(true);
+    setEnrollStatus('Cargando modelos de IA...');
+    try {
+      const faceapi = await import('@vladmandic/face-api');
+      await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+      await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
+      await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
+
+      setEnrollStatus('Procesando rostro...');
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const img = new Image();
+        img.onload = async () => {
+          const tmpCanvas = document.createElement('canvas');
+          const mx = Math.max(img.width, img.height);
+          let ratio = mx > 600 ? 600 / mx : 1;
+          tmpCanvas.width = img.width * ratio;
+          tmpCanvas.height = img.height * ratio;
+          tmpCanvas.getContext('2d')?.drawImage(img, 0, 0, tmpCanvas.width, tmpCanvas.height);
+
+          const detection = await faceapi.detectSingleFace(tmpCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.1 })).withFaceLandmarks().withFaceDescriptor();
+
+          if (!detection) {
+             setEnrollStatus('Error: No se detectó rostro de forma clara. Intenta de nuevo.');
+             setIsEnrollingFace(false);
+             return;
+          }
+
+          const descriptorString = JSON.stringify(Array.from(detection.descriptor));
+          
+          setEnrollStatus('Rostro detectado. Guardando...');
+          await registerFaceDescriptor({ userId: user.id, descriptor: descriptorString });
+          alert('Tu rostro ha sido registrado exitosamente.');
+          window.location.reload();
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      setEnrollStatus('Error: ' + err.message);
+      setIsEnrollingFace(false);
+    }
+  };
+
+  const todayStart = new Date();
+  todayStart.setHours(0,0,0,0);
+  
+  const allLogs = user.attendanceLogs || [];
+  const todayLogs = allLogs.filter((l: any) => new Date(l.timestamp) >= todayStart);
+  const weeklyLogs = allLogs.filter((l: any) => new Date(l.timestamp) < todayStart);
+
   const hasCheckedIn = todayLogs.some((l: any) => l.type === 'CHECK_IN');
   const hasCheckedOut = todayLogs.some((l: any) => l.type === 'CHECK_OUT');
 
@@ -96,7 +182,34 @@ export default function PortalEmpleadoClient({
               Registra tu entrada y salida del turno laboral. 
             </p>
 
-            {(user.reqPhoto && !hasCheckedIn) && (
+            {(user.reqPhoto && !user.faceDescriptor) && (
+              <div style={{ padding: '1.5rem', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', marginBottom: '1.5rem', textAlign: 'center' }}>
+                <AlertTriangle size={32} color="#3b82f6" style={{ margin: '0 auto 0.5rem auto' }} />
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#1e3a8a', marginBottom: '0.5rem' }}>Registro Facial Requerido</h3>
+                <p style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '1rem' }}>
+                  Es tu primera vez. Para agilizar tus Check-ins, necesitas registrar tu rostro tomando una foto clara (selfie).
+                </p>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  capture="user" 
+                  ref={enrollFileInputRef} 
+                  style={{ display: 'none' }} 
+                  onChange={handleEnrollFace} 
+                />
+                <button 
+                  onClick={() => enrollFileInputRef.current?.click()}
+                  disabled={isEnrollingFace}
+                  style={{ padding: '0.75rem 1.5rem', backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', fontWeight: 'bold', border: 'none', cursor: isEnrollingFace ? 'not-allowed' : 'pointer' }}
+                >
+                  <Camera size={18} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '0.5rem' }} /> 
+                  {isEnrollingFace ? 'Procesando...' : 'Tomar Foto de Registro'}
+                </button>
+                {enrollStatus && <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', fontWeight: 'bold', color: enrollStatus.includes('Error') ? '#ef4444' : '#16a34a' }}>{enrollStatus}</p>}
+              </div>
+            )}
+
+            {(user.reqPhoto && user.faceDescriptor && !hasCheckedIn) && (
               <div style={{ marginBottom: '1.5rem' }}>
                 <FaceRecognitionClient user={user} onFaceMatched={setFaceMatched} onPhotoCaptured={setPhotoUrl} />
               </div>
@@ -105,7 +218,7 @@ export default function PortalEmpleadoClient({
             <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
               <button 
                 onClick={() => handleCheckIn('CHECK_IN')}
-                disabled={isRegistering || hasCheckedIn || (user.reqPhoto && !faceMatched)}
+                disabled={isRegistering || hasCheckedIn || (user.reqPhoto && !faceMatched) || (user.reqPhoto && !user.faceDescriptor)}
                 style={{ 
                   padding: '0.85rem 1.5rem', 
                   fontSize: '1rem', 
@@ -191,8 +304,39 @@ export default function PortalEmpleadoClient({
               </div>
             )}
           </div>
-        </div>
+          {/* Weekly Logs */}
+          <div className="card">
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <CalendarDays size={20} color="var(--pulpos-primary)" /> Últimos 7 Días
+            </h3>
+            {weeklyLogs.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                <p>No hay registros en los últimos 7 días.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {weeklyLogs.map((log: any) => (
+                  <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '8px', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{ padding: '0.5rem', backgroundColor: log.type === 'CHECK_IN' ? '#dcfce7' : '#ffedd5', borderRadius: '50%' }}>
+                        {log.type === 'CHECK_IN' ? <CheckCircle2 size={16} color="#16a34a" /> : <AlertTriangle size={16} color="#ea580c" />}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.9rem' }}>
+                          {log.type === 'CHECK_IN' ? 'Entrada' : 'Salida'}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                          {new Date(log.timestamp).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })} - {new Date(log.timestamp).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
+        </div>
         {/* Sidebar Column */}
         <div style={{ flex: '1 1 min(100%, 300px)', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
@@ -231,13 +375,56 @@ export default function PortalEmpleadoClient({
               </div>
             </div>
 
-            <button style={{ width: '100%', padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', color: '#334155' }}>
-              <FileText size={18} /> Solicitar Vacaciones
+            <button 
+              onClick={() => setIsLeaveModalOpen(true)}
+              style={{ width: '100%', padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', color: '#334155' }}>
+              <FileText size={18} /> Solicitar Permiso / Vacaciones
             </button>
           </div>
 
         </div>
       </div>
+
+      {/* Leave Request Modal */}
+      {isLeaveModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '500px' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Solicitar Permiso</h3>
+            <form onSubmit={handleLeaveRequest} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Tipo de Permiso</label>
+                <select value={leaveType} onChange={(e) => setLeaveType(e.target.value)} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                  <option value="PAID_LEAVE">Con goce de sueldo</option>
+                  <option value="UNPAID_LEAVE">Sin goce de sueldo</option>
+                  <option value="VACATION">Vacaciones</option>
+                  <option value="SICK_LEAVE">Incapacidad</option>
+                  <option value="PATERNITY_LEAVE">Paternidad</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Fecha de Inicio</label>
+                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Fecha de Fin</label>
+                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Motivo / Comentarios</label>
+                <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}></textarea>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                <button type="button" onClick={() => setIsLeaveModalOpen(false)} style={{ padding: '0.75rem 1.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'transparent', cursor: 'pointer' }}>Cancelar</button>
+                <button type="submit" disabled={isSubmittingLeave} style={{ padding: '0.75rem 1.5rem', borderRadius: '6px', border: 'none', backgroundColor: '#8b5cf6', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>
+                  {isSubmittingLeave ? 'Enviando...' : 'Enviar Solicitud'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

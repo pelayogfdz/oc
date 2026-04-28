@@ -569,61 +569,49 @@ export default function POSClient({ products: initialProducts, customers, promot
       )}
       {/* Left: Products */}
       <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-        {/* Toolbar */}
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>
-          <div style={{ position: 'relative', flexGrow: 1, maxWidth: '500px' }}>
-            <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-            <input 
-              type="text" 
-              placeholder="Buscar por nombre, SKU o código de barras" 
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              style={{ 
-                padding: '0.6rem 1rem 0.6rem 2.5rem', 
-                width: '100%', 
-                borderRadius: '8px', 
-                border: '1px solid #e2e8f0', 
-                backgroundColor: 'white', 
-                fontSize: '0.95rem',
-                outline: 'none'
-              }}
-              autoFocus
-            />
-            <button 
-              onClick={() => setShowScanner(true)}
-              style={{
-                position: 'absolute',
-                right: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--pulpos-primary)',
-                display: 'flex',
-                alignItems: 'center',
-                padding: '4px'
-              }}
-              title="Escanear Código de Barras"
-            >
-              <Camera size={18} />
-            </button>
-          </div>
-          
-          <button 
-            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            style={{ 
-              display: 'flex', alignItems: 'center', gap: '0.5rem', 
-              backgroundColor: showAdvancedFilters ? '#f1f5f9' : 'white', 
-              border: '1px solid #e2e8f0', 
-              padding: '0.6rem 1rem', 
-              borderRadius: '8px', 
-              fontWeight: '500', 
-              cursor: 'pointer',
-              fontSize: '0.95rem'
-            }}>
-            <Filter size={16} /> Filtrar
-          </button>
+        {/* Toolbar and Always-Visible Filters */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          {/* Main Search Bar */}
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flexGrow: 1, minWidth: '300px', maxWidth: '800px' }}>
+              <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input 
+                type="text" 
+                placeholder="Buscar por nombre, SKU o código de barras..." 
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                style={{ 
+                  padding: '0.75rem 1rem 0.75rem 2.5rem', 
+                  width: '100%', 
+                  borderRadius: '8px', 
+                  border: '1px solid #cbd5e1', 
+                  backgroundColor: 'white', 
+                  fontSize: '1rem',
+                  outline: 'none',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                }}
+                autoFocus
+              />
+              <button 
+                onClick={() => setShowScanner(true)}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--pulpos-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '4px'
+                }}
+                title="Escanear Código de Barras"
+              >
+                <Camera size={20} />
+              </button>
+            </div>
 
           <button 
             style={{ 
@@ -675,11 +663,10 @@ export default function POSClient({ products: initialProducts, customers, promot
               ➕ Artículo Rápido
             </button>
           )}
-        </div>
+          </div>
 
-        {/* Advanced Filters Panel */}
-        {showAdvancedFilters && (
-          <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '8px', marginBottom: '1.5rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap', border: '1px solid #e2e8f0' }}>
+          {/* Filters Row */}
+          <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Categoría</label>
               <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
@@ -703,7 +690,7 @@ export default function POSClient({ products: initialProducts, customers, promot
                </button>
             </div>
           </div>
-        )}
+        </div>
         <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '12px', opacity: isSearching ? 0.5 : 1, transition: 'opacity 0.2s' }}>
           <ProductTableUI 
             products={filteredProducts}

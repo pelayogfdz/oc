@@ -200,13 +200,16 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
           </div>
           <div style={{ display: 'flex', gap: '1rem' }}>
              {isPhase1 && (
-               <input 
-                 type="text" 
-                 placeholder="Buscar por nombre o SKU..." 
-                 value={searchQuery}
-                 onChange={e => setSearchQuery(e.target.value)}
-                 style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: '1px solid #bae6fd', outline: 'none' }}
-               />
+               <div style={{ position: 'relative' }}>
+                 <Search size={18} color="#0284c7" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                 <input 
+                   type="text" 
+                   placeholder="Buscar por nombre, SKU o código..." 
+                   value={searchQuery}
+                   onChange={e => setSearchQuery(e.target.value)}
+                   style={{ padding: '0.65rem 1rem 0.65rem 2.5rem', borderRadius: '6px', border: '1px solid #7dd3fc', outline: 'none', width: '300px', backgroundColor: 'white', fontSize: '0.95rem' }}
+                 />
+               </div>
              )}
              <button onClick={handleDownloadTemplate} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'white' }}>
                <Download size={18} /> Descargar Plantilla .CSV

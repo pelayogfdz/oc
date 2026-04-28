@@ -24,11 +24,19 @@ export async function createBranch(formData: FormData) {
   revalidatePath('/preferencias/sucursales');
 }
 
-export async function updateBranch(id: string, name: string, location: string, facturapiLiveKey?: string, facturapiTestKey?: string) {
+export async function updateBranch(id: string, name: string, location: string, facturapiLiveKey?: string, facturapiTestKey?: string, lat?: number, lng?: number, radius?: number) {
   await prisma.branch.update({
     where: { id },
     data: { name, location }
   });
+
+  if (lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)) {
+    await prisma.hrLocation.upsert({
+      where: { branchId: id },
+      create: { branchId: id, name, lat, lng, radius: radius || 50 },
+      update: { lat, lng, radius: radius || 50 }
+    });
+  }
 
   if (facturapiLiveKey !== undefined || facturapiTestKey !== undefined) {
     let settings = await prisma.branchSettings.findUnique({ where: { branchId: id } });

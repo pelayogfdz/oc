@@ -48,6 +48,13 @@ export async function createUser(formData: FormData) {
   const faceDescriptor = formData.get('faceDescriptor') as string;
   const baselinePhoto = formData.get('baselinePhoto') as string;
   
+  const homeLatRaw = formData.get('homeLat') as string;
+  const homeLngRaw = formData.get('homeLng') as string;
+  const homeRadiusRaw = formData.get('homeRadius') as string;
+  const homeLat = homeLatRaw ? parseFloat(homeLatRaw) : null;
+  const homeLng = homeLngRaw ? parseFloat(homeLngRaw) : null;
+  const homeRadius = homeRadiusRaw ? parseFloat(homeRadiusRaw) : null;
+  
   const branch = await getActiveBranch();
   if (!branch) throw new Error("No branch active");
   
@@ -58,7 +65,8 @@ export async function createUser(formData: FormData) {
       rfc, curp, nss, taxRegime, address, phone, hireDate, birthDate,
       payrollType, dailySalary, bankName, bankAccount,
       bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus,
-      reqGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto
+      reqGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto,
+      homeLat, homeLng, homeRadius
     } as any
   });
   
@@ -109,13 +117,21 @@ export async function updateUser(id: string, formData: FormData) {
   const workScheduleMatrix = formData.get('workScheduleMatrix') as string;
   const faceDescriptor = formData.get('faceDescriptor') as string;
   const baselinePhoto = formData.get('baselinePhoto') as string;
+
+  const homeLatRaw = formData.get('homeLat') as string;
+  const homeLngRaw = formData.get('homeLng') as string;
+  const homeRadiusRaw = formData.get('homeRadius') as string;
+  const homeLat = homeLatRaw ? parseFloat(homeLatRaw) : null;
+  const homeLng = homeLngRaw ? parseFloat(homeLngRaw) : null;
+  const homeRadius = homeRadiusRaw ? parseFloat(homeRadiusRaw) : null;
   
   const updateData: any = { 
     name, email, role, commissionRole, commissionPct, monthlyGoal, bonusAmount, teamBonusAmount, managerId, permissions,
     rfc, curp, nss, taxRegime, address, phone, hireDate, birthDate,
     payrollType, dailySalary, bankName, bankAccount,
     bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus,
-    reqGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto
+    reqGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto,
+    homeLat, homeLng, homeRadius
   };
   
   if (password) {

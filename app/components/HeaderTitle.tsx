@@ -65,10 +65,10 @@ export default function HeaderTitle() {
       else if (segments[0] === 'rh' && segments[1] === 'empleados' && segments.length === 3) info = { title: 'Detalle de Empleado' };
       
       if (!info.title) {
-        info = routeMap[baseRoute] || { title: 'Pulpos Clone' };
+        info = routeMap[baseRoute] || { title: 'CAANMA' };
       }
     } else {
-      info = { title: 'Pulpos Clone' };
+      info = { title: 'CAANMA' };
     }
   }
 

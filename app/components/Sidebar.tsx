@@ -17,8 +17,9 @@ type MenuItem = {
 };
 
 import { MenuNode, navStructure, footerNodes } from '../config/navigation';
+import { ShieldAlert } from 'lucide-react';
 
-export default function Sidebar() {
+export default function Sidebar({ isSuperAdmin }: { isSuperAdmin?: boolean }) {
   const pathname = usePathname();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const { isMobileMenuOpen, closeMenu } = useMobileMenu();
@@ -76,8 +77,21 @@ export default function Sidebar() {
     }}>
       {/* Brand Header */}
       <div style={{ padding: '1.5rem', marginBottom: '0.5rem' }}>
-        <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: 'var(--pulpos-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ color: 'var(--pulpos-primary)', fontSize: '2rem', lineHeight: 1 }}>*</span> 
+        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--pulpos-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{
+            width: '28px',
+            height: '28px',
+            backgroundColor: 'var(--pulpos-primary)',
+            borderRadius: '6px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontWeight: 'bold',
+            fontSize: '16px',
+          }}>
+            C
+          </div>
           CAANMA
           <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: '#94a3b8', verticalAlign: 'top', marginLeft: '0.25rem' }}>PRO</span>
         </div>
@@ -205,7 +219,6 @@ export default function Sidebar() {
 
         {/* Footer Items Wrapper */}
         <div style={{ marginTop: 'auto' }}>
-          {/* Footer Items */}
           {footerNodes.map(node => (
             <Link 
               key={node.title}
@@ -226,6 +239,28 @@ export default function Sidebar() {
               {node.title}
             </Link>
           ))}
+          
+          {isSuperAdmin && (
+            <Link 
+              href="/admin" 
+              onClick={() => { if (isMobileMenuOpen) closeMenu(); }}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '1rem', 
+                padding: '0.75rem 1rem', 
+                marginTop: '0.5rem',
+                borderRadius: '6px', 
+                textDecoration: 'none', 
+                backgroundColor: '#fee2e2',
+                color: '#dc2626',
+                fontWeight: 'bold'
+              }}
+            >
+              <ShieldAlert size={20} />
+              Super Admin
+            </Link>
+          )}
         </div>
       </nav>
       

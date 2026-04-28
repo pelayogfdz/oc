@@ -19,7 +19,10 @@ export default function BranchClient({ branches, currentBranchId }: { branches: 
         formData.get('name') as string, 
         formData.get('location') as string,
         formData.get('facturapiLiveKey') as string,
-        formData.get('facturapiTestKey') as string
+        formData.get('facturapiTestKey') as string,
+        formData.get('lat') ? parseFloat(formData.get('lat') as string) : undefined,
+        formData.get('lng') ? parseFloat(formData.get('lng') as string) : undefined,
+        formData.get('radius') ? parseFloat(formData.get('radius') as string) : undefined
       );
       setEditingBranch(null);
     } catch (err: any) {
@@ -96,6 +99,24 @@ export default function BranchClient({ branches, currentBranchId }: { branches: 
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Ubicación</label>
                 <input type="text" name="location" defaultValue={editingBranch.location} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }} />
+              </div>
+
+              <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: '1px solid var(--pulpos-border)' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem', color: 'var(--pulpos-primary)' }}>Coordenadas GPS (Asistencia)</h3>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Latitud</label>
+                    <input type="number" step="any" name="lat" defaultValue={editingBranch.hrLocation?.lat || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Longitud</label>
+                    <input type="number" step="any" name="lng" defaultValue={editingBranch.hrLocation?.lng || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Radio (mts)</label>
+                    <input type="number" step="any" name="radius" defaultValue={editingBranch.hrLocation?.radius || 50} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }} />
+                  </div>
+                </div>
               </div>
               
               <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: '1px solid var(--pulpos-border)' }}>

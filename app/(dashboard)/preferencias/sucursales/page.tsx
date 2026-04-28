@@ -34,7 +34,8 @@ export default async function SucursalesPage() {
     where: { isActive: true },
     include: { 
       _count: { select: { users: true, products: true } },
-      settings: true
+      settings: true,
+      hrLocation: true
     }
   });
 

@@ -103,49 +103,45 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests }
     <div style={{ display: 'flex', gap: '2rem', height: 'calc(100vh - 200px)' }}>
       {/* Left: Products */}
       <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-        {/* Toolbar */}
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>
-          <div style={{ position: 'relative', flexGrow: 1, maxWidth: '500px' }}>
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: '300px' }}>
             <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             <input 
               type="text" 
-              placeholder="Buscar por nombre, SKU o código de barras" 
+              placeholder="Buscar por nombre, SKU o código de barras..." 
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               style={{ 
-                padding: '0.6rem 1rem 0.6rem 2.5rem', 
+                padding: '0.75rem 1rem 0.75rem 2.5rem', 
                 width: '100%', 
                 borderRadius: '8px', 
-                border: '1px solid #e2e8f0', 
+                border: '1px solid #cbd5e1', 
                 backgroundColor: 'white', 
-                fontSize: '0.95rem',
-                outline: 'none'
+                fontSize: '1rem',
+                outline: 'none',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
               }}
               autoFocus
             />
           </div>
           
-          <button 
-            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            style={{ 
-              display: 'flex', alignItems: 'center', gap: '0.5rem', 
-              backgroundColor: showAdvancedFilters ? '#f1f5f9' : 'white', 
-              border: '1px solid #e2e8f0', 
-              padding: '0.6rem 1rem', 
-              borderRadius: '8px', 
-              fontWeight: '500', 
-              cursor: 'pointer',
-              fontSize: '0.95rem'
-            }}>
-            <Filter size={16} /> Filtrar
-          </button>
+          <select 
+            value={filterCategory} 
+            onChange={e => setFilterCategory(e.target.value)} 
+            style={{ padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', color: '#334155', backgroundColor: 'white', minWidth: '150px', fontSize: '0.95rem', outline: 'none' }}
+          >
+            <option value="ALL">Todas las Categorías</option>
+            {Array.from(new Set(availableProducts.map(p => p.category).filter(Boolean))).map((cat: any) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
 
           <button 
             type="button" 
             onClick={generateSuggested} 
             style={{ 
               display: 'flex', alignItems: 'center', gap: '0.5rem', 
-              padding: '0.6rem 1rem', borderRadius: '8px', 
+              padding: '0.75rem 1rem', borderRadius: '8px', 
               border: '1px solid var(--pulpos-primary)', 
               backgroundColor: 'var(--pulpos-bg)', color: 'var(--pulpos-primary)', 
               fontWeight: 'bold', cursor: 'pointer', fontSize: '0.95rem' 
@@ -153,21 +149,6 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests }
             <Wand2 size={16} /> Autocompletar Faltantes
           </button>
         </div>
-
-        {/* Advanced Filters Panel */}
-        {showAdvancedFilters && (
-          <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '8px', marginBottom: '1.5rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap', border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Categoría</label>
-              <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
-                <option value="ALL">Todas</option>
-                {Array.from(new Set(availableProducts.map(p => p.category).filter(Boolean))).map((cat: any) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        )}
 
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {/* Solicitudes Pendientes */}

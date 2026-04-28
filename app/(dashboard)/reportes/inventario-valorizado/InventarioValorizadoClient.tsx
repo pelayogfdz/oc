@@ -84,8 +84,8 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>Listado de Stock y Márgenes</h2>
             
-            <div style={{ position: 'relative', width: '250px' }}>
-              <Search style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--pulpos-text-muted)' }} size={16} />
+            <div style={{ position: 'relative', width: '350px' }}>
+              <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={16} />
               <input 
                 type="text" 
                 placeholder="Buscar por SKU o Nombre..." 
@@ -93,9 +93,12 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{ 
                   width: '100%', 
-                  padding: '0.5rem 1rem 0.5rem 2.25rem', 
-                  borderRadius: '6px', 
-                  border: '1px solid var(--pulpos-border)' 
+                  padding: '0.65rem 1rem 0.65rem 2.5rem', 
+                  borderRadius: '8px', 
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.95rem',
+                  outline: 'none',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                 }} 
               />
             </div>

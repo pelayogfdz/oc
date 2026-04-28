@@ -1,9 +1,10 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Settings, Users, Store, Banknote, Shield, CheckCircle, Smartphone, MapPin, HardDrive, LayoutTemplate, Box, FileText, List, Star, Zap, CreditCard, Wrench, Bell } from 'lucide-react';
+import { Settings, Users, Store, Banknote, Shield, CheckCircle, Smartphone, MapPin, HardDrive, LayoutTemplate, Box, FileText, List, Star, Zap, CreditCard, Wrench, Bell, Tag } from 'lucide-react';
 
 const prefTabs = [
+  { name: 'Mi Suscripción', path: '/preferencias/subscripcion', icon: <CreditCard size={18} /> },
   { name: 'Configuración General', path: '/preferencias/general', icon: <Settings size={18} /> },
   { name: 'Usuarios y Permisos', path: '/preferencias/usuarios', icon: <Users size={18} /> },
   { name: 'Vendedores y Comisiones', path: '/preferencias/vendedores', icon: <Star size={18} /> },
@@ -23,6 +24,7 @@ const prefTabs = [
   { name: 'Métodos de Pago (SAT)', path: '/preferencias/metodos', icon: <CheckCircle size={18} /> },
   { name: 'Recetas de Producción', path: '/preferencias/fabricacion', icon: <Wrench size={18} /> },
   { name: 'Notificaciones', path: '/preferencias/notificaciones', icon: <Bell size={18} /> },
+  { name: 'Etiquetas', path: '/preferencias/etiquetas', icon: <Tag size={18} /> },
 ];
 
 import InstallPWAButton from '@/app/components/InstallPWAButton';

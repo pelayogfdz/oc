@@ -31,6 +31,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Tu empresa está inactiva o no configurada.' }, { status: 403 });
     }
 
+    if (user.forcePasswordChange) {
+      // Don't create session, inform the frontend to ask for new password
+      return NextResponse.json({ 
+        success: false, 
+        forcePasswordChange: true, 
+        email: user.email,
+        message: 'Debes cambiar tu contraseña temporal.' 
+      }, { status: 200 });
+    }
+
     // Create JSON Web Token
     await createSession(user.id, user.tenantId, user.role);
 

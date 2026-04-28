@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { cache } from 'react';
 import { decrypt, createSession, deleteSession } from '@/lib/session';
+import { redirect } from 'next/navigation';
 import bcrypt from 'bcryptjs';
 
 export const getSession = cache(async () => {
@@ -71,4 +72,5 @@ export async function verifyActiveTenantSession() {
 export async function logout() {
   await deleteSession();
   revalidatePath('/', 'layout');
+  redirect('https://caanma.com');
 }

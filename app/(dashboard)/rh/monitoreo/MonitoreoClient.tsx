@@ -20,15 +20,15 @@ export default function MonitoreoClient({ users }: { users: any[] }) {
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: '2rem' }}>
-        <div style={{ position: 'relative', width: '300px' }}>
-          <Search size={18} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--pulpos-text-muted)' }} />
+      <div className="card" style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+        <div style={{ position: 'relative', width: '350px', maxWidth: '100%' }}>
+          <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
           <input 
             type="text" 
             placeholder="Buscar empleado..." 
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            style={{ width: '100%', padding: '0.5rem 0.5rem 0.5rem 2.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+            style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem', outline: 'none', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', backgroundColor: 'white' }}
           />
         </div>
       </div>

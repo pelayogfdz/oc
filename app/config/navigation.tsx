@@ -91,8 +91,9 @@ export const navStructure: MenuNode[] = [
     title: 'Recursos Humanos', icon: <Briefcase size={20} />, 
     items: [
       { name: 'Monitoreo de Asistencia', path: '/rh/monitoreo' },
-      { name: 'Reportes y Nómina', path: '/rh/reportes' },
+      { name: 'Reportes Históricos', path: '/rh/reportes' },
       { name: 'Trámites y Avisos', path: '/rh/tramites' },
+      { name: 'Cálculo de Nómina', path: '/rh/nomina', badge: 'Nuevo' },
     ]
   },
   { 
@@ -112,6 +113,5 @@ export const navStructure: MenuNode[] = [
 
 export const footerNodes: MenuNode[] = [
   { title: 'Preferencias', path: '/preferencias', icon: <Settings size={20} /> },
-  { title: 'Etiquetas', path: '/preferencias/etiquetas', icon: <Tag size={20} /> },
 ];
 

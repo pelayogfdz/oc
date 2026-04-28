@@ -118,23 +118,23 @@ export default function TransferClient({ originBranchId, originBranchName, other
       <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Buscador de Inventario</h2>
         
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-          <div style={{ position: 'relative', flex: 1 }}>
-            <Search size={18} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--pulpos-text-muted)' }} />
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: '300px' }}>
+            <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
             <input 
               type="text" 
-              placeholder="Buscar por nombre o SKU..." 
+              placeholder="Buscar por nombre, SKU o código de barras..." 
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              style={{ width: '100%', padding: '0.5rem 0.5rem 0.5rem 2.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+              style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem', outline: 'none', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
             />
           </div>
           <select 
             value={stockFilter} 
             onChange={e => setStockFilter(e.target.value)} 
-            style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', color: 'var(--pulpos-text)', backgroundColor: 'white', minWidth: '130px', fontSize: '0.875rem' }}
+            style={{ padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', color: '#334155', backgroundColor: 'white', minWidth: '150px', fontSize: '0.95rem', outline: 'none' }}
           >
-            <option value="ALL">Todo</option>
+            <option value="ALL">Todas las existencias</option>
             <option value="WITH_STOCK">Con Stock</option>
             <option value="WITHOUT_STOCK">Agotados</option>
           </select>

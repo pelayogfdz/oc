@@ -1,8 +1,31 @@
 'use client';
 
 import { FileText, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { updateLeaveRequestStatus } from '@/app/actions/hr';
+import { useState } from 'react';
+
+const typeLabels: Record<string, string> = {
+  VACATION: 'Vacaciones',
+  SICK_LEAVE: 'Incapacidad',
+  PAID_LEAVE: 'Con goce de sueldo',
+  UNPAID_LEAVE: 'Sin goce de sueldo',
+  PATERNITY_LEAVE: 'Paternidad',
+};
 
 export default function TramitesClient({ requests }: { requests: any[] }) {
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const handleUpdate = async (id: string, status: 'APPROVED' | 'REJECTED') => {
+    setUpdatingId(id);
+    try {
+      await updateLeaveRequestStatus(id, status);
+    } catch (e: any) {
+      alert("Error: " + e.message);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '1rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -31,9 +54,9 @@ export default function TramitesClient({ requests }: { requests: any[] }) {
             </thead>
             <tbody>
               {requests.map(req => (
-                <tr key={req.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                <tr key={req.id} style={{ borderBottom: '1px solid #f1f5f9', opacity: updatingId === req.id ? 0.5 : 1 }}>
                   <td data-label="Empleado" style={{ padding: '1rem', fontWeight: '500' }}>{req.user?.name}</td>
-                  <td data-label="Tipo" style={{ padding: '1rem' }}>{req.type === 'VACATION' ? 'Vacaciones' : req.type === 'SICK_LEAVE' ? 'Incapacidad' : 'Permiso Especial'}</td>
+                  <td data-label="Tipo" style={{ padding: '1rem' }}>{typeLabels[req.type] || req.type}</td>
                   <td data-label="Fechas" style={{ padding: '1rem', fontSize: '0.9rem', color: '#64748b' }}>
                     {new Date(req.startDate).toLocaleDateString('es-MX')} - {new Date(req.endDate).toLocaleDateString('es-MX')}
                   </td>
@@ -45,8 +68,8 @@ export default function TramitesClient({ requests }: { requests: any[] }) {
                   <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'right' }}>
                     {req.status === 'PENDING' && (
                       <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                        <button style={{ backgroundColor: '#16a34a', color: 'white', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Aprobar</button>
-                        <button style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Rechazar</button>
+                        <button onClick={() => handleUpdate(req.id, 'APPROVED')} disabled={updatingId === req.id} style={{ backgroundColor: '#16a34a', color: 'white', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Aprobar</button>
+                        <button onClick={() => handleUpdate(req.id, 'REJECTED')} disabled={updatingId === req.id} style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Rechazar</button>
                       </div>
                     )}
                   </td>
