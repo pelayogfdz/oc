@@ -160,3 +160,15 @@ export async function editTenant(tenantId: string, name: string) {
 
   return { success: true };
 }
+
+export async function deleteTenant(tenantId: string) {
+  await requireSuperAdmin();
+
+  // Optionally perform hard delete. Note: Be very careful with cascading deletes. 
+  // It's assumed your prisma schema has cascade deletes set up correctly for Tenant relations.
+  await prisma.tenant.delete({
+    where: { id: tenantId }
+  });
+
+  return { success: true };
+}

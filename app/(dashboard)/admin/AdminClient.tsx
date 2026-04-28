@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { updateSystemMPCredentials, addTenantGiftCredits, updateSystemPricing, updateTenantCustomPricing, editTenant, toggleTenantStatus } from '@/app/actions/admin';
-import { Save, Building2, Users, Coins, CreditCard, ShieldAlert, CheckCircle2, DollarSign, Settings, Edit, Power, PowerOff } from 'lucide-react';
+import { updateSystemMPCredentials, addTenantGiftCredits, updateSystemPricing, updateTenantCustomPricing, editTenant, toggleTenantStatus, deleteTenant } from '@/app/actions/admin';
+import { Save, Building2, Users, Coins, CreditCard, ShieldAlert, CheckCircle2, DollarSign, Settings, Edit, Power, PowerOff, Trash2 } from 'lucide-react';
 
 export default function AdminClient({ initialData }: { initialData: any }) {
   const { tenants, settings } = initialData;
@@ -113,6 +113,21 @@ export default function AdminClient({ initialData }: { initialData: any }) {
       window.location.reload();
     } catch (e: any) {
       alert('Error: ' + e.message);
+    }
+  };
+
+  const handleDeleteTenant = async (t: any) => {
+    const confirmation = prompt(`¡ADVERTENCIA!\nEsta acción eliminará de forma PERMANENTE a la organización "${t.name}" y todos sus datos asociados (usuarios, productos, ventas, etc.).\n\nSi estás absolutamente seguro, escribe ELIMINAR para confirmar.`);
+    if (confirmation !== 'ELIMINAR') {
+      if (confirmation !== null) alert('Eliminación cancelada. La palabra clave no coincide.');
+      return;
+    }
+    
+    try {
+      await deleteTenant(t.id);
+      window.location.reload();
+    } catch (e: any) {
+      alert('Error al eliminar: ' + e.message);
     }
   };
 
@@ -286,10 +301,17 @@ export default function AdminClient({ initialData }: { initialData: any }) {
                       </button>
                       <button 
                         onClick={() => handleToggleTenant(t)}
-                        style={{ padding: '0.5rem 0.75rem', backgroundColor: t.isActive ? '#fee2e2' : '#dcfce3', color: t.isActive ? '#dc2626' : '#16a34a', borderRadius: '4px', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-                        title={t.isActive ? "Desactivar" : "Activar"}
+                        style={{ padding: '0.5rem 0.75rem', backgroundColor: t.isActive ? '#fef08a' : '#dcfce3', color: t.isActive ? '#a16207' : '#16a34a', borderRadius: '4px', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                        title={t.isActive ? "Desactivar (Pausar)" : "Activar"}
                       >
                         {t.isActive ? <PowerOff size={16} /> : <Power size={16} />}
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteTenant(t)}
+                        style={{ padding: '0.5rem 0.75rem', backgroundColor: '#fee2e2', color: '#dc2626', borderRadius: '4px', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                        title="Eliminar Permanentemente"
+                      >
+                        <Trash2 size={16} />
                       </button>
                       <button 
                         onClick={() => openPricingModal(t)}
