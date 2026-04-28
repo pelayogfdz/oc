@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { decrypt } from '@/lib/session';
 
 export async function middleware(req: NextRequest) {
-  const protectedRoutes = ['/', '/caja', '/reportes', '/inventario', '/clientes', '/facturacion', '/usuarios'];
+  const protectedRoutes = ['/', '/caja', '/reportes', '/inventario', '/clientes', '/facturacion', '/usuarios', '/admin'];
   const isProtectedRoute = protectedRoutes.some(route => req.nextUrl.pathname === route || req.nextUrl.pathname.startsWith(`${route}/`));
   
   if (isProtectedRoute) {
