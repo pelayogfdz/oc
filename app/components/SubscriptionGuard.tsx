@@ -7,16 +7,15 @@ import Link from 'next/link';
 export default function SubscriptionGuard({ 
   children, 
   status, 
-  role 
+  role,
+  isSuperAdmin = false
 }: { 
   children: React.ReactNode; 
   status: string; 
   role: string;
+  isSuperAdmin?: boolean;
 }) {
   const pathname = usePathname();
-
-  // Allow Super Admins to bypass
-  const isSuperAdmin = role === 'SYSADMIN';
 
   // If status is not PAST_DUE or if the user is a super admin, allow access
   if (status !== 'PAST_DUE' || isSuperAdmin) {

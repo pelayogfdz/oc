@@ -32,7 +32,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       if (user.tenant) {
         subscriptionStatus = user.tenant.subscriptionStatus;
       }
-      isSuperAdmin = !!user.isSuperAdmin || user.email === 'pelayogfdz@gmail.com';
+      isSuperAdmin = user.email === 'pelayogfdz@gmail.com';
     }
   }
 
@@ -47,7 +47,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <div className="dashboard-content-wrapper" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <Header />
             <main className="dashboard-main" style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
-              <SubscriptionGuard status={subscriptionStatus} role={userRole}>
+              <SubscriptionGuard status={subscriptionStatus} role={userRole} isSuperAdmin={isSuperAdmin}>
                 {children}
               </SubscriptionGuard>
             </main>
