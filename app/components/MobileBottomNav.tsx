@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Tag, Plus, Banknote, LayoutGrid } from 'lucide-react';
+import { Home, Tag, Plus, Banknote, LayoutGrid, UserCircle } from 'lucide-react';
 import { useMobileMenu } from './MobileMenuContext';
 
 export default function MobileBottomNav() {
@@ -14,7 +14,7 @@ export default function MobileBottomNav() {
     { label: 'Productos', path: '/productos', icon: Tag },
     // Center Action Button
     { label: 'Venta', path: '/ventas/nueva', icon: Plus, isAction: true },
-    { label: 'Ventas', path: '/ventas', icon: Banknote },
+    { label: 'Mi Portal', path: '/mi-portal', icon: UserCircle },
     // Menu Trigger
     { label: 'Menú', trigger: true, icon: LayoutGrid }
   ];

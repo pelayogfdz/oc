@@ -22,6 +22,9 @@ export default async function MiPortalPage() {
           }
         },
         orderBy: { timestamp: 'asc' }
+      },
+      leaveRequests: {
+        where: { type: 'VACATION' }
       }
     }
   });
@@ -30,5 +33,37 @@ export default async function MiPortalPage() {
     redirect("/login");
   }
 
-  return <PortalEmpleadoClient user={user} />;
+  const calculateVacationDays = (hireDate: Date | null) => {
+    if (!hireDate) return 0;
+    const now = new Date();
+    const years = now.getFullYear() - hireDate.getFullYear();
+    if (years < 1) return 0;
+    if (years === 1) return 12;
+    if (years === 2) return 14;
+    if (years === 3) return 16;
+    if (years === 4) return 18;
+    if (years === 5) return 20;
+    if (years > 5) {
+      return 20 + Math.floor((years - 5) / 5) * 2;
+    }
+    return 12; // Fallback
+  }
+
+  const totalVacationDays = calculateVacationDays(user.hireDate);
+  const usedVacationDays = user.leaveRequests
+    .filter(req => req.status === 'APPROVED')
+    .reduce((acc, req) => {
+      const diffTime = Math.abs(req.endDate.getTime() - req.startDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
+      return acc + diffDays;
+    }, 0);
+
+  const availableVacationDays = Math.max(0, totalVacationDays - usedVacationDays);
+
+  return <PortalEmpleadoClient 
+    user={user} 
+    totalVacationDays={totalVacationDays}
+    usedVacationDays={usedVacationDays}
+    availableVacationDays={availableVacationDays}
+  />;
 }

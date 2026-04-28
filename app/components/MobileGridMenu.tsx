@@ -17,14 +17,14 @@ export default function MobileGridMenu() {
   if (!isMobileMenuOpen) return null;
 
   const gridItems = [
-    { title: 'Compras y Gastos', path: '/productos/pedidos', icon: <ShoppingBag size={24} color="#8b5cf6" /> },
     { title: 'Ventas', path: '/ventas', icon: <Banknote size={24} color="#16a34a" /> },
+    { title: 'Productos', path: '/productos', icon: <Tag size={24} color="#ea580c" /> },
+    { title: 'Mi Portal', path: '/mi-portal', icon: <UserCircle size={24} color="#3b82f6" /> },
+    { title: 'Compras y Gastos', path: '/productos/pedidos', icon: <ShoppingBag size={24} color="#8b5cf6" /> },
     { title: 'Facturas', path: '/facturas/ventas', icon: <FileText size={24} color="#16a34a" /> },
     { title: 'Facturas Globales', path: '/facturas/globales', icon: <FileText size={24} color="#16a34a" /> },
-    { title: 'Productos', path: '/productos', icon: <Tag size={24} color="#ea580c" /> },
     { title: 'Traspasos', path: '/productos/traspasos', icon: <ArrowRight size={24} color="#ea580c" /> },
     { title: 'Clientes', path: '/clientes', icon: <Users size={24} color="#0891b2" /> },
-    { title: 'Portal de Clientes', path: '/clientes/portal', icon: <UserCircle size={24} color="#0891b2" /> },
   ];
 
   return (

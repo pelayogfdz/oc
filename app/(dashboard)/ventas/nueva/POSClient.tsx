@@ -58,6 +58,12 @@ export default function POSClient({ products: initialProducts, customers, promot
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [showScanner, setShowScanner] = useState(false);
   
+  // Fast Item State
+  const [showFastItemModal, setShowFastItemModal] = useState(false);
+  const [fastItemName, setFastItemName] = useState('');
+  const [fastItemPrice, setFastItemPrice] = useState<number | ''>('');
+  const [fastItemQuantity, setFastItemQuantity] = useState<number>(1);
+  
   // Checkout Modal State
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -646,6 +652,29 @@ export default function POSClient({ products: initialProducts, customers, promot
             }}>
             <ArrowDownUp size={16} /> Ordenar
           </button>
+
+          {mode === 'QUOTE' && (
+            <button 
+              onClick={() => {
+                setFastItemName('');
+                setFastItemPrice('');
+                setFastItemQuantity(1);
+                setShowFastItemModal(true);
+              }}
+              style={{ 
+                display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                backgroundColor: '#fef3c7', 
+                border: '1px solid #fde68a', 
+                color: '#d97706',
+                padding: '0.6rem 1rem', 
+                borderRadius: '8px', 
+                fontWeight: 'bold', 
+                cursor: 'pointer',
+                fontSize: '0.95rem'
+              }}>
+              ➕ Artículo Rápido
+            </button>
+          )}
         </div>
 
         {/* Advanced Filters Panel */}
@@ -870,6 +899,86 @@ export default function POSClient({ products: initialProducts, customers, promot
         </div>
       </div>
 
+      {/* Fast Item Modal */}
+      {showFastItemModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
+          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', width: '400px', maxWidth: '90%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', color: '#d97706' }}>
+               Añadir Artículo Rápido
+            </h2>
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.25rem' }}>Descripción / Nombre</label>
+              <input 
+                type="text"
+                autoFocus
+                value={fastItemName}
+                onChange={e => setFastItemName(e.target.value)}
+                placeholder="Ej. Servicio de instalación..."
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.25rem' }}>Precio Unitario</label>
+                <input 
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={fastItemPrice}
+                  onChange={e => setFastItemPrice(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                  placeholder="$0.00"
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.25rem' }}>Cantidad</label>
+                <input 
+                  type="number"
+                  min="1"
+                  value={fastItemQuantity}
+                  onChange={e => setFastItemQuantity(parseInt(e.target.value) || 1)}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button 
+                onClick={() => setShowFastItemModal(false)}
+                style={{ flex: 1, padding: '0.75rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', background: 'white' }}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => {
+                  if (!fastItemName || fastItemPrice === '') return;
+                  const newCartItem = {
+                    cartItemId: 'FAST_' + Date.now(),
+                    id: 'FAST_' + Date.now(),
+                    name: fastItemName,
+                    price: fastItemPrice as number,
+                    stock: 9999,
+                    cost: 0, // No cost for fast items so 100% profit
+                    satKey: '',
+                    unit: 'H87', // Default unit pieca
+                    taxIncluded: true,
+                    taxes: [],
+                    quantity: fastItemQuantity,
+                    isFastItem: true
+                  };
+                  setCart([...cart, newCartItem as any]);
+                  setShowFastItemModal(false);
+                }}
+                disabled={!fastItemName || fastItemPrice === ''}
+                className="btn-primary"
+                style={{ flex: 1, padding: '0.75rem', fontWeight: 'bold', backgroundColor: (!fastItemName || fastItemPrice === '') ? '#ccc' : '#f59e0b', borderColor: '#f59e0b' }}
+              >
+                Añadir a Cotización
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Checkout Modal */}
       {isCheckoutOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
@@ -1064,18 +1173,26 @@ export default function POSClient({ products: initialProducts, customers, promot
               <button onClick={() => setIsCheckoutOpen(false)} style={{ flex: 1, padding: '1rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', background: 'white' }}>
                 Cancelar
               </button>
-              <button 
-                onClick={handleCheckout} 
-                disabled={
-                  isProcessing || 
-                  (mode === 'SALE' && paymentMethod === 'CASH' && (typeof amountReceived !== 'number' || amountReceived < finalTotalWithTip)) ||
-                  (mode === 'SALE' && paymentMethod === 'MIXTO' && (typeof amountReceived !== 'number' || typeof cardAmount !== 'number' || (amountReceived + cardAmount) < finalTotalWithTip))
-                }
-                className="btn-primary" 
-                style={{ flex: 1, padding: '1rem', fontSize: '1.1rem', opacity: isProcessing ? 0.5 : 1 }}
-              >
-                {isProcessing ? 'Guardando...' : (mode === 'QUOTE' ? 'Guardar Cotización' : 'Confirmar Pago')}
-              </button>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <button 
+                  onClick={handleCheckout} 
+                  disabled={
+                    isProcessing || 
+                    (mode === 'SALE' && paymentMethod === 'CASH' && (typeof amountReceived !== 'number' || amountReceived < finalTotalWithTip)) ||
+                    (mode === 'SALE' && paymentMethod === 'MIXTO' && (typeof amountReceived !== 'number' || typeof cardAmount !== 'number' || (amountReceived + cardAmount) < finalTotalWithTip)) ||
+                    (mode === 'SALE' && cart.some((item: any) => item.isFastItem))
+                  }
+                  className="btn-primary" 
+                  style={{ width: '100%', padding: '1rem', fontSize: '1.1rem', opacity: isProcessing ? 0.5 : 1 }}
+                >
+                  {isProcessing ? 'Guardando...' : (mode === 'QUOTE' ? 'Guardar Cotización' : 'Confirmar Pago')}
+                </button>
+                {mode === 'SALE' && cart.some((item: any) => item.isFastItem) && (
+                  <div style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '0.5rem', fontWeight: 'bold', textAlign: 'center' }}>
+                    ⚠️ No se puede cerrar la venta porque incluye un artículo rápido. Regístralo en el catálogo primero.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

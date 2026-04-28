@@ -13,6 +13,7 @@ model Tenant {
   name      String
   slug      String?  @unique
   isActive  Boolean  @default(true)
+  decimals  Int      @default(2)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -87,6 +88,7 @@ model User {
   transportBonus      Float   @default(0)
   
   faceDescriptor      String? // JSON array or string
+  baselinePhoto       String? @db.Text
   reqGps              Boolean @default(false)
   reqPhoto            Boolean @default(false)
   
@@ -144,6 +146,7 @@ model BranchSettings {
   currencySymbol String  @default("$")
 
   autoCloseCash Boolean  @default(false)
+  useCustomCFDI Boolean  @default(false)
   configJson    String? // JSON config for all 18 tabs
   updatedAt     DateTime @updatedAt
 }
@@ -151,10 +154,11 @@ model BranchSettings {
 model Customer {
   id       String  @id @default(uuid())
   name     String
-  phone    String?
-  email    String?
-  branch   Branch? @relation(fields: [branchId], references: [id])
-  branchId String?
+  phone            String?
+  email            String?
+  additionalEmails String?
+  branch           Branch? @relation(fields: [branchId], references: [id])
+  branchId         String?
   sales    Sale[]
   quotes   Quote[]
 
@@ -467,6 +471,7 @@ model Supplier {
   id             String     @id @default(uuid())
   name           String
   email          String?
+  additionalEmails String?
   phone          String?
   street         String?
   exteriorNumber String?

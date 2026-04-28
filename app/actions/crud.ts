@@ -22,7 +22,8 @@ export async function crudAction(entity: string, formData: FormData) {
 
   try {
      if (entity === 'supplier') {
-        await prisma.supplier.create({ data: { name: data.name, taxId: data.taxId, creditLimit: data.creditLimit, branchId: branch.id }});
+        const { id, branch: _, ...supplierData } = data;
+        await prisma.supplier.create({ data: supplierData });
      } else if (entity === 'customer') {
         await prisma.customer.create({ data: { name: data.name, taxId: data.taxId, phone: data.phone, creditLimit: data.creditLimit, branchId: branch.id }});
      } else if (entity === 'promotion') {

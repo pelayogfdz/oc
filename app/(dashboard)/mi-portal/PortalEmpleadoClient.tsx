@@ -5,7 +5,17 @@ import { Clock, MapPin, CalendarDays, CheckCircle2, AlertTriangle, FileText } fr
 import { registerAttendance } from '@/app/actions/hr';
 import FaceRecognitionClient from './FaceRecognitionClient';
 
-export default function PortalEmpleadoClient({ user }: { user: any }) {
+export default function PortalEmpleadoClient({ 
+  user,
+  totalVacationDays = 0,
+  usedVacationDays = 0,
+  availableVacationDays = 0
+}: { 
+  user: any;
+  totalVacationDays?: number;
+  usedVacationDays?: number;
+  availableVacationDays?: number;
+}) {
   const [isRegistering, setIsRegistering] = useState(false);
   const [locationStatus, setLocationStatus] = useState<string>('Buscando ubicación...');
   const [currentCoords, setCurrentCoords] = useState<{lat: number, lng: number} | null>(null);
@@ -205,8 +215,23 @@ export default function PortalEmpleadoClient({ user }: { user: any }) {
           </div>
 
           <div className="card">
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1rem' }}>Mis Trámites</h3>
-            <button style={{ width: '100%', padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1rem' }}>Mis Vacaciones</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                <span style={{ color: '#64748b' }}>Días Totales (Por Ley):</span>
+                <span style={{ fontWeight: 'bold' }}>{totalVacationDays}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                <span style={{ color: '#64748b' }}>Días Tomados:</span>
+                <span style={{ fontWeight: 'bold', color: '#ea580c' }}>{usedVacationDays}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
+                <span style={{ color: '#1e293b', fontWeight: 'bold' }}>Disponibles:</span>
+                <span style={{ fontWeight: 'bold', color: '#16a34a' }}>{availableVacationDays}</span>
+              </div>
+            </div>
+
+            <button style={{ width: '100%', padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', color: '#334155' }}>
               <FileText size={18} /> Solicitar Vacaciones
             </button>
           </div>

@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --pulpos-bg: #f8fafc;
   --pulpos-sidebar-bg: #ffffff;
   --pulpos-sidebar-hover: #f1f5f9;
@@ -399,17 +399,17 @@ button {
 /* Print Styles */
 /* ------------------------------------- */
 @media print {
-  /* Ocultar barra lateral en impresión */
+  /* Ocultar barra lateral en impresiÃ³n */
   .dashboard-sidebar, .sidebar-overlay, .mobile-menu-toggle {
     display: none !important;
   }
 
-  /* Ocultar header principal en impresión */
+  /* Ocultar header principal en impresiÃ³n */
   .dashboard-header {
     display: none !important;
   }
 
-  /* El contenido principal debe tomar toda la hoja, sin márgenes laterales extra */
+  /* El contenido principal debe tomar toda la hoja, sin mÃ¡rgenes laterales extra */
   .dashboard-main {
     margin: 0 !important;
     padding: 0 !important;
@@ -437,7 +437,7 @@ button {
 /* Desktop Title Layout Optimization */
 /* ------------------------------------- */
 @media (min-width: 769px) {
-  /* Ocultar h1 y subt�tulos dentro del contenido principal porque ahora viven en el header */
+  /* Ocultar h1 y subtítulos dentro del contenido principal porque ahora viven en el header */
   .dashboard-main h1 {
     display: none !important;
   }
@@ -446,7 +446,7 @@ button {
     display: none !important;
   }
   
-  /* Reducir el margen inferior del contenedor de cabecera en las p�ginas */
+  /* Reducir el margen inferior del contenedor de cabecera en las páginas */
   .dashboard-main > div > div:has(> div > h1),
   .dashboard-main > div:has(> div > h1),
   .dashboard-main > div > div:has(> h1) {

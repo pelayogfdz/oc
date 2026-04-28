@@ -18,6 +18,7 @@ export async function updateBranchSettings(formData: FormData) {
   const taxIVA = parseFloat(formData.get('taxIVA') as string) || 16.0;
   const currencySymbol = formData.get('currencySymbol') as string || '$';
   const autoCloseCash = formData.get('autoCloseCash') === 'true';
+  const useCustomCFDI = formData.get('useCustomCFDI') === 'true';
 
   await prisma.branchSettings.upsert({
     where: { branchId: branch.id },
@@ -26,7 +27,8 @@ export async function updateBranchSettings(formData: FormData) {
       ticketFooter,
       taxIVA,
       currencySymbol,
-      autoCloseCash
+      autoCloseCash,
+      useCustomCFDI
     },
     create: {
       branchId: branch.id,
@@ -34,7 +36,8 @@ export async function updateBranchSettings(formData: FormData) {
       ticketFooter,
       taxIVA,
       currencySymbol,
-      autoCloseCash
+      autoCloseCash,
+      useCustomCFDI
     }
   });
 
@@ -62,6 +65,33 @@ export async function getBranchSettings() {
   }
 
   return settings;
+}
+
+export async function getTenantSettings() {
+  const branch = await getActiveBranch();
+  if (!branch || !branch.tenantId) {
+    return { decimals: 2 };
+  }
+  
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: branch.tenantId }
+  });
+  
+  return tenant || { decimals: 2 };
+}
+
+export async function updateTenantSettings(formData: FormData) {
+  const branch = await getActiveBranch();
+  if (!branch || !branch.tenantId) throw new Error("No tenant active");
+
+  const decimals = parseInt(formData.get('decimals') as string) || 2;
+
+  await prisma.tenant.update({
+    where: { id: branch.tenantId },
+    data: { decimals }
+  });
+
+  revalidatePath('/', 'layout');
 }
 
 export async function updateAdvancedConfig(moduleKey: string, formData: FormData) {

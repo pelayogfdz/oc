@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Users, Plus, Shield, Edit2, Trash2, CheckCircle2, ChevronDown, ChevronRight, X } from 'lucide-react';
 import { createUser, updateUser, deleteUser } from '@/app/actions/user';
 
@@ -67,6 +67,12 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
   const [editingUser, setEditingUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('branches');
   
+  // Biometrics State
+  const [faceDescriptor, setFaceDescriptor] = useState<string>('');
+  const [baselinePhoto, setBaselinePhoto] = useState<string>('');
+  const [bioStatus, setBioStatus] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   // State for permissions mapping
   const [perms, setPerms] = useState<Record<string, boolean>>({});
 
@@ -107,12 +113,18 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
     setEditingUser(null);
     setPerms({});
     setActiveTab('branches');
+    setFaceDescriptor('');
+    setBaselinePhoto('');
+    setBioStatus('');
   };
 
   const openEditUser = (user: any) => {
     setIsEditing(true);
     setEditingUser(user);
     setActiveTab('branches');
+    setFaceDescriptor(user.faceDescriptor || '');
+    setBaselinePhoto(user.baselinePhoto || '');
+    setBioStatus(user.faceDescriptor ? 'Molde Biométrico Registrado ✓' : '');
     
     try {
       const parsed = user.permissions ? JSON.parse(user.permissions) : {};
@@ -132,6 +144,51 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
   const closeForm = () => {
     setIsEditing(false);
     setEditingUser(null);
+  };
+
+  const handleBioCapture = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setBioStatus('Cargando modelos de IA...');
+    try {
+      const faceapi = await import('@vladmandic/face-api');
+      await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+      await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
+      await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
+
+      setBioStatus('Procesando rostro...');
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const img = new Image();
+        img.onload = async () => {
+          const tmpCanvas = document.createElement('canvas');
+          const mx = Math.max(img.width, img.height);
+          let ratio = mx > 600 ? 600 / mx : 1;
+          tmpCanvas.width = img.width * ratio;
+          tmpCanvas.height = img.height * ratio;
+          tmpCanvas.getContext('2d')?.drawImage(img, 0, 0, tmpCanvas.width, tmpCanvas.height);
+
+          const detection = await faceapi.detectSingleFace(tmpCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.1 })).withFaceLandmarks().withFaceDescriptor();
+
+          if (!detection) {
+             setBioStatus('Error: No se detectó rostro');
+             return;
+          }
+
+          const descriptorString = JSON.stringify(Array.from(detection.descriptor));
+          const finalCompressedImage = tmpCanvas.toDataURL('image/jpeg', 0.5);
+
+          setFaceDescriptor(descriptorString);
+          setBaselinePhoto(finalCompressedImage);
+          setBioStatus('Rostro capturado y validado ✓');
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      setBioStatus('Error al cargar IA: ' + err.message);
+    }
   };
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -528,10 +585,33 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
 
               <div style={{ padding: '1rem', borderRadius: '6px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', marginTop: '1rem' }}>
                 <h5 style={{ fontWeight: 'bold', color: '#1d4ed8', marginBottom: '0.5rem' }}>Registro Facial (Reconocimiento Biométrico)</h5>
-                <p style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '1rem' }}>Para que el sistema MCOMX reconozca automáticamente a este empleado, debe registrar su rostro.</p>
-                <button type="button" onClick={() => alert("Módulo biométrico en desarrollo. Por favor use el Kiosko MCOMX para registrar el rostro.")} style={{ padding: '0.5rem 1rem', backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
-                  📸 Iniciar Registro Facial
+                <p style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '1rem' }}>Para que el sistema reconozca automáticamente a este empleado, debe registrar su rostro.</p>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  capture="user" 
+                  ref={fileInputRef} 
+                  style={{ display: 'none' }} 
+                  onChange={handleBioCapture} 
+                />
+                <button 
+                  type="button" 
+                  onClick={() => fileInputRef.current?.click()} 
+                  style={{ padding: '0.5rem 1rem', backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+                  📸 {faceDescriptor ? 'Actualizar Registro Facial' : 'Iniciar Registro Facial'}
                 </button>
+                {bioStatus && (
+                  <p style={{ marginTop: '0.75rem', fontSize: '0.875rem', fontWeight: 'bold', color: bioStatus.includes('Error') ? 'var(--error-color)' : 'var(--pulpos-primary)' }}>
+                    {bioStatus}
+                  </p>
+                )}
+                {baselinePhoto && (
+                  <div style={{ marginTop: '1rem' }}>
+                    <img src={baselinePhoto} alt="Baseline" style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '2px solid #2563eb' }} />
+                  </div>
+                )}
+                <input type="hidden" name="faceDescriptor" value={faceDescriptor} />
+                <input type="hidden" name="baselinePhoto" value={baselinePhoto} />
               </div>
             </div>
           </div>

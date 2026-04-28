@@ -5,10 +5,14 @@ import MobileBottomNav from '../components/MobileBottomNav';
 import MobileGridMenu from '../components/MobileGridMenu';
 import { OfflineSyncProvider } from '../components/OfflineSyncProvider';
 import DesktopSidebarWrapper from '../components/DesktopSidebarWrapper';
+import { getTenantSettings } from '../actions/settings';
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const tenantSettings = await getTenantSettings().catch(() => ({ decimals: 2 }));
+
   return (
     <OfflineSyncProvider>
+      <script dangerouslySetInnerHTML={{ __html: `window.__TENANT_DECIMALS__ = ${tenantSettings.decimals};` }} />
       <MobileMenuProvider>
         <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
           <DesktopSidebarWrapper>

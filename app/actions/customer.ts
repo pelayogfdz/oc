@@ -25,6 +25,7 @@ export async function createCustomer(formData: FormData) {
     data: {
       name: formData.get('name') as string,
       email: email,
+      additionalEmails: (formData.get('additionalEmails') as string) || null,
       phone: phone,
       street: (formData.get('street') as string) || null,
       exteriorNumber: (formData.get('exteriorNumber') as string) || null,
@@ -55,6 +56,7 @@ export async function updateCustomer(id: string, formData: FormData) {
     data: { 
       name: formData.get('name') as string,
       email: (formData.get('email') as string) || null,
+      additionalEmails: (formData.get('additionalEmails') as string) || null,
       phone: (formData.get('phone') as string) || null,
       street: (formData.get('street') as string) || null,
       exteriorNumber: (formData.get('exteriorNumber') as string) || null,

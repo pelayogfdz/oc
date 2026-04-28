@@ -42,8 +42,12 @@ export default async function EditarClientePage({ params }: { params: Promise<{ 
               <input type="tel" name="phone" defaultValue={customer.phone || ''} placeholder="10 dígitos" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
             </div>
             <div style={{ gridColumn: 'span 2' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Correo Electrónico</label>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Correo Electrónico Principal</label>
               <input type="email" name="email" defaultValue={customer.email || ''} placeholder="cliente@correo.com" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+            </div>
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Correos Adicionales (Separados por coma, máx 5)</label>
+              <input type="text" name="additionalEmails" defaultValue={customer.additionalEmails || ''} placeholder="conta@correo.com, pagos@correo.com" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
             </div>
           </div>
         </div>

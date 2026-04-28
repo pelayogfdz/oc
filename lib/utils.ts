@@ -1,7 +1,16 @@
-export function formatCurrency(amount: number) {
+export function formatCurrency(amount: number, decimals?: number) {
+  let d = 2;
+  if (decimals !== undefined) {
+    d = decimals;
+  } else if (typeof window !== 'undefined' && (window as any).__TENANT_DECIMALS__ !== undefined) {
+    d = (window as any).__TENANT_DECIMALS__;
+  }
+
   return new Intl.NumberFormat('es-MX', {
     style: 'currency',
-    currency: 'MXN'
+    currency: 'MXN',
+    minimumFractionDigits: d,
+    maximumFractionDigits: d
   }).format(amount);
 }
 

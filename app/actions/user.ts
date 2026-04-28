@@ -45,6 +45,8 @@ export async function createUser(formData: FormData) {
   const reqGps = formData.get('reqGps') === 'on';
   const reqPhoto = formData.get('reqPhoto') === 'on';
   const workScheduleMatrix = formData.get('workScheduleMatrix') as string;
+  const faceDescriptor = formData.get('faceDescriptor') as string;
+  const baselinePhoto = formData.get('baselinePhoto') as string;
   
   const branch = await getActiveBranch();
   if (!branch) throw new Error("No branch active");
@@ -56,7 +58,7 @@ export async function createUser(formData: FormData) {
       rfc, curp, nss, taxRegime, address, phone, hireDate, birthDate,
       payrollType, dailySalary, bankName, bankAccount,
       bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus,
-      reqGps, reqPhoto, workScheduleMatrix
+      reqGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto
     } as any
   });
   
@@ -105,13 +107,15 @@ export async function updateUser(id: string, formData: FormData) {
   const reqGps = formData.get('reqGps') === 'on';
   const reqPhoto = formData.get('reqPhoto') === 'on';
   const workScheduleMatrix = formData.get('workScheduleMatrix') as string;
+  const faceDescriptor = formData.get('faceDescriptor') as string;
+  const baselinePhoto = formData.get('baselinePhoto') as string;
   
   const updateData: any = { 
     name, email, role, commissionRole, commissionPct, monthlyGoal, bonusAmount, teamBonusAmount, managerId, permissions,
     rfc, curp, nss, taxRegime, address, phone, hireDate, birthDate,
     payrollType, dailySalary, bankName, bankAccount,
     bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus,
-    reqGps, reqPhoto, workScheduleMatrix
+    reqGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto
   };
   
   if (password) {
