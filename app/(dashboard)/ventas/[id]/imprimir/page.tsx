@@ -83,8 +83,7 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
             )}
             <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.5' }}>
               <strong>{sale.branch?.name}</strong><br/>
-              {sale.branch?.settings?.address && <>{sale.branch.settings.address.replace(/\\n/g, ', ')}<br/></>}
-              {sale.branch?.settings?.phone && <>Tel: {sale.branch.settings.phone}</>}
+              {sale.branch?.location && <>{sale.branch.location.replace(/\\n/g, ', ')}<br/></>}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>

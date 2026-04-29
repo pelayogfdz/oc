@@ -156,7 +156,6 @@ export async function createLeaveRequest(data: {
       type: data.type,
       startDate: start,
       endDate: end,
-      reason: data.reason || '',
       status: 'PENDING'
     }
   });

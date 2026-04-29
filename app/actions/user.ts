@@ -143,13 +143,11 @@ export async function updateUser(id: string, formData: FormData) {
     data: updateData
   });
   
-  revalidateTag(`user-${id}`);
   revalidatePath('/preferencias/usuarios');
   return { success: true };
 }
 
 export async function deleteUser(id: string) {
   await prisma.user.delete({ where: { id } });
-  revalidateTag(`user-${id}`);
   revalidatePath('/preferencias/usuarios');
 }

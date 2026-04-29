@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Clock, MapPin, CalendarDays, CheckCircle2, AlertTriangle, FileText, User, Camera } from 'lucide-react';
 import { registerAttendance, createLeaveRequest, registerFaceDescriptor } from '@/app/actions/hr';
 import FaceRecognitionClient from './FaceRecognitionClient';

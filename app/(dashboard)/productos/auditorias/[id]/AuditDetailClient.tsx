@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { submitAuditCount, updateAuditStatus, finalizeAudit } from '@/app/actions/audit';
-import { Save, UploadCloud, Download, CheckCircle, AlertTriangle, ArrowRight, Upload } from 'lucide-react';
+import { Save, UploadCloud, Download, CheckCircle, AlertTriangle, ArrowRight, Upload, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 

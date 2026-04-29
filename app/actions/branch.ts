@@ -59,7 +59,6 @@ export async function updateBranch(id: string, name: string, location: string, f
     });
   }
 
-  revalidateTag(`branch-${id}`);
   revalidatePath('/preferencias/sucursales');
 }
 
@@ -74,6 +73,5 @@ export async function deleteBranch(id: string) {
     data: { isActive: false }
   });
   
-  revalidateTag(`branch-${id}`);
   revalidatePath('/preferencias/sucursales');
 }

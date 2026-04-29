@@ -83,8 +83,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
             )}
             <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.5' }}>
               <strong>{quote.branch?.name}</strong><br/>
-              {quote.branch?.settings?.address && <>{quote.branch.settings.address.replace(/\\n/g, ', ')}<br/></>}
-              {quote.branch?.settings?.phone && <>Tel: {quote.branch.settings.phone}</>}
+              {quote.branch?.location && <>{quote.branch.location.replace(/\\n/g, ', ')}<br/></>}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>

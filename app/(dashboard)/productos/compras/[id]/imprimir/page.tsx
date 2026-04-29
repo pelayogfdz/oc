@@ -90,7 +90,7 @@ export default async function PrintPurchasePage({ params }: { params: Promise<{ 
             <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.5' }}>
               <strong>DOCUMENTO INTERNO</strong><br/>
               Sucursal Receptora: {purchase.branch?.name || 'Bodega Central'}<br/>
-              {purchase.branch?.settings?.address && <>{purchase.branch.settings.address.replace(/\\n/g, ', ')}<br/></>}
+              {purchase.branch?.location && <>{purchase.branch.location.replace(/\\n/g, ', ')}<br/></>}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -124,7 +124,7 @@ export default async function PrintPurchasePage({ params }: { params: Promise<{ 
             <table style={{ width: '100%', fontSize: '0.9rem' }}>
               <tbody>
                 <tr><td style={{ color: '#64748b', padding: '0.2rem 0' }}>Registrado por:</td><td style={{ fontWeight: '600', textAlign: 'right' }}>{purchase.user?.name || 'N/A'}</td></tr>
-                <tr><td style={{ color: '#64748b', padding: '0.2rem 0' }}>Referencia:</td><td style={{ fontWeight: '600', textAlign: 'right' }}>{purchase.reference || 'Ninguna'}</td></tr>
+                <tr><td style={{ color: '#64748b', padding: '0.2rem 0' }}>Referencia:</td><td style={{ fontWeight: '600', textAlign: 'right' }}>{purchase.id.slice(0, 8)}</td></tr>
               </tbody>
             </table>
           </div>

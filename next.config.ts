@@ -6,7 +6,6 @@ const withPWA = withPWAInit({
   cacheOnFrontEndNav: false,
   aggressiveFrontEndNavCaching: false,
   reloadOnOnline: true,
-  swcMinify: true,
   disable: process.env.NODE_ENV === 'development',
   workboxOptions: {
     disableDevLogs: true,
@@ -15,6 +14,7 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   typescript: { ignoreBuildErrors: true },
+  // @ts-ignore
   eslint: { ignoreDuringBuilds: true },
   turbopack: {},
   serverExternalPackages: ['@prisma/client', 'bcryptjs', 'bcrypt'],

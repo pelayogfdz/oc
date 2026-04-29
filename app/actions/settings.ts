@@ -97,8 +97,7 @@ export async function updateTenantSettings(formData: FormData) {
     data: { decimals }
   });
 
-  revalidateTag(`tenant-${branch.tenantId}`);
-  revalidatePath('/', 'layout');
+  revalidatePath('/preferencias/general');
 }
 
 export async function updateAdvancedConfig(moduleKey: string, formData: FormData) {

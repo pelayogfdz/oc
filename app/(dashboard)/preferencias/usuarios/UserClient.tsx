@@ -8,55 +8,115 @@ const PERMISSION_MODULES = [
   {
     id: 'pos',
     name: 'Punto de Venta (POS)',
-    permissions: [
-      { id: 'pos_access', label: 'Acceder a Punto de Venta' },
-      { id: 'pos_discount', label: 'Autorizar Descuentos' },
-      { id: 'pos_cancel', label: 'Cancelar Tickets' },
-      { id: 'pos_returns', label: 'Procesar Devoluciones' },
-      { id: 'pos_price_change', label: 'Modificar Precio en Caja' },
-      { id: 'pos_view_history', label: 'Ver Historial de Ventas' }
+    submodules: [
+      {
+        id: 'pos_terminal',
+        name: 'Terminal',
+        permissions: [
+          { id: 'pos_access', label: 'Acceder a Punto de Venta' },
+          { id: 'pos_discount', label: 'Autorizar Descuentos' },
+          { id: 'pos_price_change', label: 'Modificar Precio en Caja' },
+        ]
+      },
+      {
+        id: 'pos_tickets',
+        name: 'Tickets',
+        permissions: [
+          { id: 'pos_cancel', label: 'Cancelar Tickets' },
+          { id: 'pos_returns', label: 'Procesar Devoluciones' },
+          { id: 'pos_view_history', label: 'Ver Historial de Ventas' }
+        ]
+      }
     ]
   },
   {
     id: 'inventory',
     name: 'Inventario',
-    permissions: [
-      { id: 'inv_view', label: 'Ver Catálogo y Stock' },
-      { id: 'inv_edit', label: 'Crear / Editar Productos' },
-      { id: 'inv_delete', label: 'Eliminar Productos Permanentemente' },
-      { id: 'inv_adjust', label: 'Realizar Ajustes de Stock' },
-      { id: 'inv_transfer', label: 'Crear / Recibir Traspasos' },
-      { id: 'inv_cost', label: 'Ver Costos de Compra (Margen)' },
-      { id: 'inv_export', label: 'Exportar Inventario (CSV/Excel)' }
+    submodules: [
+      {
+        id: 'inv_catalog',
+        name: 'Catálogo de Productos',
+        permissions: [
+          { id: 'inv_view', label: 'Ver Catálogo y Stock' },
+          { id: 'inv_edit', label: 'Crear / Editar Productos' },
+          { id: 'inv_delete', label: 'Eliminar Productos Permanentemente' },
+          { id: 'inv_cost', label: 'Ver Costos de Compra (Margen)' },
+          { id: 'inv_export', label: 'Exportar Inventario (CSV/Excel)' }
+        ]
+      },
+      {
+        id: 'inv_movements',
+        name: 'Movimientos',
+        permissions: [
+          { id: 'inv_adjust', label: 'Realizar Ajustes de Stock' },
+          { id: 'inv_transfer', label: 'Crear / Recibir Traspasos' }
+        ]
+      }
     ]
   },
   {
     id: 'cash',
     name: 'Caja y Efectivo',
-    permissions: [
-      { id: 'cash_open_close', label: 'Abrir y Cerrar Caja' },
-      { id: 'cash_movements', label: 'Registrar Retiros / Depósitos' },
-      { id: 'cash_audit', label: 'Visualizar Arqueos de Otros' }
+    submodules: [
+      {
+        id: 'cash_ops',
+        name: 'Operaciones',
+        permissions: [
+          { id: 'cash_open_close', label: 'Abrir y Cerrar Caja' },
+          { id: 'cash_movements', label: 'Registrar Retiros / Depósitos' },
+          { id: 'cash_audit', label: 'Visualizar Arqueos de Otros' }
+        ]
+      }
     ]
   },
   {
     id: 'admin',
     name: 'Administración Global',
-    permissions: [
-      { id: 'admin_customers', label: 'Ver y Editar Clientes' },
-      { id: 'admin_purchases', label: 'Modulo de Compras y Proveedores' },
-      { id: 'admin_reports', label: 'Ver Reportes y Finanzas' },
-      { id: 'admin_quotes', label: 'Crear / Imprimir Cotizaciones' }
+    submodules: [
+      {
+        id: 'admin_customers',
+        name: 'Clientes',
+        permissions: [
+          { id: 'admin_customers_view', label: 'Ver y Editar Clientes' }
+        ]
+      },
+      {
+        id: 'admin_purchases',
+        name: 'Compras y Proveedores',
+        permissions: [
+          { id: 'admin_purchases_access', label: 'Modulo de Compras y Proveedores' }
+        ]
+      },
+      {
+        id: 'admin_reports',
+        name: 'Reportes',
+        permissions: [
+          { id: 'admin_reports_access', label: 'Ver Reportes y Finanzas' }
+        ]
+      },
+      {
+        id: 'admin_quotes',
+        name: 'Cotizaciones',
+        permissions: [
+          { id: 'admin_quotes_access', label: 'Crear / Imprimir Cotizaciones' }
+        ]
+      }
     ]
   },
   {
     id: 'sysadmin',
     name: 'Preferencias (Sysadmin)',
-    permissions: [
-      { id: 'sys_settings', label: 'Modificar Configuraciones de Tienda' },
-      { id: 'sys_users', label: 'Administrar Usuarios y Permisos' },
-      { id: 'sys_branches', label: 'Administrar Múltiples Sucursales' },
-      { id: 'sys_integrations', label: 'Integraciones (MercadoLibre, Shopify)' }
+    submodules: [
+      {
+        id: 'sys_settings',
+        name: 'Ajustes',
+        permissions: [
+          { id: 'sys_settings_access', label: 'Modificar Configuraciones de Tienda' },
+          { id: 'sys_users', label: 'Administrar Usuarios y Permisos' },
+          { id: 'sys_branches', label: 'Administrar Múltiples Sucursales' },
+          { id: 'sys_integrations', label: 'Integraciones (MercadoLibre, Shopify)' }
+        ]
+      }
     ]
   }
 ];
@@ -83,12 +143,18 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
     {
       id: 'branches',
       name: 'Acceso a Sucursales',
-      permissions: [
-        { id: 'GLOBAL_VIEW', label: '⭐ Visibilidad Global (Acceso Administrativo a TODAS las sucursales)' },
-        ...branches.map(b => ({
-          id: `__BRANCH_${b.id}`,
-          label: `Acceso a Sucursal: ${b.name}`
-        }))
+      submodules: [
+        {
+          id: 'branches_access',
+          name: 'Sucursales Permitidas',
+          permissions: [
+            { id: 'GLOBAL_VIEW', label: '⭐ Visibilidad Global (Acceso Administrativo a TODAS las sucursales)' },
+            ...branches.map(b => ({
+              id: `__BRANCH_${b.id}`,
+              label: `Acceso a Sucursal: ${b.name}`
+            }))
+          ]
+        }
       ]
     },
     ...PERMISSION_MODULES
@@ -98,12 +164,30 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
     setPerms(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleSelectAll = (moduleId: string) => {
-    const module = dynamicModules.find(m => m.id === moduleId);
-    if (!module) return;
+  const handleSelectAll = (modId: string) => {
+    const mod = dynamicModules.find(m => m.id === modId);
+    if (!mod) return;
+    
+    let allPermissions: any[] = [];
+    if (mod.submodules) {
+      mod.submodules.forEach((sm: any) => {
+        allPermissions = [...allPermissions, ...sm.permissions];
+      });
+    }
+
+    const allSelected = allPermissions.every(p => perms[p.id]);
     const newPerms = { ...perms };
-    module.permissions.forEach(p => {
-      newPerms[p.id] = true;
+    allPermissions.forEach(p => {
+      newPerms[p.id] = !allSelected;
+    });
+    setPerms(newPerms);
+  };
+  
+  const handleSelectSubmodule = (submod: any) => {
+    const allSelected = submod.permissions.every((p: any) => perms[p.id]);
+    const newPerms = { ...perms };
+    submod.permissions.forEach((p: any) => {
+      newPerms[p.id] = !allSelected;
     });
     setPerms(newPerms);
   };
@@ -219,6 +303,26 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
       }
     }
   }
+
+  const getFlatPermissionsToSave = () => {
+    const selected = Object.keys(perms).filter(k => perms[k]);
+    const finalSet = new Set(selected);
+    dynamicModules.forEach(mod => {
+      let modActive = false;
+      mod.submodules?.forEach((sm: any) => {
+        let smActive = false;
+        sm.permissions?.forEach((p: any) => {
+          if (perms[p.id]) {
+            smActive = true;
+            modActive = true;
+          }
+        });
+        if (smActive) finalSet.add(sm.id);
+      });
+      if (modActive) finalSet.add(mod.id);
+    });
+    return Array.from(finalSet);
+  };
 
   return (
     <>
@@ -400,25 +504,37 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
                 <div style={{ flex: 1, padding: '1.5rem' }}>
                   {dynamicModules.map(mod => (
                     <div key={mod.id} style={{ display: activeTab === mod.id ? 'block' : 'none' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <h5 style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{mod.name}</h5>
-                        <button type="button" onClick={() => handleSelectAll(mod.id)} style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>
-                          ✔️ Seleccionar Todos
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.75rem' }}>
+                        <h5 style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>{mod.name}</h5>
+                        <button type="button" onClick={() => handleSelectAll(mod.id)} style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+                          ✔️ Alternar Todos en Módulo
                         </button>
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '1rem' }}>
-                        {mod.permissions.map(p => (
-                          <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.5rem', borderRadius: '6px', backgroundColor: perms[p.id] ? '#f0fdf4' : 'transparent', border: perms[p.id] ? '1px solid #bbf7d0' : '1px transparent solid' }}>
-                            <input 
-                              type="checkbox" 
-                              checked={perms[p.id] || false}
-                              onChange={(e) => handlePermissionChange(p.id, e.target.checked)}
-                              style={{ width: '1.25rem', height: '1.25rem', cursor: 'pointer', accentColor: 'var(--pulpos-primary)' }}
-                            />
-                            <span style={{ fontSize: '0.9rem', fontWeight: perms[p.id] ? 'bold' : 'normal' }}>{p.label}</span>
-                          </label>
-                        ))}
-                      </div>
+                      
+                      {mod.submodules?.map((submod, index) => (
+                        <div key={submod.id} style={{ marginBottom: '2rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', backgroundColor: '#f8fafc', padding: '0.5rem 1rem', borderRadius: '6px' }}>
+                            <h6 style={{ fontWeight: 'bold', fontSize: '1rem', color: '#334155' }}>{submod.name}</h6>
+                            <button type="button" onClick={() => handleSelectSubmodule(submod)} style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem', backgroundColor: 'transparent', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>
+                              Alternar Submódulo
+                            </button>
+                          </div>
+                          
+                          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '1rem', paddingLeft: '1rem' }}>
+                            {submod.permissions.map((p: any) => (
+                              <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.5rem', borderRadius: '6px', backgroundColor: perms[p.id] ? '#f0fdf4' : 'transparent', border: perms[p.id] ? '1px solid #bbf7d0' : '1px transparent solid', transition: 'all 0.2s' }}>
+                                <input 
+                                  type="checkbox" 
+                                  checked={perms[p.id] || false}
+                                  onChange={(e) => handlePermissionChange(p.id, e.target.checked)}
+                                  style={{ width: '1.25rem', height: '1.25rem', cursor: 'pointer', accentColor: 'var(--pulpos-primary)' }}
+                                />
+                                <span style={{ fontSize: '0.9rem', fontWeight: perms[p.id] ? 'bold' : 'normal' }}>{p.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </div>
@@ -599,7 +715,7 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
                 )}
                 <input type="hidden" name="faceDescriptor" value={faceDescriptor} />
                 <input type="hidden" name="baselinePhoto" value={baselinePhoto} />
-                <input type="hidden" name="permissions" value={JSON.stringify(Object.keys(perms).filter(k => perms[k] === true))} />
+                <input type="hidden" name="permissions" value={JSON.stringify(getFlatPermissionsToSave())} />
               </div>
 
               <div style={{ padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)', marginTop: '1rem' }}>
