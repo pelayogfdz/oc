@@ -12,6 +12,8 @@ import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const tenantSettings = await getTenantSettings().catch(() => ({ decimals: 2 }));
   const sessionCookie = (await cookies()).get('session')?.value;
