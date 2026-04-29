@@ -440,7 +440,7 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
           ))}
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form key={editingUser?.id || 'new_user'} onSubmit={handleSubmit}>
           
           {/* TAB 1: BÁSICOS Y PERMISOS */}
           <div style={{ display: (activeTab === 'basics' || activeTab.startsWith('branches') || dynamicModules.map(m=>m.id).includes(activeTab)) ? 'block' : 'none' }}>
