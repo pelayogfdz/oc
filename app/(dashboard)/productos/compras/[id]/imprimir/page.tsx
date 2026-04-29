@@ -2,41 +2,40 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { getActiveBranch } from "@/app/actions/auth";
 
-export default async function PrintTransferPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PrintPurchasePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const branch = await getActiveBranch();
   
-  const transfer = await prisma.transfer.findUnique({
+  const purchase = await prisma.purchase.findUnique({
     where: { id: id },
     include: {
       branch: {
         include: { settings: true, tenant: true }
       },
-      toBranch: true,
-      createdBy: true,
-      receivedBy: true,
+      supplier: true,
+      user: true,
       items: {
         include: { product: true }
       }
     }
   });
 
-  if (!transfer) return notFound();
+  if (!purchase) return notFound();
 
-  // Basic authorization: user must be part of either origin or destination branch
-  if (branch.id !== transfer.branchId && branch.id !== transfer.toBranchId) {
-    return <div>No autorizado para ver este traspaso.</div>;
+  // Basic authorization: user must be part of branch
+  if (branch.id !== purchase.branchId) {
+    return <div>No autorizado para ver esta compra.</div>;
   }
 
   let config: any = {};
-  if (transfer.branch?.settings?.configJson) {
+  if (purchase.branch?.settings?.configJson) {
     try {
-      config = JSON.parse(transfer.branch.settings.configJson);
+      config = JSON.parse(purchase.branch.settings.configJson);
     } catch(e) {}
   }
   
   const facturaConfig = config.formatos_factura || {};
-  const { logoUrl, primaryColor = '#4f46e5', footerNotes } = facturaConfig;
+  const { logoUrl, primaryColor = '#eab308', footerNotes, showTaxBreakdown } = facturaConfig;
 
   // Auto-print script
   const printScript = `
@@ -46,6 +45,9 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
       }, 500);
     }
   `;
+
+  const subtotal = purchase.total / 1.16;
+  const iva = purchase.total - subtotal;
 
   return (
     <>
@@ -67,6 +69,9 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
         .items-table th { background-color: ${primaryColor}; color: white; padding: 0.75rem; text-align: left; font-weight: 600; }
         .items-table td { padding: 0.75rem; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
         .items-table tr:nth-child(even) td { background-color: #f8fafc; }
+        .totals-box { width: 300px; margin-left: auto; background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .total-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.95rem; }
+        .total-final { display: flex; justify-content: space-between; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 2px solid #cbd5e1; font-size: 1.25rem; font-weight: bold; color: ${primaryColor}; }
         .qr-section { margin-top: 2rem; display: flex; align-items: center; gap: 1rem; background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px dashed #cbd5e1; }
       `}} />
       <script dangerouslySetInnerHTML={{ __html: printScript }} />
@@ -79,46 +84,49 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
               <img src={logoUrl} alt="Logo" style={{ maxHeight: '80px', objectFit: 'contain', marginBottom: '1rem' }} />
             ) : (
               <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', margin: '0 0 1rem 0', color: '#0f172a' }}>
-                {transfer.branch?.tenant?.name || 'EMPRESA PRINCIPAL'}
+                {purchase.branch?.tenant?.name || 'EMPRESA PRINCIPAL'}
               </h1>
             )}
             <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.5' }}>
               <strong>DOCUMENTO INTERNO</strong><br/>
-              Emisión desde: {transfer.branch?.name || 'Bodega Central'}
+              Sucursal Receptora: {purchase.branch?.name || 'Bodega Central'}<br/>
+              {purchase.branch?.settings?.address && <>{purchase.branch.settings.address.replace(/\\n/g, ', ')}<br/></>}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <h2 className="invoice-title">REMISIÓN DE TRASPASO</h2>
+            <h2 className="invoice-title">ORDEN DE COMPRA</h2>
             <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#334155' }}>
-              Folio: #TR-{transfer.id.slice(0, 8).toUpperCase()}
+              Folio: #OC-{purchase.id.slice(0, 8).toUpperCase()}
             </div>
             <div style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.5rem' }}>
-              Fecha Emisión: {new Date(transfer.createdAt).toLocaleString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              Fecha Emisión: {new Date(purchase.createdAt).toLocaleString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </div>
-            <div style={{ display: 'inline-block', marginTop: '0.5rem', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid', borderColor: transfer.status === 'COMPLETED' ? '#16a34a' : transfer.status === 'IN_TRANSIT' ? '#eab308' : '#cbd5e1', color: transfer.status === 'COMPLETED' ? '#16a34a' : transfer.status === 'IN_TRANSIT' ? '#ca8a04' : '#64748b', fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'uppercase' }}>
-              ESTADO: {transfer.status === 'COMPLETED' ? 'COMPLETADO' : transfer.status === 'IN_TRANSIT' ? 'EN TRÁNSITO' : transfer.status}
+            <div style={{ display: 'inline-block', marginTop: '0.5rem', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid', borderColor: purchase.status === 'COMPLETED' ? '#16a34a' : purchase.status === 'PENDING' ? '#eab308' : '#cbd5e1', color: purchase.status === 'COMPLETED' ? '#16a34a' : purchase.status === 'PENDING' ? '#ca8a04' : '#64748b', fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'uppercase' }}>
+              ESTADO: {purchase.status === 'COMPLETED' ? 'RECIBIDO' : purchase.status === 'PENDING' ? 'PENDIENTE' : purchase.status}
             </div>
           </div>
         </div>
 
-        {/* Origin / Dest Info Grid */}
+        {/* Info Grid */}
         <div className="info-grid">
           <div className="info-card">
-            <div className="data-label">SUCURSAL ORIGEN (SALIDA)</div>
+            <div className="data-label">DATOS DEL PROVEEDOR</div>
             <div className="data-value" style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0f172a' }}>
-              {transfer.branch?.name || 'Bodega Central'}
+              {purchase.supplier?.name || 'Proveedor General'}
             </div>
-            <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>Autorizado / Enviado por:</div>
-            <div style={{ fontSize: '0.9rem', fontWeight: '500' }}>{transfer.createdBy?.name || 'N/A'}</div>
+            {purchase.supplier?.taxId && <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>RFC: {purchase.supplier.taxId}</div>}
+            {purchase.supplier?.email && <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{purchase.supplier.email}</div>}
+            {purchase.supplier?.phone && <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Tel: {purchase.supplier.phone}</div>}
           </div>
           
           <div className="info-card">
-            <div className="data-label">SUCURSAL DESTINO (ENTRADA)</div>
-            <div className="data-value" style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0f172a' }}>
-              {transfer.toBranch?.name || 'N/A'}
-            </div>
-            <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>Recibido por:</div>
-            <div style={{ fontSize: '0.9rem', fontWeight: '500' }}>{transfer.receivedBy?.name || 'Pendiente de Recepción'}</div>
+            <div className="data-label">DATOS DE LA OPERACIÓN</div>
+            <table style={{ width: '100%', fontSize: '0.9rem' }}>
+              <tbody>
+                <tr><td style={{ color: '#64748b', padding: '0.2rem 0' }}>Registrado por:</td><td style={{ fontWeight: '600', textAlign: 'right' }}>{purchase.user?.name || 'N/A'}</td></tr>
+                <tr><td style={{ color: '#64748b', padding: '0.2rem 0' }}>Referencia:</td><td style={{ fontWeight: '600', textAlign: 'right' }}>{purchase.reference || 'Ninguna'}</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -129,33 +137,44 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
               <th style={{ width: '60px', textAlign: 'center' }}>Cant</th>
               <th style={{ width: '120px' }}>Código/SKU</th>
               <th>Descripción del Artículo</th>
+              <th style={{ width: '120px', textAlign: 'right' }}>Costo U.</th>
+              <th style={{ width: '120px', textAlign: 'right' }}>Importe</th>
             </tr>
           </thead>
           <tbody>
-            {transfer.items.map((item) => (
+            {purchase.items.map((item) => (
               <tr key={item.id}>
                 <td style={{ fontWeight: 'bold', textAlign: 'center', fontSize: '1.1rem' }}>{item.quantity}</td>
                 <td style={{ fontFamily: 'monospace', color: '#475569' }}>{item.product?.sku || '--'}</td>
                 <td style={{ fontWeight: '500', color: '#1e293b' }}>{item.product?.name || 'Desconocido'}</td>
+                <td style={{ textAlign: 'right' }}>${item.cost.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                <td style={{ textAlign: 'right', fontWeight: '600' }}>${(item.cost * item.quantity).toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
               </tr>
             ))}
-            {transfer.items.length === 0 && (
+            {purchase.items.length === 0 && (
               <tr>
-                <td colSpan={3} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
-                  No hay artículos en este traspaso.
+                <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                  No hay artículos registrados en esta compra.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
 
-        {/* Totals Box for Quantity */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '2rem' }}>
-          <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', minWidth: '200px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 'bold', color: primaryColor }}>
-              <span>Total Artículos:</span>
-              <span>{transfer.items.reduce((acc, curr) => acc + curr.quantity, 0)} PZA</span>
-            </div>
+        {/* Totals Section */}
+        <div className="totals-box">
+          {showTaxBreakdown ? (
+            <>
+              <div className="total-row"><span>Subtotal:</span><span>${subtotal.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
+              <div className="total-row"><span>IVA (16%):</span><span>${iva.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
+            </>
+          ) : (
+            <div className="total-row"><span>Subtotal:</span><span>${purchase.total.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
+          )}
+          
+          <div className="total-final">
+            <span>TOTAL:</span>
+            <span>${purchase.total.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
           </div>
         </div>
 
@@ -163,25 +182,25 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
         <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '4rem', paddingTop: '2rem' }}>
           <div style={{ textAlign: 'center', width: '250px' }}>
             <div style={{ borderBottom: '2px solid #cbd5e1', marginBottom: '0.5rem', height: '40px' }}></div>
-            <div style={{ fontWeight: 'bold', color: '#1e293b' }}>Firma de Entrega</div>
-            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>({transfer.branch?.name || 'Bodega Central'})</div>
+            <div style={{ fontWeight: 'bold', color: '#1e293b' }}>Firma de Revisión (Sistema)</div>
+            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>({purchase.user?.name || 'Bodega Central'})</div>
           </div>
           <div style={{ textAlign: 'center', width: '250px' }}>
             <div style={{ borderBottom: '2px solid #cbd5e1', marginBottom: '0.5rem', height: '40px' }}></div>
-            <div style={{ fontWeight: 'bold', color: '#1e293b' }}>Firma de Recepción</div>
-            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>({transfer.toBranch?.name || 'Destino'})</div>
+            <div style={{ fontWeight: 'bold', color: '#1e293b' }}>Firma Proveedor / Repartidor</div>
+            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>({purchase.supplier?.name || 'Proveedor'})</div>
           </div>
         </div>
 
         {/* Footer & QR */}
         <div style={{ position: 'absolute', bottom: '2cm', left: '2cm', right: '2cm' }}>
           <div className="qr-section">
-            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://clientes.pulpos.com?traspasoId=${transfer.id.slice(0, 8)}`} alt="QR Code" style={{ width: '80px', height: '80px' }} />
+            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://clientes.pulpos.com?compraId=${purchase.id.slice(0, 8)}`} alt="QR Code" style={{ width: '80px', height: '80px' }} />
             <div>
               <h4 style={{ margin: '0 0 0.25rem 0', color: '#0f172a', fontSize: '1rem' }}>Verificación Interna</h4>
               <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>
                 Escanea el código QR o ingresa a <strong>clientes.pulpos.com</strong> con el folio:<br/>
-                <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: primaryColor, letterSpacing: '1px' }}>TR-{transfer.id.slice(0, 8).toUpperCase()}</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: primaryColor, letterSpacing: '1px' }}>OC-{purchase.id.slice(0, 8).toUpperCase()}</span>
               </p>
             </div>
           </div>
@@ -197,7 +216,7 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
       {/* Action Buttons (No print) */}
       <div className="no-print" style={{ textAlign: 'center', marginTop: '2rem', paddingBottom: '2rem' }}>
         <button onClick={() => window.print()} style={{ padding: '0.75rem 2rem', cursor: 'pointer', background: primaryColor, color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', marginRight: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-          Imprimir Traspaso
+          Imprimir Orden
         </button>
         <button onClick={() => window.close()} style={{ padding: '0.75rem 2rem', cursor: 'pointer', background: 'white', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold' }}>
           Cerrar Ventana
