@@ -298,6 +298,7 @@ model Product {
   satUnit             String? // Clave de unidad de medida en el SAT
 
   @@unique([sku, branchId])
+  @@index([branchId, stock])
 }
 
 model ProductVariant {
@@ -365,6 +366,8 @@ model Sale {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
   payments  CustomerPayment[] // Pagos a esta factura
+
+  @@index([branchId, createdAt(sort: Desc)])
 }
 
 model SaleItem {

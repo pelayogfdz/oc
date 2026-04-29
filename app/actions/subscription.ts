@@ -45,6 +45,8 @@ export async function getSubscriptionData() {
     tenant,
     userCount,
     mpPublicKey: settings?.mpPublicKey || null,
+    basePrice: settings?.basePrice || 0,
+    userPrice: settings?.userPrice || 0,
   };
 }
 
@@ -109,13 +111,56 @@ export async function saveMercadoPagoCard(cardTokenId: string, paymentMethodId?:
     }
 
     const savedCardId = cardData.id;
+    const paymentMethodIdStr = cardData.payment_method?.id || 'master';
 
-    // 3. Update Tenant to active and save the card ID
+    // 3. Validación de la tarjeta con Pre-autorización de $0.1
+    // Se crea un cobro retenido (capture: false) y luego se cancela
+    const authBody = {
+      transaction_amount: 0.1,
+      description: 'Validación de Tarjeta CAANMA PRO',
+      capture: false, // Pre-authorization
+      payment_method_id: paymentMethodIdStr,
+      payer: {
+        type: 'customer',
+        id: customerId
+      }
+    };
+
+    const authRes = await fetch('https://api.mercadopago.com/v1/payments', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(authBody)
+    });
+
+    const authData = await authRes.json();
+    
+    if (!authRes.ok || (authData.status !== 'authorized' && authData.status !== 'in_process' && authData.status !== 'approved')) {
+      throw new Error(authData.message || authData.status_detail || 'La tarjeta fue rechazada por el banco emisor al intentar validarla.');
+    }
+
+    // Cancelar la pre-autorización para liberar los fondos de inmediato
+    if (authData.id) {
+      await fetch(`https://api.mercadopago.com/v1/payments/${authData.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'cancelled' })
+      }).catch(e => console.error('Error cancelando pre-auth:', e));
+    }
+
+    // Update Tenant to active and save the card ID
     await prisma.tenant.update({
       where: { id: tenant.id },
       data: {
         mpCardId: savedCardId,
-        subscriptionStatus: 'ACTIVE'
+        // No cambiamos subscriptionStatus a ACTIVE automáticamente aquí, 
+        // a menos que queramos que con solo guardar la tarjeta se reactive.
+        // Lo dejamos para que el usuario pague manualmente la primera vez si está suspendido.
       }
     });
 
@@ -123,5 +168,59 @@ export async function saveMercadoPagoCard(cardTokenId: string, paymentMethodId?:
   } catch (error: any) {
     console.error('saveMercadoPagoCard Error:', error);
     throw new Error(error.message || 'Error de conexión con Mercado Pago');
+  }
+}
+
+export async function processManualPayment(amount: number) {
+  const { user, tenant } = await requireTenantAdmin();
+
+  if (!tenant.mpCustomerId || !tenant.mpCardId) {
+    throw new Error('No hay una tarjeta guardada para esta organización. Por favor, guarda una tarjeta primero.');
+  }
+
+  const settings = await prisma.systemSettings.findFirst();
+  if (!settings || !settings.mpAccessToken) {
+    throw new Error('Sistema de pagos no configurado.');
+  }
+
+  try {
+    const paymentBody = {
+      transaction_amount: amount,
+      description: `Suscripción Mensual CAANMA PRO - ${tenant.name}`,
+      payment_method_id: 'master', // MP uses the saved card automatically if we pass payer.id
+      payer: {
+        type: 'customer',
+        id: tenant.mpCustomerId
+      }
+    };
+
+    const paymentRes = await fetch('https://api.mercadopago.com/v1/payments', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${settings.mpAccessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(paymentBody)
+    });
+
+    const paymentData = await paymentRes.json();
+    
+    // MP returns 201 for created payments
+    if (!paymentRes.ok || (paymentData.status !== 'approved' && paymentData.status !== 'in_process')) {
+      throw new Error(paymentData.message || paymentData.status_detail || 'No se pudo procesar el pago con la tarjeta guardada.');
+    }
+
+    // Actualizar el tenant a activo
+    await prisma.tenant.update({
+      where: { id: tenant.id },
+      data: {
+        subscriptionStatus: 'ACTIVE',
+      }
+    });
+
+    return { success: true, status: paymentData.status };
+  } catch (error: any) {
+    console.error('processManualPayment Error:', error);
+    throw new Error(error.message || 'Error al procesar el pago.');
   }
 }

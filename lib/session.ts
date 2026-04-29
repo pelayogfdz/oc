@@ -6,7 +6,7 @@ const encodedKey = new TextEncoder().encode(secretKey);
 
 export type SessionPayload = {
   userId: string;
-  tenantId: string;
+  tenantId: string | null;
   role: string;
   expiresAt: Date;
 };
@@ -30,7 +30,7 @@ export async function decrypt(session: string | undefined = '') {
   }
 }
 
-export async function createSession(userId: string, tenantId: string, role: string) {
+export async function createSession(userId: string, tenantId: string | null, role: string) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const session = await encrypt({ userId, tenantId, role, expiresAt });
   

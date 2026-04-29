@@ -1,7 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 
 export async function createBranch(formData: FormData) {
   const name = formData.get('name') as string;
@@ -59,6 +59,7 @@ export async function updateBranch(id: string, name: string, location: string, f
     });
   }
 
+  revalidateTag(`branch-${id}`);
   revalidatePath('/preferencias/sucursales');
 }
 
@@ -73,5 +74,6 @@ export async function deleteBranch(id: string) {
     data: { isActive: false }
   });
   
+  revalidateTag(`branch-${id}`);
   revalidatePath('/preferencias/sucursales');
 }

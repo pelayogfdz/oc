@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, unstable_cache } from 'next/cache';
 import { cache } from 'react';
 import { decrypt, createSession, deleteSession } from '@/lib/session';
 import { redirect } from 'next/navigation';
@@ -20,10 +20,16 @@ export const getActiveUser = cache(async () => {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.userId },
-    include: { tenant: true }
-  });
+  const getCachedUser = unstable_cache(
+    async () => prisma.user.findUnique({
+      where: { id: session.userId },
+      include: { tenant: true }
+    }),
+    [`user-${session.userId}`],
+    { tags: [`user-${session.userId}`] }
+  );
+
+  const user = await getCachedUser();
   
   if (!user) throw new Error("User not found");
   return user;
@@ -40,16 +46,28 @@ export const getActiveBranch = cache(async () => {
     if (branchId === 'GLOBAL') {
       return { id: 'GLOBAL', name: 'Todas las Sucursales', location: 'Corporativo', isActive: true, deletedAt: null, tenantId: session.tenantId };
     }
-    const branch = await prisma.branch.findFirst({ 
-      where: { id: branchId, isActive: true, tenantId: session.tenantId } 
-    });
+    const getCachedBranch = unstable_cache(
+      async () => prisma.branch.findFirst({ 
+        where: { id: branchId, isActive: true, tenantId: session.tenantId } 
+      }),
+      [`branch-${branchId}`],
+      { tags: [`branch-${branchId}`] }
+    );
+    
+    const branch = await getCachedBranch();
     if (branch) return branch;
   }
   
   // Fallback a la primera sucursal del Tenant si la cookie no coincide
-  const firstBranch = await prisma.branch.findFirst({
-    where: { tenantId: session.tenantId, isActive: true }
-  });
+  const getCachedFirstBranch = unstable_cache(
+    async () => prisma.branch.findFirst({
+      where: { tenantId: session.tenantId, isActive: true }
+    }),
+    [`tenant-first-branch-${session.tenantId}`],
+    { tags: [`tenant-branches-${session.tenantId}`] }
+  );
+  
+  const firstBranch = await getCachedFirstBranch();
   
   if (!firstBranch) throw new Error('No configuration branch found for your Tenant.');
   return firstBranch;

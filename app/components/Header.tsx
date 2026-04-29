@@ -7,8 +7,8 @@ import HeaderNetworkStatus from './HeaderNetworkStatus';
 import HeaderTitle from './HeaderTitle';
 
 export default async function Header() {
-  const currentBranch = await getActiveBranch();
-  const currentUser = await getActiveUser();
+  const currentBranch = await getActiveBranch().catch(() => null);
+  const currentUser = await getActiveUser().catch(() => null);
   
   const branches = await prisma.branch.findMany({
     where: { isActive: true },

@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       }
     }
 
-    if (!user.tenantId || !user.tenant?.isActive) {
+    if (!user.isSuperAdmin && (!user.tenantId || !user.tenant?.isActive)) {
       return NextResponse.json({ error: 'Tu empresa está inactiva o no configurada.' }, { status: 403 });
     }
 

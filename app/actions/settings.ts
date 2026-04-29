@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { getActiveBranch } from './auth';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 
 export async function updateBranchSettings(formData: FormData) {
   let branch = await getActiveBranch();
@@ -73,9 +73,15 @@ export async function getTenantSettings() {
     return { decimals: 2 };
   }
   
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: branch.tenantId }
-  });
+  const getCachedTenant = unstable_cache(
+    async () => prisma.tenant.findUnique({
+      where: { id: branch.tenantId! } // asserted by the if check
+    }),
+    [`tenant-${branch.tenantId}`],
+    { tags: [`tenant-${branch.tenantId}`] }
+  );
+
+  const tenant = await getCachedTenant();
   
   return tenant || { decimals: 2 };
 }
@@ -91,6 +97,7 @@ export async function updateTenantSettings(formData: FormData) {
     data: { decimals }
   });
 
+  revalidateTag(`tenant-${branch.tenantId}`);
   revalidatePath('/', 'layout');
 }
 
