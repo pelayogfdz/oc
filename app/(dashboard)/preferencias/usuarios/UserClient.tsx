@@ -420,14 +420,14 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
             <button
               key={tab}
               type="button"
-              onClick={() => setActiveTab(tab)} // We reuse activeTab or use a new formTab state
+              onClick={() => setActiveTab(tab === 'basics' ? 'branches' : tab)} // Route 'basics' to 'branches' by default to avoid blank screen
               style={{
                 padding: '0.75rem 1rem',
                 background: 'transparent',
                 border: 'none',
-                borderBottom: activeTab === tab || (activeTab.startsWith('branches') && tab === 'basics') ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
-                color: activeTab === tab || (activeTab.startsWith('branches') && tab === 'basics') ? 'var(--pulpos-primary)' : 'var(--pulpos-text-muted)',
-                fontWeight: activeTab === tab || (activeTab.startsWith('branches') && tab === 'basics') ? 'bold' : 'normal',
+                borderBottom: activeTab === tab || (tab === 'basics' && dynamicModules.map(m=>m.id).includes(activeTab)) ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
+                color: activeTab === tab || (tab === 'basics' && dynamicModules.map(m=>m.id).includes(activeTab)) ? 'var(--pulpos-primary)' : 'var(--pulpos-text-muted)',
+                fontWeight: activeTab === tab || (tab === 'basics' && dynamicModules.map(m=>m.id).includes(activeTab)) ? 'bold' : 'normal',
                 cursor: 'pointer'
               }}
             >
@@ -535,6 +535,29 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
                           </div>
                         </div>
                       ))}
+                      
+                      {mod.id === 'branches' && (
+                        <div style={{ padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)', marginTop: '2rem' }}>
+                          <h5 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--pulpos-primary)' }}>Coordenadas Excepcionales (Home Office / Fuera de Oficina)</h5>
+                          <p style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', marginBottom: '1rem' }}>
+                            Si el empleado hace Home Office, define aquí sus coordenadas. Esto ignorará las coordenadas de la sucursal al validar el GPS.
+                          </p>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Latitud</label>
+                              <input type="number" step="any" name="homeLat" defaultValue={editingUser?.homeLat || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Longitud</label>
+                              <input type="number" step="any" name="homeLng" defaultValue={editingUser?.homeLng || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Radio (mts)</label>
+                              <input type="number" step="any" name="homeRadius" defaultValue={editingUser?.homeRadius || ''} placeholder="50" style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -717,26 +740,6 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
                 <input type="hidden" name="baselinePhoto" value={baselinePhoto} />
                 <input type="hidden" name="permissions" value={JSON.stringify(getFlatPermissionsToSave())} />
               </div>
-
-              <div style={{ padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)', marginTop: '1rem' }}>
-                <h5 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--pulpos-primary)' }}>Coordenadas Excepcionales (Home Office / Fuera de Oficina)</h5>
-                <p style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', marginBottom: '1rem' }}>
-                  Si el empleado hace Home Office, define aquí sus coordenadas. Esto ignorará las coordenadas de la sucursal al validar el GPS.
-                </p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Latitud</label>
-                    <input type="number" step="any" name="homeLat" defaultValue={editingUser?.homeLat || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Longitud</label>
-                    <input type="number" step="any" name="homeLng" defaultValue={editingUser?.homeLng || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Radio (mts)</label>
-                    <input type="number" step="any" name="homeRadius" defaultValue={editingUser?.homeRadius || ''} placeholder="50" style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
-                  </div>
-                </div>
               </div>
             </div>
           </div>
