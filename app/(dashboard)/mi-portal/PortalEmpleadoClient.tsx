@@ -209,7 +209,7 @@ export default function PortalEmpleadoClient({
               </div>
             )}
 
-            {(user.reqPhoto && user.faceDescriptor && !hasCheckedIn) && (
+            {(user.reqPhoto && user.faceDescriptor && !hasCheckedOut) && (
               <div style={{ marginBottom: '1.5rem' }}>
                 <FaceRecognitionClient user={user} onFaceMatched={setFaceMatched} onPhotoCaptured={setPhotoUrl} />
               </div>
@@ -237,7 +237,7 @@ export default function PortalEmpleadoClient({
               
               <button 
                 onClick={() => handleCheckIn('CHECK_OUT')}
-                disabled={isRegistering || !hasCheckedIn || hasCheckedOut || (user.reqPhoto && !faceMatched && false /* Optional: require face for checkout too? let's not for now */)}
+                disabled={isRegistering || !hasCheckedIn || hasCheckedOut || (user.reqPhoto && !faceMatched)}
                 style={{ 
                   padding: '0.85rem 1.5rem', 
                   fontSize: '1rem', 
