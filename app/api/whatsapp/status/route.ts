@@ -9,9 +9,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "No branch found" }, { status: 404 });
     }
 
-    const session = await prisma.whatsAppSession.findUnique({
-      where: { branchId: branch.id }
-    });
+    const session = await prisma.whatsAppSession.findFirst();
 
     return NextResponse.json({ session });
   } catch (error) {

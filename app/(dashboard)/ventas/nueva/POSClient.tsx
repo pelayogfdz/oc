@@ -334,7 +334,7 @@ export default function POSClient({ products: initialProducts, customers, promot
 
   const change = (typeof amountReceived === 'number' ? amountReceived : 0) - finalTotalWithTip;
 
-  const printTicket = (cartItems: any[], tTotal: number, tChange: number, tDiscount: number, saleId?: string) => {
+  const printTicket = async (cartItems: any[], tTotal: number, tChange: number, tDiscount: number, saleId?: string) => {
     // Generate inner styling for the ticket
     const style = `
       body { font-family: 'Courier New', Courier, monospace; font-size: 14px; margin: 0; padding: 10px; color: #000; width: 300px; }
@@ -430,6 +430,28 @@ export default function POSClient({ products: initialProducts, customers, promot
         </body>
       </html>
     `;
+
+    // Try QZ Tray first
+    const qzPrinter = localStorage.getItem('qz_default_printer');
+    if (qzPrinter) {
+       try {
+         const qz = (await import('qz-tray')).default;
+         if (!qz.websocket.isActive()) {
+            await qz.websocket.connect({ retries: 1, delay: 1 });
+         }
+         const config = qz.configs.create(qzPrinter);
+         
+         const data = [{
+           type: 'html',
+           format: 'plain',
+           data: html
+         }];
+         await qz.print(config, data as any);
+         return; // If successful, exit
+       } catch (err) {
+         console.error('QZ Tray print failed, falling back to browser print:', err);
+       }
+    }
 
     const iframe = document.createElement('iframe');
     iframe.style.position = 'absolute';

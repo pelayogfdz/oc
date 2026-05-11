@@ -19,7 +19,7 @@ type MenuItem = {
 import { MenuNode, navStructure, footerNodes } from '../config/navigation';
 import { ShieldAlert } from 'lucide-react';
 
-export default function Sidebar({ isSuperAdmin }: { isSuperAdmin?: boolean }) {
+export default function Sidebar({ isSuperAdmin, userPermissions = {} }: { isSuperAdmin?: boolean; userPermissions?: Record<string, boolean> }) {
   const pathname = usePathname();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const { isMobileMenuOpen, closeMenu } = useMobileMenu();
@@ -125,6 +125,13 @@ export default function Sidebar({ isSuperAdmin }: { isSuperAdmin?: boolean }) {
       {/* Main Navigation */}
       <nav style={{ flex: 1, padding: '0.5rem 1rem 2rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
         {!isSuperAdmin && navStructure.map((node) => {
+          // Check permissions
+          if (node.requiredPermission) {
+            const reqs = Array.isArray(node.requiredPermission) ? node.requiredPermission : [node.requiredPermission];
+            const hasAccess = reqs.some(req => userPermissions[req]);
+            if (!hasAccess) return null;
+          }
+
           const NodeActive = isNodeActive(node);
           
           if (node.path) {
@@ -223,7 +230,13 @@ export default function Sidebar({ isSuperAdmin }: { isSuperAdmin?: boolean }) {
 
         {/* Footer Items Wrapper */}
         <div style={{ marginTop: 'auto' }}>
-          {!isSuperAdmin && footerNodes.map(node => (
+          {!isSuperAdmin && footerNodes.filter(node => {
+            if (node.requiredPermission) {
+              const reqs = Array.isArray(node.requiredPermission) ? node.requiredPermission : [node.requiredPermission];
+              return reqs.some(req => userPermissions[req]);
+            }
+            return true;
+          }).map(node => (
             <Link 
               key={node.title}
               href={node.path!} 

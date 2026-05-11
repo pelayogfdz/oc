@@ -25,8 +25,10 @@ model Tenant {
   customBasePrice    Float?
   customUserPrice    Float?
 
-  users    User[]
-  branches Branch[]
+  users                User[]
+  branches             Branch[]
+  ManufacturingProcess ManufacturingProcess[]
+  Recipe               Recipe[]
 }
 
 model SystemSettings {
@@ -40,21 +42,21 @@ model SystemSettings {
 }
 
 model User {
-  id                        String                   @id @default(uuid())
-  name                      String
-  email                     String                   @unique
-  password                  String
-  forcePasswordChange       Boolean                  @default(false)
-  role                      String                   @default("USER")
-  isSuperAdmin              Boolean                  @default(false)
-  permissions               String? // JSON string
-  
-  tenantId                  String?
-  tenant                    Tenant?                  @relation(fields: [tenantId], references: [id])
+  id                  String  @id @default(uuid())
+  name                String
+  email               String  @unique
+  password            String
+  forcePasswordChange Boolean @default(false)
+  role                String  @default("USER")
+  isSuperAdmin        Boolean @default(false)
+  permissions         String? // JSON string
 
-  branch                    Branch?                  @relation(fields: [branchId], references: [id])
-  branchId                  String?
-  
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+
+  branch   Branch? @relation(fields: [branchId], references: [id])
+  branchId String?
+
   sales                     Sale[]
   quotes                    Quote[]
   purchases                 Purchase[]
@@ -86,52 +88,53 @@ model User {
   teamBonusAmount Float   @default(0) // Bono que se otorga extra a los subordinados si el equipo llega a la meta
 
   // --- HR & Payroll (MCOMX Integration) ---
-  rfc                 String?
-  curp                String?
-  nss                 String?
-  taxRegime           String?
-  address             String?
-  phone               String?
-  hireDate            DateTime?
-  birthDate           DateTime?
-  
-  payrollType         String? // 'SEMANAL', 'QUINCENAL', etc.
-  dailySalary         Float   @default(0)
-  bankName            String?
-  bankAccount         String?
-  
-  bonusPunctuality    Float   @default(0)
-  bonusRule           String?
-  bonusMethod         String?
-  overtimeBonus       Float   @default(0)
-  groceryBonus        Float   @default(0)
-  transportBonus      Float   @default(0)
-  
-  faceDescriptor      String? // JSON array or string
-  baselinePhoto       String? @db.Text
-  reqGps              Boolean @default(false)
-  reqPhoto            Boolean @default(false)
-  
-  homeLat             Float?
-  homeLng             Float?
-  homeRadius          Float?  @default(50)
-  
-  workScheduleMatrix  String? // JSON string containing schedule Mon-Sun
-  
-  attendanceLogs      AttendanceLog[]
-  leaveRequests       LeaveRequest[]
-  deliveryOrders      DeliveryOrder[] @relation("DriverOrders")
-  
-  prospects           Prospect[]      @relation("AssignedProspects")
+  rfc       String?
+  curp      String?
+  nss       String?
+  taxRegime String?
+  address   String?
+  phone     String?
+  hireDate  DateTime?
+  birthDate DateTime?
+
+  payrollType String? // 'SEMANAL', 'QUINCENAL', etc.
+  dailySalary Float   @default(0)
+  bankName    String?
+  bankAccount String?
+
+  bonusPunctuality Float   @default(0)
+  bonusRule        String?
+  bonusMethod      String?
+  overtimeBonus    Float   @default(0)
+  groceryBonus     Float   @default(0)
+  transportBonus   Float   @default(0)
+
+  faceDescriptor String? // JSON array or string
+  baselinePhoto  String? @db.Text
+  reqGps         Boolean @default(false)
+  reqPhoto       Boolean @default(false)
+
+  homeLat    Float?
+  homeLng    Float?
+  homeRadius Float? @default(50)
+
+  workScheduleMatrix String? // JSON string containing schedule Mon-Sun
+
+  attendanceLogs AttendanceLog[]
+  leaveRequests  LeaveRequest[]
+  deliveryOrders DeliveryOrder[] @relation("DriverOrders")
+
+  prospects       Prospect[]        @relation("AssignedProspects")
+  ProductionOrder ProductionOrder[]
 }
 
 model Branch {
-  id                      String                   @id @default(uuid())
-  name                    String
-  location                String?
+  id       String  @id @default(uuid())
+  name     String
+  location String?
 
-  tenantId                String?
-  tenant                  Tenant?                  @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
   users                   User[]
   customers               Customer[]
@@ -158,11 +161,12 @@ model Branch {
   isActive                Boolean                  @default(true)
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
-  
-  hrLocation              HrLocation?
-  
-  prospects               Prospect[]
-  whatsappSessions        WhatsAppSession[]
+
+  hrLocation HrLocation?
+
+  prospects        Prospect[]
+  whatsappSessions WhatsAppSession[]
+  ProductionOrder  ProductionOrder[]
 }
 
 model BranchSettings {
@@ -182,15 +186,15 @@ model BranchSettings {
 }
 
 model Customer {
-  id       String  @id @default(uuid())
-  name     String
+  id               String  @id @default(uuid())
+  name             String
   phone            String?
   email            String?
   additionalEmails String?
   branch           Branch? @relation(fields: [branchId], references: [id])
   branchId         String?
-  sales    Sale[]
-  quotes   Quote[]
+  sales            Sale[]
+  quotes           Quote[]
 
   // Dirección Completa
   street         String?
@@ -233,14 +237,14 @@ model CustomerPayment {
   branchId   String?
   branch     Branch?  @relation(fields: [branchId], references: [id])
 
-  saleId     String?
-  sale       Sale?    @relation(fields: [saleId], references: [id])
-  cfdiStatus String   @default("NONE") // NONE, REQUESTED, TIMBRADO
-  cfdiUrlPdf String?
-  cfdiUrlXml String?
+  saleId      String?
+  sale        Sale?     @relation(fields: [saleId], references: [id])
+  cfdiStatus  String    @default("NONE") // NONE, REQUESTED, TIMBRADO
+  cfdiUrlPdf  String?
+  cfdiUrlXml  String?
   paymentDate DateTime?
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 model SupplierPayment {
@@ -260,7 +264,7 @@ model SupplierPayment {
   cfdiUrlPdf String?
   cfdiUrlXml String?
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 model Product {
@@ -303,6 +307,8 @@ model Product {
   satKey              String? // Clave de producto o servicio en el SAT
   satUnit             String? // Clave de unidad de medida en el SAT
   batches             ProductBatch[]
+  Recipe              Recipe?
+  RecipeIngredient    RecipeIngredient[]
 
   @@unique([sku, branchId])
   @@index([branchId, stock])
@@ -370,11 +376,11 @@ model Sale {
   dueDate       DateTime? // Vencimiento si es a crédito
   balanceDue    Float     @default(0) // Saldo pendiente
 
-  items     SaleItem[]
-  returns   SaleReturn[]
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-  payments  CustomerPayment[] // Pagos a esta factura
+  items         SaleItem[]
+  returns       SaleReturn[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  payments      CustomerPayment[] // Pagos a esta factura
   deliveryOrder DeliveryOrder?
 
   @@index([branchId, createdAt(sort: Desc)])
@@ -507,22 +513,22 @@ model Promotion {
 }
 
 model Supplier {
-  id             String     @id @default(uuid())
-  name           String
-  email          String?
+  id               String          @id @default(uuid())
+  name             String
+  email            String?
   additionalEmails String?
-  phone          String?
-  street         String?
-  exteriorNumber String?
-  interiorNumber String?
-  neighborhood   String?
-  branchId       String?
-  branch         Branch?    @relation(fields: [branchId], references: [id])
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-  purchases      Purchase[]
-  purchaseOrders PurchaseOrder[]
-  products       Product[]
+  phone            String?
+  street           String?
+  exteriorNumber   String?
+  interiorNumber   String?
+  neighborhood     String?
+  branchId         String?
+  branch           Branch?         @relation(fields: [branchId], references: [id])
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  purchases        Purchase[]
+  purchaseOrders   PurchaseOrder[]
+  products         Product[]
 
   // Datos Fiscales
   taxId     String?
@@ -536,41 +542,41 @@ model Supplier {
   state String?
 
   // Crédito
-  creditLimit Float @default(0)
-  creditDays  Int   @default(0)
+  creditLimit   Float @default(0)
+  creditDays    Int   @default(0)
   creditBalance Float @default(0) // Saldo global deudor
   storeCredit   Float @default(0) // Saldo a favor / Anticipos
 
-  payments    SupplierPayment[]
+  payments SupplierPayment[]
 }
 
 model Purchase {
-  id            String         @id @default(uuid())
+  id            String    @id @default(uuid())
   branchId      String?
-  branch        Branch?        @relation(fields: [branchId], references: [id])
+  branch        Branch?   @relation(fields: [branchId], references: [id])
   userId        String
-  user          User           @relation(fields: [userId], references: [id])
+  user          User      @relation(fields: [userId], references: [id])
   supplierId    String?
-  supplier      Supplier?      @relation(fields: [supplierId], references: [id])
+  supplier      Supplier? @relation(fields: [supplierId], references: [id])
   total         Float
-  paymentMethod String         @default("CASH") // CASH, CARD, TRANSFER, CREDIT
-  freightCost   Float?         @default(0)
-  status        String         @default("COMPLETED") // COMPLETED, PENDING
-  
-  dueDate       DateTime?      // Vencimiento si es a crédito
-  balanceDue    Float          @default(0) // Saldo pendiente
-  
-  createdAt     DateTime       @default(now())
-  items         PurchaseItem[]
-  payments      SupplierPayment[] // Pagos a esta factura
+  paymentMethod String    @default("CASH") // CASH, CARD, TRANSFER, CREDIT
+  freightCost   Float?    @default(0)
+  status        String    @default("COMPLETED") // COMPLETED, PENDING
+
+  dueDate    DateTime? // Vencimiento si es a crédito
+  balanceDue Float     @default(0) // Saldo pendiente
+
+  createdAt DateTime          @default(now())
+  items     PurchaseItem[]
+  payments  SupplierPayment[] // Pagos a esta factura
 }
 
 model PurchaseItem {
-  id         String   @id @default(uuid())
+  id         String        @id @default(uuid())
   purchaseId String
-  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  purchase   Purchase      @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
   productId  String
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  product    Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
   quantity   Int
   cost       Float
   batchId    String?
@@ -711,17 +717,17 @@ model InventoryAdjustmentDoc {
 }
 
 model PurchaseRequest {
-  id        String  @id @default(uuid())
-  branchId  String
-  branch    Branch  @relation(fields: [branchId], references: [id])
-  
+  id       String @id @default(uuid())
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
   productId String?
   product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
+
   preProductName String? // Para productos fuera de catálogo
-  
-  quantity  Int
-  status    String  @default("PENDING") // PENDING, ORDERED, REJECTED
+
+  quantity Int
+  status   String @default("PENDING") // PENDING, ORDERED, REJECTED
 
   transferId String? // Optional link to the transfer that originated this
   transfer   Transfer? @relation(fields: [transferId], references: [id])
@@ -733,55 +739,55 @@ model PurchaseRequest {
 }
 
 model PurchaseOrder {
-  id            String              @id @default(uuid())
-  branchId      String?
-  branch        Branch?             @relation(fields: [branchId], references: [id])
-  supplierId    String?
-  supplier      Supplier?           @relation(fields: [supplierId], references: [id])
-  userId        String
-  user          User                @relation(fields: [userId], references: [id])
-  total         Float
-  status        String              @default("PENDING")
-  notes         String?
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-  items         PurchaseOrderItem[]
+  id         String              @id @default(uuid())
+  branchId   String?
+  branch     Branch?             @relation(fields: [branchId], references: [id])
+  supplierId String?
+  supplier   Supplier?           @relation(fields: [supplierId], references: [id])
+  userId     String
+  user       User                @relation(fields: [userId], references: [id])
+  total      Float
+  status     String              @default("PENDING")
+  notes      String?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  items      PurchaseOrderItem[]
 }
 
 model PurchaseOrderItem {
-  id              String         @id @default(uuid())
+  id              String        @id @default(uuid())
   purchaseOrderId String
-  purchaseOrder   PurchaseOrder  @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   productId       String
-  product         Product        @relation(fields: [productId], references: [id], onDelete: Restrict)
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
   quantity        Int
   cost            Float
 }
 
 model AttendanceLog {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        String   // 'IN' or 'OUT'
-  timestamp   DateTime @default(now())
-  lat         Float?
-  lng         Float?
-  photoUrl    String?  // Could be base64 or a URL
-  deviceInfo  String?
-  status      String   @default("OK") // OK, LATE, MANUAL, etc.
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       String // 'IN' or 'OUT'
+  timestamp  DateTime @default(now())
+  lat        Float?
+  lng        Float?
+  photoUrl   String? // Could be base64 or a URL
+  deviceInfo String?
+  status     String   @default("OK") // OK, LATE, MANUAL, etc.
 }
 
 model LeaveRequest {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        String   // 'VACATION', 'PERM_PAID', 'PERM_UNPAID'
-  startDate   DateTime
-  endDate     DateTime
-  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // 'VACATION', 'PERM_PAID', 'PERM_UNPAID'
+  startDate DateTime
+  endDate   DateTime
+  status    String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Course {
@@ -793,20 +799,20 @@ model Course {
 }
 
 model HrLocation {
-  id          String   @id @default(uuid())
-  name        String
-  lat         Float
-  lng         Float
-  radius      Float    @default(50) // in meters
-  branchId    String?  @unique
-  branch      Branch?  @relation(fields: [branchId], references: [id])
+  id       String  @id @default(uuid())
+  name     String
+  lat      Float
+  lng      Float
+  radius   Float   @default(50) // in meters
+  branchId String? @unique
+  branch   Branch? @relation(fields: [branchId], references: [id])
 }
 
 model DeliveryOrder {
-  id             String    @id @default(uuid())
-  saleId         String    @unique
-  sale           Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(uuid())
+  saleId String @unique
+  sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
   // Destino (Puede heredar del cliente en el checkout)
   street         String?
   exteriorNumber String?
@@ -817,22 +823,23 @@ model DeliveryOrder {
   zipCode        String?
   lat            Float?
   lng            Float?
-  
+
   // Estado y Seguimiento
-  status         String    @default("PENDING") // PENDING, IN_PROGRESS, POSTPONED, DELIVERED, RETURNED
-  deliveryDate   DateTime?
-  postponedTo    DateTime?
-  driverId       String?
-  driver         User?     @relation("DriverOrders", fields: [driverId], references: [id])
-  
+  status       String    @default("PENDING") // PENDING, IN_PROGRESS, POSTPONED, DELIVERED, RETURNED
+  deliveryDate DateTime?
+  postponedTo  DateTime?
+  driverId     String?
+  driver       User?     @relation("DriverOrders", fields: [driverId], references: [id])
+
   // Evidencias y metadatos
-  evidencePhoto  String?
-  notes          String?
-  
-  branchId       String
-  
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  evidencePhoto   String?
+  clientSignature String? @db.Text
+  notes           String?
+
+  branchId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status])
   @@index([deliveryDate])
@@ -842,64 +849,128 @@ model ProductBatch {
   id             String    @id @default(uuid())
   productId      String
   product        Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-  batchNumber    String?   // Lote (opcional)
+  batchNumber    String? // Lote (opcional)
   expirationDate DateTime? // Fecha de caducidad
   stock          Int       @default(0) // Existencia actual de este lote
   cost           Float     @default(0) // Costo asociado al lote
-  
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  
-  movements      InventoryMovement[]
-  saleItems      SaleItem[]
-  purchaseItems  PurchaseItem[]
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  movements     InventoryMovement[]
+  saleItems     SaleItem[]
+  purchaseItems PurchaseItem[]
+
   @@index([productId, expirationDate])
 }
 
 model Prospect {
-  id             String    @id @default(uuid())
-  name           String
-  phone          String?   // WhatsApp number
-  email          String?
-  funnelStage    String    @default("NEW") // NEW, CONTACTED, QUOTED, WON, LOST
-  
-  branchId       String
-  branch         Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  
+  id          String  @id @default(uuid())
+  name        String
+  phone       String? // WhatsApp number
+  email       String?
+  funnelStage String  @default("NEW") // NEW, CONTACTED, QUOTED, WON, LOST
+
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
   assignedUserId String?
-  assignedUser   User?     @relation("AssignedProspects", fields: [assignedUserId], references: [id])
-  
-  messages       WhatsAppMessage[]
-  
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  assignedUser   User?   @relation("AssignedProspects", fields: [assignedUserId], references: [id])
+
+  messages WhatsAppMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([phone, branchId])
 }
 
 model WhatsAppSession {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   branchId    String
-  branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  status      String   @default("DISCONNECTED") // DISCONNECTED, QR_READY, CONNECTED
-  sessionData String?  @db.Text // Can store JSON session data if needed
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  branch      Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  status      String  @default("DISCONNECTED") // DISCONNECTED, QR_READY, CONNECTED
+  sessionData String? @db.Text // Can store JSON session data if needed
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([branchId])
 }
 
 model WhatsAppMessage {
-  id          String   @id @default(uuid())
-  messageId   String?  @unique // ID from whatsapp-web.js
-  prospectId  String
-  prospect    Prospect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
-  
-  body        String   @db.Text
-  isFromMe    Boolean  @default(false)
-  timestamp   DateTime @default(now())
-  
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  messageId  String?  @unique // ID from whatsapp-web.js
+  prospectId String
+  prospect   Prospect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+
+  body      String   @db.Text
+  isFromMe  Boolean  @default(false)
+  timestamp DateTime @default(now())
+
+  createdAt DateTime @default(now())
+}
+
+// --- M�DULO DE FABRICACI�N (PANADER�A) ---
+
+model ManufacturingProcess {
+  id       String  @id @default(uuid())
+  name     String // Ej. "Amasado", "Horneado"
+  order    Int // Orden de ejecuci�n (1, 2, 3...)
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+  branchId String?
+  isActive Boolean @default(true)
+
+  productionOrders ProductionOrder[] // Orders currently in this process
+}
+
+model Recipe {
+  id           String  @id @default(uuid())
+  productId    String  @unique
+  product      Product @relation(fields: [productId], references: [id])
+  name         String
+  instructions String? @db.Text
+
+  ingredients      RecipeIngredient[]
+  productionOrders ProductionOrder[]
+
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+  branchId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RecipeIngredient {
+  id        String  @id @default(uuid())
+  recipeId  String
+  recipe    Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  productId String // Este es el INSUMO (ingrediente)
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Float // Cantidad a descontar por cada unidad fabricada
+}
+
+model ProductionOrder {
+  id             String @id @default(uuid())
+  recipeId       String
+  recipe         Recipe @relation(fields: [recipeId], references: [id])
+  targetQuantity Float
+
+  status String @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
+
+  currentProcessId String?
+  currentProcess   ManufacturingProcess? @relation(fields: [currentProcessId], references: [id])
+
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

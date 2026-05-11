@@ -5,9 +5,7 @@ import { getActiveBranch } from "@/app/actions/auth";
 export default async function WhatsAppConfigPage() {
   const branch = await getActiveBranch();
   
-  let session = await prisma.whatsAppSession.findUnique({
-    where: { branchId: branch.id }
-  });
+  let session = await prisma.whatsAppSession.findFirst();
 
   // Si no hay sesión, la mostramos como desconectada por defecto
   if (!session) {

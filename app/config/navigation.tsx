@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   Home, Tag, Package, Calculator, ArrowRightLeft, 
   Settings, UserCircle, ShoppingCart, Banknote, FileText,
-  Sparkles, MonitorSmartphone, Landmark, BarChart3, Inbox, Briefcase, Truck
+  Sparkles, MonitorSmartphone, Landmark, BarChart3, Inbox, Briefcase, Truck, ChefHat
 } from 'lucide-react';
 
 export type MenuItem = {
@@ -19,6 +19,7 @@ export type MenuNode = {
   badge?: string;
   items?: MenuItem[]; // If it's a dropdown
   desktopOnly?: boolean;
+  requiredPermission?: string | string[]; // Permission ID(s) needed to show
 };
 
 export const navStructure: MenuNode[] = [
@@ -26,6 +27,7 @@ export const navStructure: MenuNode[] = [
   { title: 'IA', path: '/ia', icon: <Sparkles size={20} /> },
   { 
     title: 'Ventas', icon: <Banknote size={20} />, 
+    requiredPermission: ['pos_access', 'pos_discount', 'pos_cancel', 'pos_returns'],
     items: [
       { name: 'Historial de Ventas', path: '/ventas' },
       { name: 'Prospección (CRM)', path: '/ventas/prospeccion', badge: 'Nuevo', desktopOnly: true },
@@ -36,6 +38,7 @@ export const navStructure: MenuNode[] = [
   },
   { 
     title: 'Caja', icon: <Calculator size={20} />, 
+    requiredPermission: ['cash_open_close', 'cash_movements', 'cash_audit'],
     items: [
       { name: 'Apertura y Corte de Caja', path: '/caja/actual' },
       { name: 'Histórico de Cortes', path: '/caja/cortes' },
@@ -44,6 +47,7 @@ export const navStructure: MenuNode[] = [
   },
   { 
     title: 'Facturas', icon: <FileText size={20} />, 
+    requiredPermission: ['pos_access', 'admin_reports_access'],
     items: [
       { name: 'Facturación CFDI 4.0', path: '/facturas/ventas' },
       { name: 'Factura Global (Público en General)', path: '/facturas/globales' },
@@ -52,6 +56,7 @@ export const navStructure: MenuNode[] = [
   },
   { 
     title: 'Clientes', icon: <UserCircle size={20} />,
+    requiredPermission: ['admin_customers_view'],
     items: [
       { name: 'Directorio de Clientes', path: '/clientes' },
       { name: 'Crédito y Cobranza (CxC)', path: '/clientes/cobranza', badge: 'Activos' },
@@ -60,6 +65,7 @@ export const navStructure: MenuNode[] = [
   },
   { 
     title: 'Productos', icon: <Tag size={20} />, 
+    requiredPermission: ['inv_view', 'inv_edit', 'inv_adjust', 'inv_transfer'],
     items: [
       { name: 'Catálogo de Productos', path: '/productos' },
       { name: 'Actualización Masiva de Precios', path: '/productos/precios-masivos', badge: 'Precios' },
@@ -71,6 +77,7 @@ export const navStructure: MenuNode[] = [
   },
   { 
     title: 'Compras y Gastos', icon: <ShoppingCart size={20} />, 
+    requiredPermission: ['admin_purchases_access'],
     items: [
       { name: 'Compras', path: '/productos/compras' },
       { name: 'Solicitudes', path: '/productos/solicitudes', badge: 'Nuevo' },
@@ -83,12 +90,22 @@ export const navStructure: MenuNode[] = [
   },
   { 
     title: 'Logística', icon: <Truck size={20} />, 
+    requiredPermission: ['logistica_access'],
     items: [
       { name: 'Entregas y Rutas', path: '/logistica', badge: 'Nuevo' },
     ]
   },
   { 
+    title: 'Panadería', icon: <ChefHat size={20} />, 
+    requiredPermission: ['panaderia_access'],
+    items: [
+      { name: 'Órdenes de Producción', path: '/panaderia', badge: 'Procesos' },
+      { name: 'Recetas e Insumos', path: '/configuracion/fabricacion' },
+    ]
+  },
+  { 
     title: 'Ventas Online', icon: <MonitorSmartphone size={20} />, 
+    requiredPermission: ['sys_integrations'],
     items: [
       { name: 'Tu Catálogo en Línea B2C', path: '/catalogo', badge: 'Nuevo' },
       { name: 'Portal de Clientes B2B', path: '/clientes/b2b' },
@@ -99,6 +116,7 @@ export const navStructure: MenuNode[] = [
   },
   { 
     title: 'Recursos Humanos', icon: <Briefcase size={20} />, 
+    requiredPermission: ['admin_reports_access'],
     items: [
       { name: 'Monitoreo de Asistencia', path: '/rh/monitoreo' },
       { name: 'Reportes Históricos', path: '/rh/reportes' },
@@ -108,6 +126,7 @@ export const navStructure: MenuNode[] = [
   },
   { 
     title: 'Finanzas', icon: <Landmark size={20} />, 
+    requiredPermission: ['admin_reports_access'],
     items: [
       { name: 'Conciliación Bancaria', path: '/finanzas/conciliacion' },
       { name: 'Cuentas por Pagar (CxP)', path: '/proveedores/cuentas', badge: 'Egresos' },
@@ -115,14 +134,15 @@ export const navStructure: MenuNode[] = [
   },
   { 
     title: 'Reportes', icon: <BarChart3 size={20} />, 
+    requiredPermission: ['admin_reports_access'],
     items: [
       { name: 'Panel de Reportes', path: '/reportes' },
+      { name: 'Facturación CFDI 4.0', path: '/reportes/facturacion', badge: 'Nuevo' },
     ]
   }
 ];
 
 export const footerNodes: MenuNode[] = [
-  { title: 'Preferencias', path: '/preferencias', icon: <Settings size={20} /> },
-  { title: 'Conexión WhatsApp', path: '/configuracion/whatsapp', icon: <MonitorSmartphone size={20} />, badge: 'CRM', desktopOnly: true },
+  { title: 'Preferencias', path: '/preferencias', icon: <Settings size={20} />, requiredPermission: ['sys_settings_access', 'sys_users'] },
+  { title: 'Conexión WhatsApp', path: '/configuracion/whatsapp', icon: <MonitorSmartphone size={20} />, badge: 'CRM', desktopOnly: true, requiredPermission: ['sys_settings_access'] },
 ];
-

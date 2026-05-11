@@ -22,11 +22,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let isSuperAdmin = false;
   let userRole = 'USER';
   let subscriptionStatus = 'ACTIVE';
+  let userPermissions: Record<string, boolean> = {};
 
   if (session?.userId) {
     const user = await prisma.user.findUnique({ 
       where: { id: session.userId as string }, 
-      select: { isSuperAdmin: true, email: true, role: true, tenant: { select: { subscriptionStatus: true } } }
+      select: { isSuperAdmin: true, email: true, role: true, permissions: true, tenant: { select: { subscriptionStatus: true } } }
     });
     
     if (user) {
@@ -35,6 +36,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
         subscriptionStatus = user.tenant.subscriptionStatus;
       }
       isSuperAdmin = user.email?.toLowerCase() === 'pelayogfdz@gmail.com';
+      try {
+        if (user.permissions) {
+          userPermissions = JSON.parse(user.permissions);
+        }
+      } catch (e) {}
     }
   }
 
@@ -44,7 +50,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <MobileMenuProvider>
         <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
           <DesktopSidebarWrapper>
-            <Sidebar isSuperAdmin={isSuperAdmin} />
+            <Sidebar isSuperAdmin={isSuperAdmin} userPermissions={userPermissions} />
           </DesktopSidebarWrapper>
           <div className="dashboard-content-wrapper" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <Header />

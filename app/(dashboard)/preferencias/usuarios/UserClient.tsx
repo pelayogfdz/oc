@@ -104,6 +104,32 @@ const PERMISSION_MODULES = [
     ]
   },
   {
+    id: 'logistica',
+    name: 'Logística y Entregas',
+    submodules: [
+      {
+        id: 'log_manage',
+        name: 'Gestión',
+        permissions: [
+          { id: 'logistica_access', label: 'Ver y Gestionar Entregas (Choferes, Etiquetas)' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'panaderia',
+    name: 'Panadería (Fabricación)',
+    submodules: [
+      {
+        id: 'panaderia_ops',
+        name: 'Operaciones',
+        permissions: [
+          { id: 'panaderia_access', label: 'Ver Ordenes de Producción y Avanzar Pasos' }
+        ]
+      }
+    ]
+  },
+  {
     id: 'sysadmin',
     name: 'Preferencias (Sysadmin)',
     submodules: [

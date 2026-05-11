@@ -1,5 +1,6 @@
 import { getBranchSettings, updateBranchSettings, getTenantSettings, updateTenantSettings } from "@/app/actions/settings";
 import { Settings, Save, Globe } from 'lucide-react';
+import QZTrayConfig from './QZTrayConfig';
 
 export default async function GeneralPreferencesPage() {
   const settings = await getBranchSettings();
@@ -125,7 +126,9 @@ export default async function GeneralPreferencesPage() {
           </button>
         </div>
       </form>
-    </div>
+      </div>
+
+      <QZTrayConfig />
     </div>
   );
 }
