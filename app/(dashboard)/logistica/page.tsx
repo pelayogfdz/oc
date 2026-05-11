@@ -23,8 +23,7 @@ export default async function LogisticaPage() {
   // Fetch drivers (users) for the branch
   const drivers = await prisma.user.findMany({
     where: {
-      isActive: true,
-      branches: branch.id === 'GLOBAL' ? undefined : { some: { id: branch.id } }
+      branchId: branch.id === 'GLOBAL' ? undefined : branch.id
     },
     select: { id: true, name: true, role: true }
   });

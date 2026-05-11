@@ -4,13 +4,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ChatInterface from "./ChatInterface";
 
-export default async function ProspectChatPage({ params }: { params: { id: string } }) {
+export default async function ProspectChatPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const branch = await getActiveBranch();
   const user = await getActiveUser();
   if (!user) return null;
 
   const prospect = await prisma.prospect.findUnique({
-    where: { id: params.id, branchId: branch.id },
+    where: { id: id, branchId: branch.id },
     include: {
       messages: {
         orderBy: { timestamp: 'asc' }
@@ -43,7 +44,7 @@ export default async function ProspectChatPage({ params }: { params: { id: strin
         </div>
         <div>
           <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: 0 }}>{prospect.name}</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)', margin: 0, fontSize: '0.875rem' }}>{prospect.phone} {prospect.company ? `- ${prospect.company}` : ''}</p>
+          <p style={{ color: 'var(--pulpos-text-muted)', margin: 0, fontSize: '0.875rem' }}>{prospect.phone}</p>
         </div>
         <div style={{ marginLeft: 'auto' }}>
           <span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.75rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: '600', color: '#475569' }}>

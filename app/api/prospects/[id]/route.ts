@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getActiveUser } from "@/app/actions/auth";
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getActiveUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const data = await request.json();
 
     const updatedProspect = await prisma.prospect.update({
@@ -17,8 +17,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       data: {
         funnelStage: data.funnelStage,
         assignedUserId: data.assignedUserId, // In case we reassign
-        name: data.name,
-        company: data.company
+        name: data.name
       }
     });
 

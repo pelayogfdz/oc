@@ -740,7 +740,6 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
                 <input type="hidden" name="baselinePhoto" value={baselinePhoto} />
                 <input type="hidden" name="permissions" value={JSON.stringify(getFlatPermissionsToSave())} />
               </div>
-              </div>
             </div>
           </div>
 
