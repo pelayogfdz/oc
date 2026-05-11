@@ -105,7 +105,7 @@ export async function advanceProductionOrder(orderId: string) {
   const nextProcess = allProcesses[currentIndex + 1];
 
   if (!nextProcess) {
-    // Es el último paso, marcar como COMPLETADO
+    // Es el Ãºltimo paso, marcar como COMPLETADO
     
     // Descontar inventario de insumos
     for (const ing of order.recipe.ingredients) {
