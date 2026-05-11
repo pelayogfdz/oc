@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { getActiveBranch, getActiveUser } from './auth';
 
 export async function createPurchase(
-  items: { productId: string; quantity: number; cost: number }[], 
+  items: { productId: string; quantity: number; cost: number; batchNumber?: string; expirationDate?: string }[], 
   total: number,
   paymentMethod: string = 'CASH',
   supplierId: string | null = null,
@@ -53,14 +53,7 @@ export async function createPurchase(
         branchId: branch.id,
         userId: user.id,
         dueDate,
-        balanceDue,
-        items: {
-          create: items.map(item => ({
-            quantity: item.quantity,
-            cost: item.cost,
-            productId: item.productId
-          }))
-        }
+        balanceDue
       }
     });
 
@@ -77,6 +70,32 @@ export async function createPurchase(
       const freightProRata = baseItemsValue > 0 ? (itemTotalValue / baseItemsValue) * freightCost : 0;
       // Effective Unit Cost is the original cost + the share of the freight per piece
       const effectiveUnitCost = item.quantity > 0 ? item.cost + (freightProRata / item.quantity) : item.cost;
+
+      // Create Batch if applicable
+      let batchId = null;
+      if (item.batchNumber || item.expirationDate) {
+        const batch = await tx.productBatch.create({
+          data: {
+            productId: item.productId,
+            batchNumber: item.batchNumber || null,
+            expirationDate: item.expirationDate ? new Date(`${item.expirationDate}T12:00:00Z`) : null,
+            stock: item.quantity,
+            cost: effectiveUnitCost
+          }
+        });
+        batchId = batch.id;
+      }
+
+      // Create PurchaseItem
+      await tx.purchaseItem.create({
+        data: {
+          purchaseId: purchase.id,
+          productId: item.productId,
+          quantity: item.quantity,
+          cost: item.cost,
+          batchId: batchId
+        }
+      });
 
       const currentStock = product.stock > 0 ? product.stock : 0;
       const currentAverage = product.averageCost || 0;
@@ -99,7 +118,8 @@ export async function createPurchase(
           productId: item.productId,
           type: 'IN',
           quantity: item.quantity,
-          reason: `Compra #${purchase.id.slice(0, 8)}${freightProRata > 0 ? ' (+Flete P.)' : ''}`
+          reason: `Compra #${purchase.id.slice(0, 8)}${freightProRata > 0 ? ' (+Flete P.)' : ''}`,
+          batchId: batchId
         }
       });
     }

@@ -134,6 +134,7 @@ export default function Sidebar({ isSuperAdmin }: { isSuperAdmin?: boolean }) {
                 key={node.title}
                 href={node.path} 
                 onClick={() => { if (isMobileMenuOpen) closeMenu(); }}
+                className={node.desktopOnly ? 'desktop-only-menu-item' : ''}
                 style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
@@ -162,7 +163,7 @@ export default function Sidebar({ isSuperAdmin }: { isSuperAdmin?: boolean }) {
           const isOpen = openGroups[node.title];
           
           return (
-            <div key={node.title} style={{ display: 'flex', flexDirection: 'column' }}>
+            <div key={node.title} style={{ display: 'flex', flexDirection: 'column' }} className={node.desktopOnly ? 'desktop-only-menu-item' : ''}>
               <div 
                 onClick={(e) => toggleGroup(node.title, e)}
                 style={{ 
@@ -193,6 +194,7 @@ export default function Sidebar({ isSuperAdmin }: { isSuperAdmin?: boolean }) {
                         key={item.name}
                         href={item.path} 
                         onClick={() => { if (isMobileMenuOpen) closeMenu(); }}
+                        className={item.desktopOnly ? 'desktop-only-menu-item' : ''}
                         style={{ 
                           display: 'flex',
                           alignItems: 'center',
@@ -226,6 +228,7 @@ export default function Sidebar({ isSuperAdmin }: { isSuperAdmin?: boolean }) {
               key={node.title}
               href={node.path!} 
               onClick={() => { if (isMobileMenuOpen) closeMenu(); }}
+              className={node.desktopOnly ? 'desktop-only-menu-item' : ''}
               style={{ 
                 display: 'flex', 
                 alignItems: 'center', 

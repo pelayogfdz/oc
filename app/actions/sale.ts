@@ -122,15 +122,48 @@ export async function createSale(
         });
       }
       
-      await prisma.inventoryMovement.create({
-        data: {
-          productId: item.productId,
-          variantId: item.variantId || null,
-          type: 'OUT',
-          quantity: -item.quantity,
-          reason: `Venta #${sale.id.slice(0, 8)}`
-        }
+      // FEFO Batch Deduction
+      let remainingToDeduct = item.quantity;
+      const availableBatches = await prisma.productBatch.findMany({
+        where: { productId: item.productId, stock: { gt: 0 } },
+        orderBy: { expirationDate: 'asc' } // oldest expires first
       });
+
+      for (const batch of availableBatches) {
+        if (remainingToDeduct <= 0) break;
+        const deductAmount = Math.min(batch.stock, remainingToDeduct);
+        
+        await prisma.productBatch.update({
+          where: { id: batch.id },
+          data: { stock: { decrement: deductAmount } }
+        });
+        
+        await prisma.inventoryMovement.create({
+          data: {
+            productId: item.productId,
+            variantId: item.variantId || null,
+            batchId: batch.id,
+            type: 'OUT',
+            quantity: -deductAmount,
+            reason: `Venta #${sale.id.slice(0, 8)} (FEFO Lote)`
+          }
+        });
+        
+        remainingToDeduct -= deductAmount;
+      }
+
+      // If sold without stock or items not assigned to any batch
+      if (remainingToDeduct > 0) {
+        await prisma.inventoryMovement.create({
+          data: {
+            productId: item.productId,
+            variantId: item.variantId || null,
+            type: 'OUT',
+            quantity: -remainingToDeduct,
+            reason: `Venta #${sale.id.slice(0, 8)} (Sin Lote)`
+          }
+        });
+      }
     }
 
     // Si fue a crédito, actualizar la deuda. Si no, Cashback Loyalty Engine (Add 3% to store credit).

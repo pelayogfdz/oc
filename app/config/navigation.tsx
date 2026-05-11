@@ -2,13 +2,14 @@ import React from 'react';
 import { 
   Home, Tag, Package, Calculator, ArrowRightLeft, 
   Settings, UserCircle, ShoppingCart, Banknote, FileText,
-  Sparkles, MonitorSmartphone, Landmark, BarChart3, Inbox, Briefcase
+  Sparkles, MonitorSmartphone, Landmark, BarChart3, Inbox, Briefcase, Truck
 } from 'lucide-react';
 
 export type MenuItem = {
   name: string;
   path: string;
   badge?: string;
+  desktopOnly?: boolean;
 };
 
 export type MenuNode = {
@@ -17,6 +18,7 @@ export type MenuNode = {
   icon?: React.ReactNode;
   badge?: string;
   items?: MenuItem[]; // If it's a dropdown
+  desktopOnly?: boolean;
 };
 
 export const navStructure: MenuNode[] = [
@@ -26,6 +28,7 @@ export const navStructure: MenuNode[] = [
     title: 'Ventas', icon: <Banknote size={20} />, 
     items: [
       { name: 'Historial de Ventas', path: '/ventas' },
+      { name: 'Prospección (CRM)', path: '/ventas/prospeccion', badge: 'Nuevo', desktopOnly: true },
       { name: 'Promociones y Descuentos', path: '/ventas/promociones' },
       { name: 'Devoluciones', path: '/ventas/devoluciones' },
       { name: 'Cotizaciones', path: '/ventas/cotizaciones' },
@@ -75,6 +78,13 @@ export const navStructure: MenuNode[] = [
       { name: 'Registro de Gastos', path: '/productos/gastos' },
       { name: 'Directorio de Proveedores', path: '/proveedores' },
       { name: 'Cuentas por Pagar (CxP)', path: '/proveedores/cuentas', badge: 'Pasivos' },
+      { name: 'Control de Caducidades', path: '/productos/caducidades', badge: 'Alertas' },
+    ]
+  },
+  { 
+    title: 'Logística', icon: <Truck size={20} />, 
+    items: [
+      { name: 'Entregas y Rutas', path: '/logistica', badge: 'Nuevo' },
     ]
   },
   { 
@@ -113,5 +123,6 @@ export const navStructure: MenuNode[] = [
 
 export const footerNodes: MenuNode[] = [
   { title: 'Preferencias', path: '/preferencias', icon: <Settings size={20} /> },
+  { title: 'Conexión WhatsApp', path: '/configuracion/whatsapp', icon: <MonitorSmartphone size={20} />, badge: 'CRM', desktopOnly: true },
 ];
 

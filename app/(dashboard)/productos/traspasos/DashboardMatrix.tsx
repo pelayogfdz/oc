@@ -48,10 +48,10 @@ export default async function DashboardMatrix({ activeBranch }: { activeBranch: 
 
   // Helper for heatmap colors
   const getColor = (val: number, max: number, type: 'bad' | 'good' | 'neutral' = 'neutral') => {
-    if (val === 0) return '#22c55e'; // Green
-    if (val < 3) return '#eab308'; // Yellow
-    if (val < 6) return '#f97316'; // Orange
-    return '#ef4444'; // Red
+    if (val === 0) return { bg: 'transparent', text: '#94a3b8' }; // Gray/Empty
+    if (val < 3) return { bg: '#fef3c7', text: '#d97706' }; // Pastel yellow
+    if (val < 6) return { bg: '#ffedd5', text: '#ea580c' }; // Pastel orange
+    return { bg: '#fee2e2', text: '#dc2626' }; // Pastel red
   };
 
   return (
@@ -63,45 +63,50 @@ export default async function DashboardMatrix({ activeBranch }: { activeBranch: 
             <th colSpan={4} style={{ padding: '0.75rem', borderRight: '1px solid #334155' }}>TRASPASOS</th>
             <th colSpan={1} style={{ padding: '0.75rem' }}>COMPRAS</th>
           </tr>
-          <tr style={{ backgroundColor: '#334155', color: '#cbd5e1', fontSize: '0.85rem' }}>
-            <th style={{ padding: '0.75rem', borderRight: '1px solid #475569', textAlign: 'left' }}>SUCURSAL</th>
-            <th style={{ padding: '0.75rem', borderRight: '1px solid #475569' }}>SOLICITUDES</th>
-            <th style={{ padding: '0.75rem', borderRight: '1px solid #475569' }}>APROBACIONES</th>
-            <th style={{ padding: '0.75rem', borderRight: '1px solid #475569' }}>SURTIDOS</th>
-            <th style={{ padding: '0.75rem', borderRight: '1px solid #475569' }}>RECIBIDOS</th>
+          <tr style={{ backgroundColor: '#f1f5f9', color: '#475569', fontSize: '0.85rem' }}>
+            <th style={{ padding: '0.75rem', borderRight: '1px solid #cbd5e1', textAlign: 'left' }}>SUCURSAL</th>
+            <th style={{ padding: '0.75rem', borderRight: '1px solid #cbd5e1' }}>SOLICITUDES</th>
+            <th style={{ padding: '0.75rem', borderRight: '1px solid #cbd5e1' }}>APROBACIONES</th>
+            <th style={{ padding: '0.75rem', borderRight: '1px solid #cbd5e1' }}>SURTIDOS</th>
+            <th style={{ padding: '0.75rem', borderRight: '1px solid #cbd5e1' }}>RECIBIDOS</th>
             <th style={{ padding: '0.75rem' }}>FALTANTES</th>
           </tr>
         </thead>
         <tbody>
-          {stats.map((s, idx) => (
-            <tr key={s.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-              <td style={{ 
-                 padding: '0.75rem', 
-                 borderRight: '1px solid #e2e8f0', 
-                 fontWeight: 'bold', 
-                 textAlign: 'left',
-                 backgroundColor: ['#8b5cf6', '#d97706', '#eab308', '#ef4444', '#06b6d4', '#f97316', '#22c55e', '#3b82f6', '#d946ef'][idx % 9],
-                 color: (['#eab308', '#22c55e'].includes(['#8b5cf6', '#d97706', '#eab308', '#ef4444', '#06b6d4', '#f97316', '#22c55e', '#3b82f6', '#d946ef'][idx % 9])) ? 'black' : 'white'
-              }}>
-                {s.name.toUpperCase()}
-              </td>
-              <td style={{ padding: '0.75rem', borderRight: '1px solid white', backgroundColor: getColor(s.requested, 10), color: 'white', fontWeight: 'bold' }}>
-                {s.requested}
-              </td>
-              <td style={{ padding: '0.75rem', borderRight: '1px solid white', backgroundColor: getColor(s.created, 10), color: 'white', fontWeight: 'bold' }}>
-                {s.created}
-              </td>
-              <td style={{ padding: '0.75rem', borderRight: '1px solid white', backgroundColor: getColor(s.dispatched, 10), color: 'white', fontWeight: 'bold' }}>
-                {s.dispatched}
-              </td>
-              <td style={{ padding: '0.75rem', borderRight: '1px solid white', backgroundColor: s.received === 0 ? '#f1f5f9' : '#3b82f6', color: s.received === 0 ? '#94a3b8' : 'white', fontWeight: 'bold' }}>
-                {s.received}
-              </td>
-              <td style={{ padding: '0.75rem', backgroundColor: getColor(s.faltantes, 10), color: 'white', fontWeight: 'bold' }}>
-                {s.faltantes}
-              </td>
-            </tr>
-          ))}
+          {stats.map((s, idx) => {
+            const reqColor = getColor(s.requested, 10);
+            const creColor = getColor(s.created, 10);
+            const disColor = getColor(s.dispatched, 10);
+            const falColor = getColor(s.faltantes, 10);
+            return (
+              <tr key={s.id} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                <td style={{ 
+                   padding: '0.75rem', 
+                   borderRight: '1px solid #e2e8f0', 
+                   fontWeight: '600', 
+                   textAlign: 'left',
+                   color: '#334155'
+                }}>
+                  {s.name.toUpperCase()}
+                </td>
+                <td style={{ padding: '0.75rem', borderRight: '1px solid #e2e8f0', backgroundColor: reqColor.bg, color: reqColor.text, fontWeight: s.requested > 0 ? 'bold' : 'normal' }}>
+                  {s.requested}
+                </td>
+                <td style={{ padding: '0.75rem', borderRight: '1px solid #e2e8f0', backgroundColor: creColor.bg, color: creColor.text, fontWeight: s.created > 0 ? 'bold' : 'normal' }}>
+                  {s.created}
+                </td>
+                <td style={{ padding: '0.75rem', borderRight: '1px solid #e2e8f0', backgroundColor: disColor.bg, color: disColor.text, fontWeight: s.dispatched > 0 ? 'bold' : 'normal' }}>
+                  {s.dispatched}
+                </td>
+                <td style={{ padding: '0.75rem', borderRight: '1px solid #e2e8f0', backgroundColor: s.received === 0 ? 'transparent' : '#dbeafe', color: s.received === 0 ? '#94a3b8' : '#2563eb', fontWeight: s.received > 0 ? 'bold' : 'normal' }}>
+                  {s.received}
+                </td>
+                <td style={{ padding: '0.75rem', backgroundColor: falColor.bg, color: falColor.text, fontWeight: s.faltantes > 0 ? 'bold' : 'normal' }}>
+                  {s.faltantes}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
         <tfoot>
           <tr style={{ backgroundColor: '#1e293b', color: 'white', fontWeight: 'bold' }}>

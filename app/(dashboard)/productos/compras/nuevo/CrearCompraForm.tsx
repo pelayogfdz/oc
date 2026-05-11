@@ -13,7 +13,7 @@ export default function CrearCompraForm({ suppliers, products }: { suppliers: an
   const [supplierId, setSupplierId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [freightCost, setFreightCost] = useState(0);
-  const [items, setItems] = useState<{ productId: string, name: string, quantity: number, cost: number, imageUrl?: string }[]>([]);
+  const [items, setItems] = useState<{ productId: string, name: string, quantity: number, cost: number, imageUrl?: string, batchNumber?: string, expirationDate?: string }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [availableProducts, setAvailableProducts] = useState(products || []);
@@ -42,7 +42,7 @@ export default function CrearCompraForm({ suppliers, products }: { suppliers: an
     setItems([...items, { productId: product.id, name: product.name, quantity: 1, cost: product.cost, imageUrl: product.imageUrl }]);
   };
 
-  const handleUpdateItem = (index: number, field: string, value: number) => {
+  const handleUpdateItem = (index: number, field: string, value: any) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
     setItems(newItems);
@@ -231,6 +231,25 @@ export default function CrearCompraForm({ suppliers, products }: { suppliers: an
                           style={{ width: '80px', padding: '0.25rem 0.5rem 0.25rem 1.5rem', fontSize: '0.9rem' }} 
                         />
                       </div>
+                    </div>
+                    {/* Campos de Caducidad y Lote */}
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
+                      <input 
+                        type="text" 
+                        placeholder="Lote (Opcional)" 
+                        className="input" 
+                        value={item.batchNumber || ''} 
+                        onChange={(e) => handleUpdateItem(idx, 'batchNumber', e.target.value)} 
+                        style={{ width: '100px', padding: '0.25rem 0.5rem', fontSize: '0.85rem' }} 
+                      />
+                      <input 
+                        type="date" 
+                        title="Fecha de Caducidad"
+                        className="input" 
+                        value={item.expirationDate || ''} 
+                        onChange={(e) => handleUpdateItem(idx, 'expirationDate', e.target.value)} 
+                        style={{ width: '130px', padding: '0.25rem 0.5rem', fontSize: '0.85rem' }} 
+                      />
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>

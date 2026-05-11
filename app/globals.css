@@ -116,6 +116,10 @@ button {
 }
 
 @media (max-width: 768px) {
+  .desktop-only-menu-item {
+    display: none !important;
+  }
+
   .desktop-sidebar-wrapper {
     display: none !important;
   }
