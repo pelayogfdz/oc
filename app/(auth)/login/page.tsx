@@ -16,7 +16,7 @@ function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose:
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center sm:p-6 animate-in fade-in duration-200">
       <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-md hidden sm:block" onClick={onClose}></div>
-      <div className="bg-white w-full h-full sm:h-auto sm:max-w-lg sm:rounded-[2rem] p-6 sm:p-12 shadow-none sm:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.2)] relative animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 overflow-y-auto border-0 sm:border border-gray-100 z-10 flex flex-col justify-start sm:block pt-16 sm:pt-12">
+      <div className="bg-white w-full min-h-[100dvh] sm:min-h-0 sm:h-auto sm:max-w-lg sm:rounded-[2rem] p-8 sm:p-12 shadow-none sm:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.2)] relative animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 overflow-y-auto border-0 sm:border border-gray-100 z-10 flex flex-col justify-start sm:block pt-20 sm:pt-12">
         <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-purple-500 via-purple-600 to-indigo-600 hidden sm:block"></div>
         <button type="button" onClick={onClose} className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 transition-colors z-50 bg-gray-50 hover:bg-gray-100 rounded-full p-2">
           <X className="w-5 h-5" />
@@ -36,34 +36,40 @@ function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose:
 
 function FeatureSection({ title, features, imageSrc, reverse = false, tag }: any) {
   return (
-    <section className={`py-16 lg:py-24 ${reverse ? 'bg-gray-50' : 'bg-white'}`}>
+    <section className={`py-20 lg:py-32 ${reverse ? 'bg-gray-50' : 'bg-white'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className={`flex flex-col lg:flex-row items-center gap-12 lg:gap-20 ${reverse ? 'lg:flex-row-reverse' : ''}`}>
+        <div className={`flex flex-col lg:flex-row items-center gap-16 lg:gap-24 ${reverse ? 'lg:flex-row-reverse' : ''}`}>
           <div className="lg:w-1/2">
             {tag && (
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-purple-50 text-purple-700 rounded-full text-sm font-bold mb-6 border border-purple-100">
+              <div className="inline-flex items-center gap-2 px-5 py-2 bg-purple-50 text-purple-700 rounded-full text-sm font-bold mb-8 border border-purple-100">
                 {tag}
               </div>
             )}
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-8 leading-tight tracking-tight">{title}</h2>
-            <div className="space-y-8">
+            <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 mb-8 leading-tight tracking-tight">{title}</h2>
+            <div className="space-y-10">
               {features.map((f: any, i: number) => (
-                <div key={i} className="flex gap-4">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center">
+                <div key={i} className="flex gap-5">
+                  <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center">
                     {f.icon}
                   </div>
                   <div>
-                    <h4 className="text-lg font-bold text-gray-900 mb-1">{f.title}</h4>
-                    <p className="text-gray-600 leading-relaxed text-sm md:text-base">{f.description}</p>
+                    <h4 className="text-xl font-bold text-gray-900 mb-2">{f.title}</h4>
+                    <p className="text-gray-600 leading-relaxed text-base">{f.description}</p>
                   </div>
                 </div>
               ))}
             </div>
           </div>
           <div className="lg:w-1/2 w-full">
-            <div className="relative rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(8,_112,_184,_0.07)] border border-gray-100 bg-white">
-              <div className="w-full aspect-[4/3] bg-gray-50 flex items-center justify-center p-2">
-                {imageSrc ? <img src={imageSrc} alt={title} className="w-full h-full object-cover rounded-2xl" /> : <ImageIcon size={48} className="text-gray-300" />}
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-purple-900/10 border border-gray-100 bg-white group hover:shadow-purple-900/20 transition-all duration-500">
+              {/* Mac OS Window Header */}
+              <div className="bg-gray-50/80 backdrop-blur-sm border-b border-gray-100 px-4 py-3 flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
+                <div className="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
+                <div className="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+              </div>
+              <div className="w-full bg-white flex items-center justify-center overflow-hidden">
+                {imageSrc ? <img src={imageSrc} alt={title} className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700 ease-out" /> : <ImageIcon size={48} className="text-gray-300 my-24" />}
               </div>
             </div>
           </div>
@@ -280,7 +286,7 @@ export default function LoginPage() {
     <main className="min-h-screen bg-gray-50 font-sans selection:bg-purple-100 selection:text-purple-900">
       
       {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm h-20">
+      <header className="fixed top-0 left-0 right-0 z-40 bg-white/70 backdrop-blur-xl border-b border-gray-100 shadow-sm h-20 transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
           <div className="flex justify-between items-center h-full">
             <div className="flex items-center gap-3">
@@ -308,51 +314,51 @@ export default function LoginPage() {
       </header>
       
       {/* Hero Section */}
-      <section className="pt-32 pb-16 lg:pt-40 lg:pb-24 relative overflow-hidden bg-white">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-50 via-white to-white opacity-60"></div>
+      <section className="pt-32 pb-24 lg:pt-48 lg:pb-32 relative overflow-hidden bg-white">
+        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[1000px] h-[600px] opacity-40 pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-b from-purple-200/50 via-purple-100/20 to-transparent blur-3xl rounded-full"></div>
+        </div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+          <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-20">
             
             {/* Left: Value Proposition */}
             <div className="lg:w-1/2 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 border border-purple-100 rounded-full mb-8 shadow-sm">
+              <div className="inline-flex items-center gap-2 px-5 py-2 bg-purple-50 border border-purple-100 rounded-full mb-8 shadow-sm">
                 <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
                 <span className="text-purple-700 font-bold text-sm tracking-wide uppercase">Plataforma Empresarial</span>
               </div>
 
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.15] tracking-tight mb-6">
-                Gestiona tu Negocio con el <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-purple-400">Sistema más Intuitivo</span> de México
+              <h1 className="text-4xl md:text-6xl lg:text-[4rem] font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-8">
+                Gestiona tu Negocio con el <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-500">Sistema más Intuitivo</span> de México
               </h1>
 
-              <p className="text-lg md:text-xl text-gray-600 mb-10 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+              <p className="text-lg md:text-xl text-gray-600 mb-12 max-w-xl mx-auto lg:mx-0 leading-relaxed">
                 Control de ventas, inventario multi-sucursal, facturación CFDI 4.0 y biometría en un solo entorno seguro y escalable para tu empresa.
               </p>
 
-
-
               <div className="flex flex-col sm:flex-row items-center gap-6 justify-center lg:justify-start">
-                <button onClick={openRegister} className="px-8 py-4 rounded-full font-bold bg-[var(--pulpos-primary)] text-white hover:bg-[var(--pulpos-primary-hover)] transition-colors shadow-xl shadow-purple-600/20 flex items-center gap-2 text-lg w-full sm:w-auto justify-center">
+                <button onClick={openRegister} className="px-8 py-4 rounded-xl font-bold bg-[#8b5cf6] text-white hover:bg-[#7c3aed] transition-all shadow-xl shadow-purple-600/20 hover:shadow-purple-600/40 hover:-translate-y-0.5 flex items-center gap-2 text-lg w-full sm:w-auto justify-center">
                   Comienza tu Prueba Gratis
                   <ChevronRight size={20} />
                 </button>
                 <div className="flex items-center gap-6 text-gray-500 font-medium text-sm">
-                  <div className="flex items-center gap-1.5"><ShieldCheck className="text-gray-400 w-5 h-5" /> Seguro</div>
-                  <div className="flex items-center gap-1.5"><Zap className="text-gray-400 w-5 h-5" /> Rápido</div>
+                  <div className="flex items-center gap-1.5"><ShieldCheck className="text-[var(--pulpos-primary)] w-5 h-5" /> Seguro</div>
+                  <div className="flex items-center gap-1.5"><Zap className="text-[var(--pulpos-primary)] w-5 h-5" /> Rápido</div>
                 </div>
               </div>
             </div>
 
             {/* Right: Dashboard Preview Image */}
-            <div className="lg:w-1/2 w-full mt-10 lg:mt-0">
-              <div className="relative rounded-3xl bg-white p-2 shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden transform lg:rotate-[-2deg] transition-transform hover:rotate-0 duration-500">
-                <div className="absolute top-4 left-4 flex gap-1.5 z-10">
-                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-400"></div>
+            <div className="lg:w-1/2 w-full mt-12 lg:mt-0">
+              <div className="relative rounded-2xl bg-white shadow-2xl shadow-purple-900/15 border border-gray-100 overflow-hidden transform lg:rotate-[-2deg] transition-transform hover:rotate-0 duration-700 ease-out group">
+                <div className="bg-gray-50/80 backdrop-blur-sm border-b border-gray-100 px-4 py-3 flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
+                  <div className="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
+                  <div className="w-3 h-3 rounded-full bg-[#27c93f]"></div>
                 </div>
-                <div className="pt-8">
-                   <img src="/img/ventas_module.png" alt="CAANMA Dashboard Preview" className="w-full rounded-2xl shadow-sm border border-gray-100" />
+                <div className="overflow-hidden bg-white">
+                   <img src="/img/ventas_module.png" alt="CAANMA Dashboard Preview" className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
                 </div>
               </div>
             </div>
@@ -394,14 +400,14 @@ export default function LoginPage() {
         ]}
       />
 
-      <section className="py-24 bg-white border-t border-gray-100">
+      <section className="py-24 lg:py-32 bg-white border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 border border-purple-100 rounded-full mb-6 shadow-sm">
+          <div className="inline-flex items-center gap-2 px-5 py-2 bg-purple-50 border border-purple-100 rounded-full mb-8 shadow-sm">
             <Tag size={16} className="text-[var(--pulpos-primary)]" />
             <span className="text-purple-700 font-bold text-sm tracking-wide uppercase">Precios</span>
           </div>
           <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 mb-6 tracking-tight">Precios Simples y Transparentes</h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-16">Un solo plan con todo incluido para que no te preocupes por módulos extra. Comienza sin tarjeta de crédito.</p>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-16 leading-relaxed">Un solo plan con todo incluido para que no te preocupes por módulos extra. Comienza sin tarjeta de crédito.</p>
           <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 md:p-14 max-w-xl mx-auto shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-purple-500 via-purple-600 to-indigo-600"></div>
             <div className="flex flex-col items-center justify-center mb-8">
