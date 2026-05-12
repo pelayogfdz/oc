@@ -38,7 +38,7 @@ function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose:
 
 function FeatureSection({ title, features, imageSrc, reverse = false, tag }: any) {
   return (
-    <section className={`py-20 lg:py-32 ${reverse ? 'bg-gray-50' : 'bg-white'}`}>
+    <section className={`py-24 lg:py-36 ${reverse ? 'bg-gray-50' : 'bg-white'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className={`grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center`}>
           <div className={`flex flex-col justify-center ${reverse ? 'lg:order-2' : 'lg:order-1'}`}>
@@ -85,7 +85,7 @@ function FeatureSection({ title, features, imageSrc, reverse = false, tag }: any
 
 function Footer() {
   return (
-    <footer className="bg-white py-16 border-t border-gray-100 mt-12">
+    <footer className="bg-gray-50 pt-20 pb-12 border-t border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16">
         <div className="grid md:grid-cols-2 gap-12 mb-12">
           <div>
@@ -318,7 +318,7 @@ export default function LoginPage() {
       </header>
       
       {/* Hero Section */}
-      <section className="pt-32 pb-24 lg:pt-48 lg:pb-32 relative overflow-hidden bg-white">
+      <section className="pt-32 pb-24 lg:pt-48 lg:pb-40 relative overflow-hidden bg-white">
         <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[1000px] h-[600px] opacity-40 pointer-events-none">
           <div className="absolute inset-0 bg-gradient-to-b from-purple-200/50 via-purple-100/20 to-transparent blur-3xl rounded-full"></div>
         </div>
@@ -406,7 +406,7 @@ export default function LoginPage() {
         ]}
       />
 
-      <section className="py-24 lg:py-32 bg-white border-t border-gray-100">
+      <section className="py-24 lg:py-40 bg-white border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center gap-2 px-5 py-2 bg-purple-50 border border-purple-100 rounded-full mb-8 shadow-sm">
             <Tag size={16} className="text-[var(--pulpos-primary)]" />
