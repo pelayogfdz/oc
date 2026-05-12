@@ -329,7 +329,7 @@ export default function LoginPage() {
                 <span className="text-purple-700 font-bold text-sm tracking-wide uppercase">Plataforma Empresarial</span>
               </div>
 
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-8">
+              <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-8">
                 Gestiona tu Negocio con el <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-500">Sistema más Intuitivo</span> de México
               </h1>
 
@@ -338,7 +338,7 @@ export default function LoginPage() {
               </p>
 
               <div className="flex flex-col sm:flex-row items-center gap-6 justify-center lg:justify-start">
-                <button onClick={openRegister} className="px-8 py-4 rounded-xl font-bold bg-purple-600 text-white hover:bg-purple-700 transition-all shadow-xl shadow-purple-600/20 hover:shadow-purple-600/40 hover:-translate-y-0.5 flex items-center gap-2 text-lg w-full sm:w-auto justify-center">
+                <button onClick={openRegister} style={{ backgroundColor: '#8b5cf6', color: 'white' }} className="px-8 py-4 rounded-xl font-bold transition-all shadow-xl shadow-purple-600/20 hover:-translate-y-0.5 flex items-center gap-2 text-lg w-full sm:w-auto justify-center">
                   Comienza tu Prueba Gratis
                   <ChevronRight size={20} />
                 </button>
