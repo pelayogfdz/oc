@@ -38,7 +38,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
       isSuperAdmin = user.email?.toLowerCase() === 'pelayogfdz@gmail.com';
       try {
         if (user.permissions) {
-          userPermissions = JSON.parse(user.permissions);
+          const parsed = JSON.parse(user.permissions);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((p: string) => userPermissions[p] = true);
+          } else {
+            userPermissions = parsed;
+          }
         }
       } catch (e) {}
     }
@@ -50,7 +55,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <MobileMenuProvider>
         <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
           <DesktopSidebarWrapper>
-            <Sidebar isSuperAdmin={isSuperAdmin} userPermissions={userPermissions} />
+            <Sidebar isSuperAdmin={isSuperAdmin} userPermissions={userPermissions} userRole={userRole} />
           </DesktopSidebarWrapper>
           <div className="dashboard-content-wrapper" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <Header />
@@ -61,7 +66,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </main>
           </div>
         </div>
-        <MobileGridMenu isSuperAdmin={isSuperAdmin} />
+        <MobileGridMenu isSuperAdmin={isSuperAdmin} userPermissions={userPermissions} userRole={userRole} />
         <MobileBottomNav />
       </MobileMenuProvider>
     </OfflineSyncProvider>

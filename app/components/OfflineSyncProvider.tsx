@@ -301,6 +301,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
 
   const refreshCatalogs = async () => {
     if (!navigator.onLine) return;
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) return;
     try {
       const { syncBasicCatalogs, syncProductsPage } = await import('../actions/sync');
       setShowToast({ message: 'Preparando sincronización de catálogos...', type: 'warn' });

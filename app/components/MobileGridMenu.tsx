@@ -7,7 +7,7 @@ import { useMobileMenu } from './MobileMenuContext';
 import { navStructure, footerNodes } from '../config/navigation';
 import { X, ChevronDown, ChevronUp, ShieldAlert } from 'lucide-react';
 
-export default function MobileGridMenu({ isSuperAdmin }: { isSuperAdmin?: boolean }) {
+export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, userRole = 'USER' }: { isSuperAdmin?: boolean; userPermissions?: Record<string, boolean>; userRole?: string }) {
   const { isMobileMenuOpen, closeMenu } = useMobileMenu();
   const pathname = usePathname();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
@@ -52,6 +52,11 @@ export default function MobileGridMenu({ isSuperAdmin }: { isSuperAdmin?: boolea
       <div className="mobile-grid-content" style={{ padding: '1rem', backgroundColor: '#f8fafc', minHeight: '100%' }}>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {!isSuperAdmin && navStructure.map((node) => {
+            if (node.requiredPermission && userRole !== 'OWNER' && userRole !== 'ADMIN') {
+              const reqs = Array.isArray(node.requiredPermission) ? node.requiredPermission : [node.requiredPermission];
+              const hasAccess = reqs.some(req => userPermissions[req]);
+              if (!hasAccess) return null;
+            }
             const NodeActive = isNodeActive(node);
             
             if (node.path) {
@@ -126,7 +131,13 @@ export default function MobileGridMenu({ isSuperAdmin }: { isSuperAdmin?: boolea
           )}
 
           {/* Footer Items */}
-          {!isSuperAdmin && footerNodes.map(node => (
+          {!isSuperAdmin && footerNodes.filter(node => {
+            if (node.requiredPermission && userRole !== 'OWNER' && userRole !== 'ADMIN') {
+              const reqs = Array.isArray(node.requiredPermission) ? node.requiredPermission : [node.requiredPermission];
+              return reqs.some(req => userPermissions[req]);
+            }
+            return true;
+          }).map(node => (
             <Link 
               key={node.title}
               href={node.path!} 
