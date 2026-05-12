@@ -14,19 +14,21 @@ import {
 function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode }) {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center sm:p-6 animate-in fade-in duration-200">
-      <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-md hidden sm:block" onClick={onClose}></div>
-      <div className="bg-white w-full min-h-[100dvh] sm:min-h-0 sm:h-auto sm:max-w-lg sm:rounded-[2rem] p-8 sm:p-12 shadow-none sm:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.2)] relative animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 overflow-y-auto border-0 sm:border border-gray-100 z-10 flex flex-col justify-start sm:block pt-20 sm:pt-12">
-        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-purple-500 via-purple-600 to-indigo-600 hidden sm:block"></div>
-        <button type="button" onClick={onClose} className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 transition-colors z-50 bg-gray-50 hover:bg-gray-100 rounded-full p-2">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+      <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose}></div>
+      <div className="bg-white w-full max-w-[95%] sm:max-w-md rounded-3xl sm:rounded-[2rem] p-6 sm:p-10 shadow-2xl relative animate-in slide-in-from-bottom-8 zoom-in-95 duration-200 overflow-y-auto max-h-[90vh] border border-gray-100 z-10 flex flex-col justify-start">
+        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-purple-500 via-purple-600 to-indigo-600"></div>
+        <button type="button" onClick={onClose} className="absolute top-4 right-4 sm:top-6 sm:right-6 text-gray-400 hover:text-gray-900 transition-colors z-50 bg-gray-50 hover:bg-gray-100 rounded-full p-2">
           <X className="w-5 h-5" />
         </button>
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-[1rem] bg-[#8b5cf6] shadow-sm flex items-center justify-center text-white font-bold text-2xl">C</div>
-            <span className="text-3xl font-extrabold text-[#8b5cf6] tracking-tight">CAANMA</span>
+        <div className="relative z-10 flex flex-col items-center text-center">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-[0.8rem] bg-[#8b5cf6] shadow-sm flex items-center justify-center text-white font-bold text-xl">C</div>
+            <span className="text-2xl font-extrabold text-[#8b5cf6] tracking-tight">CAANMA</span>
           </div>
-          <h3 className="text-3xl font-bold font-sans text-[#1e293b] tracking-tight mb-2">{title}</h3>
+          <h3 className="text-2xl sm:text-3xl font-bold font-sans text-[#1e293b] tracking-tight mb-6">{title}</h3>
+        </div>
+        <div className="w-full">
           {children}
         </div>
       </div>
@@ -38,10 +40,10 @@ function FeatureSection({ title, features, imageSrc, reverse = false, tag }: any
   return (
     <section className={`py-20 lg:py-32 ${reverse ? 'bg-gray-50' : 'bg-white'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className={`flex flex-col lg:flex-row items-center gap-16 lg:gap-24 ${reverse ? 'lg:flex-row-reverse' : ''}`}>
-          <div className="lg:w-1/2">
+        <div className={`grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center`}>
+          <div className={`flex flex-col justify-center ${reverse ? 'lg:order-2' : 'lg:order-1'}`}>
             {tag && (
-              <div className="inline-flex items-center gap-2 px-5 py-2 bg-purple-50 text-purple-700 rounded-full text-sm font-bold mb-8 border border-purple-100">
+              <div className="inline-flex items-center self-start gap-2 px-5 py-2 bg-purple-50 text-purple-700 rounded-full text-sm font-bold mb-8 border border-purple-100">
                 {tag}
               </div>
             )}
@@ -60,16 +62,18 @@ function FeatureSection({ title, features, imageSrc, reverse = false, tag }: any
               ))}
             </div>
           </div>
-          <div className="lg:w-1/2 w-full">
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-purple-900/10 border border-gray-100 bg-white group hover:shadow-purple-900/20 transition-all duration-500">
+          <div className={`w-full flex justify-center ${reverse ? 'lg:order-1' : 'lg:order-2'}`}>
+            <div className="w-full relative rounded-2xl overflow-hidden shadow-2xl shadow-purple-900/10 border border-gray-200 bg-white group hover:shadow-purple-900/20 transition-all duration-500">
               {/* Mac OS Window Header */}
-              <div className="bg-gray-50/80 backdrop-blur-sm border-b border-gray-100 px-4 py-3 flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
-                <div className="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
-                <div className="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+              <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e]"></div>
+                <div className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123]"></div>
+                <div className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29]"></div>
               </div>
-              <div className="w-full bg-white flex items-center justify-center overflow-hidden">
-                {imageSrc ? <img src={imageSrc} alt={title} className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700 ease-out" /> : <ImageIcon size={48} className="text-gray-300 my-24" />}
+              <div className="w-full bg-slate-50 flex items-center justify-center p-4 sm:p-6 overflow-hidden">
+                <div className="rounded-xl overflow-hidden border border-gray-200 shadow-md w-full">
+                   {imageSrc ? <img src={imageSrc} alt={title} className="w-full h-auto object-cover group-hover:scale-[1.02] transition-transform duration-700 ease-out" /> : <ImageIcon size={48} className="text-gray-300 my-24" />}
+                </div>
               </div>
             </div>
           </div>
@@ -320,11 +324,11 @@ export default function LoginPage() {
         </div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-20">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-20 items-center">
             
             {/* Left: Value Proposition */}
-            <div className="lg:w-1/2 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-5 py-2 bg-purple-50 border border-purple-100 rounded-full mb-8 shadow-sm">
+            <div className="w-full text-center lg:text-left flex flex-col justify-center">
+              <div className="inline-flex items-center self-center lg:self-start gap-2 px-5 py-2 bg-purple-50 border border-purple-100 rounded-full mb-8 shadow-sm">
                 <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
                 <span className="text-purple-700 font-bold text-sm tracking-wide uppercase">Plataforma Empresarial</span>
               </div>
@@ -350,15 +354,17 @@ export default function LoginPage() {
             </div>
 
             {/* Right: Dashboard Preview Image */}
-            <div className="lg:w-1/2 w-full mt-12 lg:mt-0">
-              <div className="relative rounded-2xl bg-white shadow-2xl shadow-purple-900/15 border border-gray-100 overflow-hidden transform lg:rotate-[-2deg] transition-transform hover:rotate-0 duration-700 ease-out group">
-                <div className="bg-gray-50/80 backdrop-blur-sm border-b border-gray-100 px-4 py-3 flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
-                  <div className="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
-                  <div className="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+            <div className="w-full flex justify-center mt-12 lg:mt-0">
+              <div className="w-full relative rounded-2xl bg-white shadow-2xl shadow-purple-900/15 border border-gray-200 overflow-hidden group">
+                <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e]"></div>
+                  <div className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123]"></div>
+                  <div className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29]"></div>
                 </div>
-                <div className="overflow-hidden bg-white">
-                   <img src="/img/ventas_module.png" alt="CAANMA Dashboard Preview" className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
+                <div className="bg-slate-50 p-4 sm:p-6 overflow-hidden">
+                   <div className="rounded-xl overflow-hidden border border-gray-200 shadow-md">
+                      <img src="/img/ventas_module.png" alt="CAANMA Dashboard Preview" className="w-full h-auto object-cover group-hover:scale-[1.02] transition-transform duration-700 ease-out" />
+                   </div>
                 </div>
               </div>
             </div>
@@ -442,12 +448,12 @@ export default function LoginPage() {
           {error && <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl flex gap-2 items-center"><AlertTriangle size={16}/> {error}</div>}
           
           <div>
-            <label className="block text-[15px] font-semibold text-[#1e293b] mb-2 font-sans">Email</label>
-            <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="block w-full rounded-xl border border-gray-200 bg-white py-3.5 px-4 text-gray-900 placeholder-gray-400 focus:border-[var(--pulpos-primary)] focus:ring-4 focus:ring-[var(--pulpos-primary)]/10 outline-none transition-all hover:border-gray-300 font-medium font-sans text-[15px]" placeholder="Ingresa tu email" />
+            <label className="block text-[15px] font-semibold text-[#1e293b] mb-2 font-sans text-left">Email</label>
+            <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="block w-full rounded-xl border border-gray-300 bg-gray-50 py-3.5 px-4 text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[var(--pulpos-primary)] focus:ring-4 focus:ring-[var(--pulpos-primary)]/10 outline-none transition-all hover:border-gray-400 font-medium font-sans text-[15px]" placeholder="Ingresa tu email" />
           </div>
           <div>
-            <label className="block text-[15px] font-semibold text-[#1e293b] mb-2 font-sans">Contraseña</label>
-            <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="block w-full rounded-xl border border-gray-200 bg-white py-3.5 px-4 text-gray-900 placeholder-gray-400 focus:border-[var(--pulpos-primary)] focus:ring-4 focus:ring-[var(--pulpos-primary)]/10 outline-none transition-all hover:border-gray-300 font-medium font-sans text-[15px]" placeholder="Ingresa tu contraseña" />
+            <label className="block text-[15px] font-semibold text-[#1e293b] mb-2 font-sans text-left">Contraseña</label>
+            <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="block w-full rounded-xl border border-gray-300 bg-gray-50 py-3.5 px-4 text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[var(--pulpos-primary)] focus:ring-4 focus:ring-[var(--pulpos-primary)]/10 outline-none transition-all hover:border-gray-400 font-medium font-sans text-[15px]" placeholder="Ingresa tu contraseña" />
           </div>
           
           <div className="flex items-center justify-between pt-2 pb-6">
@@ -481,28 +487,28 @@ export default function LoginPage() {
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Nombre</label>
-                <input type="text" required value={regName} onChange={e => setRegName(e.target.value)} className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 px-4 text-gray-900 focus:bg-white focus:border-purple-500 outline-none transition-all" placeholder="Juan Pérez" />
+                <label className="block text-sm font-bold text-gray-700 mb-1 text-left">Nombre</label>
+                <input type="text" required value={regName} onChange={e => setRegName(e.target.value)} className="block w-full rounded-xl border border-gray-300 bg-gray-50 py-2.5 px-4 text-gray-900 focus:bg-white focus:border-purple-500 outline-none transition-all hover:border-gray-400" placeholder="Juan Pérez" />
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Teléfono</label>
-                <input type="tel" required value={regPhone} onChange={e => setRegPhone(e.target.value)} className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 px-4 text-gray-900 focus:bg-white focus:border-purple-500 outline-none transition-all" placeholder="55 1234 5678" />
+                <label className="block text-sm font-bold text-gray-700 mb-1 text-left">Teléfono</label>
+                <input type="tel" required value={regPhone} onChange={e => setRegPhone(e.target.value)} className="block w-full rounded-xl border border-gray-300 bg-gray-50 py-2.5 px-4 text-gray-900 focus:bg-white focus:border-purple-500 outline-none transition-all hover:border-gray-400" placeholder="55 1234 5678" />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Nombre de la Empresa</label>
-              <input type="text" required value={regCompany} onChange={e => setRegCompany(e.target.value)} className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 px-4 text-gray-900 focus:bg-white focus:border-purple-500 outline-none transition-all" placeholder="Mi Empresa S.A." />
+              <label className="block text-sm font-bold text-gray-700 mb-1 text-left">Nombre de la Empresa</label>
+              <input type="text" required value={regCompany} onChange={e => setRegCompany(e.target.value)} className="block w-full rounded-xl border border-gray-300 bg-gray-50 py-2.5 px-4 text-gray-900 focus:bg-white focus:border-purple-500 outline-none transition-all hover:border-gray-400" placeholder="Mi Empresa S.A." />
             </div>
             
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Correo Electrónico Laboral</label>
-              <input type="email" required value={regEmail} onChange={e => setRegEmail(e.target.value)} className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 px-4 text-gray-900 focus:bg-white focus:border-purple-500 outline-none transition-all" placeholder="juan@miempresa.com" />
+              <label className="block text-sm font-bold text-gray-700 mb-1 text-left">Correo Electrónico Laboral</label>
+              <input type="email" required value={regEmail} onChange={e => setRegEmail(e.target.value)} className="block w-full rounded-xl border border-gray-300 bg-gray-50 py-2.5 px-4 text-gray-900 focus:bg-white focus:border-purple-500 outline-none transition-all hover:border-gray-400" placeholder="juan@miempresa.com" />
             </div>
             
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Crea una Contraseña</label>
-              <input type="password" required value={regPassword} onChange={e => setRegPassword(e.target.value)} className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 px-4 text-gray-900 focus:bg-white focus:border-purple-500 outline-none transition-all" placeholder="Mínimo 8 caracteres" />
+              <label className="block text-sm font-bold text-gray-700 mb-1 text-left">Crea una Contraseña</label>
+              <input type="password" required value={regPassword} onChange={e => setRegPassword(e.target.value)} className="block w-full rounded-xl border border-gray-300 bg-gray-50 py-2.5 px-4 text-gray-900 focus:bg-white focus:border-purple-500 outline-none transition-all hover:border-gray-400" placeholder="Mínimo 8 caracteres" />
             </div>
 
             <button type="submit" disabled={regLoading} style={{ backgroundColor: '#8b5cf6', color: 'white' }} className="w-full mt-6 rounded-xl px-4 py-3.5 font-bold shadow-lg flex justify-center items-center">
@@ -530,8 +536,8 @@ export default function LoginPage() {
             {forgotError && <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl">{forgotError}</div>}
             
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Correo Electrónico</label>
-              <input type="email" required value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 focus:bg-white focus:border-purple-500 outline-none transition-all" placeholder="usuario@empresa.com" />
+              <label className="block text-sm font-bold text-gray-700 mb-1 text-left">Correo Electrónico</label>
+              <input type="email" required value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} className="block w-full rounded-xl border border-gray-300 bg-gray-50 py-3 px-4 text-gray-900 focus:bg-white focus:border-purple-500 outline-none transition-all hover:border-gray-400" placeholder="usuario@empresa.com" />
             </div>
             
             <button type="submit" disabled={forgotLoading} style={{ backgroundColor: '#111827', color: 'white' }} className="w-full mt-6 rounded-xl px-4 py-3.5 font-bold shadow-lg">
@@ -554,12 +560,12 @@ export default function LoginPage() {
           {changeError && <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl">{changeError}</div>}
           
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">Contraseña Temporal</label>
-            <input type="password" required value={changeTempPassword} onChange={e => setChangeTempPassword(e.target.value)} className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 focus:bg-white focus:border-purple-500 outline-none transition-all" placeholder="Ingresa la contraseña que recibiste por correo" />
+            <label className="block text-sm font-bold text-gray-700 mb-1 text-left">Contraseña Temporal</label>
+            <input type="password" required value={changeTempPassword} onChange={e => setChangeTempPassword(e.target.value)} className="block w-full rounded-xl border border-gray-300 bg-gray-50 py-3 px-4 text-gray-900 focus:bg-white focus:border-purple-500 outline-none transition-all hover:border-gray-400" placeholder="Ingresa la contraseña que recibiste por correo" />
           </div>
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">Tu Nueva Contraseña</label>
-            <input type="password" required value={changeNewPassword} onChange={e => setChangeNewPassword(e.target.value)} className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 focus:bg-white focus:border-purple-500 outline-none transition-all" placeholder="Mínimo 8 caracteres" />
+            <label className="block text-sm font-bold text-gray-700 mb-1 text-left">Tu Nueva Contraseña</label>
+            <input type="password" required value={changeNewPassword} onChange={e => setChangeNewPassword(e.target.value)} className="block w-full rounded-xl border border-gray-300 bg-gray-50 py-3 px-4 text-gray-900 focus:bg-white focus:border-purple-500 outline-none transition-all hover:border-gray-400" placeholder="Mínimo 8 caracteres" />
           </div>
           
           <button type="submit" disabled={changeLoading} style={{ backgroundColor: '#8b5cf6', color: 'white' }} className="w-full mt-6 rounded-xl px-4 py-3.5 font-bold shadow-lg flex justify-center items-center">
