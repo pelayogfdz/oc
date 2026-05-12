@@ -9,7 +9,7 @@ export default async function ProspeccionPage() {
   if (!user) return null;
 
   // Filtrado por roles
-  let whereClause: any = { branchId: branch.id };
+  let whereClause: any = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
 
   if (!user.isSuperAdmin && user.commissionRole !== 'COORDINADOR') {
     if (user.commissionRole === 'LIDER') {
@@ -35,7 +35,7 @@ export default async function ProspeccionPage() {
   });
 
   const allUsers = await prisma.user.findMany({
-    where: { branchId: branch.id, commissionRole: { not: null } },
+    where: { ...(branch.id === 'GLOBAL' ? {} : { branchId: branch.id }), commissionRole: { not: null } },
     select: { id: true, name: true, commissionRole: true }
   });
 

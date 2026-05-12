@@ -13,12 +13,14 @@ export default function BandejaClient({ initialProspects, users, currentUser }: 
   const selectedProspect = prospects.find((p: any) => p.id === selectedProspectId);
 
   const handleAssign = async (prospectId: string, userId: string) => {
+    const finalUserId = userId === "" ? null : userId;
+
     // Optimistic update
     setProspects((prev: any) => 
       prev.map((p: any) => p.id === prospectId ? { 
         ...p, 
-        assignedUserId: userId,
-        assignedUser: users.find((u:any) => u.id === userId) || null
+        assignedUserId: finalUserId,
+        assignedUser: finalUserId ? users.find((u:any) => u.id === finalUserId) : null
       } : p)
     );
 
@@ -26,7 +28,7 @@ export default function BandejaClient({ initialProspects, users, currentUser }: 
       await fetch(`/api/prospects/${prospectId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assignedUserId: userId })
+        body: JSON.stringify({ assignedUserId: finalUserId })
       });
       router.refresh();
     } catch (e) {
@@ -34,10 +36,13 @@ export default function BandejaClient({ initialProspects, users, currentUser }: 
     }
   };
 
-  const filteredProspects = prospects.filter((p: any) => 
-    p.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    p.phone?.includes(searchTerm)
-  );
+  const filteredProspects = prospects.filter((p: any) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    const nameMatch = p.name ? p.name.toLowerCase().includes(term) : false;
+    const phoneMatch = p.phone ? p.phone.includes(term) : false;
+    return nameMatch || phoneMatch;
+  });
 
   return (
     <div style={{ display: 'flex', height: '100%' }}>

@@ -53,14 +53,15 @@ export default function KanbanBoard({ initialProspects, users, currentUser }: an
   };
 
   const handleAssign = async (prospectId: string, userId: string) => {
+    const finalUserId = userId === "" ? null : userId;
     setProspects((prev: any) => 
-      prev.map((p: any) => p.id === prospectId ? { ...p, assignedUserId: userId } : p)
+      prev.map((p: any) => p.id === prospectId ? { ...p, assignedUserId: finalUserId } : p)
     );
     try {
       await fetch(`/api/prospects/${prospectId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assignedUserId: userId })
+        body: JSON.stringify({ assignedUserId: finalUserId })
       });
       router.refresh();
     } catch (e) {
