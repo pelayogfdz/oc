@@ -3,6 +3,30 @@ const { PrismaClient } = require('@prisma/client');
 const express = require('express');
 const cors = require('cors');
 const qrcode = require('qrcode-terminal');
+const fs = require('fs');
+const path = require('path');
+
+// Manually load .env since Prisma outside of Next.js needs it
+try {
+    const envPath = path.resolve(__dirname, '../.env');
+    if (fs.existsSync(envPath)) {
+        const envConfig = fs.readFileSync(envPath, 'utf8');
+        envConfig.split('\n').forEach(line => {
+            const cleanLine = line.replace(/\r$/, '').trim();
+            const match = cleanLine.match(/^([^=:#]+?)[=:](.*)/);
+            if (match) {
+                const key = match[1].trim();
+                let value = match[2].trim();
+                if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+                    value = value.slice(1, -1);
+                }
+                process.env[key] = value;
+            }
+        });
+    }
+} catch (e) {
+    console.warn("Could not load .env file manually:", e);
+}
 
 const prisma = new PrismaClient();
 const app = express();
@@ -21,7 +45,7 @@ const client = new Client({
     },
     webVersionCache: {
         type: 'remote',
-        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html',
+        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1039317497-alpha.html',
     }
 });
 

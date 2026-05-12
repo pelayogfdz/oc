@@ -30,7 +30,8 @@ export const navStructure: MenuNode[] = [
     requiredPermission: ['pos_access', 'pos_discount', 'pos_cancel', 'pos_returns'],
     items: [
       { name: 'Historial de Ventas', path: '/ventas' },
-      { name: 'Prospección (CRM)', path: '/ventas/prospeccion', badge: 'Nuevo', desktopOnly: true },
+      { name: 'Bandeja WhatsApp', path: '/ventas/whatsapp', badge: 'Admin', desktopOnly: true },
+      { name: 'Prospección (CRM)', path: '/ventas/prospeccion', badge: 'Kanban', desktopOnly: true },
       { name: 'Promociones y Descuentos', path: '/ventas/promociones' },
       { name: 'Devoluciones', path: '/ventas/devoluciones' },
       { name: 'Cotizaciones', path: '/ventas/cotizaciones' },
