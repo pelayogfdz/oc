@@ -15,10 +15,13 @@ export default async function WhatsappBandejaPage() {
     redirect('/ventas/prospeccion');
   }
 
+  // Handle "GLOBAL" branch gracefully
+  const branchFilter = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
+
   // Traer todos los prospectos de la sucursal, ordenados por la última actualización
   // Idealmente ordenaríamos por el último mensaje recibido
   const prospects = await prisma.prospect.findMany({
-    where: { branchId: branch.id },
+    where: branchFilter,
     include: {
       assignedUser: true,
       messages: {
@@ -30,7 +33,7 @@ export default async function WhatsappBandejaPage() {
 
   // Lista de vendedores/usuarios disponibles para asignar
   const allUsers = await prisma.user.findMany({
-    where: { branchId: branch.id, commissionRole: { not: null } },
+    where: { ...branchFilter, commissionRole: { not: null } },
     select: { id: true, name: true, commissionRole: true }
   });
 
