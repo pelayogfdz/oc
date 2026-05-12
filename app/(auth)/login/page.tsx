@@ -423,7 +423,7 @@ export default function LoginPage() {
               <span className="text-3xl font-black">$10</span>
               <span className="text-lg font-medium text-purple-800">USD / usuario adicional al mes</span>
             </div>
-            <button onClick={openRegister} className="w-full py-4 rounded-2xl font-bold bg-gray-900 text-white hover:bg-gray-800 transition-all shadow-xl hover:-translate-y-1 flex justify-center items-center gap-2 text-xl">
+            <button onClick={openRegister} style={{ backgroundColor: '#111827', color: 'white' }} className="w-full py-4 rounded-2xl font-bold transition-all shadow-xl hover:-translate-y-1 flex justify-center items-center gap-2 text-xl">
               Comienza tu Prueba de 5 Días
             </button>
           </div>
@@ -460,7 +460,7 @@ export default function LoginPage() {
              </button>
           </div>
 
-          <button type="submit" disabled={loading} className="w-full rounded-xl bg-[#c4b5fd] text-[#1e1b4b] hover:bg-[#a855f7] hover:text-white px-4 py-4 font-semibold transition-all flex justify-center items-center gap-2 text-[15px] font-sans">
+          <button type="submit" disabled={loading} style={{ backgroundColor: '#c4b5fd', color: '#1e1b4b' }} className="w-full rounded-xl px-4 py-4 font-semibold transition-all flex justify-center items-center gap-2 text-[15px] font-sans">
             {loading ? 'Verificando...' : 'Ingresar'}
           </button>
         </form>
@@ -505,7 +505,7 @@ export default function LoginPage() {
               <input type="password" required value={regPassword} onChange={e => setRegPassword(e.target.value)} className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 px-4 text-gray-900 focus:bg-white focus:border-purple-500 outline-none transition-all" placeholder="Mínimo 8 caracteres" />
             </div>
 
-            <button type="submit" disabled={regLoading} className="w-full mt-6 rounded-xl bg-[var(--pulpos-primary)] px-4 py-3.5 font-bold text-white hover:bg-[var(--pulpos-primary-hover)] transition-all shadow-lg flex justify-center items-center">
+            <button type="submit" disabled={regLoading} style={{ backgroundColor: '#8b5cf6', color: 'white' }} className="w-full mt-6 rounded-xl px-4 py-3.5 font-bold shadow-lg flex justify-center items-center">
               {regLoading ? 'Registrando...' : 'Comenzar Prueba Gratis'}
             </button>
             <div className="text-center mt-4">
@@ -534,7 +534,7 @@ export default function LoginPage() {
               <input type="email" required value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 focus:bg-white focus:border-purple-500 outline-none transition-all" placeholder="usuario@empresa.com" />
             </div>
             
-            <button type="submit" disabled={forgotLoading} className="w-full mt-6 rounded-xl bg-gray-900 px-4 py-3.5 font-bold text-white hover:bg-gray-800 transition-all shadow-lg">
+            <button type="submit" disabled={forgotLoading} style={{ backgroundColor: '#111827', color: 'white' }} className="w-full mt-6 rounded-xl px-4 py-3.5 font-bold shadow-lg">
               {forgotLoading ? 'Enviando...' : 'Enviar Contraseña Temporal'}
             </button>
             <div className="text-center mt-4">
@@ -562,7 +562,7 @@ export default function LoginPage() {
             <input type="password" required value={changeNewPassword} onChange={e => setChangeNewPassword(e.target.value)} className="block w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-gray-900 focus:bg-white focus:border-purple-500 outline-none transition-all" placeholder="Mínimo 8 caracteres" />
           </div>
           
-          <button type="submit" disabled={changeLoading} className="w-full mt-6 rounded-xl bg-[var(--pulpos-primary)] px-4 py-3.5 font-bold text-white hover:bg-[var(--pulpos-primary-hover)] transition-all shadow-lg flex justify-center items-center">
+          <button type="submit" disabled={changeLoading} style={{ backgroundColor: '#8b5cf6', color: 'white' }} className="w-full mt-6 rounded-xl px-4 py-3.5 font-bold shadow-lg flex justify-center items-center">
             {changeLoading ? 'Actualizando...' : 'Actualizar y Entrar al Dashboard'}
           </button>
         </form>
