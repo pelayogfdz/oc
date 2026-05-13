@@ -25,7 +25,7 @@ export default async function WhatsappBandejaPage() {
     include: {
       assignedUser: true,
       messages: {
-        orderBy: { timestamp: 'desc' }
+        orderBy: { timestamp: 'asc' }
       }
     },
     orderBy: { updatedAt: 'desc' }

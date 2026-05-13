@@ -10,8 +10,8 @@ export default async function ProspectChatPage({ params }: { params: Promise<{ i
   const user = await getActiveUser();
   if (!user) return null;
 
-  const prospect = await prisma.prospect.findUnique({
-    where: { id: id, branchId: branch.id },
+  const prospect = await prisma.prospect.findFirst({
+    where: branch.id === 'GLOBAL' ? { id: id } : { id: id, branchId: branch.id },
     include: {
       messages: {
         orderBy: { timestamp: 'asc' }

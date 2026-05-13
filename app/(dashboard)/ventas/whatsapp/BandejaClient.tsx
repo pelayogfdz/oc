@@ -63,9 +63,9 @@ export default function BandejaClient({ initialProspects, users, currentUser }: 
             const isSelected = selectedProspectId === prospect.id;
             const isUnassigned = !prospect.assignedUserId;
             
-            // Determinar último mensaje (están ordenados por desc en la query de DB)
+            // Determinar último mensaje (ahora están ordenados por asc en la query de DB para que el chat funcione)
             const lastMessage = prospect.messages && prospect.messages.length > 0 
-              ? prospect.messages[0] 
+              ? prospect.messages[prospect.messages.length - 1] 
               : null;
 
             return (
