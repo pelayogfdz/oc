@@ -42,10 +42,6 @@ const client = new Client({
     puppeteer: {
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
         headless: true,
-    },
-    webVersionCache: {
-        type: 'remote',
-        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1039317497-alpha.html',
     }
 });
 
@@ -94,12 +90,13 @@ client.on('qr', async (qr) => {
 client.on('ready', async () => {
     console.log('WhatsApp Client is ready!');
     try {
+        const phone = client.info && client.info.wid ? client.info.wid.user : null;
         const session = await getGlobalSession();
         await prisma.whatsAppSession.update({
             where: { id: session.id },
             data: {
                 status: 'CONNECTED',
-                sessionData: null
+                sessionData: phone ? JSON.stringify({ phone }) : null
             }
         });
     } catch (e) {
@@ -166,7 +163,6 @@ client.on('message', async msg => {
     }
 });
 
-// Express API to send messages from Next.js
 app.post('/api/send', async (req, res) => {
     const { phone, message, prospectId } = req.body;
     
@@ -197,6 +193,17 @@ app.post('/api/send', async (req, res) => {
     } catch (error) {
         console.error('Send message error:', error);
         res.status(500).json({ error: 'Failed to send message' });
+    }
+});
+
+// Express API to logout and disconnect WhatsApp
+app.post('/api/logout', async (req, res) => {
+    try {
+        await client.logout();
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({ error: 'Failed to logout' });
     }
 });
 

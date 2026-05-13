@@ -25,6 +25,30 @@ export default function WhatsAppConfigClient({ initialSession }: { initialSessio
     }
   }, [session?.status]);
 
+  const handleLogout = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/whatsapp/logout', { method: 'POST' });
+      if (res.ok) {
+        setSession({ ...session, status: 'DISCONNECTED', sessionData: null });
+      }
+    } catch (e) {
+      console.error("Error al cerrar sesión", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  let connectedPhone = null;
+  if (session?.status === 'CONNECTED' && session?.sessionData) {
+    try {
+      const parsed = JSON.parse(session.sessionData);
+      connectedPhone = parsed.phone;
+    } catch (e) {
+      // Ignore if not valid JSON
+    }
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
       {session?.status === 'DISCONNECTED' && (
@@ -56,7 +80,31 @@ export default function WhatsAppConfigClient({ initialSession }: { initialSessio
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#166534" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
           </div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#166534' }}>WhatsApp Conectado</h2>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>El sistema está listo para enviar y recibir mensajes de prospectos de forma automática.</p>
+          <p style={{ color: 'var(--pulpos-text-muted)', textAlign: 'center' }}>
+            El sistema está listo para enviar y recibir mensajes de prospectos de forma automática.
+            {connectedPhone && (
+              <span style={{ display: 'block', marginTop: '0.5rem', fontWeight: 'bold', color: '#334155' }}>
+                Número vinculado: +{connectedPhone.replace('@c.us', '')}
+              </span>
+            )}
+          </p>
+          <button 
+            onClick={handleLogout}
+            disabled={loading}
+            style={{
+              marginTop: '1rem',
+              padding: '0.5rem 1.5rem',
+              backgroundColor: loading ? '#fca5a5' : '#fee2e2',
+              color: '#991b1b',
+              border: 'none',
+              borderRadius: '6px',
+              fontWeight: '500',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+          >
+            {loading ? 'Cerrando sesión...' : 'Cerrar Sesión'}
+          </button>
         </>
       )}
     </div>

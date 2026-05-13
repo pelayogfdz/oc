@@ -11,9 +11,9 @@ export default async function WhatsappBandejaPage() {
 
   // Solo administradores o coordinadores deberían ver esta bandeja global
   // Si quieres que los vendedores la vean, puedes quitar esta restricción
-  if (!user.isSuperAdmin && user.commissionRole !== 'COORDINADOR') {
-    redirect('/ventas/prospeccion');
-  }
+  // if (!user.isSuperAdmin && user.commissionRole !== 'COORDINADOR') {
+  //   redirect('/ventas/prospeccion');
+  // }
 
   // Handle "GLOBAL" branch gracefully
   const branchFilter = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };

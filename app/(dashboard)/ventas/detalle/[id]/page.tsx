@@ -8,6 +8,9 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const branch = await getActiveBranch();
   
+  // We no longer need UUID length validation because the route is now cleanly /ventas/detalle/[id]
+  if (!id) return notFound();
+
   const sale = await prisma.sale.findUnique({
     where: { id: id },
     include: {
@@ -29,7 +32,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
          <Link href="/ventas" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--pulpos-text-muted)', textDecoration: 'none', fontWeight: 'bold' }}>
             <ArrowLeft size={20} /> Volver a Ventas
          </Link>
-         <Link target="_blank" href={`/ventas/${sale.id}/imprimir`} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px' }}>
+         <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir`} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px' }}>
             <Printer size={20} /> Imprimir Comprobante
          </Link>
       </div>
