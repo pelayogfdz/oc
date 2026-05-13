@@ -1,25 +1,31 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    
-    // Call the external WhatsApp microservice running on the same server (port 3001)
-    const response = await fetch("http://127.0.0.1:3001/api/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
+    const { phone, message, prospectId } = data;
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json({ error: errorData.error || "Failed to send message via microservice" }, { status: response.status });
+    if (!phone || !message || !prospectId) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const result = await response.json();
-    return NextResponse.json(result);
+    // Instead of calling the local microservice via HTTP (which fails in production),
+    // we insert the message into the database with messageId = null.
+    // The microservice will poll the database for these pending messages and send them.
+    const newMessage = await prisma.whatsAppMessage.create({
+      data: {
+        prospectId,
+        body: message,
+        isFromMe: true,
+        messageId: null, // Marks this as pending to be sent by the microservice
+        timestamp: new Date(),
+      }
+    });
+
+    return NextResponse.json({ success: true, messageId: newMessage.id });
   } catch (error) {
     console.error("Error in Next.js WhatsApp proxy:", error);
-    return NextResponse.json({ error: "Failed to communicate with WhatsApp service" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to queue message for sending" }, { status: 500 });
   }
 }

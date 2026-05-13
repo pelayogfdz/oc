@@ -216,3 +216,54 @@ app.listen(PORT, () => {
     // Start WhatsApp Client
     client.initialize();
 });
+
+// Polling function to send pending messages
+setInterval(async () => {
+    if (!client.info) return; // Client not ready
+
+    try {
+        // Find pending messages (messageId is null, but isFromMe is true)
+        const pendingMessages = await prisma.whatsAppMessage.findMany({
+            where: {
+                messageId: null,
+                isFromMe: true
+            },
+            include: {
+                prospect: true
+            }
+        });
+
+        for (const msg of pendingMessages) {
+            try {
+                const phone = msg.prospect.phone;
+                if (!phone) continue;
+
+                const chatId = `${phone}@c.us`; 
+                const sentMsg = await client.sendMessage(chatId, msg.body);
+
+                // Update the message with the real messageId
+                await prisma.whatsAppMessage.update({
+                    where: { id: msg.id },
+                    data: {
+                        messageId: sentMsg.id._serialized,
+                        timestamp: new Date(sentMsg.timestamp * 1000)
+                    }
+                });
+                
+                console.log(`[WHATSAPP] Sent pending message to ${phone}`);
+            } catch (sendError) {
+                console.error(`Failed to send pending message to ${msg.prospect?.phone}:`, sendError);
+                // Optionally mark as failed or just leave it to retry. 
+                // We'll update it to 'FAILED' in messageId so it doesn't get stuck in an infinite loop
+                await prisma.whatsAppMessage.update({
+                    where: { id: msg.id },
+                    data: {
+                        messageId: 'FAILED_' + Date.now()
+                    }
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error polling for pending messages:', error);
+    }
+}, 5000); // Poll every 5 seconds
