@@ -10,6 +10,42 @@ export default function BandejaClient({ initialProspects, users, currentUser }: 
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
 
+  const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
+  const [newChatName, setNewChatName] = useState("");
+  const [newChatPhone, setNewChatPhone] = useState("");
+
+  const handleCreateChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newChatName || !newChatPhone) return;
+
+    try {
+      const res = await fetch("/api/prospects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newChatName, phone: newChatPhone })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        
+        // Add to list if it's new
+        if (data.isNew) {
+          setProspects((prev: any) => [data.prospect, ...prev]);
+        }
+        
+        // Select it
+        setSelectedProspectId(data.prospect.id);
+        setIsNewChatModalOpen(false);
+        setNewChatName("");
+        setNewChatPhone("");
+      } else {
+        alert("Error al crear el chat");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error de conexión");
+    }
+  };
+
   const selectedProspect = prospects.find((p: any) => p.id === selectedProspectId);
 
   const handleAssign = async (prospectId: string, userId: string) => {
@@ -45,17 +81,47 @@ export default function BandejaClient({ initialProspects, users, currentUser }: 
   });
 
   return (
-    <div style={{ display: 'flex', height: '100%' }}>
+    <div style={{ display: 'flex', height: '100%', position: 'relative' }}>
+      {/* Modal Nuevo Chat */}
+      {isNewChatModalOpen && (
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', width: '400px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Nuevo Chat de WhatsApp</h3>
+            <form onSubmit={handleCreateChat}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Nombre del Contacto</label>
+                <input required type="text" value={newChatName} onChange={e => setNewChatName(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+              </div>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Número de Teléfono (con código de país ej. 521...)</label>
+                <input required type="text" value={newChatPhone} onChange={e => setNewChatPhone(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                <button type="button" onClick={() => setIsNewChatModalOpen(false)} style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'white' }}>Cancelar</button>
+                <button type="submit" style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', backgroundColor: '#2563eb', color: 'white', fontWeight: '500' }}>Crear y Chatear</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar de Conversaciones */}
       <div style={{ width: '350px', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', backgroundColor: '#f8fafc' }}>
         <div style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', backgroundColor: 'white' }}>
-          <h2 style={{ fontWeight: '600', fontSize: '1.125rem' }}>Chats Entrantes</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ fontWeight: '600', fontSize: '1.125rem' }}>Chats Entrantes</h2>
+            <button 
+              onClick={() => setIsNewChatModalOpen(true)}
+              style={{ padding: '0.3rem 0.6rem', backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', border: 'none', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 'bold' }}>
+              + Nuevo
+            </button>
+          </div>
           <input 
             type="text" 
             placeholder="Buscar conversación..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: '100%', marginTop: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
+            style={{ width: '100%', marginTop: '0.75rem', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
           />
         </div>
         <div style={{ flex: 1, overflowY: 'auto' }}>

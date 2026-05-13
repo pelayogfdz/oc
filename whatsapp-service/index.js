@@ -127,6 +127,8 @@ client.on('message', async msg => {
     const contact = await msg.getContact();
     const phone = contact.number; // e.g. "5215555555555"
 
+    console.log(`[WHATSAPP] Mensaje recibido de ${phone}: ${msg.body}`);
+
     try {
         const branch = await prisma.branch.findFirst();
         if (!branch) return;
