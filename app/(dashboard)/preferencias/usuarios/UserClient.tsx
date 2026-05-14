@@ -159,26 +159,6 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
   const [bioStatus, setBioStatus] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
-
-  useEffect(() => {
-    if (activeTab === 'biometrics' && !modelsLoaded) {
-      setBioStatus('Precargando modelos de IA en segundo plano...');
-      import('@vladmandic/face-api').then(async (faceapi) => {
-        try {
-          await Promise.all([
-            faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
-            faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-            faceapi.nets.faceRecognitionNet.loadFromUri('/models')
-          ]);
-          setModelsLoaded(true);
-          setBioStatus('Modelos listos. Puedes seleccionar una foto.');
-        } catch (err: any) {
-          console.error("Error loading models:", err);
-          setBioStatus('Error al precargar IA: ' + err.message);
-        }
-      });
-    }
-  }, [activeTab, modelsLoaded]);
   
   // State for permissions mapping
   const [perms, setPerms] = useState<Record<string, boolean>>({});
@@ -305,51 +285,61 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setBioStatus('Iniciando lectura biométrica...');
-    try {
-      const faceapi = await import('@vladmandic/face-api');
-      if (!modelsLoaded) {
+    setBioStatus('Iniciando lectura biométrica (Optimizando memoria)...');
+    
+    // Create object URL instead of reading full base64 to save RAM
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    
+    img.onload = async () => {
+      try {
         setBioStatus('Cargando modelos de IA...');
-        await Promise.all([
-          faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
-          faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-          faceapi.nets.faceRecognitionNet.loadFromUri('/models')
-        ]);
-        setModelsLoaded(true);
+        const faceapi = await import('@vladmandic/face-api');
+        if (!modelsLoaded) {
+          await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+            faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+            faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+          ]);
+          setModelsLoaded(true);
+        }
+
+        setBioStatus('Procesando rostro...');
+        const tmpCanvas = document.createElement('canvas');
+        const mx = Math.max(img.width, img.height);
+        let ratio = mx > 600 ? 600 / mx : 1;
+        tmpCanvas.width = img.width * ratio;
+        tmpCanvas.height = img.height * ratio;
+        tmpCanvas.getContext('2d')?.drawImage(img, 0, 0, tmpCanvas.width, tmpCanvas.height);
+
+        const detection = await faceapi.detectSingleFace(tmpCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.1 })).withFaceLandmarks().withFaceDescriptor();
+
+        if (!detection) {
+           setBioStatus('Error: No se detectó rostro');
+           URL.revokeObjectURL(objectUrl);
+           return;
+        }
+
+        const descriptorString = JSON.stringify(Array.from(detection.descriptor));
+        const finalCompressedImage = tmpCanvas.toDataURL('image/jpeg', 0.5);
+
+        setFaceDescriptor(descriptorString);
+        setBaselinePhoto(finalCompressedImage);
+        setBioStatus('Rostro capturado y validado ✓');
+      } catch (err: any) {
+        setBioStatus('Error al procesar: ' + err.message);
+      } finally {
+        // Free memory immediately
+        URL.revokeObjectURL(objectUrl);
       }
+    };
+    
+    img.onerror = () => {
+      setBioStatus('Error al leer la imagen.');
+      URL.revokeObjectURL(objectUrl);
+    };
 
-      setBioStatus('Procesando rostro...');
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const img = new Image();
-        img.onload = async () => {
-          const tmpCanvas = document.createElement('canvas');
-          const mx = Math.max(img.width, img.height);
-          let ratio = mx > 600 ? 600 / mx : 1;
-          tmpCanvas.width = img.width * ratio;
-          tmpCanvas.height = img.height * ratio;
-          tmpCanvas.getContext('2d')?.drawImage(img, 0, 0, tmpCanvas.width, tmpCanvas.height);
-
-          const detection = await faceapi.detectSingleFace(tmpCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.1 })).withFaceLandmarks().withFaceDescriptor();
-
-          if (!detection) {
-             setBioStatus('Error: No se detectó rostro');
-             return;
-          }
-
-          const descriptorString = JSON.stringify(Array.from(detection.descriptor));
-          const finalCompressedImage = tmpCanvas.toDataURL('image/jpeg', 0.5);
-
-          setFaceDescriptor(descriptorString);
-          setBaselinePhoto(finalCompressedImage);
-          setBioStatus('Rostro capturado y validado ✓');
-        };
-        img.src = e.target?.result as string;
-      };
-      reader.readAsDataURL(file);
-    } catch (err: any) {
-      setBioStatus('Error al cargar IA: ' + err.message);
-    }
+    img.src = objectUrl;
   };
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
