@@ -28,6 +28,46 @@ export async function registerAttendance(data: {
 
   if (!user) throw new Error("Usuario no encontrado");
 
+  // Validador de 10 min, secuencia Check-in / Check-out y restricción del mismo día
+  const lastLog = await prisma.attendanceLog.findFirst({
+    where: { userId: data.userId },
+    orderBy: { timestamp: 'desc' }
+  });
+
+  const now = new Date();
+
+  if (lastLog) {
+    const diffMinutes = (now.getTime() - lastLog.timestamp.getTime()) / (1000 * 60);
+    if (diffMinutes < 10) {
+      throw new Error("Debes esperar al menos 10 minutos entre registros.");
+    }
+
+    const mxFormatter = new Intl.DateTimeFormat('es-MX', { 
+      timeZone: 'America/Mexico_City', 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit' 
+    });
+    const isSameDay = mxFormatter.format(now) === mxFormatter.format(lastLog.timestamp);
+
+    if (data.type === 'CHECK_OUT') {
+      if (!isSameDay) {
+        throw new Error("Solo puedes registrar tu salida el mismo día que registraste tu entrada.");
+      }
+      if (lastLog.type === 'CHECK_OUT') {
+        throw new Error("Tu último registro ya fue una Salida. Debes registrar una Entrada primero.");
+      }
+    } else if (data.type === 'CHECK_IN') {
+      if (isSameDay && lastLog.type === 'CHECK_IN') {
+        throw new Error("Ya tienes un registro de Entrada activo. Ahora debes registrar una Salida.");
+      }
+    }
+  } else {
+    if (data.type === 'CHECK_OUT') {
+      throw new Error("No tienes registros previos. Debes registrar una Entrada primero.");
+    }
+  }
+
   // Face Validation
   if (user.reqPhoto && !data.photoUrl) {
     throw new Error("Se requiere captura de rostro para registrar asistencia.");
