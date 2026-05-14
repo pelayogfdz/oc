@@ -51,6 +51,7 @@ model User {
   role                String  @default("USER")
   isSuperAdmin        Boolean @default(false)
   permissions         String? // JSON string
+  currentSessionId    String?
 
   tenantId String?
   tenant   Tenant? @relation(fields: [tenantId], references: [id])

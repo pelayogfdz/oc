@@ -1,5 +1,7 @@
 import { jwtVerify, SignJWT } from 'jose';
 import { cookies } from 'next/headers';
+import { revalidateTag } from 'next/cache';
+import { prisma } from '@/lib/prisma';
 
 const secretKey = process.env.SESSION_SECRET || 'pulpos-elite-saas-super-secret-key-12345';
 const encodedKey = new TextEncoder().encode(secretKey);
@@ -9,6 +11,7 @@ export type SessionPayload = {
   tenantId: string | null;
   role: string;
   expiresAt: Date;
+  sessionId?: string;
 };
 
 export async function encrypt(payload: any) {
@@ -31,8 +34,15 @@ export async function decrypt(session: string | undefined = '') {
 }
 
 export async function createSession(userId: string, tenantId: string | null, role: string) {
+  const sessionId = crypto.randomUUID();
+  await prisma.user.update({
+    where: { id: userId },
+    data: { currentSessionId: sessionId }
+  });
+  revalidateTag(`user-${userId}`);
+
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const session = await encrypt({ userId, tenantId, role, expiresAt });
+  const session = await encrypt({ userId, tenantId, role, expiresAt, sessionId });
   
   const cookieStore = await cookies();
   cookieStore.set('session', session, {

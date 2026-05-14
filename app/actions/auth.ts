@@ -32,6 +32,11 @@ export const getActiveUser = cache(async () => {
   const user = await getCachedUser();
   
   if (!user) throw new Error("User not found");
+
+  if (user.currentSessionId && session.sessionId && user.currentSessionId !== session.sessionId) {
+    throw new Error("Sesión iniciada en otro dispositivo");
+  }
+
   return user;
 });
 
