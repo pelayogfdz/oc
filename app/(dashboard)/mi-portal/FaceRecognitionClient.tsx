@@ -23,11 +23,13 @@ export default function FaceRecognitionClient({
       .then((stream) => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          // Explicitly play to bypass iOS Safari limitations
+          videoRef.current.play().catch(e => console.error("Error playing video:", e));
         }
       })
       .catch((err) => {
-        console.error(err);
-        setErrorMsg('Por favor da permiso a la cámara frontal para tomar la foto.');
+        console.error("Camera error:", err);
+        setErrorMsg('Por favor da permiso a la cámara frontal para tomar la foto en la configuración de tu navegador.');
       });
   };
 
