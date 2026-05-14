@@ -44,9 +44,18 @@ export async function POST(req: Request) {
     }
 
     // Create JSON Web Token
-    await createSession(user.id, user.tenantId, user.role);
+    const sessionToken = await createSession(user.id, user.tenantId, user.role);
 
-    return NextResponse.json({ success: true });
+    const response = NextResponse.json({ success: true });
+    response.cookies.set('session', sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      sameSite: 'lax',
+      path: '/',
+    });
+    
+    return response;
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });

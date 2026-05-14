@@ -52,6 +52,7 @@ export async function createSession(userId: string, tenantId: string | null, rol
     sameSite: 'lax',
     path: '/',
   });
+  return session;
 }
 
 export async function updateSession() {
