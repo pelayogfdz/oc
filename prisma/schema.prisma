@@ -29,6 +29,7 @@ model Tenant {
   branches             Branch[]
   ManufacturingProcess ManufacturingProcess[]
   Recipe               Recipe[]
+  HrLocation           HrLocation[]
 }
 
 model SystemSettings {
@@ -106,8 +107,9 @@ model User {
   bonusRule        String?
   bonusMethod      String?
   overtimeBonus    Float   @default(0)
-  groceryBonus     Float   @default(0)
-  transportBonus   Float   @default(0)
+  groceryBonus     Float   @default(0) // vales de despensa
+  transportBonus   Float   @default(0) // ayuda de transporte
+  deductLunchHour  Boolean  @default(false)
 
   faceDescriptor String? // JSON array or string
   baselinePhoto  String? @db.Text
@@ -126,6 +128,8 @@ model User {
 
   prospects       Prospect[]        @relation("AssignedProspects")
   ProductionOrder ProductionOrder[]
+
+  hrLocations HrLocation[] @relation("UserHrLocations")
 }
 
 model Branch {
@@ -807,6 +811,11 @@ model HrLocation {
   radius   Float   @default(50) // in meters
   branchId String? @unique
   branch   Branch? @relation(fields: [branchId], references: [id])
+
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+
+  users    User[] @relation("UserHrLocations")
 }
 
 model DeliveryOrder {

@@ -301,7 +301,14 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
     absences += lateAbsences;
 
     const totalDaysToPay = Math.max(0, workedDays + paidLeaveDays - lateAbsences);
-    const baseAmount = totalDaysToPay * u.dailySalary;
+    let baseAmount = totalDaysToPay * u.dailySalary;
+
+    let lunchDeduction = 0;
+    if (u.deductLunchHour) {
+      // Deduct 1 hour per worked day (assuming 8 hour standard shift for hourly rate calculation)
+      lunchDeduction = (u.dailySalary / 8) * workedDays;
+      baseAmount -= lunchDeduction;
+    }
 
     return {
       id: u.id,
@@ -313,6 +320,7 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
       paidLeaveDays,
       unpaidLeaveDays,
       absences,
+      lunchDeduction,
       totalToPay: baseAmount
     };
   });

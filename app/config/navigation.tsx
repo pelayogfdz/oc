@@ -122,6 +122,7 @@ export const navStructure: MenuNode[] = [
       { name: 'Monitoreo de Asistencia', path: '/rh/monitoreo' },
       { name: 'Calendario de Incidencias', path: '/rh/calendario' },
       { name: 'Reportes Históricos', path: '/rh/reportes' },
+      { name: 'Ubicaciones GPS', path: '/rh/ubicaciones', badge: 'Nuevo' },
       { name: 'Trámites y Avisos', path: '/rh/tramites' },
       { name: 'Cálculo de Nómina', path: '/rh/nomina', badge: 'Nuevo' },
     ]

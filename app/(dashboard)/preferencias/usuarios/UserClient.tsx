@@ -147,7 +147,7 @@ const PERMISSION_MODULES = [
   }
 ];
 
-export default function UserClient({ initialUsers, branches }: { initialUsers: any[], branches: any[] }) {
+export default function UserClient({ initialUsers, branches, hrLocations = [] }: { initialUsers: any[], branches: any[], hrLocations?: any[] }) {
   const [users, setUsers] = useState(initialUsers);
   const [isEditing, setIsEditing] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -161,6 +161,9 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
   
   // State for permissions mapping
   const [perms, setPerms] = useState<Record<string, boolean>>({});
+  
+  // State for selected HrLocations
+  const [selectedHrLocations, setSelectedHrLocations] = useState<string[]>([]);
 
   // Schedule State
   const defaultSchedule = {
@@ -238,6 +241,7 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
     setBaselinePhoto('');
     setBioStatus('');
     setSchedule(defaultSchedule);
+    setSelectedHrLocations([]);
   };
 
   const openEditUser = (user: any) => {
@@ -247,6 +251,7 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
     setFaceDescriptor(user.faceDescriptor || '');
     setBaselinePhoto(user.baselinePhoto || '');
     setBioStatus(user.faceDescriptor ? 'Molde Biométrico Registrado ✓' : '');
+    setSelectedHrLocations(user.hrLocations?.map((l: any) => l.id) || []);
     
     try {
       const parsedSched = JSON.parse(user.workScheduleMatrix || '{}');
@@ -323,6 +328,7 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    formData.append('hrLocations', JSON.stringify(selectedHrLocations));
     
     try {
       if (editingUser) {
@@ -369,6 +375,8 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
     return Array.from(finalSet);
   };
 
+  const oldestUser = [...users].sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime())[0];
+
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '1rem' }}>
@@ -396,6 +404,7 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
         <tbody>
           {users.map((u, i) => {
             const hasCustomPerms = u.permissions && u.permissions !== '[]';
+            const isProtected = u.isSuperAdmin || u.id === oldestUser?.id;
             return (
             <tr key={u.id || i} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
               <td data-label="Nombre Empleado" style={{ padding: '1rem', fontWeight: 'bold' }}>{u.name}</td>
@@ -435,8 +444,8 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
                 </button>
                 <button 
                   onClick={() => handleDelete(u.id)} 
-                  disabled={u.role === 'ADMIN'} 
-                  style={{ backgroundColor: 'transparent', border: 'none', cursor: u.role === 'ADMIN' ? 'not-allowed' : 'pointer', color: u.role === 'ADMIN' ? '#cbd5e1' : '#ef4444' }}
+                  disabled={isProtected} 
+                  style={{ backgroundColor: 'transparent', border: 'none', cursor: isProtected ? 'not-allowed' : 'pointer', color: isProtected ? '#cbd5e1' : '#ef4444' }}
                 >
                   <Trash2 size={18} />
                 </button>
@@ -582,26 +591,57 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
                       ))}
                       
                       {mod.id === 'branches' && (
-                        <div style={{ padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)', marginTop: '2rem' }}>
-                          <h5 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--pulpos-primary)' }}>Coordenadas Excepcionales (Home Office / Fuera de Oficina)</h5>
-                          <p style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', marginBottom: '1rem' }}>
-                            Si el empleado hace Home Office, define aquí sus coordenadas. Esto ignorará las coordenadas de la sucursal al validar el GPS.
-                          </p>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                            <div>
-                              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Latitud</label>
-                              <input type="number" step="any" name="homeLat" defaultValue={editingUser?.homeLat || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Longitud</label>
-                              <input type="number" step="any" name="homeLng" defaultValue={editingUser?.homeLng || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Radio (mts)</label>
-                              <input type="number" step="any" name="homeRadius" defaultValue={editingUser?.homeRadius || ''} placeholder="50" style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                        <>
+                          <div style={{ padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)', marginTop: '2rem' }}>
+                            <h5 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--pulpos-primary)' }}>Coordenadas Excepcionales (Home Office / Fuera de Oficina)</h5>
+                            <p style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', marginBottom: '1rem' }}>
+                              Si el empleado hace Home Office, define aquí sus coordenadas. Esto ignorará las coordenadas de la sucursal al validar el GPS.
+                            </p>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                              <div>
+                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Latitud</label>
+                                <input type="number" step="any" name="homeLat" defaultValue={editingUser?.homeLat || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                              </div>
+                              <div>
+                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Longitud</label>
+                                <input type="number" step="any" name="homeLng" defaultValue={editingUser?.homeLng || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                              </div>
+                              <div>
+                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Radio (mts)</label>
+                                <input type="number" step="any" name="homeRadius" defaultValue={editingUser?.homeRadius || ''} placeholder="50" style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                              </div>
                             </div>
                           </div>
-                        </div>
+                          
+                          <div style={{ padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)', marginTop: '1rem' }}>
+                            <h5 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--pulpos-primary)' }}>Ubicaciones GPS Permitidas</h5>
+                            <p style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', marginBottom: '1rem' }}>
+                              Selecciona las ubicaciones adicionales donde este empleado tiene permitido registrar asistencia.
+                            </p>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
+                              {hrLocations?.map((loc: any) => (
+                                <label key={loc.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem', borderRadius: '4px', border: '1px solid #e2e8f0', backgroundColor: 'white' }}>
+                                  <input 
+                                    type="checkbox" 
+                                    checked={selectedHrLocations.includes(loc.id)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedHrLocations([...selectedHrLocations, loc.id]);
+                                      } else {
+                                        setSelectedHrLocations(selectedHrLocations.filter(id => id !== loc.id));
+                                      }
+                                    }}
+                                    style={{ width: '1rem', height: '1rem', accentColor: 'var(--pulpos-primary)' }}
+                                  />
+                                  <span style={{ fontSize: '0.875rem' }}>{loc.name}</span>
+                                </label>
+                              ))}
+                              {hrLocations?.length === 0 && (
+                                <p style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>No hay ubicaciones registradas.</p>
+                              )}
+                            </div>
+                          </div>
+                        </>
                       )}
                     </div>
                   ))}
@@ -709,6 +749,10 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#8b5cf6' }}>Bono Puntualidad ($)</label>
                 <input type="number" step="10" name="bonusPunctuality" defaultValue={editingUser?.bonusPunctuality || 0} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #8b5cf6', backgroundColor: 'white' }} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', marginTop: '1.5rem' }}>
+                <input type="checkbox" id="deductLunchHour" name="deductLunchHour" defaultChecked={editingUser?.deductLunchHour || false} style={{ marginRight: '0.5rem', width: '1.25rem', height: '1.25rem', accentColor: 'var(--pulpos-primary)' }} />
+                <label htmlFor="deductLunchHour" style={{ fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--pulpos-text)' }}>Descontar hora de comida de las horas trabajadas</label>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#8b5cf6' }}>Bono Despensa ($)</label>

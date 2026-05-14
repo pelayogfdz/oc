@@ -116,6 +116,11 @@ export default function NominaClient() {
                     </td>
                     <td data-label="Total a Pagar" style={{ textAlign: 'right', fontWeight: 'bold', color: 'var(--pulpos-primary)', fontSize: '1.1rem' }}>
                       ${row.totalToPay.toFixed(2)}
+                      {row.lunchDeduction > 0 && (
+                        <div style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 'normal', marginTop: '0.25rem' }}>
+                          - ${row.lunchDeduction.toFixed(2)} (Comida)
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

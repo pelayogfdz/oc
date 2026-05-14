@@ -41,6 +41,7 @@ export async function createUser(formData: FormData) {
   const overtimeBonus = parseFloat(formData.get('overtimeBonus') as string || '0');
   const groceryBonus = parseFloat(formData.get('groceryBonus') as string || '0');
   const transportBonus = parseFloat(formData.get('transportBonus') as string || '0');
+  const deductLunchHour = formData.get('deductLunchHour') === 'on';
   
   const reqGps = formData.get('reqGps') === 'on';
   const reqPhoto = formData.get('reqPhoto') === 'on';
@@ -55,6 +56,9 @@ export async function createUser(formData: FormData) {
   const homeLng = homeLngRaw ? parseFloat(homeLngRaw) : null;
   const homeRadius = homeRadiusRaw ? parseFloat(homeRadiusRaw) : null;
   
+  const hrLocationsRaw = formData.get('hrLocations') as string;
+  const hrLocations = hrLocationsRaw ? JSON.parse(hrLocationsRaw) : [];
+  
   const branch = await getActiveBranch();
   if (!branch) throw new Error("No branch active");
   
@@ -64,9 +68,12 @@ export async function createUser(formData: FormData) {
       branchId: branch.id, tenantId: branch.tenantId, permissions,
       rfc, curp, nss, taxRegime, address, phone, hireDate, birthDate,
       payrollType, dailySalary, bankName, bankAccount,
-      bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus,
+      bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus, deductLunchHour,
       reqGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto,
-      homeLat, homeLng, homeRadius
+      homeLat, homeLng, homeRadius,
+      hrLocations: {
+        connect: hrLocations.map((id: string) => ({ id }))
+      }
     } as any
   });
   
@@ -111,6 +118,7 @@ export async function updateUser(id: string, formData: FormData) {
   const overtimeBonus = parseFloat(formData.get('overtimeBonus') as string || '0');
   const groceryBonus = parseFloat(formData.get('groceryBonus') as string || '0');
   const transportBonus = parseFloat(formData.get('transportBonus') as string || '0');
+  const deductLunchHour = formData.get('deductLunchHour') === 'on';
   
   const reqGps = formData.get('reqGps') === 'on';
   const reqPhoto = formData.get('reqPhoto') === 'on';
@@ -125,11 +133,14 @@ export async function updateUser(id: string, formData: FormData) {
   const homeLng = homeLngRaw ? parseFloat(homeLngRaw) : null;
   const homeRadius = homeRadiusRaw ? parseFloat(homeRadiusRaw) : null;
   
+  const hrLocationsRaw = formData.get('hrLocations') as string;
+  const hrLocations = hrLocationsRaw ? JSON.parse(hrLocationsRaw) : [];
+  
   const updateData: any = { 
     name, email, role, commissionRole, commissionPct, monthlyGoal, bonusAmount, teamBonusAmount, managerId, permissions,
     rfc, curp, nss, taxRegime, address, phone, hireDate, birthDate,
     payrollType, dailySalary, bankName, bankAccount,
-    bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus,
+    bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus, deductLunchHour,
     reqGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto,
     homeLat, homeLng, homeRadius
   };
@@ -140,7 +151,12 @@ export async function updateUser(id: string, formData: FormData) {
 
   await prisma.user.update({
     where: { id },
-    data: updateData
+    data: {
+      ...updateData,
+      hrLocations: {
+        set: hrLocations.map((locId: string) => ({ id: locId }))
+      }
+    }
   });
   
   revalidatePath('/preferencias/usuarios');
@@ -148,6 +164,25 @@ export async function updateUser(id: string, formData: FormData) {
 }
 
 export async function deleteUser(id: string) {
+  const userToDelete = await prisma.user.findUnique({ where: { id } });
+  if (!userToDelete) throw new Error("Usuario no encontrado");
+
+  if (userToDelete.isSuperAdmin) {
+    throw new Error("No se puede eliminar a un Super Administrador del sistema.");
+  }
+
+  if (userToDelete.tenantId) {
+    const oldestUser = await prisma.user.findFirst({
+      where: { tenantId: userToDelete.tenantId },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    if (oldestUser && oldestUser.id === id) {
+      throw new Error("No se puede eliminar al creador original (propietario) de la cuenta.");
+    }
+  }
+
   await prisma.user.delete({ where: { id } });
   revalidatePath('/preferencias/usuarios');
+  return { success: true };
 }

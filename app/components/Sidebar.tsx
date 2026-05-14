@@ -124,9 +124,9 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
 
       {/* Main Navigation */}
       <nav style={{ flex: 1, padding: '0.5rem 1rem 2rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-        {!isSuperAdmin && navStructure.map((node) => {
+        {navStructure.map((node) => {
           // Check permissions
-          if (node.requiredPermission && userRole !== 'OWNER' && userRole !== 'ADMIN') {
+          if (!isSuperAdmin && node.requiredPermission && userRole !== 'OWNER' && userRole !== 'ADMIN') {
             const reqs = Array.isArray(node.requiredPermission) ? node.requiredPermission : [node.requiredPermission];
             const hasAccess = reqs.some(req => userPermissions[req]);
             if (!hasAccess) return null;
@@ -230,8 +230,8 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
 
         {/* Footer Items Wrapper */}
         <div style={{ marginTop: 'auto' }}>
-          {!isSuperAdmin && footerNodes.filter(node => {
-            if (node.requiredPermission && userRole !== 'OWNER' && userRole !== 'ADMIN') {
+          {footerNodes.filter(node => {
+            if (!isSuperAdmin && node.requiredPermission && userRole !== 'OWNER' && userRole !== 'ADMIN') {
               const reqs = Array.isArray(node.requiredPermission) ? node.requiredPermission : [node.requiredPermission];
               return reqs.some(req => userPermissions[req]);
             }
