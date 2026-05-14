@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Users, Plus, Shield, Edit2, Trash2, CheckCircle2, ChevronDown, ChevronRight, X } from 'lucide-react';
 import { createUser, updateUser, deleteUser } from '@/app/actions/user';
 
@@ -158,6 +158,27 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
   const [baselinePhoto, setBaselinePhoto] = useState<string>('');
   const [bioStatus, setBioStatus] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'biometrics' && !modelsLoaded) {
+      setBioStatus('Precargando modelos de IA en segundo plano...');
+      import('@vladmandic/face-api').then(async (faceapi) => {
+        try {
+          await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+            faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+            faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+          ]);
+          setModelsLoaded(true);
+          setBioStatus('Modelos listos. Puedes seleccionar una foto.');
+        } catch (err: any) {
+          console.error("Error loading models:", err);
+          setBioStatus('Error al precargar IA: ' + err.message);
+        }
+      });
+    }
+  }, [activeTab, modelsLoaded]);
   
   // State for permissions mapping
   const [perms, setPerms] = useState<Record<string, boolean>>({});
@@ -284,12 +305,18 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setBioStatus('Cargando modelos de IA...');
+    setBioStatus('Iniciando lectura biométrica...');
     try {
       const faceapi = await import('@vladmandic/face-api');
-      await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
-      await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
-      await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
+      if (!modelsLoaded) {
+        setBioStatus('Cargando modelos de IA...');
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+          faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+          faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+        ]);
+        setModelsLoaded(true);
+      }
 
       setBioStatus('Procesando rostro...');
       const reader = new FileReader();
