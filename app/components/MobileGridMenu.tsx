@@ -169,6 +169,17 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
               <span style={{ flex: 1 }}>Panel Global (Negocio)</span>
             </Link>
           )}
+
+          <form action="/api/auth/logout" method="POST" style={{ marginTop: '0.5rem' }}>
+            <button type="submit" style={{ 
+                display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', 
+                borderRadius: '8px', width: '100%',
+                backgroundColor: '#fef2f2', border: '1px solid #fecaca',
+                color: '#dc2626', fontWeight: 'bold', cursor: 'pointer'
+              }}>
+              <span style={{ flex: 1, textAlign: 'left' }}>Cerrar Sesión</span>
+            </button>
+          </form>
         </nav>
       </div>
     </div>
