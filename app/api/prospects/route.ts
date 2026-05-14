@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    let { name, phone } = body;
+    let { name, phone, customerId } = body;
 
     if (!name || !phone) {
       return NextResponse.json({ error: "Name and phone are required" }, { status: 400 });
@@ -27,6 +27,12 @@ export async function POST(request: Request) {
     });
 
     if (prospect) {
+      if (customerId && prospect.customerId !== customerId) {
+        prospect = await prisma.prospect.update({
+          where: { id: prospect.id },
+          data: { customerId }
+        });
+      }
       return NextResponse.json({ prospect, isNew: false });
     }
 
@@ -35,6 +41,7 @@ export async function POST(request: Request) {
       data: {
         name,
         phone,
+        customerId: customerId || null,
         branchId: branch.id,
         funnelStage: 'NEW',
         assignedUserId: user.id // Auto-asignar al usuario que lo crea

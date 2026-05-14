@@ -195,6 +195,7 @@ model Customer {
   branchId         String?
   sales            Sale[]
   quotes           Quote[]
+  prospects        Prospect[]
 
   // Dirección Completa
   street         String?
@@ -868,6 +869,7 @@ model Prospect {
   id          String  @id @default(uuid())
   name        String
   phone       String? // WhatsApp number
+  whatsappId  String? // WhatsApp LID or c.us
   email       String?
   funnelStage String  @default("NEW") // NEW, CONTACTED, QUOTED, WON, LOST
 
@@ -876,6 +878,9 @@ model Prospect {
 
   assignedUserId String?
   assignedUser   User?   @relation("AssignedProspects", fields: [assignedUserId], references: [id])
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
 
   messages WhatsAppMessage[]
 

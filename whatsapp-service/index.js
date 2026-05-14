@@ -125,7 +125,15 @@ client.on('message', async msg => {
     if (msg.isStatus) return;
 
     const contact = await msg.getContact();
-    const phone = contact.number; // e.g. "5215555555555"
+    let phone = contact.number; // e.g. "5215555555555"
+
+    console.log(`[WHATSAPP] Contact Info:`, {
+        id: contact.id,
+        number: contact.number,
+        pushname: contact.pushname,
+        name: contact.name,
+        shortName: contact.shortName
+    });
 
     console.log(`[WHATSAPP] Mensaje recibido de ${phone}: ${msg.body}`);
 
@@ -134,8 +142,15 @@ client.on('message', async msg => {
         if (!branch) return;
 
         // Find or create prospect
-        let prospect = await prisma.prospect.findUnique({
-            where: { phone_branchId: { phone: phone, branchId: branch.id } }
+        let prospect = await prisma.prospect.findFirst({
+            where: { 
+                branchId: branch.id,
+                OR: [
+                    { phone: phone },
+                    { whatsappId: phone },
+                    { whatsappId: { contains: phone } }
+                ]
+            }
         });
 
         if (!prospect) {
@@ -235,10 +250,34 @@ setInterval(async () => {
 
         for (const msg of pendingMessages) {
             try {
-                const phone = msg.prospect.phone;
+                let phone = msg.prospect.phone;
                 if (!phone) continue;
 
-                const chatId = `${phone}@c.us`; 
+                // Format Mexican phone numbers: if it starts with 52 and has 12 digits, insert 1
+                if (phone.startsWith('52') && phone.length === 12) {
+                    phone = '521' + phone.substring(2);
+                }
+
+                let chatId = `${phone}@c.us`;
+
+                // Try to validate, but fallback if it throws 'No LID'
+                try {
+                    const numberId = await client.getNumberId(phone);
+                    if (numberId) {
+                        chatId = numberId._serialized;
+                        
+                        // Update whatsappId if not set or different
+                        if (msg.prospect.whatsappId !== numberId.user) {
+                            await prisma.prospect.update({
+                                where: { id: msg.prospect.id },
+                                data: { whatsappId: numberId.user }
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.log(`[WHATSAPP] getNumberId failed for ${phone}, falling back to default format.`);
+                }
+
                 const sentMsg = await client.sendMessage(chatId, msg.body);
 
                 // Update the message with the real messageId
@@ -253,8 +292,7 @@ setInterval(async () => {
                 console.log(`[WHATSAPP] Sent pending message to ${phone}`);
             } catch (sendError) {
                 console.error(`Failed to send pending message to ${msg.prospect?.phone}:`, sendError);
-                // Optionally mark as failed or just leave it to retry. 
-                // We'll update it to 'FAILED' in messageId so it doesn't get stuck in an infinite loop
+                // Mark as failed so it doesn't get stuck
                 await prisma.whatsAppMessage.update({
                     where: { id: msg.id },
                     data: {

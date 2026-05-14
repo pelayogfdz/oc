@@ -35,6 +35,7 @@ const routeMap: Record<string, RouteInfo> = {
   '/rh/monitoreo': { title: 'Monitoreo', subtitle: 'Monitoreo de Asistencia' },
   '/rh/reportes': { title: 'Reportes RH', subtitle: 'Reportes de Recursos Humanos' },
   '/rh/tramites': { title: 'Trámites', subtitle: 'Trámites y Solicitudes' },
+  '/rh/calendario': { title: 'Calendario', subtitle: 'Calendario de Incidencias' },
   '/reportes': { title: 'Reportes', subtitle: 'Reportes Generales' },
   '/reportes/ventas-desglose': { title: 'Desglose de Ventas', subtitle: 'Reporte de Ventas Detalladas' },
   '/reportes/asistencia': { title: 'Reporte Asistencia', subtitle: 'Asistencia del personal' },

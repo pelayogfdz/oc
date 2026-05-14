@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ChatInterface from "../prospeccion/chat/[id]/ChatInterface";
 
-export default function BandejaClient({ initialProspects, users, currentUser }: any) {
+export default function BandejaClient({ initialProspects, users, currentUser, customers = [] }: any) {
   const [prospects, setProspects] = useState(initialProspects);
   const [selectedProspectId, setSelectedProspectId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -13,6 +13,7 @@ export default function BandejaClient({ initialProspects, users, currentUser }: 
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
   const [newChatName, setNewChatName] = useState("");
   const [newChatPhone, setNewChatPhone] = useState("");
+  const [newChatCustomerId, setNewChatCustomerId] = useState<string>("");
 
   const handleCreateChat = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +23,7 @@ export default function BandejaClient({ initialProspects, users, currentUser }: 
       const res = await fetch("/api/prospects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newChatName, phone: newChatPhone })
+        body: JSON.stringify({ name: newChatName, phone: newChatPhone, customerId: newChatCustomerId || null })
       });
       if (res.ok) {
         const data = await res.json();
@@ -37,6 +38,7 @@ export default function BandejaClient({ initialProspects, users, currentUser }: 
         setIsNewChatModalOpen(false);
         setNewChatName("");
         setNewChatPhone("");
+        setNewChatCustomerId("");
       } else {
         alert("Error al crear el chat");
       }
@@ -89,11 +91,31 @@ export default function BandejaClient({ initialProspects, users, currentUser }: 
             <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Nuevo Chat de WhatsApp</h3>
             <form onSubmit={handleCreateChat}>
               <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Cliente (Opcional)</label>
+                <select 
+                  value={newChatCustomerId} 
+                  onChange={e => {
+                    setNewChatCustomerId(e.target.value);
+                    const c = customers.find((x: any) => x.id === e.target.value);
+                    if (c) {
+                      setNewChatName(c.name);
+                      if (c.phone) setNewChatPhone(c.phone);
+                    }
+                  }} 
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                >
+                  <option value="">-- Seleccionar o crear nuevo --</option>
+                  {customers.map((c: any) => (
+                    <option key={c.id} value={c.id}>{c.name} {c.phone ? `(${c.phone})` : ''}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Nombre del Contacto</label>
                 <input required type="text" value={newChatName} onChange={e => setNewChatName(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
               </div>
               <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Número de Teléfono (con código de país ej. 521...)</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Número de Teléfono (ej. 521...)</label>
                 <input required type="text" value={newChatPhone} onChange={e => setNewChatPhone(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
@@ -194,7 +216,79 @@ export default function BandejaClient({ initialProspects, users, currentUser }: 
               </div>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <span style={{ fontSize: '0.875rem', color: '#475569', fontWeight: '500' }}>Agente asignado:</span>
+                {!selectedProspect.customerId && (
+                  <button
+                    onClick={async () => {
+                      if(confirm("¿Guardar este prospecto como cliente en el sistema?")) {
+                        try {
+                          await fetch(`/api/prospects/${selectedProspect.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ createCustomer: true })
+                          });
+                          router.refresh();
+                        } catch(e) {
+                          alert("Error al guardar como cliente");
+                        }
+                      }
+                    }}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      backgroundColor: '#f59e0b',
+                      color: 'white',
+                      borderRadius: '8px',
+                      border: 'none',
+                      fontWeight: 'bold',
+                      fontSize: '0.875rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                      <line x1="20" y1="8" x2="20" y2="14"></line>
+                      <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                    Guardar en Clientes
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    if (selectedProspect.customerId) {
+                      router.push(`/ventas/cotizaciones/nueva?customerId=${selectedProspect.customerId}`);
+                    } else {
+                      router.push(`/ventas/cotizaciones/nueva?prospectId=${selectedProspect.id}`);
+                    }
+                  }}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontWeight: 'bold',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                  Crear Cotización
+                </button>
+
+                <span style={{ fontSize: '0.875rem', color: '#475569', fontWeight: '500', marginLeft: '1rem' }}>Agente asignado:</span>
                 <select 
                   value={selectedProspect.assignedUserId || ""}
                   onChange={(e) => handleAssign(selectedProspect.id, e.target.value)}

@@ -2,7 +2,7 @@ import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import POSClient from "../../nueva/POSClient";
 
-export default async function NuevaCotizacionPage() {
+export default async function NuevaCotizacionPage({ searchParams }: { searchParams: { customerId?: string } }) {
   const branch = await getActiveBranch();
   const products = await prisma.product.findMany({
     where: { branchId: branch.id, isActive: true },
@@ -21,7 +21,14 @@ export default async function NuevaCotizacionPage() {
   return (
     <div>
       <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', color: '#854d0e' }}>Crear Nueva Cotización</h1>
-      <POSClient products={products} customers={customers} promotions={promotions} mode="QUOTE" branchId={branch.id} />
+      <POSClient 
+        products={products} 
+        customers={customers} 
+        promotions={promotions} 
+        mode="QUOTE" 
+        branchId={branch.id} 
+        initialCustomerId={searchParams.customerId}
+      />
     </div>
   );
 }

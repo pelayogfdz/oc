@@ -9,14 +9,18 @@ import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import ProductTableUI from '@/app/components/ProductTableUI';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 
-export default function POSClient({ products: initialProducts, customers, promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {}, impresorasConfig = {}, dynamicPriceLists = [], pendingQuotes = [] }: { products: any[], customers: any[], promotions?: any[], mode?: "SALE" | "QUOTE", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any, impresorasConfig?: any, dynamicPriceLists?: any[], pendingQuotes?: any[] }) {
+export default function POSClient({ products: initialProducts, customers, promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {}, impresorasConfig = {}, dynamicPriceLists = [], pendingQuotes = [], initialCustomerId }: { products: any[], customers: any[], promotions?: any[], mode?: "SALE" | "QUOTE", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any, impresorasConfig?: any, dynamicPriceLists?: any[], pendingQuotes?: any[], initialCustomerId?: string }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isOnline, pushOfflineSale } = useOfflineSync();
   const [cart, setCart] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [priceList, setPriceList] = useState('price');
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  
+  const initialCustomer = initialCustomerId ? customers.find(c => c.id === initialCustomerId) : null;
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(initialCustomerId || null);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState(initialCustomer ? initialCustomer.name : '');
+
   const [isSearching, setIsSearching] = useState(false);
   const [displayedProducts, setDisplayedProducts] = useState<any[]>(initialProducts);
   
@@ -53,7 +57,6 @@ export default function POSClient({ products: initialProducts, customers, promot
 
   // Advanced POS State
   const [stockFilter, setStockFilter] = useState<'ALL' | 'IN_STOCK' | 'OUT_OF_STOCK'>('ALL');
-  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [showScanner, setShowScanner] = useState(false);

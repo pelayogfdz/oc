@@ -120,6 +120,7 @@ export const navStructure: MenuNode[] = [
     requiredPermission: ['admin_reports_access'],
     items: [
       { name: 'Monitoreo de Asistencia', path: '/rh/monitoreo' },
+      { name: 'Calendario de Incidencias', path: '/rh/calendario' },
       { name: 'Reportes Históricos', path: '/rh/reportes' },
       { name: 'Trámites y Avisos', path: '/rh/tramites' },
       { name: 'Cálculo de Nómina', path: '/rh/nomina', badge: 'Nuevo' },

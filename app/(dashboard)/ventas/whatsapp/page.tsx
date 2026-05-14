@@ -18,10 +18,25 @@ export default async function WhatsappBandejaPage() {
   // Handle "GLOBAL" branch gracefully
   const branchFilter = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
 
-  // Traer todos los prospectos de la sucursal, ordenados por la última actualización
-  // Idealmente ordenaríamos por el último mensaje recibido
+  // Determinar si el usuario es administrador/gerente con acceso total
+  const isManager = user.role === 'ADMIN' || user.role === 'MANAGER' || user.commissionRole === 'COORDINADOR' || user.commissionRole === 'LIDER';
+
+  // Lógica de visibilidad:
+  // - Managers ven todos
+  // - Usuarios normales solo ven los "sin asignar" o los "asignados a ellos mismos"
+  const prospectFilter = isManager 
+    ? branchFilter 
+    : {
+        ...branchFilter,
+        OR: [
+          { assignedUserId: null },
+          { assignedUserId: user.id }
+        ]
+      };
+
+  // Traer prospectos según el filtro
   const prospects = await prisma.prospect.findMany({
-    where: branchFilter,
+    where: prospectFilter,
     include: {
       assignedUser: true,
       messages: {
@@ -33,8 +48,14 @@ export default async function WhatsappBandejaPage() {
 
   // Lista de vendedores/usuarios disponibles para asignar
   const allUsers = await prisma.user.findMany({
-    where: { ...branchFilter, commissionRole: { not: null } },
+    where: { ...branchFilter },
     select: { id: true, name: true, commissionRole: true }
+  });
+
+  // Lista de clientes para asignar a nuevos chats
+  const customers = await prisma.customer.findMany({
+    where: branchFilter,
+    select: { id: true, name: true, phone: true }
   });
 
   return (
@@ -48,7 +69,7 @@ export default async function WhatsappBandejaPage() {
       
       {/* Client component con la interfaz de dos paneles */}
       <div style={{ flex: 1, overflow: 'hidden', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
-        <BandejaClient initialProspects={prospects} users={allUsers} currentUser={user} />
+        <BandejaClient initialProspects={prospects} users={allUsers} currentUser={user} customers={customers} />
       </div>
     </div>
   );
