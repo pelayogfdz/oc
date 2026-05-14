@@ -20,16 +20,10 @@ export const getActiveUser = cache(async () => {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
 
-  const getCachedUser = unstable_cache(
-    async () => prisma.user.findUnique({
-      where: { id: session.userId },
-      include: { tenant: true }
-    }),
-    [`user-${session.userId}`],
-    { tags: [`user-${session.userId}`] }
-  );
-
-  const user = await getCachedUser();
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    include: { tenant: true }
+  });
   
   if (!user) throw new Error("User not found");
 
@@ -51,15 +45,9 @@ export const getActiveBranch = cache(async () => {
     if (branchId === 'GLOBAL') {
       return { id: 'GLOBAL', name: 'Todas las Sucursales', location: 'Corporativo', isActive: true, deletedAt: null, tenantId: session.tenantId };
     }
-    const getCachedBranch = unstable_cache(
-      async () => prisma.branch.findFirst({ 
-        where: { id: branchId, isActive: true, tenantId: session.tenantId } 
-      }),
-      [`branch-${branchId}`],
-      { tags: [`branch-${branchId}`] }
-    );
-    
-    const branch = await getCachedBranch();
+    const branch = await prisma.branch.findFirst({ 
+      where: { id: branchId, isActive: true, tenantId: session.tenantId } 
+    });
     if (branch) return branch;
   }
   

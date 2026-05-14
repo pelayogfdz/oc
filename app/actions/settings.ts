@@ -73,15 +73,9 @@ export async function getTenantSettings() {
     return { decimals: 2 };
   }
   
-  const getCachedTenant = unstable_cache(
-    async () => prisma.tenant.findUnique({
-      where: { id: branch.tenantId! } // asserted by the if check
-    }),
-    [`tenant-${branch.tenantId}`],
-    { tags: [`tenant-${branch.tenantId}`] }
-  );
-
-  const tenant = await getCachedTenant();
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: branch.tenantId! }
+  });
   
   return tenant || { decimals: 2 };
 }
