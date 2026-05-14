@@ -208,8 +208,8 @@ export default function LoginPage() {
         return;
       }
 
-      router.push('/');
-      router.refresh();
+      // Use hard navigation to fix Safari cookie state issues
+      window.location.href = '/';
     } catch (err: any) {
       setError(err.message);
       setLoading(false);
