@@ -887,20 +887,17 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
               <div style={{ padding: '1rem', borderRadius: '6px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', marginTop: '1rem' }}>
                 <h5 style={{ fontWeight: 'bold', color: '#1d4ed8', marginBottom: '0.5rem' }}>Registro Facial (Reconocimiento Biométrico)</h5>
                 <p style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '1rem' }}>Para que el sistema reconozca automáticamente a este empleado, debe registrar su rostro.</p>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  capture="user" 
-                  ref={fileInputRef} 
-                  style={{ display: 'none' }} 
-                  onChange={handleBioCapture} 
-                />
-                <button 
-                  type="button" 
-                  onClick={() => fileInputRef.current?.click()} 
-                  style={{ padding: '0.5rem 1rem', backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+                <label 
+                  style={{ display: 'inline-block', padding: '0.5rem 1rem', backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    capture="user" 
+                    onChange={handleBioCapture} 
+                    style={{ display: 'none' }} 
+                  />
                   📸 {faceDescriptor ? 'Actualizar Registro Facial' : 'Iniciar Registro Facial'}
-                </button>
+                </label>
                 {bioStatus && (
                   <p style={{ marginTop: '0.75rem', fontSize: '0.875rem', fontWeight: 'bold', color: bioStatus.includes('Error') ? 'var(--error-color)' : 'var(--pulpos-primary)' }}>
                     {bioStatus}
