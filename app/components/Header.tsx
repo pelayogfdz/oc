@@ -11,7 +11,7 @@ export default async function Header() {
   const currentUser = await getActiveUser().catch(() => null);
   
   const branches = await prisma.branch.findMany({
-    where: { isActive: true },
+    where: { isActive: true, tenantId: currentUser?.tenantId },
     orderBy: { name: 'asc' }
   });
 
