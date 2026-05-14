@@ -414,8 +414,13 @@ button {
     gap: 1rem;
   }
   .preferences-sidebar {
-    width: 100%;
-    max-height: 300px; /* Limit height so tabs don't consume entire screen */
+    display: none !important;
+  }
+  .mobile-only-preferences-nav {
+    display: block !important;
+  }
+  .preferences-main {
+    margin-top: 0;
   }
 }
 

@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Settings, Users, Store, Banknote, Shield, CheckCircle, Smartphone, MapPin, HardDrive, LayoutTemplate, Box, FileText, List, Star, Zap, CreditCard, Wrench, Bell, Tag } from 'lucide-react';
 
 const prefTabs = [
@@ -31,10 +31,37 @@ import InstallPWAButton from '@/app/components/InstallPWAButton';
 
 export default function PreferenciasLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   return (
     <div className="preferences-layout">
       
+      {/* Mobile Select Navigation */}
+      <div className="mobile-only-preferences-nav" style={{ display: 'none', marginBottom: '1rem' }}>
+        <label htmlFor="pref-nav" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>
+          MÓDULO DE PREFERENCIAS
+        </label>
+        <select 
+          id="pref-nav"
+          value={pathname}
+          onChange={(e) => router.push(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '0.75rem',
+            borderRadius: '8px',
+            border: '1px solid var(--pulpos-border)',
+            backgroundColor: 'white',
+            fontSize: '1rem',
+            color: 'var(--pulpos-text)',
+            outline: 'none'
+          }}
+        >
+          {prefTabs.map(tab => (
+            <option key={tab.path} value={tab.path}>{tab.name}</option>
+          ))}
+        </select>
+      </div>
+
       {/* 18-tab Sidebar */}
       <aside className="preferences-sidebar">
         <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '1rem', paddingLeft: '1rem' }}>PREFERENCIAS</h3>
@@ -69,7 +96,7 @@ export default function PreferenciasLayout({ children }: { children: React.React
       </aside>
 
       {/* Main Content Area */}
-      <main style={{ flex: 1 }}>
+      <main className="preferences-main" style={{ flex: 1 }}>
         {children}
       </main>
 
