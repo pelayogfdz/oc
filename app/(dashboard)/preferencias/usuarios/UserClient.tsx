@@ -874,6 +874,14 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                 </div>
               </label>
 
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '1rem', borderRadius: '6px', backgroundColor: '#fff7ed', border: '1px solid #fed7aa' }}>
+                <input type="checkbox" name="strictCheckinTime" defaultChecked={editingUser?.strictCheckinTime} style={{ width: '1.25rem', height: '1.25rem', accentColor: '#ea580c' }} />
+                <div>
+                  <span style={{ fontSize: '1rem', fontWeight: 'bold', display: 'block', color: '#9a3412' }}>Limitar Check-in a 30 minutos (Ventana Estricta)</span>
+                  <span style={{ fontSize: '0.85rem', color: '#c2410c' }}>El empleado solo podrá registrar entrada entre 30 minutos antes y 30 minutos después de su horario establecido.</span>
+                </div>
+              </label>
+
               <div style={{ padding: '1rem', borderRadius: '6px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', marginTop: '1rem' }}>
                 <h5 style={{ fontWeight: 'bold', color: '#1d4ed8', marginBottom: '0.5rem' }}>Registro Facial (Reconocimiento Biométrico)</h5>
                 <p style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '1rem' }}>Para que el sistema reconozca automáticamente a este empleado, debe registrar su rostro.</p>

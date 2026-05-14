@@ -86,6 +86,7 @@ model User {
   homeRadius                Float?                   @default(50)
   isSuperAdmin              Boolean                  @default(false)
   deductLunchHour           Boolean                  @default(false)
+  strictCheckinTime         Boolean                  @default(false)
   currentSessionId          String?
   attendanceLogs            AttendanceLog[]
   cashSessions              CashSession[]

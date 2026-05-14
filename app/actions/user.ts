@@ -42,6 +42,7 @@ export async function createUser(formData: FormData) {
   const groceryBonus = parseFloat(formData.get('groceryBonus') as string || '0');
   const transportBonus = parseFloat(formData.get('transportBonus') as string || '0');
   const deductLunchHour = formData.get('deductLunchHour') === 'on';
+  const strictCheckinTime = formData.get('strictCheckinTime') === 'on';
   
   const reqGps = formData.get('reqGps') === 'on';
   const reqPhoto = formData.get('reqPhoto') === 'on';
@@ -69,7 +70,7 @@ export async function createUser(formData: FormData) {
       rfc, curp, nss, taxRegime, address, phone, hireDate, birthDate,
       payrollType, dailySalary, bankName, bankAccount,
       bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus, deductLunchHour,
-      reqGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto,
+      reqGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto, strictCheckinTime,
       homeLat, homeLng, homeRadius,
       hrLocations: {
         connect: hrLocations.map((id: string) => ({ id }))
@@ -119,6 +120,7 @@ export async function updateUser(id: string, formData: FormData) {
   const groceryBonus = parseFloat(formData.get('groceryBonus') as string || '0');
   const transportBonus = parseFloat(formData.get('transportBonus') as string || '0');
   const deductLunchHour = formData.get('deductLunchHour') === 'on';
+  const strictCheckinTime = formData.get('strictCheckinTime') === 'on';
   
   const reqGps = formData.get('reqGps') === 'on';
   const reqPhoto = formData.get('reqPhoto') === 'on';
@@ -141,7 +143,7 @@ export async function updateUser(id: string, formData: FormData) {
     rfc, curp, nss, taxRegime, address, phone, hireDate, birthDate,
     payrollType, dailySalary, bankName, bankAccount,
     bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus, deductLunchHour,
-    reqGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto,
+    reqGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto, strictCheckinTime,
     homeLat, homeLng, homeRadius
   };
   

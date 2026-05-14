@@ -114,13 +114,56 @@ export async function registerAttendance(data: {
     }
   }
 
-  // Determine if late (basic mock logic, usually requires schedule matrix matching)
+  // Determine if late and enforce strict checkin
   let status = 'ON_TIME';
   if (data.type === 'CHECK_IN') {
-    const currentHour = new Date().getHours();
-    // Example: If after 9:15 AM, mark as late. Ideally, read from user.workScheduleMatrix
-    if (currentHour >= 9 && new Date().getMinutes() > 15) {
-      status = 'LATE';
+    let expectedHour = 9;
+    let expectedMinute = 0;
+    let hasSchedule = false;
+
+    const mxDateStr = now.toLocaleString("en-US", { timeZone: "America/Mexico_City" });
+    const mxDate = new Date(mxDateStr);
+
+    if (user.workScheduleMatrix) {
+      try {
+        const sched = JSON.parse(user.workScheduleMatrix);
+        const dayMap = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"];
+        const currentDayStr = dayMap[mxDate.getDay()];
+        
+        if (sched[currentDayStr] && sched[currentDayStr].length >= 1) {
+          hasSchedule = true;
+          const [hh, mm] = sched[currentDayStr][0].split(':');
+          expectedHour = parseInt(hh, 10);
+          expectedMinute = parseInt(mm, 10);
+        } else if (user.strictCheckinTime) {
+           throw new Error("No tienes un horario asignado para el día de hoy según tu matriz de trabajo.");
+        }
+      } catch(e: any) {
+         if (e.message?.includes("No tienes un horario")) throw e;
+      }
+    } else if (user.strictCheckinTime) {
+       throw new Error("No tienes un horario asignado para el día de hoy según tu matriz de trabajo.");
+    }
+
+    if (hasSchedule) {
+      const nowMins = mxDate.getHours() * 60 + mxDate.getMinutes();
+      const expectedMins = expectedHour * 60 + expectedMinute;
+      const diffMins = nowMins - expectedMins;
+
+      if (user.strictCheckinTime) {
+        if (diffMins < -30 || diffMins > 30) {
+          throw new Error(`Ventana estricta: Tu horario es ${expectedHour.toString().padStart(2, '0')}:${expectedMinute.toString().padStart(2, '0')}. Solo puedes hacer check-in +/- 30 minutos.`);
+        }
+      }
+
+      if (diffMins > 15) {
+        status = 'LATE';
+      }
+    } else {
+      // Fallback
+      if (mxDate.getHours() >= 9 && mxDate.getMinutes() > 15) {
+        status = 'LATE';
+      }
     }
   }
 
@@ -167,6 +210,36 @@ export async function registerFaceDescriptor(data: {
 
   revalidatePath('/mi-portal');
   return { success: true };
+}
+
+export async function registerAttendanceAdmin(data: {
+  userId: string;
+  type: 'CHECK_IN' | 'CHECK_OUT';
+  timestamp: string;
+  notes?: string;
+}) {
+  const sessionCookie = (await cookies()).get('session')?.value;
+  const session = await decrypt(sessionCookie);
+  
+  if (!session?.userId || (session.role !== 'ADMIN' && session.role !== 'MANAGER')) {
+    throw new Error("No autorizado. Se requieren permisos de administrador o recursos humanos.");
+  }
+
+  const logTimestamp = new Date(data.timestamp);
+
+  const log = await prisma.attendanceLog.create({
+    data: {
+      userId: data.userId,
+      type: data.type,
+      status: 'OK',
+      timestamp: logTimestamp,
+      deviceInfo: data.notes ? `Registro Manual (Admin): ${data.notes}` : 'Registro Manual (Admin)'
+    }
+  });
+
+  revalidatePath('/rh/monitoreo');
+  revalidatePath('/rh/reportes');
+  return { success: true, log };
 }
 
 export async function createLeaveRequest(data: {
@@ -292,19 +365,29 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
   });
 
   const payrollData = users.map(u => {
-    // 1. Calculate days worked (unique days with a CHECK_IN)
+    // 1. Calculate days worked (requiring BOTH CHECK_IN and CHECK_OUT on the same day)
     const checkInDays = new Set<string>();
+    const checkOutDays = new Set<string>();
     let lates = 0;
 
+    const mxFormatter = new Intl.DateTimeFormat('es-MX', { timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit' });
+
     u.attendanceLogs.forEach(log => {
+      const dateStr = mxFormatter.format(log.timestamp);
       if (log.type === 'CHECK_IN') {
-        const dateStr = log.timestamp.toISOString().split('T')[0];
         checkInDays.add(dateStr);
         if (log.status === 'LATE') lates++;
+      } else if (log.type === 'CHECK_OUT') {
+        checkOutDays.add(dateStr);
       }
     });
 
-    const workedDays = checkInDays.size;
+    let workedDays = 0;
+    checkInDays.forEach(day => {
+      if (checkOutDays.has(day)) {
+        workedDays++;
+      }
+    });
 
     // 2. Calculate leave days overlapping with period
     let paidLeaveDays = 0;
@@ -366,4 +449,58 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
   });
 
   return { success: true, data: payrollData };
+}
+
+export async function getGlobalAttendanceLogs(startDateStr: string, endDateStr: string) {
+  const sessionCookie = (await cookies()).get('session')?.value;
+  const session = await decrypt(sessionCookie);
+  
+  if (!session?.userId || (session.role !== 'ADMIN' && session.role !== 'MANAGER')) {
+    throw new Error("No autorizado");
+  }
+
+  const startDate = new Date(startDateStr);
+  const endDate = new Date(endDateStr);
+  endDate.setHours(23, 59, 59, 999);
+
+  const logs = await prisma.attendanceLog.findMany({
+    where: { timestamp: { gte: startDate, lte: endDate } },
+    include: { user: { select: { name: true, branch: { select: { name: true } } } } },
+    orderBy: { timestamp: 'asc' }
+  });
+
+  const data = logs.map(l => ({
+    Empleado: l.user?.name || 'Desconocido',
+    Sucursal: l.user?.branch?.name || 'Sin Sucursal',
+    Tipo: l.type === 'CHECK_IN' ? 'Entrada' : 'Salida',
+    Fecha: new Date(l.timestamp).toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City' }),
+    Hora: new Date(l.timestamp).toLocaleTimeString('es-MX', { timeZone: 'America/Mexico_City' }),
+    Estado: l.status,
+    Notas: l.deviceInfo || ''
+  }));
+
+  return { success: true, data };
+}
+
+export async function editLeaveRequest(id: string, data: { type: string, startDate: string, endDate: string }) {
+  const sessionCookie = (await cookies()).get('session')?.value;
+  const session = await decrypt(sessionCookie);
+  
+  if (!session?.userId || (session.role !== 'ADMIN' && session.role !== 'MANAGER')) {
+    throw new Error("No autorizado");
+  }
+
+  const req = await prisma.leaveRequest.update({
+    where: { id },
+    data: { 
+      type: data.type, 
+      startDate: new Date(data.startDate), 
+      endDate: new Date(data.endDate), 
+      status: 'PENDING' 
+    }
+  });
+
+  revalidatePath('/rh/tramites');
+  revalidatePath('/mi-portal');
+  return { success: true, req };
 }
