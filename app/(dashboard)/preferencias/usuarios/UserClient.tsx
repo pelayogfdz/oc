@@ -162,6 +162,17 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
   // State for permissions mapping
   const [perms, setPerms] = useState<Record<string, boolean>>({});
 
+  // Schedule State
+  const defaultSchedule = {
+    "Lunes": ["09:00", "18:00"],
+    "Martes": ["09:00", "18:00"],
+    "Miercoles": ["09:00", "18:00"],
+    "Jueves": ["09:00", "18:00"],
+    "Viernes": ["09:00", "18:00"],
+    "Sabado": ["09:00", "14:00"]
+  };
+  const [schedule, setSchedule] = useState<Record<string, string[]>>(defaultSchedule);
+
   const potentialManagers = users.filter(u => u.commissionRole === 'LIDER' || u.commissionRole === 'COORDINADOR');
 
   // Dynamically create a module for Branch Assignments
@@ -226,6 +237,7 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
     setFaceDescriptor('');
     setBaselinePhoto('');
     setBioStatus('');
+    setSchedule(defaultSchedule);
   };
 
   const openEditUser = (user: any) => {
@@ -235,6 +247,13 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
     setFaceDescriptor(user.faceDescriptor || '');
     setBaselinePhoto(user.baselinePhoto || '');
     setBioStatus(user.faceDescriptor ? 'Molde Biométrico Registrado ✓' : '');
+    
+    try {
+      const parsedSched = JSON.parse(user.workScheduleMatrix || '{}');
+      setSchedule(Object.keys(parsedSched).length > 0 ? parsedSched : defaultSchedule);
+    } catch {
+      setSchedule(defaultSchedule);
+    }
     
     try {
       const parsed = user.permissions ? JSON.parse(user.permissions) : {};
@@ -708,12 +727,71 @@ export default function UserClient({ initialUsers, branches }: { initialUsers: a
 
           {/* TAB 4: HORARIOS */}
           <div style={{ display: activeTab === 'schedule' ? 'block' : 'none' }}>
-            <p style={{ marginBottom: '1rem', color: 'var(--pulpos-text-muted)' }}>Configura los horarios de entrada y salida para calcular la asistencia (En desarrollo - JSON matrix support)</p>
-            <textarea 
-              name="workScheduleMatrix" 
-              defaultValue={editingUser?.workScheduleMatrix || '{"Lunes":["09:00","18:00"],"Martes":["09:00","18:00"]}'} 
-              style={{ width: '100%', height: '150px', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', fontFamily: 'monospace' }}
-            ></textarea>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <div>
+                <h4 style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>Horario Laboral</h4>
+                <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.85rem' }}>Selecciona los días laborables y establece la hora de entrada y salida.</p>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}>
+              {['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'].map(day => {
+                const isActive = schedule[day] && schedule[day].length === 2;
+                const start = isActive ? schedule[day][0] : "09:00";
+                const end = isActive ? schedule[day][1] : "18:00";
+
+                return (
+                  <div key={day} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem', backgroundColor: isActive ? 'white' : 'transparent', border: isActive ? '1px solid var(--pulpos-border)' : '1px dashed #cbd5e1', borderRadius: '6px', opacity: isActive ? 1 : 0.6 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '120px', cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={isActive}
+                        onChange={(e) => {
+                          const newSched = { ...schedule };
+                          if (e.target.checked) {
+                            newSched[day] = ["09:00", "18:00"];
+                          } else {
+                            delete newSched[day];
+                          }
+                          setSchedule(newSched);
+                        }}
+                        style={{ width: '1.2rem', height: '1.2rem', accentColor: 'var(--pulpos-primary)' }}
+                      />
+                      <span style={{ fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#0f172a' : '#64748b' }}>{day}</span>
+                    </label>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+                      <input 
+                        type="time" 
+                        value={start}
+                        disabled={!isActive}
+                        onChange={(e) => {
+                          const newSched = { ...schedule };
+                          if (newSched[day]) newSched[day][0] = e.target.value;
+                          setSchedule(newSched);
+                        }}
+                        style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: isActive ? 'white' : '#f1f5f9' }}
+                      />
+                      <span style={{ color: '#64748b' }}>a</span>
+                      <input 
+                        type="time" 
+                        value={end}
+                        disabled={!isActive}
+                        onChange={(e) => {
+                          const newSched = { ...schedule };
+                          if (newSched[day]) newSched[day][1] = e.target.value;
+                          setSchedule(newSched);
+                        }}
+                        style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: isActive ? 'white' : '#f1f5f9' }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            {/* Campo oculto para enviar el JSON real a la base de datos */}
+            <input type="hidden" name="workScheduleMatrix" value={JSON.stringify(schedule)} />
           </div>
 
           {/* TAB 5: BIOMETRÍA Y SEGURIDAD */}
