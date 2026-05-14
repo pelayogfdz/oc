@@ -8,6 +8,36 @@ import { decrypt, createSession, deleteSession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import bcrypt from 'bcryptjs';
 
+export async function loginAction(formData: FormData) {
+  const email = formData.get('email')?.toString().trim().toLowerCase();
+  const password = formData.get('password')?.toString();
+
+  if (!email || !password) throw new Error('Credenciales incompletas');
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    include: { tenant: true }
+  });
+
+  if (!user) throw new Error('Credenciales inválidas');
+
+  if (user.password !== password) {
+    const isMatch = await bcrypt.compare(password, user.password || '');
+    if (!isMatch) throw new Error('Credenciales inválidas');
+  }
+
+  if (!user.isSuperAdmin && (!user.tenantId || !user.tenant?.isActive)) {
+    throw new Error('Tu empresa está inactiva o no configurada.');
+  }
+
+  if (user.forcePasswordChange) {
+    return { forcePasswordChange: true, email: user.email };
+  }
+
+  await createSession(user.id, user.tenantId, user.role);
+  return { success: true };
+}
+
 export const getSession = cache(async () => {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('session');

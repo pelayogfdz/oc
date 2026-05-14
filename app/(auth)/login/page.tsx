@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { loginAction } from '@/app/actions/auth';
 import {
   Building2, Image as ImageIcon, Tag, Users,
   MessageCircle, FileCheck, Receipt, Coins,
@@ -188,31 +189,23 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password })
-      });
+      const formData = new FormData();
+      formData.append('email', email);
+      formData.append('password', password);
 
-      const data = await res.json();
+      const data = await loginAction(formData);
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Autenticación fallida. Revisa tus credenciales.');
-      }
-
-      if (data.forcePasswordChange) {
-        setTempEmailForChange(data.email);
+      if (data?.forcePasswordChange) {
+        setTempEmailForChange(data.email!);
         setIsLoginOpen(false);
         setIsForceChangeOpen(true);
         setLoading(false);
         return;
       }
 
-      // Use hard navigation to fix Safari cookie state issues
       window.location.href = '/';
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Error de conexión');
       setLoading(false);
     }
   };
