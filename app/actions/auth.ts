@@ -70,11 +70,7 @@ export const getActiveBranch = cache(async () => {
   const firstBranch = await getCachedFirstBranch();
   
   if (!firstBranch) {
-    // If we have a session but no branch, the session might be stale or tenant is misconfigured.
-    const cookieStore = await cookies();
-    cookieStore.delete('session');
-    cookieStore.delete('pulpos_active_branch');
-    throw new Error('Unauthorized'); // This will trigger the redirect in layout/page
+    return null;
   }
   return firstBranch;
 });
