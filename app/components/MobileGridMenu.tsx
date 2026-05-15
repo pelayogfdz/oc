@@ -170,7 +170,10 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
             </Link>
           )}
 
-          <form action="/api/auth/logout" method="POST" style={{ marginTop: '0.5rem' }}>
+          <form action={async () => {
+            const { logout } = await import('@/app/actions/auth');
+            await logout();
+          }} style={{ marginTop: '0.5rem' }}>
             <button type="submit" style={{ 
                 display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', 
                 borderRadius: '8px', width: '100%',

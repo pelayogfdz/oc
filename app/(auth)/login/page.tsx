@@ -203,7 +203,8 @@ export default function LoginPage() {
         return;
       }
 
-      window.location.href = '/';
+      router.push('/');
+      router.refresh();
     } catch (err: any) {
       setError(err.message || 'Error de conexión');
       setLoading(false);
