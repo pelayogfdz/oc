@@ -97,6 +97,17 @@ export const getActiveBranch = cache(async () => {
   }
   return firstBranch;
 });
+export const getTenantBranches = cache(async (tenantId: string) => {
+  const getBranches = unstable_cache(
+    async (tId: string) => prisma.branch.findMany({
+      where: { isActive: true, tenantId: tId },
+      orderBy: { name: 'asc' }
+    }),
+    [`tenant-branches-list-${tenantId}`],
+    { tags: [`tenant-branches-${tenantId}`] }
+  );
+  return getBranches(tenantId);
+});
 
 export async function setActiveBranch(branchId: string) {
   const cookieStore = await cookies();

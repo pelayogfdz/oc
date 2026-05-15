@@ -9,28 +9,21 @@ import { getTenantSettings } from '../actions/settings';
 import TenantSettingsInjector from '../components/TenantSettingsInjector';
 import SubscriptionGuard from '../components/SubscriptionGuard';
 import { cookies } from 'next/headers';
-import { decrypt } from '@/lib/session';
+import { getActiveUser } from '@/app/actions/auth';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const tenantSettings = await getTenantSettings().catch(() => ({ decimals: 2 }));
-  const sessionCookie = (await cookies()).get('session')?.value;
-  const session = await decrypt(sessionCookie);
+  const user = await getActiveUser().catch(() => null);
   
   let isSuperAdmin = false;
   let userRole = 'USER';
   let subscriptionStatus = 'ACTIVE';
   let userPermissions: Record<string, boolean> = {};
 
-  if (session?.userId) {
-    const user = await prisma.user.findUnique({ 
-      where: { id: session.userId as string }, 
-      select: { isSuperAdmin: true, email: true, role: true, permissions: true, tenant: { select: { subscriptionStatus: true } } }
-    });
-    
-    if (user) {
+  if (user) {
       userRole = user.role;
       if (user.tenant) {
         subscriptionStatus = user.tenant.subscriptionStatus;

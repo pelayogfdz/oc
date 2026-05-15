@@ -1,4 +1,4 @@
-import { getActiveBranch, getActiveUser, logout } from '@/app/actions/auth';
+import { getActiveBranch, getActiveUser, logout, getTenantBranches } from '@/app/actions/auth';
 import { prisma } from '@/lib/prisma';
 import BranchSelector from './BranchSelector';
 import MobileMenuToggle from './MobileMenuToggle';
@@ -10,10 +10,8 @@ export default async function Header() {
   const currentBranch = await getActiveBranch().catch(() => null);
   const currentUser = await getActiveUser().catch(() => null);
   
-  const branches = await prisma.branch.findMany({
-    where: { isActive: true, tenantId: currentUser?.tenantId },
-    orderBy: { name: 'asc' }
-  });
+  const branches = currentUser?.tenantId ? await getTenantBranches(currentUser.tenantId) : [];
+
 
   // Filter branches based on permissions
   let visibleBranches = branches;
