@@ -23,6 +23,12 @@ export async function POST(request: Request) {
       }
     });
 
+    // Actualizar updatedAt del prospecto para empujar la conversación arriba al instante
+    await prisma.prospect.update({
+      where: { id: prospectId },
+      data: { updatedAt: new Date() }
+    });
+
     return NextResponse.json({ success: true, messageId: newMessage.id });
   } catch (error) {
     console.error("Error in Next.js WhatsApp proxy:", error);

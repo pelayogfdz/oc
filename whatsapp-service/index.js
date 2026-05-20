@@ -1,4 +1,4 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const { PrismaClient } = require('@prisma/client');
 const express = require('express');
 const cors = require('cors');
@@ -262,15 +262,34 @@ function initializeClient() {
                 else initialStatus = 1; // default to sent
             }
 
+            let bodyText = msg.body || '';
+            if (msg.hasMedia) {
+                let mediaTag = '📎 [Archivo]';
+                if (msg.type === 'image') {
+                    mediaTag = '📎 [Imagen]';
+                } else if (msg.type === 'video') {
+                    mediaTag = '📎 [Video]';
+                } else if (msg.type === 'audio' || msg.type === 'ptt') {
+                    mediaTag = '📎 [Audio]';
+                }
+                bodyText = mediaTag + (msg.body ? ": " + msg.body : "");
+            }
+
             await prisma.whatsAppMessage.create({
                 data: {
                     messageId: msg.id._serialized,
                     prospectId: prospect.id,
-                    body: msg.body,
+                    body: bodyText,
                     isFromMe: msg.fromMe,
                     status: initialStatus,
                     timestamp: new Date(msg.timestamp * 1000)
                 }
+            });
+
+            // Actualizar updatedAt del prospecto para empujar la conversación arriba al instante
+            await prisma.prospect.update({
+                where: { id: prospect.id },
+                data: { updatedAt: new Date() }
             });
 
             console.log(`[WHATSAPP] Message saved successfully in DB under prospect: ${prospect.name}`);
@@ -304,10 +323,10 @@ function initializeClient() {
 }
 
 app.post('/api/send', async (req, res) => {
-    const { phone, message, prospectId } = req.body;
+    const { phone, message, prospectId, media } = req.body;
     
-    if (!phone || !message) {
-        return res.status(400).json({ error: 'Phone and message are required' });
+    if (!phone && !prospectId) {
+        return res.status(400).json({ error: 'Phone or prospectId is required' });
     }
 
     try {
@@ -315,41 +334,167 @@ app.post('/api/send', async (req, res) => {
             return res.status(503).json({ error: 'WhatsApp client is not initialized' });
         }
         
-        let chatId = `${phone}@c.us`;
+        let chatId = phone ? `${phone}@c.us` : null;
         // Check if there is an existing prospect to see if we have their LID whatsappId
         if (prospectId) {
             const pr = await prisma.prospect.findUnique({
                 where: { id: prospectId }
             });
-            if (pr && pr.whatsappId) {
-                if (pr.whatsappId.includes('@')) {
-                    chatId = pr.whatsappId;
-                } else {
-                    // Try to guess JID format (LID or classic)
-                    chatId = pr.whatsappId.length > 13 ? `${pr.whatsappId}@lid` : `${pr.whatsappId}@c.us`;
+            if (pr) {
+                if (pr.whatsappId) {
+                    if (pr.whatsappId.includes('@')) {
+                        chatId = pr.whatsappId;
+                    } else {
+                        chatId = pr.whatsappId.length > 13 ? `${pr.whatsappId}@lid` : `${pr.whatsappId}@c.us`;
+                    }
+                } else if (pr.phone) {
+                    let pPhone = pr.phone;
+                    if (pPhone.startsWith('52') && pPhone.length === 12) {
+                        pPhone = '521' + pPhone.substring(2);
+                    }
+                    chatId = `${pPhone}@c.us`;
                 }
             }
         }
 
-        const sentMsg = await client.sendMessage(chatId, message);
+        if (!chatId) {
+            return res.status(400).json({ error: 'Could not resolve a valid WhatsApp JID for recipient' });
+        }
+
+        let sentMsg;
+        if (media && media.data && media.mimetype) {
+            let base64Data = media.data;
+            if (base64Data.includes(';base64,')) {
+                base64Data = base64Data.split(';base64,')[1];
+            }
+            const mediaObj = new MessageMedia(media.mimetype, base64Data, media.filename || 'archivo');
+            sentMsg = await client.sendMessage(chatId, mediaObj, message ? { caption: message } : undefined);
+        } else {
+            sentMsg = await client.sendMessage(chatId, message || '');
+        }
 
         if (prospectId) {
+            let bodyText = message || '';
+            if (media && media.data && media.mimetype) {
+                let mediaTag = '📎 [Archivo]';
+                if (media.mimetype.startsWith('image/')) {
+                    mediaTag = '📎 [Imagen]';
+                } else if (media.mimetype.startsWith('video/')) {
+                    mediaTag = '📎 [Video]';
+                } else if (media.mimetype.startsWith('audio/')) {
+                    mediaTag = '📎 [Audio]';
+                }
+                bodyText = mediaTag + (message ? ": " + message : "");
+            }
+
             await prisma.whatsAppMessage.create({
                 data: {
                     messageId: sentMsg.id._serialized,
                     prospectId: prospectId,
-                    body: message,
+                    body: bodyText,
                     isFromMe: true,
                     status: 1, // Sent (1 tick)
                     timestamp: new Date(sentMsg.timestamp * 1000)
                 }
+            });
+
+            // Actualizar updatedAt del prospecto para empujar la conversación arriba al instante
+            await prisma.prospect.update({
+                where: { id: prospectId },
+                data: { updatedAt: new Date() }
             });
         }
 
         res.json({ success: true, messageId: sentMsg.id._serialized });
     } catch (error) {
         console.error('Send message error:', error);
-        res.status(500).json({ error: 'Failed to send message' });
+        res.status(500).json({ error: error.message || 'Failed to send message' });
+    }
+});
+
+// Express GET endpoint to retrieve and download media on-demand
+app.get('/api/media/:messageId', async (req, res) => {
+    const { messageId } = req.params;
+    try {
+        if (!client) {
+            return res.status(503).json({ error: 'WhatsApp client is not initialized' });
+        }
+
+        // Find the message in DB to get prospect JID/phone
+        const dbMsg = await prisma.whatsAppMessage.findFirst({
+            where: {
+                OR: [
+                    { messageId: messageId },
+                    { id: messageId }
+                ]
+            }
+        });
+
+        if (!dbMsg) {
+            return res.status(404).json({ error: 'Message not found in database' });
+        }
+
+        const activeMessageId = dbMsg.messageId || messageId;
+
+        const prospect = await prisma.prospect.findUnique({
+            where: { id: dbMsg.prospectId }
+        });
+
+        if (!prospect) {
+            return res.status(404).json({ error: 'Prospect not found' });
+        }
+
+        let phone = prospect.phone;
+        if (!phone) {
+            return res.status(400).json({ error: 'Prospect has no phone number' });
+        }
+
+        if (phone.startsWith('52') && phone.length === 12) {
+            phone = '521' + phone.substring(2);
+        }
+
+        let chatId = prospect.whatsappId ? (prospect.whatsappId.includes('@') ? prospect.whatsappId : (prospect.whatsappId.length > 13 ? `${prospect.whatsappId}@lid` : `${prospect.whatsappId}@c.us`)) : `${phone}@c.us`;
+
+        console.log(`[WHATSAPP] Fetching media for message ${activeMessageId} in chat ${chatId}`);
+
+        const chat = await client.getChatById(chatId);
+        if (!chat) {
+            return res.status(404).json({ error: 'Chat not found' });
+        }
+
+        const messages = await chat.fetchMessages({ limit: 100 });
+        let msg = messages.find(m => m.id._serialized === activeMessageId);
+
+        if (!msg) {
+            console.log(`[WHATSAPP] Message not found in last 100 messages, trying client.getMessageById`);
+            try {
+                msg = await client.getMessageById(activeMessageId);
+            } catch (err) {
+                console.warn('[WHATSAPP] client.getMessageById failed:', err.message);
+            }
+        }
+
+        if (!msg) {
+            return res.status(404).json({ error: 'Message not found on WhatsApp Web client' });
+        }
+
+        if (!msg.hasMedia) {
+            return res.status(400).json({ error: 'Message does not contain media' });
+        }
+
+        const media = await msg.downloadMedia();
+        if (!media) {
+            return res.status(500).json({ error: 'Failed to download media from WhatsApp CDN' });
+        }
+
+        res.json({
+            mimetype: media.mimetype,
+            data: media.data,
+            filename: media.filename || 'archivo'
+        });
+    } catch (error) {
+        console.error('Error fetching media:', error);
+        res.status(500).json({ error: error.message || 'Failed to download media' });
     }
 });
 

@@ -12,12 +12,183 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
+  const [downloadedMedia, setDownloadedMedia] = useState<Record<string, { data: string; mimetype: string; filename: string }>>({});
+  const [loadingMedia, setLoadingMedia] = useState<Record<string, boolean>>({});
+
+  const parseMediaMsg = (body: string) => {
+    if (!body) return { isMedia: false, type: "", caption: "" };
+    const match = body.match(/^📎 \[(Imagen|Video|Audio|Archivo)\](?::\s*(.*))?$/s);
+    if (match) {
+      return {
+        isMedia: true,
+        type: match[1],
+        caption: match[2] || ""
+      };
+    }
+    if (body.startsWith('📎 [')) {
+      const endBracketIdx = body.indexOf(']');
+      if (endBracketIdx > 2) {
+        const type = body.substring(4, endBracketIdx);
+        const rest = body.substring(endBracketIdx + 1);
+        const caption = rest.startsWith(':') ? rest.substring(1).trim() : rest.trim();
+        return {
+          isMedia: true,
+          type: type,
+          caption: caption
+        };
+      }
+    }
+    return { isMedia: false, type: "", caption: "" };
+  };
+
+  const getExtensionFromMimetype = (mimetype: string): string => {
+    if (!mimetype) return '';
+    const mime = mimetype.toLowerCase();
+    if (mime.includes('pdf')) return '.pdf';
+    if (mime.includes('excel') || mime.includes('spreadsheetml') || mime.includes('sheet') || mime.includes('csv')) return '.xlsx';
+    if (mime.includes('word') || mime.includes('officedocument.wordprocessingml') || mime.includes('msword')) return '.docx';
+    if (mime.includes('powerpoint') || mime.includes('presentationml')) return '.pptx';
+    if (mime.includes('jpeg') || mime.includes('jpg')) return '.jpg';
+    if (mime.includes('png')) return '.png';
+    if (mime.includes('webp')) return '.webp';
+    if (mime.includes('gif')) return '.gif';
+    if (mime.includes('mp4')) return '.mp4';
+    if (mime.includes('audio/ogg') || mime.includes('opus')) return '.ogg';
+    if (mime.includes('audio/mpeg') || mime.includes('mp3')) return '.mp3';
+    if (mime.includes('audio/aac')) return '.aac';
+    if (mime.includes('audio/mp4')) return '.m4a';
+    if (mime.includes('zip')) return '.zip';
+    if (mime.includes('text/plain') || mime.includes('text')) return '.txt';
+    return '';
+  };
+
+  const ensureExtension = (filename: string, mimetype: string): string => {
+    if (!filename) filename = 'archivo';
+    const ext = getExtensionFromMimetype(mimetype);
+    if (ext && !filename.toLowerCase().endsWith(ext)) {
+      const hasAnyExtension = /\.[a-zA-Z0-9]{2,4}$/.test(filename);
+      if (!hasAnyExtension) {
+        return `${filename}${ext}`;
+      }
+    }
+    return filename;
+  };
+
+  const handleDownloadMedia = async (messageId: string, filename: string) => {
+    if (!messageId) return;
+
+    // 1. If already downloaded, immediately download from cache without server request
+    if (downloadedMedia[messageId]) {
+      const media = downloadedMedia[messageId];
+      try {
+        const byteCharacters = atob(media.data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: media.mimetype });
+        
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = ensureExtension(media.filename, media.mimetype);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } catch (err: any) {
+        console.error("Local download failed:", err);
+      }
+      return;
+    }
+
+    if (loadingMedia[messageId]) return;
+    setLoadingMedia(prev => ({ ...prev, [messageId]: true }));
+    try {
+      const response = await fetch(`/api/whatsapp/media/${encodeURIComponent(messageId)}?t=${Date.now()}`);
+      if (!response.ok) {
+        throw new Error("Failed to download media");
+      }
+      const media = await response.json();
+      if (media.error) {
+        throw new Error(media.error);
+      }
+      
+      const fileToSave = {
+        data: media.data,
+        mimetype: media.mimetype,
+        filename: ensureExtension(media.filename || filename || 'archivo', media.mimetype)
+      };
+
+      setDownloadedMedia(prev => ({
+        ...prev,
+        [messageId]: fileToSave
+      }));
+
+      // 2. Automatically trigger browser download for ALL media types
+      const byteCharacters = atob(media.data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: media.mimetype });
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileToSave.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      console.error("Error downloading media:", error);
+      alert("No se pudo descargar el archivo: " + (error.message || "error de conexión"));
+    } finally {
+      setLoadingMedia(prev => ({ ...prev, [messageId]: false }));
+    }
+  };
+
+
   // Custom Interactive Tool States
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
   const [showAIOptions, setShowAIOptions] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [attachment, setAttachment] = useState<{ name: string; type: string; base64: string } | null>(null);
+  
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [showContactPicker, setShowContactPicker] = useState(false);
+
+  // Predefined locations
+  const officeCityLocations = [
+    { name: "Corporativo Matriz (Guadalajara)", coords: "20.6766,-103.3475", desc: "Av. de las Américas 1500, Country Club, GDL" },
+    { name: "Sucursal Querétaro PIQ", coords: "20.7302,-103.3855", desc: "Parque Industrial Querétaro, Qro." },
+    { name: "Sucursal Querétaro Centro", coords: "20.5888,-100.3899", desc: "Av. Zaragoza 120, Centro Histórico, Qro." },
+    { name: "Sucursal Querétaro Norte (Juriquilla)", coords: "20.6908,-100.4439", desc: "Plaza Urban Juriquilla, Qro." }
+  ];
+
+  // Predefined contact cards
+  const officeCityContacts = [
+    { label: "Asesor José Samuel Subero", name: "José Samuel Subero Sánchez", phone: "5213344556677", email: "samuelsubero@canma.com", title: "Ejecutivo de Ventas B2B" },
+    { label: "Office City Ventas Corporativas", name: "Oficina de Ventas Canma", phone: "5215580004321", email: "pelayof@tdq.com.mx", title: "Corporativo Central" },
+    { label: "Soporte Técnico Canma", name: "Soporte Técnico Canma", phone: "5218009876543", email: "contacto@canma.com", title: "Mesa de Ayuda" }
+  ];
+
+  const handleShareLocation = async (loc: any) => {
+    const mapsLink = `https://maps.google.com/?q=${loc.coords}`;
+    const text = `📍 *Ubicación Compartida: ${loc.name}*\n🗺️ Dirección: ${loc.desc}\n🌐 Ver en Google Maps: ${mapsLink}\n\n¡Le esperamos para atenderle con gusto!`;
+    await sendMessage(undefined, text);
+    setShowLocationPicker(false);
+  };
+
+  const handleShareContact = async (contact: any) => {
+    const text = `👤 *Tarjeta de Contacto de Asesor*\n🏢 *Empresa:* Office City / Canma\n👤 *Nombre:* ${contact.name}\n💼 *Puesto:* ${contact.title}\n📞 *WhatsApp:* +${contact.phone}\n✉️ *Correo:* ${contact.email}\n\n¡Guarda nuestro contacto para comunicarse más rápido!`;
+    await sendMessage(undefined, text);
+    setShowContactPicker(false);
+  };
 
   // Emojis Picker List
   const emojis = ['😊', '😂', '👍', '❤️', '🙌', '🙏', '🎉', '🔥', '🤔', '💡', '📞', '💼', '🏢', '✨', '🤝', '✅'];
@@ -64,6 +235,21 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
     localStorage.setItem("caanma_custom_presets", JSON.stringify(updated));
   };
 
+  // Sync with parent prospect messages updates
+  useEffect(() => {
+    if (prospect.messages) {
+      const optimisticMsgs = messages.filter((m: any) => m.id?.toString().startsWith('temp-'));
+      if (optimisticMsgs.length > 0) {
+        const filteredOptimistic = optimisticMsgs.filter((om: any) => 
+          !prospect.messages.some((nm: any) => nm.body === om.body && nm.isFromMe)
+        );
+        setMessages([...prospect.messages, ...filteredOptimistic]);
+      } else {
+        setMessages(prospect.messages);
+      }
+    }
+  }, [prospect.messages]);
+
   // Auto-scroll to bottom on new message
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -73,42 +259,74 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/prospects/${prospect.id}/messages`);
+        const res = await fetch(`/api/prospects/${prospect.id}/messages?t=${Date.now()}`, { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
-          if (data.messages && data.messages.length > messages.length) {
-            setMessages(data.messages);
+          if (data.messages) {
+            // Check for differences in length or individual message statuses (single/double/blue ticks)
+            const currentStr = JSON.stringify(messages.map((m: any) => ({ id: m.id, status: m.status })));
+            const newStr = JSON.stringify(data.messages.map((m: any) => ({ id: m.id, status: m.status })));
+            
+            if (currentStr !== newStr) {
+              // Preserve any local optimistic messages (ids starting with 'temp-') that aren't saved yet
+              const optimisticMsgs = messages.filter((m: any) => m.id?.toString().startsWith('temp-'));
+              if (optimisticMsgs.length > 0) {
+                // Deduplicate if they are already in the response by body
+                const filteredOptimistic = optimisticMsgs.filter((om: any) => 
+                  !data.messages.some((nm: any) => nm.body === om.body && nm.isFromMe)
+                );
+                setMessages([...data.messages, ...filteredOptimistic]);
+              } else {
+                setMessages(data.messages);
+              }
+            }
           }
         }
       } catch (e) {
         console.error("Polling error", e);
       }
-    }, 5000);
+    }, 4000);
 
     return () => clearInterval(interval);
-  }, [prospect.id, messages.length]);
+  }, [prospect.id, messages]);
 
   const sendMessage = async (e?: React.FormEvent, customText?: string) => {
     if (e) e.preventDefault();
-    let textToSend = customText || inputText;
+    const messageText = customText || inputText;
     
-    // Attach details to the body if an attachment is present
+    let bodyText = messageText;
     if (attachment) {
-      textToSend = `${textToSend} \n\n📎 [Archivo Adjunto: ${attachment.name}]`;
+      const mediaTag = attachment.type.startsWith('image/') ? '📎 [Imagen]' : '📎 [Archivo]';
+      bodyText = mediaTag + (messageText.trim() ? ": " + messageText.trim() : "");
     }
 
-    if (!textToSend.trim() && !attachment) return;
+    if (!bodyText.trim() && !attachment) return;
 
     setIsSending(true);
+    const tempMsgId = `temp-${Date.now()}`;
     const tempMsg = {
-      id: `temp-${Date.now()}`,
-      body: textToSend,
+      id: tempMsgId,
+      body: bodyText,
       isFromMe: true,
       status: 1, // Clock -> single tick immediately in client
       timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, tempMsg]);
+
+    // Optimistically cache file payload for instant preview/download
+    if (attachment) {
+      setDownloadedMedia(prev => ({
+        ...prev,
+        [tempMsgId]: {
+          data: attachment.base64.split(';base64,')[1] || attachment.base64,
+          mimetype: attachment.type,
+          filename: attachment.name
+        }
+      }));
+    }
+
     if (!customText) setInputText("");
+    const fileToSend = attachment;
     setAttachment(null); // Clear attachment preview
 
     try {
@@ -117,20 +335,38 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phone: prospect.phone,
-          message: tempMsg.body,
-          prospectId: prospect.id
+          message: messageText,
+          prospectId: prospect.id,
+          media: fileToSend ? {
+            data: fileToSend.base64,
+            mimetype: fileToSend.type,
+            filename: fileToSend.name
+          } : undefined
         })
       });
 
       if (res.ok) {
+        // If it succeeded, we can parse the returned messageId
+        const data = await res.json();
+        if (data.messageId && fileToSend) {
+          // Sync downloaded state to the real messageId!
+          setDownloadedMedia(prev => ({
+            ...prev,
+            [data.messageId]: {
+              data: fileToSend.base64.split(';base64,')[1] || fileToSend.base64,
+              mimetype: fileToSend.type,
+              filename: fileToSend.name
+            }
+          }));
+        }
         router.refresh();
       } else {
         alert("Error al enviar mensaje. Verifica que el microservicio de WhatsApp esté conectado.");
-        setMessages(prev => prev.filter(m => m.id !== tempMsg.id));
+        setMessages(prev => prev.filter(m => m.id !== tempMsgId));
       }
     } catch (e) {
       alert("Error de conexión con el microservicio.");
-      setMessages(prev => prev.filter(m => m.id !== tempMsg.id));
+      setMessages(prev => prev.filter(m => m.id !== tempMsgId));
     } finally {
       setIsSending(false);
     }
@@ -225,7 +461,163 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
               }}
             >
               <div style={{ fontSize: '0.95rem', color: '#1e293b', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
-                {msg.body}
+                {msg.body && msg.body.includes("📍 *Ubicación Compartida") ? (
+                  <div style={{ 
+                    border: '1px solid #cbd5e1', 
+                    borderRadius: '8px', 
+                    overflow: 'hidden', 
+                    backgroundColor: '#f8fafc',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                    marginTop: '0.25rem',
+                    width: '100%',
+                    minWidth: '240px',
+                    maxWidth: '280px'
+                  }}>
+                    <div style={{ 
+                      height: '100px', 
+                      backgroundImage: 'url("https://maps.googleapis.com/maps/api/staticmap?center=20.6766,-103.3475&zoom=14&size=280x100&sensor=false&markers=color:red%7C20.6766,-103.3475")',
+                      backgroundColor: '#e2e8f0', 
+                      backgroundSize: 'cover', 
+                      backgroundPosition: 'center',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#475569',
+                      fontWeight: 'bold',
+                      fontSize: '0.8rem'
+                    }}>
+                      🗺️ Vista de Mapa Office City
+                    </div>
+                    <div style={{ padding: '0.65rem', fontSize: '0.825rem', color: '#334155' }}>
+                      {msg.body}
+                    </div>
+                  </div>
+                ) : msg.body && msg.body.includes("👤 *Tarjeta de Contacto") ? (
+                  <div style={{ 
+                    border: '1px solid #cbd5e1', 
+                    borderRadius: '8px', 
+                    backgroundColor: '#f0fdf4',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                    marginTop: '0.25rem',
+                    width: '100%',
+                    minWidth: '240px',
+                    maxWidth: '280px',
+                    padding: '0.65rem',
+                    borderLeft: '4px solid #22c55e'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem', borderBottom: '1px solid #bbf7d0', paddingBottom: '0.25rem' }}>
+                      <span style={{ fontSize: '1.1rem' }}>👤</span>
+                      <strong style={{ color: '#166534', fontSize: '0.825rem' }}>Contacto de Ventas</strong>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#1e293b' }}>
+                      {msg.body}
+                    </div>
+                  </div>
+                ) : parseMediaMsg(msg.body).isMedia ? (
+                  (() => {
+                    const mediaInfo = parseMediaMsg(msg.body);
+                    const isDownloaded = !!downloadedMedia[msg.messageId || msg.id];
+                    const isLoading = !!loadingMedia[msg.messageId || msg.id];
+                    const mediaData = downloadedMedia[msg.messageId || msg.id];
+
+                    let mediaEmoji = "📎";
+                    if (mediaInfo.type === "Imagen") mediaEmoji = "🖼️";
+                    else if (mediaInfo.type === "Video") mediaEmoji = "🎥";
+                    else if (mediaInfo.type === "Audio") mediaEmoji = "🎵";
+
+                    return (
+                      <div 
+                        onClick={() => {
+                          if (!isLoading) {
+                            handleDownloadMedia(msg.messageId || msg.id, mediaInfo.type.toLowerCase());
+                          }
+                        }}
+                        style={{
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          backgroundColor: '#f8fafc',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                          marginTop: '0.25rem',
+                          width: '100%',
+                          minWidth: '240px',
+                          maxWidth: '280px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          cursor: isLoading ? 'default' : 'pointer',
+                          transition: 'all 0.2s ease-in-out'
+                        }}
+                        onMouseOver={evt => {
+                          if (!isLoading) {
+                            evt.currentTarget.style.borderColor = '#3b82f6';
+                            evt.currentTarget.style.boxShadow = '0 4px 12px rgba(59,130,246,0.15)';
+                            evt.currentTarget.style.transform = 'translateY(-1px)';
+                          }
+                        }}
+                        onMouseOut={evt => {
+                          evt.currentTarget.style.borderColor = '#cbd5e1';
+                          evt.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                          evt.currentTarget.style.transform = 'none';
+                        }}
+                      >
+                        <div style={{ padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: (mediaInfo.caption || isDownloaded) ? '1px solid #e2e8f0' : 'none' }}>
+                          <span style={{ fontSize: '1.75rem' }}>{mediaEmoji}</span>
+                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#334155' }}>
+                              {mediaInfo.type} de WhatsApp
+                            </span>
+                            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                              {isLoading ? '⏳ Descargando...' : isDownloaded ? '✅ Descargado (Click para guardar)' : '📥 Click para guardar en PC'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {isDownloaded && mediaData.mimetype.startsWith('image/') && (
+                          <div style={{ width: '100%', maxHeight: '200px', overflow: 'hidden', borderBottom: mediaInfo.caption ? '1px solid #e2e8f0' : 'none', display: 'flex', justifyContent: 'center', backgroundColor: '#f1f5f9' }}>
+                            <img 
+                              src={`data:${mediaData.mimetype};base64,${mediaData.data}`} 
+                              alt={mediaData.filename} 
+                              style={{ width: '100%', objectFit: 'contain', maxHeight: '200px' }} 
+                            />
+                          </div>
+                        )}
+
+                        {mediaInfo.caption && (
+                          <div style={{ padding: '0.5rem 0.75rem', fontSize: '0.8rem', color: '#334155', borderBottom: '1px solid #e2e8f0' }}>
+                            {mediaInfo.caption}
+                          </div>
+                        )}
+
+                        <div
+                          style={{
+                            padding: '0.5rem',
+                            fontSize: '0.8rem',
+                            fontWeight: 'bold',
+                            color: isLoading ? '#94a3b8' : isDownloaded ? '#16a34a' : '#2563eb',
+                            textAlign: 'center',
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.25rem',
+                            backgroundColor: '#f1f5f9',
+                            userSelect: 'none'
+                          }}
+                        >
+                          {isLoading ? (
+                            <span>⏳ Descargando...</span>
+                          ) : isDownloaded ? (
+                            <span>💾 Guardar de nuevo</span>
+                          ) : (
+                            <span>📥 Descargar y Guardar</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : (
+                  msg.body
+                )}
               </div>
               <div style={{ fontSize: '0.65rem', color: '#94a3b8', textAlign: 'right', marginTop: '0.25rem', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.25rem' }}>
                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -286,6 +678,78 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
       )}
 
       {/* Popups Panel Options */}
+      {/* Location Picker Popup */}
+      {showLocationPicker && (
+        <div style={{ position: 'absolute', bottom: '80px', left: '1rem', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '0.75rem', width: '320px', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', zIndex: 30, maxHeight: '300px', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.4rem', marginBottom: '0.25rem' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>📍 Compartir Ubicación Sucursal:</span>
+            <button onClick={() => setShowLocationPicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#94a3b8' }}>✕</button>
+          </div>
+          {officeCityLocations.map((loc, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleShareLocation(loc)}
+              style={{ 
+                textAlign: 'left', 
+                background: 'none', 
+                border: 'none', 
+                cursor: 'pointer', 
+                padding: '0.5rem', 
+                borderRadius: '8px', 
+                borderBottom: '1px solid #f1f5f9', 
+                display: 'flex', 
+                flexDirection: 'column',
+                gap: '0.1rem', 
+                transition: 'background-color 0.2s',
+                width: '100%'
+              }}
+              onMouseOver={evt => evt.currentTarget.style.backgroundColor='#f8fafc'}
+              onMouseOut={evt => evt.currentTarget.style.backgroundColor='transparent'}
+            >
+              <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b' }}>{loc.name}</span>
+              <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '280px' }}>{loc.desc}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Contact Picker Popup */}
+      {showContactPicker && (
+        <div style={{ position: 'absolute', bottom: '80px', left: '1rem', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '0.75rem', width: '320px', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', zIndex: 30, maxHeight: '300px', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.4rem', marginBottom: '0.25rem' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>👤 Compartir Contacto:</span>
+            <button onClick={() => setShowContactPicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#94a3b8' }}>✕</button>
+          </div>
+          {officeCityContacts.map((contact, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleShareContact(contact)}
+              style={{ 
+                textAlign: 'left', 
+                background: 'none', 
+                border: 'none', 
+                cursor: 'pointer', 
+                padding: '0.5rem', 
+                borderRadius: '8px', 
+                borderBottom: '1px solid #f1f5f9', 
+                display: 'flex', 
+                flexDirection: 'column',
+                gap: '0.1rem', 
+                transition: 'background-color 0.2s',
+                width: '100%'
+              }}
+              onMouseOver={evt => evt.currentTarget.style.backgroundColor='#f8fafc'}
+              onMouseOut={evt => evt.currentTarget.style.backgroundColor='transparent'}
+            >
+              <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b' }}>{contact.label}</span>
+              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{contact.name} - {contact.title}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Emoji Picker Popup */}
       {showEmojiPicker && (
         <div style={{ position: 'absolute', bottom: '80px', left: '1rem', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '0.5rem', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 30 }}>
@@ -490,13 +954,31 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
             📎
           </button>
           <button 
-            onClick={() => { setShowPresets(!showPresets); setShowEmojiPicker(false); setShowAIOptions(false); }}
+            onClick={() => { setShowPresets(!showPresets); setShowEmojiPicker(false); setShowAIOptions(false); setShowLocationPicker(false); setShowContactPicker(false); }}
             title="Mensajes Preestablecidos" 
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', fontSize: '1.25rem', opacity: 0.8, transition: 'transform 0.1s' }}
             onMouseEnter={e => { e.currentTarget.style.transform='scale(1.15)'; }}
             onMouseLeave={e => { e.currentTarget.style.transform='scale(1)'; }}
           >
             📋
+          </button>
+          <button 
+            onClick={() => { setShowLocationPicker(!showLocationPicker); setShowEmojiPicker(false); setShowPresets(false); setShowAIOptions(false); setShowContactPicker(false); }}
+            title="Compartir Ubicación" 
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', fontSize: '1.25rem', opacity: 0.8, transition: 'transform 0.1s' }}
+            onMouseEnter={e => { e.currentTarget.style.transform='scale(1.15)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform='scale(1)'; }}
+          >
+            📍
+          </button>
+          <button 
+            onClick={() => { setShowContactPicker(!showContactPicker); setShowEmojiPicker(false); setShowPresets(false); setShowAIOptions(false); setShowLocationPicker(false); }}
+            title="Compartir Contacto" 
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', fontSize: '1.25rem', opacity: 0.8, transition: 'transform 0.1s' }}
+            onMouseEnter={e => { e.currentTarget.style.transform='scale(1.15)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform='scale(1)'; }}
+          >
+            👤
           </button>
           
           <div style={{ flex: 1 }}></div>
