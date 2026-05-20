@@ -10,6 +10,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
   const [isSending, setIsSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   const [downloadedMedia, setDownloadedMedia] = useState<Record<string, { data: string; mimetype: string; filename: string }>>({});
@@ -328,6 +329,9 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
     if (!customText) setInputText("");
     const fileToSend = attachment;
     setAttachment(null); // Clear attachment preview
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
 
     try {
       const res = await fetch("/api/whatsapp/send", {
@@ -1020,12 +1024,13 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
 
         <form onSubmit={e => sendMessage(e)} style={{ display: 'flex', width: '100%', gap: '0.5rem' }}>
           <input
+            ref={inputRef}
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder="Escribe un mensaje..."
             style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '24px', border: '1px solid #cbd5e1', outline: 'none', backgroundColor: '#f8fafc', fontSize: '0.92rem' }}
-            disabled={isSending || isGeneratingAI}
+            disabled={isGeneratingAI}
           />
           <button 
             type="submit" 
