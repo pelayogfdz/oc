@@ -19,14 +19,50 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [attachment, setAttachment] = useState<{ name: string; type: string; base64: string } | null>(null);
 
+  // Emojis Picker List
   const emojis = ['😊', '😂', '👍', '❤️', '🙌', '🙏', '🎉', '🔥', '🤔', '💡', '📞', '💼', '🏢', '✨', '🤝', '✅'];
   
-  const presets = [
+  // Quick Presets Templates
+  const defaultPresets = [
     { title: "👋 Saludo Inicial", text: "¡Hola! Bienvenido a Office City. ¿En qué podemos ayudarle el día de hoy con sus insumos de oficina?" },
     { title: "📄 Envío de Cotización", text: "Con mucho gusto. Le comparto la cotización solicitada adjunta en este chat. Quedo muy al pendiente de sus comentarios." },
     { title: "📍 Ubicación y Horario", text: "Nuestra sucursal se encuentra ubicada en: Zona Industrial PIQ, Querétaro. Horario de atención: Lunes a Viernes de 9 AM a 6 PM." },
     { title: "📦 Catálogo Completo", text: "Estimado cliente, le comparto nuestro catálogo virtual de papelería, mobiliario y tecnología para oficinas: https://canma.com/catalogo" }
   ];
+
+  const [presets, setPresets] = useState<any[]>(defaultPresets);
+  const [isCreatingPreset, setIsCreatingPreset] = useState(false);
+  const [newPresetTitle, setNewPresetTitle] = useState("");
+  const [newPresetText, setNewPresetText] = useState("");
+
+  // Load custom presets on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("caanma_custom_presets");
+    if (saved) {
+      try {
+        setPresets(JSON.parse(saved));
+      } catch (e) {
+        console.error("Error parsing custom presets", e);
+      }
+    }
+  }, []);
+
+  const handleSavePreset = (title: string, text: string) => {
+    if (!title.trim() || !text.trim()) return;
+    const updated = [...presets, { title: title.trim(), text: text.trim() }];
+    setPresets(updated);
+    localStorage.setItem("caanma_custom_presets", JSON.stringify(updated));
+    setIsCreatingPreset(false);
+    setNewPresetTitle("");
+    setNewPresetText("");
+  };
+
+  const handleDeletePreset = (idx: number, e: React.MouseEvent) => {
+    e.stopPropagation(); // prevent clicking preset to insert text
+    const updated = presets.filter((_, i) => i !== idx);
+    setPresets(updated);
+    localStorage.setItem("caanma_custom_presets", JSON.stringify(updated));
+  };
 
   // Auto-scroll to bottom on new message
   useEffect(() => {
@@ -269,20 +305,139 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
 
       {/* Preset Messages Picker Popup */}
       {showPresets && (
-        <div style={{ position: 'absolute', bottom: '80px', left: '3rem', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '0.75rem', width: '320px', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 30, maxHeight: '250px', overflowY: 'auto' }}>
-          <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.25rem' }}>Plantillas Rápidas de Office City:</div>
-          {presets.map((p, idx) => (
-            <button
-              key={idx}
-              onClick={() => handlePresetClick(p.text)}
-              style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem', borderRadius: '8px', borderBottom: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: '0.1rem', transition: 'background-color 0.2s' }}
-              onMouseOver={evt => evt.currentTarget.style.backgroundColor='#f8fafc'}
-              onMouseOut={evt => evt.currentTarget.style.backgroundColor='transparent'}
-            >
-              <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b' }}>{p.title}</div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '290px' }}>{p.text}</div>
-            </button>
-          ))}
+        <div style={{ position: 'absolute', bottom: '80px', left: '3rem', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '0.75rem', width: '330px', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', zIndex: 30, maxHeight: '350px', overflowY: 'auto' }}>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.4rem', marginBottom: '0.25rem' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Plantillas Rápidas:</span>
+            {!isCreatingPreset && (
+              <button 
+                onClick={() => {
+                  setIsCreatingPreset(true);
+                  if (inputText.trim()) {
+                    setNewPresetText(inputText); // prefill with current draft!
+                  }
+                }}
+                style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', padding: '0.25rem 0.6rem', fontSize: '0.72rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem', transition: 'background-color 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor='#2563eb'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor='#3b82f6'}
+              >
+                ➕ Nueva
+              </button>
+            )}
+          </div>
+
+          {/* Form to Create Custom Preset Inline */}
+          {isCreatingPreset ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.5rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', animation: 'fadeIn 0.2s ease' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>Nueva Plantilla Personalizada</div>
+              <input
+                type="text"
+                placeholder="Título (ej: 👋 Saludo)"
+                value={newPresetTitle}
+                onChange={e => setNewPresetTitle(e.target.value)}
+                style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none' }}
+              />
+              <textarea
+                placeholder="Texto de la plantilla..."
+                value={newPresetText}
+                onChange={e => setNewPresetText(e.target.value)}
+                rows={3}
+                style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', resize: 'none', fontFamily: 'inherit' }}
+              />
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setIsCreatingPreset(false)}
+                  style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '0.75rem', cursor: 'pointer', padding: '0.25rem' }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  disabled={!newPresetTitle.trim() || !newPresetText.trim()}
+                  onClick={() => handleSavePreset(newPresetTitle, newPresetText)}
+                  style={{ backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', padding: '0.25rem 0.6rem', fontSize: '0.75rem', fontWeight: 'bold', cursor: (!newPresetTitle.trim() || !newPresetText.trim()) ? 'not-allowed' : 'pointer', opacity: (!newPresetTitle.trim() || !newPresetText.trim()) ? 0.6 : 1 }}
+                >
+                  Guardar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              {presets.map((p, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => handlePresetClick(p.text)}
+                  style={{ 
+                    textAlign: 'left', 
+                    background: 'none', 
+                    border: 'none', 
+                    cursor: 'pointer', 
+                    padding: '0.5rem', 
+                    borderRadius: '8px', 
+                    borderBottom: '1px solid #f1f5f9', 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'flex-start',
+                    gap: '0.5rem', 
+                    transition: 'background-color 0.2s',
+                    position: 'relative'
+                  }}
+                  onMouseOver={evt => evt.currentTarget.style.backgroundColor='#f8fafc'}
+                  onMouseOut={evt => evt.currentTarget.style.backgroundColor='transparent'}
+                >
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.1rem', overflow: 'hidden' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b' }}>{p.title}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '230px' }}>{p.text}</div>
+                  </div>
+                  <button
+                    onClick={(e) => handleDeletePreset(idx, e)}
+                    title="Eliminar plantilla"
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      color: '#94a3b8', 
+                      cursor: 'pointer', 
+                      fontSize: '0.85rem',
+                      padding: '0.1rem 0.25rem',
+                      borderRadius: '4px',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.color='#ef4444'; e.currentTarget.style.backgroundColor='#fee2e2'; }}
+                    onMouseLeave={e => { e.currentTarget.style.color='#94a3b8'; e.currentTarget.style.backgroundColor='transparent'; }}
+                  >
+                    🗑️
+                  </button>
+                </div>
+              ))}
+
+              {/* Special Quick Option to save current draft if something is typed! */}
+              {inputText.trim() && (
+                <button
+                  onClick={() => {
+                    setIsCreatingPreset(true);
+                    setNewPresetText(inputText);
+                    setNewPresetTitle("");
+                  }}
+                  style={{ 
+                    marginTop: '0.5rem',
+                    textAlign: 'center',
+                    border: '1px dashed #3b82f6', 
+                    background: '#eff6ff',
+                    color: '#1d4ed8',
+                    cursor: 'pointer', 
+                    padding: '0.5rem', 
+                    borderRadius: '8px', 
+                    fontSize: '0.78rem',
+                    fontWeight: 'bold',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseOver={evt => evt.currentTarget.style.backgroundColor='#dbeafe'}
+                  onMouseOut={evt => evt.currentTarget.style.backgroundColor='#eff6ff'}
+                >
+                  💾 Convertir borrador actual en plantilla
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 

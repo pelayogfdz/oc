@@ -14,6 +14,87 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState("");
 
+  // Campaign Modal States
+  const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
+  const [campaignMessage, setCampaignMessage] = useState("");
+  const [isCampaignScheduled, setIsCampaignScheduled] = useState(false);
+  const [campaignScheduledDate, setCampaignScheduledDate] = useState("");
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [isSavingCampaign, setIsSavingCampaign] = useState(false);
+
+  // Total open conversations count (prospects who have at least one message)
+  const openConversationsCount = prospects.filter((p: any) => p.messages && p.messages.length > 0).length;
+
+  const fetchCampaigns = async () => {
+    try {
+      const res = await fetch("/api/whatsapp/campaign");
+      if (res.ok) {
+        const data = await res.json();
+        setCampaigns(data.campaigns || []);
+      }
+    } catch (err) {
+      console.error("Error fetching campaigns", err);
+    }
+  };
+
+  const handleCreateCampaign = async () => {
+    if (!campaignMessage.trim()) return;
+    setIsSavingCampaign(true);
+
+    try {
+      const res = await fetch("/api/whatsapp/campaign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: campaignMessage,
+          scheduledAt: isCampaignScheduled ? campaignScheduledDate : null
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        alert(isCampaignScheduled 
+          ? `Envío masivo programado con éxito para ${data.totalQueued} clientes.`
+          : `Envío masivo iniciado con éxito para ${data.totalQueued} clientes. Se enviarán secuencialmente en segundo plano cada 5 segundos.`
+        );
+        setCampaignMessage("");
+        setIsCampaignScheduled(false);
+        setCampaignScheduledDate("");
+        fetchCampaigns();
+        router.refresh();
+      } else {
+        const errData = await res.json();
+        alert(`Error: ${errData.error || "No se pudo crear la campaña"}`);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error de conexión");
+    } finally {
+      setIsSavingCampaign(false);
+    }
+  };
+
+  const handleCancelCampaign = async (bodyText: string, scheduledTime: string) => {
+    if (confirm("¿Seguro que deseas cancelar y eliminar este envío masivo programado?")) {
+      try {
+        const res = await fetch("/api/whatsapp/campaign", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: bodyText, scheduledAt: scheduledTime })
+        });
+        if (res.ok) {
+          alert("Envío masivo cancelado exitosamente.");
+          fetchCampaigns();
+          router.refresh();
+        } else {
+          alert("Error al cancelar envío");
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
   // Keep prospects synced with server props
   useEffect(() => {
     setProspects(initialProspects);
@@ -271,6 +352,366 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
         </div>
       )}
 
+      {/* Modal Mensaje Masivo / Campañas */}
+      {isCampaignModalOpen && (
+        <div style={{ 
+          position: 'absolute', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0, 
+          backgroundColor: 'rgba(15, 23, 42, 0.45)', 
+          backdropFilter: 'blur(8px)',
+          zIndex: 50, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          padding: '1rem'
+        }}>
+          <style>{`
+            @keyframes modalFadeIn {
+              from { opacity: 0; transform: scale(0.95); }
+              to { opacity: 1; transform: scale(1); }
+            }
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            @keyframes spin {
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
+          <div style={{ 
+            backgroundColor: 'white', 
+            borderRadius: '16px', 
+            width: '600px', 
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', 
+            border: '1px solid rgba(226, 232, 240, 0.8)',
+            overflow: 'hidden',
+            animation: 'modalFadeIn 0.3s ease-out'
+          }}>
+            {/* Header */}
+            <div style={{ 
+              padding: '1.25rem 1.5rem', 
+              borderBottom: '1px solid #f1f5f9', 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              background: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)',
+              color: 'white'
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  📢 Envío de Mensajes Masivos
+                </h3>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.775rem', opacity: 0.9 }}>
+                  Envía notificaciones a tus clientes activos con 5 segundos de espera anti-spam.
+                </p>
+              </div>
+              <button 
+                onClick={() => setIsCampaignModalOpen(false)} 
+                style={{ 
+                  background: 'rgba(255, 255, 255, 0.15)', 
+                  border: 'none', 
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  cursor: 'pointer', 
+                  fontSize: '1rem',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)'}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Target Indicator */}
+              <div style={{ 
+                backgroundColor: '#eff6ff', 
+                border: '1px solid #bfdbfe', 
+                borderRadius: '10px', 
+                padding: '0.85rem 1rem', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between' 
+              }}>
+                <div>
+                  <span style={{ fontSize: '0.825rem', color: '#1e40af', fontWeight: '500' }}>Conversaciones abiertas detectadas:</span>
+                  <div style={{ fontSize: '0.75rem', color: '#60a5fa', marginTop: '0.1rem' }}>Clientes con al menos 1 mensaje en esta sucursal.</div>
+                </div>
+                <div style={{ 
+                  backgroundColor: '#3b82f6', 
+                  color: 'white', 
+                  fontWeight: '800', 
+                  fontSize: '1.2rem', 
+                  padding: '0.25rem 0.85rem', 
+                  borderRadius: '20px' 
+                }}>
+                  {openConversationsCount}
+                </div>
+              </div>
+
+              {/* Message Editor */}
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.875rem', fontWeight: '600', color: '#334155' }}>
+                  Contenido del Mensaje
+                </label>
+                <textarea 
+                  required
+                  placeholder="Escribe el mensaje masivo aquí... Ej: ¡Hola! Te informamos que ya tenemos listo tu pedido..." 
+                  value={campaignMessage} 
+                  onChange={e => setCampaignMessage(e.target.value)} 
+                  rows={4}
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.75rem', 
+                    borderRadius: '8px', 
+                    border: '1px solid #cbd5e1', 
+                    fontSize: '0.9rem',
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                    resize: 'vertical',
+                    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+                  }} 
+                />
+              </div>
+
+              {/* Scheduling Panel */}
+              <div style={{ 
+                border: '1px solid #e2e8f0', 
+                borderRadius: '10px', 
+                padding: '1rem',
+                backgroundColor: '#f8fafc' 
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#334155' }}>📅 Planificar Envío</span>
+                    <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+                      Activa esta opción para programar el envío para una fecha/hora futura.
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={isCampaignScheduled} 
+                      onChange={e => setIsCampaignScheduled(e.target.checked)} 
+                      className="sr-only peer" 
+                      style={{ display: 'none' }}
+                    />
+                    <div 
+                      onClick={() => setIsCampaignScheduled(!isCampaignScheduled)}
+                      style={{
+                        width: '44px',
+                        height: '24px',
+                        backgroundColor: isCampaignScheduled ? '#4f46e5' : '#cbd5e1',
+                        borderRadius: '12px',
+                        position: 'relative',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s'
+                      }}
+                    >
+                      <div style={{
+                        width: '18px',
+                        height: '18px',
+                        backgroundColor: 'white',
+                        borderRadius: '50%',
+                        position: 'absolute',
+                        top: '3px',
+                        left: isCampaignScheduled ? '23px' : '3px',
+                        transition: 'left 0.2s'
+                      }} />
+                    </div>
+                  </label>
+                </div>
+
+                {isCampaignScheduled && (
+                  <div style={{ marginTop: '0.75rem', animation: 'fadeIn 0.2s' }}>
+                    <label style={{ display: 'block', marginBottom: '0.3rem', fontSize: '0.775rem', fontWeight: '500', color: '#475569' }}>
+                      Fecha y Hora de Lanzamiento:
+                    </label>
+                    <input 
+                      type="datetime-local" 
+                      required
+                      value={campaignScheduledDate}
+                      onChange={e => setCampaignScheduledDate(e.target.value)}
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.5rem', 
+                        borderRadius: '6px', 
+                        border: '1px solid #cbd5e1',
+                        fontSize: '0.875rem',
+                        outline: 'none',
+                        color: '#1e293b'
+                      }} 
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Anti-Spam Banner */}
+              <div style={{ 
+                backgroundColor: '#fffbeb', 
+                border: '1px solid #fef3c7', 
+                borderRadius: '10px', 
+                padding: '0.75rem 1rem', 
+                display: 'flex', 
+                gap: '0.5rem', 
+                alignItems: 'flex-start' 
+              }}>
+                <span style={{ fontSize: '1.1rem' }}>🛡️</span>
+                <div>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#b45309' }}>Protección Antispam Inteligente Activa</span>
+                  <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.75rem', color: '#d97706', lineHeight: 1.35 }}>
+                    Para evitar bloqueos de WhatsApp, cada mensaje se enviará uno por uno con una espera obligatoria de **5 segundos**.
+                  </p>
+                </div>
+              </div>
+
+              {/* Scheduled Campaigns List */}
+              {campaigns.length > 0 && (
+                <div style={{ marginTop: '0.5rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '700', color: '#1e293b' }}>
+                    📋 Envíos Programados Activos ({campaigns.length})
+                  </label>
+                  <div style={{ 
+                    border: '1px solid #e2e8f0', 
+                    borderRadius: '8px', 
+                    maxHeight: '180px', 
+                    overflowY: 'auto',
+                    backgroundColor: '#fafafa'
+                  }}>
+                    {campaigns.map((c, idx) => {
+                      const dateStr = new Date(c.scheduledAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+                      const isPast = new Date(c.scheduledAt) <= new Date();
+                      return (
+                        <div key={idx} style={{ 
+                          padding: '0.75rem', 
+                          borderBottom: idx === campaigns.length - 1 ? 'none' : '1px solid #f1f5f9',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '1rem'
+                        }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ 
+                              fontSize: '0.825rem', 
+                              fontWeight: '600', 
+                              color: '#334155',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis' 
+                            }}>
+                              {c.body}
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.15rem', fontSize: '0.725rem', color: '#64748b' }}>
+                              <span>👥 {c.totalTargets} destinatarios</span>
+                              <span>•</span>
+                              <span style={{ color: isPast ? '#10b981' : '#4f46e5', fontWeight: '500' }}>
+                                📅 {isPast ? 'Enviando ahora' : `Programado: ${dateStr}`}
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleCancelCampaign(c.body, c.scheduledAt)}
+                            title="Cancelar envío programado"
+                            style={{
+                              backgroundColor: 'transparent',
+                              border: 'none',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                              padding: '0.25rem 0.5rem',
+                              borderRadius: '4px',
+                              fontSize: '0.775rem',
+                              fontWeight: 'bold',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#fee2e2'}
+                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Actions */}
+            <div style={{ 
+              padding: '1rem 1.5rem', 
+              borderTop: '1px solid #f1f5f9', 
+              display: 'flex', 
+              justifyContent: 'flex-end', 
+              gap: '0.75rem',
+              backgroundColor: '#f8fafc'
+            }}>
+              <button 
+                type="button" 
+                onClick={() => setIsCampaignModalOpen(false)} 
+                style={{ 
+                  padding: '0.55rem 1.25rem', 
+                  borderRadius: '8px', 
+                  border: '1px solid #cbd5e1', 
+                  backgroundColor: 'white',
+                  color: '#475569',
+                  fontWeight: '600',
+                  fontSize: '0.875rem',
+                  cursor: 'pointer' 
+                }}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleCreateCampaign}
+                disabled={isSavingCampaign || !campaignMessage.trim() || (isCampaignScheduled && !campaignScheduledDate)}
+                style={{ 
+                  padding: '0.55rem 1.5rem', 
+                  borderRadius: '8px', 
+                  border: 'none', 
+                  backgroundColor: isSavingCampaign ? '#93c5fd' : '#4f46e5', 
+                  color: 'white', 
+                  fontWeight: '700',
+                  fontSize: '0.875rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2)'
+                }}
+              >
+                {isSavingCampaign ? (
+                  <>
+                    <span style={{
+                      width: '14px',
+                      height: '14px',
+                      border: '2px solid rgba(255,255,255,0.3)',
+                      borderTop: '2px solid white',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite',
+                      display: 'inline-block'
+                    }} />
+                    Procesando...
+                  </>
+                ) : isCampaignScheduled ? 'Programar Envío' : 'Enviar Ahora ⚡'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modals Overlay para Cotizaciones y Clientes */}
       {(showQuoteModal || showCustomerModal) && (
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -334,13 +775,30 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
       {/* Sidebar de Conversaciones */}
       <div style={{ width: '350px', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', backgroundColor: '#f8fafc' }}>
         <div style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', backgroundColor: 'white' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ fontWeight: '600', fontSize: '1.125rem' }}>Chats Entrantes</h2>
-            <button 
-              onClick={() => setIsNewChatModalOpen(true)}
-              style={{ padding: '0.3rem 0.6rem', backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', border: 'none', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 'bold' }}>
-              + Nuevo
-            </button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+            <h2 style={{ fontWeight: '600', fontSize: '1.125rem', margin: 0 }}>Chats</h2>
+            <div style={{ display: 'flex', gap: '0.4rem' }}>
+              <button 
+                onClick={() => {
+                  setIsCampaignModalOpen(true);
+                  fetchCampaigns();
+                }}
+                title="Mensaje Masivo"
+                style={{ padding: '0.35rem 0.6rem', backgroundColor: '#4f46e5', color: 'white', borderRadius: '6px', border: 'none', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.2rem', transition: 'all 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor='#4338ca'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor='#4f46e5'}
+              >
+                📢 Masivo
+              </button>
+              <button 
+                onClick={() => setIsNewChatModalOpen(true)}
+                style={{ padding: '0.35rem 0.6rem', backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', border: 'none', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor='#1d4ed8'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor='#2563eb'}
+              >
+                + Nuevo
+              </button>
+            </div>
           </div>
           <input 
             type="text" 

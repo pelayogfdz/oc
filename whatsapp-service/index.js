@@ -414,21 +414,38 @@ app.listen(PORT, () => {
 });
 
 // Polling function to send pending messages
+let isPolling = false;
+
 setInterval(async () => {
+    if (isPolling) return;
     if (!client || !client.info) return;
 
     try {
+        isPolling = true;
+
         const pendingMessages = await prisma.whatsAppMessage.findMany({
             where: {
                 messageId: null,
-                isFromMe: true
+                isFromMe: true,
+                timestamp: {
+                    lte: new Date()
+                }
             },
             include: {
                 prospect: true
+            },
+            orderBy: {
+                timestamp: 'asc'
             }
         });
 
         for (const msg of pendingMessages) {
+            // Verify it wasn't deleted or sent in the meantime
+            const stillPending = await prisma.whatsAppMessage.findUnique({
+                where: { id: msg.id }
+            });
+            if (!stillPending || stillPending.messageId) continue;
+
             try {
                 let phone = msg.prospect.phone;
                 if (!phone) continue;
@@ -466,6 +483,9 @@ setInterval(async () => {
                 });
                 
                 console.log(`[WHATSAPP] Sent pending message to ${phone}`);
+
+                // WAIT 5 SECONDS between each message to avoid spam!
+                await new Promise(resolve => setTimeout(resolve, 5000));
             } catch (sendError) {
                 console.error(`Failed to send pending message to ${msg.prospect?.phone}:`, sendError);
                 await prisma.whatsAppMessage.update({
@@ -478,5 +498,7 @@ setInterval(async () => {
         }
     } catch (error) {
         console.error('Error polling for pending messages:', error);
+    } finally {
+        isPolling = false;
     }
 }, 5000);
