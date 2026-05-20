@@ -146,7 +146,7 @@ function initializeClient() {
 
         // Determine JID of other party
         const otherPartyJid = msg.fromMe ? msg.to : msg.from;
-        if (!otherPartyJid || !otherPartyJid.endsWith('@c.us')) return; // ignore groups, broadcast, status
+        if (!otherPartyJid || (!otherPartyJid.endsWith('@c.us') && !otherPartyJid.endsWith('@lid'))) return; // ignore groups, broadcast, status
 
         const phone = otherPartyJid.split('@')[0];
 
@@ -169,35 +169,97 @@ function initializeClient() {
             const session = await getGlobalSession();
             const branchId = session.branchId;
 
+            // Fetch contact and normalize phone numbers
+            let realPhone = phone;
+            let whatsappId = null;
+            let contactName = phone;
+
+            try {
+                const contact = await client.getContactById(otherPartyJid);
+                contactName = contact.pushname || contact.name || phone;
+                if (contact.number) {
+                    realPhone = contact.number;
+                }
+                if (otherPartyJid.endsWith('@lid')) {
+                    whatsappId = phone; // LID JID user
+                }
+            } catch (contactErr) {
+                console.warn('[WHATSAPP] Failed to fetch contact info:', contactErr.message);
+            }
+
+            // Build Mexican phone number variations to search
+            const phoneVariations = [realPhone];
+            let basePhone = realPhone;
+            if (realPhone.startsWith('521') && realPhone.length === 13) {
+                basePhone = realPhone.substring(3);
+                phoneVariations.push('52' + basePhone);
+                phoneVariations.push(basePhone);
+            } else if (realPhone.startsWith('52') && realPhone.length === 12) {
+                basePhone = realPhone.substring(2);
+                phoneVariations.push('521' + basePhone);
+                phoneVariations.push(basePhone);
+            } else if (realPhone.length === 10) {
+                phoneVariations.push('52' + realPhone);
+                phoneVariations.push('521' + realPhone);
+            }
+
+            // Also search by original user JID parts
+            if (!phoneVariations.includes(phone)) {
+                phoneVariations.push(phone);
+            }
+
+            const orConditions = phoneVariations.map(p => ({ phone: p }));
+            if (whatsappId) {
+                orConditions.push({ whatsappId: whatsappId });
+                orConditions.push({ whatsappId: { contains: whatsappId } });
+            }
+            orConditions.push({ whatsappId: phone });
+            orConditions.push({ whatsappId: { contains: phone } });
+
             let prospect = await prisma.prospect.findFirst({
                 where: { 
                     branchId: branchId,
-                    OR: [
-                        { phone: phone },
-                        { whatsappId: phone },
-                        { whatsappId: { contains: phone } }
-                    ]
+                    OR: orConditions
                 }
             });
 
             if (!prospect) {
-                // Fetch contact name if possible
-                let name = phone;
-                try {
-                    const contact = await client.getContactById(otherPartyJid);
-                    name = contact.pushname || contact.name || phone;
-                } catch (contactErr) {
-                    console.warn('[WHATSAPP] Failed to fetch contact info:', contactErr.message);
-                }
-
+                // Create a clean new prospect using realPhone
                 prospect = await prisma.prospect.create({
                     data: {
-                        name: name,
-                        phone: phone,
+                        name: contactName,
+                        phone: realPhone,
+                        whatsappId: whatsappId || phone,
                         branchId: branchId,
                         funnelStage: 'NEW'
                     }
                 });
+                console.log(`[WHATSAPP] Created new prospect for phone: ${realPhone}, whatsappId: ${whatsappId || phone}`);
+            } else {
+                // Update whatsappId and/or name/phone if missing
+                const updates = {};
+                if (whatsappId && prospect.whatsappId !== whatsappId) {
+                    updates.whatsappId = whatsappId;
+                }
+                if (realPhone && !prospect.phone) {
+                    updates.phone = realPhone;
+                }
+                if (Object.keys(updates).length > 0) {
+                    prospect = await prisma.prospect.update({
+                        where: { id: prospect.id },
+                        data: updates
+                    });
+                    console.log(`[WHATSAPP] Updated prospect ${prospect.id} with:`, updates);
+                }
+            }
+
+            // Set initial status based on ACK
+            let initialStatus = 0;
+            if (msg.fromMe) {
+                if (msg.ack === 1) initialStatus = 1;
+                else if (msg.ack === 2) initialStatus = 2;
+                else if (msg.ack >= 3) initialStatus = 3;
+                else initialStatus = 1; // default to sent
             }
 
             await prisma.whatsAppMessage.create({
@@ -206,11 +268,12 @@ function initializeClient() {
                     prospectId: prospect.id,
                     body: msg.body,
                     isFromMe: msg.fromMe,
+                    status: initialStatus,
                     timestamp: new Date(msg.timestamp * 1000)
                 }
             });
 
-            console.log(`[WHATSAPP] Message saved successfully in DB.`);
+            console.log(`[WHATSAPP] Message saved successfully in DB under prospect: ${prospect.name}`);
         } catch (e) {
             console.error('Error saving message create event:', e);
         }
@@ -221,15 +284,15 @@ function initializeClient() {
             if (!msg.id._serialized) return;
             
             let status = 0;
-            if (ack === 1) status = 0;
-            else if (ack === 2) status = 1;
-            else if (ack === 3) status = 2;
-            else if (ack === 4 || ack === 5) status = 3;
+            if (ack === 1) status = 1; // sent to server (1 palomita)
+            else if (ack === 2) status = 2; // delivered to device (2 palomitas grises)
+            else if (ack === 3 || ack === 4 || ack === 5) status = 3; // read/played (2 palomitas azules)
             
             await prisma.whatsAppMessage.updateMany({
                 where: { messageId: msg.id._serialized },
                 data: { status }
             });
+            console.log(`[WHATSAPP] Updated message ACK for ${msg.id._serialized} to status ${status}`);
         } catch (e) {
             console.error('Error updating message ack:', e);
         }
@@ -251,7 +314,23 @@ app.post('/api/send', async (req, res) => {
         if (!client) {
             return res.status(503).json({ error: 'WhatsApp client is not initialized' });
         }
-        const chatId = `${phone}@c.us`; 
+        
+        let chatId = `${phone}@c.us`;
+        // Check if there is an existing prospect to see if we have their LID whatsappId
+        if (prospectId) {
+            const pr = await prisma.prospect.findUnique({
+                where: { id: prospectId }
+            });
+            if (pr && pr.whatsappId) {
+                if (pr.whatsappId.includes('@')) {
+                    chatId = pr.whatsappId;
+                } else {
+                    // Try to guess JID format (LID or classic)
+                    chatId = pr.whatsappId.length > 13 ? `${pr.whatsappId}@lid` : `${pr.whatsappId}@c.us`;
+                }
+            }
+        }
+
         const sentMsg = await client.sendMessage(chatId, message);
 
         if (prospectId) {
@@ -261,6 +340,7 @@ app.post('/api/send', async (req, res) => {
                     prospectId: prospectId,
                     body: message,
                     isFromMe: true,
+                    status: 1, // Sent (1 tick)
                     timestamp: new Date(sentMsg.timestamp * 1000)
                 }
             });
