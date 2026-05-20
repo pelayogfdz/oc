@@ -5,13 +5,26 @@ import { getActiveBranch } from "@/app/actions/auth";
 export default async function WhatsAppConfigPage() {
   const branch = await getActiveBranch();
   
-  let session = await prisma.whatsAppSession.findFirst();
+  if (!branch) {
+    return (
+      <div>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Configuracion de WhatsApp</h1>
+        <p style={{ color: 'red' }}>Error: No se pudo determinar la sucursal activa.</p>
+      </div>
+    );
+  }
 
-  // Si no hay sesión, la mostramos como desconectada por defecto
+  const branchId = process.env.WHATSAPP_BRANCH_ID || branch.id;
+
+  let session = await prisma.whatsAppSession.findUnique({
+    where: { branchId }
+  });
+
+  // Si no hay sesion, la mostramos como desconectada por defecto
   if (!session) {
     session = {
       id: "new",
-      branchId: branch.id,
+      branchId: branchId,
       status: "DISCONNECTED",
       sessionData: null,
       createdAt: new Date(),
@@ -22,8 +35,8 @@ export default async function WhatsAppConfigPage() {
   return (
     <div>
       <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Configuración de WhatsApp</h1>
-        <p style={{ color: 'var(--pulpos-text-muted)' }}>Conecta tu número global de WhatsApp escaneando el código QR</p>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Configuracion de WhatsApp</h1>
+        <p style={{ color: 'var(--pulpos-text-muted)' }}>Conecta tu numero global de WhatsApp escaneando el codigo QR</p>
       </div>
 
       <div className="card" style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center', padding: '3rem 2rem' }}>

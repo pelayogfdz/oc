@@ -39,8 +39,24 @@ let client = null;
 
 // Helper to get or create the global WhatsApp session
 async function getGlobalSession() {
-    // We assume the first branch is the default one for the global session
-    const branch = await prisma.branch.findFirst();
+    // Try to find the branch matching WHATSAPP_BRANCH_ID first,
+    // otherwise fallback to the first branch that has a tenantId (active company).
+    // If still not found, fallback to the very first branch.
+    let branch = null;
+    if (process.env.WHATSAPP_BRANCH_ID) {
+        branch = await prisma.branch.findUnique({
+            where: { id: process.env.WHATSAPP_BRANCH_ID }
+        });
+    }
+    if (!branch) {
+        branch = await prisma.branch.findFirst({
+            where: { tenantId: { not: null } }
+        });
+    }
+    if (!branch) {
+        branch = await prisma.branch.findFirst();
+    }
+    
     if (!branch) {
         throw new Error('No branch exists in the DB to attach the session to.');
     }
@@ -149,12 +165,13 @@ function initializeClient() {
         console.log(`[WHATSAPP] Message create event - fromMe: ${msg.fromMe}, otherParty: ${phone}, body: ${msg.body}`);
 
         try {
-            const branch = await prisma.branch.findFirst();
-            if (!branch) return;
+            // Use the branch associated with the current WhatsApp session
+            const session = await getGlobalSession();
+            const branchId = session.branchId;
 
             let prospect = await prisma.prospect.findFirst({
                 where: { 
-                    branchId: branch.id,
+                    branchId: branchId,
                     OR: [
                         { phone: phone },
                         { whatsappId: phone },
@@ -177,7 +194,7 @@ function initializeClient() {
                     data: {
                         name: name,
                         phone: phone,
-                        branchId: branch.id,
+                        branchId: branchId,
                         funnelStage: 'NEW'
                     }
                 });
