@@ -34,41 +34,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Reusable Client variable
-let client = null;
+// Active clients Map: branchId -> Client
+const clients = new Map();
 
-// Helper to get or create the global WhatsApp session
-async function getGlobalSession() {
-    // Try to find the branch matching WHATSAPP_BRANCH_ID first,
-    // otherwise fallback to the first branch that has a tenantId (active company).
-    // If still not found, fallback to the very first branch.
-    let branch = null;
-    if (process.env.WHATSAPP_BRANCH_ID) {
-        branch = await prisma.branch.findUnique({
-            where: { id: process.env.WHATSAPP_BRANCH_ID }
-        });
-    }
-    if (!branch) {
-        branch = await prisma.branch.findFirst({
-            where: { tenantId: { not: null } }
-        });
-    }
-    if (!branch) {
-        branch = await prisma.branch.findFirst();
-    }
-    
-    if (!branch) {
-        throw new Error('No branch exists in the DB to attach the session to.');
-    }
-    
+// Helper to get or create a WhatsApp session by branchId
+async function getSessionForBranch(branchId) {
     let session = await prisma.whatsAppSession.findUnique({
-        where: { branchId: branch.id }
+        where: { branchId }
     });
     
     if (!session) {
         session = await prisma.whatsAppSession.create({
             data: {
-                branchId: branch.id,
+                branchId,
                 status: 'DISCONNECTED'
             }
         });
@@ -76,12 +54,28 @@ async function getGlobalSession() {
     return session;
 }
 
-// Function to initialize or re-initialize client
-function initializeClient() {
-    console.log('[WHATSAPP] Initializing a new WhatsApp Client...');
+// Function to initialize or get a client for a specific branch
+async function getClientForBranch(branchId, forceRecreate = false) {
+    if (clients.has(branchId) && !forceRecreate) {
+        return clients.get(branchId);
+    }
+
+    console.log(`[WHATSAPP] Initializing a new WhatsApp Client for branch: ${branchId}...`);
     
-    client = new Client({
+    // Clean old client if forcing recreate
+    if (clients.has(branchId)) {
+        try {
+            const oldClient = clients.get(branchId);
+            await oldClient.destroy();
+        } catch (e) {
+            console.warn(`[WHATSAPP] Error destroying old client for branch ${branchId}:`, e.message);
+        }
+        clients.delete(branchId);
+    }
+
+    const client = new Client({
         authStrategy: new LocalAuth({
+            clientId: `branch-${branchId}`,
             dataPath: './.wwebjs_auth'
         }),
         puppeteer: {
@@ -90,12 +84,14 @@ function initializeClient() {
         }
     });
 
+    clients.set(branchId, client);
+
     client.on('qr', async (qr) => {
-        console.log('QR RECEIVED', qr);
+        console.log(`[WHATSAPP] QR RECEIVED for branch ${branchId}`, qr);
         qrcode.generate(qr, { small: true });
         
         try {
-            const session = await getGlobalSession();
+            const session = await getSessionForBranch(branchId);
             await prisma.whatsAppSession.update({
                 where: { id: session.id },
                 data: {
@@ -104,15 +100,15 @@ function initializeClient() {
                 }
             });
         } catch (e) {
-            console.error('Failed to update QR in DB', e);
+            console.error(`[WHATSAPP] Failed to update QR in DB for branch ${branchId}`, e);
         }
     });
 
     client.on('ready', async () => {
-        console.log('WhatsApp Client is ready!');
+        console.log(`[WHATSAPP] Client is ready for branch ${branchId}!`);
         try {
             const phone = client.info && client.info.wid ? client.info.wid.user : null;
-            const session = await getGlobalSession();
+            const session = await getSessionForBranch(branchId);
             await prisma.whatsAppSession.update({
                 where: { id: session.id },
                 data: {
@@ -122,18 +118,18 @@ function initializeClient() {
             });
 
             // Run self-healing for LID contacts in the background
-            selfHealLIDProspects().catch(err => {
-                console.error('[WHATSAPP] Background self-healing failed:', err);
+            selfHealLIDProspects(branchId).catch(err => {
+                console.error(`[WHATSAPP] Background self-healing failed for branch ${branchId}:`, err);
             });
         } catch (e) {
-            console.error('Failed to update Ready status in DB', e);
+            console.error(`[WHATSAPP] Failed to update Ready status in DB for branch ${branchId}`, e);
         }
     });
 
     client.on('disconnected', async (reason) => {
-        console.log('WhatsApp Client was disconnected', reason);
+        console.log(`[WHATSAPP] Client was disconnected for branch ${branchId}`, reason);
         try {
-            const session = await getGlobalSession();
+            const session = await getSessionForBranch(branchId);
             await prisma.whatsAppSession.update({
                 where: { id: session.id },
                 data: {
@@ -142,7 +138,7 @@ function initializeClient() {
                 }
             });
         } catch (e) {
-            console.error('Failed to update Disconnect status in DB', e);
+            console.error(`[WHATSAPP] Failed to update Disconnect status in DB for branch ${branchId}`, e);
         }
     });
 
@@ -164,16 +160,12 @@ function initializeClient() {
                 return; // Message already stored (e.g. sent from web and inserted manually)
             }
         } catch (dbErr) {
-            console.error('[WHATSAPP] Error checking duplicate message:', dbErr);
+            console.error(`[WHATSAPP] Error checking duplicate message for branch ${branchId}:`, dbErr);
         }
 
-        console.log(`[WHATSAPP] Message create event - fromMe: ${msg.fromMe}, otherParty: ${phone}, body: ${msg.body}`);
+        console.log(`[WHATSAPP] [Branch: ${branchId}] Message create event - fromMe: ${msg.fromMe}, otherParty: ${phone}, body: ${msg.body}`);
 
         try {
-            // Use the branch associated with the current WhatsApp session
-            const session = await getGlobalSession();
-            const branchId = session.branchId;
-
             // Fetch contact and normalize phone numbers
             let realPhone = phone;
             let whatsappId = null;
@@ -198,7 +190,7 @@ function initializeClient() {
                     whatsappId = realPhone;
                 }
             } catch (contactErr) {
-                console.warn('[WHATSAPP] Failed to fetch contact info:', contactErr.message);
+                console.warn(`[WHATSAPP] Failed to fetch contact info for branch ${branchId}:`, contactErr.message);
             }
 
             // Build Mexican phone number variations to search
@@ -248,7 +240,7 @@ function initializeClient() {
                         funnelStage: 'NEW'
                     }
                 });
-                console.log(`[WHATSAPP] Created new prospect for phone: ${realPhone}, whatsappId: ${whatsappId || phone}`);
+                console.log(`[WHATSAPP] Created new prospect for phone: ${realPhone}, whatsappId: ${whatsappId || phone} under branch: ${branchId}`);
             } else {
                 // Update whatsappId and/or name/phone if missing
                 const updates = {};
@@ -338,7 +330,7 @@ function initializeClient() {
                 data: { updatedAt: new Date() }
             });
         } catch (e) {
-            console.error('Error saving message create event:', e);
+            console.error(`[WHATSAPP] Error saving message create event for branch ${branchId}:`, e);
         }
     });
 
@@ -362,20 +354,37 @@ function initializeClient() {
     });
 
     client.initialize().catch(err => {
-        console.error('[WHATSAPP] Initialization crash:', err);
+        console.error(`[WHATSAPP] Initialization crash for branch ${branchId}:`, err);
     });
+
+    return client;
 }
 
 app.post('/api/send', async (req, res) => {
-    const { phone, message, prospectId, media } = req.body;
+    const { phone, message, prospectId, media, branchId } = req.body;
     
     if (!phone && !prospectId) {
         return res.status(400).json({ error: 'Phone or prospectId is required' });
     }
 
     try {
+        let resolvedBranchId = branchId;
+        if (!resolvedBranchId && prospectId) {
+            const pr = await prisma.prospect.findUnique({
+                where: { id: prospectId }
+            });
+            if (pr) {
+                resolvedBranchId = pr.branchId;
+            }
+        }
+
+        if (!resolvedBranchId) {
+            return res.status(400).json({ error: 'Could not resolve branchId' });
+        }
+
+        const client = await getClientForBranch(resolvedBranchId);
         if (!client) {
-            return res.status(503).json({ error: 'WhatsApp client is not initialized' });
+            return res.status(503).json({ error: 'WhatsApp client is not initialized for this branch' });
         }
         
         let chatId = phone ? `${phone}@c.us` : null;
@@ -479,10 +488,6 @@ app.post('/api/send', async (req, res) => {
 app.get('/api/media/:messageId', async (req, res) => {
     const { messageId } = req.params;
     try {
-        if (!client) {
-            return res.status(503).json({ error: 'WhatsApp client is not initialized' });
-        }
-
         // Find the message in DB to get prospect JID/phone
         const dbMsg = await prisma.whatsAppMessage.findFirst({
             where: {
@@ -507,6 +512,16 @@ app.get('/api/media/:messageId', async (req, res) => {
             return res.status(404).json({ error: 'Prospect not found' });
         }
 
+        const branchId = prospect.branchId;
+        if (!branchId) {
+            return res.status(400).json({ error: 'Prospect has no branch associated' });
+        }
+
+        const client = await getClientForBranch(branchId);
+        if (!client || !client.info) {
+            return res.status(503).json({ error: 'WhatsApp client is not initialized or ready for this branch' });
+        }
+
         let phone = prospect.phone;
         if (!phone) {
             return res.status(400).json({ error: 'Prospect has no phone number' });
@@ -518,7 +533,7 @@ app.get('/api/media/:messageId', async (req, res) => {
 
         let chatId = prospect.whatsappId ? (prospect.whatsappId.includes('@') ? prospect.whatsappId : (prospect.whatsappId.length > 13 ? `${prospect.whatsappId}@lid` : `${prospect.whatsappId}@c.us`)) : `${phone}@c.us`;
 
-        console.log(`[WHATSAPP] Fetching media for message ${activeMessageId} in chat ${chatId}`);
+        console.log(`[WHATSAPP] Fetching media for message ${activeMessageId} in chat ${chatId} using client for branch ${branchId}`);
 
         const chat = await client.getChatById(chatId);
         if (!chat) {
@@ -561,37 +576,60 @@ app.get('/api/media/:messageId', async (req, res) => {
     }
 });
 
+// Express GET endpoint to lazily initialize or ping status
+app.get('/api/status', async (req, res) => {
+    const { branchId } = req.query;
+    if (!branchId) {
+        return res.status(400).json({ error: 'branchId is required' });
+    }
+    try {
+        console.log(`[WHATSAPP] Ping status received for branch: ${branchId}. Ensuring initialization...`);
+        const client = await getClientForBranch(branchId);
+        res.json({ success: true, status: client.info ? 'CONNECTED' : 'INITIALIZING' });
+    } catch (error) {
+        console.error(`[WHATSAPP] Error in status ping for branch ${branchId}:`, error);
+        res.status(500).json({ error: error.message || 'Failed to ensure client status' });
+    }
+});
+
 // Express API to logout, clean credentials and immediately initialize a new code QR scanner
 app.post('/api/logout', async (req, res) => {
+    const branchId = req.query.branchId || req.body.branchId;
+    if (!branchId) {
+        return res.status(400).json({ error: 'branchId is required' });
+    }
+
     try {
-        console.log('[WHATSAPP] Logout request received. Disconnecting client...');
+        console.log(`[WHATSAPP] Logout request received for branch: ${branchId}. Disconnecting client...`);
+        const client = clients.get(branchId);
         if (client) {
             try {
                 await client.logout();
             } catch (err) {
-                console.warn('[WHATSAPP] client.logout() failed (expected if not logged in):', err.message);
+                console.warn(`[WHATSAPP] client.logout() failed for branch ${branchId} (expected if not logged in):`, err.message);
             }
             try {
                 await client.destroy();
             } catch (err) {
-                console.warn('[WHATSAPP] client.destroy() failed:', err.message);
+                console.warn(`[WHATSAPP] client.destroy() failed for branch ${branchId}:`, err.message);
             }
+            clients.delete(branchId);
         }
 
-        // Clean credentials
-        const authPath = path.resolve(__dirname, './.wwebjs_auth');
+        // Clean branch-specific credentials folder
+        const authPath = path.resolve(__dirname, `./.wwebjs_auth/session-branch-${branchId}`);
         if (fs.existsSync(authPath)) {
             try {
                 fs.rmSync(authPath, { recursive: true, force: true });
-                console.log('[WHATSAPP] Credentials folder .wwebjs_auth deleted successfully.');
+                console.log(`[WHATSAPP] Credentials folder ${authPath} deleted successfully.`);
             } catch (fsErr) {
-                console.error('[WHATSAPP] Failed to delete .wwebjs_auth folder:', fsErr);
+                console.error(`[WHATSAPP] Failed to delete folder ${authPath}:`, fsErr);
             }
         }
 
         // Reset database session status
         try {
-            const session = await getGlobalSession();
+            const session = await getSessionForBranch(branchId);
             await prisma.whatsAppSession.update({
                 where: { id: session.id },
                 data: {
@@ -599,24 +637,28 @@ app.post('/api/logout', async (req, res) => {
                     sessionData: null
                 }
             });
-            console.log('[WHATSAPP] Session status updated to DISCONNECTED in DB.');
+            console.log(`[WHATSAPP] Session status updated to DISCONNECTED in DB for branch ${branchId}.`);
         } catch (dbErr) {
-            console.error('[WHATSAPP] Failed to reset database session status:', dbErr);
+            console.error(`[WHATSAPP] Failed to reset database session status for branch ${branchId}:`, dbErr);
         }
 
         // Boot a brand new client scanning instance immediately
-        initializeClient();
+        await getClientForBranch(branchId, true);
 
         res.json({ success: true });
     } catch (error) {
-        console.error('[WHATSAPP] Logout error:', error);
+        console.error(`[WHATSAPP] Logout error for branch ${branchId}:`, error);
         res.status(500).json({ error: 'Failed to complete logout and reinitialization' });
     }
 });
 
 app.get('/api/debug-contact/:jid', async (req, res) => {
+    const { branchId } = req.query;
+    if (!branchId) return res.status(400).json({ error: 'branchId is required' });
+
     try {
-        if (!client) return res.status(503).json({ error: 'Client not ready' });
+        const client = clients.get(branchId);
+        if (!client) return res.status(503).json({ error: 'Client not ready for this branch' });
         const contact = await client.getContactById(req.params.jid);
         res.json({
             id: contact.id,
@@ -631,11 +673,18 @@ app.get('/api/debug-contact/:jid', async (req, res) => {
     }
 });
 
-async function selfHealLIDProspects() {
-    console.log('[WHATSAPP] Starting self-healing routine for LID prospects...');
+async function selfHealLIDProspects(branchId) {
+    console.log(`[WHATSAPP] Starting self-healing routine for LID prospects under branch ${branchId}...`);
     try {
+        const client = clients.get(branchId);
+        if (!client || !client.info) {
+            console.warn(`[WHATSAPP] Client not connected for branch ${branchId}, skipping self-healing.`);
+            return;
+        }
+
         const prospects = await prisma.prospect.findMany({
             where: {
+                branchId: branchId,
                 OR: [
                     { phone: { startsWith: '1' } },
                     { phone: { startsWith: '2' } },
@@ -651,7 +700,7 @@ async function selfHealLIDProspects() {
         });
 
         const lidProspects = prospects.filter(p => p.phone && p.phone.length > 13);
-        console.log(`[WHATSAPP] Found ${lidProspects.length} potential LID prospects in DB for healing.`);
+        console.log(`[WHATSAPP] Found ${lidProspects.length} potential LID prospects in DB for healing under branch ${branchId}.`);
 
         for (const p of lidProspects) {
             const originalLid = p.phone;
@@ -739,28 +788,25 @@ async function selfHealLIDProspects() {
             }
         }
     } catch (e) {
-        console.error('[WHATSAPP] Self-healing routine failed:', e);
+        console.error(`[WHATSAPP] Self-healing routine failed for branch ${branchId}:`, e);
     }
 }
 
 app.post('/api/heal', async (req, res) => {
+    const branchId = req.query.branchId || req.body.branchId;
+    if (!branchId) return res.status(400).json({ error: 'branchId is required' });
+
     try {
+        const client = clients.get(branchId);
         if (!client || !client.info) {
             return res.status(503).json({ error: 'WhatsApp client is not ready' });
         }
         // Run self-healing
-        selfHealLIDProspects().catch(err => console.error('[WHATSAPP] Manual self-healing failed:', err));
+        selfHealLIDProspects(branchId).catch(err => console.error(`[WHATSAPP] Manual self-healing failed for branch ${branchId}:`, err));
         res.json({ success: true, message: 'Self-healing routine triggered in background.' });
     } catch (error) {
         res.status(500).json({ error: error.message || 'Failed to trigger self-healing' });
     }
-});
-
-const PORT = process.env.WHATSAPP_PORT || 3001;
-app.listen(PORT, () => {
-    console.log(`WhatsApp Microservice API running on port ${PORT}`);
-    // Start WhatsApp Client
-    initializeClient();
 });
 
 // Polling function to send pending messages
@@ -768,7 +814,6 @@ let isPolling = false;
 
 setInterval(async () => {
     if (isPolling) return;
-    if (!client || !client.info) return;
 
     try {
         isPolling = true;
@@ -795,6 +840,14 @@ setInterval(async () => {
                 where: { id: msg.id }
             });
             if (!stillPending || stillPending.messageId) continue;
+
+            const branchId = msg.prospect.branchId;
+            const client = clients.get(branchId);
+            
+            if (!client || !client.info) {
+                console.log(`[WHATSAPP] Client not connected or ready for branch ${branchId}, skipping pending message.`);
+                continue;
+            }
 
             try {
                 let phone = msg.prospect.phone;
@@ -867,3 +920,31 @@ setInterval(async () => {
         isPolling = false;
     }
 }, 5000);
+
+async function initializeAllActiveSessions() {
+    console.log('[WHATSAPP] Pre-initializing connected/active sessions...');
+    try {
+        const sessions = await prisma.whatsAppSession.findMany({
+            where: {
+                status: { in: ['CONNECTED', 'QR_READY'] }
+            }
+        });
+        
+        console.log(`[WHATSAPP] Found ${sessions.length} sessions to pre-initialize.`);
+        for (const session of sessions) {
+            console.log(`[WHATSAPP] Pre-initializing branch ${session.branchId}...`);
+            getClientForBranch(session.branchId).catch(err => {
+                console.error(`[WHATSAPP] Failed to pre-initialize branch ${session.branchId}:`, err);
+            });
+        }
+    } catch (e) {
+        console.error('[WHATSAPP] Error pre-initializing active sessions:', e);
+    }
+}
+
+const PORT = process.env.WHATSAPP_PORT || 3001;
+app.listen(PORT, () => {
+    console.log(`WhatsApp Microservice API running on port ${PORT}`);
+    // Start active WhatsApp clients
+    initializeAllActiveSessions();
+});

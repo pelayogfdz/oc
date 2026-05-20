@@ -9,10 +9,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No branch found" }, { status: 404 });
     }
 
-    if (process.env.WHATSAPP_BRANCH_ID && branch.id !== process.env.WHATSAPP_BRANCH_ID) {
-      return NextResponse.json({ error: "WhatsApp not enabled for this branch" }, { status: 403 });
-    }
-
     const data = await request.json();
     const { phone, message, prospectId } = data;
 

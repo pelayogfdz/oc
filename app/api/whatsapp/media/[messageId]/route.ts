@@ -14,10 +14,6 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (process.env.WHATSAPP_BRANCH_ID && branch.id !== process.env.WHATSAPP_BRANCH_ID) {
-      return NextResponse.json({ error: "WhatsApp not enabled for this branch" }, { status: 403 });
-    }
-
     const { messageId } = await params;
     if (!messageId) {
       return NextResponse.json({ error: "Missing message ID" }, { status: 400 });

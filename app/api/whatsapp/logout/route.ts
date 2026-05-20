@@ -8,13 +8,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No branch found" }, { status: 404 });
     }
 
-    if (process.env.WHATSAPP_BRANCH_ID && branch.id !== process.env.WHATSAPP_BRANCH_ID) {
-      return NextResponse.json({ error: "WhatsApp not enabled for this branch" }, { status: 403 });
-    }
-
     const microserviceUrl = process.env.WHATSAPP_MICROSERVICE_URL || 'http://localhost:3001';
     
-    const res = await fetch(`${microserviceUrl}/api/logout`, {
+    const res = await fetch(`${microserviceUrl}/api/logout?branchId=${branch.id}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -9,15 +9,18 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "No branch found" }, { status: 404 });
     }
 
-    // If WHATSAPP_BRANCH_ID is set in env, restrict to that branch only
-    if (process.env.WHATSAPP_BRANCH_ID && branch.id !== process.env.WHATSAPP_BRANCH_ID) {
-      return NextResponse.json({ 
-        isAuthorized: false, 
-        session: { status: 'DISCONNECTED' } 
-      });
-    }
-
     const branchId = branch.id;
+
+    // Ping Express microservice to lazily initialize client for this branch if not already running
+    const microservicePort = process.env.WHATSAPP_PORT || 3001;
+    try {
+      await fetch(`http://localhost:${microservicePort}/api/status?branchId=${branchId}`, {
+        method: "GET",
+        cache: "no-store",
+      });
+    } catch (err: any) {
+      console.warn(`[STATUS ROUTE] Failed to ping microservice status for branch ${branchId}:`, err.message);
+    }
 
     let session = await prisma.whatsAppSession.findUnique({
       where: { branchId }
