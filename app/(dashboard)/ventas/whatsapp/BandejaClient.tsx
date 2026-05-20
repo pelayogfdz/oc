@@ -11,6 +11,8 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
   const [selectedProspectId, setSelectedProspectId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState("");
 
   // Keep prospects synced with server props
   useEffect(() => {
@@ -64,6 +66,13 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
   };
 
   const selectedProspect = prospects.find((p: any) => p.id === selectedProspectId);
+
+  useEffect(() => {
+    if (selectedProspect) {
+      setTempName(selectedProspect.name || "");
+    }
+    setIsEditingName(false);
+  }, [selectedProspectId, selectedProspect]);
 
   const handleAssign = async (prospectId: string, userId: string) => {
     const finalUserId = userId === "" ? null : userId;
@@ -129,9 +138,84 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
   const handleAssignCustomer = async (customerId: string) => {
     if (!selectedProspect) return;
     await assignCustomerToProspect(selectedProspect.id, customerId);
+    const matchedCustomer = customers.find((c: any) => c.id === customerId) || searchedCustomers.find((c: any) => c.id === customerId);
+    setProspects((prev: any) =>
+      prev.map((p: any) => p.id === selectedProspect.id ? { ...p, customerId, customer: matchedCustomer } : p)
+    );
     setShowCustomerModal(false);
     alert("Cliente asignado exitosamente.");
     router.refresh();
+  };
+
+  const handleSaveName = async () => {
+    if (!selectedProspect || !tempName.trim()) return;
+    try {
+      const res = await fetch(`/api/prospects/${selectedProspect.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: tempName })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setProspects((prev: any) =>
+          prev.map((p: any) => p.id === selectedProspect.id ? { ...p, name: updated.name } : p)
+        );
+        setIsEditingName(false);
+        router.refresh();
+      } else {
+        alert("Error al actualizar nombre");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error de conexión");
+    }
+  };
+
+  const handleUnlinkCustomer = async () => {
+    if (!selectedProspect) return;
+    if (confirm("¿Desvincular este chat de su cliente?")) {
+      try {
+        const res = await fetch(`/api/prospects/${selectedProspect.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ customerId: null })
+        });
+        if (res.ok) {
+          setProspects((prev: any) =>
+            prev.map((p: any) => p.id === selectedProspect.id ? { ...p, customerId: null, customer: null } : p)
+          );
+          alert("Desvinculado exitosamente.");
+          router.refresh();
+        } else {
+          alert("Error al desvincular");
+        }
+      } catch (e) {
+        console.error(e);
+        alert("Error de conexión");
+      }
+    }
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!selectedProspect) return;
+    if (confirm("¿Está seguro que desea eliminar este prospecto y toda su conversación de WhatsApp permanentemente? Esta acción no se puede deshacer.")) {
+      try {
+        const res = await fetch(`/api/prospects/${selectedProspect.id}`, {
+          method: "DELETE"
+        });
+        if (res.ok) {
+          setProspects((prev: any) => prev.filter((p: any) => p.id !== selectedProspect.id));
+          setSelectedProspectId(null);
+          alert("Conversación eliminada exitosamente.");
+          router.refresh();
+        } else {
+          alert("Error al eliminar conversación");
+        }
+      } catch (e) {
+        console.error(e);
+        alert("Error de conexión");
+      }
+    }
   };
 
   const filteredProspects = prospects.filter((p: any) => {
@@ -331,8 +415,124 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
             {/* Header del Chat */}
             <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e2e8f0', backgroundColor: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1e293b' }}>{selectedProspect.name}</h3>
-                <p style={{ fontSize: '0.875rem', color: '#64748b' }}>{selectedProspect.phone}</p>
+                {isEditingName ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <input 
+                      type="text" 
+                      value={tempName} 
+                      onChange={e => setTempName(e.target.value)} 
+                      style={{ 
+                        fontSize: '1.1rem', 
+                        fontWeight: 'bold', 
+                        padding: '0.25rem 0.5rem', 
+                        borderRadius: '6px', 
+                        border: '1px solid #cbd5e1',
+                        outline: 'none'
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleSaveName();
+                        if (e.key === 'Escape') setIsEditingName(false);
+                      }}
+                      autoFocus
+                    />
+                    <button 
+                      onClick={handleSaveName} 
+                      style={{ padding: '0.25rem 0.75rem', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}>
+                      Guardar
+                    </button>
+                    <button 
+                      onClick={() => setIsEditingName(false)} 
+                      style={{ padding: '0.25rem 0.75rem', backgroundColor: '#cbd5e1', color: '#334155', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}>
+                      Cancelar
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{selectedProspect.name}</h3>
+                    <button 
+                      onClick={() => {
+                        setTempName(selectedProspect.name || "");
+                        setIsEditingName(true);
+                      }} 
+                      title="Editar nombre"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', display: 'inline-flex', alignItems: 'center', color: '#64748b' }}>
+                      ✏️
+                    </button>
+                  </div>
+                )}
+                <p style={{ fontSize: '0.875rem', color: '#64748b', margin: 0 }}>{selectedProspect.phone}</p>
+                {selectedProspect.customerId ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                    <span style={{ 
+                      fontSize: '0.75rem', 
+                      backgroundColor: '#eff6ff', 
+                      color: '#1d4ed8', 
+                      padding: '0.25rem 0.5rem', 
+                      borderRadius: '12px', 
+                      border: '1px solid #bfdbfe',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
+                    }}>
+                      🫱🔗 Cliente: {selectedProspect.customer?.name || "Cargando..."}
+                    </span>
+                    <button 
+                      onClick={() => setShowCustomerModal(true)} 
+                      style={{ 
+                        background: 'none', 
+                        border: 'none', 
+                        color: '#2563eb', 
+                        cursor: 'pointer', 
+                        fontSize: '0.75rem', 
+                        textDecoration: 'underline',
+                        padding: 0
+                      }}>
+                      Cambiar
+                    </button>
+                    <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>|</span>
+                    <button 
+                      onClick={handleUnlinkCustomer} 
+                      style={{ 
+                        background: 'none', 
+                        border: 'none', 
+                        color: '#ef4444', 
+                        cursor: 'pointer', 
+                        fontSize: '0.75rem', 
+                        textDecoration: 'underline',
+                        padding: 0
+                      }}>
+                      Desvincular
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                    <span style={{ 
+                      fontSize: '0.75rem', 
+                      backgroundColor: '#f8fafc', 
+                      color: '#64748b', 
+                      padding: '0.25rem 0.5rem', 
+                      borderRadius: '12px', 
+                      border: '1px solid #e2e8f0',
+                      fontWeight: 500
+                    }}>
+                      Sin cliente vinculado
+                    </span>
+                    <button 
+                      onClick={() => setShowCustomerModal(true)} 
+                      style={{ 
+                        background: 'none', 
+                        border: 'none', 
+                        color: '#2563eb', 
+                        cursor: 'pointer', 
+                        fontSize: '0.75rem', 
+                        textDecoration: 'underline',
+                        padding: 0
+                      }}>
+                      Vincular Cliente
+                    </button>
+                  </div>
+                )}
               </div>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -354,12 +554,18 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
                     onClick={async () => {
                       if(confirm("¿Guardar este prospecto como cliente en el sistema?")) {
                         try {
-                          await fetch(`/api/prospects/${selectedProspect.id}`, {
+                          const res = await fetch(`/api/prospects/${selectedProspect.id}`, {
                             method: "PATCH",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ createCustomer: true })
                           });
-                          router.refresh();
+                          if (res.ok) {
+                            const updated = await res.json();
+                            setProspects((prev: any) =>
+                              prev.map((p: any) => p.id === selectedProspect.id ? { ...p, customerId: updated.customerId, customer: updated.customer } : p)
+                            );
+                            router.refresh();
+                          }
                         } catch(e) {
                           alert("Error al guardar como cliente");
                         }
@@ -434,7 +640,8 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
                     color: '#1e293b',
                     fontWeight: '500',
                     outline: 'none',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    marginRight: '0.5rem'
                   }}
                 >
                   <option value="">-- Sin asignar --</option>
@@ -442,6 +649,36 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
                     <option key={u.id} value={u.id}>{u.name} ({u.commissionRole})</option>
                   ))}
                 </select>
+
+                <button
+                  onClick={handleDeleteConversation}
+                  title="Eliminar Conversación"
+                  style={{
+                    padding: '0.5rem',
+                    backgroundColor: '#fee2e2',
+                    border: '1px solid #fecaca',
+                    color: '#dc2626',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#fecaca';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#fee2e2';
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                  </svg>
+                </button>
               </div>
             </div>
             

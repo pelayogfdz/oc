@@ -3,6 +3,7 @@ import { getActiveUser, getActiveBranch } from "@/app/actions/auth";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ChatInterface from "./ChatInterface";
+import DeleteProspectButton from "./DeleteProspectButton";
 
 export default async function ProspectChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -46,10 +47,11 @@ export default async function ProspectChatPage({ params }: { params: Promise<{ i
           <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: 0 }}>{prospect.name}</h1>
           <p style={{ color: 'var(--pulpos-text-muted)', margin: 0, fontSize: '0.875rem' }}>{prospect.phone}</p>
         </div>
-        <div style={{ marginLeft: 'auto' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.75rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: '600', color: '#475569' }}>
             Etapa: {prospect.funnelStage}
           </span>
+          <DeleteProspectButton prospectId={prospect.id} />
         </div>
       </div>
 

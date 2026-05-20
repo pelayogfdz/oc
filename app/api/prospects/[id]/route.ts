@@ -34,6 +34,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         assignedUserId: data.assignedUserId !== undefined ? data.assignedUserId : undefined,
         name: data.name !== undefined ? data.name : undefined,
         customerId: data.customerId !== undefined ? data.customerId : undefined
+      },
+      include: {
+        customer: true,
+        assignedUser: true
       }
     });
 
@@ -41,5 +45,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   } catch (error) {
     console.error("Error updating prospect:", error);
     return NextResponse.json({ error: "Failed to update prospect" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const user = await getActiveUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    await prisma.prospect.delete({
+      where: { id }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting prospect:", error);
+    return NextResponse.json({ error: "Failed to delete prospect" }, { status: 500 });
   }
 }

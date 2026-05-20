@@ -69,6 +69,26 @@ export default function KanbanBoard({ initialProspects, users, currentUser }: an
     }
   };
 
+  const handleDelete = async (prospectId: string) => {
+    if (confirm("¿Está seguro que desea eliminar este prospecto permanentemente? Esta acción no se puede deshacer y borrará todos sus mensajes asociados.")) {
+      try {
+        const res = await fetch(`/api/prospects/${prospectId}`, {
+          method: "DELETE"
+        });
+        if (res.ok) {
+          setProspects((prev: any) => prev.filter((p: any) => p.id !== prospectId));
+          alert("Prospecto eliminado exitosamente.");
+          router.refresh();
+        } else {
+          alert("Error al eliminar el prospecto");
+        }
+      } catch (e) {
+        console.error(e);
+        alert("Error de conexión");
+      }
+    }
+  };
+
   if (!isMounted) return null;
 
   return (
@@ -116,11 +136,23 @@ export default function KanbanBoard({ initialProspects, users, currentUser }: an
                             }}
                           >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                              <strong style={{ fontSize: '1rem', color: '#1e293b' }}>{prospect.name}</strong>
-                              {/* Icon to Chat */}
-                              <Link href={`/ventas/prospeccion/chat/${prospect.id}`} style={{ color: '#25D366', padding: '4px', borderRadius: '50%', backgroundColor: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                              </Link>
+                              <strong style={{ fontSize: '1rem', color: '#1e293b', maxWidth: '70%', overflow: 'hidden', textOverflow: 'ellipsis' }}>{prospect.name}</strong>
+                              {/* Icon to Chat and Delete */}
+                              <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                                <Link href={`/ventas/prospeccion/chat/${prospect.id}`} style={{ color: '#25D366', padding: '4px', borderRadius: '50%', backgroundColor: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                                </Link>
+                                <button 
+                                  onClick={() => handleDelete(prospect.id)}
+                                  title="Eliminar prospecto"
+                                  style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px', borderRadius: '50%', backgroundColor: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                  </svg>
+                                </button>
+                              </div>
                             </div>
                             
                             <div style={{ fontSize: '0.875rem', color: 'var(--pulpos-text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>

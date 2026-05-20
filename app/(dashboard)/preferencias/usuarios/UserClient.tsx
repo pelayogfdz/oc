@@ -373,14 +373,14 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
   }
 
   const getFlatPermissionsToSave = () => {
-    const selected = Object.keys(perms).filter(k => perms[k]);
-    const finalSet = new Set(selected);
+    const finalSet = new Set<string>();
     dynamicModules.forEach(mod => {
       let modActive = false;
       mod.submodules?.forEach((sm: any) => {
         let smActive = false;
         sm.permissions?.forEach((p: any) => {
           if (perms[p.id]) {
+            finalSet.add(p.id);
             smActive = true;
             modActive = true;
           }

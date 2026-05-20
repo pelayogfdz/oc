@@ -43,6 +43,7 @@ export default async function WhatsappBandejaPage() {
     where: prospectFilter,
     include: {
       assignedUser: true,
+      customer: true,
       messages: {
         orderBy: { timestamp: 'asc' }
       }
