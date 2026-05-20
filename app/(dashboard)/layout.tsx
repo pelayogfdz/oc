@@ -15,8 +15,10 @@ import { prisma } from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const tenantSettings = await getTenantSettings().catch(() => ({ decimals: 2 }));
-  const user = await getActiveUser().catch(() => null);
+  const [tenantSettings, user] = await Promise.all([
+    getTenantSettings().catch(() => ({ decimals: 2 })),
+    getActiveUser().catch(() => null)
+  ]);
   
   let isSuperAdmin = false;
   let userRole = 'USER';

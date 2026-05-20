@@ -22,10 +22,14 @@ export default async function WhatsappBandejaPage() {
   const isManager = user.role === 'ADMIN' || user.role === 'MANAGER' || user.commissionRole === 'COORDINADOR' || user.commissionRole === 'LIDER';
 
   // Lógica de visibilidad:
-  // - Managers ven todos
-  // - Usuarios normales solo ven los "sin asignar" o los "asignados a ellos mismos"
+  // - Managers ven todos los del tenant (o global si se desea)
+  // - Usuarios normales solo ven los "sin asignar" o los "asignados a ellos mismos" en su sucursal
+  
+  // Asumiremos que si es manager y tiene GLOBAL, ve todo. Si no, al menos ve los de su tenant.
+  // Para simplificar, si es manager, podemos traer los del tenant o los de branchFilter.
+  // Pero Prospect no tiene tenantId, así que buscaremos por branch.tenantId si es posible.
   const prospectFilter = isManager 
-    ? branchFilter 
+    ? { branch: { tenantId: user.tenantId } }
     : {
         ...branchFilter,
         OR: [
@@ -48,7 +52,7 @@ export default async function WhatsappBandejaPage() {
 
   // Lista de vendedores/usuarios disponibles para asignar
   const allUsers = await prisma.user.findMany({
-    where: { ...branchFilter },
+    where: { tenantId: user.tenantId },
     select: { id: true, name: true, commissionRole: true }
   });
 

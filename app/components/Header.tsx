@@ -7,8 +7,10 @@ import HeaderNetworkStatus from './HeaderNetworkStatus';
 import HeaderTitle from './HeaderTitle';
 
 export default async function Header() {
-  const currentBranch = await getActiveBranch().catch(() => null);
-  const currentUser = await getActiveUser().catch(() => null);
+  const [currentBranch, currentUser] = await Promise.all([
+    getActiveBranch().catch(() => null),
+    getActiveUser().catch(() => null)
+  ]);
   
   const branches = currentUser?.tenantId ? await getTenantBranches(currentUser.tenantId) : [];
 

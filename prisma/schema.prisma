@@ -828,6 +828,7 @@ model WhatsAppMessage {
   prospectId String
   body       String
   isFromMe   Boolean  @default(false)
+  status     Int      @default(0)
   timestamp  DateTime @default(now())
   createdAt  DateTime @default(now())
   prospect   Prospect @relation(fields: [prospectId], references: [id], onDelete: Cascade)

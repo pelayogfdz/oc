@@ -180,6 +180,34 @@ client.on('message', async msg => {
     }
 });
 
+client.on('message_ack', async (msg, ack) => {
+    /*
+        ACK values:
+        0: ACK_ERROR
+        1: ACK_PENDING
+        2: ACK_SERVER (Sent)
+        3: ACK_DEVICE (Delivered/Received)
+        4: ACK_READ (Read - blue ticks)
+        5: ACK_PLAYED
+    */
+    try {
+        if (!msg.id._serialized) return;
+        
+        let status = 0;
+        if (ack === 1) status = 0; // sending
+        else if (ack === 2) status = 1; // sent (1 tick)
+        else if (ack === 3) status = 2; // delivered (2 ticks)
+        else if (ack === 4 || ack === 5) status = 3; // read (blue ticks)
+        
+        await prisma.whatsAppMessage.updateMany({
+            where: { messageId: msg.id._serialized },
+            data: { status }
+        });
+    } catch (e) {
+        console.error('Error updating message ack:', e);
+    }
+});
+
 app.post('/api/send', async (req, res) => {
     const { phone, message, prospectId } = req.body;
     
