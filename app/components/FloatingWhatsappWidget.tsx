@@ -29,10 +29,29 @@ export default function FloatingWhatsappWidget() {
   const pathname = usePathname();
   const router = useRouter();
 
-  // If the user is inside the main Whatsapp module, hide the floating widget entirely
-  if (pathname === "/ventas/whatsapp") {
-    return null;
-  }
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        const res = await fetch(`/api/whatsapp/status?t=${Date.now()}`, { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.isAuthorized === false) {
+            setIsAuthorized(false);
+          } else {
+            setIsAuthorized(true);
+          }
+        } else {
+          setIsAuthorized(false);
+        }
+      } catch (err) {
+        console.error("Error checking WhatsApp authorization in widget", err);
+        setIsAuthorized(false);
+      }
+    };
+    checkAuthStatus();
+  }, []);
 
   const [prospects, setProspects] = useState<any[]>([]);
   const [isFloatingOpen, setIsFloatingOpen] = useState(false);
@@ -203,6 +222,7 @@ export default function FloatingWhatsappWidget() {
 
   // Fetch prospects list on mount and start polling
   useEffect(() => {
+    if (isAuthorized !== true) return;
     const fetchProspects = async () => {
       try {
         const res = await fetch(`/api/prospects?t=${Date.now()}`, { cache: "no-store" });
@@ -250,10 +270,11 @@ export default function FloatingWhatsappWidget() {
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [prospects]);
+  }, [prospects, isAuthorized]);
 
   // Track new incoming messages to show a floating Toast notification
   useEffect(() => {
+    if (isAuthorized !== true) return;
     if (prospects && prospects.length > 0) {
       let newestIncomingMessage: any = null;
       let newestProspect: any = null;
@@ -292,7 +313,12 @@ export default function FloatingWhatsappWidget() {
         }
       }
     }
-  }, [prospects, floatingActiveChatId]);
+  }, [prospects, floatingActiveChatId, isAuthorized]);
+
+  // Hide the floating widget if user is in main WhatsApp section, or is unauthorized, or still loading authorization status
+  if (pathname === "/ventas/whatsapp" || isAuthorized === false || isAuthorized === null) {
+    return null;
+  }
 
   const sendFloatingMessage = async (e?: React.FormEvent, customText?: string) => {
     if (e) e.preventDefault();

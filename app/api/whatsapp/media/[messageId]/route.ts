@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getActiveBranch } from "@/app/actions/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -7,9 +9,28 @@ export async function GET(
   { params }: { params: Promise<{ messageId: string }> }
 ) {
   try {
+    const branch = await getActiveBranch();
+    if (!branch) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (process.env.WHATSAPP_BRANCH_ID && branch.id !== process.env.WHATSAPP_BRANCH_ID) {
+      return NextResponse.json({ error: "WhatsApp not enabled for this branch" }, { status: 403 });
+    }
+
     const { messageId } = await params;
     if (!messageId) {
       return NextResponse.json({ error: "Missing message ID" }, { status: 400 });
+    }
+
+    // Verify message belongs to this branch
+    const message = await prisma.whatsAppMessage.findUnique({
+      where: { messageId },
+      include: { prospect: true }
+    });
+
+    if (!message || message.prospect.branchId !== branch.id) {
+      return NextResponse.json({ error: "Access denied to this message media" }, { status: 403 });
     }
 
     const microservicePort = process.env.WHATSAPP_PORT || 3001;

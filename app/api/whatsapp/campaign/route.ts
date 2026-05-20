@@ -12,6 +12,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    if (process.env.WHATSAPP_BRANCH_ID && branch.id !== process.env.WHATSAPP_BRANCH_ID) {
+      return NextResponse.json({ error: "WhatsApp not enabled for this branch" }, { status: 403 });
+    }
+
     const branchFilter = branch.id === "GLOBAL"
       ? { prospect: { branch: { tenantId: user.tenantId } } }
       : { prospect: { branchId: branch.id } };
@@ -75,6 +79,10 @@ export async function POST(request: Request) {
     
     if (!user || !branch) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (process.env.WHATSAPP_BRANCH_ID && branch.id !== process.env.WHATSAPP_BRANCH_ID) {
+      return NextResponse.json({ error: "WhatsApp not enabled for this branch" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -145,6 +153,10 @@ export async function DELETE(request: Request) {
     
     if (!user || !branch) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (process.env.WHATSAPP_BRANCH_ID && branch.id !== process.env.WHATSAPP_BRANCH_ID) {
+      return NextResponse.json({ error: "WhatsApp not enabled for this branch" }, { status: 403 });
     }
 
     const body = await request.json();

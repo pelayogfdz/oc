@@ -1,13 +1,32 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getActiveBranch } from "@/app/actions/auth";
 
 export async function POST(request: Request) {
   try {
+    const branch = await getActiveBranch();
+    if (!branch) {
+      return NextResponse.json({ error: "No branch found" }, { status: 404 });
+    }
+
+    if (process.env.WHATSAPP_BRANCH_ID && branch.id !== process.env.WHATSAPP_BRANCH_ID) {
+      return NextResponse.json({ error: "WhatsApp not enabled for this branch" }, { status: 403 });
+    }
+
     const data = await request.json();
     const { phone, message, prospectId } = data;
 
     if (!phone || !message || !prospectId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // Verify that the prospect belongs to the current branch to ensure isolation
+    const prospect = await prisma.prospect.findUnique({
+      where: { id: prospectId }
+    });
+
+    if (!prospect || prospect.branchId !== branch.id) {
+      return NextResponse.json({ error: "Prospect not found in this branch" }, { status: 403 });
     }
 
     // Instead of calling the local microservice via HTTP (which fails in production),
