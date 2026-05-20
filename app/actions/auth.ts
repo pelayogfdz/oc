@@ -35,6 +35,12 @@ export async function loginAction(formData: FormData) {
   }
 
   await createSession(user.id, user.tenantId, user.role);
+  try {
+    const cookieStore = await cookies();
+    cookieStore.delete('pulpos_active_branch');
+  } catch (cookieErr) {
+    console.warn('Failed to delete pulpos_active_branch cookie on login:', cookieErr);
+  }
   return { success: true };
 }
 
@@ -82,31 +88,21 @@ export const getActiveBranch = cache(async () => {
   }
   
   // Fallback a la primera sucursal del Tenant si la cookie no coincide
-  const getCachedFirstBranch = unstable_cache(
-    async () => prisma.branch.findFirst({
-      where: { tenantId: session.tenantId, isActive: true }
-    }),
-    [`tenant-first-branch-${session.tenantId}`],
-    { tags: [`tenant-branches-${session.tenantId}`] }
-  );
-  
-  const firstBranch = await getCachedFirstBranch();
+  const firstBranch = await prisma.branch.findFirst({
+    where: { tenantId: session.tenantId, isActive: true }
+  });
   
   if (!firstBranch) {
     return null;
   }
   return firstBranch;
 });
+
 export const getTenantBranches = cache(async (tenantId: string) => {
-  const getBranches = unstable_cache(
-    async (tId: string) => prisma.branch.findMany({
-      where: { isActive: true, tenantId: tId },
-      orderBy: { name: 'asc' }
-    }),
-    [`tenant-branches-list-${tenantId}`],
-    { tags: [`tenant-branches-${tenantId}`] }
-  );
-  return getBranches(tenantId);
+  return prisma.branch.findMany({
+    where: { isActive: true, tenantId },
+    orderBy: { name: 'asc' }
+  });
 });
 
 export async function setActiveBranch(branchId: string) {

@@ -224,7 +224,7 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
 
   const fetchCampaigns = async () => {
     try {
-      const res = await fetch("/api/whatsapp/campaign");
+      const res = await fetch(`/api/whatsapp/campaign?t=${Date.now()}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setCampaigns(data.campaigns || []);

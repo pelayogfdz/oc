@@ -436,7 +436,7 @@ export default function POSClient({ products: initialProducts, customers, promot
 
     // Try QZ Tray first
     const qzPrinter = localStorage.getItem('qz_default_printer');
-    if (qzPrinter) {
+    if (qzPrinter && qzPrinter !== '__browser__' && qzPrinter !== 'browser') {
        try {
          const qz = (await import('qz-tray')).default;
          if (!qz.websocket.isActive()) {

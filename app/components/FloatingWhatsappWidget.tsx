@@ -25,11 +25,27 @@ const defaultPresets = [
   { title: "📦 Catálogo Completo", text: "Estimado cliente, le comparto nuestro catálogo virtual de papelería, mobiliario y tecnología para oficinas: https://canma.com/catalogo" }
 ];
 
+const getCoordsFromMessage = (body: string) => {
+  if (!body) return "20.6766,-103.3475";
+  const match = body.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (match) {
+    return `${match[1]},${match[2]}`;
+  }
+  return "20.6766,-103.3475";
+};
+
 export default function FloatingWhatsappWidget() {
   const pathname = usePathname();
   const router = useRouter();
 
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [tenantName, setTenantName] = useState("Mi Empresa");
+  const [branchName, setBranchName] = useState("");
+  const [branchLocation, setBranchLocation] = useState("");
+  const [showWidget, setShowWidget] = useState(false);
+  const [locations, setLocations] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [presets, setPresets] = useState<any[]>([]);
 
   useEffect(() => {
     const checkAuthStatus = async () => {
@@ -39,15 +55,67 @@ export default function FloatingWhatsappWidget() {
           const data = await res.json();
           if (data.isAuthorized === false) {
             setIsAuthorized(false);
+            setShowWidget(false);
           } else {
             setIsAuthorized(true);
+            const isOfficeCity = data.tenantName?.toUpperCase().includes("OFFICE CITY") || data.tenantName?.toUpperCase().includes("CANMA");
+            const resolvedTenantName = data.tenantName || "Mi Empresa";
+            const resolvedBranchName = data.branchName || "";
+            const resolvedBranchLocation = data.branchLocation || "";
+            
+            setTenantName(resolvedTenantName);
+            setBranchName(resolvedBranchName);
+            setBranchLocation(resolvedBranchLocation);
+            setShowWidget(!!data.showWidget);
+
+            // Dynamic Locations
+            if (isOfficeCity) {
+              setLocations(officeCityLocations);
+            } else {
+              setLocations([
+                {
+                  name: resolvedBranchName || resolvedTenantName || "Sucursal Matriz",
+                  coords: "20.5888,-100.3899",
+                  desc: resolvedBranchLocation || "Dirección de Sucursal"
+                }
+              ]);
+            }
+
+            // Dynamic Contacts
+            if (isOfficeCity) {
+              setContacts(officeCityContacts);
+            } else {
+              setContacts([
+                {
+                  label: `Ventas ${resolvedTenantName}`,
+                  name: `Atención a Clientes`,
+                  phone: data.session?.phone || "",
+                  email: `contacto@${resolvedTenantName.toLowerCase().replace(/\s+/g, '')}.com`,
+                  title: "Ejecutivo de Ventas"
+                }
+              ]);
+            }
+
+            // Dynamic Presets
+            if (isOfficeCity) {
+              setPresets(defaultPresets);
+            } else {
+              setPresets([
+                { title: "👋 Saludo Inicial", text: `¡Hola! Bienvenido a ${resolvedTenantName}. ¿En qué podemos ayudarle el día de hoy?` },
+                { title: "📄 Envío de Cotización", text: "Con mucho gusto. Le comparto la cotización solicitada adjunta en este chat. Quedo muy al pendiente de sus comentarios." },
+                { title: "📍 Ubicación y Horario", text: `Nuestra sucursal se encuentra ubicada en: ${resolvedBranchLocation || "Dirección de Sucursal"}. Horario de atención: Lunes a Viernes de 9 AM a 6 PM.` },
+                { title: "📦 Información de Servicios", text: `Estimado cliente, con mucho gusto le compartimos más detalles sobre nuestros productos y servicios de ${resolvedTenantName}.` }
+              ]);
+            }
           }
         } else {
           setIsAuthorized(false);
+          setShowWidget(false);
         }
       } catch (err) {
         console.error("Error checking WhatsApp authorization in widget", err);
         setIsAuthorized(false);
+        setShowWidget(false);
       }
     };
     checkAuthStatus();
@@ -315,8 +383,8 @@ export default function FloatingWhatsappWidget() {
     }
   }, [prospects, floatingActiveChatId, isAuthorized]);
 
-  // Hide the floating widget if user is in main WhatsApp section, or is unauthorized, or still loading authorization status
-  if (pathname === "/ventas/whatsapp" || isAuthorized === false || isAuthorized === null) {
+  // Hide the floating widget if user is in main WhatsApp section, or is unauthorized, still loading authorization status, or showWidget is false
+  if (pathname === "/ventas/whatsapp" || isAuthorized === false || isAuthorized === null || !showWidget) {
     return null;
   }
 
@@ -457,7 +525,7 @@ export default function FloatingWhatsappWidget() {
   };
 
   const handleFloatingShareContact = async (contact: any) => {
-    const text = `👤 *Tarjeta de Contacto de Asesor*\n🏢 *Empresa:* Office City / Canma\n👤 *Nombre:* ${contact.name}\n💼 *Puesto:* ${contact.title}\n📞 *WhatsApp:* +${contact.phone}\n✉️ *Correo:* ${contact.email}\n\n¡Guarda nuestro contacto para comunicarse más rápido!`;
+    const text = `👤 *Tarjeta de Contacto de Asesor*\n🏢 *Empresa:* ${tenantName}\n👤 *Nombre:* ${contact.name}\n💼 *Puesto:* ${contact.title}\n📞 *WhatsApp:* +${contact.phone}\n✉️ *Correo:* ${contact.email}\n\n¡Guarda nuestro contacto para comunicarse más rápido!`;
     await sendFloatingMessage(undefined, text);
   };
 
@@ -626,7 +694,7 @@ export default function FloatingWhatsappWidget() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '1.2rem' }}>💬</span>
                 <div>
-                  <h4 style={{ margin: 0, fontWeight: 'bold', fontSize: '0.95rem' }}>WhatsApp Office City</h4>
+                  <h4 style={{ margin: 0, fontWeight: 'bold', fontSize: '0.95rem' }}>WhatsApp {tenantName}</h4>
                   <span style={{ fontSize: '0.72rem', opacity: 0.9 }}>Conversaciones activas</span>
                 </div>
               </div>
@@ -711,7 +779,7 @@ export default function FloatingWhatsappWidget() {
                                 }}>
                                   <div style={{ 
                                     height: '60px', 
-                                    backgroundImage: 'url("https://maps.googleapis.com/maps/api/staticmap?center=20.6766,-103.3475&zoom=14&size=220x60&sensor=false&markers=color:red%7C20.6766,-103.3475")',
+                                    backgroundImage: `url("https://maps.googleapis.com/maps/api/staticmap?center=${getCoordsFromMessage(msg.body)}&zoom=14&size=220x60&sensor=false&markers=color:red%7C${getCoordsFromMessage(msg.body)}")`,
                                     backgroundColor: '#e2e8f0', 
                                     backgroundSize: 'cover', 
                                     backgroundPosition: 'center',
@@ -722,7 +790,7 @@ export default function FloatingWhatsappWidget() {
                                     fontSize: '0.7rem',
                                     fontWeight: 'bold'
                                   }}>
-                                    📍 Mapa Office City
+                                    📍 Mapa {tenantName}
                                   </div>
                                   <div style={{ padding: '4px', fontSize: '0.75rem', color: '#334155' }}>
                                     {msg.body}
@@ -1075,7 +1143,7 @@ export default function FloatingWhatsappWidget() {
                           <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>Plantillas Rápidas:</span>
                           <button type="button" onClick={() => setShowFloatingPresets(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', color: '#94a3b8' }}>✕</button>
                         </div>
-                        {defaultPresets.map((preset, idx) => (
+                        {presets.map((preset, idx) => (
                           <button
                             key={idx}
                             type="button"
@@ -1127,7 +1195,7 @@ export default function FloatingWhatsappWidget() {
                           <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>📍 Compartir Ubicación:</span>
                           <button type="button" onClick={() => setShowFloatingLocationPicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', color: '#94a3b8' }}>✕</button>
                         </div>
-                        {officeCityLocations.map((loc, idx) => (
+                        {locations.map((loc, idx) => (
                           <button
                             key={idx}
                             type="button"
@@ -1177,7 +1245,7 @@ export default function FloatingWhatsappWidget() {
                           <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>👤 Compartir Contacto:</span>
                           <button type="button" onClick={() => setShowFloatingContactPicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', color: '#94a3b8' }}>✕</button>
                         </div>
-                        {officeCityContacts.map((contact, idx) => (
+                        {contacts.map((contact, idx) => (
                           <button
                             key={idx}
                             type="button"

@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getActiveBranch } from "@/app/actions/auth";
+import { getActiveUser } from "@/app/actions/auth";
 
 export async function POST(request: Request) {
   try {
-    const branch = await getActiveBranch();
-    if (!branch) {
-      return NextResponse.json({ error: "No branch found" }, { status: 404 });
+    const user = await getActiveUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const data = await request.json();
@@ -15,17 +15,21 @@ export async function POST(request: Request) {
     if (!phone || !message || !prospectId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
-
-    // Verify that the prospect belongs to the current branch to ensure isolation
+    // Verify that the prospect belongs to the current tenant to ensure isolation
     const prospect = await prisma.prospect.findUnique({
-      where: { id: prospectId }
+      where: { id: prospectId },
+      include: { branch: true }
     });
 
-    if (!prospect || prospect.branchId !== branch.id) {
-      return NextResponse.json({ error: "Prospect not found in this branch" }, { status: 403 });
+    if (!prospect) {
+      return NextResponse.json({ error: "Prospect not found" }, { status: 404 });
     }
 
-    // Instead of calling the local microservice via HTTP (which fails in production),
+    // Strict safety isolation check: Ensure the prospect belongs to the logged-in user's tenant
+    if (prospect.branch.tenantId !== user.tenantId) {
+      return NextResponse.json({ error: "Access denied to this prospect" }, { status: 403 });
+    }
+
     // we insert the message into the database with messageId = null.
     // The microservice will poll the database for these pending messages and send them.
     const newMessage = await prisma.whatsAppMessage.create({

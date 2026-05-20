@@ -9,10 +9,10 @@ export default function WhatsAppConfigClient({ initialSession }: { initialSessio
 
   useEffect(() => {
     // Poll the status every 3 seconds if not connected
-    if (session?.status !== 'CONNECTED') {
+    if (session?.status !== 'CONNECTED' && session?.branchId) {
       const interval = setInterval(async () => {
         try {
-          const res = await fetch('/api/whatsapp/status');
+          const res = await fetch(`/api/whatsapp/status?branchId=${session.branchId}&t=${Date.now()}`, { cache: 'no-store' });
           const data = await res.json();
           if (data && data.session) {
             setSession(data.session);
@@ -23,12 +23,13 @@ export default function WhatsAppConfigClient({ initialSession }: { initialSessio
       }, 3000);
       return () => clearInterval(interval);
     }
-  }, [session?.status]);
+  }, [session?.status, session?.branchId]);
 
   const handleLogout = async () => {
+    if (!session?.branchId) return;
     setLoading(true);
     try {
-      const res = await fetch('/api/whatsapp/logout', { method: 'POST' });
+      const res = await fetch(`/api/whatsapp/logout?branchId=${session.branchId}`, { method: 'POST' });
       if (res.ok) {
         setSession({ ...session, status: 'DISCONNECTED', sessionData: null });
       }
@@ -58,8 +59,29 @@ export default function WhatsAppConfigClient({ initialSession }: { initialSessio
           </div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: '600' }}>WhatsApp Desconectado</h2>
           <p style={{ color: 'var(--pulpos-text-muted)' }}>El microservicio de WhatsApp se está iniciando o necesita conectarse.</p>
-          <div style={{ padding: '1rem', backgroundColor: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px', fontSize: '0.875rem' }}>
-            Asegúrate de ejecutar <code style={{fontWeight: 'bold'}}>node whatsapp-service/index.js</code> en tu servidor para generar el código QR.
+          <button 
+            onClick={handleLogout}
+            disabled={loading}
+            style={{
+              marginTop: '0.5rem',
+              padding: '0.75rem 2rem',
+              backgroundColor: loading ? '#cbd5e1' : '#4f46e5',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: '600',
+              fontSize: '0.95rem',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2)'
+            }}
+            onMouseEnter={e => { if (!loading) e.currentTarget.style.backgroundColor='#4338ca'; }}
+            onMouseLeave={e => { if (!loading) e.currentTarget.style.backgroundColor='#4f46e5'; }}
+          >
+            {loading ? 'Generando QR...' : 'Generar Código QR / Vincular Celular ⚡'}
+          </button>
+          <div style={{ padding: '1rem', backgroundColor: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+            Al hacer clic en el botón de arriba, se forzará la inicialización de un lector de QR nuevo y limpio para tu cuenta.
           </div>
         </>
       )}

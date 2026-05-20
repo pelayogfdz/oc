@@ -4,6 +4,15 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getRecentQuotes, searchCustomers, assignCustomerToProspect } from "../../../../../actions/whatsapp-crm";
 
+const getCoordsFromMessage = (body: string) => {
+  if (!body) return "20.6766,-103.3475";
+  const match = body.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (match) {
+    return `${match[1]},${match[2]}`;
+  }
+  return "20.6766,-103.3475";
+};
+
 export default function ChatInterface({ prospect }: { prospect: any }) {
   const [messages, setMessages] = useState<any[]>(prospect.messages || []);
   const [inputText, setInputText] = useState("");
@@ -163,20 +172,109 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [showContactPicker, setShowContactPicker] = useState(false);
 
-  // Predefined locations
-  const officeCityLocations = [
-    { name: "Corporativo Matriz (Guadalajara)", coords: "20.6766,-103.3475", desc: "Av. de las Américas 1500, Country Club, GDL" },
-    { name: "Sucursal Querétaro PIQ", coords: "20.7302,-103.3855", desc: "Parque Industrial Querétaro, Qro." },
-    { name: "Sucursal Querétaro Centro", coords: "20.5888,-100.3899", desc: "Av. Zaragoza 120, Centro Histórico, Qro." },
-    { name: "Sucursal Querétaro Norte (Juriquilla)", coords: "20.6908,-100.4439", desc: "Plaza Urban Juriquilla, Qro." }
-  ];
+  // Dynamic States for Tenant Info and Customizations
+  const [tenantName, setTenantName] = useState("Mi Empresa");
+  const [branchName, setBranchName] = useState("");
+  const [branchLocation, setBranchLocation] = useState("");
+  const [locations, setLocations] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [presets, setPresets] = useState<any[]>([]);
+  const [isCreatingPreset, setIsCreatingPreset] = useState(false);
+  const [newPresetTitle, setNewPresetTitle] = useState("");
+  const [newPresetText, setNewPresetText] = useState("");
 
-  // Predefined contact cards
-  const officeCityContacts = [
-    { label: "Asesor José Samuel Subero", name: "José Samuel Subero Sánchez", phone: "5213344556677", email: "samuelsubero@canma.com", title: "Ejecutivo de Ventas B2B" },
-    { label: "Office City Ventas Corporativas", name: "Oficina de Ventas Canma", phone: "5215580004321", email: "pelayof@tdq.com.mx", title: "Corporativo Central" },
-    { label: "Soporte Técnico Canma", name: "Soporte Técnico Canma", phone: "5218009876543", email: "contacto@canma.com", title: "Mesa de Ayuda" }
-  ];
+  // Load tenant customizations and presets on mount
+  useEffect(() => {
+    const fetchStatusAndData = async () => {
+      try {
+        const res = await fetch(`/api/whatsapp/status?t=${Date.now()}`, { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          const resolvedTenantName = data.tenantName || "Mi Empresa";
+          const resolvedBranchName = data.branchName || "";
+          const resolvedBranchLocation = data.branchLocation || "";
+          
+          setTenantName(resolvedTenantName);
+          setBranchName(resolvedBranchName);
+          setBranchLocation(resolvedBranchLocation);
+
+          const isOfficeCity = resolvedTenantName.toUpperCase().includes("OFFICE CITY") || resolvedTenantName.toUpperCase().includes("CANMA");
+
+          // Set dynamic locations
+          let loadedLocations = [];
+          if (isOfficeCity) {
+            loadedLocations = [
+              { name: "Corporativo Matriz (Guadalajara)", coords: "20.6766,-103.3475", desc: "Av. de las Américas 1500, Country Club, GDL" },
+              { name: "Sucursal Querétaro PIQ", coords: "20.7302,-103.3855", desc: "Parque Industrial Querétaro, Qro." },
+              { name: "Sucursal Querétaro Centro", coords: "20.5888,-100.3899", desc: "Av. Zaragoza 120, Centro Histórico, Qro." },
+              { name: "Sucursal Querétaro Norte (Juriquilla)", coords: "20.6908,-100.4439", desc: "Plaza Urban Juriquilla, Qro." }
+            ];
+          } else {
+            loadedLocations = [
+              {
+                name: resolvedBranchName || resolvedTenantName || "Sucursal Matriz",
+                coords: "20.5888,-100.3899",
+                desc: resolvedBranchLocation || "Dirección de Sucursal"
+              }
+            ];
+          }
+          setLocations(loadedLocations);
+
+          // Set dynamic contacts
+          let loadedContacts = [];
+          if (isOfficeCity) {
+            loadedContacts = [
+              { label: "Asesor José Samuel Subero", name: "José Samuel Subero Sánchez", phone: "5213344556677", email: "samuelsubero@canma.com", title: "Ejecutivo de Ventas B2B" },
+              { label: "Office City Ventas Corporativas", name: "Oficina de Ventas Canma", phone: "5215580004321", email: "pelayof@tdq.com.mx", title: "Corporativo Central" },
+              { label: "Soporte Técnico Canma", name: "Soporte Técnico Canma", phone: "5218009876543", email: "contacto@canma.com", title: "Mesa de Ayuda" }
+            ];
+          } else {
+            loadedContacts = [
+              {
+                label: `Ventas ${resolvedTenantName}`,
+                name: `Atención a Clientes`,
+                phone: data.session?.phone || "",
+                email: `contacto@${resolvedTenantName.toLowerCase().replace(/\s+/g, '')}.com`,
+                title: "Ejecutivo de Ventas"
+              }
+            ];
+          }
+          setContacts(loadedContacts);
+
+          // Load Presets: check localStorage with tenant-specific namespace to avoid visual leak
+          const customKey = `custom_presets_${resolvedTenantName.toLowerCase().replace(/\s+/g, '_')}`;
+          const savedPresets = localStorage.getItem(customKey);
+          if (savedPresets) {
+            try {
+              setPresets(JSON.parse(savedPresets));
+            } catch (err) {
+              console.error("Error parsing custom presets from localStorage", err);
+            }
+          } else {
+            // Default presets based on tenant
+            if (isOfficeCity) {
+              setPresets([
+                { title: "👋 Saludo Inicial", text: "¡Hola! Bienvenido a Office City. ¿En qué podemos ayudarle el día de hoy con sus insumos de oficina?" },
+                { title: "📄 Envío de Cotización", text: "Con mucho gusto. Le comparto la cotización solicitada adjunta en este chat. Quedo muy al pendiente de sus comentarios." },
+                { title: "📍 Ubicación y Horario", text: "Nuestra sucursal se encuentra ubicada en: Zona Industrial PIQ, Querétaro. Horario de atención: Lunes a Viernes de 9 AM a 6 PM." },
+                { title: "📦 Catálogo Completo", text: "Estimado cliente, le comparto nuestro catálogo virtual de papelería, mobiliario y tecnología para oficinas: https://canma.com/catalogo" }
+              ]);
+            } else {
+              setPresets([
+                { title: "👋 Saludo Inicial", text: `¡Hola! Bienvenido a ${resolvedTenantName}. ¿En qué podemos ayudarle el día de hoy?` },
+                { title: "📄 Envío de Cotización", text: "Con mucho gusto. Le comparto la cotización solicitada adjunta en este chat. Quedo muy al pendiente de sus comentarios." },
+                { title: "📍 Ubicación y Horario", text: `Nuestra sucursal se encuentra ubicada en: ${resolvedBranchLocation || "Dirección de Sucursal"}. Horario de atención: Lunes a Viernes de 9 AM a 6 PM.` },
+                { title: "📦 Información de Servicios", text: `Estimado cliente, con mucho gusto le compartimos más detalles sobre nuestros productos y servicios de ${resolvedTenantName}.` }
+              ]);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching status and data in chat interface mount:", err);
+      }
+    };
+    fetchStatusAndData();
+  }, []);
 
   const handleShareLocation = async (loc: any) => {
     const mapsLink = `https://maps.google.com/?q=${loc.coords}`;
@@ -186,44 +284,20 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
   };
 
   const handleShareContact = async (contact: any) => {
-    const text = `👤 *Tarjeta de Contacto de Asesor*\n🏢 *Empresa:* Office City / Canma\n👤 *Nombre:* ${contact.name}\n💼 *Puesto:* ${contact.title}\n📞 *WhatsApp:* +${contact.phone}\n✉️ *Correo:* ${contact.email}\n\n¡Guarda nuestro contacto para comunicarse más rápido!`;
+    const text = `👤 *Tarjeta de Contacto de Asesor*\n🏢 *Empresa:* ${tenantName}\n👤 *Nombre:* ${contact.name}\n💼 *Puesto:* ${contact.title}\n📞 *WhatsApp:* +${contact.phone}\n✉️ *Correo:* ${contact.email}\n\n¡Guarda nuestro contacto para comunicarse más rápido!`;
     await sendMessage(undefined, text);
     setShowContactPicker(false);
   };
 
   // Emojis Picker List
   const emojis = ['😊', '😂', '👍', '❤️', '🙌', '🙏', '🎉', '🔥', '🤔', '💡', '📞', '💼', '🏢', '✨', '🤝', '✅'];
-  
-  // Quick Presets Templates
-  const defaultPresets = [
-    { title: "👋 Saludo Inicial", text: "¡Hola! Bienvenido a Office City. ¿En qué podemos ayudarle el día de hoy con sus insumos de oficina?" },
-    { title: "📄 Envío de Cotización", text: "Con mucho gusto. Le comparto la cotización solicitada adjunta en este chat. Quedo muy al pendiente de sus comentarios." },
-    { title: "📍 Ubicación y Horario", text: "Nuestra sucursal se encuentra ubicada en: Zona Industrial PIQ, Querétaro. Horario de atención: Lunes a Viernes de 9 AM a 6 PM." },
-    { title: "📦 Catálogo Completo", text: "Estimado cliente, le comparto nuestro catálogo virtual de papelería, mobiliario y tecnología para oficinas: https://canma.com/catalogo" }
-  ];
-
-  const [presets, setPresets] = useState<any[]>(defaultPresets);
-  const [isCreatingPreset, setIsCreatingPreset] = useState(false);
-  const [newPresetTitle, setNewPresetTitle] = useState("");
-  const [newPresetText, setNewPresetText] = useState("");
-
-  // Load custom presets on mount
-  useEffect(() => {
-    const saved = localStorage.getItem("caanma_custom_presets");
-    if (saved) {
-      try {
-        setPresets(JSON.parse(saved));
-      } catch (e) {
-        console.error("Error parsing custom presets", e);
-      }
-    }
-  }, []);
 
   const handleSavePreset = (title: string, text: string) => {
     if (!title.trim() || !text.trim()) return;
     const updated = [...presets, { title: title.trim(), text: text.trim() }];
     setPresets(updated);
-    localStorage.setItem("caanma_custom_presets", JSON.stringify(updated));
+    const customKey = `custom_presets_${tenantName.toLowerCase().replace(/\s+/g, '_')}`;
+    localStorage.setItem(customKey, JSON.stringify(updated));
     setIsCreatingPreset(false);
     setNewPresetTitle("");
     setNewPresetText("");
@@ -233,7 +307,8 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
     e.stopPropagation(); // prevent clicking preset to insert text
     const updated = presets.filter((_, i) => i !== idx);
     setPresets(updated);
-    localStorage.setItem("caanma_custom_presets", JSON.stringify(updated));
+    const customKey = `custom_presets_${tenantName.toLowerCase().replace(/\s+/g, '_')}`;
+    localStorage.setItem(customKey, JSON.stringify(updated));
   };
 
   // Sync with parent prospect messages updates
@@ -290,6 +365,16 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
 
     return () => clearInterval(interval);
   }, [prospect.id, messages]);
+
+  // Keep focus on the text input whenever sending completes or the component updates
+  useEffect(() => {
+    if (!isSending) {
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isSending]);
 
   const sendMessage = async (e?: React.FormEvent, customText?: string) => {
     if (e) e.preventDefault();
@@ -373,6 +458,13 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
       setMessages(prev => prev.filter(m => m.id !== tempMsgId));
     } finally {
       setIsSending(false);
+      // Staggered refocus intervals to survive DOM swapping during router.refresh()
+      const focusIntervals = [50, 150, 300, 500];
+      focusIntervals.forEach(delay => {
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, delay);
+      });
     }
   };
 
@@ -409,28 +501,33 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
     setIsGeneratingAI(true);
     setShowAIOptions(false);
 
-    // Dynamic professional Spanish rephrasing tailored to Office City
+    // Dynamic professional Spanish rephrasing tailored to active tenant
     setTimeout(() => {
       let result = "";
       const baseText = inputText.trim();
+      const isOfficeCity = tenantName.toUpperCase().includes("OFFICE CITY") || tenantName.toUpperCase().includes("CANMA");
 
       if (style === 'formal') {
         if (!baseText) {
-          result = "Estimado cliente, es un placer saludarle. Nos ponemos a sus órdenes para asistirle en todo lo referente a mobiliario, consumibles y equipamiento para su oficina. ¿Cómo podríamos apoyarle en esta ocasión?";
+          result = isOfficeCity 
+            ? "Estimado cliente, es un placer saludarle. Nos ponemos a sus órdenes para asistirle en todo lo referente a mobiliario, consumibles y equipamiento para su oficina. ¿Cómo podríamos apoyarle en esta ocasión?"
+            : `Estimado cliente, es un placer saludarle. Nos ponemos a sus órdenes en ${tenantName} para asistirle en lo que requiera. ¿Cómo podríamos apoyarle en esta ocasión?`;
         } else {
-          result = `Estimado cliente, con mucho gusto le doy seguimiento a su atenta solicitud. En respuesta a su mensaje: "${baseText}", nos encontramos coordinando los detalles correspondientes para brindarle una cotización formal a la brevedad. Quedamos a su entera disposición.`;
+          result = `Estimado cliente, con mucho gusto le doy seguimiento a su atenta solicitud. En respuesta a su mensaje: "${baseText}", nos encontramos coordinando los detalles correspondientes para brindarle una respuesta formal a la brevedad. Quedamos a su entera disposición.`;
         }
       } else if (style === 'friendly') {
         if (!baseText) {
-          result = "¡Hola! Qué gusto saludarte. Bienvenidos a Office City. 😊 Cuéntanos, ¿qué estás buscando hoy para tu espacio de trabajo? Con mucho gusto te ayudamos a encontrar la mejor opción.";
+          result = `¡Hola! Qué gusto saludarte. Bienvenidos a ${tenantName}. 😊 Cuéntanos, ¿qué estás buscando hoy? Con mucho gusto te ayudamos a encontrar la mejor opción.`;
         } else {
           result = `¡Hola! Claro que sí, con mucho gusto te apoyo. 😊 Respecto a lo que me comentas: "${baseText}", ya lo estamos revisando para darte una respuesta súper rápida. ¡Excelente día!`;
         }
       } else if (style === 'sales') {
         if (!baseText) {
-          result = "¡Hola! Aprovecha que esta semana tenemos promociones exclusivas en toda nuestra línea de papelería y mobiliario de oficina, ¡con entrega inmediata en tu sucursal más cercana! ¿Te gustaría que te coticemos algún producto en especial?";
+          result = isOfficeCity
+            ? "¡Hola! Aprovecha que esta semana tenemos promociones exclusivas en toda nuestra línea de papelería y mobiliario de oficina, ¡con entrega inmediata en tu sucursal más cercana! ¿Te gustaría que te coticemos algún producto en especial?"
+            : `¡Hola! Aprovecha que esta semana tenemos promociones y ofertas exclusivas en todos nuestros servicios y productos en ${tenantName}. ¿Te gustaría que te coticemos algo en especial?`;
         } else {
-          result = `¡Excelente elección! Comentándote que el producto que mencionas ("${baseText}") es de los más cotizados por su alta calidad y durabilidad. ¡Tenemos stock disponible con envío rápido a domicilio y precio especial hoy mismo! ¿Te preparo el enlace de compra o cotización?`;
+          result = `¡Excelente elección! Comentándote que lo que mencionas ("${baseText}") es de lo más cotizado por su alta calidad y durabilidad. ¡Tenemos stock disponible con envío rápido y precio especial hoy mismo! ¿Te preparo la cotización?`;
         }
       }
 
@@ -479,7 +576,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
                   }}>
                     <div style={{ 
                       height: '100px', 
-                      backgroundImage: 'url("https://maps.googleapis.com/maps/api/staticmap?center=20.6766,-103.3475&zoom=14&size=280x100&sensor=false&markers=color:red%7C20.6766,-103.3475")',
+                      backgroundImage: `url("https://maps.googleapis.com/maps/api/staticmap?center=${getCoordsFromMessage(msg.body)}&zoom=14&size=280x100&sensor=false&markers=color:red%7C${getCoordsFromMessage(msg.body)}")`,
                       backgroundColor: '#e2e8f0', 
                       backgroundSize: 'cover', 
                       backgroundPosition: 'center',
@@ -490,7 +587,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
                       fontWeight: 'bold',
                       fontSize: '0.8rem'
                     }}>
-                      🗺️ Vista de Mapa Office City
+                      🗺️ Vista de Mapa {tenantName}
                     </div>
                     <div style={{ padding: '0.65rem', fontSize: '0.825rem', color: '#334155' }}>
                       {msg.body}
@@ -689,7 +786,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
             <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>📍 Compartir Ubicación Sucursal:</span>
             <button onClick={() => setShowLocationPicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#94a3b8' }}>✕</button>
           </div>
-          {officeCityLocations.map((loc, idx) => (
+          {locations.map((loc, idx) => (
             <button
               key={idx}
               type="button"
@@ -725,7 +822,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
             <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>👤 Compartir Contacto:</span>
             <button onClick={() => setShowContactPicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: '#94a3b8' }}>✕</button>
           </div>
-          {officeCityContacts.map((contact, idx) => (
+          {contacts.map((contact, idx) => (
             <button
               key={idx}
               type="button"
@@ -1028,6 +1125,12 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
             placeholder="Escribe un mensaje..."
             style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '24px', border: '1px solid #cbd5e1', outline: 'none', backgroundColor: '#f8fafc', fontSize: '0.92rem' }}
             disabled={isGeneratingAI}

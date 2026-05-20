@@ -222,12 +222,36 @@ async function getClientForBranch(branchId, forceRecreate = false) {
             orConditions.push({ whatsappId: phone });
             orConditions.push({ whatsappId: { contains: phone } });
 
-            let prospect = await prisma.prospect.findFirst({
-                where: { 
-                    branchId: branchId,
-                    OR: orConditions
+            let prospect = null;
+            try {
+                const dbBranch = await prisma.branch.findUnique({
+                    where: { id: branchId },
+                    select: { tenantId: true }
+                });
+                const tenantId = dbBranch ? dbBranch.tenantId : null;
+                
+                if (tenantId) {
+                    prospect = await prisma.prospect.findFirst({
+                        where: {
+                            branch: {
+                                tenantId: tenantId
+                            },
+                            OR: orConditions
+                        }
+                    });
                 }
-            });
+            } catch (err) {
+                console.error("[WHATSAPP] Error fetching tenantId for prospect search:", err);
+            }
+
+            if (!prospect) {
+                prospect = await prisma.prospect.findFirst({
+                    where: { 
+                        branchId: branchId,
+                        OR: orConditions
+                    }
+                });
+            }
 
             if (!prospect) {
                 // Create a clean new prospect using realPhone
@@ -617,7 +641,7 @@ app.post('/api/logout', async (req, res) => {
         }
 
         // Clean branch-specific credentials folder
-        const authPath = path.resolve(__dirname, `./.wwebjs_auth/session-branch-${branchId}`);
+        const authPath = path.resolve(process.cwd(), `./.wwebjs_auth/session-branch-${branchId}`);
         if (fs.existsSync(authPath)) {
             try {
                 fs.rmSync(authPath, { recursive: true, force: true });
@@ -842,7 +866,33 @@ setInterval(async () => {
             if (!stillPending || stillPending.messageId) continue;
 
             const branchId = msg.prospect.branchId;
-            const client = clients.get(branchId);
+            let client = clients.get(branchId);
+            
+            if (!client || !client.info) {
+                // Let's try to see if there is another connected branch for this tenant
+                try {
+                    const branch = await prisma.branch.findUnique({
+                        where: { id: branchId },
+                        select: { tenantId: true }
+                    });
+                    if (branch && branch.tenantId) {
+                        const tenantBranches = await prisma.branch.findMany({
+                            where: { tenantId: branch.tenantId, isActive: true },
+                            select: { id: true }
+                        });
+                        for (const tb of tenantBranches) {
+                            const alternateClient = clients.get(tb.id);
+                            if (alternateClient && alternateClient.info) {
+                                client = alternateClient;
+                                console.log(`[WHATSAPP] Found alternate connected client for tenant ${branch.tenantId} under branch ${tb.id}. Using it instead of unconnected branch ${branchId}.`);
+                                break;
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error("[WHATSAPP] Error resolving tenant alternate client:", err);
+                }
+            }
             
             if (!client || !client.info) {
                 console.log(`[WHATSAPP] Client not connected or ready for branch ${branchId}, skipping pending message.`);

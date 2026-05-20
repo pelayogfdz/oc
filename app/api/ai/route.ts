@@ -31,8 +31,8 @@ export async function POST(req: Request) {
     });
 
     const systemPrompt = `
-Eres Alina, la Asistente Inteligente oficial del sistema Office City (CAANMA PRO). 
-Tu base de usuarios son administradores y gerentes que buscan asesoramiento en retail, inventario, papelería y flujo de caja.
+Eres Alina, la Asistente Inteligente oficial del sistema ${user.tenant?.name || 'su Empresa'}. 
+Tu base de usuarios son administradores y gerentes que buscan asesoramiento en retail, inventario y flujo de caja.
 
 Información de contexto:
 - Usuario solicitante: ${userContext?.name} (${userContext?.role})

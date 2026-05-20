@@ -2,19 +2,55 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getActiveUser, getActiveBranch } from "@/app/actions/auth";
 
+export const dynamic = "force-dynamic";
+
 // GET: Retrieve unique pending/scheduled campaigns
 export async function GET(request: Request) {
   try {
     const user = await getActiveUser();
-    const branch = await getActiveBranch();
-    
-    if (!user || !branch) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user) {
+      const response = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      return response;
     }
 
-    const branchFilter = branch.id === "GLOBAL"
+    const url = new URL(request.url);
+    const branchIdParam = url.searchParams.get("branchId");
+
+    let branchId: string = "";
+    let isGlobal = false;
+
+    if (branchIdParam) {
+      if (branchIdParam === 'GLOBAL') {
+        isGlobal = true;
+      } else {
+        const targetBranch = await prisma.branch.findFirst({
+          where: { id: branchIdParam, tenantId: user.tenantId, isActive: true }
+        });
+        if (!targetBranch) {
+          const response = NextResponse.json({ error: "Branch not found or access denied" }, { status: 403 });
+          response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+          return response;
+        }
+        branchId = targetBranch.id;
+      }
+    } else {
+      const branch = await getActiveBranch();
+      if (!branch) {
+        const response = NextResponse.json({ error: "No branch found" }, { status: 404 });
+        response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        return response;
+      }
+      if (branch.id === 'GLOBAL') {
+        isGlobal = true;
+      } else {
+        branchId = branch.id;
+      }
+    }
+
+    const branchFilter = isGlobal
       ? { prospect: { branch: { tenantId: user.tenantId } } }
-      : { prospect: { branchId: branch.id } };
+      : { prospect: { branchId } };
 
     // Fetch all pending/scheduled outbound messages
     const pendingMessages = await prisma.whatsAppMessage.findMany({
@@ -60,10 +96,18 @@ export async function GET(request: Request) {
 
     const campaigns = Object.values(campaignsMap);
 
-    return NextResponse.json({ campaigns });
+    const response = NextResponse.json({ campaigns });
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    return response;
   } catch (error) {
     console.error("Error fetching campaigns:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    const response = NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    return response;
   }
 }
 
@@ -71,23 +115,48 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const user = await getActiveUser();
-    const branch = await getActiveBranch();
-    
-    if (!user || !branch) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
-    const { message, scheduledAt } = body;
+    const { message, scheduledAt, branchId: branchIdParam } = body;
 
     if (!message || !message.trim()) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
     }
 
+    let branchId: string = "";
+    let isGlobal = false;
+
+    if (branchIdParam) {
+      if (branchIdParam === 'GLOBAL') {
+        isGlobal = true;
+      } else {
+        const targetBranch = await prisma.branch.findFirst({
+          where: { id: branchIdParam, tenantId: user.tenantId, isActive: true }
+        });
+        if (!targetBranch) {
+          return NextResponse.json({ error: "Branch not found or access denied" }, { status: 403 });
+        }
+        branchId = targetBranch.id;
+      }
+    } else {
+      const branch = await getActiveBranch();
+      if (!branch) {
+        return NextResponse.json({ error: "No active branch found" }, { status: 404 });
+      }
+      if (branch.id === 'GLOBAL') {
+        isGlobal = true;
+      } else {
+        branchId = branch.id;
+      }
+    }
+
     // Determine target prospects
-    const branchFilter = branch.id === "GLOBAL"
+    const branchFilter = isGlobal
       ? { branch: { tenantId: user.tenantId } }
-      : { branchId: branch.id };
+      : { branchId };
 
     // "conversacion abierta" -> prospects under current branch/tenant that have at least one message
     const targetProspects = await prisma.prospect.findMany({
@@ -105,7 +174,7 @@ export async function POST(request: Request) {
     });
 
     if (targetProspects.length === 0) {
-      return NextResponse.json({ error: "No hay clientes con conversaciones abiertas en esta sucursal." }, { status: 400 });
+      return NextResponse.json({ error: "No hay clientes con conversaciones abiertas en esta sucursal o inquilino." }, { status: 400 });
     }
 
     // Parse scheduled date
@@ -141,22 +210,47 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const user = await getActiveUser();
-    const branch = await getActiveBranch();
-    
-    if (!user || !branch) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
-    const { message, scheduledAt } = body;
+    const { message, scheduledAt, branchId: branchIdParam } = body;
 
     if (!message || !scheduledAt) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const branchFilter = branch.id === "GLOBAL"
+    let branchId: string = "";
+    let isGlobal = false;
+
+    if (branchIdParam) {
+      if (branchIdParam === 'GLOBAL') {
+        isGlobal = true;
+      } else {
+        const targetBranch = await prisma.branch.findFirst({
+          where: { id: branchIdParam, tenantId: user.tenantId, isActive: true }
+        });
+        if (!targetBranch) {
+          return NextResponse.json({ error: "Branch not found or access denied" }, { status: 403 });
+        }
+        branchId = targetBranch.id;
+      }
+    } else {
+      const branch = await getActiveBranch();
+      if (!branch) {
+        return NextResponse.json({ error: "No active branch found" }, { status: 404 });
+      }
+      if (branch.id === 'GLOBAL') {
+        isGlobal = true;
+      } else {
+        branchId = branch.id;
+      }
+    }
+
+    const branchFilter = isGlobal
       ? { prospect: { branch: { tenantId: user.tenantId } } }
-      : { prospect: { branchId: branch.id } };
+      : { prospect: { branchId } };
 
     // Delete all pending messages matching body, scheduled time and sucursal
     const deleted = await prisma.whatsAppMessage.deleteMany({

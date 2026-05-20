@@ -3,6 +3,8 @@ import { getActiveUser, getActiveBranch } from "@/app/actions/auth";
 import BandejaClient from "./BandejaClient";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export default async function WhatsappBandejaPage() {
   const branch = await getActiveBranch();
   const user = await getActiveUser();
@@ -16,7 +18,9 @@ export default async function WhatsappBandejaPage() {
   // }
 
   // Handle "GLOBAL" branch gracefully
-  const branchFilter = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
+  const branchFilter = branch.id === 'GLOBAL' 
+    ? { branch: { tenantId: user.tenantId } } 
+    : { branchId: branch.id };
 
   // Determinar si el usuario es administrador/gerente con acceso total
   const isManager = user.role === 'ADMIN' || user.role === 'MANAGER' || user.commissionRole === 'COORDINADOR' || user.commissionRole === 'LIDER';

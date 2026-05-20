@@ -13,7 +13,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const branchFilter = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
+    const branchFilter = branch.id === 'GLOBAL' 
+      ? { branch: { tenantId: user.tenantId } } 
+      : { branchId: branch.id };
+      
     const isManager = user.role === 'ADMIN' || user.role === 'MANAGER' || user.commissionRole === 'COORDINADOR' || user.commissionRole === 'LIDER';
     
     const prospectFilter = isManager 
@@ -68,9 +71,20 @@ export async function POST(request: Request) {
     // Limpiar el teléfono para que solo tenga números
     phone = phone.replace(/\D/g, '');
 
+    let branchId = branch.id;
+    if (branchId === 'GLOBAL') {
+      const firstBranch = await prisma.branch.findFirst({
+        where: { tenantId: user.tenantId, isActive: true }
+      });
+      if (!firstBranch) {
+        return NextResponse.json({ error: "No active branch found for tenant" }, { status: 404 });
+      }
+      branchId = firstBranch.id;
+    }
+
     // Verificar si ya existe
     let prospect = await prisma.prospect.findUnique({
-      where: { phone_branchId: { phone: phone, branchId: branch.id } }
+      where: { phone_branchId: { phone: phone, branchId: branchId } }
     });
 
     if (prospect) {
@@ -89,7 +103,7 @@ export async function POST(request: Request) {
         name,
         phone,
         customerId: customerId || null,
-        branchId: branch.id,
+        branchId: branchId,
         funnelStage: 'NEW',
         assignedUserId: user.id // Auto-asignar al usuario que lo crea
       }

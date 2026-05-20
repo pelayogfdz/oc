@@ -13,7 +13,7 @@ export default function AIClient({ user, branch }: { user: any, branch: any }) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'model',
-      content: `¡Hola ${user.name}! Soy Alina, tu Asistente de Negocios Inteligente de Office City.\n\nPuedes preguntarme sobre ventas, inventario, realizar comparaciones o simplemente pedirme que analice algún escenario. ¿En qué te ayudo hoy?`
+      content: `¡Hola ${user.name}! Soy Alina, tu Asistente de Negocios Inteligente de ${user.tenant?.name || 'su Empresa'}.\n\nPuedes preguntarme sobre ventas, inventario, realizar comparaciones o simplemente pedirme que analice algún escenario. ¿En qué te ayudo hoy?`
     }
   ]);
   const [input, setInput] = useState('');
