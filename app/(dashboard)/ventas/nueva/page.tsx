@@ -33,6 +33,11 @@ export default async function NuevaVentaPage() {
     orderBy: { name: 'asc' }
   });
 
+  const suppliers = await prisma.supplier.findMany({
+    where: { branchId: branch?.id || '' },
+    orderBy: { name: 'asc' }
+  });
+
   const promotions = await prisma.promotion.findMany({
     where: { branchId: branch?.id || '', active: true }
   });
@@ -88,6 +93,7 @@ export default async function NuevaVentaPage() {
             <POSClient 
               products={products} 
               customers={customers} 
+              suppliers={suppliers}
               promotions={promotions}
               dynamicPriceLists={dynamicPriceLists}
               pendingQuotes={pendingQuotes}

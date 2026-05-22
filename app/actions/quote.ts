@@ -11,6 +11,7 @@ export async function createQuote(
   customerId: string | null = null
 ) {
   const branch = await getActiveBranch();
+  if (!branch) throw new Error("No hay sucursal activa.");
   if (branch.id === 'GLOBAL') throw new Error("Debes seleccionar una sucursal específica para realizar esta acción.");
   const user = await getActiveUser();
   
@@ -85,10 +86,17 @@ export async function convertQuoteToSale(quoteId: string) {
 
   // Deduct stock & Register Kardex Movement
   for (const item of quote.items) {
-    await prisma.product.update({
-      where: { id: item.productId },
-      data: { stock: { decrement: item.quantity } }
-    });
+    const product = await prisma.product.findUnique({ where: { id: item.productId } });
+    if (product) {
+      const updateData: any = { stock: { decrement: item.quantity } };
+      if (!product.isActive && product.sku.startsWith('TEMP-')) {
+        updateData.isActive = true;
+      }
+      await prisma.product.update({
+        where: { id: item.productId },
+        data: updateData
+      });
+    }
     
     await prisma.inventoryMovement.create({
       data: {
@@ -108,4 +116,31 @@ export async function convertQuoteToSale(quoteId: string) {
   revalidatePath('/ventas');
   revalidatePath('/ventas/cotizaciones');
   revalidatePath('/productos');
+}
+
+export async function createQuickProductsForQuote(
+  items: { tempId: string; name: string; price: number; cost: number; supplierId: string | null }[],
+  branchId: string
+) {
+  const result: Record<string, string> = {};
+
+  for (const item of items) {
+    const sku = `TEMP-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    const product = await prisma.product.create({
+      data: {
+        sku,
+        name: item.name,
+        price: item.price,
+        cost: item.cost,
+        averageCost: item.cost,
+        supplierId: item.supplierId || null,
+        isActive: false, // Created as INACTIVE initially
+        branchId,
+        stock: 0,
+      }
+    });
+    result[item.tempId] = product.id;
+  }
+
+  return result;
 }

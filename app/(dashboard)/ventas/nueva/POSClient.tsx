@@ -2,14 +2,14 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera } from 'lucide-react';
 import { createSale } from '@/app/actions/sale';
-import { createQuote, getQuoteForPOS } from '@/app/actions/quote';
+import { createQuote, getQuoteForPOS, createQuickProductsForQuote } from '@/app/actions/quote';
 import { searchProducts } from '@/app/actions/product';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import ProductTableUI from '@/app/components/ProductTableUI';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 
-export default function POSClient({ products: initialProducts, customers, promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {}, impresorasConfig = {}, dynamicPriceLists = [], pendingQuotes = [], initialCustomerId }: { products: any[], customers: any[], promotions?: any[], mode?: "SALE" | "QUOTE", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any, impresorasConfig?: any, dynamicPriceLists?: any[], pendingQuotes?: any[], initialCustomerId?: string }) {
+export default function POSClient({ products: initialProducts, customers, suppliers = [], promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {}, impresorasConfig = {}, dynamicPriceLists = [], pendingQuotes = [], initialCustomerId }: { products: any[], customers: any[], suppliers?: any[], promotions?: any[], mode?: "SALE" | "QUOTE", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any, impresorasConfig?: any, dynamicPriceLists?: any[], pendingQuotes?: any[], initialCustomerId?: string }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isOnline, pushOfflineSale } = useOfflineSync();
@@ -66,6 +66,8 @@ export default function POSClient({ products: initialProducts, customers, promot
   const [fastItemName, setFastItemName] = useState('');
   const [fastItemPrice, setFastItemPrice] = useState<number | ''>('');
   const [fastItemQuantity, setFastItemQuantity] = useState<number>(1);
+  const [fastItemCost, setFastItemCost] = useState<number | ''>('');
+  const [fastItemSupplierId, setFastItemSupplierId] = useState<string>('');
   
   // Checkout Modal State
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -484,14 +486,37 @@ export default function POSClient({ products: initialProducts, customers, promot
     if (cart.length === 0) return;
     setIsProcessing(true);
     try {
-      const items = cart.map(item => ({ 
+      let finalCart = [...cart];
+      const fastItems = cart.filter((item: any) => item.isFastItem).map((item: any) => ({
+        tempId: item.id,
+        name: item.name,
+        price: getProductPrice(item),
+        cost: parseFloat(item.cost || '0'),
+        supplierId: item.supplierId || null,
+      }));
+
+      if (mode === 'QUOTE' && fastItems.length > 0) {
+        const createdProductsMap = await createQuickProductsForQuote(fastItems, branchId);
+        finalCart = cart.map((item: any) => {
+          if (item.isFastItem && createdProductsMap[item.id]) {
+            return {
+              ...item,
+              id: createdProductsMap[item.id],
+              isFastItem: false
+            };
+          }
+          return item;
+        });
+      }
+
+      const items = finalCart.map(item => ({ 
         productId: item.id, 
         variantId: item.variantId || null,
         quantity: item.quantity, 
         price: getProductPrice(item) 
       }));
       
-      const cartBackup = [...cart];
+      const cartBackup = [...finalCart];
       const totalBackup = total;
       const changeBackup = change;
       const discountBackup = discount;
@@ -914,79 +939,119 @@ export default function POSClient({ products: initialProducts, customers, promot
       {/* Fast Item Modal */}
       {showFastItemModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
-          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', width: '400px', maxWidth: '90%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', width: '450px', maxWidth: '90%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', color: '#d97706' }}>
                Añadir Artículo Rápido
-            </h2>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.25rem' }}>Descripción / Nombre</label>
-              <input 
-                type="text"
-                autoFocus
-                value={fastItemName}
-                onChange={e => setFastItemName(e.target.value)}
-                placeholder="Ej. Servicio de instalación..."
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
-              />
-            </div>
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.25rem' }}>Precio Unitario</label>
-                <input 
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={fastItemPrice}
-                  onChange={e => setFastItemPrice(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                  placeholder="$0.00"
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.25rem' }}>Cantidad</label>
-                <input 
-                  type="number"
-                  min="1"
-                  value={fastItemQuantity}
-                  onChange={e => setFastItemQuantity(parseInt(e.target.value) || 1)}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
-                />
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <button 
-                onClick={() => setShowFastItemModal(false)}
-                style={{ flex: 1, padding: '0.75rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', background: 'white' }}
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={() => {
-                  if (!fastItemName || fastItemPrice === '') return;
-                  const newCartItem = {
-                    cartItemId: 'FAST_' + Date.now(),
-                    id: 'FAST_' + Date.now(),
-                    name: fastItemName,
-                    price: fastItemPrice as number,
-                    stock: 9999,
-                    cost: 0, // No cost for fast items so 100% profit
-                    satKey: '',
-                    unit: 'H87', // Default unit pieca
-                    taxIncluded: true,
-                    taxes: [],
-                    quantity: fastItemQuantity,
-                    isFastItem: true
-                  };
-                  setCart([...cart, newCartItem as any]);
-                  setShowFastItemModal(false);
-                }}
-                disabled={!fastItemName || fastItemPrice === ''}
-                className="btn-primary"
-                style={{ flex: 1, padding: '0.75rem', fontWeight: 'bold', backgroundColor: (!fastItemName || fastItemPrice === '') ? '#ccc' : '#f59e0b', borderColor: '#f59e0b' }}
-              >
-                Añadir a Cotización
-              </button>
-            </div>
+             </h2>
+             <div style={{ marginBottom: '1rem' }}>
+               <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.25rem' }}>Descripción / Nombre</label>
+               <input 
+                 type="text"
+                 autoFocus
+                 value={fastItemName}
+                 onChange={e => setFastItemName(e.target.value)}
+                 placeholder="Ej. Servicio de instalación..."
+                 style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+               />
+             </div>
+             <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+               <div style={{ flex: 1 }}>
+                 <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.25rem' }}>Precio Unitario</label>
+                 <input 
+                   type="number"
+                   min="0"
+                   step="0.01"
+                   value={fastItemPrice}
+                   onChange={e => setFastItemPrice(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                   placeholder="$0.00"
+                   style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+                 />
+               </div>
+               <div style={{ flex: 1 }}>
+                 <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.25rem' }}>Cantidad</label>
+                 <input 
+                   type="number"
+                   min="1"
+                   value={fastItemQuantity}
+                   onChange={e => setFastItemQuantity(parseInt(e.target.value) || 1)}
+                   style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+                 />
+               </div>
+             </div>
+             <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+               <div style={{ flex: 1 }}>
+                 <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.25rem' }}>Costo Unitario</label>
+                 <input 
+                   type="number"
+                   min="0"
+                   step="0.01"
+                   value={fastItemCost}
+                   onChange={e => setFastItemCost(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                   placeholder="$0.00"
+                   style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+                 />
+               </div>
+               <div style={{ flex: 1 }}>
+                 <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.25rem' }}>Proveedor</label>
+                 <select 
+                   value={fastItemSupplierId}
+                   onChange={e => setFastItemSupplierId(e.target.value)}
+                   style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', height: '45px', backgroundColor: 'white' }}
+                 >
+                   <option value="">-- Seleccionar --</option>
+                   {suppliers.map((sup: any) => (
+                     <option key={sup.id} value={sup.id}>{sup.name}</option>
+                   ))}
+                 </select>
+               </div>
+             </div>
+             <div style={{ display: 'flex', gap: '1rem' }}>
+               <button 
+                 onClick={() => {
+                   setShowFastItemModal(false);
+                   setFastItemName('');
+                   setFastItemPrice('');
+                   setFastItemQuantity(1);
+                   setFastItemCost('');
+                   setFastItemSupplierId('');
+                 }}
+                 style={{ flex: 1, padding: '0.75rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', background: 'white' }}
+               >
+                 Cancelar
+               </button>
+               <button 
+                 onClick={() => {
+                   if (!fastItemName || fastItemPrice === '') return;
+                   const newCartItem = {
+                     cartItemId: 'FAST_' + Date.now(),
+                     id: 'FAST_' + Date.now(),
+                     name: fastItemName,
+                     price: fastItemPrice as number,
+                     stock: 9999,
+                     cost: fastItemCost || 0,
+                     supplierId: fastItemSupplierId || null,
+                     satKey: '',
+                     unit: 'H87', // Default unit pieca
+                     taxIncluded: true,
+                     taxes: [],
+                     quantity: fastItemQuantity,
+                     isFastItem: true
+                   };
+                   setCart([...cart, newCartItem as any]);
+                   setShowFastItemModal(false);
+                   setFastItemName('');
+                   setFastItemPrice('');
+                   setFastItemQuantity(1);
+                   setFastItemCost('');
+                   setFastItemSupplierId('');
+                 }}
+                 disabled={!fastItemName || fastItemPrice === ''}
+                 className="btn-primary"
+                 style={{ flex: 1, padding: '0.75rem', fontWeight: 'bold', backgroundColor: (!fastItemName || fastItemPrice === '') ? '#ccc' : '#f59e0b', borderColor: '#f59e0b' }}
+               >
+                 Añadir a Cotización
+               </button>
+             </div>
           </div>
         </div>
       )}

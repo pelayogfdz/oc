@@ -44,18 +44,19 @@ export async function POST(request: Request) {
       }
     }
 
-    const microserviceUrl = process.env.WHATSAPP_MICROSERVICE_URL || 'http://localhost:3001';
-    
-    const res = await fetch(`${microserviceUrl}/api/logout?branchId=${branchId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    // Instead of fetch, update the database directly to trigger the polling microservice
+    await prisma.whatsAppSession.upsert({
+      where: { branchId },
+      update: {
+        status: 'LOGGING_OUT',
+        sessionData: null,
+      },
+      create: {
+        branchId,
+        status: 'LOGGING_OUT',
+        sessionData: null,
       },
     });
-
-    if (!res.ok) {
-      throw new Error(`Microservice responded with ${res.status}`);
-    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

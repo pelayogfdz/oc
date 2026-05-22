@@ -37,8 +37,16 @@ export async function createSale(
 
     // Validate items against preferences
     for (const item of items) {
-      const product = await prisma.product.findUnique({ where: { id: item.productId } });
+      let product = await prisma.product.findUnique({ where: { id: item.productId } });
       if (!product) throw new Error("Producto no encontrado");
+
+      // Auto-activate temporary products when sold
+      if (!product.isActive && product.sku.startsWith('TEMP-')) {
+        product = await prisma.product.update({
+          where: { id: item.productId },
+          data: { isActive: true }
+        });
+      }
 
       let currentStock = product.stock;
       if (item.variantId) {

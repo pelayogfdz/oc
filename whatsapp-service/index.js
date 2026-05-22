@@ -73,9 +73,10 @@ async function getClientForBranch(branchId, forceRecreate = false) {
         clients.delete(branchId);
     }
 
+    const shortBranchId = branchId.split('-')[0];
     const client = new Client({
         authStrategy: new LocalAuth({
-            clientId: `branch-${branchId}`,
+            clientId: `br-${shortBranchId}`,
             dataPath: './.wwebjs_auth'
         }),
         puppeteer: {
@@ -128,6 +129,7 @@ async function getClientForBranch(branchId, forceRecreate = false) {
 
     client.on('disconnected', async (reason) => {
         console.log(`[WHATSAPP] Client was disconnected for branch ${branchId}`, reason);
+        clients.delete(branchId);
         try {
             const session = await getSessionForBranch(branchId);
             await prisma.whatsAppSession.update({
@@ -377,8 +379,46 @@ async function getClientForBranch(branchId, forceRecreate = false) {
         }
     });
 
-    client.initialize().catch(err => {
+    client.initialize().catch(async err => {
         console.error(`[WHATSAPP] Initialization crash for branch ${branchId}:`, err);
+        
+        clients.delete(branchId);
+        
+        try {
+            await client.destroy();
+            console.log(`[WHATSAPP] Closed browser instance for branch ${branchId} after initialization crash.`);
+        } catch (destroyErr) {
+            console.warn(`[WHATSAPP] Failed to destroy client browser for branch ${branchId}:`, destroyErr.message);
+        }
+
+        // Wait briefly for OS lock release
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Clean folder
+        const shortBranchId = branchId.split('-')[0];
+        const authPath = path.resolve(process.cwd(), `./.wwebjs_auth/session-br-${shortBranchId}`);
+        if (fs.existsSync(authPath)) {
+            try {
+                fs.rmSync(authPath, { recursive: true, force: true });
+                console.log(`[WHATSAPP] Cleaned up corrupt credentials folder for branch ${branchId} after initialization crash.`);
+            } catch (fsErr) {
+                console.error(`[WHATSAPP] Failed to clean credentials folder for branch ${branchId} after initialization crash:`, fsErr);
+            }
+        }
+
+        try {
+            const session = await getSessionForBranch(branchId);
+            await prisma.whatsAppSession.update({
+                where: { id: session.id },
+                data: {
+                    status: 'DISCONNECTED',
+                    sessionData: null
+                }
+            });
+            console.log(`[WHATSAPP] Reset session status to DISCONNECTED in DB for branch ${branchId} after initialization crash.`);
+        } catch (dbErr) {
+            console.error(`[WHATSAPP] Failed to reset database session status on crash for branch ${branchId}:`, dbErr);
+        }
     });
 
     return client;
@@ -641,7 +681,8 @@ app.post('/api/logout', async (req, res) => {
         }
 
         // Clean branch-specific credentials folder
-        const authPath = path.resolve(process.cwd(), `./.wwebjs_auth/session-branch-${branchId}`);
+        const shortBranchId = branchId.split('-')[0];
+        const authPath = path.resolve(process.cwd(), `./.wwebjs_auth/session-br-${shortBranchId}`);
         if (fs.existsSync(authPath)) {
             try {
                 fs.rmSync(authPath, { recursive: true, force: true });
@@ -992,9 +1033,109 @@ async function initializeAllActiveSessions() {
     }
 }
 
+// -------------------------------------------------------------
+// Database-driven Signaling Loop for WhatsApp Session Status
+// -------------------------------------------------------------
+let isSessionPolling = false;
+
+async function pollWhatsAppSessions() {
+    if (isSessionPolling) return;
+    try {
+        isSessionPolling = true;
+
+        // 1. Process LOGGING_OUT sessions
+        const loggingOutSessions = await prisma.whatsAppSession.findMany({
+            where: { status: 'LOGGING_OUT' }
+        });
+
+        for (const session of loggingOutSessions) {
+            const branchId = session.branchId;
+            console.log(`[POLLING] Found LOGGING_OUT session for branch ${branchId}. Disconnecting client...`);
+            
+            const client = clients.get(branchId);
+            if (client) {
+                try {
+                    await client.logout();
+                } catch (err) {
+                    console.warn(`[POLLING] client.logout() failed for branch ${branchId}:`, err.message);
+                }
+                try {
+                    await client.destroy();
+                } catch (err) {
+                    console.warn(`[POLLING] client.destroy() failed for branch ${branchId}:`, err.message);
+                }
+                clients.delete(branchId);
+                // Give OS some time to release file locks on Windows
+                await new Promise(resolve => setTimeout(resolve, 1500));
+            }
+
+            // Clean credentials folder
+            const shortBranchId = branchId.split('-')[0];
+            const authPath = path.resolve(process.cwd(), `./.wwebjs_auth/session-br-${shortBranchId}`);
+            if (fs.existsSync(authPath)) {
+                try {
+                    fs.rmSync(authPath, { recursive: true, force: true });
+                    console.log(`[POLLING] Credentials folder ${authPath} deleted successfully.`);
+                } catch (fsErr) {
+                    console.error(`[POLLING] Failed to delete folder ${authPath}:`, fsErr);
+                }
+            }
+
+            // Set state to INITIALIZING in DB
+            await prisma.whatsAppSession.update({
+                where: { id: session.id },
+                data: {
+                    status: 'INITIALIZING',
+                    sessionData: null
+                }
+            });
+
+            // Recreate client immediately
+            console.log(`[POLLING] Re-initializing fresh client for branch ${branchId}...`);
+            await getClientForBranch(branchId, true);
+        }
+
+        // 2. Process INITIALIZING sessions that do not have an active client in memory
+        const initializingSessions = await prisma.whatsAppSession.findMany({
+            where: { status: 'INITIALIZING' }
+        });
+
+        for (const session of initializingSessions) {
+            const branchId = session.branchId;
+            if (!clients.has(branchId)) {
+                console.log(`[POLLING] Found INITIALIZING session for branch ${branchId} without active client. Spawning...`);
+                await getClientForBranch(branchId, true);
+            }
+        }
+
+        // 3. Auto-resume CONNECTED/QR_READY sessions that do not have an active client in memory (e.g. service restart)
+        const activeSessions = await prisma.whatsAppSession.findMany({
+            where: { status: { in: ['CONNECTED', 'QR_READY'] } }
+        });
+
+        for (const session of activeSessions) {
+            const branchId = session.branchId;
+            if (!clients.has(branchId)) {
+                console.log(`[POLLING] Found active/ready session for branch ${branchId} but no client in memory. Resuming client...`);
+                await getClientForBranch(branchId, false);
+            }
+        }
+
+    } catch (err) {
+        console.error("[POLLING] Error in pollWhatsAppSessions:", err);
+    } finally {
+        isSessionPolling = false;
+    }
+}
+
+// Check every 5 seconds for any session signaling changes
+setInterval(pollWhatsAppSessions, 5000);
+
 const PORT = process.env.WHATSAPP_PORT || 3001;
 app.listen(PORT, () => {
     console.log(`WhatsApp Microservice API running on port ${PORT}`);
     // Start active WhatsApp clients
     initializeAllActiveSessions();
+    // Run an initial poll check immediately
+    pollWhatsAppSessions();
 });

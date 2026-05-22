@@ -60,16 +60,8 @@ export async function GET(request: Request) {
       }
     }
 
-    // Ping Express microservice to lazily initialize client for this branch if not already running
-    const microservicePort = process.env.WHATSAPP_PORT || 3001;
-    try {
-      await fetch(`http://localhost:${microservicePort}/api/status?branchId=${branchId}`, {
-        method: "GET",
-        cache: "no-store",
-      });
-    } catch (err: any) {
-      console.warn(`[STATUS ROUTE] Failed to ping microservice status for branch ${branchId}:`, err.message);
-    }
+    // No need to ping Express microservice directly from serverless function.
+    // The database-driven signaling and periodic polling on the VPS will handle client lifetime/memory.
 
     let session = await prisma.whatsAppSession.findUnique({
       where: { branchId }

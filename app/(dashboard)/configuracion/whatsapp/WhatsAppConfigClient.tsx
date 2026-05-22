@@ -31,7 +31,7 @@ export default function WhatsAppConfigClient({ initialSession }: { initialSessio
     try {
       const res = await fetch(`/api/whatsapp/logout?branchId=${session.branchId}`, { method: 'POST' });
       if (res.ok) {
-        setSession({ ...session, status: 'DISCONNECTED', sessionData: null });
+        setSession({ ...session, status: 'LOGGING_OUT', sessionData: null });
       }
     } catch (e) {
       console.error("Error al cerrar sesión", e);
@@ -83,6 +83,68 @@ export default function WhatsAppConfigClient({ initialSession }: { initialSessio
           <div style={{ padding: '1rem', backgroundColor: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px', fontSize: '0.875rem', marginTop: '0.5rem' }}>
             Al hacer clic en el botón de arriba, se forzará la inicialización de un lector de QR nuevo y limpio para tu cuenta.
           </div>
+        </>
+      )}
+
+      {(session?.status === 'LOGGING_OUT' || session?.status === 'INITIALIZING') && (
+        <>
+          <div style={{ width: 80, height: 80, borderRadius: '50%', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg 
+              width="40" 
+              height="40" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="#2563eb" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              style={{ animation: 'spin 1.5s linear infinite' }}
+            >
+              <line x1="12" y1="2" x2="12" y2="6"/>
+              <line x1="12" y1="18" x2="12" y2="22"/>
+              <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/>
+              <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
+              <line x1="2" y1="12" x2="6" y2="12"/>
+              <line x1="18" y1="12" x2="22" y2="12"/>
+              <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/>
+              <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
+            </svg>
+          </div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: '600' }}>Iniciando Lector de QR...</h2>
+          <p style={{ color: 'var(--pulpos-text-muted)', textAlign: 'center', maxWidth: '380px' }}>
+            Estamos preparando una sesión de WhatsApp segura. Esto suele tardar unos 10-15 segundos.
+          </p>
+          <div style={{ padding: '1rem', backgroundColor: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px', fontSize: '0.875rem', marginTop: '0.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center', color: '#64748b' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>Generando un código QR limpio y fresco para sincronizar tu teléfono...</span>
+          </div>
+          <button 
+            onClick={handleLogout}
+            disabled={loading}
+            style={{
+              marginTop: '1rem',
+              padding: '0.6rem 1.5rem',
+              backgroundColor: '#fee2e2',
+              color: '#991b1b',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: '600',
+              fontSize: '0.875rem',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 4px rgba(239, 68, 68, 0.1)'
+            }}
+            onMouseEnter={e => { if (!loading) e.currentTarget.style.backgroundColor='#fca5a5'; }}
+            onMouseLeave={e => { if (!loading) e.currentTarget.style.backgroundColor='#fee2e2'; }}
+          >
+            {loading ? 'Procesando...' : '¿Se quedó congelado? Forzar Reinicio Limpio 🔄'}
+          </button>
+          <style>{`
+            @keyframes spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
         </>
       )}
 
