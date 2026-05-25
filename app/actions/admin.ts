@@ -32,6 +32,14 @@ export async function getAdminDashboardData() {
 
   const tenants = await prisma.tenant.findMany({
     include: {
+      users: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true
+        }
+      },
       _count: {
         select: { users: true }
       }
@@ -172,3 +180,20 @@ export async function deleteTenant(tenantId: string) {
 
   return { success: true };
 }
+
+export async function changeUserPassword(userId: string, newPassword: string) {
+  await requireSuperAdmin();
+  if (!newPassword || newPassword.trim().length < 4) {
+    throw new Error('La contraseña debe tener al menos 4 caracteres');
+  }
+
+  const bcrypt = require('bcryptjs');
+  const hash = await bcrypt.hash(newPassword, 10);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hash }
+  });
+
+  return { success: true };
+}
+

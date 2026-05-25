@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { updateSystemMPCredentials, addTenantGiftCredits, updateSystemPricing, updateTenantCustomPricing, editTenant, toggleTenantStatus, deleteTenant } from '@/app/actions/admin';
-import { Save, Building2, Users, Coins, CreditCard, ShieldAlert, CheckCircle2, DollarSign, Settings, Edit, Power, PowerOff, Trash2 } from 'lucide-react';
+import { updateSystemMPCredentials, addTenantGiftCredits, updateSystemPricing, updateTenantCustomPricing, editTenant, toggleTenantStatus, deleteTenant, changeUserPassword } from '@/app/actions/admin';
+import { Save, Building2, Users, Coins, CreditCard, ShieldAlert, CheckCircle2, DollarSign, Settings, Edit, Power, PowerOff, Trash2, Lock } from 'lucide-react';
 
 export default function AdminClient({ initialData }: { initialData: any }) {
   const { tenants, settings } = initialData;
@@ -26,6 +26,30 @@ export default function AdminClient({ initialData }: { initialData: any }) {
   const [editingTenant, setEditingTenant] = useState<any>(null);
   const [tenantName, setTenantName] = useState('');
   const [isSavingTenant, setIsSavingTenant] = useState(false);
+
+  const [selectedTenantForPasswords, setSelectedTenantForPasswords] = useState<any>(null);
+  const [selectedUserForPasswordChange, setSelectedUserForPasswordChange] = useState<any>(null);
+  const [newPasswordState, setNewPasswordState] = useState('');
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+
+  const handleChangePassword = async () => {
+    if (!selectedUserForPasswordChange || !newPasswordState.trim()) return;
+    if (newPasswordState.trim().length < 4) {
+      alert('La contraseña debe tener al menos 4 caracteres.');
+      return;
+    }
+    setIsSavingPassword(true);
+    try {
+      await changeUserPassword(selectedUserForPasswordChange.id, newPasswordState);
+      alert(`Contraseña de ${selectedUserForPasswordChange.name} (${selectedUserForPasswordChange.email}) cambiada con éxito a "${newPasswordState}".`);
+      setSelectedUserForPasswordChange(null);
+      setNewPasswordState('');
+    } catch (e: any) {
+      alert('Error: ' + e.message);
+    } finally {
+      setIsSavingPassword(false);
+    }
+  };
 
   const handleSaveMP = async () => {
     setIsSavingMP(true);
@@ -325,6 +349,13 @@ export default function AdminClient({ initialData }: { initialData: any }) {
                       >
                         <Coins size={16} /> Créditos
                       </button>
+                      <button 
+                        onClick={() => setSelectedTenantForPasswords(t)}
+                        style={{ padding: '0.5rem 0.75rem', backgroundColor: '#e0e7ff', color: '#4338ca', borderRadius: '4px', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                        title="Cambiar Contraseñas de Usuarios"
+                      >
+                        <Lock size={16} /> Accesos
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -460,6 +491,96 @@ export default function AdminClient({ initialData }: { initialData: any }) {
                 style={{ padding: '0.75rem 1.5rem', backgroundColor: '#475569', color: 'white', borderRadius: '6px', fontWeight: 'bold', border: 'none', cursor: isSavingTenant ? 'not-allowed' : 'pointer' }}
               >
                 {isSavingTenant ? 'Guardando...' : 'Guardar Cambios'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for Managing User Passwords */}
+      {selectedTenantForPasswords && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', width: '90%', maxWidth: '600px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Lock size={20} color="#4338ca" />
+              Gestionar Accesos - {selectedTenantForPasswords.name}
+            </h3>
+            <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+              Cambia la contraseña de los usuarios de esta organización directamente.
+            </p>
+
+            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', paddingRight: '0.5rem' }}>
+              {selectedTenantForPasswords.users?.map((usr: any) => {
+                const isEditingThisUser = selectedUserForPasswordChange?.id === usr.id;
+                return (
+                  <div key={usr.id} style={{ padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                      <div>
+                        <strong style={{ display: 'block', fontSize: '0.95rem' }}>{usr.name}</strong>
+                        <span style={{ fontSize: '0.85rem', color: '#64748b', wordBreak: 'break-all' }}>{usr.email}</span>
+                        <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', backgroundColor: '#e2e8f0', color: '#475569', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 'bold' }}>{usr.role}</span>
+                      </div>
+                      {!isEditingThisUser && (
+                        <button
+                          onClick={() => {
+                            setSelectedUserForPasswordChange(usr);
+                            setNewPasswordState('');
+                          }}
+                          style={{ padding: '0.4rem 0.75rem', backgroundColor: '#e0e7ff', color: '#4338ca', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
+                        >
+                          Cambiar Contraseña
+                        </button>
+                      )}
+                    </div>
+
+                    {isEditingThisUser && (
+                      <div style={{ marginTop: '1rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#475569' }}>Nueva Contraseña</label>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <input
+                            type="text"
+                            value={newPasswordState}
+                            onChange={e => setNewPasswordState(e.target.value)}
+                            placeholder="Nueva contraseña (mín. 4 caracteres)"
+                            style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
+                          />
+                          <button
+                            onClick={handleChangePassword}
+                            disabled={isSavingPassword}
+                            style={{ padding: '0.5rem 1rem', backgroundColor: '#16a34a', color: 'white', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', border: 'none', cursor: isSavingPassword ? 'not-allowed' : 'pointer' }}
+                          >
+                            {isSavingPassword ? 'Guardando...' : 'Guardar'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedUserForPasswordChange(null);
+                              setNewPasswordState('');
+                            }}
+                            style={{ padding: '0.5rem 1rem', backgroundColor: '#f1f5f9', color: '#475569', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {(!selectedTenantForPasswords.users || selectedTenantForPasswords.users.length === 0) && (
+                <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.9rem', padding: '1rem' }}>No hay usuarios registrados en esta organización.</p>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+              <button
+                onClick={() => {
+                  setSelectedTenantForPasswords(null);
+                  setSelectedUserForPasswordChange(null);
+                  setNewPasswordState('');
+                }}
+                style={{ padding: '0.75rem 1.5rem', backgroundColor: '#f1f5f9', color: '#475569', borderRadius: '6px', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
+              >
+                Cerrar
               </button>
             </div>
           </div>

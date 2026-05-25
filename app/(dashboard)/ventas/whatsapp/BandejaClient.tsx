@@ -35,13 +35,37 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
   const router = useRouter();
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState("");
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await fetch("/api/whatsapp/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
+      if (res.ok) {
+        alert("Sincronización profunda iniciada con éxito en segundo plano.");
+        router.refresh();
+      } else {
+        const data = await res.json();
+        alert("Error al sincronizar: " + (data.error || "error de conexión"));
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error de conexión");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
 
   const [downloadedMedia, setDownloadedMedia] = useState<Record<string, { data: string; mimetype: string; filename: string }>>({});
   const [loadingMedia, setLoadingMedia] = useState<Record<string, boolean>>({});
 
   const parseMediaMsg = (body: string) => {
     if (!body) return { isMedia: false, type: "", caption: "" };
-    const match = body.match(/^📎 \[(Imagen|Video|Audio|Archivo)\](?::\s*(.*))?$/s);
+    const match = body.match(/^📎 \[(Imagen|Video|Audio|Archivo)\](?::\s*([\s\S]*))?$/);
     if (match) {
       return {
         isMedia: true,
@@ -976,6 +1000,28 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
             <h2 style={{ fontWeight: '600', fontSize: '1.125rem', margin: 0 }}>Chats</h2>
             <div style={{ display: 'flex', gap: '0.4rem' }}>
               <button 
+                onClick={handleManualSync}
+                disabled={isSyncing}
+                title="Sincronizar chats de WhatsApp anteriores"
+                style={{ 
+                  padding: '0.35rem 0.6rem', 
+                  backgroundColor: isSyncing ? '#f1f5f9' : '#0f172a', 
+                  color: isSyncing ? '#94a3b8' : 'white', 
+                  borderRadius: '6px', 
+                  border: 'none', 
+                  fontSize: '0.8rem', 
+                  cursor: isSyncing ? 'not-allowed' : 'pointer', 
+                  fontWeight: 'bold', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.2rem', 
+                  transition: 'all 0.2s' 
+                }}
+              >
+                <span style={{ display: 'inline-block', animation: isSyncing ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
+                {isSyncing ? 'Sync...' : 'Sync'}
+              </button>
+              <button 
                 onClick={() => {
                   setIsCampaignModalOpen(true);
                   fetchCampaigns();
@@ -996,6 +1042,7 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
                 + Nuevo
               </button>
             </div>
+
           </div>
           <input 
             type="text" 

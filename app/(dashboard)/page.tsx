@@ -28,6 +28,95 @@ export default async function DashboardPage() {
   const totalOrders = todaySales.length;
   const avgTicket = totalOrders > 0 ? totalSalesValue / totalOrders : 0;
 
+  // Start and end of current month
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const endOfMonth = new Date();
+  endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+  endOfMonth.setDate(0);
+  endOfMonth.setHours(23, 59, 59, 999);
+
+  const branchFilter = branch.id === 'GLOBAL'
+    ? { branch: { tenantId: branch.tenantId } }
+    : { branchId: branch.id };
+
+  const monthSales = await prisma.sale.findMany({
+    where: {
+      ...branchFilter,
+      createdAt: {
+        gte: startOfMonth,
+        lte: endOfMonth
+      },
+      status: { not: 'CANCELLED' }
+    },
+    include: {
+      customer: true,
+      items: {
+        include: {
+          product: true
+        }
+      }
+    }
+  });
+
+  // Calculate MTD Top 5 Customers
+  const customerMap = new Map();
+  monthSales.forEach(sale => {
+    if (!sale.customerId) return;
+    const name = sale.customer?.name || "Sin Nombre";
+    const phone = sale.customer?.phone || "Sin Teléfono";
+    const id = sale.customerId;
+    const existing = customerMap.get(id) || { id, name, phone, totalPurchased: 0, orderCount: 0 };
+    existing.totalPurchased += sale.total;
+    existing.orderCount += 1;
+    customerMap.set(id, existing);
+  });
+  
+  const topCustomers = Array.from(customerMap.values())
+    .sort((a, b) => b.totalPurchased - a.totalPurchased)
+    .slice(0, 5);
+
+  const maxCustomerPurchased = topCustomers.length > 0 ? topCustomers[0].totalPurchased : 1;
+
+  // Calculate MTD Top 5 Products
+  const productMap = new Map();
+  monthSales.forEach(sale => {
+    sale.items.forEach(item => {
+      const id = item.productId;
+      const name = item.product?.name || "Producto Desconocido";
+      const sku = item.product?.sku || "S/K";
+      const existing = productMap.get(id) || { id, name, sku, quantitySold: 0, totalRevenue: 0 };
+      existing.quantitySold += item.quantity;
+      existing.totalRevenue += (item.quantity * item.price);
+      productMap.set(id, existing);
+    });
+  });
+  
+  const topProducts = Array.from(productMap.values())
+    .sort((a, b) => b.quantitySold - a.quantitySold)
+    .slice(0, 5);
+
+  const getInitials = (name: string) => {
+    if (!name) return "C";
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  const getHslColor = (name: string) => {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const h = Math.abs(hash % 360);
+    return `hsl(${h}, 75%, 40%)`;
+  };
+
+
   const lowStockProducts = await prisma.product.count({
     where: {
       branchId: branch.id,
@@ -127,6 +216,113 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Sección Premium: Reportes del Mes Actual (MTD) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '1.5rem', marginTop: '2rem' }}>
+        
+        {/* Card 1: 🏆 Mejores Clientes (Mes Actual) */}
+        <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                🏆 Mejores Clientes <span style={{ fontSize: '0.8rem', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontWeight: 'bold' }}>Mes en Curso</span>
+              </h2>
+              <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.25rem', marginBottom: 0 }}>Basado en compras acumuladas y volumen facturado</p>
+            </div>
+            <Link href="/reportes/top-clientes" style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#3b82f6', textDecoration: 'underline' }}>Ver detalle</Link>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {topCustomers.length > 0 ? (
+              topCustomers.map((cust: any, idx: number) => {
+                const percentage = Math.min(100, Math.round((cust.totalPurchased / maxCustomerPurchased) * 100));
+                const avatarColor = getHslColor(cust.name);
+                return (
+                  <div key={cust.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: avatarColor, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.9rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                      {getInitials(cust.name)}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                        <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {idx + 1}. {cust.name}
+                        </span>
+                        <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#16a34a' }}>
+                          {formatter.format(cust.totalPurchased)}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>
+                        <span style={{ flexShrink: 0 }}>🛒 {cust.orderCount} compras</span>
+                        <div style={{ flex: 1, height: '6px', backgroundColor: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ width: `${percentage}%`, height: '100%', backgroundColor: '#22c55e', borderRadius: '3px', transition: 'width 0.5s ease-out' }} />
+                        </div>
+                        <span style={{ flexShrink: 0, fontWeight: 'bold', color: '#334155' }}>{percentage}%</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div style={{ padding: '2rem 0', textAlign: 'center', color: '#9ca3af', fontSize: '0.9rem' }}>
+                No hay compras registradas en este mes.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Card 2: 📦 Productos Más Vendidos (Mes Actual) */}
+        <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                📦 Productos Más Vendidos <span style={{ fontSize: '0.8rem', backgroundColor: '#fdf2f8', color: '#be185d', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontWeight: 'bold' }}>Mes en Curso</span>
+              </h2>
+              <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.25rem', marginBottom: 0 }}>Artículos líderes por unidades desplazadas</p>
+            </div>
+            <Link href="/reportes/top-productos" style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#3b82f6', textDecoration: 'underline' }}>Ver detalle</Link>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {topProducts.length > 0 ? (
+              topProducts.map((prod: any, idx: number) => {
+                return (
+                  <div key={prod.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.8rem', color: '#64748b' }}>
+                      #{idx + 1}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                        <div style={{ minWidth: 0 }}>
+                          <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#1e293b', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {prod.name}
+                          </span>
+                          <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontFamily: 'monospace', fontWeight: '600' }}>
+                            SKU: {prod.sku}
+                          </span>
+                        </div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a', display: 'block' }}>
+                            {prod.quantitySold} uds
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                            {formatter.format(prod.totalRevenue)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div style={{ padding: '2rem 0', textAlign: 'center', color: '#9ca3af', fontSize: '0.9rem' }}>
+                No hay ventas registradas en este mes.
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }
+

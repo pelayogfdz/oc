@@ -3,13 +3,14 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera } from 'lucide-react';
 import { createSale } from '@/app/actions/sale';
 import { createQuote, getQuoteForPOS, createQuickProductsForQuote } from '@/app/actions/quote';
+import { createConsignment, getConsignmentForPOS } from '@/app/actions/consignment';
 import { searchProducts } from '@/app/actions/product';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import ProductTableUI from '@/app/components/ProductTableUI';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 
-export default function POSClient({ products: initialProducts, customers, suppliers = [], promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {}, impresorasConfig = {}, dynamicPriceLists = [], pendingQuotes = [], initialCustomerId }: { products: any[], customers: any[], suppliers?: any[], promotions?: any[], mode?: "SALE" | "QUOTE", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any, impresorasConfig?: any, dynamicPriceLists?: any[], pendingQuotes?: any[], initialCustomerId?: string }) {
+export default function POSClient({ products: initialProducts, customers, suppliers = [], promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {}, impresorasConfig = {}, dynamicPriceLists = [], pendingQuotes = [], initialCustomerId }: { products: any[], customers: any[], suppliers?: any[], promotions?: any[], mode?: "SALE" | "QUOTE" | "CONSIGNMENT", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any, impresorasConfig?: any, dynamicPriceLists?: any[], pendingQuotes?: any[], initialCustomerId?: string }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isOnline, pushOfflineSale } = useOfflineSync();
@@ -172,10 +173,49 @@ export default function POSClient({ products: initialProducts, customers, suppli
     }
   };
 
+  const [loadedConsignmentId, setLoadedConsignmentId] = useState<string | null>(null);
+
+  const handleLoadConsignment = async (incomingId: string) => {
+    if (!incomingId) return;
+    setIsLoadingQuote(true);
+    try {
+      const consignment = await getConsignmentForPOS(incomingId);
+      setLoadedConsignmentId(consignment.id);
+      
+      // Load cart
+      const newCart = consignment.items.map((item: any) => ({
+        ...item.product,
+        cartItemId: item.variantId ? `v_${item.variantId}` : item.product.id,
+        quantity: item.quantity,
+        cartPrice: item.price,
+        variantId: item.variantId || null
+      }));
+      setCart(newCart);
+      
+      // Load Customer
+      if (consignment.customerId) {
+        handleCustomerChange(consignment.customerId);
+      }
+      
+      alert("Consignación cargada correctamente.");
+    } catch (e: any) {
+      alert("Error al cargar la consignación: " + e.message);
+    } finally {
+      setIsLoadingQuote(false);
+    }
+  };
+
   useEffect(() => {
     const qId = searchParams.get('quoteId');
     if (qId) {
       handleLoadQuote(qId);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const cId = searchParams.get('consignmentId');
+    if (cId) {
+      handleLoadConsignment(cId);
     }
   }, [searchParams]);
 
@@ -525,6 +565,8 @@ export default function POSClient({ products: initialProducts, customers, suppli
 
       if (mode === 'QUOTE') {
         const quote = await createQuote(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null);
+      } else if (mode === 'CONSIGNMENT') {
+        const consignment = await createConsignment(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null);
       } else {
         const cashValue = typeof amountReceived === 'number' ? amountReceived : undefined;
         const cardValue = typeof cardAmount === 'number' ? cardAmount : undefined;
@@ -564,7 +606,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
           saleId = `OFFLINE-${Date.now()}`;
         } else {
           // ONLINE MODE
-          const response = await createSale(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null, sessionId, finalNotes, cashValue, cardValue, billingData, loadedQuoteId || undefined);
+          const response = await createSale(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null, sessionId, finalNotes, cashValue, cardValue, billingData, loadedQuoteId || undefined, loadedConsignmentId || undefined);
           if (!response.success) {
             throw new Error(response.error);
           }
@@ -587,15 +629,19 @@ export default function POSClient({ products: initialProducts, customers, suppli
          if (!isAutoPrint) {
            if (mode === 'QUOTE') {
              alert('¡Cotización creada con éxito! Imprimiendo Ticket...');
+           } else if (mode === 'CONSIGNMENT') {
+             alert('¡Consignación creada con éxito! Imprimiendo Ticket...');
            } else {
              alert('¡Venta cobrada con éxito! Imprimiendo Ticket...');
            }
          }
          printTicket(cartBackup, totalBackup, changeBackup, discountBackup, saleId);
-         if (mode !== 'QUOTE') {
-            router.push('/ventas');
-         } else {
+         if (mode === 'QUOTE') {
             router.push('/ventas/cotizaciones');
+         } else if (mode === 'CONSIGNMENT') {
+            router.push('/ventas/consignaciones');
+         } else {
+            router.push('/ventas');
          }
          router.refresh();
       }, 100);
@@ -927,11 +973,11 @@ export default function POSClient({ products: initialProducts, customers, suppli
           </div>
           {cart.length > 0 && (
              <div style={{ textAlign: 'right', fontSize: '0.85rem', color: estimatedProfit > 0 ? '#16a34a' : '#dc2626', marginBottom: '1rem', fontWeight: '500' }}>
-               Ganancia neta: ${estimatedProfit.toFixed(2)} ({markupPct}% utilidad / {marginPct}% margen {mode === 'QUOTE' ? 'de cotización' : 'de venta'})
+               Ganancia neta: ${estimatedProfit.toFixed(2)} ({markupPct}% utilidad / {marginPct}% margen {mode === 'QUOTE' ? 'de cotización' : mode === 'CONSIGNMENT' ? 'de consignación' : 'de venta'})
              </div>
           )}
           <button onClick={() => setIsCheckoutOpen(true)} disabled={cart.length === 0} className="btn-primary" style={{ width: '100%', fontSize: '1.25rem', padding: '1rem', opacity: cart.length === 0 ? 0.5 : 1 }}>
-            {mode === 'QUOTE' ? 'Generar Cotización' : 'Cobrar Venta'}
+            {mode === 'QUOTE' ? 'Generar Cotización' : mode === 'CONSIGNMENT' ? 'Generar Consignación' : 'Cobrar Venta'}
           </button>
         </div>
       </div>
@@ -1061,7 +1107,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
           <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', width: '500px', maxWidth: '90%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', textAlign: 'center' }}>
-               {mode === 'QUOTE' ? 'Finalizar Cotización' : 'Finalizar Venta'}
+               {mode === 'QUOTE' ? 'Finalizar Cotización' : mode === 'CONSIGNMENT' ? 'Finalizar Consignación' : 'Finalizar Venta'}
             </h2>
             
             <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '1rem' }}>
@@ -1080,11 +1126,11 @@ export default function POSClient({ products: initialProducts, customers, suppli
             </div>
             
             <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: '1rem', color: 'var(--pulpos-text-muted)' }}>{mode === 'QUOTE' ? 'Total Presupuestado' : 'Total a Pagar'}</div>
+              <div style={{ fontSize: '1rem', color: 'var(--pulpos-text-muted)' }}>{mode === 'QUOTE' ? 'Total Presupuestado' : mode === 'CONSIGNMENT' ? 'Total Consignado' : 'Total a Pagar'}</div>
               <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>${finalTotalWithTip.toFixed(2)}</div>
             </div>
 
-            {mode !== 'QUOTE' && ventasConfig.solicitarPropinas && (
+            {mode !== 'QUOTE' && mode !== 'CONSIGNMENT' && ventasConfig.solicitarPropinas && (
                <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '1.5rem' }}>
                  <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>Añadir Propina</label>
                  <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -1262,7 +1308,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                   className="btn-primary" 
                   style={{ width: '100%', padding: '1rem', fontSize: '1.1rem', opacity: isProcessing ? 0.5 : 1 }}
                 >
-                  {isProcessing ? 'Guardando...' : (mode === 'QUOTE' ? 'Guardar Cotización' : 'Confirmar Pago')}
+                  {isProcessing ? 'Guardando...' : (mode === 'QUOTE' ? 'Guardar Cotización' : mode === 'CONSIGNMENT' ? 'Confirmar Consignación' : 'Confirmar Pago')}
                 </button>
                 {mode === 'SALE' && cart.some((item: any) => item.isFastItem) && (
                   <div style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '0.5rem', fontWeight: 'bold', textAlign: 'center' }}>

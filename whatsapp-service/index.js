@@ -37,6 +37,318 @@ app.use(express.json());
 // Active clients Map: branchId -> Client
 const clients = new Map();
 
+// Helper to save a single WhatsApp message and map it to a prospect
+async function saveWhatsAppMessage(branchId, client, msg) {
+    if (msg.isStatus) return;
+
+    // Determine JID of other party
+    const otherPartyJid = msg.fromMe ? msg.to : msg.from;
+    if (!otherPartyJid || (!otherPartyJid.endsWith('@c.us') && !otherPartyJid.endsWith('@lid'))) return; // ignore groups, broadcast, status
+
+    const phone = otherPartyJid.split('@')[0];
+
+    // Avoid duplicates
+    try {
+        const existingMsg = await prisma.whatsAppMessage.findFirst({
+            where: { messageId: msg.id._serialized }
+        });
+        if (existingMsg) {
+            return; // Message already stored (e.g. sent from web and inserted manually)
+        }
+    } catch (dbErr) {
+        console.error(`[WHATSAPP] Error checking duplicate message for branch ${branchId}:`, dbErr);
+        return;
+    }
+
+    console.log(`[WHATSAPP] [Branch: ${branchId}] Message event - fromMe: ${msg.fromMe}, otherParty: ${phone}, body: ${msg.body || '[Vacio]'}`);
+
+    try {
+        // Fetch contact and normalize phone numbers
+        let realPhone = phone;
+        let whatsappId = null;
+        let contactName = phone;
+
+        try {
+            // Fetch contact with a 2-second timeout to avoid hanging indefinitely in wwebjs
+            const contact = await Promise.race([
+                client.getContactById(otherPartyJid),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout resolving contact')), 2000))
+            ]);
+            
+            contactName = contact.pushname || contact.name || phone;
+            
+            // Retrieve standard JID from contact.id if available
+            if (contact.id && contact.id._serialized) {
+                if (contact.id._serialized.endsWith('@c.us')) {
+                    realPhone = contact.id.user;
+                } else if (contact.id._serialized.endsWith('@lid')) {
+                    realPhone = contact.id.user;
+                }
+            }
+            
+            if (otherPartyJid.endsWith('@lid')) {
+                whatsappId = phone; // LID JID user
+            } else {
+                whatsappId = realPhone;
+            }
+        } catch (contactErr) {
+            console.warn(`[WHATSAPP] Failed to fetch contact info (or timed out) for branch ${branchId}:`, contactErr.message);
+        }
+
+        // Build Mexican phone number variations to search
+        const phoneVariations = [realPhone];
+        let basePhone = realPhone;
+        if (realPhone.startsWith('521') && realPhone.length === 13) {
+            basePhone = realPhone.substring(3);
+            phoneVariations.push('52' + basePhone);
+            phoneVariations.push(basePhone);
+        } else if (realPhone.startsWith('52') && realPhone.length === 12) {
+            basePhone = realPhone.substring(2);
+            phoneVariations.push('521' + basePhone);
+            phoneVariations.push(basePhone);
+        } else if (realPhone.length === 10) {
+            phoneVariations.push('52' + realPhone);
+            phoneVariations.push('521' + realPhone);
+        }
+
+        // Also search by original user JID parts
+        if (!phoneVariations.includes(phone)) {
+            phoneVariations.push(phone);
+        }
+
+        const orConditions = phoneVariations.map(p => ({ phone: p }));
+        if (whatsappId) {
+            orConditions.push({ whatsappId: whatsappId });
+            orConditions.push({ whatsappId: { contains: whatsappId } });
+        }
+        orConditions.push({ whatsappId: phone });
+        orConditions.push({ whatsappId: { contains: phone } });
+
+        let prospect = null;
+        try {
+            const dbBranch = await prisma.branch.findUnique({
+                where: { id: branchId },
+                select: { tenantId: true }
+            });
+            const tenantId = dbBranch ? dbBranch.tenantId : null;
+            
+            if (tenantId) {
+                prospect = await prisma.prospect.findFirst({
+                    where: {
+                        branch: {
+                            tenantId: tenantId
+                        },
+                        OR: orConditions
+                    }
+                });
+            }
+        } catch (err) {
+            console.error("[WHATSAPP] Error fetching tenantId for prospect search:", err);
+        }
+
+        if (!prospect) {
+            prospect = await prisma.prospect.findFirst({
+                where: { 
+                    branchId: branchId,
+                    OR: orConditions
+                }
+            });
+        }
+
+        if (!prospect) {
+            // Create a clean new prospect using realPhone
+            prospect = await prisma.prospect.create({
+                data: {
+                    name: contactName,
+                    phone: realPhone,
+                    whatsappId: whatsappId || phone,
+                    branchId: branchId,
+                    funnelStage: 'NEW'
+                }
+            });
+            console.log(`[WHATSAPP] Created new prospect for phone: ${realPhone}, whatsappId: ${whatsappId || phone} under branch: ${branchId}`);
+        } else {
+            // Update whatsappId and/or name/phone if missing
+            const updates = {};
+            if (whatsappId && prospect.whatsappId !== whatsappId) {
+                updates.whatsappId = whatsappId;
+            }
+            if (realPhone && !prospect.phone) {
+                updates.phone = realPhone;
+            }
+            if (Object.keys(updates).length > 0) {
+                prospect = await prisma.prospect.update({
+                    where: { id: prospect.id },
+                    data: updates
+                });
+                console.log(`[WHATSAPP] Updated prospect ${prospect.id} with:`, updates);
+            }
+        }
+
+        // Set initial status based on ACK
+        let initialStatus = 0;
+        if (msg.fromMe) {
+            if (msg.ack === 1) initialStatus = 1;
+            else if (msg.ack === 2) initialStatus = 2;
+            else if (msg.ack >= 3) initialStatus = 3;
+            else initialStatus = 1; // default to sent
+        }
+
+        let bodyText = msg.body || '';
+        if (msg.hasMedia) {
+            let mediaTag = '📎 [Archivo]';
+            if (msg.type === 'image') {
+                mediaTag = '📎 [Imagen]';
+            } else if (msg.type === 'video') {
+                mediaTag = '📎 [Video]';
+            } else if (msg.type === 'audio' || msg.type === 'ptt') {
+                mediaTag = '📎 [Audio]';
+            } else if (msg.type === 'sticker') {
+                mediaTag = '📎 [Sticker]';
+            } else if (msg.type === 'document') {
+                mediaTag = '📎 [Documento]';
+            }
+            bodyText = mediaTag + (msg.body ? ": " + msg.body : "");
+        } else if (!bodyText) {
+            if (msg.type === 'sticker') {
+                bodyText = '📎 [Sticker]';
+            } else if (msg.type === 'location') {
+                bodyText = '📍 [Ubicación]';
+            } else if (msg.type === 'vcard' || msg.type === 'multi_vcard') {
+                bodyText = '📇 [Contacto]';
+            } else if (msg.type === 'revoked') {
+                bodyText = '🚫 [Mensaje eliminado]';
+            } else {
+                bodyText = `[Mensaje tipo: ${msg.type || 'desconocido'}]`;
+            }
+        }
+
+        // If fromMe, see if there is a pending message we can link to
+        let linkedPending = false;
+        if (msg.fromMe) {
+            const pendingMsg = await prisma.whatsAppMessage.findFirst({
+                where: {
+                    prospectId: prospect.id,
+                    messageId: null,
+                    isFromMe: true
+                },
+                orderBy: {
+                    timestamp: 'asc'
+                }
+            });
+
+            if (pendingMsg) {
+                await prisma.whatsAppMessage.update({
+                    where: { id: pendingMsg.id },
+                    data: {
+                        messageId: msg.id._serialized,
+                        body: bodyText,
+                        status: initialStatus,
+                        timestamp: new Date(msg.timestamp * 1000)
+                    }
+                });
+                console.log(`[WHATSAPP] Linked pending message ${pendingMsg.id} to real messageId: ${msg.id._serialized}`);
+                linkedPending = true;
+            }
+        }
+
+        if (!linkedPending) {
+            await prisma.whatsAppMessage.create({
+                data: {
+                    messageId: msg.id._serialized,
+                    prospectId: prospect.id,
+                    body: bodyText,
+                    isFromMe: msg.fromMe,
+                    status: initialStatus,
+                    timestamp: new Date(msg.timestamp * 1000)
+                }
+            });
+            console.log(`[WHATSAPP] Message saved successfully in DB under prospect: ${prospect.name}`);
+        }
+
+        // Actualizar updatedAt del prospecto para empujar la conversación arriba al instante
+        await prisma.prospect.update({
+            where: { id: prospect.id },
+            data: { updatedAt: new Date() }
+        });
+    } catch (e) {
+        console.error(`[WHATSAPP] Error saving message event for branch ${branchId}:`, e);
+    }
+}
+
+// Function to sync recent chats and their history to the database in two phases (Option B + Deep Background Sync)
+async function syncRecentChatsHistory(branchId, client) {
+    console.log(`[WHATSAPP] [Branch: ${branchId}] Starting Phase 1 Chats History Sync (top 30 chats, 50 messages each)...`);
+    try {
+        const chats = await client.getChats();
+        console.log(`[WHATSAPP] [Branch: ${branchId}] Found ${chats.length} total chats on device.`);
+        
+        // Filter to standard direct message chats (excluding groups/broadcasts)
+        const directChats = chats.filter(c => {
+            return !c.isGroup && !c.isReadOnly && c.id && 
+                   (c.id._serialized.endsWith('@c.us') || c.id._serialized.endsWith('@lid'));
+        });
+        
+        const phase1Chats = directChats.slice(0, 30);
+        console.log(`[WHATSAPP] [Branch: ${branchId}] Phase 1: Syncing top ${phase1Chats.length} direct chats.`);
+        
+        for (const chat of phase1Chats) {
+            try {
+                console.log(`[WHATSAPP] [Branch: ${branchId}] Fetching last 50 messages for chat JID: ${chat.id._serialized}`);
+                const messages = await chat.fetchMessages({ limit: 50 });
+                
+                for (const msg of messages) {
+                    try {
+                        await saveWhatsAppMessage(branchId, client, msg);
+                    } catch (msgErr) {
+                        console.error(`[WHATSAPP] Error saving synced message ${msg.id?._serialized || 'unknown'} for branch ${branchId}:`, msgErr.message);
+                    }
+                }
+                
+                // Add a small 150ms throttle to prevent PostgreSQL Neon connection spikes
+                await new Promise(resolve => setTimeout(resolve, 150));
+            } catch (chatErr) {
+                console.error(`[WHATSAPP] Failed to sync messages for chat ${chat.id?._serialized} under branch ${branchId}:`, chatErr.message);
+            }
+        }
+        console.log(`[WHATSAPP] [Branch: ${branchId}] Successfully completed Phase 1 history sync.`);
+        
+        // Phase 2: Deep History Background Sync (100 older chats with 100 messages each)
+        const phase2Chats = directChats.slice(30, 130);
+        if (phase2Chats.length > 0) {
+            console.log(`[WHATSAPP] [Branch: ${branchId}] Phase 2: Queued deep background sync for next ${phase2Chats.length} older chats in 5 seconds...`);
+            
+            setTimeout(async () => {
+                console.log(`[WHATSAPP] [Branch: ${branchId}] Phase 2: Starting deep background sync for older chats...`);
+                for (let i = 0; i < phase2Chats.length; i++) {
+                    const chat = phase2Chats[i];
+                    try {
+                        console.log(`[WHATSAPP] [Branch: ${branchId}] Deep Sync [${i + 1}/${phase2Chats.length}] - Fetching last 100 messages for JID: ${chat.id._serialized}`);
+                        const messages = await chat.fetchMessages({ limit: 100 });
+                        
+                        for (const msg of messages) {
+                            try {
+                                await saveWhatsAppMessage(branchId, client, msg);
+                            } catch (msgErr) {
+                                // Ignore save errors to keep going
+                            }
+                        }
+                        
+                        // Longer throttle (400ms) for background deep sync to keep it lightweight
+                        await new Promise(resolve => setTimeout(resolve, 400));
+                    } catch (chatErr) {
+                        console.error(`[WHATSAPP] Deep Sync Failed for chat ${chat.id?._serialized}:`, chatErr.message);
+                    }
+                }
+                console.log(`[WHATSAPP] [Branch: ${branchId}] Successfully completed Phase 2 deep history background sync.`);
+            }, 5000);
+        }
+    } catch (err) {
+        console.error(`[WHATSAPP] [Branch: ${branchId}] Failed to run chats history sync:`, err.message);
+    }
+}
+
+
 // Helper to get or create a WhatsApp session by branchId
 async function getSessionForBranch(branchId) {
     let session = await prisma.whatsAppSession.findUnique({
@@ -79,8 +391,16 @@ async function getClientForBranch(branchId, forceRecreate = false) {
             clientId: `br-${shortBranchId}`,
             dataPath: './.wwebjs_auth'
         }),
+        webVersionCache: {
+            type: 'remote',
+            remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html',
+        },
         puppeteer: {
-            args: ['--no-sandbox', '--disable-setuid-sandbox'],
+            args: [
+                '--no-sandbox', 
+                '--disable-setuid-sandbox',
+                '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+            ],
             headless: true,
         }
     });
@@ -122,6 +442,11 @@ async function getClientForBranch(branchId, forceRecreate = false) {
             selfHealLIDProspects(branchId).catch(err => {
                 console.error(`[WHATSAPP] Background self-healing failed for branch ${branchId}:`, err);
             });
+
+            // Sync recent chats history in the background when ready
+            syncRecentChatsHistory(branchId, client).catch(err => {
+                console.error(`[WHATSAPP] Background history sync failed for branch ${branchId}:`, err);
+            });
         } catch (e) {
             console.error(`[WHATSAPP] Failed to update Ready status in DB for branch ${branchId}`, e);
         }
@@ -144,221 +469,12 @@ async function getClientForBranch(branchId, forceRecreate = false) {
         }
     });
 
-    client.on('message_create', async msg => {
-        if (msg.isStatus) return;
+    const handleIncomingOrCreateMessage = async msg => {
+        await saveWhatsAppMessage(branchId, client, msg);
+    };
 
-        // Determine JID of other party
-        const otherPartyJid = msg.fromMe ? msg.to : msg.from;
-        if (!otherPartyJid || (!otherPartyJid.endsWith('@c.us') && !otherPartyJid.endsWith('@lid'))) return; // ignore groups, broadcast, status
-
-        const phone = otherPartyJid.split('@')[0];
-
-        // Avoid duplicates
-        try {
-            const existingMsg = await prisma.whatsAppMessage.findFirst({
-                where: { messageId: msg.id._serialized }
-            });
-            if (existingMsg) {
-                return; // Message already stored (e.g. sent from web and inserted manually)
-            }
-        } catch (dbErr) {
-            console.error(`[WHATSAPP] Error checking duplicate message for branch ${branchId}:`, dbErr);
-        }
-
-        console.log(`[WHATSAPP] [Branch: ${branchId}] Message create event - fromMe: ${msg.fromMe}, otherParty: ${phone}, body: ${msg.body}`);
-
-        try {
-            // Fetch contact and normalize phone numbers
-            let realPhone = phone;
-            let whatsappId = null;
-            let contactName = phone;
-
-            try {
-                const contact = await client.getContactById(otherPartyJid);
-                contactName = contact.pushname || contact.name || phone;
-                
-                // Retrieve standard JID from contact.id if available
-                if (contact.id && contact.id._serialized) {
-                    if (contact.id._serialized.endsWith('@c.us')) {
-                        realPhone = contact.id.user;
-                    } else if (contact.id._serialized.endsWith('@lid')) {
-                        realPhone = contact.id.user;
-                    }
-                }
-                
-                if (otherPartyJid.endsWith('@lid')) {
-                    whatsappId = phone; // LID JID user
-                } else {
-                    whatsappId = realPhone;
-                }
-            } catch (contactErr) {
-                console.warn(`[WHATSAPP] Failed to fetch contact info for branch ${branchId}:`, contactErr.message);
-            }
-
-            // Build Mexican phone number variations to search
-            const phoneVariations = [realPhone];
-            let basePhone = realPhone;
-            if (realPhone.startsWith('521') && realPhone.length === 13) {
-                basePhone = realPhone.substring(3);
-                phoneVariations.push('52' + basePhone);
-                phoneVariations.push(basePhone);
-            } else if (realPhone.startsWith('52') && realPhone.length === 12) {
-                basePhone = realPhone.substring(2);
-                phoneVariations.push('521' + basePhone);
-                phoneVariations.push(basePhone);
-            } else if (realPhone.length === 10) {
-                phoneVariations.push('52' + realPhone);
-                phoneVariations.push('521' + realPhone);
-            }
-
-            // Also search by original user JID parts
-            if (!phoneVariations.includes(phone)) {
-                phoneVariations.push(phone);
-            }
-
-            const orConditions = phoneVariations.map(p => ({ phone: p }));
-            if (whatsappId) {
-                orConditions.push({ whatsappId: whatsappId });
-                orConditions.push({ whatsappId: { contains: whatsappId } });
-            }
-            orConditions.push({ whatsappId: phone });
-            orConditions.push({ whatsappId: { contains: phone } });
-
-            let prospect = null;
-            try {
-                const dbBranch = await prisma.branch.findUnique({
-                    where: { id: branchId },
-                    select: { tenantId: true }
-                });
-                const tenantId = dbBranch ? dbBranch.tenantId : null;
-                
-                if (tenantId) {
-                    prospect = await prisma.prospect.findFirst({
-                        where: {
-                            branch: {
-                                tenantId: tenantId
-                            },
-                            OR: orConditions
-                        }
-                    });
-                }
-            } catch (err) {
-                console.error("[WHATSAPP] Error fetching tenantId for prospect search:", err);
-            }
-
-            if (!prospect) {
-                prospect = await prisma.prospect.findFirst({
-                    where: { 
-                        branchId: branchId,
-                        OR: orConditions
-                    }
-                });
-            }
-
-            if (!prospect) {
-                // Create a clean new prospect using realPhone
-                prospect = await prisma.prospect.create({
-                    data: {
-                        name: contactName,
-                        phone: realPhone,
-                        whatsappId: whatsappId || phone,
-                        branchId: branchId,
-                        funnelStage: 'NEW'
-                    }
-                });
-                console.log(`[WHATSAPP] Created new prospect for phone: ${realPhone}, whatsappId: ${whatsappId || phone} under branch: ${branchId}`);
-            } else {
-                // Update whatsappId and/or name/phone if missing
-                const updates = {};
-                if (whatsappId && prospect.whatsappId !== whatsappId) {
-                    updates.whatsappId = whatsappId;
-                }
-                if (realPhone && !prospect.phone) {
-                    updates.phone = realPhone;
-                }
-                if (Object.keys(updates).length > 0) {
-                    prospect = await prisma.prospect.update({
-                        where: { id: prospect.id },
-                        data: updates
-                    });
-                    console.log(`[WHATSAPP] Updated prospect ${prospect.id} with:`, updates);
-                }
-            }
-
-            // Set initial status based on ACK
-            let initialStatus = 0;
-            if (msg.fromMe) {
-                if (msg.ack === 1) initialStatus = 1;
-                else if (msg.ack === 2) initialStatus = 2;
-                else if (msg.ack >= 3) initialStatus = 3;
-                else initialStatus = 1; // default to sent
-            }
-
-            let bodyText = msg.body || '';
-            if (msg.hasMedia) {
-                let mediaTag = '📎 [Archivo]';
-                if (msg.type === 'image') {
-                    mediaTag = '📎 [Imagen]';
-                } else if (msg.type === 'video') {
-                    mediaTag = '📎 [Video]';
-                } else if (msg.type === 'audio' || msg.type === 'ptt') {
-                    mediaTag = '📎 [Audio]';
-                }
-                bodyText = mediaTag + (msg.body ? ": " + msg.body : "");
-            }
-
-            // If fromMe, see if there is a pending message we can link to
-            let linkedPending = false;
-            if (msg.fromMe) {
-                const pendingMsg = await prisma.whatsAppMessage.findFirst({
-                    where: {
-                        prospectId: prospect.id,
-                        messageId: null,
-                        isFromMe: true
-                    },
-                    orderBy: {
-                        timestamp: 'asc'
-                    }
-                });
-
-                if (pendingMsg) {
-                    await prisma.whatsAppMessage.update({
-                        where: { id: pendingMsg.id },
-                        data: {
-                            messageId: msg.id._serialized,
-                            body: bodyText,
-                            status: initialStatus,
-                            timestamp: new Date(msg.timestamp * 1000)
-                        }
-                    });
-                    console.log(`[WHATSAPP] Linked pending message ${pendingMsg.id} to real messageId: ${msg.id._serialized}`);
-                    linkedPending = true;
-                }
-            }
-
-            if (!linkedPending) {
-                await prisma.whatsAppMessage.create({
-                    data: {
-                        messageId: msg.id._serialized,
-                        prospectId: prospect.id,
-                        body: bodyText,
-                        isFromMe: msg.fromMe,
-                        status: initialStatus,
-                        timestamp: new Date(msg.timestamp * 1000)
-                    }
-                });
-                console.log(`[WHATSAPP] Message saved successfully in DB under prospect: ${prospect.name}`);
-            }
-
-            // Actualizar updatedAt del prospecto para empujar la conversación arriba al instante
-            await prisma.prospect.update({
-                where: { id: prospect.id },
-                data: { updatedAt: new Date() }
-            });
-        } catch (e) {
-            console.error(`[WHATSAPP] Error saving message create event for branch ${branchId}:`, e);
-        }
-    });
+    client.on('message', handleIncomingOrCreateMessage);
+    client.on('message_create', handleIncomingOrCreateMessage);
 
     client.on('message_ack', async (msg, ack) => {
         try {
@@ -446,10 +562,42 @@ app.post('/api/send', async (req, res) => {
             return res.status(400).json({ error: 'Could not resolve branchId' });
         }
 
-        const client = await getClientForBranch(resolvedBranchId);
-        if (!client) {
-            return res.status(503).json({ error: 'WhatsApp client is not initialized for this branch' });
+        let client = clients.get(resolvedBranchId);
+        if (!client || !client.info) {
+            // Sibling tenant fallback: check if there's another branch in this tenant that is CONNECTED
+            try {
+                const branch = await prisma.branch.findUnique({
+                    where: { id: resolvedBranchId },
+                    select: { tenantId: true }
+                });
+                if (branch && branch.tenantId) {
+                    const siblingBranches = await prisma.branch.findMany({
+                        where: { tenantId: branch.tenantId, isActive: true },
+                        select: { id: true }
+                    });
+                    for (const sibling of siblingBranches) {
+                        const altClient = clients.get(sibling.id);
+                        if (altClient && altClient.info) {
+                            client = altClient;
+                            console.log(`[WHATSAPP] Found alternate connected client for tenant ${branch.tenantId} under branch ${sibling.id} in /api/send. Redirecting send...`);
+                            break;
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("[WHATSAPP] Error resolving tenant sibling client in /api/send:", err);
+            }
         }
+
+        // If no sibling was found or active in memory, get or initialize
+        if (!client) {
+            client = await getClientForBranch(resolvedBranchId);
+        }
+
+        if (!client || !client.info) {
+            return res.status(503).json({ error: 'WhatsApp client is not connected or ready' });
+        }
+
         
         let chatId = phone ? `${phone}@c.us` : null;
         // Check if there is an existing prospect to see if we have their LID whatsappId
@@ -637,6 +785,32 @@ app.get('/api/media/:messageId', async (req, res) => {
     } catch (error) {
         console.error('Error fetching media:', error);
         res.status(500).json({ error: error.message || 'Failed to download media' });
+    }
+});
+
+// Express POST endpoint to manually trigger chats history synchronization
+app.post('/api/sync', async (req, res) => {
+    const { branchId } = req.body;
+    if (!branchId) {
+        return res.status(400).json({ error: 'branchId is required' });
+    }
+
+    try {
+        const client = clients.get(branchId);
+        if (!client || !client.info) {
+            return res.status(503).json({ error: 'WhatsApp client is not ready or connected for this branch' });
+        }
+
+        // Trigger manual sync in background
+        console.log(`[WHATSAPP] Manual sync requested for branch ${branchId}. Starting sync...`);
+        syncRecentChatsHistory(branchId, client)
+            .then(() => console.log(`[WHATSAPP] Manual sync completed for branch ${branchId}`))
+            .catch(err => console.error(`[WHATSAPP] Manual sync failed for branch ${branchId}:`, err));
+
+        res.json({ success: true, message: 'Chats history sync triggered successfully in background' });
+    } catch (err) {
+        console.error(`[WHATSAPP] Error in manual sync for branch ${branchId}:`, err);
+        res.status(500).json({ error: err.message || 'Failed to trigger history sync' });
     }
 });
 

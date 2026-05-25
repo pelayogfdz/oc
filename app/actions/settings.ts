@@ -97,7 +97,7 @@ export async function updateTenantSettings(formData: FormData) {
     data: { decimals }
   });
 
-  revalidateTag('tenant-settings-' + branch.tenantId);
+  revalidateTag('tenant-settings-' + branch.tenantId, 'max');
   revalidatePath('/preferencias/general');
 }
 

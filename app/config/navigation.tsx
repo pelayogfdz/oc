@@ -35,6 +35,7 @@ export const navStructure: MenuNode[] = [
       { name: 'Promociones y Descuentos', path: '/ventas/promociones' },
       { name: 'Devoluciones', path: '/ventas/devoluciones' },
       { name: 'Cotizaciones', path: '/ventas/cotizaciones' },
+      { name: 'Consignaciones', path: '/ventas/consignaciones' },
     ]
   },
   { 
@@ -141,6 +142,7 @@ export const navStructure: MenuNode[] = [
     items: [
       { name: 'Panel de Reportes', path: '/reportes' },
       { name: 'Facturación CFDI 4.0', path: '/reportes/facturacion', badge: 'Nuevo' },
+      { name: 'Desempeño de Consignaciones', path: '/reportes/consignaciones', badge: 'Nuevo' },
     ]
   }
 ];

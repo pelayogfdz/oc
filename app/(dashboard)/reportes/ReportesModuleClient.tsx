@@ -16,6 +16,7 @@ export default function ReportesModuleClient({ initialMetrics }: { initialMetric
     { title: 'Ventas por Vendedor', icon: <Users size={24} color="#3b82f6" />, description: 'Rendimiento y comisiones por cajero/vendedor.', route: '/reportes/ventas-por-vendedor' },
     { title: 'Inventario Valorizado', icon: <Package size={24} color="#6366f1" />, description: 'Valor total de tu mercancía a costo y precio venta.', route: '/reportes/inventario-valorizado' },
     { title: 'Bitácora de Inventario', icon: <Clock size={24} color="#8b5cf6" />, description: 'Movimientos, ajustes, entradas y salidas.', route: '/reportes/bitacora-inventario' },
+    { title: 'Consignaciones', icon: <Package size={24} color="#6366f1" />, description: 'Rendimiento y cobros de productos prestados a clientes.', route: '/reportes/consignaciones' },
     { title: 'Gastos', icon: <Calculator size={24} color="#ef4444" />, description: 'Registro y análisis de egresos operativos.', route: '/reportes/gastos' },
     { title: 'Corte de Caja', icon: <Calculator size={24} color="#d946ef" />, description: 'Auditoría de ingresos, egresos y control de efectivo.', route: '/caja/actual' },
     { title: 'Reporte de Turnos', icon: <Clock size={24} color="#8b5cf6" />, description: 'Aperturas y cierres por cajero, bitácora de anomalías.', route: '/caja/cortes' },

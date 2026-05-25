@@ -17,6 +17,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
   const [messages, setMessages] = useState<any[]>(prospect.messages || []);
   const [inputText, setInputText] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [whatsappStatus, setWhatsappStatus] = useState<string>("CONNECTED");
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -27,7 +28,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
 
   const parseMediaMsg = (body: string) => {
     if (!body) return { isMedia: false, type: "", caption: "" };
-    const match = body.match(/^📎 \[(Imagen|Video|Audio|Archivo)\](?::\s*(.*))?$/s);
+    const match = body.match(/^📎 \[(Imagen|Video|Audio|Archivo)\](?::\s*([\s\S]*))?$/);
     if (match) {
       return {
         isMedia: true,
@@ -190,6 +191,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
         const res = await fetch(`/api/whatsapp/status?t=${Date.now()}`, { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
+          setWhatsappStatus(data.session?.status || "DISCONNECTED");
           const resolvedTenantName = data.tenantName || "Mi Empresa";
           const resolvedBranchName = data.branchName || "";
           const resolvedBranchLocation = data.branchLocation || "";
@@ -365,6 +367,23 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
 
     return () => clearInterval(interval);
   }, [prospect.id, messages]);
+
+  // Polling for WhatsApp connection status
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const res = await fetch(`/api/whatsapp/status?t=${Date.now()}`, { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          setWhatsappStatus(data.session?.status || "DISCONNECTED");
+        }
+      } catch (err) {
+        console.error("Error fetching WhatsApp status in polling:", err);
+      }
+    };
+    const interval = setInterval(checkStatus, 8000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Keep focus on the text input whenever sending completes or the component updates
   useEffect(() => {
@@ -1119,6 +1138,46 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
           </button>
         </div>
 
+        {whatsappStatus !== 'CONNECTED' && (
+          <div style={{
+            padding: '0.75rem 1rem',
+            backgroundColor: '#fff1f2',
+            border: '1px solid #fecaca',
+            borderRadius: '12px',
+            color: '#991b1b',
+            fontSize: '0.85rem',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.5rem',
+            marginBottom: '0.5rem'
+          }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              ⚠️ WhatsApp Desconectado en esta Sucursal. Vincula tu cuenta en el panel de configuración.
+            </span>
+            <button 
+              type="button"
+              onClick={() => router.push('/configuracion/whatsapp')}
+              style={{
+                padding: '0.35rem 0.85rem',
+                backgroundColor: '#e11d48',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontWeight: 'bold',
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor='#be123c'}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor='#e11d48'}
+            >
+              Vincular WhatsApp
+            </button>
+          </div>
+        )}
+
         <form onSubmit={e => sendMessage(e)} style={{ display: 'flex', width: '100%', gap: '0.5rem' }}>
           <input
             ref={inputRef}
@@ -1131,23 +1190,32 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
                 sendMessage();
               }
             }}
-            placeholder="Escribe un mensaje..."
-            style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '24px', border: '1px solid #cbd5e1', outline: 'none', backgroundColor: '#f8fafc', fontSize: '0.92rem' }}
-            disabled={isGeneratingAI}
+            placeholder={whatsappStatus === 'CONNECTED' ? "Escribe un mensaje..." : "WhatsApp Desconectado. Vincula tu cuenta..."}
+            style={{ 
+              flex: 1, 
+              padding: '0.75rem 1rem', 
+              borderRadius: '24px', 
+              border: '1px solid #cbd5e1', 
+              outline: 'none', 
+              backgroundColor: whatsappStatus === 'CONNECTED' ? '#f8fafc' : '#f1f5f9', 
+              fontSize: '0.92rem',
+              cursor: whatsappStatus === 'CONNECTED' ? 'text' : 'not-allowed'
+            }}
+            disabled={isGeneratingAI || whatsappStatus !== 'CONNECTED'}
           />
           <button 
             type="submit" 
-            disabled={(!inputText.trim() && !attachment) || isSending || isGeneratingAI}
+            disabled={(!inputText.trim() && !attachment) || isSending || isGeneratingAI || whatsappStatus !== 'CONNECTED'}
             style={{ 
               width: '48px', height: '48px', borderRadius: '50%', 
-              backgroundColor: (inputText.trim() || attachment) ? '#25d366' : '#cbd5e1', 
+              backgroundColor: ((inputText.trim() || attachment) && whatsappStatus === 'CONNECTED') ? '#25d366' : '#cbd5e1', 
               color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-              cursor: (inputText.trim() || attachment) ? 'pointer' : 'not-allowed',
+              cursor: ((inputText.trim() || attachment) && whatsappStatus === 'CONNECTED') ? 'pointer' : 'not-allowed',
               transition: 'all 0.2s ease',
-              boxShadow: (inputText.trim() || attachment) ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+              boxShadow: ((inputText.trim() || attachment) && whatsappStatus === 'CONNECTED') ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
             }}
-            onMouseEnter={e => { if (inputText.trim() || attachment) e.currentTarget.style.backgroundColor='#1ebe57'; }}
-            onMouseLeave={e => { if (inputText.trim() || attachment) e.currentTarget.style.backgroundColor='#25d366'; }}
+            onMouseEnter={e => { if ((inputText.trim() || attachment) && whatsappStatus === 'CONNECTED') e.currentTarget.style.backgroundColor='#1ebe57'; }}
+            onMouseLeave={e => { if ((inputText.trim() || attachment) && whatsappStatus === 'CONNECTED') e.currentTarget.style.backgroundColor='#25d366'; }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'translateX(-2px) translateY(1px)' }}>
               <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>

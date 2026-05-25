@@ -14,7 +14,8 @@ export async function createSale(
   cashAmount?: number,
   cardAmount?: number,
   billingData?: { rfc: string; name: string; zipCode: string; regime: string; use: string },
-  quoteIdToConvert?: string
+  quoteIdToConvert?: string,
+  consignmentIdToConvert?: string
 ) {
   try {
     const branch = await getActiveBranch();
@@ -116,61 +117,63 @@ export async function createSale(
       }
     });
 
-    // Deduct stock & Register Kardex Movement
-    for (const item of items) {
-      await prisma.product.update({
-        where: { id: item.productId },
-        data: { stock: { decrement: item.quantity } }
-      });
-      
-      if (item.variantId) {
-        await prisma.productVariant.update({
-          where: { id: item.variantId },
+    // Deduct stock & Register Kardex Movement (only if NOT converting from a consignment)
+    if (!consignmentIdToConvert) {
+      for (const item of items) {
+        await prisma.product.update({
+          where: { id: item.productId },
           data: { stock: { decrement: item.quantity } }
         });
-      }
-      
-      // FEFO Batch Deduction
-      let remainingToDeduct = item.quantity;
-      const availableBatches = await prisma.productBatch.findMany({
-        where: { productId: item.productId, stock: { gt: 0 } },
-        orderBy: { expirationDate: 'asc' } // oldest expires first
-      });
+        
+        if (item.variantId) {
+          await prisma.productVariant.update({
+            where: { id: item.variantId },
+            data: { stock: { decrement: item.quantity } }
+          });
+        }
+        
+        // FEFO Batch Deduction
+        let remainingToDeduct = item.quantity;
+        const availableBatches = await prisma.productBatch.findMany({
+          where: { productId: item.productId, stock: { gt: 0 } },
+          orderBy: { expirationDate: 'asc' } // oldest expires first
+        });
 
-      for (const batch of availableBatches) {
-        if (remainingToDeduct <= 0) break;
-        const deductAmount = Math.min(batch.stock, remainingToDeduct);
-        
-        await prisma.productBatch.update({
-          where: { id: batch.id },
-          data: { stock: { decrement: deductAmount } }
-        });
-        
-        await prisma.inventoryMovement.create({
-          data: {
-            productId: item.productId,
-            variantId: item.variantId || null,
-            batchId: batch.id,
-            type: 'OUT',
-            quantity: -deductAmount,
-            reason: `Venta #${sale.id.slice(0, 8)} (FEFO Lote)`
-          }
-        });
-        
-        remainingToDeduct -= deductAmount;
-      }
+        for (const batch of availableBatches) {
+          if (remainingToDeduct <= 0) break;
+          const deductAmount = Math.min(batch.stock, remainingToDeduct);
+          
+          await prisma.productBatch.update({
+            where: { id: batch.id },
+            data: { stock: { decrement: deductAmount } }
+          });
+          
+          await prisma.inventoryMovement.create({
+            data: {
+              productId: item.productId,
+              variantId: item.variantId || null,
+              batchId: batch.id,
+              type: 'OUT',
+              quantity: -deductAmount,
+              reason: `Venta #${sale.id.slice(0, 8)} (FEFO Lote)`
+            }
+          });
+          
+          remainingToDeduct -= deductAmount;
+        }
 
-      // If sold without stock or items not assigned to any batch
-      if (remainingToDeduct > 0) {
-        await prisma.inventoryMovement.create({
-          data: {
-            productId: item.productId,
-            variantId: item.variantId || null,
-            type: 'OUT',
-            quantity: -remainingToDeduct,
-            reason: `Venta #${sale.id.slice(0, 8)} (Sin Lote)`
-          }
-        });
+        // If sold without stock or items not assigned to any batch
+        if (remainingToDeduct > 0) {
+          await prisma.inventoryMovement.create({
+            data: {
+              productId: item.productId,
+              variantId: item.variantId || null,
+              type: 'OUT',
+              quantity: -remainingToDeduct,
+              reason: `Venta #${sale.id.slice(0, 8)} (Sin Lote)`
+            }
+          });
+        }
       }
     }
 
@@ -212,6 +215,14 @@ export async function createSale(
           data: { status: 'CONVERTED' }
        });
        revalidatePath('/ventas/cotizaciones');
+    }
+
+    if (consignmentIdToConvert) {
+       await prisma.consignment.update({
+          where: { id: consignmentIdToConvert },
+          data: { status: 'CONVERTED' }
+       });
+       revalidatePath('/ventas/consignaciones');
     }
 
     revalidatePath('/ventas');

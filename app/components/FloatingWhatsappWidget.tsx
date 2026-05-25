@@ -156,7 +156,7 @@ export default function FloatingWhatsappWidget() {
 
   const parseMediaMsg = (body: string) => {
     if (!body) return { isMedia: false, type: "", caption: "" };
-    const match = body.match(/^📎 \[(Imagen|Video|Audio|Archivo)\](?::\s*(.*))?$/s);
+    const match = body.match(/^📎 \[(Imagen|Video|Audio|Archivo)\](?::\s*([\s\S]*))?$/);
     if (match) {
       return {
         isMedia: true,

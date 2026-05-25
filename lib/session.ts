@@ -35,11 +35,27 @@ export async function decrypt(session: string | undefined = '') {
 
 export async function createSession(userId: string, tenantId: string | null, role: string) {
   const sessionId = crypto.randomUUID();
+  
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { currentSessionId: true }
+  });
+
+  let activeSessions: string[] = [];
+  if (user?.currentSessionId) {
+    activeSessions = user.currentSessionId.split(',').filter(Boolean);
+  }
+  
+  activeSessions.push(sessionId);
+  if (activeSessions.length > 2) {
+    activeSessions = activeSessions.slice(-2);
+  }
+
   await prisma.user.update({
     where: { id: userId },
-    data: { currentSessionId: sessionId }
+    data: { currentSessionId: activeSessions.join(',') }
   });
-  revalidateTag(`user-${userId}`);
+  revalidateTag(`user-${userId}`, 'max');
 
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const session = await encrypt({ userId, tenantId, role, expiresAt, sessionId });
@@ -76,5 +92,26 @@ export async function updateSession() {
 
 export async function deleteSession() {
   const cookieStore = await cookies();
+  const session = cookieStore.get('session')?.value;
+  if (session) {
+    const payload = await decrypt(session);
+    if (payload && payload.userId && payload.sessionId) {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: payload.userId },
+          select: { currentSessionId: true }
+        });
+        if (user?.currentSessionId) {
+          const sessions = user.currentSessionId.split(',').filter(s => s !== payload.sessionId && s !== '');
+          await prisma.user.update({
+            where: { id: payload.userId },
+            data: { currentSessionId: sessions.length > 0 ? sessions.join(',') : null }
+          });
+        }
+      } catch (err) {
+        console.error('Failed to remove sessionId on logout:', err);
+      }
+    }
+  }
   cookieStore.delete('session');
 }
