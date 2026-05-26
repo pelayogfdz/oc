@@ -95,6 +95,7 @@ export const navStructure: MenuNode[] = [
     requiredPermission: ['logistica_access'],
     items: [
       { name: 'Entregas y Rutas', path: '/logistica', badge: 'Nuevo' },
+      { name: 'Mi Ruta (Chofer)', path: '/logistica/chofer' },
     ]
   },
   { 

@@ -82,9 +82,9 @@ export async function POST(request: Request) {
       });
     }
 
-    // Wait and poll database for status changes (up to 30 seconds for deep history sync)
+    // Wait and poll database for status changes (up to 3 seconds)
     let attempts = 0;
-    const maxAttempts = 30;
+    const maxAttempts = 3;
     while (syncRequest && syncRequest.status === "PENDING" && attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 1000));
       syncRequest = await prisma.whatsAppSyncRequest.findUnique({
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     }
 
     if (!syncRequest || syncRequest.status === "PENDING") {
-      return NextResponse.json({ error: "Sincronización timed out. El microservicio está procesando el historial en segundo plano." }, { status: 504 });
+      return NextResponse.json({ success: true, message: "Sincronización profunda iniciada con éxito en segundo plano." });
     }
 
     if (syncRequest.status === "FAILED") {

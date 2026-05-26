@@ -263,14 +263,37 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
     
     try {
       const parsed = user.permissions ? JSON.parse(user.permissions) : {};
-      // Compatibility fallback: Convert array to Record<string, boolean> if it was saved as array.
+      const obj: Record<string, boolean> = {};
+      
       if (Array.isArray(parsed)) {
-        const obj: any = {};
-        parsed.forEach(k => obj[k] = true);
-        setPerms(obj);
+        parsed.forEach(k => {
+          obj[k] = true;
+        });
       } else {
-        setPerms(parsed);
+        Object.keys(parsed).forEach(k => {
+          if (parsed[k]) obj[k] = true;
+        });
       }
+
+      // Retrocompatibility auto-activation:
+      // If a user has any active child permission in a module/submodule,
+      // make sure that module and submodule are checked as visible/active.
+      dynamicModules.forEach(mod => {
+        let modActive = obj[mod.id] || false;
+        mod.submodules?.forEach((sm: any) => {
+          let smActive = obj[sm.id] || false;
+          sm.permissions?.forEach((p: any) => {
+            if (obj[p.id]) {
+              smActive = true;
+              modActive = true;
+            }
+          });
+          if (smActive) obj[sm.id] = true;
+        });
+        if (modActive) obj[mod.id] = true;
+      });
+
+      setPerms(obj);
     } catch {
       setPerms({});
     }
@@ -375,19 +398,23 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
   const getFlatPermissionsToSave = () => {
     const finalSet = new Set<string>();
     dynamicModules.forEach(mod => {
-      let modActive = false;
-      mod.submodules?.forEach((sm: any) => {
-        let smActive = false;
-        sm.permissions?.forEach((p: any) => {
-          if (perms[p.id]) {
-            finalSet.add(p.id);
-            smActive = true;
-            modActive = true;
+      // Modulo visible/activo
+      if (perms[mod.id]) {
+        finalSet.add(mod.id);
+        
+        mod.submodules?.forEach((sm: any) => {
+          // Submodulo visible/activo
+          if (perms[sm.id]) {
+            finalSet.add(sm.id);
+            
+            sm.permissions?.forEach((p: any) => {
+              if (perms[p.id]) {
+                finalSet.add(p.id);
+              }
+            });
           }
         });
-        if (smActive) finalSet.add(sm.id);
-      });
-      if (modActive) finalSet.add(mod.id);
+      }
     });
     return Array.from(finalSet);
   };
@@ -573,95 +600,222 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                 </div>
                 
                 <div style={{ flex: 1, padding: '1.5rem' }}>
-                  {dynamicModules.map(mod => (
-                    <div key={mod.id} style={{ display: activeTab === mod.id ? 'block' : 'none' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.75rem' }}>
-                        <h5 style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>{mod.name}</h5>
-                        <button type="button" onClick={() => handleSelectAll(mod.id)} style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-                          ✔️ Alternar Todos en Módulo
-                        </button>
-                      </div>
-                      
-                      {mod.submodules?.map((submod, index) => (
-                        <div key={submod.id} style={{ marginBottom: '2rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', backgroundColor: '#f8fafc', padding: '0.5rem 1rem', borderRadius: '6px' }}>
-                            <h6 style={{ fontWeight: 'bold', fontSize: '1rem', color: '#334155' }}>{submod.name}</h6>
-                            <button type="button" onClick={() => handleSelectSubmodule(submod)} style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem', backgroundColor: 'transparent', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>
-                              Alternar Submódulo
-                            </button>
-                          </div>
-                          
-                          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '1rem', paddingLeft: '1rem' }}>
-                            {submod.permissions.map((p: any) => (
-                              <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.5rem', borderRadius: '6px', backgroundColor: perms[p.id] ? '#f0fdf4' : 'transparent', border: perms[p.id] ? '1px solid #bbf7d0' : '1px transparent solid', transition: 'all 0.2s' }}>
-                                <input 
-                                  type="checkbox" 
-                                  checked={perms[p.id] || false}
-                                  onChange={(e) => handlePermissionChange(p.id, e.target.checked)}
-                                  style={{ width: '1.25rem', height: '1.25rem', cursor: 'pointer', accentColor: 'var(--pulpos-primary)' }}
-                                />
-                                <span style={{ fontSize: '0.9rem', fontWeight: perms[p.id] ? 'bold' : 'normal' }}>{p.label}</span>
-                              </label>
-                            ))}
-                          </div>
+                  {dynamicModules.map(mod => {
+                    const isModActive = perms[mod.id] || false;
+                    return (
+                      <div key={mod.id} style={{ display: activeTab === mod.id ? 'block' : 'none' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.75rem' }}>
+                          <h5 style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>{mod.name}</h5>
+                          <button 
+                            type="button" 
+                            onClick={() => handleSelectAll(mod.id)} 
+                            disabled={!isModActive}
+                            style={{ 
+                              padding: '0.35rem 0.75rem', 
+                              fontSize: '0.8rem', 
+                              backgroundColor: '#f1f5f9', 
+                              border: '1px solid #cbd5e1', 
+                              borderRadius: '4px', 
+                              cursor: !isModActive ? 'not-allowed' : 'pointer', 
+                              fontWeight: 'bold',
+                              opacity: !isModActive ? 0.5 : 1
+                            }}
+                          >
+                            ✔️ Alternar Todos en Módulo
+                          </button>
                         </div>
-                      ))}
-                      
-                      {mod.id === 'branches' && (
-                        <>
-                          <div style={{ padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)', marginTop: '2rem' }}>
-                            <h5 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--pulpos-primary)' }}>Coordenadas Excepcionales (Home Office / Fuera de Oficina)</h5>
-                            <p style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', marginBottom: '1rem' }}>
-                              Si el empleado hace Home Office, define aquí sus coordenadas. Esto ignorará las coordenadas de la sucursal al validar el GPS.
-                            </p>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                              <div>
-                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Latitud</label>
-                                <input type="number" step="any" name="homeLat" defaultValue={editingUser?.homeLat || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
-                              </div>
-                              <div>
-                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Longitud</label>
-                                <input type="number" step="any" name="homeLng" defaultValue={editingUser?.homeLng || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
-                              </div>
-                              <div>
-                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Radio (mts)</label>
-                                <input type="number" step="any" name="homeRadius" defaultValue={editingUser?.homeRadius || ''} placeholder="50" style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
-                              </div>
-                            </div>
+
+                        {/* Banner de Visibilidad del Módulo */}
+                        <div style={{ 
+                          padding: '1rem 1.25rem', 
+                          backgroundColor: isModActive ? '#eff6ff' : '#f1f5f9', 
+                          border: isModActive ? '1px solid #bfdbfe' : '1px solid #e2e8f0', 
+                          borderRadius: '8px', 
+                          marginBottom: '1.5rem',
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between',
+                          boxShadow: isModActive ? '0 2px 4px rgba(59, 130, 246, 0.05)' : 'none',
+                          transition: 'all 0.2s ease-in-out'
+                        }}>
+                          <div>
+                            <span style={{ fontSize: '0.95rem', fontWeight: 'bold', display: 'block', color: isModActive ? '#1e40af' : '#475569' }}>
+                              👁️ Módulo Visible / Activo
+                            </span>
+                            <span style={{ fontSize: '0.8rem', color: isModActive ? '#2563eb' : '#64748b' }}>
+                              {isModActive ? 'El usuario puede ver y acceder a esta sección.' : 'El módulo está completamente oculto y desactivado.'}
+                            </span>
                           </div>
-                          
-                          <div style={{ padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)', marginTop: '1rem' }}>
-                            <h5 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--pulpos-primary)' }}>Ubicaciones GPS Permitidas</h5>
-                            <p style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', marginBottom: '1rem' }}>
-                              Selecciona las ubicaciones adicionales donde este empleado tiene permitido registrar asistencia.
-                            </p>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
-                              {hrLocations?.map((loc: any) => (
-                                <label key={loc.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem', borderRadius: '4px', border: '1px solid #e2e8f0', backgroundColor: 'white' }}>
-                                  <input 
-                                    type="checkbox" 
-                                    checked={selectedHrLocations.includes(loc.id)}
-                                    onChange={(e) => {
-                                      if (e.target.checked) {
-                                        setSelectedHrLocations([...selectedHrLocations, loc.id]);
-                                      } else {
-                                        setSelectedHrLocations(selectedHrLocations.filter(id => id !== loc.id));
-                                      }
+                          <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                            <input 
+                              type="checkbox"
+                              checked={isModActive}
+                              onChange={(e) => handlePermissionChange(mod.id, e.target.checked)}
+                              style={{ width: '1.5rem', height: '1.5rem', cursor: 'pointer', accentColor: '#2563eb' }}
+                            />
+                          </label>
+                        </div>
+                        
+                        {mod.submodules?.map((submod, index) => {
+                          const isSubmodActive = perms[submod.id] || false;
+                          return (
+                            <div 
+                              key={submod.id} 
+                              style={{ 
+                                marginBottom: '2rem',
+                                opacity: isModActive ? 1 : 0.5,
+                                pointerEvents: isModActive ? 'auto' : 'none',
+                                transition: 'opacity 0.2s'
+                              }}
+                            >
+                              <div style={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                alignItems: 'center', 
+                                marginBottom: '1rem', 
+                                backgroundColor: (isModActive && isSubmodActive) ? '#f0fdf4' : '#f8fafc', 
+                                padding: '0.5rem 1rem', 
+                                borderRadius: '6px',
+                                border: (isModActive && isSubmodActive) ? '1px solid #bbf7d0' : '1px solid #cbd5e1',
+                                transition: 'all 0.2s'
+                              }}>
+                                <h6 style={{ fontWeight: 'bold', fontSize: '1rem', color: (isModActive && isSubmodActive) ? '#166534' : '#334155' }}>
+                                  {submod.name}
+                                </h6>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}>
+                                    <input 
+                                      type="checkbox"
+                                      checked={isSubmodActive}
+                                      disabled={!isModActive}
+                                      onChange={(e) => handlePermissionChange(submod.id, e.target.checked)}
+                                      style={{ width: '1.1rem', height: '1.1rem', cursor: 'pointer', accentColor: '#16a34a' }}
+                                    />
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: (isModActive && isSubmodActive) ? '#166534' : '#64748b' }}>
+                                      👁️ Submódulo Visible
+                                    </span>
+                                  </label>
+                                  <button 
+                                    type="button" 
+                                    onClick={() => handleSelectSubmodule(submod)} 
+                                    disabled={!isModActive || !isSubmodActive}
+                                    style={{ 
+                                      padding: '0.2rem 0.5rem', 
+                                      fontSize: '0.7rem', 
+                                      backgroundColor: 'transparent', 
+                                      border: '1px solid #cbd5e1', 
+                                      borderRadius: '4px', 
+                                      cursor: (!isModActive || !isSubmodActive) ? 'not-allowed' : 'pointer',
+                                      opacity: (!isModActive || !isSubmodActive) ? 0.5 : 1
                                     }}
-                                    style={{ width: '1rem', height: '1rem', accentColor: 'var(--pulpos-primary)' }}
-                                  />
-                                  <span style={{ fontSize: '0.875rem' }}>{loc.name}</span>
-                                </label>
-                              ))}
-                              {hrLocations?.length === 0 && (
-                                <p style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>No hay ubicaciones registradas.</p>
-                              )}
+                                  >
+                                    Alternar Todo
+                                  </button>
+                                </div>
+                              </div>
+                              
+                              <div style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', 
+                                gap: '1rem', 
+                                paddingLeft: '1rem',
+                                opacity: (isModActive && isSubmodActive) ? 1 : 0.5,
+                                pointerEvents: (isModActive && isSubmodActive) ? 'auto' : 'none',
+                                transition: 'opacity 0.2s'
+                              }}>
+                                {submod.permissions.map((p: any) => (
+                                  <label 
+                                    key={p.id} 
+                                    style={{ 
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      gap: '0.75rem', 
+                                      cursor: 'pointer', 
+                                      padding: '0.5rem', 
+                                      borderRadius: '6px', 
+                                      backgroundColor: (isModActive && isSubmodActive && perms[p.id]) ? '#f0fdf4' : 'transparent', 
+                                      border: (isModActive && isSubmodActive && perms[p.id]) ? '1px solid #bbf7d0' : '1px transparent solid', 
+                                      transition: 'all 0.2s' 
+                                    }}
+                                  >
+                                    <input 
+                                      type="checkbox" 
+                                      checked={perms[p.id] || false}
+                                      disabled={!isModActive || !isSubmodActive}
+                                      onChange={(e) => handlePermissionChange(p.id, e.target.checked)}
+                                      style={{ width: '1.25rem', height: '1.25rem', cursor: 'pointer', accentColor: 'var(--pulpos-primary)' }}
+                                    />
+                                    <span style={{ fontSize: '0.9rem', fontWeight: (isModActive && isSubmodActive && perms[p.id]) ? 'bold' : 'normal' }}>
+                                      {p.label}
+                                    </span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        
+                        {mod.id === 'branches' && (
+                          <div style={{ 
+                            opacity: isModActive ? 1 : 0.5, 
+                            pointerEvents: isModActive ? 'auto' : 'none', 
+                            transition: 'opacity 0.2s' 
+                          }}>
+                            <div style={{ padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)', marginTop: '2rem' }}>
+                              <h5 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--pulpos-primary)' }}>Coordenadas Excepcionales (Home Office / Fuera de Oficina)</h5>
+                              <p style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', marginBottom: '1rem' }}>
+                                Si el empleado hace Home Office, define aquí sus coordenadas. Esto ignorará las coordenadas de la sucursal al validar el GPS.
+                              </p>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                                <div>
+                                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Latitud</label>
+                                  <input type="number" step="any" name="homeLat" disabled={!isModActive} defaultValue={editingUser?.homeLat || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: isModActive ? 'white' : '#f1f5f9' }} />
+                                </div>
+                                <div>
+                                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Longitud</label>
+                                  <input type="number" step="any" name="homeLng" disabled={!isModActive} defaultValue={editingUser?.homeLng || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: isModActive ? 'white' : '#f1f5f9' }} />
+                                </div>
+                                <div>
+                                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Radio (mts)</label>
+                                  <input type="number" step="any" name="homeRadius" disabled={!isModActive} defaultValue={editingUser?.homeRadius || ''} placeholder="50" style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: isModActive ? 'white' : '#f1f5f9' }} />
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div style={{ padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)', marginTop: '1rem' }}>
+                              <h5 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--pulpos-primary)' }}>Ubicaciones GPS Permitidas</h5>
+                              <p style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', marginBottom: '1rem' }}>
+                                Selecciona las ubicaciones adicionales donde este empleado tiene permitido registrar asistencia.
+                              </p>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
+                                {hrLocations?.map((loc: any) => (
+                                  <label key={loc.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem', borderRadius: '4px', border: '1px solid #e2e8f0', backgroundColor: 'white' }}>
+                                    <input 
+                                      type="checkbox" 
+                                      checked={selectedHrLocations.includes(loc.id)}
+                                      disabled={!isModActive}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setSelectedHrLocations([...selectedHrLocations, loc.id]);
+                                        } else {
+                                          setSelectedHrLocations(selectedHrLocations.filter(id => id !== loc.id));
+                                        }
+                                      }}
+                                      style={{ width: '1rem', height: '1rem', accentColor: 'var(--pulpos-primary)' }}
+                                    />
+                                    <span style={{ fontSize: '0.875rem' }}>{loc.name}</span>
+                                  </label>
+                                ))}
+                                {hrLocations?.length === 0 && (
+                                  <p style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>No hay ubicaciones registradas.</p>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </>
-                      )}
-                    </div>
-                  ))}
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

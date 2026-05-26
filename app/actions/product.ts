@@ -24,6 +24,8 @@ export async function createProduct(prevState: any, formData: FormData) {
   const unit = formData.get('unit') as string || 'Pza';
   const satKey = (formData.get('satKey') as string) || null;
   const satUnit = (formData.get('satUnit') as string) || null;
+  const expirationDateStr = formData.get('expirationDate') as string;
+  const expirationDate = expirationDateStr ? new Date(expirationDateStr) : null;
   
   const hasVariants = formData.get('hasVariants') === '1';
   let variants: any[] = [];
@@ -35,9 +37,21 @@ export async function createProduct(prevState: any, formData: FormData) {
     console.error("Failed to parse variants", e);
   }
 
+  const hasBatches = formData.get('hasBatches') === '1';
+  let batches: any[] = [];
+  try {
+    if (hasBatches) {
+      batches = JSON.parse(formData.get('batchesJson') as string);
+    }
+  } catch (e) {
+    console.error("Failed to parse batches", e);
+  }
+
   let stock = 0;
   if (hasVariants) {
     stock = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+  } else if (hasBatches) {
+    stock = batches.reduce((sum, b) => sum + (Number(b.stock) || 0), 0);
   } else {
     stock = parseInt(formData.get('stock') as string, 10) || 0;
   }
@@ -68,7 +82,8 @@ export async function createProduct(prevState: any, formData: FormData) {
       minStock,
       supplierId,
       satKey,
-      satUnit
+      satUnit,
+      expirationDate
     }
   });
 
@@ -87,7 +102,35 @@ export async function createProduct(prevState: any, formData: FormData) {
     }
   }
 
-  if (stock > 0) {
+  if (hasBatches && batches.length > 0) {
+    for (const b of batches) {
+      if (b.batchNumber && b.expirationDate) {
+        const batch = await prisma.productBatch.create({
+          data: {
+            productId: product.id,
+            batchNumber: b.batchNumber,
+            expirationDate: new Date(b.expirationDate),
+            stock: Number(b.stock) || 0,
+            cost: cost
+          }
+        });
+        
+        if (batch.stock > 0) {
+          await prisma.inventoryMovement.create({
+            data: {
+              productId: product.id,
+              batchId: batch.id,
+              type: 'IN',
+              quantity: batch.stock,
+              reason: 'Stock Inicial (Lote)',
+            }
+          });
+        }
+      }
+    }
+  }
+
+  if (stock > 0 && !hasBatches) {
     await prisma.inventoryMovement.create({
       data: {
         productId: product.id,
@@ -152,6 +195,8 @@ export async function updateProduct(productId: string, formData: FormData) {
   const satUnit = (formData.get('satUnit') as string) || null;
   const minStock = parseInt(formData.get('minStock') as string, 10) || 0;
   const supplierId = (formData.get('supplierId') as string) || null;
+  const expirationDateStr = formData.get('expirationDate') as string;
+  const expirationDate = expirationDateStr ? new Date(expirationDateStr) : null;
 
   if (!sku || !name || !branchId) return;
 
@@ -174,7 +219,8 @@ export async function updateProduct(productId: string, formData: FormData) {
       minStock,
       supplierId,
       satKey,
-      satUnit
+      satUnit,
+      expirationDate
     }
   });
 

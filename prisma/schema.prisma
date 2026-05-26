@@ -259,6 +259,7 @@ model Product {
   unit                String               @default("Pza")
   stock               Int                  @default(0)
   minStock            Int                  @default(0)
+  expirationDate      DateTime?
   branchId            String
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
@@ -802,6 +803,7 @@ model DeliveryOrder {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   clientSignature String?
+  routeOrder      Int       @default(0)
   driver          User?     @relation("DriverOrders", fields: [driverId], references: [id])
   sale            Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)
 

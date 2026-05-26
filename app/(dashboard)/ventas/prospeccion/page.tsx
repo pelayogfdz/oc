@@ -13,16 +13,22 @@ export default async function ProspeccionPage() {
 
   if (!user.isSuperAdmin && user.commissionRole !== 'COORDINADOR') {
     if (user.commissionRole === 'LIDER') {
-      // Gerente/Líder ve los suyos y los de sus subordinados
+      // Gerente/Líder ve los suyos, los de sus subordinados y los no asignados
       const subordinates = await prisma.user.findMany({
         where: { managerId: user.id },
         select: { id: true }
       });
       const validUserIds = [user.id, ...subordinates.map(s => s.id)];
-      whereClause.assignedUserId = { in: validUserIds };
+      whereClause.OR = [
+        { assignedUserId: { in: validUserIds } },
+        { assignedUserId: null }
+      ];
     } else {
-      // Vendedor normal solo ve los suyos
-      whereClause.assignedUserId = user.id;
+      // Vendedor normal ve los suyos y los no asignados (conversaciones nuevas de WhatsApp)
+      whereClause.OR = [
+        { assignedUserId: user.id },
+        { assignedUserId: null }
+      ];
     }
   }
 

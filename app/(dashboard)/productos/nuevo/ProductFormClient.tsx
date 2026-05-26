@@ -17,6 +17,8 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
   const [state, formAction] = useFormState(createProduct, initialState);
   const [hasVariants, setHasVariants] = useState(false);
   const [variants, setVariants] = useState<{ attribute: string, stock: number, sku: string }[]>([]);
+  const [hasBatches, setHasBatches] = useState(false);
+  const [batches, setBatches] = useState<{ batchNumber: string, expirationDate: string, stock: number }[]>([]);
   
   // States for margin calculation
   const [cost, setCost] = useState<number>(() => parseFloat(cloneProduct?.cost || "0"));
@@ -91,6 +93,20 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
     setVariants(newVariants);
   };
 
+  const handleAddBatch = () => {
+    setBatches([...batches, { batchNumber: '', expirationDate: '', stock: 0 }]);
+  };
+
+  const handleRemoveBatch = (index: number) => {
+    setBatches(batches.filter((_, i) => i !== index));
+  };
+
+  const handleBatchChange = (index: number, field: string, value: string | number) => {
+    const newBatches = [...batches];
+    (newBatches[index] as any)[field] = value;
+    setBatches(newBatches);
+  };
+
   return (
     <form action={formAction} onSubmit={(e) => {
       if (!isOnline) {
@@ -111,6 +127,8 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
       <input type="hidden" name="branchId" value={branchId} />
       <input type="hidden" name="variantsJson" value={JSON.stringify(variants)} />
       <input type="hidden" name="hasVariants" value={hasVariants ? "1" : "0"} />
+      <input type="hidden" name="batchesJson" value={JSON.stringify(batches)} />
+      <input type="hidden" name="hasBatches" value={hasBatches ? "1" : "0"} />
       
       {/* Imagen */}
       <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem', display: 'flex', gap: '2rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -285,8 +303,55 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
         )}
       </div>
 
+      {/* Lotes Selector */}
+      <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>
+          <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Gestión de Lotes (Opcional)</h2>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+            <input type="checkbox" checked={hasBatches} onChange={(e) => { setHasBatches(e.target.checked); if(e.target.checked && batches.length === 0) handleAddBatch(); }} style={{ width: '20px', height: '20px' }} />
+            <span style={{ fontWeight: '500' }}>El producto usa lotes y caducidad</span>
+          </label>
+        </div>
+
+        {hasBatches && (
+          <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+            <table className="responsive-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', marginBottom: '1rem' }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>Número de Lote</th>
+                  <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>Fecha de Caducidad</th>
+                  <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>Stock Inicial del Lote</th>
+                  <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1', width: '50px' }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {batches.map((b, index) => (
+                  <tr key={index}>
+                    <td style={{ padding: '0.5rem' }}>
+                      <input type="text" value={b.batchNumber} onChange={e => handleBatchChange(index, 'batchNumber', e.target.value)} placeholder="Ej. LOTE-001" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                    </td>
+                    <td style={{ padding: '0.5rem' }}>
+                      <input type="date" value={b.expirationDate} onChange={e => handleBatchChange(index, 'expirationDate', e.target.value)} required style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                    </td>
+                    <td style={{ padding: '0.5rem' }}>
+                      <input type="number" value={b.stock} onChange={e => handleBatchChange(index, 'stock', Number(e.target.value))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                    </td>
+                    <td style={{ padding: '0.5rem', textAlign: 'center' }}>
+                      <button type="button" onClick={() => handleRemoveBatch(index)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={20}/></button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button type="button" onClick={handleAddBatch} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: 'white', border: '1px dashed #94a3b8', borderRadius: '4px', fontWeight: '500', cursor: 'pointer', color: '#475569' }}>
+               <Plus size={16} /> Añadir Lote
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Inventario Físico (Solo si NO hay variantes, ya que las variantes tienen su propio stock) */}
-      {!hasVariants && (
+      {(!hasVariants && !hasBatches) && (
         <div className="card" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
           <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>Inventario Físico Global</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1.5rem' }}>
@@ -322,6 +387,10 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
                 <option value="true">🟢 Activo</option>
                 <option value="false">🔴 Inactivo</option>
               </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Fecha de Caducidad</label>
+              <input type="date" name="expirationDate" defaultValue={cloneProduct?.expirationDate ? new Date(cloneProduct.expirationDate).toISOString().slice(0, 10) : ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
             </div>
           </div>
         </div>

@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { Filter, MapPin, ArrowDownUp, Search, MoreVertical, Camera } from 'lucide-react';
+import { Filter, MapPin, ArrowDownUp, Search, MoreVertical, Camera, Plus } from 'lucide-react';
 import { searchProducts, deleteProduct } from '@/app/actions/product';
 import ProductTableUI from '@/app/components/ProductTableUI';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
+import ImportButton from './ImportButton';
+import ExportButton from './ExportButton';
 
 export default function ProductListClient({ initialProducts, branchId }: { initialProducts: any[], branchId: string }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -102,6 +104,17 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
 
   return (
     <div style={{ fontFamily: 'var(--font-geist-sans)' }}>
+      {/* Header section identical to Pulpos */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>Productos e Inventario</h1>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <ImportButton />
+          <ExportButton selectedIds={selectedIds} />
+          <Link href="/productos/nuevo" className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.5rem 1.5rem' }}>
+            <Plus size={18} /> Nuevo Producto
+          </Link>
+        </div>
+      </div>
       {showScanner && (
         <BarcodeScannerModal 
           onScan={(decodedText) => {

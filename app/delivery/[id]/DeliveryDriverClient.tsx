@@ -75,7 +75,24 @@ export default function DeliveryDriverClient({ initialOrder }: { initialOrder: a
           <CheckCircle2 size={40} color="#16a34a" />
         </div>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#16a34a' }}>¡Pedido Entregado!</h1>
-        <p style={{ color: '#475569', marginTop: '0.5rem' }}>Esta entrega ya fue registrada exitosamente.</p>
+        <p style={{ color: '#475569', marginTop: '0.5rem', marginBottom: '2rem' }}>Esta entrega ya fue registrada exitosamente.</p>
+        <a 
+          href="/logistica/chofer" 
+          style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            padding: '0.75rem 1.5rem', 
+            borderRadius: '8px', 
+            textDecoration: 'none', 
+            fontWeight: 'bold', 
+            backgroundColor: '#3b82f6', 
+            color: 'white',
+            boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)'
+          }}
+        >
+          Volver a mi Ruta
+        </a>
       </div>
     );
   }

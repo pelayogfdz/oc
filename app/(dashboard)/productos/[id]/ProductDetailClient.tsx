@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { adjustInventory } from '@/app/actions/inventory';
 import { createVariant, deleteVariant } from '@/app/actions/variant';
+import { createBatch, deleteBatch } from '@/app/actions/batch';
 import { Truck } from 'lucide-react';
 
 // ProductDetailClient handles the tab navigation state
@@ -11,6 +12,7 @@ export function ProductDetailClient({
   movements, 
   sales,
   variants,
+  batches,
   siblingProducts,
   mediaContent,
   children
@@ -19,6 +21,7 @@ export function ProductDetailClient({
   movements: any[], 
   sales: any[],
   variants?: any[],
+  batches?: any[],
   siblingProducts?: any[],
   mediaContent?: React.ReactNode,
   children: React.ReactNode
@@ -134,6 +137,21 @@ export function ProductDetailClient({
           }}
         >
           Existencias por Sucursal
+        </button>
+        <button 
+          onClick={() => setActiveTab('batches')}
+          style={{ 
+            padding: '0.75rem 0', 
+            background: 'none', 
+            border: 'none', 
+            borderBottom: activeTab === 'batches' ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
+            color: activeTab === 'batches' ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
+            fontWeight: activeTab === 'batches' ? 'bold' : 'normal',
+            cursor: 'pointer',
+            fontSize: '1rem'
+          }}
+        >
+          Lotes y Caducidades
         </button>
       </div>
 
@@ -292,6 +310,53 @@ export function ProductDetailClient({
                {!variants || variants.length === 0 && (
                  <tr>
                    <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>No hay variantes registradas.</td>
+                 </tr>
+               )}
+             </tbody>
+          </table>
+        </div>
+      )}
+
+      {activeTab === 'batches' && (
+        <div className="card" style={{ padding: '2rem' }}>
+          <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', fontWeight: 'bold' }}>Lotes y Caducidades</h2>
+          <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '2rem', fontSize: '0.875rem' }}>Administra los lotes y sus fechas de caducidad para este producto.</p>
+          
+          <form action={createBatch} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+             <input type="hidden" name="productId" value={product.id} />
+             <input type="text" name="batchNumber" placeholder="Ej. LOTE-001" required style={{ flex: 1, minWidth: '150px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+             <input type="date" name="expirationDate" required style={{ width: '200px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+             <input type="number" name="stock" placeholder="Stock Inicial" min="0" style={{ width: '120px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+             <button type="submit" className="btn-primary" style={{ padding: '0 2rem' }}>+ Agregar Lote</button>
+          </form>
+
+          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+             <thead>
+               <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid var(--pulpos-border)' }}>
+                 <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>Lote</th>
+                 <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>Caducidad</th>
+                 <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', textAlign: 'right' }}>Stock Actual</th>
+                 <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', textAlign: 'center' }}>Acciones</th>
+               </tr>
+             </thead>
+             <tbody>
+               {batches?.map(b => (
+                 <tr key={b.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                   <td data-label="Lote" style={{ padding: '1rem', fontWeight: 'bold' }}>{b.batchNumber}</td>
+                   <td data-label="Caducidad" style={{ padding: '1rem' }}>{b.expirationDate ? new Date(b.expirationDate).toLocaleDateString() : '-'}</td>
+                   <td data-label="Stock Actual" style={{ padding: '1rem', textAlign: 'right' }}>{b.stock}</td>
+                   <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }}>
+                     <form action={deleteBatch} style={{ display: 'inline' }}>
+                        <input type="hidden" name="batchId" value={b.id} />
+                        <input type="hidden" name="productId" value={product.id} />
+                        <button type="submit" style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar</button>
+                     </form>
+                   </td>
+                 </tr>
+               ))}
+               {!batches || batches.length === 0 && (
+                 <tr>
+                   <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>No hay lotes registrados.</td>
                  </tr>
                )}
              </tbody>
