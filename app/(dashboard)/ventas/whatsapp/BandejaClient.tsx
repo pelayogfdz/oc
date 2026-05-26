@@ -1090,7 +1090,7 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
                   <span>{prospect.phone}</span>
                   {lastMessage && (
                     <span style={{ fontSize: '0.75rem' }}>
-                      {new Date(lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(lastMessage.timestamp).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </span>
                   )}
                 </div>
