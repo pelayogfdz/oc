@@ -1048,6 +1048,175 @@ app.post('/api/heal', async (req, res) => {
     }
 });
 
+// Polling function to process pending media requests
+let isMediaPolling = false;
+
+setInterval(async () => {
+    if (isMediaPolling) return;
+
+    try {
+        isMediaPolling = true;
+
+        const pendingRequests = await prisma.whatsAppMediaRequest.findMany({
+            where: { status: 'PENDING' }
+        });
+
+        for (const req of pendingRequests) {
+            console.log(`[MEDIA POLL] Processing media request for message ${req.messageId}`);
+            try {
+                // Find the message in DB to get prospect
+                const dbMsg = await prisma.whatsAppMessage.findFirst({
+                    where: {
+                        OR: [
+                            { messageId: req.messageId },
+                            { id: req.messageId }
+                        ]
+                    }
+                });
+
+                if (!dbMsg) {
+                    console.error(`[MEDIA POLL] Message ${req.messageId} not found in DB`);
+                    await prisma.whatsAppMediaRequest.update({
+                        where: { id: req.id },
+                        data: { status: 'FAILED' }
+                    });
+                    continue;
+                }
+
+                const activeMessageId = dbMsg.messageId || req.messageId;
+
+                const prospect = await prisma.prospect.findUnique({
+                    where: { id: dbMsg.prospectId }
+                });
+
+                if (!prospect || !prospect.branchId) {
+                    console.error(`[MEDIA POLL] Prospect not found or has no branch for message ${req.messageId}`);
+                    await prisma.whatsAppMediaRequest.update({
+                        where: { id: req.id },
+                        data: { status: 'FAILED' }
+                    });
+                    continue;
+                }
+
+                const branchId = prospect.branchId;
+                let client = clients.get(branchId);
+
+                // Fallback check: find any connected sibling client under the same tenant
+                if (!client || !client.info) {
+                    const branch = await prisma.branch.findUnique({
+                        where: { id: branchId },
+                        select: { tenantId: true }
+                    });
+                    if (branch && branch.tenantId) {
+                        const tenantBranches = await prisma.branch.findMany({
+                            where: { tenantId: branch.tenantId, isActive: true },
+                            select: { id: true }
+                        });
+                        for (const tb of tenantBranches) {
+                            const alternateClient = clients.get(tb.id);
+                            if (alternateClient && alternateClient.info) {
+                                client = alternateClient;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!client || !client.info) {
+                    console.error(`[MEDIA POLL] No active WhatsApp client found for branch/tenant ${branchId}`);
+                    await prisma.whatsAppMediaRequest.update({
+                        where: { id: req.id },
+                        data: { status: 'FAILED' }
+                    });
+                    continue;
+                }
+
+                let phone = prospect.phone;
+                if (!phone) {
+                    console.error(`[MEDIA POLL] Prospect has no phone for message ${req.messageId}`);
+                    await prisma.whatsAppMediaRequest.update({
+                        where: { id: req.id },
+                        data: { status: 'FAILED' }
+                    });
+                    continue;
+                }
+
+                if (phone.startsWith('52') && phone.length === 12) {
+                    phone = '521' + phone.substring(2);
+                }
+
+                let chatId = prospect.whatsappId ? (prospect.whatsappId.includes('@') ? prospect.whatsappId : (prospect.whatsappId.length > 13 ? `${prospect.whatsappId}@lid` : `${prospect.whatsappId}@c.us`)) : `${phone}@c.us`;
+
+                console.log(`[MEDIA POLL] Fetching chat ${chatId} using client info: ${client.info.wid.user}`);
+                const chat = await client.getChatById(chatId);
+                if (!chat) {
+                    console.error(`[MEDIA POLL] Chat not found for message ${req.messageId}`);
+                    await prisma.whatsAppMediaRequest.update({
+                        where: { id: req.id },
+                        data: { status: 'FAILED' }
+                    });
+                    continue;
+                }
+
+                const messages = await chat.fetchMessages({ limit: 100 });
+                let msg = messages.find(m => m.id._serialized === activeMessageId);
+
+                if (!msg) {
+                    console.log(`[MEDIA POLL] Message not found in last 100, trying client.getMessageById`);
+                    try {
+                        msg = await client.getMessageById(activeMessageId);
+                    } catch (err) {
+                        console.warn('[MEDIA POLL] client.getMessageById failed:', err.message);
+                    }
+                }
+
+                if (!msg || !msg.hasMedia) {
+                    console.error(`[MEDIA POLL] Message not found on WA or has no media`);
+                    await prisma.whatsAppMediaRequest.update({
+                        where: { id: req.id },
+                        data: { status: 'FAILED' }
+                    });
+                    continue;
+                }
+
+                const media = await msg.downloadMedia();
+                if (!media) {
+                    console.error(`[MEDIA POLL] Failed downloadMedia() from WA CDN`);
+                    await prisma.whatsAppMediaRequest.update({
+                        where: { id: req.id },
+                        data: { status: 'FAILED' }
+                    });
+                    continue;
+                }
+
+                // Update the media request to COMPLETED with base64 data!
+                await prisma.whatsAppMediaRequest.update({
+                    where: { id: req.id },
+                    data: {
+                        status: 'COMPLETED',
+                        mimetype: media.mimetype,
+                        filename: media.filename || 'archivo',
+                        data: media.data
+                    }
+                });
+                console.log(`[MEDIA POLL] Successfully completed media request for message ${req.messageId}`);
+
+            } catch (err) {
+                console.error(`[MEDIA POLL] Error processing media request ${req.messageId}:`, err);
+                await prisma.whatsAppMediaRequest.update({
+                    where: { id: req.id },
+                    data: { status: 'FAILED' }
+                }).catch(() => {});
+            }
+        }
+
+    } catch (err) {
+        console.error("[MEDIA POLL] Error in pollMediaRequests:", err);
+    } finally {
+        isMediaPolling = false;
+    }
+}, 2000);
+
 // Polling function to send pending messages
 let isPolling = false;
 

@@ -868,6 +868,17 @@ model WhatsAppMessage {
   prospect   Prospect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
 }
 
+model WhatsAppMediaRequest {
+  id        String   @id @default(uuid())
+  messageId String   @unique
+  status    String   @default("PENDING")
+  mimetype  String?
+  filename  String?
+  data      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model ManufacturingProcess {
   id               String            @id @default(uuid())
   name             String

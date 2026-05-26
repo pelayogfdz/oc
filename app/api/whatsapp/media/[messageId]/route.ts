@@ -48,22 +48,69 @@ export async function GET(
       return res;
     }
 
-    const microservicePort = process.env.WHATSAPP_PORT || 3001;
-    const response = await fetch(`http://localhost:${microservicePort}/api/media/${encodeURIComponent(messageId)}`, {
-      method: "GET",
-      cache: "no-store",
+    // Database-driven Media Request Queue
+    let mediaRequest = await prisma.whatsAppMediaRequest.findUnique({
+      where: { messageId }
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error(`[MEDIA PROXY] Microservice returned error status ${response.status}:`, errText);
-      const res = NextResponse.json({ error: "Failed to download media from WhatsApp" }, { status: response.status });
+    if (!mediaRequest) {
+      try {
+        mediaRequest = await prisma.whatsAppMediaRequest.create({
+          data: {
+            messageId,
+            status: "PENDING"
+          }
+        });
+      } catch (err) {
+        // Handle race conditions if another request created it simultaneously
+        mediaRequest = await prisma.whatsAppMediaRequest.findUnique({
+          where: { messageId }
+        });
+      }
+    }
+
+    // If already failed, reset it back to PENDING to retry
+    if (mediaRequest && mediaRequest.status === "FAILED") {
+      mediaRequest = await prisma.whatsAppMediaRequest.update({
+        where: { messageId },
+        data: {
+          status: "PENDING",
+          data: null,
+          mimetype: null,
+          filename: null
+        }
+      });
+    }
+
+    // Wait and poll Neon database for status changes (up to 15 seconds)
+    let attempts = 0;
+    const maxAttempts = 15;
+    while (mediaRequest && mediaRequest.status === "PENDING" && attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      mediaRequest = await prisma.whatsAppMediaRequest.findUnique({
+        where: { messageId }
+      });
+      attempts++;
+    }
+
+    if (!mediaRequest || mediaRequest.status === "PENDING") {
+      const res = NextResponse.json({ error: "Media download request timed out on VPS" }, { status: 504 });
       res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       return res;
     }
 
-    const data = await response.json();
-    const res = NextResponse.json(data);
+    if (mediaRequest.status === "FAILED") {
+      const res = NextResponse.json({ error: "VPS microservice failed to download media" }, { status: 500 });
+      res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      return res;
+    }
+
+    // Successfully completed! Return the file payload
+    const res = NextResponse.json({
+      mimetype: mediaRequest.mimetype,
+      data: mediaRequest.data,
+      filename: mediaRequest.filename || "archivo"
+    });
     res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.headers.set('Pragma', 'no-cache');
     res.headers.set('Expires', '0');
