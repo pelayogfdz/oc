@@ -13,16 +13,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const branchFilter = branch.id === 'GLOBAL' 
-      ? { branch: { tenantId: user.tenantId } } 
-      : { branchId: branch.id };
-      
     const isManager = user.role === 'ADMIN' || user.role === 'MANAGER' || user.commissionRole === 'COORDINADOR' || user.commissionRole === 'LIDER';
     
     const prospectFilter = isManager 
       ? { branch: { tenantId: user.tenantId } }
       : {
-          ...branchFilter,
+          branch: { tenantId: user.tenantId },
           OR: [
             { assignedUserId: null },
             { assignedUserId: user.id }

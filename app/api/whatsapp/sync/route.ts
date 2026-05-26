@@ -53,23 +53,55 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "WhatsApp is not connected for this branch" }, { status: 400 });
     }
 
-    // Call the microservice's /api/sync endpoint
-    const microservicePort = process.env.WHATSAPP_PORT || 3001;
-    const response = await fetch(`http://localhost:${microservicePort}/api/sync`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ branchId })
+    // Database-driven Sync Request Queue
+    let syncRequest = await prisma.whatsAppSyncRequest.findUnique({
+      where: { branchId }
     });
 
-    if (!response.ok) {
-      const errData = await response.json();
-      return NextResponse.json({ error: errData.error || "Failed to trigger sync" }, { status: response.status });
+    if (!syncRequest) {
+      try {
+        syncRequest = await prisma.whatsAppSyncRequest.create({
+          data: {
+            branchId,
+            status: "PENDING"
+          }
+        });
+      } catch (err) {
+        // Handle race condition if created in parallel
+        syncRequest = await prisma.whatsAppSyncRequest.findUnique({
+          where: { branchId }
+        });
+      }
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    // Reset status to PENDING to trigger microservice sync
+    if (syncRequest && syncRequest.status !== "PENDING") {
+      syncRequest = await prisma.whatsAppSyncRequest.update({
+        where: { branchId },
+        data: { status: "PENDING" }
+      });
+    }
+
+    // Wait and poll database for status changes (up to 30 seconds for deep history sync)
+    let attempts = 0;
+    const maxAttempts = 30;
+    while (syncRequest && syncRequest.status === "PENDING" && attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      syncRequest = await prisma.whatsAppSyncRequest.findUnique({
+        where: { branchId }
+      });
+      attempts++;
+    }
+
+    if (!syncRequest || syncRequest.status === "PENDING") {
+      return NextResponse.json({ error: "Sincronización timed out. El microservicio está procesando el historial en segundo plano." }, { status: 504 });
+    }
+
+    if (syncRequest.status === "FAILED") {
+      return NextResponse.json({ error: "El microservicio falló al sincronizar con WhatsApp Web." }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: "Sincronización histórica completada con éxito." });
   } catch (error: any) {
     console.error("Error in Next.js WhatsApp sync proxy:", error);
     return NextResponse.json({ error: error.message || "Failed to trigger chat sync" }, { status: 500 });

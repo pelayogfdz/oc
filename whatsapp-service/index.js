@@ -1217,6 +1217,81 @@ setInterval(async () => {
     }
 }, 2000);
 
+// Polling function to process pending sync requests
+let isSyncPolling = false;
+
+setInterval(async () => {
+    if (isSyncPolling) return;
+
+    try {
+        isSyncPolling = true;
+
+        const pendingSyncRequests = await prisma.whatsAppSyncRequest.findMany({
+            where: { status: 'PENDING' }
+        });
+
+        for (const req of pendingSyncRequests) {
+            console.log(`[SYNC POLL] Processing sync request for branch ${req.branchId}`);
+            try {
+                let client = clients.get(req.branchId);
+
+                // Fallback check: find any connected sibling client under the same tenant
+                if (!client || !client.info) {
+                    const branch = await prisma.branch.findUnique({
+                        where: { id: req.branchId },
+                        select: { tenantId: true }
+                    });
+                    if (branch && branch.tenantId) {
+                        const tenantBranches = await prisma.branch.findMany({
+                            where: { tenantId: branch.tenantId, isActive: true },
+                            select: { id: true }
+                        });
+                        for (const tb of tenantBranches) {
+                            const alternateClient = clients.get(tb.id);
+                            if (alternateClient && alternateClient.info) {
+                                client = alternateClient;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!client || !client.info) {
+                    console.error(`[SYNC POLL] No active WhatsApp client found for branch/tenant ${req.branchId}`);
+                    await prisma.whatsAppSyncRequest.update({
+                        where: { id: req.id },
+                        data: { status: 'FAILED' }
+                    });
+                    continue;
+                }
+
+                // Run Phase 1 sync: top 30 chats and 50 messages each
+                console.log(`[SYNC POLL] Starting historical sync for branch ${req.branchId}`);
+                await syncRecentChatsHistory(req.branchId, client);
+
+                // Mark the sync request as COMPLETED
+                await prisma.whatsAppSyncRequest.update({
+                    where: { id: req.id },
+                    data: { status: 'COMPLETED' }
+                });
+                console.log(`[SYNC POLL] Successfully completed sync request for branch ${req.branchId}`);
+
+            } catch (err) {
+                console.error(`[SYNC POLL] Error processing sync request for branch ${req.branchId}:`, err);
+                await prisma.whatsAppSyncRequest.update({
+                    where: { id: req.id },
+                    data: { status: 'FAILED' }
+                }).catch(() => {});
+            }
+        }
+
+    } catch (err) {
+        console.error("[SYNC POLL] Error in pollSyncRequests:", err);
+    } finally {
+        isSyncPolling = false;
+    }
+}, 2000);
+
 // Polling function to send pending messages
 let isPolling = false;
 

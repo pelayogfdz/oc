@@ -879,6 +879,14 @@ model WhatsAppMediaRequest {
   updatedAt DateTime @updatedAt
 }
 
+model WhatsAppSyncRequest {
+  id        String   @id @default(uuid())
+  branchId  String   @unique
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model ManufacturingProcess {
   id               String            @id @default(uuid())
   name             String
