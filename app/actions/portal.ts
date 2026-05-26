@@ -105,3 +105,146 @@ export async function searchB2BInvoices(rfc: string) {
     return { error: "Error de servidor al buscar facturas B2B." };
   }
 }
+
+export async function searchCustomerPortalData(emailOrPhone: string) {
+  try {
+    const cleanedSearch = emailOrPhone.trim().toLowerCase();
+    
+    // Find customer by email, phone, or tax ID (RFC)
+    const customer = await prisma.customer.findFirst({
+      where: {
+        OR: [
+          { email: { equals: cleanedSearch, mode: 'insensitive' } },
+          { phone: { contains: emailOrPhone.trim() } },
+          { taxId: { equals: emailOrPhone.trim(), mode: 'insensitive' } }
+        ]
+      },
+      include: {
+        branch: true
+      }
+    });
+
+    if (!customer) {
+      return { error: "Cliente no encontrado. Por favor verifica tu correo, teléfono o RFC registrado." };
+    }
+
+    // Fetch transactions
+    const loyaltyTransactions = await prisma.loyaltyTransaction.findMany({
+      where: { customerId: customer.id },
+      orderBy: { createdAt: 'desc' },
+      take: 30
+    });
+
+    // Fetch sales
+    const sales = await prisma.sale.findMany({
+      where: { customerId: customer.id },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                sku: true,
+                name: true,
+                price: true,
+                unit: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Fetch payments
+    const payments = await prisma.customerPayment.findMany({
+      where: { customerId: customer.id },
+      orderBy: { createdAt: 'desc' },
+      take: 20
+    });
+
+    // Fetch quotes
+    const quotes = await prisma.quote.findMany({
+      where: { customerId: customer.id },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                sku: true,
+                name: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Fetch consignments
+    const consignments = await prisma.consignment.findMany({
+      where: { customerId: customer.id },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                sku: true,
+                name: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Aggregate Favorite Products (Most Purchased)
+    const productFrequency: Record<string, { sku: string; name: string; quantity: number; totalSpent: number }> = {};
+    sales.forEach(sale => {
+      if (sale.status === 'COMPLETED') {
+        sale.items.forEach(item => {
+          const prodId = item.productId;
+          if (!productFrequency[prodId]) {
+            productFrequency[prodId] = {
+              sku: item.product?.sku || 'N/A',
+              name: item.product?.name || 'Desconocido',
+              quantity: 0,
+              totalSpent: 0
+            };
+          }
+          productFrequency[prodId].quantity += item.quantity;
+          productFrequency[prodId].totalSpent += item.quantity * item.price;
+        });
+      }
+    });
+
+    const favoriteProducts = Object.values(productFrequency)
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 5);
+
+    // Fetch Active Promotions in the branch
+    const promotions = customer.branchId 
+      ? await prisma.promotion.findMany({
+          where: { branchId: customer.branchId, active: true },
+          take: 5
+        })
+      : [];
+
+    return {
+      success: true,
+      customer,
+      loyaltyTransactions,
+      sales,
+      payments,
+      quotes,
+      consignments,
+      favoriteProducts,
+      promotions
+    };
+  } catch (error: any) {
+    return { error: error.message || "Error de servidor al cargar datos del cliente." };
+  }
+}

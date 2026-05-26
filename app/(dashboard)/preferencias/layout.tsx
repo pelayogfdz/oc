@@ -19,6 +19,7 @@ const prefTabs = [
   { name: 'Facturación CFDI', path: '/preferencias/facturacion', icon: <FileText size={18} /> },
   { name: 'Listas de Precios', path: '/preferencias/listas-de-precios', icon: <List size={18} /> },
   { name: 'Cartera de Clientes', path: '/preferencias/clientes', icon: <Users size={18} /> },
+  { name: 'Fidelización y Puntos', path: '/preferencias/puntos', icon: <Star size={18} /> },
   { name: 'Recargas Electrónicas', path: '/preferencias/recargas', icon: <Smartphone size={18} /> },
   { name: 'Cuentas Bancarias', path: '/preferencias/bancos', icon: <CreditCard size={18} /> },
   { name: 'Métodos de Pago (SAT)', path: '/preferencias/metodos', icon: <CheckCircle size={18} /> },

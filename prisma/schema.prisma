@@ -127,6 +127,7 @@ model Branch {
   tenantId                String?
   tenant                  Tenant?                  @relation(fields: [tenantId], references: [id])
   settings                BranchSettings?
+  loyaltySettings         LoyaltySettings?
   cashSessions            CashSession[]
   customers               Customer[]
   customerPayments        CustomerPayment[]
@@ -194,6 +195,8 @@ model Customer {
   creditBalance    Float             @default(0)
   storeCredit      Float             @default(0)
   isBlocked        Boolean           @default(false)
+  pointsBalance    Float             @default(0)
+  pointsExpiryDate DateTime?
   additionalEmails String?
   branch           Branch?           @relation(fields: [branchId], references: [id])
   payments         CustomerPayment[]
@@ -201,6 +204,7 @@ model Customer {
   quotes           Quote[]
   consignments     Consignment[]
   sales            Sale[]
+  loyaltyTransactions LoyaltyTransaction[]
 }
 
 model CustomerPayment {
@@ -939,4 +943,28 @@ model ProductionOrder {
   currentProcess   ManufacturingProcess? @relation(fields: [currentProcessId], references: [id])
   recipe           Recipe                @relation(fields: [recipeId], references: [id])
   user             User                  @relation(fields: [userId], references: [id])
+}
+
+model LoyaltySettings {
+  id              String   @id @default(uuid())
+  branchId        String   @unique
+  pointsPerAmount Float    @default(1.0)
+  amountStep      Float    @default(100.0)
+  paymentMethods  String   @default("CASH,CARD,TRANSFER")
+  validityDays    Int      @default(365)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  branch          Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+}
+
+model LoyaltyTransaction {
+  id         String   @id @default(uuid())
+  customerId String
+  type       String   // "EARNED", "REDEEMED", "EXPIRED"
+  points     Float
+  reason     String?
+  saleId     String?
+  createdAt  DateTime @default(now())
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 }

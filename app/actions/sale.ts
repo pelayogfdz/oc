@@ -19,7 +19,9 @@ export async function createSale(
 ) {
   try {
     const branch = await getActiveBranch();
-    if (branch.id === 'GLOBAL') throw new Error('Debes seleccionar una sucursal específica para realizar esta acción.');
+    if (!branch || branch.id === 'GLOBAL') {
+      throw new Error('Debes seleccionar una sucursal específica para realizar esta acción.');
+    }
     const user = await getActiveUser();
     
     if (items.length === 0) throw new Error("Ticket is empty");
@@ -177,22 +179,63 @@ export async function createSale(
       }
     }
 
-    // Si fue a crédito, actualizar la deuda. Si no, Cashback Loyalty Engine (Add 3% to store credit).
+    // Si fue a crédito, actualizar la deuda. Adicionalmente, Loyalty Points Engine o Cashback Fallback
     if (customerId) {
-        if (paymentMethod === 'CREDIT') {
-           await prisma.customer.update({
-              where: { id: customerId },
-              data: { creditBalance: { increment: total } }
-           });
+      if (paymentMethod === 'CREDIT') {
+         await prisma.customer.update({
+            where: { id: customerId },
+            data: { creditBalance: { increment: total } }
+         });
+      }
+
+      try {
+        const loyaltySettings = await prisma.loyaltySettings.findUnique({
+          where: { branchId: branch.id }
+        });
+
+        if (loyaltySettings && loyaltySettings.isActive) {
+          const allowedMethods = loyaltySettings.paymentMethods.split(',');
+          if (allowedMethods.includes(paymentMethod)) {
+            const calculatedPoints = Math.floor(total / loyaltySettings.amountStep) * loyaltySettings.pointsPerAmount;
+            
+            if (calculatedPoints > 0) {
+              const expiryDate = new Date();
+              expiryDate.setDate(expiryDate.getDate() + loyaltySettings.validityDays);
+
+              await prisma.customer.update({
+                where: { id: customerId },
+                data: {
+                  pointsBalance: { increment: calculatedPoints },
+                  pointsExpiryDate: expiryDate
+                }
+              });
+
+              await prisma.loyaltyTransaction.create({
+                data: {
+                  customerId,
+                  type: 'EARNED',
+                  points: calculatedPoints,
+                  reason: `Compra Venta #${sale.id.slice(0, 8)}`,
+                  saleId: sale.id
+                }
+              });
+              console.log(`[Loyalty Engine] Recompensado ${calculatedPoints} puntos a cliente ${customerId}. Expira: ${expiryDate.toLocaleDateString()}`);
+            }
+          }
         } else {
-           // Cashback Engine B2B SaaS Value Add
-           const rewardPoints = parseFloat((total * 0.03).toFixed(2));
-           await prisma.customer.update({
-             where: { id: customerId },
-             data: { storeCredit: { increment: rewardPoints } }
-           });
-           console.log(`[Loyalty] Recompensado ${rewardPoints} a cliente ${customerId}`);
+          // Fallback al motor anterior de Cashback si no hay fidelización de puntos configurada
+          if (paymentMethod !== 'CREDIT') {
+             const rewardPoints = parseFloat((total * 0.03).toFixed(2));
+             await prisma.customer.update({
+               where: { id: customerId },
+               data: { storeCredit: { increment: rewardPoints } }
+             });
+             console.log(`[Loyalty Fallback] Recompensado $${rewardPoints} a cliente ${customerId}`);
+          }
         }
+      } catch (err) {
+        console.error("[Loyalty Engine Error] Error calculating points: ", err);
+      }
     }
 
     // Si se solicitó factura, actualizar datos fiscales del cliente si existe

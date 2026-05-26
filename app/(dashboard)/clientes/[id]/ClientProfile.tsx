@@ -136,7 +136,7 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
             </div>
           </div>
           
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginTop: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1.5rem', marginTop: '1rem' }}>
             <div>
               <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Deuda Total</div>
               <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: customer.creditBalance > 0 ? '#ef4444' : '#10b981' }}>
@@ -159,6 +159,17 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
               <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Días de Crédito</div>
               <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a' }}>
                 {customer.creditDays || 0}
+              </div>
+            </div>
+            <div>
+              <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.25rem' }}>🌟 Puntos (Lealtad)</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>
+                {customer.pointsBalance || 0} pts
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.1rem' }}>
+                {customer.pointsExpiryDate 
+                  ? `Vence: ${new Date(customer.pointsExpiryDate).toLocaleDateString()}` 
+                  : 'Sin vencimiento'}
               </div>
             </div>
           </div>
@@ -210,6 +221,44 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
                 {customer.neighborhood} {customer.city ? `, ${customer.city}` : ''}
               </span>
             </div>
+          </div>
+
+          <div className="card" style={{ gridColumn: '1 / -1' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Star size={20} color="var(--pulpos-primary)" fill="var(--pulpos-primary)" /> Control de Puntos de Fidelidad
+            </h3>
+            <p style={{ fontSize: '0.875rem', color: 'var(--pulpos-text-muted)', marginBottom: '1rem' }}>
+              Ajusta manualmente el saldo de puntos de lealtad del cliente. Esto registrará una transacción en el log.
+            </p>
+            
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const fd = new FormData(e.currentTarget);
+              const ptsVal = parseFloat(fd.get('adjust_points') as string || '0');
+              const reasonVal = fd.get('adjust_reason') as string || '';
+              if (!ptsVal) return;
+              
+              const { adjustCustomerPoints } = await import('@/app/actions/loyalty');
+              const res = await adjustCustomerPoints(customer.id, ptsVal, reasonVal);
+              if (res.success) {
+                alert('Puntos ajustados correctamente');
+                window.location.reload();
+              } else {
+                alert(res.error);
+              }
+            }} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Puntos a Ajustar (Negativo para restar)</label>
+                <input type="number" name="adjust_points" required placeholder="Ej: 50 o -20" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
+              </div>
+              <div style={{ flex: 2 }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Razón del Ajuste</label>
+                <input type="text" name="adjust_reason" required placeholder="Ej: Corrección por devolución o Bono especial" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
+              </div>
+              <button type="submit" className="btn-primary" style={{ padding: '0.5rem 1.5rem', borderRadius: '4px' }}>
+                Aplicar Ajuste
+              </button>
+            </form>
           </div>
         </div>
       )}
