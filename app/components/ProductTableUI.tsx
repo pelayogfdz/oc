@@ -31,7 +31,7 @@ const ProductTableUI = memo(function ProductTableUI({
   priceExtractor
 }: ProductTableUIProps) {
 
-  const allSelected = products.length > 0 && selectedIds.length === products.length;
+  const allSelected = products.length > 0 && products.every(p => selectedIds.includes(p.id));
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
@@ -262,25 +262,54 @@ const ProductTableUI = memo(function ProductTableUI({
                           }
                         }}
                       >
-                         {prod.imageUrl && !imageErrors[prod.id] ? (
+                        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                          {/* Initials Fallback (Always rendered behind/instead of image) */}
+                          <div style={{ 
+                            position: 'absolute', 
+                            inset: 0, 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            backgroundColor: '#eff6ff', 
+                            color: '#3b82f6', 
+                            fontWeight: 'bold', 
+                            fontSize: '0.8rem',
+                            zIndex: 1
+                          }}>
+                            {prod.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          
+                          {/* Product Image (Overlaid with higher z-index) */}
+                          {prod.imageUrl && !imageErrors[prod.id] && (
                             <img 
-                              ref={img => {
-                                if (img && img.complete && img.naturalWidth === 0) {
-                                  setImageErrors(prev => prev[prod.id] ? prev : { ...prev, [prod.id]: true });
-                                }
-                              }}
                               src={getFormattedImageUrl(prod.imageUrl)} 
-                              alt={prod.name} 
+                              alt="" 
                               data-table-img="true"
                               data-prod-id={prod.id}
-                              onError={() => setImageErrors(prev => ({ ...prev, [prod.id]: true }))}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                              data-initials={prod.name.substring(0, 2).toUpperCase()}
+                              onLoad={(e) => {
+                                e.currentTarget.style.opacity = '1';
+                                e.currentTarget.style.visibility = 'visible';
+                              }}
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.style.visibility = 'hidden';
+                                setImageErrors(prev => ({ ...prev, [prod.id]: true }));
+                              }}
+                              style={{ 
+                                position: 'absolute', 
+                                inset: 0, 
+                                width: '100%', 
+                                height: '100%', 
+                                objectFit: 'cover', 
+                                zIndex: 2,
+                                opacity: 0, // Starts transparent to prevent broken icon flash
+                                visibility: 'hidden', // Hidden by default to suppress broken icon
+                                transition: 'opacity 0.2s ease-in-out'
+                              }} 
                             />
-                         ) : (
-                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eff6ff', color: '#3b82f6', fontWeight: 'bold', fontSize: '0.8rem' }}>
-                              {prod.name.substring(0, 2).toUpperCase()}
-                            </div>
-                         )}
+                          )}
+                        </div>
                       </div>
                       <div>
                         {onRowClick ? (

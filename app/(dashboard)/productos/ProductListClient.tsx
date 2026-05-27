@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { Filter, MapPin, ArrowDownUp, Search, MoreVertical, Camera, Plus } from 'lucide-react';
+import { Filter, MapPin, ArrowDownUp, Search, MoreVertical, Camera, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { searchProducts, deleteProduct } from '@/app/actions/product';
 import ProductTableUI from '@/app/components/ProductTableUI';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
@@ -22,6 +22,10 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ACTIVE');
   const [filterStock, setFilterStock] = useState('ALL');
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
@@ -54,13 +58,35 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
     return true;
   }), [displayedProducts, filterCategory, filterStatus, filterStock]);
 
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterCategory, filterStatus, filterStock]);
+
+  const totalPages = Math.ceil(filteredProducts.length / pageSize) || 1;
+  const startRange = filteredProducts.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endRange = Math.min(currentPage * pageSize, filteredProducts.length);
+
+  const paginatedProducts = useMemo(() => {
+    const skip = (currentPage - 1) * pageSize;
+    return filteredProducts.slice(skip, skip + pageSize);
+  }, [filteredProducts, currentPage, pageSize]);
+
   const handleToggleSelectAll = useCallback(() => {
-    if (selectedIds.length === filteredProducts.length) {
-      setSelectedIds([]);
+    const currentPageIds = paginatedProducts.map(p => p.id);
+    const allCurrentPageSelected = currentPageIds.every(id => selectedIds.includes(id));
+    if (allCurrentPageSelected) {
+      setSelectedIds(prev => prev.filter(id => !currentPageIds.includes(id)));
     } else {
-      setSelectedIds(filteredProducts.map(p => p.id));
+      setSelectedIds(prev => {
+        const next = [...prev];
+        currentPageIds.forEach(id => {
+          if (!next.includes(id)) next.push(id);
+        });
+        return next;
+      });
     }
-  }, [selectedIds, filteredProducts]);
+  }, [selectedIds, paginatedProducts]);
 
   const handleToggleSelect = useCallback((id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(selId => selId !== id) : [...prev, id]);
@@ -250,13 +276,186 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
         )}
 
         <ProductTableUI 
-          products={filteredProducts}
+          products={paginatedProducts}
           showCheckboxes={true}
           selectedIds={selectedIds}
           onToggleSelect={handleToggleSelect}
           onToggleSelectAll={handleToggleSelectAll}
           renderCustomActions={renderCustomActions}
         />
+
+        {/* Premium Pagination Footer */}
+        <div style={{ 
+          marginTop: '1.5rem', 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          flexWrap: 'wrap', 
+          gap: '1rem',
+          backgroundColor: '#f8fafc',
+          padding: '0.75rem 1.25rem',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          {/* Left Side: Range Info */}
+          <div style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: '500' }}>
+            {filteredProducts.length === 0 ? (
+              <span>Sin productos</span>
+            ) : (
+              <span>
+                Mostrando <strong style={{ color: '#1e293b' }}>{startRange}</strong> a <strong style={{ color: '#1e293b' }}>{endRange}</strong> de <strong style={{ color: '#1e293b' }}>{filteredProducts.length}</strong> productos
+              </span>
+            )}
+          </div>
+
+          {/* Right Side: Page Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {/* Page Size Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>Mostrar:</span>
+              <select 
+                value={pageSize} 
+                onChange={e => {
+                  const val = e.target.value === 'ALL' ? filteredProducts.length : Number(e.target.value);
+                  setPageSize(val);
+                  setCurrentPage(1);
+                }} 
+                style={{ 
+                  padding: '0.35rem 0.5rem', 
+                  borderRadius: '6px', 
+                  border: '1px solid #cbd5e1', 
+                  fontSize: '0.85rem',
+                  backgroundColor: 'white',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  color: '#334155'
+                }}
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value={150}>150</option>
+                <option value={200}>200</option>
+                <option value="ALL">Todos</option>
+              </select>
+            </div>
+
+            {/* Navigation Buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              {/* Go to First Page */}
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  backgroundColor: 'white',
+                  color: '#64748b',
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === 1 ? 0.4 : 1,
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => { if (currentPage !== 1) e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
+                onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'white'; }}
+                title="Primera Página"
+              >
+                <ChevronsLeft size={16} />
+              </button>
+
+              {/* Go to Previous Page */}
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  backgroundColor: 'white',
+                  color: '#64748b',
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === 1 ? 0.4 : 1,
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => { if (currentPage !== 1) e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
+                onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'white'; }}
+                title="Página Anterior"
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              {/* Page Number Indicator */}
+              <span style={{ 
+                fontSize: '0.9rem', 
+                color: '#334155', 
+                fontWeight: '600',
+                padding: '0 0.5rem',
+                minWidth: '95px',
+                textAlign: 'center'
+              }}>
+                Pág. {currentPage} de {totalPages}
+              </span>
+
+              {/* Go to Next Page */}
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  backgroundColor: 'white',
+                  color: '#64748b',
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === totalPages ? 0.4 : 1,
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => { if (currentPage !== totalPages) e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
+                onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'white'; }}
+                title="Página Siguiente"
+              >
+                <ChevronRight size={16} />
+              </button>
+
+              {/* Go to Last Page */}
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  backgroundColor: 'white',
+                  color: '#64748b',
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === totalPages ? 0.4 : 1,
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => { if (currentPage !== totalPages) e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
+                onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'white'; }}
+                title="Última Página"
+              >
+                <ChevronsRight size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

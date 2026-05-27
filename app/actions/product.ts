@@ -248,11 +248,9 @@ export async function updateProduct(productId: string, formData: FormData) {
 
 export async function searchProducts(query: string, branchId: string) {
   if (!query || query.trim() === '') {
-    // Si la barra está vacía, devuelve los primeros 50
     return await prisma.product.findMany({
       where: { branchId, isActive: true },
       include: { variants: true, prices: true },
-      take: 50,
       orderBy: { name: 'asc' }
     });
   }
@@ -276,7 +274,6 @@ export async function searchProducts(query: string, branchId: string) {
       AND: searchConditions
     },
     include: { variants: true, prices: true },
-    take: 50, // Límite seguro aunque haya muchos resultados
     orderBy: { name: 'asc' }
   });
 }

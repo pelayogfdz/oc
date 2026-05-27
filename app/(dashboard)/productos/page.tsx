@@ -8,8 +8,7 @@ export default async function ProductosPage() {
   const branch = await getActiveBranch();
   const products = await prisma.product.findMany({
     where: { branchId: branch?.id || '' },
-    orderBy: { createdAt: 'desc' },
-    take: 50
+    orderBy: { createdAt: 'desc' }
   });
 
   const safeProducts = JSON.parse(JSON.stringify(products));
