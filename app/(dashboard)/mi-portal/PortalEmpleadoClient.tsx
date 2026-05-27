@@ -19,6 +19,7 @@ export default function PortalEmpleadoClient({
   const [isRegistering, setIsRegistering] = useState(false);
   const [locationStatus, setLocationStatus] = useState<string>('Buscando ubicación...');
   const [currentCoords, setCurrentCoords] = useState<{lat: number, lng: number} | null>(null);
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [faceMatched, setFaceMatched] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -45,7 +46,8 @@ export default function PortalEmpleadoClient({
         (pos) => {
           const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           setCurrentCoords(coords);
-          setLocationStatus('Ubicación obtenida');
+          setGpsAccuracy(pos.coords.accuracy);
+          setLocationStatus(`Ubicación obtenida (±${Math.round(pos.coords.accuracy)}m)`);
           resolve(coords);
         },
         (err) => {
@@ -210,9 +212,35 @@ export default function PortalEmpleadoClient({
       </p>
 
       {errorMsg && (
-        <div style={{ padding: '1rem', marginBottom: '1.5rem', backgroundColor: '#fef2f2', border: '1px solid #f87171', color: '#ef4444', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <AlertTriangle size={20} />
-          {errorMsg}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+          <div style={{ padding: '1rem', backgroundColor: '#fef2f2', border: '1px solid #f87171', color: '#ef4444', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <AlertTriangle size={20} />
+            {errorMsg}
+          </div>
+          {errorMsg.includes('radio') && (
+            <div style={{ padding: '1.25rem', backgroundColor: '#fffbeb', border: '1px solid #fef3c7', color: '#b45309', borderRadius: '12px', fontSize: '0.85rem', lineHeight: '1.5', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.02)' }}>
+              <h4 style={{ fontWeight: 'bold', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#92400e' }}>
+                💡 Solución de Problemas con la Ubicación GPS
+              </h4>
+              <p style={{ margin: '0 0 0.5rem 0' }}>
+                Tu celular está reportando que te encuentras a una distancia mayor a los 50 metros permitidos de tu sucursal. Esto suele ocurrir cuando el celular usa una ubicación aproximada de antenas móviles o internet en lugar del GPS real. Por favor sigue estos pasos:
+              </p>
+              <ul style={{ listStyleType: 'decimal', paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', margin: '0' }}>
+                <li>
+                  <strong>Activa el GPS / Ubicación Precisa:</strong> En la barra de notificaciones o configuración de tu teléfono, asegúrate de tener la "Ubicación" activada y configurada en modo de <strong>"Alta precisión"</strong> o <strong>"Precisión de ubicación de Google"</strong>.
+                </li>
+                <li>
+                  <strong>Permisos del navegador:</strong> Asegúrate de que el navegador (Chrome o Safari) tenga permiso para acceder a tu ubicación. Si ves un candado en la barra de direcciones del navegador arriba, tócalo para verificar los permisos de ubicación.
+                </li>
+                <li>
+                  <strong>Evita interferencias:</strong> Si estás muy adentro del local o en un lugar con techo metálico grueso (como bodega o sótano), la señal satelital se bloquea. Sal a un espacio abierto o acércate a la puerta/ventana unos segundos para que se actualice tu posición exacta.
+                </li>
+                <li>
+                  <strong>Recarga la página:</strong> Una vez activado el GPS o estando cerca de una zona abierta, <strong>recarga esta página en tu celular</strong> para forzar una nueva lectura limpia. Verás el indicador en verde con la precisión en metros (por ejemplo ±15m).
+                </li>
+              </ul>
+            </div>
+          )}
         </div>
       )}
 
