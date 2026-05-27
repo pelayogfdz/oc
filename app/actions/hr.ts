@@ -13,203 +13,213 @@ export async function registerAttendance(data: {
   photoUrl?: string;
   deviceInfo?: string;
 }) {
-  const sessionCookie = (await cookies()).get('session')?.value;
-  const session = await decrypt(sessionCookie);
-  
-  if (!session?.userId || session.userId !== data.userId) {
-    throw new Error("No autorizado");
-  }
-
-  // Find user and branch to get rules (if applicable)
-  const user = await prisma.user.findUnique({
-    where: { id: data.userId },
-    include: { branch: { include: { hrLocation: true } } }
-  });
-
-  if (!user) throw new Error("Usuario no encontrado");
-
-  // Validador de 10 min, secuencia Check-in / Check-out y restricción del mismo día
-  const lastLog = await prisma.attendanceLog.findFirst({
-    where: { userId: data.userId },
-    orderBy: { timestamp: 'desc' }
-  });
-
-  const now = new Date();
-
-  if (lastLog) {
-    const diffMinutes = (now.getTime() - lastLog.timestamp.getTime()) / (1000 * 60);
-    if (diffMinutes < 10) {
-      throw new Error("Debes esperar al menos 10 minutos entre registros.");
-    }
-
-    const mxFormatter = new Intl.DateTimeFormat('es-MX', { 
-      timeZone: 'America/Mexico_City', 
-      year: 'numeric', 
-      month: '2-digit', 
-      day: '2-digit' 
-    });
-    const isSameDay = mxFormatter.format(now) === mxFormatter.format(lastLog.timestamp);
-
-    if (data.type === 'CHECK_OUT') {
-      if (!isSameDay) {
-        throw new Error("Solo puedes registrar tu salida el mismo día que registraste tu entrada.");
-      }
-      if (lastLog.type === 'CHECK_OUT') {
-        throw new Error("Tu último registro ya fue una Salida. Debes registrar una Entrada primero.");
-      }
-    } else if (data.type === 'CHECK_IN') {
-      if (isSameDay && lastLog.type === 'CHECK_IN') {
-        throw new Error("Ya tienes un registro de Entrada activo. Ahora debes registrar una Salida.");
-      }
-    }
-  } else {
-    if (data.type === 'CHECK_OUT') {
-      throw new Error("No tienes registros previos. Debes registrar una Entrada primero.");
-    }
-  }
-
-  // Face Validation
-  if (user.reqPhoto && !data.photoUrl) {
-    throw new Error("Se requiere captura de rostro para registrar asistencia.");
-  }
-
-  // GPS Validation
-  if (user.reqGps) {
-    if (data.latitude === undefined || data.longitude === undefined) {
-      throw new Error("Se requiere ubicación GPS para registrar asistencia.");
-    }
+  try {
+    const sessionCookie = (await cookies()).get('session')?.value;
+    const session = await decrypt(sessionCookie);
     
-    // Check Home Office coordinates first, otherwise use Branch HR Location
-    let targetLat: number | null = null;
-    let targetLng: number | null = null;
-    let targetRadius: number = 50;
-
-    if (user.homeLat !== null && user.homeLng !== null) {
-      targetLat = user.homeLat;
-      targetLng = user.homeLng;
-      targetRadius = user.homeRadius || 50;
-    } else if (user.branch?.hrLocation) {
-      targetLat = user.branch.hrLocation.lat;
-      targetLng = user.branch.hrLocation.lng;
-      targetRadius = user.branch.hrLocation.radius;
+    if (!session?.userId || session.userId !== data.userId) {
+      return { success: false, error: "No autorizado" };
     }
 
-    if (targetLat !== null && targetLng !== null) {
-      // Calculate distance using Haversine
-      const R = 6371e3; // metres
-      const lat1 = data.latitude * Math.PI/180;
-      const lat2 = targetLat * Math.PI/180;
-      const dLat = (targetLat - data.latitude) * Math.PI/180;
-      const dLon = (targetLng - data.longitude) * Math.PI/180;
+    // Find user and branch to get rules (if applicable)
+    const user = await prisma.user.findUnique({
+      where: { id: data.userId },
+      include: { branch: { include: { hrLocation: true } } }
+    });
 
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1) * Math.cos(lat2) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      const distance = R * c;
+    if (!user) return { success: false, error: "Usuario no encontrado" };
 
-      if (distance > targetRadius) {
-        throw new Error(`Estás fuera del radio permitido de asistencia (distancia: ${Math.round(distance)}m, permitido: ${targetRadius}m).`);
+    // Validador de 10 min, secuencia Check-in / Check-out y restricción del mismo día
+    const lastLog = await prisma.attendanceLog.findFirst({
+      where: { userId: data.userId },
+      orderBy: { timestamp: 'desc' }
+    });
+
+    const now = new Date();
+
+    if (lastLog) {
+      const diffMinutes = (now.getTime() - lastLog.timestamp.getTime()) / (1000 * 60);
+      if (diffMinutes < 10) {
+        return { success: false, error: "Debes esperar al menos 10 minutos entre registros." };
       }
-    }
-  }
 
-  // Determine if late and enforce strict checkin
-  let status = 'ON_TIME';
-  if (data.type === 'CHECK_IN') {
-    let expectedHour = 9;
-    let expectedMinute = 0;
-    let hasSchedule = false;
+      const mxFormatter = new Intl.DateTimeFormat('es-MX', { 
+        timeZone: 'America/Mexico_City', 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit' 
+      });
+      const isSameDay = mxFormatter.format(now) === mxFormatter.format(lastLog.timestamp);
 
-    const mxDateStr = now.toLocaleString("en-US", { timeZone: "America/Mexico_City" });
-    const mxDate = new Date(mxDateStr);
-
-    if (user.workScheduleMatrix) {
-      try {
-        const sched = JSON.parse(user.workScheduleMatrix);
-        const dayMap = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"];
-        const currentDayStr = dayMap[mxDate.getDay()];
-        
-        if (sched[currentDayStr] && sched[currentDayStr].length >= 1) {
-          hasSchedule = true;
-          const [hh, mm] = sched[currentDayStr][0].split(':');
-          expectedHour = parseInt(hh, 10);
-          expectedMinute = parseInt(mm, 10);
-        } else if (user.strictCheckinTime) {
-           throw new Error("No tienes un horario asignado para el día de hoy según tu matriz de trabajo.");
+      if (data.type === 'CHECK_OUT') {
+        if (!isSameDay) {
+          return { success: false, error: "Solo puedes registrar tu salida el mismo día que registraste tu entrada." };
         }
-      } catch(e: any) {
-         if (e.message?.includes("No tienes un horario")) throw e;
-      }
-    } else if (user.strictCheckinTime) {
-       throw new Error("No tienes un horario asignado para el día de hoy según tu matriz de trabajo.");
-    }
-
-    if (hasSchedule) {
-      const nowMins = mxDate.getHours() * 60 + mxDate.getMinutes();
-      const expectedMins = expectedHour * 60 + expectedMinute;
-      const diffMins = nowMins - expectedMins;
-
-      if (user.strictCheckinTime) {
-        if (diffMins < -30 || diffMins > 30) {
-          throw new Error(`Ventana estricta: Tu horario es ${expectedHour.toString().padStart(2, '0')}:${expectedMinute.toString().padStart(2, '0')}. Solo puedes hacer check-in +/- 30 minutos.`);
+        if (lastLog.type === 'CHECK_OUT') {
+          return { success: false, error: "Tu último registro ya fue una Salida. Debes registrar una Entrada primero." };
         }
-      }
-
-      if (diffMins > 15) {
-        status = 'LATE';
+      } else if (data.type === 'CHECK_IN') {
+        if (isSameDay && lastLog.type === 'CHECK_IN') {
+          return { success: false, error: "Ya tienes un registro de Entrada activo. Ahora debes registrar una Salida." };
+        }
       }
     } else {
-      // Fallback
-      if (mxDate.getHours() >= 9 && mxDate.getMinutes() > 15) {
-        status = 'LATE';
+      if (data.type === 'CHECK_OUT') {
+        return { success: false, error: "No tienes registros previos. Debes registrar una Entrada primero." };
       }
     }
-  }
 
-  const log = await prisma.attendanceLog.create({
-    data: {
-      userId: data.userId,
-      type: data.type,
-      status,
-      timestamp: new Date(),
-      lat: data.latitude,
-      lng: data.longitude,
-      photoUrl: data.photoUrl,
-      deviceInfo: data.deviceInfo
+    // Face Validation
+    if (user.reqPhoto && !data.photoUrl) {
+      return { success: false, error: "Se requiere captura de rostro para registrar asistencia." };
     }
-  });
 
-  revalidatePath('/mi-portal');
-  return { 
-    success: true, 
-    log: {
-      ...log,
-      timestamp: log.timestamp.toISOString() // Serialize Date to string
-    } 
-  };
+    // GPS Validation
+    if (user.reqGps) {
+      if (data.latitude === undefined || data.longitude === undefined) {
+        return { success: false, error: "Se requiere ubicación GPS para registrar asistencia." };
+      }
+      
+      // Check Home Office coordinates first, otherwise use Branch HR Location
+      let targetLat: number | null = null;
+      let targetLng: number | null = null;
+      let targetRadius: number = 50;
+
+      if (user.homeLat !== null && user.homeLng !== null) {
+        targetLat = user.homeLat;
+        targetLng = user.homeLng;
+        targetRadius = user.homeRadius || 50;
+      } else if (user.branch?.hrLocation) {
+        targetLat = user.branch.hrLocation.lat;
+        targetLng = user.branch.hrLocation.lng;
+        targetRadius = user.branch.hrLocation.radius;
+      }
+
+      if (targetLat !== null && targetLng !== null) {
+        // Calculate distance using Haversine
+        const R = 6371e3; // metres
+        const lat1 = data.latitude * Math.PI/180;
+        const lat2 = targetLat * Math.PI/180;
+        const dLat = (targetLat - data.latitude) * Math.PI/180;
+        const dLon = (targetLng - data.longitude) * Math.PI/180;
+
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1) * Math.cos(lat2) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = R * c;
+
+        if (distance > targetRadius) {
+          return { success: false, error: `Estás fuera del radio permitido de asistencia (distancia: ${Math.round(distance)}m, permitido: ${targetRadius}m).` };
+        }
+      }
+    }
+
+    // Determine if late and enforce strict checkin
+    let status = 'ON_TIME';
+    if (data.type === 'CHECK_IN') {
+      let expectedHour = 9;
+      let expectedMinute = 0;
+      let hasSchedule = false;
+
+      const mxDateStr = now.toLocaleString("en-US", { timeZone: "America/Mexico_City" });
+      const mxDate = new Date(mxDateStr);
+
+      if (user.workScheduleMatrix) {
+        try {
+          const sched = JSON.parse(user.workScheduleMatrix);
+          const dayMap = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"];
+          const currentDayStr = dayMap[mxDate.getDay()];
+          
+          if (sched[currentDayStr] && sched[currentDayStr].length >= 1) {
+            hasSchedule = true;
+            const [hh, mm] = sched[currentDayStr][0].split(':');
+            expectedHour = parseInt(hh, 10);
+            expectedMinute = parseInt(mm, 10);
+          } else if (user.strictCheckinTime) {
+             return { success: false, error: "No tienes un horario asignado para el día de hoy según tu matriz de trabajo." };
+          }
+        } catch(e: any) {
+           if (e.message?.includes("No tienes un horario")) return { success: false, error: e.message };
+        }
+      } else if (user.strictCheckinTime) {
+         return { success: false, error: "No tienes un horario asignado para el día de hoy según tu matriz de trabajo." };
+      }
+
+      if (hasSchedule) {
+        const nowMins = mxDate.getHours() * 60 + mxDate.getMinutes();
+        const expectedMins = expectedHour * 60 + expectedMinute;
+        const diffMins = nowMins - expectedMins;
+
+        if (user.strictCheckinTime) {
+          if (diffMins < -30 || diffMins > 30) {
+            return { success: false, error: `Ventana estricta: Tu horario es ${expectedHour.toString().padStart(2, '0')}:${expectedMinute.toString().padStart(2, '0')}. Solo puedes hacer check-in +/- 30 minutos.` };
+          }
+        }
+
+        if (diffMins > 15) {
+          status = 'LATE';
+        }
+      } else {
+        // Fallback
+        if (mxDate.getHours() >= 9 && mxDate.getMinutes() > 15) {
+          status = 'LATE';
+        }
+      }
+    }
+
+    const log = await prisma.attendanceLog.create({
+      data: {
+        userId: data.userId,
+        type: data.type,
+        status,
+        timestamp: new Date(),
+        lat: data.latitude,
+        lng: data.longitude,
+        photoUrl: data.photoUrl,
+        deviceInfo: data.deviceInfo
+      }
+    });
+
+    revalidatePath('/mi-portal');
+    return { 
+      success: true, 
+      log: {
+        ...log,
+        timestamp: log.timestamp.toISOString() // Serialize Date to string
+      } 
+    };
+  } catch (e: any) {
+    console.error("Error in registerAttendance Server Action:", e);
+    return { success: false, error: e.message || "Error de red o base de datos." };
+  }
 }
 
 export async function registerFaceDescriptor(data: {
   userId: string;
   descriptor: string;
 }) {
-  const sessionCookie = (await cookies()).get('session')?.value;
-  const session = await decrypt(sessionCookie);
-  
-  if (!session?.userId || session.userId !== data.userId) {
-    throw new Error("No autorizado");
-  }
-
-  await prisma.user.update({
-    where: { id: data.userId },
-    data: {
-      faceDescriptor: data.descriptor
+  try {
+    const sessionCookie = (await cookies()).get('session')?.value;
+    const session = await decrypt(sessionCookie);
+    
+    if (!session?.userId || session.userId !== data.userId) {
+      return { success: false, error: "No autorizado" };
     }
-  });
 
-  revalidatePath('/mi-portal');
-  return { success: true };
+    await prisma.user.update({
+      where: { id: data.userId },
+      data: {
+        faceDescriptor: data.descriptor
+      }
+    });
+
+    revalidatePath('/mi-portal');
+    return { success: true };
+  } catch (e: any) {
+    console.error("Error in registerFaceDescriptor:", e);
+    return { success: false, error: e.message || "Error al actualizar registro facial." };
+  }
 }
 
 export async function registerAttendanceAdmin(data: {
@@ -249,32 +259,38 @@ export async function createLeaveRequest(data: {
   endDate: Date | string;
   reason?: string;
 }) {
-  const sessionCookie = (await cookies()).get('session')?.value;
-  const session = await decrypt(sessionCookie);
-  
-  if (!session?.userId || session.userId !== data.userId) {
-    throw new Error("No autorizado");
-  }
-
-  const start = new Date(data.startDate);
-  const end = new Date(data.endDate);
-
-  if (start > end) {
-    throw new Error("La fecha de inicio no puede ser posterior a la fecha de fin.");
-  }
-
-  const request = await prisma.leaveRequest.create({
-    data: {
-      userId: data.userId,
-      type: data.type,
-      startDate: start,
-      endDate: end,
-      status: 'PENDING'
+  try {
+    const sessionCookie = (await cookies()).get('session')?.value;
+    const session = await decrypt(sessionCookie);
+    
+    if (!session?.userId || session.userId !== data.userId) {
+      return { success: false, error: "No autorizado" };
     }
-  });
 
-  revalidatePath('/mi-portal');
-  return { success: true, request };
+    const start = new Date(data.startDate);
+    const end = new Date(data.endDate);
+
+    if (start > end) {
+      return { success: false, error: "La fecha de inicio no puede ser posterior a la fecha de fin." };
+    }
+
+    const request = await prisma.leaveRequest.create({
+      data: {
+        userId: data.userId,
+        type: data.type,
+        startDate: start,
+        endDate: end,
+        status: 'PENDING',
+        notes: data.reason
+      }
+    });
+
+    revalidatePath('/mi-portal');
+    return { success: true, request };
+  } catch (e: any) {
+    console.error("Error in createLeaveRequest:", e);
+    return { success: false, error: e.message || "Error al crear la solicitud." };
+  }
 }
 
 export async function createIncidentAdmin(data: {

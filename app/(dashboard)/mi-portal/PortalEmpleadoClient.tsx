@@ -58,7 +58,7 @@ export default function PortalEmpleadoClient({
         throw new Error("Se requiere foto de selfie exitosa para registrar tu entrada/salida.");
       }
       
-      await registerAttendance({
+      const res = await registerAttendance({
         userId: user.id,
         type,
         latitude: currentCoords?.lat,
@@ -66,6 +66,11 @@ export default function PortalEmpleadoClient({
         photoUrl: photoUrl || undefined,
         deviceInfo: navigator.userAgent
       });
+      
+      if (!res.success) {
+        throw new Error(res.error || "Error desconocido");
+      }
+      
       alert('Registro guardado correctamente');
       window.location.reload();
     } catch (e: any) {
@@ -79,13 +84,16 @@ export default function PortalEmpleadoClient({
     e.preventDefault();
     setIsSubmittingLeave(true);
     try {
-      await createLeaveRequest({
+      const res = await createLeaveRequest({
         userId: user.id,
         type: leaveType,
         startDate,
         endDate,
         reason
       });
+      if (!res.success) {
+        throw new Error(res.error || "Error desconocido");
+      }
       alert('Solicitud enviada correctamente');
       setIsLeaveModalOpen(false);
       window.location.reload();
@@ -113,27 +121,37 @@ export default function PortalEmpleadoClient({
       reader.onload = async (e) => {
         const img = new Image();
         img.onload = async () => {
-          const tmpCanvas = document.createElement('canvas');
-          const mx = Math.max(img.width, img.height);
-          let ratio = mx > 600 ? 600 / mx : 1;
-          tmpCanvas.width = img.width * ratio;
-          tmpCanvas.height = img.height * ratio;
-          tmpCanvas.getContext('2d')?.drawImage(img, 0, 0, tmpCanvas.width, tmpCanvas.height);
+          try {
+            const tmpCanvas = document.createElement('canvas');
+            const mx = Math.max(img.width, img.height);
+            let ratio = mx > 600 ? 600 / mx : 1;
+            tmpCanvas.width = img.width * ratio;
+            tmpCanvas.height = img.height * ratio;
+            tmpCanvas.getContext('2d')?.drawImage(img, 0, 0, tmpCanvas.width, tmpCanvas.height);
 
-          const detection = await faceapi.detectSingleFace(tmpCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.1 })).withFaceLandmarks().withFaceDescriptor();
+            const detection = await faceapi.detectSingleFace(tmpCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.1 })).withFaceLandmarks().withFaceDescriptor();
 
-          if (!detection) {
-             setEnrollStatus('Error: No se detectó rostro de forma clara. Intenta de nuevo.');
-             setIsEnrollingFace(false);
-             return;
+            if (!detection) {
+               setEnrollStatus('Error: No se detectó rostro de forma clara. Intenta de nuevo.');
+               setIsEnrollingFace(false);
+               return;
+            }
+
+            const descriptorString = JSON.stringify(Array.from(detection.descriptor));
+            
+            setEnrollStatus('Rostro detectado. Guardando...');
+            const res = await registerFaceDescriptor({ userId: user.id, descriptor: descriptorString });
+            if (res && !res.success) {
+              setEnrollStatus('Error al registrar rostro: ' + (res.error || 'error desconocido'));
+              setIsEnrollingFace(false);
+              return;
+            }
+            alert('Tu rostro ha sido registrado exitosamente.');
+            window.location.reload();
+          } catch (err: any) {
+            setEnrollStatus('Error: ' + err.message);
+            setIsEnrollingFace(false);
           }
-
-          const descriptorString = JSON.stringify(Array.from(detection.descriptor));
-          
-          setEnrollStatus('Rostro detectado. Guardando...');
-          await registerFaceDescriptor({ userId: user.id, descriptor: descriptorString });
-          alert('Tu rostro ha sido registrado exitosamente.');
-          window.location.reload();
         };
         img.src = e.target?.result as string;
       };
