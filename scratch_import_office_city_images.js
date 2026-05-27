@@ -43,6 +43,21 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Helper: Sanitize SKU to be safe as a filename (scrubs slashes, backslashes, etc.)
+function sanitizeSkuForFilename(sku) {
+  return sku
+    .replace(/#/g, '_')
+    .replace(/\?/g, '_')
+    .replace(/\//g, '_')
+    .replace(/\\/g, '_')
+    .replace(/:/g, '_')
+    .replace(/\*/g, '_')
+    .replace(/"/g, '_')
+    .replace(/</g, '_')
+    .replace(/>/g, '_')
+    .replace(/\|/g, '_');
+}
+
 // Helper: Ensure directories exist
 function ensureDirectoryExistence(dirPath) {
   if (!fs.existsSync(dirPath)) {
@@ -88,7 +103,7 @@ async function syncLocalCache() {
 
   let restoredCount = 0;
   for (const p of products) {
-    const cleanSku = p.sku.replace(/#/g, '_').replace(/\?/g, '_');
+    const cleanSku = sanitizeSkuForFilename(p.sku);
     if (skuMap.has(cleanSku)) {
       const file = skuMap.get(cleanSku);
       const dbUrl = `/img/products/${file}`;
@@ -185,7 +200,7 @@ async function crawlImageForProduct(product) {
         if (ext === '.jpeg') ext = '.jpg';
       }
 
-      const cleanSkuForFile = product.sku.replace(/#/g, '_').replace(/\?/g, '_');
+      const cleanSkuForFile = sanitizeSkuForFilename(product.sku);
       const destFileName = `${cleanSkuForFile}${ext}`;
       const destPath = path.join(PUBLIC_PRODUCT_IMG_DIR, destFileName);
       const dbUrl = `/img/products/${destFileName}`;
@@ -261,6 +276,7 @@ async function crawlMissingImages(limit = 150) {
 
   let successCount = 0;
   let failCount = 0;
+  let consecutiveFailures = 0;
 
   for (let i = 0; i < toProcess.length; i++) {
     const p = toProcess[i];
@@ -269,8 +285,15 @@ async function crawlMissingImages(limit = 150) {
     const success = await crawlImageForProduct(p);
     if (success) {
       successCount++;
+      consecutiveFailures = 0;
     } else {
       failCount++;
+      consecutiveFailures++;
+      console.warn(`  [INFO] Consecutive failures: ${consecutiveFailures}/10`);
+      if (consecutiveFailures >= 10) {
+        console.error(`\n [CRITICAL] 10 consecutive failures encountered! Bing search rate limits or network issues detected. Exiting gracefully to prevent spam.`);
+        break;
+      }
     }
 
     // Politeness throttle
