@@ -109,8 +109,9 @@ export async function registerAttendance(data: {
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         const distance = R * c;
 
-        if (distance > targetRadius) {
-          return { success: false, error: `Estás fuera del radio permitido de asistencia (distancia: ${Math.round(distance)}m, permitido: ${targetRadius}m).` };
+        const toleranceMargin = 20; // 20m GPS tolerance margin to absorb drift/fluctuations
+        if (distance > (targetRadius + toleranceMargin)) {
+          return { success: false, error: `Estás fuera del radio permitido de asistencia (distancia: ${Math.round(distance)}m, permitido: ${targetRadius}m + ${toleranceMargin}m de tolerancia).` };
         }
       }
     }
@@ -519,4 +520,93 @@ export async function editLeaveRequest(id: string, data: { type: string, startDa
   revalidatePath('/rh/tramites');
   revalidatePath('/mi-portal');
   return { success: true, req };
+}
+
+export async function getFilteredAttendanceLogs(filters: {
+  startDate?: string;
+  endDate?: string;
+  userId?: string;
+  branchId?: string;
+  status?: string;
+  type?: string;
+}) {
+  try {
+    const sessionCookie = (await cookies()).get('session')?.value;
+    const session = await decrypt(sessionCookie);
+    
+    if (!session?.userId || (session.role !== 'ADMIN' && session.role !== 'MANAGER')) {
+      return { success: false, error: "No autorizado" };
+    }
+
+    const where: any = {
+      user: {
+        tenantId: session.tenantId
+      }
+    };
+
+    if (filters.userId && filters.userId !== 'ALL') {
+      where.userId = filters.userId;
+    }
+
+    if (filters.branchId && filters.branchId !== 'ALL') {
+      where.user.branchId = filters.branchId;
+    }
+
+    if (filters.status && filters.status !== 'ALL') {
+      where.status = filters.status;
+    }
+
+    if (filters.type && filters.type !== 'ALL') {
+      where.type = filters.type;
+    }
+
+    if (filters.startDate || filters.endDate) {
+      where.timestamp = {};
+      if (filters.startDate) {
+        const start = new Date(filters.startDate);
+        start.setHours(0, 0, 0, 0);
+        where.timestamp.gte = start;
+      }
+      if (filters.endDate) {
+        const end = new Date(filters.endDate);
+        end.setHours(23, 59, 59, 999);
+        where.timestamp.lte = end;
+      }
+    }
+
+    const logs = await prisma.attendanceLog.findMany({
+      where,
+      include: {
+        user: {
+          include: {
+            branch: true
+          }
+        }
+      },
+      orderBy: { timestamp: 'desc' },
+      take: 200 // Limit results to prevent memory pressure
+    });
+
+    const serializedLogs = logs.map(l => ({
+      ...l,
+      timestamp: l.timestamp.toISOString(),
+      user: {
+        ...l.user,
+        createdAt: l.user.createdAt.toISOString(),
+        updatedAt: l.user.updatedAt.toISOString(),
+        hireDate: l.user.hireDate ? l.user.hireDate.toISOString() : null,
+        birthDate: l.user.birthDate ? l.user.birthDate.toISOString() : null,
+        branch: l.user.branch ? {
+          ...l.user.branch,
+          createdAt: l.user.branch.createdAt.toISOString(),
+          updatedAt: l.user.branch.updatedAt.toISOString()
+        } : null
+      }
+    }));
+
+    return { success: true, logs: serializedLogs };
+  } catch (e: any) {
+    console.error("Error in getFilteredAttendanceLogs:", e);
+    return { success: false, error: e.message || "Error al consultar historial." };
+  }
 }
