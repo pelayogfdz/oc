@@ -34,26 +34,54 @@ export default function PortalEmpleadoClient({
   const [enrollStatus, setEnrollStatus] = useState('');
   const enrollFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Reusable helper to get fresh, high-accuracy GPS coordinates
+  const getGPSCoordinates = (): Promise<{lat: number, lng: number}> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocalización no soportada por el navegador"));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setCurrentCoords(coords);
+          setLocationStatus('Ubicación obtenida');
+          resolve(coords);
+        },
+        (err) => {
+          setLocationStatus('No se pudo obtener ubicación: ' + err.message);
+          reject(new Error("No se pudo obtener la ubicación GPS: " + err.message));
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
+        }
+      );
+    });
+  };
+
   // Simple geo tracking on load
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((pos) => {
-        setCurrentCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setLocationStatus('Ubicación obtenida');
-      }, (err) => {
-        setLocationStatus('No se pudo obtener ubicación: ' + err.message);
-      });
-    } else {
-      setLocationStatus('Geolocalización no soportada por el navegador');
-    }
+    getGPSCoordinates().catch(() => {});
   }, []);
 
   const handleCheckIn = async (type: 'CHECK_IN' | 'CHECK_OUT') => {
     setIsRegistering(true);
+    setErrorMsg(null);
     try {
-      if (user.reqGps && !currentCoords) {
-        throw new Error("Se requiere ubicación GPS activa para registrar asistencia.");
+      let coords = currentCoords;
+      if (user.reqGps) {
+        setLocationStatus('Obteniendo ubicación precisa...');
+        try {
+          coords = await getGPSCoordinates();
+        } catch (e: any) {
+          if (!coords) throw e;
+          // Fallback to coordinates fetched on mount if fresh query fails (e.g. timeout)
+          console.warn("Could not query fresh coordinates, using cached mount coords:", e.message);
+        }
       }
+
       if (user.reqPhoto && !faceMatched) {
         throw new Error("Se requiere foto de selfie exitosa para registrar tu entrada/salida.");
       }
@@ -61,8 +89,8 @@ export default function PortalEmpleadoClient({
       const res = await registerAttendance({
         userId: user.id,
         type,
-        latitude: currentCoords?.lat,
-        longitude: currentCoords?.lng,
+        latitude: coords?.lat,
+        longitude: coords?.lng,
         photoUrl: photoUrl || undefined,
         deviceInfo: navigator.userAgent
       });
@@ -193,19 +221,43 @@ export default function PortalEmpleadoClient({
         <div style={{ flex: '1 1 min(100%, 300px)', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
           {/* Action Card */}
-          <div className="card" style={{ padding: '1.5rem', textAlign: 'center', backgroundColor: '#f8fafc' }}>
-            <Clock size={48} color="var(--pulpos-primary)" style={{ margin: '0 auto 1rem auto' }} />
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Control de Asistencia</h2>
-            <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+          <div className="card" style={{ padding: '1.75rem', textAlign: 'center', backgroundColor: '#ffffff', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
+            <Clock size={48} color="var(--pulpos-primary)" style={{ margin: '0 auto 1.25rem auto', filter: 'drop-shadow(0 4px 6px rgba(59, 130, 246, 0.15))' }} />
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#1e293b' }}>Control de Asistencia</h2>
+            <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '1.75rem', fontSize: '0.9rem' }}>
               Registra tu entrada y salida del turno laboral. 
             </p>
 
             {(user.reqPhoto && !user.faceDescriptor) && (
-              <div style={{ padding: '1.5rem', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', marginBottom: '1.5rem', textAlign: 'center' }}>
-                <AlertTriangle size={32} color="#3b82f6" style={{ margin: '0 auto 0.5rem auto' }} />
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#1e3a8a', marginBottom: '0.5rem' }}>Registro Facial Requerido</h3>
-                <p style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '1rem' }}>
-                  Es tu primera vez. Para agilizar tus Check-ins, necesitas registrar tu rostro tomando una foto clara (selfie).
+              <div style={{ 
+                padding: '1.75rem', 
+                background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', 
+                border: '1px solid #bfdbfe', 
+                borderRadius: '12px', 
+                marginBottom: '1.75rem', 
+                textAlign: 'center',
+                boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.05)'
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  alignItems: 'center', 
+                  width: '56px', 
+                  height: '56px', 
+                  backgroundColor: '#2563eb', 
+                  color: 'white', 
+                  borderRadius: '50%', 
+                  margin: '0 auto 1rem auto',
+                  boxShadow: '0 4px 10px rgba(37, 99, 235, 0.3)' 
+                }}>
+                  <Camera size={26} />
+                </div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#1e3a8a', marginBottom: '0.5rem' }}>Registro Facial Requerido</h3>
+                <p style={{ fontSize: '0.85rem', color: '#2563eb', fontWeight: '600', marginBottom: '1rem', display: 'inline-block', backgroundColor: 'rgba(255,255,255,0.7)', padding: '0.25rem 0.75rem', borderRadius: '20px' }}>
+                  🔑 Es tu primera vez
+                </p>
+                <p style={{ fontSize: '0.85rem', color: '#3b82f6', lineHeight: '1.4', marginBottom: '1.25rem' }}>
+                  Para agilizar tus Check-ins seguros, por favor toma una foto clara de tu rostro (selfie). Asegúrate de tener buena iluminación y no usar lentes de sol, gorras o cubrebocas.
                 </p>
                 <input 
                   type="file" 
@@ -218,17 +270,43 @@ export default function PortalEmpleadoClient({
                 <button 
                   onClick={() => enrollFileInputRef.current?.click()}
                   disabled={isEnrollingFace}
-                  style={{ padding: '0.75rem 1.5rem', backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', fontWeight: 'bold', border: 'none', cursor: isEnrollingFace ? 'not-allowed' : 'pointer' }}
+                  style={{ 
+                    padding: '0.75rem 1.75rem', 
+                    backgroundColor: '#2563eb', 
+                    color: 'white', 
+                    borderRadius: '8px', 
+                    fontWeight: 'bold', 
+                    border: 'none', 
+                    cursor: isEnrollingFace ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 4px 6px rgba(37, 99, 235, 0.25)',
+                    transition: 'all 0.2s',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
                 >
-                  <Camera size={18} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '0.5rem' }} /> 
-                  {isEnrollingFace ? 'Procesando...' : 'Tomar Foto de Registro'}
+                  <Camera size={18} /> 
+                  {isEnrollingFace ? 'Cargando lector biométrico...' : 'Tomar Foto de Registro'}
                 </button>
-                {enrollStatus && <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', fontWeight: 'bold', color: enrollStatus.includes('Error') ? '#ef4444' : '#16a34a' }}>{enrollStatus}</p>}
+                {enrollStatus && (
+                  <p style={{ 
+                    marginTop: '0.75rem', 
+                    fontSize: '0.85rem', 
+                    fontWeight: 'bold', 
+                    color: enrollStatus.includes('Error') ? '#ef4444' : '#16a34a',
+                    backgroundColor: 'rgba(255,255,255,0.8)',
+                    padding: '0.4rem',
+                    borderRadius: '6px',
+                    border: enrollStatus.includes('Error') ? '1px solid #fca5a5' : '1px solid #86efac'
+                  }}>
+                    {enrollStatus}
+                  </p>
+                )}
               </div>
             )}
 
             {(user.reqPhoto && user.faceDescriptor && !hasCheckedOut) && (
-              <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ marginBottom: '1.75rem' }}>
                 <FaceRecognitionClient user={user} onFaceMatched={setFaceMatched} onPhotoCaptured={setPhotoUrl} />
               </div>
             )}
