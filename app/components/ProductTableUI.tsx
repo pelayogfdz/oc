@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, memo } from 'react';
-import { Image as ImageIcon } from 'lucide-react';
+import { Image as ImageIcon, X } from 'lucide-react';
 import Link from 'next/link';
 
 interface ProductTableUIProps {
@@ -15,6 +15,11 @@ interface ProductTableUIProps {
   priceExtractor?: (product: any) => number;
 }
 
+const getFormattedImageUrl = (url: string | null) => {
+  if (!url) return '';
+  return url.replace(/#/g, '%23');
+};
+
 const ProductTableUI = memo(function ProductTableUI({
   products,
   showCheckboxes = true,
@@ -27,9 +32,155 @@ const ProductTableUI = memo(function ProductTableUI({
 }: ProductTableUIProps) {
 
   const allSelected = products.length > 0 && selectedIds.length === products.length;
+  const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+
+  React.useEffect(() => {
+    const checkImages = () => {
+      const imgs = document.querySelectorAll('img[data-table-img="true"]') as NodeListOf<HTMLImageElement>;
+      setImageErrors(prev => {
+        let hasChanges = false;
+        const next = { ...prev };
+        imgs.forEach(img => {
+          const prodId = img.getAttribute('data-prod-id');
+          if (prodId && !next[prodId]) {
+            if (img.complete && img.naturalWidth === 0) {
+              next[prodId] = true;
+              hasChanges = true;
+            }
+          }
+        });
+        return hasChanges ? next : prev;
+      });
+    };
+
+    checkImages();
+
+    const handleError = (e: ErrorEvent) => {
+      const target = e.target as HTMLImageElement;
+      if (target && target.tagName === 'IMG' && target.getAttribute('data-table-img') === 'true') {
+        const prodId = target.getAttribute('data-prod-id');
+        if (prodId) {
+          setImageErrors(prev => prev[prodId] ? prev : { ...prev, [prodId]: true });
+        }
+      }
+    };
+
+    window.addEventListener('error', handleError, true);
+
+    const timer1 = setTimeout(checkImages, 500);
+    const timer2 = setTimeout(checkImages, 1500);
+    const timer3 = setTimeout(checkImages, 3000);
+
+    return () => {
+      window.removeEventListener('error', handleError, true);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+    };
+  }, [products]);
+
+  React.useEffect(() => {
+    if (!zoomImageUrl) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setZoomImageUrl(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [zoomImageUrl]);
 
   return (
     <div style={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes scaleIn {
+          from { transform: scale(0.95); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
+
+      {/* Premium Zoom Modal Overlay */}
+      {zoomImageUrl && (
+        <div 
+          onClick={() => setZoomImageUrl(null)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              backgroundColor: 'white',
+              borderRadius: '16px',
+              padding: '1.5rem',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              animation: 'scaleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+            }}
+          >
+            <button
+              onClick={() => setZoomImageUrl(null)}
+              style={{
+                position: 'absolute',
+                top: '12px',
+                right: '12px',
+                border: 'none',
+                background: 'rgba(241, 245, 249, 0.8)',
+                borderRadius: '999px',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#64748b',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#ef4444';
+                e.currentTarget.style.color = 'white';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = 'rgba(241, 245, 249, 0.8)';
+                e.currentTarget.style.color = '#64748b';
+              }}
+            >
+              <X size={18} />
+            </button>
+            <img 
+              src={getFormattedImageUrl(zoomImageUrl)} 
+              alt="Zoomed Product" 
+              style={{
+                maxWidth: '100%',
+                maxHeight: '70vh',
+                objectFit: 'contain',
+                borderRadius: '8px',
+                marginTop: '12px'
+              }} 
+            />
+          </div>
+        </div>
+      )}
+
       <div style={{ overflowX: 'auto' }}>
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
           <thead>
@@ -79,12 +230,57 @@ const ProductTableUI = memo(function ProductTableUI({
                   )}
                   <td data-label="Producto" style={{ padding: '1rem' }} className="full-width">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <div style={{ width: '40px', height: '40px', flexShrink: 0, backgroundColor: '#f1f5f9', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                        {prod.imageUrl ? (
-                           <img src={prod.imageUrl} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                           <ImageIcon size={20} color="#cbd5e1" />
-                        )}
+                      <div 
+                        style={{ 
+                          width: '40px', 
+                          height: '40px', 
+                          flexShrink: 0, 
+                          backgroundColor: '#f1f5f9', 
+                          borderRadius: '8px', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          overflow: 'hidden',
+                          border: '1px solid #e2e8f0',
+                          transition: 'all 0.2s ease',
+                          cursor: prod.imageUrl && !imageErrors[prod.id] ? 'pointer' : 'default'
+                        }}
+                        onMouseEnter={e => {
+                          if (prod.imageUrl && !imageErrors[prod.id]) {
+                            e.currentTarget.style.transform = 'scale(1.1)';
+                            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.1)';
+                          }
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.transform = 'none';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                        onClick={(e) => {
+                          if (prod.imageUrl && !imageErrors[prod.id]) {
+                            e.stopPropagation();
+                            setZoomImageUrl(prod.imageUrl);
+                          }
+                        }}
+                      >
+                         {prod.imageUrl && !imageErrors[prod.id] ? (
+                            <img 
+                              ref={img => {
+                                if (img && img.complete && img.naturalWidth === 0) {
+                                  setImageErrors(prev => prev[prod.id] ? prev : { ...prev, [prod.id]: true });
+                                }
+                              }}
+                              src={getFormattedImageUrl(prod.imageUrl)} 
+                              alt={prod.name} 
+                              data-table-img="true"
+                              data-prod-id={prod.id}
+                              onError={() => setImageErrors(prev => ({ ...prev, [prod.id]: true }))}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                            />
+                         ) : (
+                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eff6ff', color: '#3b82f6', fontWeight: 'bold', fontSize: '0.8rem' }}>
+                              {prod.name.substring(0, 2).toUpperCase()}
+                            </div>
+                         )}
                       </div>
                       <div>
                         {onRowClick ? (

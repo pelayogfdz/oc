@@ -1256,7 +1256,14 @@ setInterval(async () => {
                     }
                 }
 
+                const isInitializing = clients.has(req.branchId) && (!client || !client.info);
+
                 if (!client || !client.info) {
+                    if (isInitializing) {
+                        console.log(`[SYNC POLL] WhatsApp client for branch ${req.branchId} is still initializing. Postponing sync request...`);
+                        continue;
+                    }
+
                     console.error(`[SYNC POLL] No active WhatsApp client found for branch/tenant ${req.branchId}`);
                     await prisma.whatsAppSyncRequest.update({
                         where: { id: req.id },

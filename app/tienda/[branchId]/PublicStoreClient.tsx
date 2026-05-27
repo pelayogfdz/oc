@@ -1,10 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { formatCurrency } from '@/lib/utils';
-import { ShoppingCart, Search, Plus, Minus, Send, MapPin, Store } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Minus, Send, MapPin, Store, X } from 'lucide-react';
 
 type CartItem = { product: any; quantity: number };
+
+const getFormattedImageUrl = (url: string | null) => {
+  if (!url) return '';
+  return url.replace(/#/g, '%23');
+};
 
 export default function PublicStoreClient({ branchName, config, products }: { branchName: string, config: any, products: any[] }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -12,6 +17,62 @@ export default function PublicStoreClient({ branchName, config, products }: { br
   const [showCart, setShowCart] = useState(false);
   const [deliveryMode, setDeliveryMode] = useState<'pickup' | 'delivery'>('pickup');
   const [customerName, setCustomerName] = useState('');
+  const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const checkImages = () => {
+      const imgs = document.querySelectorAll('img[data-store-img="true"]') as NodeListOf<HTMLImageElement>;
+      setImageErrors(prev => {
+        let hasChanges = false;
+        const next = { ...prev };
+        imgs.forEach(img => {
+          const prodId = img.getAttribute('data-prod-id');
+          if (prodId && !next[prodId]) {
+            if (img.complete && img.naturalWidth === 0) {
+              next[prodId] = true;
+              hasChanges = true;
+            }
+          }
+        });
+        return hasChanges ? next : prev;
+      });
+    };
+
+    checkImages();
+
+    const handleError = (e: ErrorEvent) => {
+      const target = e.target as HTMLImageElement;
+      if (target && target.tagName === 'IMG' && target.getAttribute('data-store-img') === 'true') {
+        const prodId = target.getAttribute('data-prod-id');
+        if (prodId) {
+          setImageErrors(prev => prev[prodId] ? prev : { ...prev, [prodId]: true });
+        }
+      }
+    };
+
+    window.addEventListener('error', handleError, true);
+
+    const timer1 = setTimeout(checkImages, 500);
+    const timer2 = setTimeout(checkImages, 1500);
+    const timer3 = setTimeout(checkImages, 3000);
+
+    return () => {
+      window.removeEventListener('error', handleError, true);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+    };
+  }, [products]);
+
+  useEffect(() => {
+    if (!zoomImageUrl) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setZoomImageUrl(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [zoomImageUrl]);
 
   const cartTotal = cart.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
   const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -59,6 +120,95 @@ export default function PublicStoreClient({ branchName, config, products }: { br
 
   return (
     <div style={{ fontFamily: 'var(--font-geist-sans)', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes scaleIn {
+          from { transform: scale(0.95); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
+
+      {/* Premium Zoom Modal Overlay */}
+      {zoomImageUrl && (
+        <div 
+          onClick={() => setZoomImageUrl(null)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              backgroundColor: 'white',
+              borderRadius: '16px',
+              padding: '1.5rem',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              animation: 'scaleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+            }}
+          >
+            <button
+              onClick={() => setZoomImageUrl(null)}
+              style={{
+                position: 'absolute',
+                top: '12px',
+                right: '12px',
+                border: 'none',
+                background: 'rgba(241, 245, 249, 0.8)',
+                borderRadius: '999px',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#64748b',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#ef4444';
+                e.currentTarget.style.color = 'white';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = 'rgba(241, 245, 249, 0.8)';
+                e.currentTarget.style.color = '#64748b';
+              }}
+            >
+              <X size={18} />
+            </button>
+            <img 
+              src={getFormattedImageUrl(zoomImageUrl)} 
+              alt="Zoomed Product" 
+              style={{
+                maxWidth: '100%',
+                maxHeight: '70vh',
+                objectFit: 'contain',
+                borderRadius: '8px',
+                marginTop: '12px'
+              }} 
+            />
+          </div>
+        </div>
+      )}
       
       {/* Header */}
       <div style={{ backgroundColor: config.themeColor, color: 'white', padding: '1rem', position: 'sticky', top: 0, zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -88,11 +238,43 @@ export default function PublicStoreClient({ branchName, config, products }: { br
             const qty = getQty(product.id);
             return (
               <div key={product.id} style={{ backgroundColor: 'white', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ height: '180px', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                   {product.imageUrl ? (
-                      <img src={product.imageUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div 
+                  onClick={() => {
+                    if (product.imageUrl && !imageErrors[product.id]) {
+                      setZoomImageUrl(product.imageUrl);
+                    }
+                  }}
+                  style={{ 
+                    height: '180px', 
+                    backgroundColor: '#f1f5f9', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    cursor: product.imageUrl && !imageErrors[product.id] ? 'pointer' : 'default',
+                    overflow: 'hidden',
+                    position: 'relative'
+                  }}
+                >
+                   {product.imageUrl && !imageErrors[product.id] ? (
+                      <img 
+                        ref={img => {
+                          if (img && img.complete && img.naturalWidth === 0) {
+                            setImageErrors(prev => prev[product.id] ? prev : { ...prev, [product.id]: true });
+                          }
+                        }}
+                        src={getFormattedImageUrl(product.imageUrl)} 
+                        alt={product.name} 
+                        data-store-img="true"
+                        data-prod-id={product.id}
+                        onError={() => setImageErrors(prev => ({ ...prev, [product.id]: true }))}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'all 0.3s ease' }} 
+                        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                        onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+                      />
                    ) : (
-                      <ShoppingCart size={40} color="#cbd5e1" />
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eff6ff', color: '#3b82f6', fontWeight: 'bold', fontSize: '1.5rem' }}>
+                        {product.name.substring(0, 2).toUpperCase()}
+                      </div>
                    )}
                 </div>
                 <div style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>

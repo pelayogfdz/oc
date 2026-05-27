@@ -1,10 +1,15 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { adjustInventory } from '@/app/actions/inventory';
 import { createVariant, deleteVariant } from '@/app/actions/variant';
 import { createBatch, deleteBatch } from '@/app/actions/batch';
-import { Truck } from 'lucide-react';
+import { Truck, Image as ImageIcon, X } from 'lucide-react';
+
+const getFormattedImageUrl = (url: string | null) => {
+  if (!url) return '';
+  return url.replace(/#/g, '%23');
+};
 
 // ProductDetailClient handles the tab navigation state
 export function ProductDetailClient({ 
@@ -29,6 +34,48 @@ export function ProductDetailClient({
   const [activeTab, setActiveTab] = useState('details');
   const [showAdjustForm, setShowAdjustForm] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
+  const [headerImageError, setHeaderImageError] = useState(false);
+
+  useEffect(() => {
+    const checkImage = () => {
+      const img = document.querySelector('img[data-header-img="true"]') as HTMLImageElement | null;
+      if (img && img.complete && img.naturalWidth === 0) {
+        setHeaderImageError(true);
+      }
+    };
+
+    checkImage();
+
+    const handleError = (e: ErrorEvent) => {
+      const target = e.target as HTMLImageElement;
+      if (target && target.tagName === 'IMG' && target.getAttribute('data-header-img') === 'true') {
+        setHeaderImageError(true);
+      }
+    };
+
+    window.addEventListener('error', handleError, true);
+
+    const timer1 = setTimeout(checkImage, 500);
+    const timer2 = setTimeout(checkImage, 1500);
+    const timer3 = setTimeout(checkImage, 3000);
+
+    return () => {
+      window.removeEventListener('error', handleError, true);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+    };
+  }, [product.imageUrl]);
+
+  useEffect(() => {
+    if (!zoomImageUrl) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setZoomImageUrl(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [zoomImageUrl]);
 
   const handleAdjustmentSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -47,6 +94,179 @@ export function ProductDetailClient({
 
   return (
     <>
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes scaleIn {
+          from { transform: scale(0.95); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
+
+      {/* Premium Zoom Modal Overlay */}
+      {zoomImageUrl && (
+        <div 
+          onClick={() => setZoomImageUrl(null)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              backgroundColor: 'white',
+              borderRadius: '16px',
+              padding: '1.5rem',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              animation: 'scaleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+            }}
+          >
+            <button
+              onClick={() => setZoomImageUrl(null)}
+              style={{
+                position: 'absolute',
+                top: '12px',
+                right: '12px',
+                border: 'none',
+                background: 'rgba(241, 245, 249, 0.8)',
+                borderRadius: '999px',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#64748b',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#ef4444';
+                e.currentTarget.style.color = 'white';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = 'rgba(241, 245, 249, 0.8)';
+                e.currentTarget.style.color = '#64748b';
+              }}
+            >
+              <X size={18} />
+            </button>
+            <img 
+              src={getFormattedImageUrl(zoomImageUrl)} 
+              alt="Zoomed Product" 
+              style={{
+                maxWidth: '100%',
+                maxHeight: '70vh',
+                objectFit: 'contain',
+                borderRadius: '8px',
+                marginTop: '12px'
+              }} 
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Premium Product Header Card with Image */}
+      <div 
+        className="card" 
+        style={{ 
+          display: 'flex', 
+          gap: '2rem', 
+          padding: '1.5rem', 
+          marginBottom: '1.5rem', 
+          alignItems: 'center', 
+          background: 'linear-gradient(to right, #ffffff, #f8fafc)', 
+          border: '1px solid var(--pulpos-border)',
+          borderRadius: '12px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          flexWrap: 'wrap'
+        }}
+      >
+        <div 
+          onClick={() => {
+            if (product.imageUrl && !headerImageError) {
+              setZoomImageUrl(product.imageUrl);
+            }
+          }}
+          style={{ 
+            width: '120px', 
+            height: '120px', 
+            backgroundColor: '#f8fafc', 
+            border: '1px solid var(--pulpos-border)', 
+            borderRadius: '12px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            overflow: 'hidden', 
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', 
+            flexShrink: 0, 
+            cursor: product.imageUrl && !headerImageError ? 'pointer' : 'default',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={e => {
+            if (product.imageUrl && !headerImageError) {
+              e.currentTarget.style.transform = 'scale(1.05)';
+              e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+            }
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'none';
+            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.05)';
+          }}
+        >
+          {product.imageUrl && !headerImageError ? (
+            <img 
+              ref={img => {
+                if (img && img.complete && img.naturalWidth === 0) {
+                  setHeaderImageError(true);
+                }
+              }}
+              src={getFormattedImageUrl(product.imageUrl)} 
+              alt={product.name} 
+              data-header-img="true"
+              onError={() => setHeaderImageError(true)}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+            />
+          ) : (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eff6ff', color: '#3b82f6', fontWeight: 'bold', fontSize: '2rem' }}>
+              {product.name.substring(0, 2).toUpperCase()}
+            </div>
+          )}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minWidth: '280px' }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--pulpos-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {product.category || 'General'}
+          </span>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>
+            {product.name}
+          </h2>
+          <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', fontSize: '0.9rem', color: '#64748b', marginTop: '0.25rem' }}>
+            <span><strong>SKU:</strong> {product.sku}</span>
+            {product.barcode && <span><strong>Código de Barras:</strong> {product.barcode}</span>}
+            <span><strong>Existencia:</strong> <span style={{ color: product.stock > 0 ? '#16a34a' : '#dc2626', fontWeight: '600' }}>{product.stock} {product.unit || 'pzas'}</span></span>
+            <span><strong>Precio Normal:</strong> <span style={{ color: '#0f172a', fontWeight: 'bold' }}>${parseFloat(product.price || 0).toFixed(2)}</span></span>
+          </div>
+        </div>
+      </div>
+
       <div style={{ display: 'flex', gap: '2rem', borderBottom: '1px solid var(--pulpos-border)', marginBottom: '1.5rem' }}>
         <button 
           onClick={() => setActiveTab('details')}
