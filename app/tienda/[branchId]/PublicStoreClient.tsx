@@ -308,7 +308,7 @@ export default function PublicStoreClient({ branchName, config, products }: { br
                 </div>
                 <div style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <h3 style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>{product.name}</h3>
-                  <div style={{ color: 'gray', fontSize: '0.85rem', flex: 1, marginBottom: '1rem' }}>{product.description || 'Sin descripción'}</div>
+                  <div style={{ color: 'gray', fontSize: '0.85rem', flex: 1, marginBottom: '1rem', whiteSpace: 'pre-wrap' }}>{product.description || 'Sin descripción'}</div>
                   
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ fontWeight: '900', fontSize: '1.2rem', color: config.themeColor }}>{formatCurrency(product.price)}</div>

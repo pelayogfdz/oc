@@ -563,6 +563,15 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                   <option value="ADMIN">Administrador VIP</option>
                 </select>
               </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--pulpos-primary)' }}>Sucursal Asignada (Reloj Checador)</label>
+                <select name="branchId" defaultValue={editingUser?.branchId || ''} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-primary)', backgroundColor: 'white' }}>
+                  <option value="">Selecciona Sucursal...</option>
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Matriz de Permisos */}

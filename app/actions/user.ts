@@ -61,13 +61,14 @@ export async function createUser(formData: FormData) {
   const hrLocationsRaw = formData.get('hrLocations') as string;
   const hrLocations = hrLocationsRaw ? JSON.parse(hrLocationsRaw) : [];
   
+  const branchId = formData.get('branchId') as string;
   const branch = await getActiveBranch();
   if (!branch) throw new Error("No branch active");
   
   await prisma.user.create({
     data: {
       name, email, password, role, commissionRole, commissionPct, monthlyGoal, bonusAmount, teamBonusAmount, managerId,
-      branchId: branch.id, tenantId: branch.tenantId, permissions,
+      branchId: branchId || branch.id, tenantId: branch.tenantId, permissions,
       rfc, curp, nss, taxRegime, address, phone, hireDate, birthDate,
       payrollType, dailySalary, bankName, bankAccount,
       bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus, deductLunchHour,
@@ -140,8 +141,10 @@ export async function updateUser(id: string, formData: FormData) {
   const hrLocationsRaw = formData.get('hrLocations') as string;
   const hrLocations = hrLocationsRaw ? JSON.parse(hrLocationsRaw) : [];
   
+  const branchId = formData.get('branchId') as string;
+  
   const updateData: any = { 
-    name, email, role, commissionRole, commissionPct, monthlyGoal, bonusAmount, teamBonusAmount, managerId, permissions,
+    name, email, role, branchId: branchId || undefined, commissionRole, commissionPct, monthlyGoal, bonusAmount, teamBonusAmount, managerId, permissions,
     rfc, curp, nss, taxRegime, address, phone, hireDate, birthDate,
     payrollType, dailySalary, bankName, bankAccount,
     bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus, deductLunchHour,

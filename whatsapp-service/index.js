@@ -627,36 +627,33 @@ app.post('/api/send', async (req, res) => {
         }
 
         
-        let chatId = phone ? `${phone}@c.us` : null;
-        // Check if there is an existing prospect to see if we have their LID whatsappId
+        let chatId = null;
+        // Check if there is an existing prospect to see if we have their LID or JID whatsappId
         if (prospectId) {
             const pr = await prisma.prospect.findUnique({
                 where: { id: prospectId }
             });
             if (pr) {
-                // Prefer the standard phone number first to avoid @lid issues
-                if (pr.phone) {
+                if (pr.whatsappId && pr.whatsappId !== '0') {
+                    chatId = pr.whatsappId.includes('@') 
+                        ? pr.whatsappId 
+                        : (pr.whatsappId.length > 13 ? `${pr.whatsappId}@lid` : `${pr.whatsappId}@c.us`);
+                } else if (pr.phone) {
                     let pPhone = pr.phone;
                     if (pPhone.startsWith('52') && pPhone.length === 12) {
                         pPhone = '521' + pPhone.substring(2);
                     }
                     chatId = `${pPhone}@c.us`;
-                } else if (pr.whatsappId) {
-                    if (pr.whatsappId.includes('@')) {
-                        if (pr.whatsappId.endsWith('@lid')) {
-                            console.log(`[WHATSAPP] Found LID JID in whatsappId: ${pr.whatsappId}. Bypassing.`);
-                        } else {
-                            chatId = pr.whatsappId;
-                        }
-                    } else {
-                        if (pr.whatsappId.length > 13) {
-                            console.log(`[WHATSAPP] Found long LID in whatsappId: ${pr.whatsappId}. Bypassing.`);
-                        } else {
-                            chatId = `${pr.whatsappId}@c.us`;
-                        }
-                    }
                 }
             }
+        }
+
+        if (!chatId && phone) {
+            let pPhone = phone;
+            if (pPhone.startsWith('52') && pPhone.length === 12) {
+                pPhone = '521' + pPhone.substring(2);
+            }
+            chatId = `${pPhone}@c.us`;
         }
 
         if (!chatId) {
@@ -1354,67 +1351,83 @@ setInterval(async () => {
 
             try {
                 let phone = msg.prospect.phone;
-                if (!phone) continue;
+                let chatId = null;
 
-                if (phone.startsWith('52') && phone.length === 12) {
-                    phone = '521' + phone.substring(2);
-                }
-
-                let chatId = `${phone}@c.us`;
-
-                try {
-                    const numberId = await client.getNumberId(phone);
-                    if (numberId) {
-                        // Crucial: Only use the numberId if it is a standard @c.us JID to avoid LID crashes
-                        if (numberId._serialized && !numberId._serialized.includes('@lid')) {
-                            chatId = numberId._serialized;
-                            
-                            if (msg.prospect.whatsappId !== numberId.user) {
-                                await prisma.prospect.update({
-                                    where: { id: msg.prospect.id },
-                                    data: { whatsappId: numberId.user }
-                                });
-                            }
-                        } else {
-                            console.log(`[WHATSAPP] getNumberId returned LID ${numberId._serialized} for ${phone}, skipping it to avoid crash.`);
-                        }
+                if (msg.prospect.whatsappId && msg.prospect.whatsappId !== '0') {
+                    chatId = msg.prospect.whatsappId.includes('@')
+                        ? msg.prospect.whatsappId
+                        : (msg.prospect.whatsappId.length > 13 ? `${msg.prospect.whatsappId}@lid` : `${msg.prospect.whatsappId}@c.us`);
+                } else if (phone) {
+                    let pPhone = phone;
+                    if (pPhone.startsWith('52') && pPhone.length === 12) {
+                        pPhone = '521' + pPhone.substring(2);
                     }
-                } catch (e) {
-                    console.log(`[WHATSAPP] getNumberId failed for ${phone}, falling back to default format.`);
+                    chatId = `${pPhone}@c.us`;
                 }
 
-                const sentMsg = await client.sendMessage(chatId, msg.body);
+                if (!chatId) continue;
 
-                // Safe update: check if it's already updated (by message_create) to avoid unique constraint crash
-                const checkAgain = await prisma.whatsAppMessage.findUnique({
-                    where: { id: msg.id }
-                });
+                // Only call getNumberId if we don't have a valid whatsappId in DB yet
+                if (!msg.prospect.whatsappId || msg.prospect.whatsappId === '0') {
+                    try {
+                        const numberId = await client.getNumberId(phone);
+                        if (numberId && numberId._serialized) {
+                            chatId = numberId._serialized;
+                            const whatsappIdUser = numberId.user || numberId._serialized.split('@')[0];
+                            
+                            await prisma.prospect.update({
+                                where: { id: msg.prospect.id },
+                                data: { whatsappId: whatsappIdUser }
+                            });
+                            console.log(`[WHATSAPP] Polling loop resolved and updated JID ${chatId} for ${phone}`);
+                        }
+                    } catch (e) {
+                        console.log(`[WHATSAPP] getNumberId failed for ${phone}:`, e.message);
+                    }
+                }
 
-                if (checkAgain && checkAgain.messageId === null) {
+                let sentMsg = null;
+                try {
+                    sentMsg = await client.sendMessage(chatId, msg.body);
+                } catch (sendError) {
+                    console.error(`Failed to send pending message to ${msg.prospect?.phone}:`, sendError);
                     await prisma.whatsAppMessage.update({
                         where: { id: msg.id },
                         data: {
-                            messageId: sentMsg.id._serialized,
-                            timestamp: new Date(sentMsg.timestamp * 1000)
+                            messageId: 'FAILED_' + Date.now()
                         }
+                    }).catch(() => {});
+                    continue;
+                }
+
+                // Safe update: isolate database transaction from actual sending
+                try {
+                    const checkAgain = await prisma.whatsAppMessage.findUnique({
+                        where: { id: msg.id }
                     });
-                    console.log(`[WHATSAPP] Polling loop updated message ${msg.id} to messageId ${sentMsg.id._serialized}`);
-                } else {
-                    console.log(`[WHATSAPP] Polling loop: Message ${msg.id} was already updated/linked by message_create.`);
+
+                    if (checkAgain && (checkAgain.messageId === null || checkAgain.messageId.startsWith('FAILED_'))) {
+                        await prisma.whatsAppMessage.update({
+                            where: { id: msg.id },
+                            data: {
+                                messageId: sentMsg.id._serialized,
+                                timestamp: new Date(sentMsg.timestamp * 1000)
+                            }
+                        });
+                        console.log(`[WHATSAPP] Polling loop updated message ${msg.id} to messageId ${sentMsg.id._serialized}`);
+                    } else {
+                        console.log(`[WHATSAPP] Polling loop: Message ${msg.id} was already updated/linked by message_create.`);
+                    }
+                } catch (dbErr) {
+                    console.warn(`[WHATSAPP] Safe database link warning (soft unique constraint handled):`, dbErr.message);
                 }
                 
                 console.log(`[WHATSAPP] Sent pending message to ${phone}`);
 
                 // WAIT 5 SECONDS between each message to avoid spam!
                 await new Promise(resolve => setTimeout(resolve, 5000));
-            } catch (sendError) {
-                console.error(`Failed to send pending message to ${msg.prospect?.phone}:`, sendError);
-                await prisma.whatsAppMessage.update({
-                    where: { id: msg.id },
-                    data: {
-                        messageId: 'FAILED_' + Date.now()
-                    }
-                });
+            } catch (loopErr) {
+                console.error(`[WHATSAPP] Polling loop exception:`, loopErr);
             }
         }
     } catch (error) {
@@ -1564,11 +1577,23 @@ async function pollWhatsAppSessions() {
 // Check every 5 seconds for any session signaling changes
 setInterval(pollWhatsAppSessions, 5000);
 
-const PORT = process.env.WHATSAPP_PORT || 3001;
+const PORT = process.env.PORT || process.env.WHATSAPP_PORT || 3001;
 app.listen(PORT, () => {
     console.log(`WhatsApp Microservice API running on port ${PORT}`);
     // Start active WhatsApp clients
     initializeAllActiveSessions();
     // Run an initial poll check immediately
     pollWhatsAppSessions();
+});
+
+// Capturadores globales de errores para evitar que excepciones de Puppeteer tiren el microservicio en producción
+process.on('uncaughtException', (err) => {
+    console.error('[FATAL CRASH PREVENTED] Uncaught Exception en el microservicio de WhatsApp:', err);
+    if (err && err.message && err.message.includes('Execution context was destroyed')) {
+        console.warn('[RECOVERY] Detectado error de contexto destruido en Puppeteer. El polling auto-recuperará las sesiones inactivas en el siguiente ciclo.');
+    }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('[FATAL CRASH PREVENTED] Unhandled Rejection detectada en:', promise, 'razón:', reason);
 });
