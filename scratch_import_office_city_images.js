@@ -277,6 +277,7 @@ async function crawlMissingImages(limit = 150) {
   let successCount = 0;
   let failCount = 0;
   let consecutiveFailures = 0;
+  let recoveryAttempts = 0;
 
   for (let i = 0; i < toProcess.length; i++) {
     const p = toProcess[i];
@@ -291,8 +292,15 @@ async function crawlMissingImages(limit = 150) {
       consecutiveFailures++;
       console.warn(`  [INFO] Consecutive failures: ${consecutiveFailures}/10`);
       if (consecutiveFailures >= 10) {
-        console.error(`\n [CRITICAL] 10 consecutive failures encountered! Bing search rate limits or network issues detected. Exiting gracefully to prevent spam.`);
-        break;
+        recoveryAttempts++;
+        if (recoveryAttempts <= 5) {
+          console.warn(`\n [WARNING] 10 consecutive failures encountered! Possible temporary rate limit. Sleeping 3 minutes to recover (Attempt ${recoveryAttempts}/5)...`);
+          consecutiveFailures = 0;
+          await sleep(180000); // 3 minutes recovery sleep
+        } else {
+          console.error(`\n [CRITICAL] Max recovery attempts (5) reached with consecutive failures. Exiting to prevent block.`);
+          break;
+        }
       }
     }
 
