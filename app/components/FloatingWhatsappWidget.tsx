@@ -468,15 +468,29 @@ export default function FloatingWhatsappWidget() {
 
       if (res.ok) {
         const data = await res.json();
-        if (data.messageId && fileToSend) {
-          setDownloadedMedia(prev => ({
-            ...prev,
-            [data.messageId]: {
-              data: fileToSend.base64.split(';base64,')[1] || fileToSend.base64,
-              mimetype: fileToSend.type,
-              filename: fileToSend.name
-            }
-          }));
+        if (data.messageId) {
+          if (fileToSend) {
+            setDownloadedMedia(prev => ({
+              ...prev,
+              [data.messageId]: {
+                data: fileToSend.base64.split(';base64,')[1] || fileToSend.base64,
+                mimetype: fileToSend.type,
+                filename: fileToSend.name
+              }
+            }));
+          }
+          // Update the optimistic message's ID to the real database ID
+          setProspects((prev: any) =>
+            prev.map((p: any) => {
+              if (p.id === floatingActiveChatId) {
+                return {
+                  ...p,
+                  messages: (p.messages || []).map((m: any) => m.id === tempMsgId ? { ...m, id: data.messageId } : m)
+                };
+              }
+              return p;
+            })
+          );
         }
         const pollRes = await fetch(`/api/prospects`, { cache: "no-store" });
         if (pollRes.ok) {
@@ -485,7 +499,6 @@ export default function FloatingWhatsappWidget() {
             setProspects(pollData.prospects);
           }
         }
-        router.refresh();
       } else {
         alert("Error al enviar mensaje desde el chat flotante.");
         setProspects((prev: any) =>

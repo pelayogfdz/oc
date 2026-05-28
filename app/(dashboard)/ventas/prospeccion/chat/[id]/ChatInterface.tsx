@@ -333,6 +333,10 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Dynamic polling interval: poll faster (1.2 seconds) if there are pending messages (messageId is null or FAILED_)
+  const hasPending = messages.some((m: any) => !m.messageId || m.messageId.startsWith('FAILED_') || m.status === 0);
+  const pollInterval = hasPending ? 1200 : 4000;
+
   // Polling for new messages
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -363,10 +367,10 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
       } catch (e) {
         console.error("Polling error", e);
       }
-    }, 4000);
+    }, pollInterval);
 
     return () => clearInterval(interval);
-  }, [prospect.id, messages]);
+  }, [prospect.id, messages, pollInterval]);
 
   // Polling for WhatsApp connection status
   useEffect(() => {
@@ -456,18 +460,21 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
       if (res.ok) {
         // If it succeeded, we can parse the returned messageId
         const data = await res.json();
-        if (data.messageId && fileToSend) {
-          // Sync downloaded state to the real messageId!
-          setDownloadedMedia(prev => ({
-            ...prev,
-            [data.messageId]: {
-              data: fileToSend.base64.split(';base64,')[1] || fileToSend.base64,
-              mimetype: fileToSend.type,
-              filename: fileToSend.name
-            }
-          }));
+        if (data.messageId) {
+          if (fileToSend) {
+            // Sync downloaded state to the real messageId!
+            setDownloadedMedia(prev => ({
+              ...prev,
+              [data.messageId]: {
+                data: fileToSend.base64.split(';base64,')[1] || fileToSend.base64,
+                mimetype: fileToSend.type,
+                filename: fileToSend.name
+              }
+            }));
+          }
+          // Update the optimistic message's ID to the real database ID
+          setMessages(prev => prev.map(m => m.id === tempMsgId ? { ...m, id: data.messageId } : m));
         }
-        router.refresh();
       } else {
         alert("Error al enviar mensaje. Verifica que el microservicio de WhatsApp esté conectado.");
         setMessages(prev => prev.filter(m => m.id !== tempMsgId));

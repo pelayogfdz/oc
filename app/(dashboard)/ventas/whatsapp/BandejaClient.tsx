@@ -200,6 +200,12 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
   };
 
 
+  // Dynamic polling interval: poll faster (1.2 seconds) if there are pending messages (status = 0 or messageId is null or FAILED_) in any prospect
+  const hasPending = prospects.some((p: any) =>
+    p.messages?.some((m: any) => !m.messageId || m.messageId.startsWith('FAILED_') || m.status === 0)
+  );
+  const pollInterval = hasPending ? 1200 : 4000;
+
   // Real-time Polling of Prospects List
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -230,10 +236,10 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
       } catch (err) {
         console.error("Error polling prospects list", err);
       }
-    }, 4000);
+    }, pollInterval);
 
     return () => clearInterval(interval);
-  }, [prospects]);
+  }, [prospects, pollInterval]);
 
   // Campaign Modal States
   const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
@@ -413,7 +419,7 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
     const msg = `¡Hola! Aquí tienes el enlace a tu cotización solicitada: \n${link}`;
     
     try {
-      await fetch("/api/whatsapp/send", {
+      const res = await fetch("/api/whatsapp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -423,8 +429,25 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
         })
       });
       setShowQuoteModal(false);
-      // Let polling in ChatInterface pick it up, or trigger a refresh
-      router.refresh();
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data.messageId) {
+          const optimisticQuoteMsg = {
+            id: data.messageId,
+            body: msg,
+            isFromMe: true,
+            status: 1, // Sent to queue
+            timestamp: new Date().toISOString()
+          };
+          setProspects((prev: any) =>
+            prev.map((p: any) => p.id === selectedProspect.id ? {
+              ...p,
+              messages: [...(p.messages || []), optimisticQuoteMsg]
+            } : p)
+          );
+        }
+      }
     } catch (e) {
       console.error(e);
     }
