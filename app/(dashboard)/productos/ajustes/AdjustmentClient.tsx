@@ -13,6 +13,12 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
   const [reason, setReason] = useState('Ajuste General');
   const [items, setItems] = useState<any[]>([]);
   const [isPending, setIsPending] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const delayFn = setTimeout(async () => {
@@ -120,8 +126,41 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
                     transition: 'all 0.2s ease'
                   }}
                 >
-                  <div style={{ width: '40px', height: '40px', backgroundColor: '#e2e8f0', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', flexShrink: 0, overflow: 'hidden' }}>
-                    {prod.imageUrl ? <img src={prod.imageUrl} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon size={20} />}
+                  <div style={{ position: 'relative', width: '40px', height: '40px', backgroundColor: '#eff6ff', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6', fontWeight: 'bold', fontSize: '0.8rem', flexShrink: 0, overflow: 'hidden' }}>
+                    {/* Initials Fallback */}
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
+                      {prod.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    {/* Product Image */}
+                    {isMounted && prod.imageUrl && !imageErrors[prod.id] && (
+                      <img 
+                        src={prod.imageUrl.replace(/#/g, '%23')} 
+                        alt="" 
+                        data-table-img="true"
+                        data-prod-id={prod.id}
+                        data-initials={prod.name.substring(0, 2).toUpperCase()}
+                        onLoad={(e) => {
+                          e.currentTarget.style.opacity = '1';
+                          e.currentTarget.style.visibility = 'visible';
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.style.visibility = 'hidden';
+                          setImageErrors(prev => ({ ...prev, [prod.id]: true }));
+                        }}
+                        style={{ 
+                          position: 'absolute', 
+                          inset: 0, 
+                          width: '100%', 
+                          height: '100%', 
+                          objectFit: 'cover', 
+                          zIndex: 2,
+                          opacity: 0,
+                          visibility: 'hidden',
+                          transition: 'opacity 0.2s ease-in-out'
+                        }} 
+                      />
+                    )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

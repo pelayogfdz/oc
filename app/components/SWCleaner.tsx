@@ -19,7 +19,7 @@ export default function SWCleaner() {
             console.log('[SWCleaner] Service Workers unregistered. Clearing Cache Storage...');
             
             // Delete all cache storage databases
-            if ('caches' in window) {
+            if (typeof caches !== 'undefined') {
               caches.keys().then((keys) => {
                 const deletePromises = keys.map((key) => {
                   console.log('[SWCleaner] Deleting cache database:', key);

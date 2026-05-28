@@ -44,6 +44,19 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.addEventListener('error', function(e) {
+                if (e.target && e.target.tagName === 'IMG') {
+                  e.target.style.display = 'none';
+                }
+              }, true);
+            `
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
         <SWCleaner />
         {children}

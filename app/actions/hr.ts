@@ -75,6 +75,7 @@ export async function registerAttendance(data: {
     }
 
     // GPS Validation
+    let gpsWarningPrefix = "";
     if (user.reqGps) {
       if (data.latitude === undefined || data.longitude === undefined) {
         return { success: false, error: "Se requiere ubicación GPS para registrar asistencia." };
@@ -111,7 +112,14 @@ export async function registerAttendance(data: {
 
         const toleranceMargin = 20; // 20m GPS tolerance margin to absorb drift/fluctuations
         if (distance > (targetRadius + toleranceMargin)) {
-          return { success: false, error: `Estás fuera del radio permitido de asistencia (distancia: ${Math.round(distance)}m, permitido: ${targetRadius}m + ${toleranceMargin}m de tolerancia).` };
+          if (user.flexibleGps) {
+            gpsWarningPrefix = `[⚠️ Fuera de Rango: ${Math.round(distance)}m] `;
+          } else {
+            return { 
+              success: false, 
+              error: `Estás fuera del radio permitido de asistencia (distancia: ${Math.round(distance)}m, permitido: ${targetRadius}m). Si estás en tu lugar de trabajo, solicita a tu administrador verificar tus coordenadas en Preferencias o activar 'GPS Flexible' en tu perfil.` 
+            };
+          }
         }
       }
     }
@@ -173,12 +181,12 @@ export async function registerAttendance(data: {
       data: {
         userId: data.userId,
         type: data.type,
-        status,
+        status: gpsWarningPrefix ? 'OUTSIDE_RADIUS' : status,
         timestamp: new Date(),
         lat: data.latitude,
         lng: data.longitude,
         photoUrl: data.photoUrl,
-        deviceInfo: data.deviceInfo
+        deviceInfo: gpsWarningPrefix + (data.deviceInfo || '')
       }
     });
 

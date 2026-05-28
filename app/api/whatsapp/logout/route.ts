@@ -11,38 +11,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const url = new URL(request.url);
-    const branchIdParam = url.searchParams.get("branchId");
+    const firstBranch = await prisma.branch.findFirst({
+      where: { tenantId: user.tenantId, isActive: true },
+      orderBy: { createdAt: 'asc' }
+    });
 
-    let branchId: string;
-
-    if (branchIdParam) {
-      // Validate strictly that the branch belongs to the user's tenant
-      const targetBranch = await prisma.branch.findFirst({
-        where: { id: branchIdParam, tenantId: user.tenantId, isActive: true }
-      });
-
-      if (!targetBranch) {
-        return NextResponse.json({ error: "Branch not found or access denied" }, { status: 403 });
-      }
-      branchId = targetBranch.id;
-    } else {
-      const branch = await getActiveBranch();
-      if (!branch) {
-        return NextResponse.json({ error: "No branch found" }, { status: 404 });
-      }
-
-      branchId = branch.id;
-      if (branchId === 'GLOBAL') {
-        const firstBranch = await prisma.branch.findFirst({
-          where: { tenantId: branch.tenantId, isActive: true }
-        });
-        if (!firstBranch) {
-          return NextResponse.json({ error: "No active branch found for tenant" }, { status: 404 });
-        }
-        branchId = firstBranch.id;
-      }
+    if (!firstBranch) {
+      return NextResponse.json({ error: "No active branch found for tenant" }, { status: 404 });
     }
+
+    const branchId = firstBranch.id;
 
     // Instead of fetch, update the database directly to trigger the polling microservice
     await prisma.whatsAppSession.upsert({

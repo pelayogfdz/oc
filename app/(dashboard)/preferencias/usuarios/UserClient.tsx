@@ -1019,6 +1019,14 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                   <span style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>El empleado no podrá registrar asistencia si está fuera de la geocerca de su oficina.</span>
                 </div>
               </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '1rem', borderRadius: '6px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                <input type="checkbox" name="flexibleGps" defaultChecked={editingUser?.flexibleGps} style={{ width: '1.25rem', height: '1.25rem', accentColor: '#16a34a' }} />
+                <div>
+                  <span style={{ fontSize: '1rem', fontWeight: 'bold', display: 'block', color: '#166534' }}>GPS Flexible (Soft Check)</span>
+                  <span style={{ fontSize: '0.85rem', color: '#15803d' }}>Permite registrar asistencia fuera del rango permitido pero guardando una alerta de geocerca en el reporte.</span>
+                </div>
+              </label>
               
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)' }}>
                 <input type="checkbox" name="reqPhoto" defaultChecked={editingUser?.reqPhoto} style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--pulpos-primary)' }} />
@@ -1036,28 +1044,48 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                 </div>
               </label>
 
-              <div style={{ padding: '1rem', borderRadius: '6px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', marginTop: '1rem' }}>
-                <h5 style={{ fontWeight: 'bold', color: '#1d4ed8', marginBottom: '0.5rem' }}>Registro Facial (Reconocimiento Biométrico)</h5>
-                <p style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '1rem' }}>Para que el sistema reconozca automáticamente a este empleado, debe registrar su rostro.</p>
-                <label 
-                  style={{ display: 'inline-block', padding: '0.5rem 1rem', backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    capture="user" 
-                    onChange={handleBioCapture} 
-                    style={{ display: 'none' }} 
-                  />
-                  📸 {faceDescriptor ? 'Actualizar Registro Facial' : 'Iniciar Registro Facial'}
-                </label>
+              <div style={{ padding: '1.25rem', borderRadius: '8px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', marginTop: '1.25rem' }}>
+                <h5 style={{ fontWeight: 'bold', color: '#1d4ed8', marginBottom: '0.5rem', fontSize: '0.95rem' }}>Registro Facial (Reconocimiento Biométrico)</h5>
+                <p style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '1.25rem' }}>Para que el sistema reconozca automáticamente a este empleado, debe registrar su rostro.</p>
+                
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <label 
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.875rem', transition: 'all 0.2s', border: 'none' }}>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      capture="user" 
+                      onChange={handleBioCapture} 
+                      style={{ display: 'none' }} 
+                    />
+                    📸 {faceDescriptor ? 'Actualizar Registro Facial' : 'Iniciar Registro Facial'}
+                  </label>
+                  
+                  {faceDescriptor && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm('¿Estás seguro de que deseas eliminar el registro facial de este usuario?')) {
+                          setFaceDescriptor('');
+                          setBaselinePhoto('');
+                          setBioStatus('Registro facial eliminado. Pulsa "Actualizar Usuario" para guardar cambios.');
+                        }
+                      }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', backgroundColor: '#ef4444', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.875rem', border: 'none', transition: 'all 0.2s' }}
+                    >
+                      🗑️ Eliminar Registro Facial
+                    </button>
+                  )}
+                </div>
+
                 {bioStatus && (
-                  <p style={{ marginTop: '0.75rem', fontSize: '0.875rem', fontWeight: 'bold', color: bioStatus.includes('Error') ? 'var(--error-color)' : 'var(--pulpos-primary)' }}>
+                  <p style={{ marginTop: '0.75rem', fontSize: '0.875rem', fontWeight: 'bold', color: bioStatus.includes('Error') ? 'var(--error-color)' : '#16a34a' }}>
                     {bioStatus}
                   </p>
                 )}
                 {baselinePhoto && (
-                  <div style={{ marginTop: '1rem' }}>
-                    <img src={baselinePhoto} alt="Baseline" style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '2px solid #2563eb' }} />
+                  <div style={{ marginTop: '1.25rem' }}>
+                    <img src={baselinePhoto} alt="Baseline" style={{ width: '110px', height: '110px', objectFit: 'cover', borderRadius: '8px', border: '2px solid #2563eb', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
                   </div>
                 )}
                 <input type="hidden" name="faceDescriptor" value={faceDescriptor} />

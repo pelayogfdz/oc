@@ -74,6 +74,7 @@ model User {
   payrollType               String?
   phone                     String?
   reqGps                    Boolean                  @default(false)
+  flexibleGps               Boolean                  @default(false)
   reqPhoto                  Boolean                  @default(false)
   rfc                       String?
   taxRegime                 String?

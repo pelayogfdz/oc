@@ -45,6 +45,7 @@ export async function createUser(formData: FormData) {
   const strictCheckinTime = formData.get('strictCheckinTime') === 'on';
   
   const reqGps = formData.get('reqGps') === 'on';
+  const flexibleGps = formData.get('flexibleGps') === 'on';
   const reqPhoto = formData.get('reqPhoto') === 'on';
   const workScheduleMatrix = formData.get('workScheduleMatrix') as string;
   const faceDescriptor = formData.get('faceDescriptor') as string;
@@ -70,7 +71,7 @@ export async function createUser(formData: FormData) {
       rfc, curp, nss, taxRegime, address, phone, hireDate, birthDate,
       payrollType, dailySalary, bankName, bankAccount,
       bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus, deductLunchHour,
-      reqGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto, strictCheckinTime,
+      reqGps, flexibleGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto, strictCheckinTime,
       homeLat, homeLng, homeRadius,
       hrLocations: {
         connect: hrLocations.map((id: string) => ({ id }))
@@ -123,6 +124,7 @@ export async function updateUser(id: string, formData: FormData) {
   const strictCheckinTime = formData.get('strictCheckinTime') === 'on';
   
   const reqGps = formData.get('reqGps') === 'on';
+  const flexibleGps = formData.get('flexibleGps') === 'on';
   const reqPhoto = formData.get('reqPhoto') === 'on';
   const workScheduleMatrix = formData.get('workScheduleMatrix') as string;
   const faceDescriptor = formData.get('faceDescriptor') as string;
@@ -143,7 +145,7 @@ export async function updateUser(id: string, formData: FormData) {
     rfc, curp, nss, taxRegime, address, phone, hireDate, birthDate,
     payrollType, dailySalary, bankName, bankAccount,
     bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus, deductLunchHour,
-    reqGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto, strictCheckinTime,
+    reqGps, flexibleGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto, strictCheckinTime,
     homeLat, homeLng, homeRadius
   };
   

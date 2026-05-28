@@ -1,10 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, AlertTriangle, AlertCircle, CheckCircle, Image as ImageIcon } from 'lucide-react';
 
 export default function CaducidadesClient({ initialBatches }: { initialBatches: any[] }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const today = new Date();
   
@@ -71,8 +77,41 @@ export default function CaducidadesClient({ initialBatches }: { initialBatches: 
                   <tr key={batch.id}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{ width: '32px', height: '32px', backgroundColor: '#f1f5f9', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-                          {batch.product.imageUrl ? <img src={batch.product.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon size={16} color="#94a3b8" />}
+                        <div style={{ position: 'relative', width: '32px', height: '32px', backgroundColor: '#eff6ff', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6', fontWeight: 'bold', fontSize: '0.75rem', overflow: 'hidden', flexShrink: 0 }}>
+                          {/* Initials Fallback */}
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
+                            {batch.product.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          {/* Product Image */}
+                          {isMounted && batch.product.imageUrl && !imageErrors[batch.product.id] && (
+                            <img 
+                              src={batch.product.imageUrl.replace(/#/g, '%23')} 
+                              alt="" 
+                              data-table-img="true"
+                              data-prod-id={batch.product.id}
+                              data-initials={batch.product.name.substring(0, 2).toUpperCase()}
+                              onLoad={(e) => {
+                                e.currentTarget.style.opacity = '1';
+                                e.currentTarget.style.visibility = 'visible';
+                              }}
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.style.visibility = 'hidden';
+                                setImageErrors(prev => ({ ...prev, [batch.product.id]: true }));
+                              }}
+                              style={{ 
+                                position: 'absolute', 
+                                inset: 0, 
+                                width: '100%', 
+                                height: '100%', 
+                                objectFit: 'cover', 
+                                zIndex: 2,
+                                opacity: 0,
+                                visibility: 'hidden',
+                                transition: 'opacity 0.2s ease-in-out'
+                              }} 
+                            />
+                          )}
                         </div>
                         <div>
                           <div style={{ fontWeight: 500, color: '#1e293b' }}>{batch.product.name}</div>

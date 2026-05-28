@@ -255,27 +255,56 @@ export default function PublicStoreClient({ branchName, config, products }: { br
                     position: 'relative'
                   }}
                 >
-                   {product.imageUrl && !imageErrors[product.id] ? (
-                      <img 
-                        ref={img => {
-                          if (img && img.complete && img.naturalWidth === 0) {
-                            setImageErrors(prev => prev[product.id] ? prev : { ...prev, [product.id]: true });
-                          }
-                        }}
-                        src={getFormattedImageUrl(product.imageUrl)} 
-                        alt={product.name} 
-                        data-store-img="true"
-                        data-prod-id={product.id}
-                        onError={() => setImageErrors(prev => ({ ...prev, [product.id]: true }))}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'all 0.3s ease' }} 
-                        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
-                        onMouseLeave={e => e.currentTarget.style.transform = 'none'}
-                      />
-                   ) : (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eff6ff', color: '#3b82f6', fontWeight: 'bold', fontSize: '1.5rem' }}>
+                    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                      {/* Initials Fallback (Always rendered behind/instead of image) */}
+                      <div style={{ 
+                        position: 'absolute', 
+                        inset: 0, 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        backgroundColor: '#eff6ff', 
+                        color: '#3b82f6', 
+                        fontWeight: 'bold', 
+                        fontSize: '1.5rem',
+                        zIndex: 1
+                      }}>
                         {product.name.substring(0, 2).toUpperCase()}
                       </div>
-                   )}
+                      
+                      {/* Product Image (Overlaid with higher z-index) */}
+                      {product.imageUrl && !imageErrors[product.id] && (
+                        <img 
+                          src={getFormattedImageUrl(product.imageUrl)} 
+                          alt="" 
+                          data-store-img="true"
+                          data-prod-id={product.id}
+                          data-initials={product.name.substring(0, 2).toUpperCase()}
+                          onLoad={(e) => {
+                            e.currentTarget.style.opacity = '1';
+                            e.currentTarget.style.visibility = 'visible';
+                          }}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.style.visibility = 'hidden';
+                            setImageErrors(prev => ({ ...prev, [product.id]: true }));
+                          }}
+                          style={{ 
+                            position: 'absolute', 
+                            inset: 0, 
+                            width: '100%', 
+                            height: '100%', 
+                            objectFit: 'cover', 
+                            zIndex: 2,
+                            opacity: 0,
+                            visibility: 'hidden',
+                            transition: 'transform 0.3s ease, opacity 0.2s ease-in-out'
+                          }} 
+                          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                          onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+                        />
+                      )}
+                    </div>
                 </div>
                 <div style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <h3 style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>{product.name}</h3>

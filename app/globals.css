@@ -507,3 +507,50 @@ button {
   }
 }
 
+/* ==========================================================================
+   Universal Broken Image Suppression and Initial Fallbacks
+   ========================================================================== */
+img[data-table-img="true"],
+img[data-header-img="true"],
+img[data-store-img="true"],
+td[data-label="Producto"] img,
+table.responsive-table img,
+.responsive-table td img {
+  position: relative;
+  color: transparent !important;
+  text-indent: -9999px !important;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease-in-out;
+}
+
+img[data-table-img="true"]::after,
+img[data-header-img="true"]::after,
+img[data-store-img="true"]::after,
+td[data-label="Producto"] img::after,
+table.responsive-table img::after,
+.responsive-table td img::after {
+  content: attr(data-initials);
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #eff6ff !important;
+  color: #3b82f6 !important;
+  font-weight: bold;
+  font-size: 0.85rem;
+  z-index: 10;
+  border-radius: inherit;
+}
+
+/* Specific size adjustment for larger detail header image fallback */
+img[data-header-img="true"]::after {
+  font-size: 2rem;
+}
+
+
+

@@ -27,11 +27,23 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
     }
 
+    let branchIdUpdate: string | undefined = undefined;
+    if (data.assignedUserId) {
+      const assignedUser = await prisma.user.findUnique({
+        where: { id: data.assignedUserId },
+        select: { branchId: true }
+      });
+      if (assignedUser && assignedUser.branchId) {
+        branchIdUpdate = assignedUser.branchId;
+      }
+    }
+
     const updatedProspect = await prisma.prospect.update({
       where: { id },
       data: {
         funnelStage: data.funnelStage !== undefined ? data.funnelStage : undefined,
         assignedUserId: data.assignedUserId !== undefined ? data.assignedUserId : undefined,
+        branchId: branchIdUpdate !== undefined ? branchIdUpdate : undefined,
         name: data.name !== undefined ? data.name : undefined,
         customerId: data.customerId !== undefined ? data.customerId : undefined
       },

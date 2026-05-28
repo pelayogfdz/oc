@@ -38,6 +38,12 @@ export default function TransferClient({ originBranchId, originBranchName, other
 
   const [transferItems, setTransferItems] = useState<any[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Variant Modal
   const [selectedProductForVariant, setSelectedProductForVariant] = useState<any | null>(null);
@@ -259,11 +265,42 @@ export default function TransferClient({ originBranchId, originBranchName, other
                    <tr key={item.listId} style={{ borderBottom: '1px solid #f1f5f9' }}>
                      <td data-label="Producto" style={{ padding: '0.75rem 0.5rem', fontWeight: '500' }}>
                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                         {item.imageUrl && (
-                           <div style={{ width: '32px', height: '32px', backgroundColor: '#f1f5f9', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-                             <img src={item.imageUrl} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                           </div>
-                         )}
+                          <div style={{ position: 'relative', width: '32px', height: '32px', backgroundColor: '#eff6ff', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6', fontWeight: 'bold', fontSize: '0.75rem', overflow: 'hidden', flexShrink: 0 }}>
+                            {/* Initials Fallback */}
+                            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
+                              {item.name.substring(0, 2).toUpperCase()}
+                            </div>
+                            {/* Product Image */}
+                            {isMounted && item.imageUrl && !imageErrors[item.listId] && (
+                              <img 
+                                src={item.imageUrl.replace(/#/g, '%23')} 
+                                alt="" 
+                                data-table-img="true"
+                                data-prod-id={item.listId}
+                                data-initials={item.name.substring(0, 2).toUpperCase()}
+                                onLoad={(e) => {
+                                  e.currentTarget.style.opacity = '1';
+                                  e.currentTarget.style.visibility = 'visible';
+                                }}
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  e.currentTarget.style.visibility = 'hidden';
+                                  setImageErrors(prev => ({ ...prev, [item.listId]: true }));
+                                }}
+                                style={{ 
+                                  position: 'absolute', 
+                                  inset: 0, 
+                                  width: '100%', 
+                                  height: '100%', 
+                                  objectFit: 'cover', 
+                                  zIndex: 2,
+                                  opacity: 0,
+                                  visibility: 'hidden',
+                                  transition: 'opacity 0.2s ease-in-out'
+                                }} 
+                              />
+                            )}
+                          </div>
                          <div>
                             <div>{item.name}</div>
                             <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.75rem' }}>{item.sku || '--'}</div>

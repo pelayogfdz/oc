@@ -37,6 +37,29 @@ app.use(express.json());
 // Active clients Map: branchId -> Client
 const clients = new Map();
 
+// Helper to resolve any branchId to its tenant's primary branchId (the first active branch ordered by createdAt: 'asc')
+async function getPrimaryBranchId(branchId) {
+    try {
+        const branch = await prisma.branch.findUnique({
+            where: { id: branchId },
+            select: { tenantId: true }
+        });
+        if (branch && branch.tenantId) {
+            const firstBranch = await prisma.branch.findFirst({
+                where: { tenantId: branch.tenantId, isActive: true },
+                orderBy: { createdAt: 'asc' },
+                select: { id: true }
+            });
+            if (firstBranch) {
+                return firstBranch.id;
+            }
+        }
+    } catch (e) {
+        console.error(`[WHATSAPP] Error resolving primary branch for ${branchId}:`, e);
+    }
+    return branchId;
+}
+
 // Helper to save a single WhatsApp message and map it to a prospect
 async function saveWhatsAppMessage(branchId, client, msg) {
     if (msg.isStatus) return;
@@ -350,7 +373,8 @@ async function syncRecentChatsHistory(branchId, client) {
 
 
 // Helper to get or create a WhatsApp session by branchId
-async function getSessionForBranch(branchId) {
+async function getSessionForBranch(originalBranchId) {
+    const branchId = await getPrimaryBranchId(originalBranchId);
     let session = await prisma.whatsAppSession.findUnique({
         where: { branchId }
     });
@@ -367,12 +391,14 @@ async function getSessionForBranch(branchId) {
 }
 
 // Function to initialize or get a client for a specific branch
-async function getClientForBranch(branchId, forceRecreate = false) {
+async function getClientForBranch(originalBranchId, forceRecreate = false) {
+    const branchId = await getPrimaryBranchId(originalBranchId);
+    
     if (clients.has(branchId) && !forceRecreate) {
         return clients.get(branchId);
     }
 
-    console.log(`[WHATSAPP] Initializing a new WhatsApp Client for branch: ${branchId}...`);
+    console.log(`[WHATSAPP] Initializing a new WhatsApp Client for branch: ${branchId} (Original request: ${originalBranchId})...`);
     
     // Clean old client if forcing recreate
     if (clients.has(branchId)) {
@@ -561,6 +587,8 @@ app.post('/api/send', async (req, res) => {
         if (!resolvedBranchId) {
             return res.status(400).json({ error: 'Could not resolve branchId' });
         }
+
+        resolvedBranchId = await getPrimaryBranchId(resolvedBranchId);
 
         let client = clients.get(resolvedBranchId);
         if (!client || !client.info) {
@@ -796,16 +824,17 @@ app.post('/api/sync', async (req, res) => {
     }
 
     try {
-        const client = clients.get(branchId);
+        const resolvedBranchId = await getPrimaryBranchId(branchId);
+        const client = clients.get(resolvedBranchId);
         if (!client || !client.info) {
             return res.status(503).json({ error: 'WhatsApp client is not ready or connected for this branch' });
         }
 
         // Trigger manual sync in background
-        console.log(`[WHATSAPP] Manual sync requested for branch ${branchId}. Starting sync...`);
-        syncRecentChatsHistory(branchId, client)
-            .then(() => console.log(`[WHATSAPP] Manual sync completed for branch ${branchId}`))
-            .catch(err => console.error(`[WHATSAPP] Manual sync failed for branch ${branchId}:`, err));
+        console.log(`[WHATSAPP] Manual sync requested for branch ${branchId} (Resolved: ${resolvedBranchId}). Starting sync...`);
+        syncRecentChatsHistory(resolvedBranchId, client)
+            .then(() => console.log(`[WHATSAPP] Manual sync completed for branch ${branchId} (Resolved: ${resolvedBranchId})`))
+            .catch(err => console.error(`[WHATSAPP] Manual sync failed for branch ${branchId} (Resolved: ${resolvedBranchId}):`, err));
 
         res.json({ success: true, message: 'Chats history sync triggered successfully in background' });
     } catch (err) {
@@ -821,8 +850,9 @@ app.get('/api/status', async (req, res) => {
         return res.status(400).json({ error: 'branchId is required' });
     }
     try {
-        console.log(`[WHATSAPP] Ping status received for branch: ${branchId}. Ensuring initialization...`);
-        const client = await getClientForBranch(branchId);
+        const resolvedBranchId = await getPrimaryBranchId(branchId);
+        console.log(`[WHATSAPP] Ping status received for branch: ${branchId} (Resolved: ${resolvedBranchId}). Ensuring initialization...`);
+        const client = await getClientForBranch(resolvedBranchId);
         res.json({ success: true, status: client.info ? 'CONNECTED' : 'INITIALIZING' });
     } catch (error) {
         console.error(`[WHATSAPP] Error in status ping for branch ${branchId}:`, error);
@@ -838,24 +868,25 @@ app.post('/api/logout', async (req, res) => {
     }
 
     try {
-        console.log(`[WHATSAPP] Logout request received for branch: ${branchId}. Disconnecting client...`);
-        const client = clients.get(branchId);
+        const resolvedBranchId = await getPrimaryBranchId(branchId);
+        console.log(`[WHATSAPP] Logout request received for branch: ${branchId} (Resolved: ${resolvedBranchId}). Disconnecting client...`);
+        const client = clients.get(resolvedBranchId);
         if (client) {
             try {
                 await client.logout();
             } catch (err) {
-                console.warn(`[WHATSAPP] client.logout() failed for branch ${branchId} (expected if not logged in):`, err.message);
+                console.warn(`[WHATSAPP] client.logout() failed for branch ${resolvedBranchId} (expected if not logged in):`, err.message);
             }
             try {
                 await client.destroy();
             } catch (err) {
-                console.warn(`[WHATSAPP] client.destroy() failed for branch ${branchId}:`, err.message);
+                console.warn(`[WHATSAPP] client.destroy() failed for branch ${resolvedBranchId}:`, err.message);
             }
-            clients.delete(branchId);
+            clients.delete(resolvedBranchId);
         }
 
         // Clean branch-specific credentials folder
-        const shortBranchId = branchId.split('-')[0];
+        const shortBranchId = resolvedBranchId.split('-')[0];
         const authPath = path.resolve(process.cwd(), `./.wwebjs_auth/session-br-${shortBranchId}`);
         if (fs.existsSync(authPath)) {
             try {
@@ -868,7 +899,7 @@ app.post('/api/logout', async (req, res) => {
 
         // Reset database session status
         try {
-            const session = await getSessionForBranch(branchId);
+            const session = await getSessionForBranch(resolvedBranchId);
             await prisma.whatsAppSession.update({
                 where: { id: session.id },
                 data: {
@@ -876,13 +907,13 @@ app.post('/api/logout', async (req, res) => {
                     sessionData: null
                 }
             });
-            console.log(`[WHATSAPP] Session status updated to DISCONNECTED in DB for branch ${branchId}.`);
+            console.log(`[WHATSAPP] Session status updated to DISCONNECTED in DB for branch ${resolvedBranchId}.`);
         } catch (dbErr) {
-            console.error(`[WHATSAPP] Failed to reset database session status for branch ${branchId}:`, dbErr);
+            console.error(`[WHATSAPP] Failed to reset database session status for branch ${resolvedBranchId}:`, dbErr);
         }
 
         // Boot a brand new client scanning instance immediately
-        await getClientForBranch(branchId, true);
+        await getClientForBranch(resolvedBranchId, true);
 
         res.json({ success: true });
     } catch (error) {
@@ -1231,40 +1262,21 @@ setInterval(async () => {
         });
 
         for (const req of pendingSyncRequests) {
-            console.log(`[SYNC POLL] Processing sync request for branch ${req.branchId}`);
             try {
-                let client = clients.get(req.branchId);
+                const resolvedBranchId = await getPrimaryBranchId(req.branchId);
+                console.log(`[SYNC POLL] Processing sync request for branch ${req.branchId} (Resolved: ${resolvedBranchId})`);
+                
+                let client = clients.get(resolvedBranchId);
 
-                // Fallback check: find any connected sibling client under the same tenant
-                if (!client || !client.info) {
-                    const branch = await prisma.branch.findUnique({
-                        where: { id: req.branchId },
-                        select: { tenantId: true }
-                    });
-                    if (branch && branch.tenantId) {
-                        const tenantBranches = await prisma.branch.findMany({
-                            where: { tenantId: branch.tenantId, isActive: true },
-                            select: { id: true }
-                        });
-                        for (const tb of tenantBranches) {
-                            const alternateClient = clients.get(tb.id);
-                            if (alternateClient && alternateClient.info) {
-                                client = alternateClient;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                const isInitializing = clients.has(req.branchId) && (!client || !client.info);
+                const isInitializing = clients.has(resolvedBranchId) && (!client || !client.info);
 
                 if (!client || !client.info) {
                     if (isInitializing) {
-                        console.log(`[SYNC POLL] WhatsApp client for branch ${req.branchId} is still initializing. Postponing sync request...`);
+                        console.log(`[SYNC POLL] WhatsApp client for branch ${resolvedBranchId} (Request: ${req.branchId}) is still initializing. Postponing sync request...`);
                         continue;
                     }
 
-                    console.error(`[SYNC POLL] No active WhatsApp client found for branch/tenant ${req.branchId}`);
+                    console.error(`[SYNC POLL] No active WhatsApp client found for branch/tenant ${resolvedBranchId} (Request: ${req.branchId})`);
                     await prisma.whatsAppSyncRequest.update({
                         where: { id: req.id },
                         data: { status: 'FAILED' }
@@ -1273,15 +1285,15 @@ setInterval(async () => {
                 }
 
                 // Run Phase 1 sync: top 30 chats and 50 messages each
-                console.log(`[SYNC POLL] Starting historical sync for branch ${req.branchId}`);
-                await syncRecentChatsHistory(req.branchId, client);
+                console.log(`[SYNC POLL] Starting historical sync for branch ${resolvedBranchId} (Request: ${req.branchId})`);
+                await syncRecentChatsHistory(resolvedBranchId, client);
 
                 // Mark the sync request as COMPLETED
                 await prisma.whatsAppSyncRequest.update({
                     where: { id: req.id },
                     data: { status: 'COMPLETED' }
                 });
-                console.log(`[SYNC POLL] Successfully completed sync request for branch ${req.branchId}`);
+                console.log(`[SYNC POLL] Successfully completed sync request for branch ${resolvedBranchId} (Request: ${req.branchId})`);
 
             } catch (err) {
                 console.error(`[SYNC POLL] Error processing sync request for branch ${req.branchId}:`, err);
@@ -1332,36 +1344,11 @@ setInterval(async () => {
             if (!stillPending || stillPending.messageId) continue;
 
             const branchId = msg.prospect.branchId;
-            let client = clients.get(branchId);
+            const resolvedBranchId = await getPrimaryBranchId(branchId);
+            let client = clients.get(resolvedBranchId);
             
             if (!client || !client.info) {
-                // Let's try to see if there is another connected branch for this tenant
-                try {
-                    const branch = await prisma.branch.findUnique({
-                        where: { id: branchId },
-                        select: { tenantId: true }
-                    });
-                    if (branch && branch.tenantId) {
-                        const tenantBranches = await prisma.branch.findMany({
-                            where: { tenantId: branch.tenantId, isActive: true },
-                            select: { id: true }
-                        });
-                        for (const tb of tenantBranches) {
-                            const alternateClient = clients.get(tb.id);
-                            if (alternateClient && alternateClient.info) {
-                                client = alternateClient;
-                                console.log(`[WHATSAPP] Found alternate connected client for tenant ${branch.tenantId} under branch ${tb.id}. Using it instead of unconnected branch ${branchId}.`);
-                                break;
-                            }
-                        }
-                    }
-                } catch (err) {
-                    console.error("[WHATSAPP] Error resolving tenant alternate client:", err);
-                }
-            }
-            
-            if (!client || !client.info) {
-                console.log(`[WHATSAPP] Client not connected or ready for branch ${branchId}, skipping pending message.`);
+                console.log(`[WHATSAPP] Client not connected or ready for branch ${resolvedBranchId} (Request: ${branchId}), skipping pending message.`);
                 continue;
             }
 
@@ -1475,6 +1462,13 @@ async function pollWhatsAppSessions() {
 
         for (const session of loggingOutSessions) {
             const branchId = session.branchId;
+            const resolvedBranchId = await getPrimaryBranchId(branchId);
+            if (resolvedBranchId !== branchId) {
+                console.warn(`[POLLING] Found LOGGING_OUT session for sibling branch ${branchId}. Deleting duplicate record.`);
+                await prisma.whatsAppSession.delete({ where: { id: session.id } }).catch(() => {});
+                continue;
+            }
+
             console.log(`[POLLING] Found LOGGING_OUT session for branch ${branchId}. Disconnecting client...`);
             
             const client = clients.get(branchId);
@@ -1527,6 +1521,13 @@ async function pollWhatsAppSessions() {
 
         for (const session of initializingSessions) {
             const branchId = session.branchId;
+            const resolvedBranchId = await getPrimaryBranchId(branchId);
+            if (resolvedBranchId !== branchId) {
+                console.warn(`[POLLING] Found INITIALIZING session for sibling branch ${branchId}. Deleting duplicate record.`);
+                await prisma.whatsAppSession.delete({ where: { id: session.id } }).catch(() => {});
+                continue;
+            }
+
             if (!clients.has(branchId)) {
                 console.log(`[POLLING] Found INITIALIZING session for branch ${branchId} without active client. Spawning...`);
                 await getClientForBranch(branchId, true);
@@ -1540,6 +1541,13 @@ async function pollWhatsAppSessions() {
 
         for (const session of activeSessions) {
             const branchId = session.branchId;
+            const resolvedBranchId = await getPrimaryBranchId(branchId);
+            if (resolvedBranchId !== branchId) {
+                console.warn(`[POLLING] Found active/ready session for sibling branch ${branchId}. Deleting duplicate record.`);
+                await prisma.whatsAppSession.delete({ where: { id: session.id } }).catch(() => {});
+                continue;
+            }
+
             if (!clients.has(branchId)) {
                 console.log(`[POLLING] Found active/ready session for branch ${branchId} but no client in memory. Resuming client...`);
                 await getClientForBranch(branchId, false);

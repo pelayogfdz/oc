@@ -22,10 +22,49 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ACTIVE');
   const [filterStock, setFilterStock] = useState('ALL');
+  const [filterImage, setFilterImage] = useState('ALL');
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Load state from sessionStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const persistedSearch = sessionStorage.getItem('products_searchTerm');
+      const persistedCategory = sessionStorage.getItem('products_filterCategory');
+      const persistedStatus = sessionStorage.getItem('products_filterStatus');
+      const persistedStock = sessionStorage.getItem('products_filterStock');
+      const persistedImage = sessionStorage.getItem('products_filterImage');
+      const persistedPage = sessionStorage.getItem('products_currentPage');
+      const persistedPageSize = sessionStorage.getItem('products_pageSize');
+
+      if (persistedSearch !== null) setSearchTerm(persistedSearch);
+      if (persistedCategory !== null) setFilterCategory(persistedCategory);
+      if (persistedStatus !== null) setFilterStatus(persistedStatus);
+      if (persistedStock !== null) setFilterStock(persistedStock);
+      if (persistedImage !== null) setFilterImage(persistedImage);
+      if (persistedPageSize !== null) setPageSize(Number(persistedPageSize));
+      if (persistedPage !== null) setCurrentPage(Number(persistedPage));
+      
+      setIsInitialized(true);
+    }
+  }, []);
+
+  // Save state to sessionStorage when changes occur
+  useEffect(() => {
+    if (isInitialized && typeof window !== 'undefined') {
+      sessionStorage.setItem('products_searchTerm', searchTerm);
+      sessionStorage.setItem('products_filterCategory', filterCategory);
+      sessionStorage.setItem('products_filterStatus', filterStatus);
+      sessionStorage.setItem('products_filterStock', filterStock);
+      sessionStorage.setItem('products_filterImage', filterImage);
+      sessionStorage.setItem('products_currentPage', String(currentPage));
+      sessionStorage.setItem('products_pageSize', String(pageSize));
+    }
+  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, currentPage, pageSize, isInitialized]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
@@ -55,13 +94,19 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
     if (filterStock === 'OUT_OF_STOCK' && p.stock > 0) return false;
     if (filterStock === 'LOW_STOCK' && p.stock > (p.minStock || 0)) return false;
 
-    return true;
-  }), [displayedProducts, filterCategory, filterStatus, filterStock]);
+    // Image Filter
+    if (filterImage === 'WITH_IMAGE' && (!p.imageUrl || p.imageUrl.trim() === '')) return false;
+    if (filterImage === 'WITHOUT_IMAGE' && (p.imageUrl && p.imageUrl.trim() !== '')) return false;
 
-  // Reset page when filters change
+    return true;
+  }), [displayedProducts, filterCategory, filterStatus, filterStock, filterImage]);
+
+  // Reset page when filters change (only AFTER initialization is complete)
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, filterCategory, filterStatus, filterStock]);
+    if (isInitialized) {
+      setCurrentPage(1);
+    }
+  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, isInitialized]);
 
   const totalPages = Math.ceil(filteredProducts.length / pageSize) || 1;
   const startRange = filteredProducts.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
@@ -251,8 +296,16 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
               <option value="OUT_OF_STOCK">Agotados</option>
             </select>
           </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Filtrar por Imagen</label>
+            <select value={filterImage} onChange={e => setFilterImage(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
+              <option value="ALL">Con y sin imagen</option>
+              <option value="WITH_IMAGE">Con imagen</option>
+              <option value="WITHOUT_IMAGE">Sin imagen</option>
+            </select>
+          </div>
           <div style={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end' }}>
-             <button onClick={() => { setFilterCategory('ALL'); setFilterStatus('ACTIVE'); setFilterStock('ALL'); }} style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '500' }}>
+             <button onClick={() => { setFilterCategory('ALL'); setFilterStatus('ACTIVE'); setFilterStock('ALL'); setFilterImage('ALL'); }} style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '500' }}>
                Limpiar Filtros
              </button>
           </div>

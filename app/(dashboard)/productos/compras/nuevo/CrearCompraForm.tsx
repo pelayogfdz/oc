@@ -15,6 +15,12 @@ export default function CrearCompraForm({ suppliers, products }: { suppliers: an
   const [freightCost, setFreightCost] = useState(0);
   const [items, setItems] = useState<{ productId: string, name: string, quantity: number, cost: number, imageUrl?: string, batchNumber?: string, expirationDate?: string }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const [availableProducts, setAvailableProducts] = useState(products || []);
   const [availableSuppliers, setAvailableSuppliers] = useState(suppliers || []);
@@ -204,8 +210,41 @@ export default function CrearCompraForm({ suppliers, products }: { suppliers: an
                 <div key={item.productId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
                   <div style={{ flex: 1, paddingRight: '1rem' }}>
                     <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ width: '24px', height: '24px', backgroundColor: '#f1f5f9', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-                         {item.imageUrl ? <img src={item.imageUrl} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon size={12} color="#94a3b8" />}
+                      <div style={{ position: 'relative', width: '24px', height: '24px', backgroundColor: '#eff6ff', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6', fontWeight: 'bold', fontSize: '0.65rem', overflow: 'hidden', flexShrink: 0 }}>
+                        {/* Initials Fallback */}
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
+                          {item.name.substring(0, 2).toUpperCase()}
+                        </div>
+                        {/* Product Image */}
+                        {isMounted && item.imageUrl && !imageErrors[item.productId] && (
+                          <img 
+                            src={item.imageUrl.replace(/#/g, '%23')} 
+                            alt="" 
+                            data-table-img="true"
+                            data-prod-id={item.productId}
+                            data-initials={item.name.substring(0, 2).toUpperCase()}
+                            onLoad={(e) => {
+                              e.currentTarget.style.opacity = '1';
+                              e.currentTarget.style.visibility = 'visible';
+                            }}
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.style.visibility = 'hidden';
+                              setImageErrors(prev => ({ ...prev, [item.productId]: true }));
+                            }}
+                            style={{ 
+                              position: 'absolute', 
+                              inset: 0, 
+                              width: '100%', 
+                              height: '100%', 
+                              objectFit: 'cover', 
+                              zIndex: 2,
+                              opacity: 0,
+                              visibility: 'hidden',
+                              transition: 'opacity 0.2s ease-in-out'
+                            }} 
+                          />
+                        )}
                       </div>
                       {item.name}
                     </div>

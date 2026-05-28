@@ -183,15 +183,27 @@ export default function LoginPage() {
     setIsForgotOpen(true);
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
+      // Direct DOM extraction as fallback to bypass Chrome Autofill React state mismatch
+      const form = e.currentTarget;
+      const emailInput = form.elements.namedItem('email') as HTMLInputElement;
+      const passwordInput = form.elements.namedItem('password') as HTMLInputElement;
+      
+      const emailValue = emailInput?.value?.trim()?.toLowerCase() || email;
+      const passwordValue = passwordInput?.value || password;
+
+      if (!emailValue || !passwordValue) {
+        throw new Error('Por favor completa las credenciales.');
+      }
+
       const formData = new FormData();
-      formData.append('email', email);
-      formData.append('password', password);
+      formData.append('email', emailValue);
+      formData.append('password', passwordValue);
 
       const data = await loginAction(formData);
 
@@ -206,7 +218,17 @@ export default function LoginPage() {
       router.push('/');
       router.refresh();
     } catch (err: any) {
-      setError(err.message || 'Error de conexión');
+      const errMsg = err.message || 'Error de conexión';
+      if (
+        errMsg.includes('Server Action') || 
+        errMsg.includes('not found on the server') || 
+        errMsg.includes('failed to find') ||
+        errMsg.includes('digest')
+      ) {
+        window.location.reload();
+        return;
+      }
+      setError(errMsg);
       setLoading(false);
     }
   };
@@ -444,11 +466,11 @@ export default function LoginPage() {
           
           <div>
             <label className="block text-[15px] font-semibold text-[#1e293b] mb-2 font-sans text-left">Email</label>
-            <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="block w-full rounded-xl border border-gray-300 bg-gray-50 py-3.5 px-4 text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[var(--pulpos-primary)] focus:ring-4 focus:ring-[var(--pulpos-primary)]/10 outline-none transition-all hover:border-gray-400 font-medium font-sans text-[15px]" placeholder="Ingresa tu email" />
+            <input type="email" name="email" required value={email} onChange={e => setEmail(e.target.value)} className="block w-full rounded-xl border border-gray-300 bg-gray-50 py-3.5 px-4 text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[var(--pulpos-primary)] focus:ring-4 focus:ring-[var(--pulpos-primary)]/10 outline-none transition-all hover:border-gray-400 font-medium font-sans text-[15px]" placeholder="Ingresa tu email" />
           </div>
           <div>
             <label className="block text-[15px] font-semibold text-[#1e293b] mb-2 font-sans text-left">Contraseña</label>
-            <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="block w-full rounded-xl border border-gray-300 bg-gray-50 py-3.5 px-4 text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[var(--pulpos-primary)] focus:ring-4 focus:ring-[var(--pulpos-primary)]/10 outline-none transition-all hover:border-gray-400 font-medium font-sans text-[15px]" placeholder="Ingresa tu contraseña" />
+            <input type="password" name="password" required value={password} onChange={e => setPassword(e.target.value)} className="block w-full rounded-xl border border-gray-300 bg-gray-50 py-3.5 px-4 text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[var(--pulpos-primary)] focus:ring-4 focus:ring-[var(--pulpos-primary)]/10 outline-none transition-all hover:border-gray-400 font-medium font-sans text-[15px]" placeholder="Ingresa tu contraseña" />
           </div>
           
           <div className="flex items-center justify-between pt-2 pb-6">

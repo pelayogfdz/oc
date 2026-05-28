@@ -11,43 +11,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const branch = await getActiveBranch();
-    if (!branch) {
-      return NextResponse.json({ error: "No active branch found" }, { status: 404 });
+    const firstBranch = await prisma.branch.findFirst({
+      where: { tenantId: user.tenantId, isActive: true },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    if (!firstBranch) {
+      return NextResponse.json({ error: "No active branch found for tenant" }, { status: 404 });
     }
 
-    let branchId = branch.id;
-    if (branchId === 'GLOBAL') {
-      const firstBranch = await prisma.branch.findFirst({
-        where: { tenantId: branch.tenantId, isActive: true }
-      });
-      if (!firstBranch) {
-        return NextResponse.json({ error: "No active branch found for tenant" }, { status: 404 });
-      }
-      branchId = firstBranch.id;
-    }
+    let branchId = firstBranch.id;
 
     // Verify if there is an active session
     let session = await prisma.whatsAppSession.findUnique({
       where: { branchId }
     });
-
-    // Check sibling connection fallback
-    if ((!session || session.status !== 'CONNECTED') && user.tenantId) {
-      const activeSiblingSession = await prisma.whatsAppSession.findFirst({
-        where: {
-          status: 'CONNECTED',
-          branch: {
-            tenantId: user.tenantId,
-            isActive: true
-          }
-        }
-      });
-      if (activeSiblingSession) {
-        session = activeSiblingSession;
-        branchId = activeSiblingSession.branchId;
-      }
-    }
 
     if (!session || session.status !== 'CONNECTED') {
       return NextResponse.json({ error: "WhatsApp is not connected for this branch" }, { status: 400 });

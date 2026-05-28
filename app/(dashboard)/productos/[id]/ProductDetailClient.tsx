@@ -232,24 +232,53 @@ export function ProductDetailClient({
             e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.05)';
           }}
         >
-          {product.imageUrl && !headerImageError ? (
-            <img 
-              ref={img => {
-                if (img && img.complete && img.naturalWidth === 0) {
-                  setHeaderImageError(true);
-                }
-              }}
-              src={getFormattedImageUrl(product.imageUrl)} 
-              alt={product.name} 
-              data-header-img="true"
-              onError={() => setHeaderImageError(true)}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-            />
-          ) : (
-            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eff6ff', color: '#3b82f6', fontWeight: 'bold', fontSize: '2rem' }}>
+          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            {/* Initials Fallback (Always rendered behind/instead of image) */}
+            <div style={{ 
+              position: 'absolute', 
+              inset: 0, 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              backgroundColor: '#eff6ff', 
+              color: '#3b82f6', 
+              fontWeight: 'bold', 
+              fontSize: '2rem',
+              zIndex: 1
+            }}>
               {product.name.substring(0, 2).toUpperCase()}
             </div>
-          )}
+            
+            {/* Product Image (Overlaid with higher z-index) */}
+            {product.imageUrl && !headerImageError && (
+              <img 
+                src={getFormattedImageUrl(product.imageUrl)} 
+                alt="" 
+                data-header-img="true"
+                data-initials={product.name.substring(0, 2).toUpperCase()}
+                onLoad={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                  e.currentTarget.style.visibility = 'visible';
+                }}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.style.visibility = 'hidden';
+                  setHeaderImageError(true);
+                }}
+                style={{ 
+                  position: 'absolute', 
+                  inset: 0, 
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'cover', 
+                  zIndex: 2,
+                  opacity: 0, // Starts transparent to prevent broken icon flash
+                  visibility: 'hidden', // Hidden by default to suppress broken icon
+                  transition: 'opacity 0.2s ease-in-out'
+                }} 
+              />
+            )}
+          </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minWidth: '280px' }}>
           <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--pulpos-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>

@@ -15,50 +15,20 @@ export async function GET(request: Request) {
       return response;
     }
 
-    const url = new URL(request.url);
-    const branchIdParam = url.searchParams.get("branchId");
+    const firstBranch = await prisma.branch.findFirst({
+      where: { tenantId: user.tenantId, isActive: true },
+      orderBy: { createdAt: 'asc' }
+    });
 
-    let branchId: string;
-
-    if (branchIdParam) {
-      // Validate strictly that the branch belongs to the user's tenant
-      const targetBranch = await prisma.branch.findFirst({
-        where: { id: branchIdParam, tenantId: user.tenantId, isActive: true }
-      });
-
-      if (!targetBranch) {
-        const response = NextResponse.json({ error: "Branch not found or access denied" }, { status: 403 });
-        response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        response.headers.set('Pragma', 'no-cache');
-        response.headers.set('Expires', '0');
-        return response;
-      }
-      branchId = targetBranch.id;
-    } else {
-      const branch = await getActiveBranch();
-      if (!branch) {
-        const response = NextResponse.json({ error: "No branch found" }, { status: 404 });
-        response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        response.headers.set('Pragma', 'no-cache');
-        response.headers.set('Expires', '0');
-        return response;
-      }
-
-      branchId = branch.id;
-      if (branchId === 'GLOBAL') {
-        const firstBranch = await prisma.branch.findFirst({
-          where: { tenantId: branch.tenantId, isActive: true }
-        });
-        if (!firstBranch) {
-          const response = NextResponse.json({ error: "No active branch found for tenant" }, { status: 404 });
-          response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-          response.headers.set('Pragma', 'no-cache');
-          response.headers.set('Expires', '0');
-          return response;
-        }
-        branchId = firstBranch.id;
-      }
+    if (!firstBranch) {
+      const response = NextResponse.json({ error: "No active branch found for tenant" }, { status: 404 });
+      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      response.headers.set('Pragma', 'no-cache');
+      response.headers.set('Expires', '0');
+      return response;
     }
+
+    const branchId = firstBranch.id;
 
     // No need to ping Express microservice directly from serverless function.
     // The database-driven signaling and periodic polling on the VPS will handle client lifetime/memory.
@@ -74,26 +44,6 @@ export async function GET(request: Request) {
           status: 'DISCONNECTED'
         }
       });
-    }
-
-    // Tenant connected fallback:
-    // If the active session for the current branch is not connected, but another branch
-    // in the same tenant is connected, we fallback to the connected one so the tenant 
-    // is treated as connected.
-    if (session.status !== 'CONNECTED' && user.tenantId) {
-      const activeSiblingSession = await prisma.whatsAppSession.findFirst({
-        where: {
-          status: 'CONNECTED',
-          branch: {
-            tenantId: user.tenantId,
-            isActive: true
-          }
-        }
-      });
-      if (activeSiblingSession) {
-        console.log(`[STATUS Fallback] Using active sibling session from branch ${activeSiblingSession.branchId} for branch ${branchId}`);
-        session = activeSiblingSession;
-      }
     }
 
     const dbBranch = await prisma.branch.findUnique({

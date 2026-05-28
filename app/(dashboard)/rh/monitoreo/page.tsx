@@ -12,7 +12,7 @@ export default async function MonitoreoPage() {
     redirect("/login");
   }
 
-  // En un caso real, validar si tiene permisos de ADMIN o de RH
+  // Validar si tiene permisos de ADMIN o de RH
   if (session.role !== "ADMIN" && session.role !== "MANAGER") {
     return <div>No tienes permisos para ver esta sección.</div>;
   }
@@ -22,7 +22,7 @@ export default async function MonitoreoPage() {
 
   const users = await prisma.user.findMany({
     where: {
-      tenantId: session.tenantId, // Assuming multi-tenant
+      tenantId: session.tenantId,
     },
     include: {
       branch: true,
@@ -38,5 +38,13 @@ export default async function MonitoreoPage() {
     orderBy: { name: 'asc' }
   });
 
-  return <MonitoreoClient users={users} />;
+  const branches = await prisma.branch.findMany({
+    where: {
+      tenantId: session.tenantId,
+      isActive: true
+    },
+    orderBy: { name: 'asc' }
+  });
+
+  return <MonitoreoClient users={users} branches={branches} />;
 }
