@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Users, Plus, Shield, Edit2, Trash2, CheckCircle2, ChevronDown, ChevronRight, X } from 'lucide-react';
 import { createUser, updateUser, deleteUser } from '@/app/actions/user';
+import { createBranch } from '@/app/actions/branch';
 
 const PERMISSION_MODULES = [
   {
@@ -153,6 +154,16 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
   const [editingUser, setEditingUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('branches');
   
+  // Branches list state
+  const [branchesList, setBranchesList] = useState(branches);
+  const [selectedBranchId, setSelectedBranchId] = useState('');
+  
+  // Fast branch creation modal state
+  const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
+  const [newBranchName, setNewBranchName] = useState('');
+  const [newBranchLocation, setNewBranchLocation] = useState('');
+  const [isCreatingBranch, setIsCreatingBranch] = useState(false);
+
   // Biometrics State
   const [faceDescriptor, setFaceDescriptor] = useState<string>('');
   const [baselinePhoto, setBaselinePhoto] = useState<string>('');
@@ -176,6 +187,31 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
     "Sabado": ["09:00", "14:00"]
   };
   const [schedule, setSchedule] = useState<Record<string, string[]>>(defaultSchedule);
+
+  const handleCreateBranchFast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBranchName.trim() || !newBranchLocation.trim()) return;
+    setIsCreatingBranch(true);
+    try {
+      const formData = new FormData();
+      formData.append('name', newBranchName.trim());
+      formData.append('location', newBranchLocation.trim());
+      const res = await createBranch(formData);
+      if (res && res.success && res.branch) {
+        setBranchesList(prev => [...prev, res.branch]);
+        setSelectedBranchId(res.branch.id);
+        setIsBranchModalOpen(false);
+        setNewBranchName('');
+        setNewBranchLocation('');
+      } else {
+        throw new Error('No se pudo crear la sucursal.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error de conexión.');
+    } finally {
+      setIsCreatingBranch(false);
+    }
+  };
 
   const potentialManagers = users.filter(u => u.commissionRole === 'LIDER' || u.commissionRole === 'COORDINADOR');
 
@@ -243,6 +279,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
     setBioStatus('');
     setSchedule(defaultSchedule);
     setSelectedHrLocations([]);
+    setSelectedBranchId('');
   };
 
   const openEditUser = (user: any) => {
@@ -253,6 +290,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
     setBaselinePhoto(user.baselinePhoto || '');
     setBioStatus(user.faceDescriptor ? 'Molde Biométrico Registrado ✓' : '');
     setSelectedHrLocations(user.hrLocations?.map((l: any) => l.id) || []);
+    setSelectedBranchId(user.branchId || '');
     
     try {
       const parsedSched = JSON.parse(user.workScheduleMatrix || '{}');
@@ -565,12 +603,39 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--pulpos-primary)' }}>Sucursal Asignada (Reloj Checador)</label>
-                <select name="branchId" defaultValue={editingUser?.branchId || ''} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-primary)', backgroundColor: 'white' }}>
-                  <option value="">Selecciona Sucursal...</option>
-                  {branches.map(b => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
-                </select>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <select 
+                    value={selectedBranchId} 
+                    onChange={(e) => setSelectedBranchId(e.target.value)} 
+                    required 
+                    style={{ flex: 1, padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-primary)', backgroundColor: 'white' }}
+                  >
+                    <option value="">Selecciona Sucursal...</option>
+                    {branchesList.map(b => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setIsBranchModalOpen(true)}
+                    style={{
+                      padding: '0.75rem 1rem',
+                      backgroundColor: 'var(--pulpos-primary)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    <Plus size={16} /> Nueva
+                  </button>
+                </div>
+                <input type="hidden" name="branchId" value={selectedBranchId} />
               </div>
             </div>
 
@@ -1112,6 +1177,153 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
           </div>
         </form>
       </div>
+
+      {isBranchModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.4)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.85)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255, 255, 255, 0.5)',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.2)',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '480px',
+            padding: '2rem',
+            color: '#1e293b'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--pulpos-primary)' }}>
+                <Plus size={20} /> Crear Nueva Sucursal
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setIsBranchModalOpen(false);
+                  setNewBranchName('');
+                  setNewBranchLocation('');
+                }} 
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background-color 0.2s'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateBranchFast}>
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#475569' }}>
+                  Nombre de la Sucursal
+                </label>
+                <input 
+                  type="text" 
+                  value={newBranchName}
+                  onChange={(e) => setNewBranchName(e.target.value)}
+                  placeholder="Ej. Oficina Central, Sucursal Norte"
+                  required 
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.75rem', 
+                    borderRadius: '8px', 
+                    border: '1px solid rgba(226, 232, 240, 0.8)', 
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                    outline: 'none'
+                  }} 
+                />
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#475569' }}>
+                  Dirección o Ubicación
+                </label>
+                <input 
+                  type="text" 
+                  value={newBranchLocation}
+                  onChange={(e) => setNewBranchLocation(e.target.value)}
+                  placeholder="Ej. Av. Reforma 123, Col. Centro"
+                  required 
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.75rem', 
+                    borderRadius: '8px', 
+                    border: '1px solid rgba(226, 232, 240, 0.8)', 
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                    outline: 'none'
+                  }} 
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '2rem' }}>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setIsBranchModalOpen(false);
+                    setNewBranchName('');
+                    setNewBranchLocation('');
+                  }}
+                  style={{ 
+                    padding: '0.75rem 1.5rem', 
+                    borderRadius: '8px', 
+                    border: '1px solid #cbd5e1', 
+                    backgroundColor: 'white', 
+                    cursor: 'pointer', 
+                    fontWeight: 'bold',
+                    fontSize: '0.875rem',
+                    color: '#475569'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isCreatingBranch}
+                  style={{ 
+                    padding: '0.75rem 1.5rem', 
+                    borderRadius: '8px', 
+                    border: 'none', 
+                    backgroundColor: 'var(--pulpos-primary)', 
+                    color: 'white',
+                    cursor: isCreatingBranch ? 'not-allowed' : 'pointer', 
+                    fontWeight: 'bold',
+                    fontSize: '0.875rem',
+                    opacity: isCreatingBranch ? 0.7 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  {isCreatingBranch ? 'Creando...' : 'Crear Sucursal'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 }
