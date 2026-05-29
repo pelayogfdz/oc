@@ -104,6 +104,16 @@ export default function PortalEmpleadoClient({
       alert('Registro guardado correctamente');
       window.location.reload();
     } catch (e: any) {
+      const errMsg = e.message || '';
+      if (
+        errMsg.includes("Server Action") || 
+        errMsg.includes("not found on the server") || 
+        errMsg.includes("failed-to-find-server-action")
+      ) {
+        console.warn("Server Action hash mismatch detected. Force-refreshing page...");
+        window.location.reload();
+        return;
+      }
       setErrorMsg("Error al registrar: " + e.message);
     } finally {
       setIsRegistering(false);
@@ -128,6 +138,16 @@ export default function PortalEmpleadoClient({
       setIsLeaveModalOpen(false);
       window.location.reload();
     } catch (e: any) {
+      const errMsg = e.message || '';
+      if (
+        errMsg.includes("Server Action") || 
+        errMsg.includes("not found on the server") || 
+        errMsg.includes("failed-to-find-server-action")
+      ) {
+        console.warn("Server Action hash mismatch detected. Force-refreshing page...");
+        window.location.reload();
+        return;
+      }
       alert("Error: " + e.message);
     } finally {
       setIsSubmittingLeave(false);
