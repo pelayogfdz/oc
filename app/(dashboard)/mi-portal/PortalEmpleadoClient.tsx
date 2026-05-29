@@ -464,6 +464,93 @@ export default function PortalEmpleadoClient({
         {/* Sidebar Column */}
         <div style={{ flex: '1 1 min(100%, 300px)', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
+          {/* Allowed Check-in Locations Card */}
+          <div className="card" style={{ padding: '1.5rem', backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e293b' }}>
+              <MapPin size={20} color="var(--pulpos-primary)" /> Zonas Autorizadas
+            </h3>
+            <p style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', marginBottom: '1.25rem', lineHeight: '1.4' }}>
+              Ubicaciones geográficas permitidas para registrar tu asistencia (Check-in / Check-out).
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {user.homeLat !== null && user.homeLng !== null ? (
+                <div style={{ padding: '0.75rem', backgroundColor: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'block', color: '#1e40af' }}>
+                    🏠 Domicilio (Home Office)
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: '#3b82f6', display: 'block', marginTop: '0.15rem' }}>
+                    Coordenadas: {user.homeLat.toFixed(5)}, {user.homeLng.toFixed(5)}
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: '#3b82f6', display: 'block' }}>
+                    Radio permitido: {user.homeRadius || 50}m (+20m GPS margin)
+                  </span>
+                </div>
+              ) : (
+                <>
+                  {/* Primary Branch Location */}
+                  {user.branch?.hrLocation ? (
+                    <div style={{ padding: '0.75rem', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'block', color: '#166534' }}>
+                        ⭐ Sucursal Matriz ({user.branch.name})
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: '#15803d', display: 'block', marginTop: '0.15rem' }}>
+                        Coordenadas: {user.branch.hrLocation.lat.toFixed(5)}, {user.branch.hrLocation.lng.toFixed(5)}
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: '#15803d', display: 'block' }}>
+                        Radio permitido: {user.branch.hrLocation.radius}m (+20m GPS margin)
+                      </span>
+                    </div>
+                  ) : (
+                    user.reqGps && (
+                      <div style={{ padding: '0.75rem', backgroundColor: '#fef2f2', borderRadius: '8px', border: '1px solid #fca5a5' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'block', color: '#991b1b' }}>
+                          ⚠️ Sin Ubicación Matriz
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: '#ef4444', display: 'block', marginTop: '0.15rem' }}>
+                          Pide al administrador configurar coordenadas GPS para tu sucursal.
+                        </span>
+                      </div>
+                    )
+                  )}
+
+                  {/* Extra Checked Locations */}
+                  {user.hrLocations && user.hrLocations.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.25rem' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Ubicaciones Adicionales ({user.hrLocations.length})
+                      </span>
+                      {user.hrLocations.map((loc: any) => (
+                        <div key={loc.id} style={{ padding: '0.75rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'block', color: '#334155' }}>
+                            📍 {loc.name}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginTop: '0.15rem' }}>
+                            Coordenadas: {loc.lat.toFixed(5)}, {loc.lng.toFixed(5)}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>
+                            Radio permitido: {loc.radius}m (+20m GPS margin)
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Free GPS Attendance Bypassed case */}
+                  {!user.reqGps && (
+                    <div style={{ padding: '1rem', backgroundColor: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe', textAlign: 'center' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'block', color: '#1e40af', marginBottom: '0.25rem' }}>
+                        🔓 Asistencia Libre (Sin GPS)
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: '#2563eb' }}>
+                        Tienes permitido registrar asistencia desde cualquier lugar.
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
           <div className="card">
             <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1rem' }}>Resumen Semanal</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>

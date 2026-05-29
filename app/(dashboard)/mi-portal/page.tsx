@@ -27,9 +27,16 @@ export default async function MiPortalPage() {
         },
         orderBy: { timestamp: 'desc' }
       },
-      leaveRequests: true
+      leaveRequests: true,
+      hrLocations: true,
+      branch: {
+        include: {
+          hrLocation: true
+        }
+      }
     }
   });
+
 
   if (!user) {
     redirect("/login");

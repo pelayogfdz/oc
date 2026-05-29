@@ -24,7 +24,10 @@ export async function registerAttendance(data: {
     // Find user and branch to get rules (if applicable)
     const user = await prisma.user.findUnique({
       where: { id: data.userId },
-      include: { branch: { include: { hrLocation: true } } }
+      include: { 
+        branch: { include: { hrLocation: true } },
+        hrLocations: true 
+      }
     });
 
     if (!user) return { success: false, error: "Usuario no encontrado" };
@@ -81,45 +84,96 @@ export async function registerAttendance(data: {
         return { success: false, error: "Se requiere ubicación GPS para registrar asistencia." };
       }
       
-      // Check Home Office coordinates first, otherwise use Branch HR Location
+      // Check Home Office coordinates first, otherwise use Branch and hrLocations list
+      let isWithinRange = false;
       let targetLat: number | null = null;
       let targetLng: number | null = null;
       let targetRadius: number = 50;
+
+      const toleranceMargin = 20; // 20m GPS tolerance margin to absorb drift/fluctuations
+
+      // Haversine helper
+      const calcDist = (lt1: number, ln1: number, lt2: number, ln2: number) => {
+        const R = 6371e3; // metres
+        const p1 = lt1 * Math.PI/180;
+        const p2 = lt2 * Math.PI/180;
+        const dLat = (lt2 - lt1) * Math.PI/180;
+        const dLon = (ln2 - ln1) * Math.PI/180;
+
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(p1) * Math.cos(p2) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+      };
 
       if (user.homeLat !== null && user.homeLng !== null) {
         targetLat = user.homeLat;
         targetLng = user.homeLng;
         targetRadius = user.homeRadius || 50;
-      } else if (user.branch?.hrLocation) {
-        targetLat = user.branch.hrLocation.lat;
-        targetLng = user.branch.hrLocation.lng;
-        targetRadius = user.branch.hrLocation.radius;
+        
+        const distance = calcDist(data.latitude, data.longitude, targetLat, targetLng);
+        if (distance <= (targetRadius + toleranceMargin)) {
+          isWithinRange = true;
+        }
+      } else {
+        // Collect all allowed GPS checkpoints:
+        // 1. User's primary branch location
+        // 2. User's extra checked locations list
+        const allowedLocations: { lat: number; lng: number; radius: number; name: string }[] = [];
+        
+        if (user.branch?.hrLocation) {
+          allowedLocations.push({
+            lat: user.branch.hrLocation.lat,
+            lng: user.branch.hrLocation.lng,
+            radius: user.branch.hrLocation.radius,
+            name: user.branch.hrLocation.name
+          });
+        }
+        
+        if (user.hrLocations && user.hrLocations.length > 0) {
+          user.hrLocations.forEach((loc: any) => {
+            allowedLocations.push({
+              lat: loc.lat,
+              lng: loc.lng,
+              radius: loc.radius,
+              name: loc.name
+            });
+          });
+        }
+
+        if (allowedLocations.length > 0) {
+          const locationDistances = allowedLocations.map(loc => {
+            const distance = calcDist(data.latitude, data.longitude, loc.lat, loc.lng);
+            return { loc, distance };
+          });
+
+          // Check if within range of ANY allowed location
+          const matching = locationDistances.find(ld => ld.distance <= (ld.loc.radius + toleranceMargin));
+          if (matching) {
+            isWithinRange = true;
+          } else {
+            // Find closest location to report in the error message
+            const closest = locationDistances.reduce((prev, curr) => prev.distance < curr.distance ? prev : curr);
+            targetLat = closest.loc.lat;
+            targetLng = closest.loc.lng;
+            targetRadius = closest.loc.radius;
+          }
+        } else {
+          // No allowed locations defined at all, bypass check
+          isWithinRange = true;
+        }
       }
 
-      if (targetLat !== null && targetLng !== null) {
-        // Calculate distance using Haversine
-        const R = 6371e3; // metres
-        const lat1 = data.latitude * Math.PI/180;
-        const lat2 = targetLat * Math.PI/180;
-        const dLat = (targetLat - data.latitude) * Math.PI/180;
-        const dLon = (targetLng - data.longitude) * Math.PI/180;
-
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                  Math.cos(lat1) * Math.cos(lat2) *
-                  Math.sin(dLon/2) * Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        const distance = R * c;
-
-        const toleranceMargin = 20; // 20m GPS tolerance margin to absorb drift/fluctuations
-        if (distance > (targetRadius + toleranceMargin)) {
-          if (user.flexibleGps) {
-            gpsWarningPrefix = `[⚠️ Fuera de Rango: ${Math.round(distance)}m] `;
-          } else {
-            return { 
-              success: false, 
-              error: `Estás fuera del radio permitido de asistencia (distancia: ${Math.round(distance)}m, permitido: ${targetRadius}m). Si estás en tu lugar de trabajo, solicita a tu administrador verificar tus coordenadas en Preferencias o activar 'GPS Flexible' en tu perfil.` 
-            };
-          }
+      if (!isWithinRange && targetLat !== null && targetLng !== null) {
+        const distance = calcDist(data.latitude, data.longitude, targetLat, targetLng);
+        if (user.flexibleGps) {
+          gpsWarningPrefix = `[⚠️ Fuera de Rango: ${Math.round(distance)}m] `;
+        } else {
+          return { 
+            success: false, 
+            error: `Estás fuera del radio permitido de asistencia (distancia más cercana: ${Math.round(distance)}m, permitido: ${targetRadius}m). Si estás en tu lugar de trabajo, solicita a tu administrador verificar tus coordenadas en Preferencias o activar 'GPS Flexible' en tu perfil.` 
+          };
         }
       }
     }
