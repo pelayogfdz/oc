@@ -1,5 +1,12 @@
 [build]
   command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NETLIFY_NEXT_PLUGIN_SKIP = "true"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
 [functions]
   # Configures all functions to include the Prisma engine
