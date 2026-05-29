@@ -15,7 +15,8 @@ export async function createSale(
   cardAmount?: number,
   billingData?: { rfc: string; name: string; zipCode: string; regime: string; use: string },
   quoteIdToConvert?: string,
-  consignmentIdToConvert?: string
+  consignmentIdToConvert?: string,
+  pointsRedeemed: number = 0
 ) {
   try {
     const branch = await getActiveBranch();
@@ -69,13 +70,39 @@ export async function createSale(
     let dueDate = null;
     let balanceDue = 0;
 
+    // Points redemption logic
+    let pointsDiscount = 0;
+    if (pointsRedeemed > 0 && customerId) {
+      const loyaltySettings = await prisma.loyaltySettings.findUnique({
+        where: { branchId: branch.id }
+      });
+      const pointValue = loyaltySettings?.pointValueInPesos ?? 1.0;
+      pointsDiscount = pointsRedeemed * pointValue;
+
+      const customer = await prisma.customer.findUnique({ where: { id: customerId } });
+      if (!customer || customer.pointsBalance < pointsRedeemed) {
+        throw new Error("El cliente no tiene suficientes puntos en su monedero electrónico.");
+      }
+
+      // Deduct points from customer
+      await prisma.customer.update({
+        where: { id: customerId },
+        data: { pointsBalance: { decrement: pointsRedeemed } }
+      });
+
+      const pointsNote = `[Monedero Electrónico] Redimidos ${pointsRedeemed} puntos (equivalente a un descuento de $${pointsDiscount.toFixed(2)} pesos).`;
+      notes = notes ? `${notes}\n${pointsNote}` : pointsNote;
+    }
+
+    const finalSaleTotal = Math.max(0, total - pointsDiscount);
+
     // CxC Validation
     if (paymentMethod === 'CREDIT' && customerId) {
       const customer = await prisma.customer.findUnique({ where: { id: customerId } });
       if (!customer) throw new Error("Cliente no encontrado para la venta a crédito.");
       if (customer.creditLimit <= 0) throw new Error("El cliente no tiene línea de crédito autorizada.");
       
-      if ((customer.creditBalance + total) > customer.creditLimit) {
+      if ((customer.creditBalance + finalSaleTotal) > customer.creditLimit) {
         throw new Error(`El cliente excede su límite de crédito. Disponible: $${(customer.creditLimit - customer.creditBalance).toFixed(2)}`);
       }
 
@@ -92,12 +119,12 @@ export async function createSale(
 
       dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + customer.creditDays);
-      balanceDue = total;
+      balanceDue = finalSaleTotal;
     }
 
     const sale = await prisma.sale.create({
       data: {
-        total,
+        total: finalSaleTotal,
         paymentMethod,
         customerId,
         cashSessionId,
@@ -184,8 +211,21 @@ export async function createSale(
       if (paymentMethod === 'CREDIT') {
          await prisma.customer.update({
             where: { id: customerId },
-            data: { creditBalance: { increment: total } }
+            data: { creditBalance: { increment: finalSaleTotal } }
          });
+      }
+
+      // Log point redemption transaction if any
+      if (pointsRedeemed > 0) {
+        await prisma.loyaltyTransaction.create({
+          data: {
+            customerId,
+            type: 'REDEEMED',
+            points: pointsRedeemed,
+            reason: `Redención de puntos en Venta #${sale.id.slice(0, 8)}`,
+            saleId: sale.id
+          }
+        });
       }
 
       try {
@@ -196,7 +236,21 @@ export async function createSale(
         if (loyaltySettings && loyaltySettings.isActive) {
           const allowedMethods = loyaltySettings.paymentMethods.split(',');
           if (allowedMethods.includes(paymentMethod)) {
-            const calculatedPoints = Math.floor(total / loyaltySettings.amountStep) * loyaltySettings.pointsPerAmount;
+            // Check payment-method points multiplier
+            let pointsMultiplier = loyaltySettings.pointsPerAmount;
+            if (paymentMethod === 'CASH') {
+              pointsMultiplier = (loyaltySettings as any).pointsCash ?? loyaltySettings.pointsPerAmount;
+            } else if (paymentMethod === 'CARD') {
+              pointsMultiplier = (loyaltySettings as any).pointsCard ?? loyaltySettings.pointsPerAmount;
+            } else if (paymentMethod === 'TRANSFER') {
+              pointsMultiplier = (loyaltySettings as any).pointsTransfer ?? loyaltySettings.pointsPerAmount;
+            } else if (paymentMethod === 'CREDIT') {
+              pointsMultiplier = (loyaltySettings as any).pointsCredit ?? 0.0;
+            } else if (paymentMethod === 'MIXTO') {
+              pointsMultiplier = (loyaltySettings as any).pointsMixto ?? loyaltySettings.pointsPerAmount;
+            }
+
+            const calculatedPoints = Math.floor(finalSaleTotal / loyaltySettings.amountStep) * pointsMultiplier;
             
             if (calculatedPoints > 0) {
               const expiryDate = new Date();
@@ -225,12 +279,12 @@ export async function createSale(
         } else {
           // Fallback al motor anterior de Cashback si no hay fidelización de puntos configurada
           if (paymentMethod !== 'CREDIT') {
-             const rewardPoints = parseFloat((total * 0.03).toFixed(2));
-             await prisma.customer.update({
-               where: { id: customerId },
-               data: { storeCredit: { increment: rewardPoints } }
-             });
-             console.log(`[Loyalty Fallback] Recompensado $${rewardPoints} a cliente ${customerId}`);
+              const rewardPoints = parseFloat((finalSaleTotal * 0.03).toFixed(2));
+              await prisma.customer.update({
+                where: { id: customerId },
+                data: { storeCredit: { increment: rewardPoints } }
+              });
+              console.log(`[Loyalty Fallback] Recompensado $${rewardPoints} a cliente ${customerId}`);
           }
         }
       } catch (err) {

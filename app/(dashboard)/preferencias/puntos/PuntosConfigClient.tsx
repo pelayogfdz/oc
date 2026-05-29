@@ -119,9 +119,9 @@ export default function PuntosConfigClient({
             </div>
 
             {/* Calculations and rules */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Puntos a Otorgar</label>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Puntos a Otorgar (General)</label>
                 <input 
                   type="number" 
                   name="pointsPerAmount" 
@@ -132,7 +132,7 @@ export default function PuntosConfigClient({
                   required 
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', backgroundColor: '#f8fafc' }} 
                 />
-                <span style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', display: 'block', marginTop: '0.25rem' }}>Número de puntos que gana el cliente.</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', display: 'block', marginTop: '0.25rem' }}>Número de puntos base.</span>
               </div>
 
               <div>
@@ -147,11 +147,11 @@ export default function PuntosConfigClient({
                   required 
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', backgroundColor: '#f8fafc' }} 
                 />
-                <span style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', display: 'block', marginTop: '0.25rem' }}>Monto de compra necesario para ganar los puntos.</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', display: 'block', marginTop: '0.25rem' }}>Monto de compra necesario.</span>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Vigencia de los Puntos (Días)</label>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Vigencia de Puntos (Días)</label>
                 <input 
                   type="number" 
                   name="validityDays" 
@@ -160,7 +160,21 @@ export default function PuntosConfigClient({
                   required 
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', backgroundColor: '#f8fafc' }} 
                 />
-                <span style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', display: 'block', marginTop: '0.25rem' }}>Días que tienen los puntos antes de vencer.</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', display: 'block', marginTop: '0.25rem' }}>Días antes de vencer.</span>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--pulpos-primary)', marginBottom: '0.5rem' }}>Valor de cada Punto ($)</label>
+                <input 
+                  type="number" 
+                  name="pointValueInPesos" 
+                  defaultValue={initialSettings?.pointValueInPesos || 1.0} 
+                  min="0.01" 
+                  step="any"
+                  required 
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-primary)', backgroundColor: '#fdfeff' }} 
+                />
+                <span style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', display: 'block', marginTop: '0.25rem' }}>Valor de 1 punto en pesos al pagar.</span>
               </div>
             </div>
 
@@ -173,29 +187,51 @@ export default function PuntosConfigClient({
               </div>
             </div>
 
-            {/* Payment Methods Checkboxes */}
+            {/* Payment Methods and Points Multipliers */}
             <div style={{ borderTop: '1px solid var(--pulpos-border)', paddingTop: '1.5rem' }}>
-              <h5 style={{ fontWeight: 'bold', fontSize: '1rem', marginBottom: '0.5rem' }}>Métodos de Pago Habilitados</h5>
-              <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>Selecciona los métodos de pago válidos con los que el cliente puede ganar puntos.</p>
+              <h5 style={{ fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '0.5rem' }}>Métodos de Pago y Reglas de Acumulación</h5>
+              <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Activa cada método de pago y define cuántos puntos otorga de manera independiente.</p>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
                 {[
-                  { id: 'CASH', label: '💵 Efectivo' },
-                  { id: 'CARD', label: '💳 Tarjeta' },
-                  { id: 'TRANSFER', label: '🏛️ Transferencia Bancaria' },
-                  { id: 'CREDIT', label: '🛍️ Venta a Crédito (CxC)' },
-                  { id: 'MIXTO', label: '⚡ Pago Mixto' }
-                ].map(method => (
-                  <label key={method.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: '#f8fafc', transition: 'all 0.2s' }}>
-                    <input 
-                      type="checkbox" 
-                      name={`method_${method.id}`}
-                      defaultChecked={paymentMethodsList.includes(method.id)}
-                      style={{ width: '1.2rem', height: '1.2rem', accentColor: 'var(--pulpos-primary)', cursor: 'pointer' }}
-                    />
-                    <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>{method.label}</span>
-                  </label>
-                ))}
+                  { id: 'CASH', label: '💵 Efectivo', field: 'pointsCash', desc: 'Puntos por pagar con billetes o monedas.' },
+                  { id: 'CARD', label: '💳 Tarjeta', field: 'pointsCard', desc: 'Puntos por pagar con terminal bancaria.' },
+                  { id: 'TRANSFER', label: '🏛️ Transferencia Bancaria', field: 'pointsTransfer', desc: 'Puntos por SPEI o depósitos bancarios.' },
+                  { id: 'CREDIT', label: '🛍️ Venta a Crédito (CxC)', field: 'pointsCredit', desc: 'Puntos al liquidar o comprar a crédito.' },
+                  { id: 'MIXTO', label: '⚡ Pago Mixto', field: 'pointsMixto', desc: 'Puntos por pagos mixtos divididos.' }
+                ].map(method => {
+                  const initialVal = initialSettings?.[method.field] !== undefined ? initialSettings[method.field] : (method.id === 'CREDIT' ? 0.0 : 1.0);
+                  return (
+                    <div key={method.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)', backgroundColor: '#f8fafc', transition: 'all 0.2s', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                        <input 
+                          type="checkbox" 
+                          name={`method_${method.id}`}
+                          defaultChecked={paymentMethodsList.includes(method.id)}
+                          style={{ width: '1.2rem', height: '1.2rem', accentColor: 'var(--pulpos-primary)', cursor: 'pointer' }}
+                        />
+                        <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#1e293b' }}>{method.label}</span>
+                      </label>
+                      
+                      <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.75rem', margin: '0' }}>{method.desc}</p>
+                      
+                      <div style={{ marginTop: '0.25rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '0.25rem' }}>Puntos a otorgar:</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <input 
+                            type="number" 
+                            name={method.field}
+                            defaultValue={initialVal}
+                            min="0"
+                            step="any"
+                            style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white', fontSize: '0.875rem' }}
+                          />
+                          <span style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', fontWeight: '500', whiteSpace: 'nowrap' }}>pts / paso</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

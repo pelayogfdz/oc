@@ -19,7 +19,13 @@ export async function getLoyaltySettings(branchId: string) {
           amountStep: 100.0,
           paymentMethods: "CASH,CARD,TRANSFER",
           validityDays: 365,
-          isActive: true
+          isActive: true,
+          pointsCash: 1.0,
+          pointsCard: 1.0,
+          pointsTransfer: 1.0,
+          pointsCredit: 0.0,
+          pointsMixto: 1.0,
+          pointValueInPesos: 1.0
         }
       });
     }
@@ -46,6 +52,13 @@ export async function saveLoyaltySettings(branchId: string, formData: FormData) 
     if (formData.get("method_MIXTO") === "on") methods.push("MIXTO");
     const paymentMethods = methods.join(",");
 
+    const pointsCash = parseFloat(formData.get("pointsCash") as string || "1.0");
+    const pointsCard = parseFloat(formData.get("pointsCard") as string || "1.0");
+    const pointsTransfer = parseFloat(formData.get("pointsTransfer") as string || "1.0");
+    const pointsCredit = parseFloat(formData.get("pointsCredit") as string || "0.0");
+    const pointsMixto = parseFloat(formData.get("pointsMixto") as string || "1.0");
+    const pointValueInPesos = parseFloat(formData.get("pointValueInPesos") as string || "1.0");
+
     await prisma.loyaltySettings.upsert({
       where: { branchId },
       update: {
@@ -53,7 +66,13 @@ export async function saveLoyaltySettings(branchId: string, formData: FormData) 
         amountStep,
         validityDays,
         isActive,
-        paymentMethods
+        paymentMethods,
+        pointsCash,
+        pointsCard,
+        pointsTransfer,
+        pointsCredit,
+        pointsMixto,
+        pointValueInPesos
       },
       create: {
         branchId,
@@ -61,7 +80,13 @@ export async function saveLoyaltySettings(branchId: string, formData: FormData) 
         amountStep,
         validityDays,
         isActive,
-        paymentMethods
+        paymentMethods,
+        pointsCash,
+        pointsCard,
+        pointsTransfer,
+        pointsCredit,
+        pointsMixto,
+        pointValueInPesos
       }
     });
 

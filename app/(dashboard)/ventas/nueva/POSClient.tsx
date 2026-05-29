@@ -1,7 +1,8 @@
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera } from 'lucide-react';
+import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star } from 'lucide-react';
 import { createSale } from '@/app/actions/sale';
+import { getLoyaltySettings } from '@/app/actions/loyalty';
 import { createQuote, getQuoteForPOS, createQuickProductsForQuote } from '@/app/actions/quote';
 import { createConsignment, getConsignmentForPOS } from '@/app/actions/consignment';
 import { searchProducts } from '@/app/actions/product';
@@ -115,6 +116,18 @@ export default function POSClient({ products: initialProducts, customers, suppli
   const [cardAmount, setCardAmount] = useState<number | ''>(''); // Used for MIXED
   const [notes, setNotes] = useState<string>('');
   const [loadedQuoteId, setLoadedQuoteId] = useState<string | null>(null);
+
+  // Loyalty / Points state
+  const [loyaltySettings, setLoyaltySettings] = useState<any>(null);
+  const [pointsRedeemed, setPointsRedeemed] = useState<number>(0);
+
+  useEffect(() => {
+    if (branchId) {
+      getLoyaltySettings(branchId).then(res => {
+        if (res.success) setLoyaltySettings(res.settings);
+      });
+    }
+  }, [branchId]);
 
   const handleCustomerChange = async (customerId: string) => {
     setSelectedCustomerId(customerId);
@@ -375,7 +388,9 @@ export default function POSClient({ products: initialProducts, customers, suppli
   const marginPct = (total > 0 && totalCost > 0) ? ((estimatedProfit / total) * 100).toFixed(1) : (total > 0 ? '100' : '0'); 
   const markupPct = totalCost > 0 ? ((estimatedProfit / totalCost) * 100).toFixed(1) : (total > 0 ? '100' : '0');
 
-  const finalTotalWithTip = total + tipAmount;
+  const pointsValue = loyaltySettings?.pointValueInPesos || 1.0;
+  const pointsDiscount = pointsRedeemed * pointsValue;
+  const finalTotalWithTip = Math.max(0, total + tipAmount - pointsDiscount);
 
   const change = (typeof amountReceived === 'number' ? amountReceived : 0) - finalTotalWithTip;
 
@@ -606,7 +621,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
           saleId = `OFFLINE-${Date.now()}`;
         } else {
           // ONLINE MODE
-          const response = await createSale(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null, sessionId, finalNotes, cashValue, cardValue, billingData, loadedQuoteId || undefined, loadedConsignmentId || undefined);
+          const response = await createSale(items, total + tipAmount, paymentMethod, selectedCustomerId || null, sessionId, finalNotes, cashValue, cardValue, billingData, loadedQuoteId || undefined, loadedConsignmentId || undefined, pointsRedeemed);
           if (!response.success) {
             throw new Error(response.error);
           }
@@ -620,6 +635,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
       setCardAmount('');
       setNotes('');
       setTipAmount(0);
+      setPointsRedeemed(0);
       setManualDiscountValue('');
       setIsProcessing(false);
 
@@ -1129,6 +1145,61 @@ export default function POSClient({ products: initialProducts, customers, suppli
               <div style={{ fontSize: '1rem', color: 'var(--pulpos-text-muted)' }}>{mode === 'QUOTE' ? 'Total Presupuestado' : mode === 'CONSIGNMENT' ? 'Total Consignado' : 'Total a Pagar'}</div>
               <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>${finalTotalWithTip.toFixed(2)}</div>
             </div>
+
+            {/* Monedero Electrónico */}
+            {mode === 'SALE' && selectedCust && loyaltySettings && loyaltySettings.isActive && selectedCust.pointsBalance > 0 && (
+              <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#eff6ff', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', color: '#1e40af', marginBottom: '0.5rem', fontSize: '1.05rem' }}>
+                  <Star size={18} fill="#1e40af" color="#1e40af" />
+                  <span>Monedero Electrónico</span>
+                </div>
+                <div style={{ fontSize: '0.95rem', color: '#1e3a8a', display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <span>Puntos Disponibles:</span>
+                  <strong style={{ fontSize: '1.1rem' }}>{selectedCust.pointsBalance} pts</strong>
+                </div>
+                <div style={{ fontSize: '0.95rem', color: '#1e3a8a', display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <span>Equivalencia en Pesos:</span>
+                  <strong>${(selectedCust.pointsBalance * (loyaltySettings.pointValueInPesos || 1.0)).toFixed(2)} MXN</strong>
+                </div>
+
+                <div style={{ marginTop: '0.75rem', borderTop: '1px dashed #bfdbfe', paddingTop: '0.75rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#1e40af', marginBottom: '0.5rem' }}>
+                    Redimir Puntos para esta compra (Máx: {Math.min(selectedCust.pointsBalance, Math.floor((total + tipAmount) / (loyaltySettings.pointValueInPesos || 1.0)))}):
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <input 
+                      type="number"
+                      min="0"
+                      max={Math.min(selectedCust.pointsBalance, Math.floor((total + tipAmount) / (loyaltySettings.pointValueInPesos || 1.0)))}
+                      value={pointsRedeemed || ''}
+                      onChange={e => {
+                        const val = parseInt(e.target.value) || 0;
+                        const maxVal = Math.min(selectedCust.pointsBalance, Math.floor((total + tipAmount) / (loyaltySettings.pointValueInPesos || 1.0)));
+                        setPointsRedeemed(Math.min(maxVal, Math.max(0, val)));
+                      }}
+                      placeholder="Cantidad de puntos"
+                      style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid #bfdbfe', outline: 'none' }}
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const maxVal = Math.min(selectedCust.pointsBalance, Math.floor((total + tipAmount) / (loyaltySettings.pointValueInPesos || 1.0)));
+                        setPointsRedeemed(maxVal);
+                      }}
+                      style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', backgroundColor: '#2563eb', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.85rem' }}
+                    >
+                      Usar Todos
+                    </button>
+                  </div>
+                  {pointsRedeemed > 0 && (
+                    <div style={{ fontSize: '0.9rem', color: '#16a34a', marginTop: '0.5rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Descuento aplicado:</span>
+                      <span>-${(pointsRedeemed * (loyaltySettings.pointValueInPesos || 1.0)).toFixed(2)} MXN</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {mode !== 'QUOTE' && mode !== 'CONSIGNMENT' && ventasConfig.solicitarPropinas && (
                <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '1.5rem' }}>

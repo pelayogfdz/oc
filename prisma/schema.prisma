@@ -954,6 +954,12 @@ model LoyaltySettings {
   paymentMethods  String   @default("CASH,CARD,TRANSFER")
   validityDays    Int      @default(365)
   isActive        Boolean  @default(true)
+  pointsCash      Float    @default(1.0)
+  pointsCard      Float    @default(1.0)
+  pointsTransfer  Float    @default(1.0)
+  pointsCredit    Float    @default(0.0)
+  pointsMixto     Float    @default(1.0)
+  pointValueInPesos Float  @default(1.0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   branch          Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
