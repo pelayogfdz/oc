@@ -1320,10 +1320,7 @@ setInterval(async () => {
         const pendingMessages = await prisma.whatsAppMessage.findMany({
             where: {
                 messageId: null,
-                isFromMe: true,
-                timestamp: {
-                    lte: new Date()
-                }
+                isFromMe: true
             },
             include: {
                 prospect: true
@@ -1367,28 +1364,19 @@ setInterval(async () => {
 
                 if (!chatId) continue;
 
-                // Only call getNumberId if we don't have a valid whatsappId in DB yet
-                if (!msg.prospect.whatsappId || msg.prospect.whatsappId === '0') {
-                    try {
-                        const numberId = await client.getNumberId(phone);
-                        if (numberId && numberId._serialized) {
-                            chatId = numberId._serialized;
-                            const whatsappIdUser = numberId.user || numberId._serialized.split('@')[0];
-                            
-                            await prisma.prospect.update({
-                                where: { id: msg.prospect.id },
-                                data: { whatsappId: whatsappIdUser }
-                            });
-                            console.log(`[WHATSAPP] Polling loop resolved and updated JID ${chatId} for ${phone}`);
-                        }
-                    } catch (e) {
-                        console.log(`[WHATSAPP] getNumberId failed for ${phone}:`, e.message);
-                    }
-                }
-
                 let sentMsg = null;
                 try {
                     sentMsg = await client.sendMessage(chatId, msg.body);
+
+                    // Resolve JID asynchronously after sending if it was not resolved yet
+                    if (!msg.prospect.whatsappId || msg.prospect.whatsappId === '0') {
+                        const resolvedJid = sentMsg.to || chatId;
+                        const whatsappIdUser = resolvedJid.split('@')[0];
+                        prisma.prospect.update({
+                            where: { id: msg.prospect.id },
+                            data: { whatsappId: whatsappIdUser }
+                        }).catch(e => console.error(`[WHATSAPP] Failed to update JID after send:`, e.message));
+                    }
                 } catch (sendError) {
                     console.error(`Failed to send pending message to ${msg.prospect?.phone}:`, sendError);
                     await prisma.whatsAppMessage.update({
@@ -1424,8 +1412,10 @@ setInterval(async () => {
                 
                 console.log(`[WHATSAPP] Sent pending message to ${phone}`);
 
-                // WAIT 5 SECONDS between each message to avoid spam!
-                await new Promise(resolve => setTimeout(resolve, 5000));
+                // Wait 1.5 seconds between messages in the same batch to avoid spam
+                if (pendingMessages.indexOf(msg) < pendingMessages.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                }
             } catch (loopErr) {
                 console.error(`[WHATSAPP] Polling loop exception:`, loopErr);
             }
@@ -1435,7 +1425,7 @@ setInterval(async () => {
     } finally {
         isPolling = false;
     }
-}, 5000);
+}, 1000);
 
 async function initializeAllActiveSessions() {
     console.log('[WHATSAPP] Pre-initializing connected/active sessions...');

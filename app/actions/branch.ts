@@ -2,15 +2,22 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath, revalidateTag } from 'next/cache';
+import { cookies } from 'next/headers';
+import { decrypt } from '@/lib/session';
 
 export async function createBranch(formData: FormData) {
   const name = formData.get('name') as string;
   const location = formData.get('location') as string;
   
-  await prisma.branch.create({
+  const sessionCookie = (await cookies()).get('session')?.value;
+  const session = await decrypt(sessionCookie);
+  const tenantId = session?.tenantId || null;
+
+  const newBranch = await prisma.branch.create({
     data: {
       name,
       location,
+      tenantId,
       settings: {
         create: {
           taxIVA: 16.0,
@@ -22,6 +29,8 @@ export async function createBranch(formData: FormData) {
   });
   
   revalidatePath('/preferencias/sucursales');
+  revalidatePath('/preferencias/usuarios');
+  return { success: true, branch: newBranch };
 }
 
 export async function updateBranch(id: string, name: string, location: string, facturapiLiveKey?: string, facturapiTestKey?: string, lat?: number, lng?: number, radius?: number) {
