@@ -171,25 +171,44 @@ export async function updateUser(id: string, formData: FormData) {
 }
 
 export async function deleteUser(id: string) {
-  const userToDelete = await prisma.user.findUnique({ where: { id } });
-  if (!userToDelete) throw new Error("Usuario no encontrado");
-
-  if (userToDelete.isSuperAdmin) {
-    throw new Error("No se puede eliminar a un Super Administrador del sistema.");
-  }
-
-  if (userToDelete.tenantId) {
-    const oldestUser = await prisma.user.findFirst({
-      where: { tenantId: userToDelete.tenantId },
-      orderBy: { createdAt: 'asc' }
-    });
-
-    if (oldestUser && oldestUser.id === id) {
-      throw new Error("No se puede eliminar al creador original (propietario) de la cuenta.");
+  try {
+    const userToDelete = await prisma.user.findUnique({ where: { id } });
+    if (!userToDelete) {
+      return { success: false, error: "Usuario no encontrado en el sistema." };
     }
-  }
 
-  await prisma.user.delete({ where: { id } });
-  revalidatePath('/preferencias/usuarios');
-  return { success: true };
+    if (userToDelete.isSuperAdmin) {
+      return { success: false, error: "No se puede eliminar a un Super Administrador del sistema." };
+    }
+
+    if (userToDelete.tenantId) {
+      const oldestUser = await prisma.user.findFirst({
+        where: { tenantId: userToDelete.tenantId },
+        orderBy: { createdAt: 'asc' }
+      });
+
+      if (oldestUser && oldestUser.id === id) {
+        return { success: false, error: "No se puede eliminar al creador original (propietario) de la cuenta." };
+      }
+    }
+
+    await prisma.user.delete({ where: { id } });
+    revalidatePath('/preferencias/usuarios');
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error in deleteUser:", error);
+    
+    // Check if it's a Prisma foreign key constraint violation (Code P2003)
+    if (error.code === 'P2003') {
+      return {
+        success: false,
+        error: "No se puede eliminar al usuario porque tiene historial activo en el sistema (por ejemplo: ventas realizadas, comisiones ganadas, traspasos de mercancía registrados o checadas de asistencia). Para conservar la integridad histórica de tu negocio, te sugerimos simplemente cambiar su contraseña para restringir su acceso, o desactivar su cuenta."
+      };
+    }
+    
+    return { 
+      success: false, 
+      error: "No se puede eliminar al usuario debido a registros históricos vinculados en la base de datos (ventas, compras, traspasos o asistencias). Te recomendamos cambiar su contraseña o desactivar su perfil en lugar de eliminarlo." 
+    };
+  }
 }

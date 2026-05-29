@@ -425,8 +425,12 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
   async function handleDelete(id: string) {
     if(confirm('¿Eliminar usuario del sistema?')) {
       try {
-        await deleteUser(id);
-        setUsers(users.filter(u => u.id !== id));
+        const res = await deleteUser(id);
+        if (res && res.success) {
+          setUsers(users.filter(u => u.id !== id));
+        } else {
+          alert("No se pudo eliminar: " + (res?.error || "Ocurrió un error inesperado."));
+        }
       } catch (err: any) {
         alert("Error eliminando: " + err.message);
       }
