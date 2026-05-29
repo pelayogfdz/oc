@@ -23,6 +23,11 @@ export default async function MonitoreoPage() {
   const users = await prisma.user.findMany({
     where: {
       tenantId: session.tenantId,
+      NOT: {
+        email: {
+          startsWith: 'inactivo_'
+        }
+      }
     },
     include: {
       branch: true,

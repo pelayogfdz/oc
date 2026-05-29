@@ -14,7 +14,14 @@ export default async function UsuariosPage() {
   
   // Show all users for the business (including their hrLocations)
   const users = await prisma.user.findMany({
-    where: { tenantId: session?.tenantId },
+    where: { 
+      tenantId: session?.tenantId,
+      NOT: {
+        email: {
+          startsWith: 'inactivo_'
+        }
+      }
+    },
     include: {
       hrLocations: true,
     }

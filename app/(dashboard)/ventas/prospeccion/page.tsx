@@ -41,7 +41,15 @@ export default async function ProspeccionPage() {
   });
 
   const allUsers = await prisma.user.findMany({
-    where: { ...(branch.id === 'GLOBAL' ? {} : { branchId: branch.id }), commissionRole: { not: null } },
+    where: { 
+      ...(branch.id === 'GLOBAL' ? {} : { branchId: branch.id }), 
+      commissionRole: { not: null },
+      NOT: {
+        email: {
+          startsWith: 'inactivo_'
+        }
+      }
+    },
     select: { id: true, name: true, commissionRole: true }
   });
 

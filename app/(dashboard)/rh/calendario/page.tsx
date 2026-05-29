@@ -16,7 +16,14 @@ export default async function RHCalendarPage() {
 
   // Get active users for the branch to assign incidents
   const employees = await prisma.user.findMany({
-    where: branchFilter,
+    where: {
+      ...branchFilter,
+      NOT: {
+        email: {
+          startsWith: 'inactivo_'
+        }
+      }
+    },
     select: {
       id: true,
       name: true,

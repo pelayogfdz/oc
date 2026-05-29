@@ -192,23 +192,38 @@ export async function deleteUser(id: string) {
       }
     }
 
-    await prisma.user.delete({ where: { id } });
-    revalidatePath('/preferencias/usuarios');
-    return { success: true };
+    // Try physical delete first
+    try {
+      await prisma.user.delete({ where: { id } });
+      revalidatePath('/preferencias/usuarios');
+      return { success: true };
+    } catch (deleteError: any) {
+      // If it fails due to foreign key constraints, perform anonymization / soft-delete
+      if (deleteError.code === 'P2003') {
+        const uniqueSuffix = id.substring(0, 8);
+        const timestamp = Date.now();
+        await prisma.user.update({
+          where: { id },
+          data: {
+            name: `[EX-EMPLEADO] ${userToDelete.name}`,
+            email: `inactivo_${uniqueSuffix}_${timestamp}@caanma.com`,
+            password: `DISABLED_${Math.random().toString(36).substring(2)}_${timestamp}`,
+            role: 'USER',
+            permissions: '[]',
+            branchId: null,
+            managerId: null,
+          }
+        });
+        revalidatePath('/preferencias/usuarios');
+        return { success: true };
+      }
+      throw deleteError;
+    }
   } catch (error: any) {
     console.error("Error in deleteUser:", error);
-    
-    // Check if it's a Prisma foreign key constraint violation (Code P2003)
-    if (error.code === 'P2003') {
-      return {
-        success: false,
-        error: "No se puede eliminar al usuario porque tiene historial activo en el sistema (por ejemplo: ventas realizadas, comisiones ganadas, traspasos de mercancía registrados o checadas de asistencia). Para conservar la integridad histórica de tu negocio, te sugerimos simplemente cambiar su contraseña para restringir su acceso, o desactivar su cuenta."
-      };
-    }
-    
     return { 
       success: false, 
-      error: "No se puede eliminar al usuario debido a registros históricos vinculados en la base de datos (ventas, compras, traspasos o asistencias). Te recomendamos cambiar su contraseña o desactivar su perfil en lugar de eliminarlo." 
+      error: error.message || "Ocurrió un error al procesar la eliminación." 
     };
   }
 }

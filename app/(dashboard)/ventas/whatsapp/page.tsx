@@ -57,7 +57,14 @@ export default async function WhatsappBandejaPage() {
 
   // Lista de vendedores/usuarios disponibles para asignar
   const allUsers = await prisma.user.findMany({
-    where: { tenantId: user.tenantId },
+    where: { 
+      tenantId: user.tenantId,
+      NOT: {
+        email: {
+          startsWith: 'inactivo_'
+        }
+      }
+    },
     select: { id: true, name: true, commissionRole: true }
   });
 

@@ -9,7 +9,14 @@ export async function getUsersHierarchy() {
   const whereClause = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
 
   const users = await prisma.user.findMany({
-    where: whereClause,
+    where: {
+      ...whereClause,
+      NOT: {
+        email: {
+          startsWith: 'inactivo_'
+        }
+      }
+    },
     include: {
       manager: true,
       subordinates: true
@@ -63,7 +70,14 @@ export async function getCommissionReport(month: number, year: number) {
   const whereClause = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
 
   const users = await prisma.user.findMany({
-    where: whereClause,
+    where: {
+      ...whereClause,
+      NOT: {
+        email: {
+          startsWith: 'inactivo_'
+        }
+      }
+    },
     select: {
       id: true,
       name: true,
