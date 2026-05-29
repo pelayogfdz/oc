@@ -160,9 +160,9 @@ export default function FaceRecognitionClient({
           const similarityScore = Math.max(0, Math.min(100, Math.round((1 - (distance / 1.5)) * 100)));
           setSimilarity(similarityScore);
 
-          const MATCH_THRESHOLD = 0.58; // Highly secure but accounts for varying lighting conditions
+          const MATCH_THRESHOLD = 0.75; // Set to 0.75 (50% similarity) to make check-in easier for users as requested
 
-          if (distance <= MATCH_THRESHOLD) {
+          if (similarityScore >= 50) {
             setMatchStatus('success');
             setCapturedPhoto(photoUrl);
             setHasPhoto(true);
