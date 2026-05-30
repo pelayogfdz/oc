@@ -30,12 +30,138 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('session')?.value;
   if (!sessionCookie) {
-    return notFound();
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',
+        color: 'white',
+        fontFamily: "'Outfit', sans-serif",
+        padding: '2rem',
+        boxSizing: 'border-box'
+      }}>
+        <div style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.03)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '24px',
+          padding: '3rem 2rem',
+          maxWidth: '500px',
+          width: '100%',
+          textAlign: 'center',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)'
+        }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1.5rem auto'
+          }}>
+            <svg style={{ width: '32px', height: '32px', stroke: '#ef4444', strokeWidth: 2, fill: 'none' }} viewBox="0 0 24 24">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '0 0 1rem 0', background: 'linear-gradient(to right, #ffedd5, #fca5a5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            Acceso Restringido
+          </h1>
+          <p style={{ color: '#94a3b8', fontSize: '1rem', lineHeight: '1.6', margin: '0 0 2rem 0' }}>
+            No se encontró una sesión activa en este navegador. Para poder exportar y descargar el catálogo en PDF, debes iniciar sesión en la plataforma.
+          </p>
+          <a href="/login" style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#7c3aed',
+            color: 'white',
+            fontWeight: 'bold',
+            padding: '0.85rem 2rem',
+            borderRadius: '50px',
+            textDecoration: 'none',
+            fontSize: '0.95rem',
+            boxShadow: '0 10px 20px rgba(124, 58, 237, 0.3)',
+            transition: 'all 0.2s hover'
+          }}>
+            Iniciar Sesión
+          </a>
+        </div>
+      </div>
+    );
   }
 
   const session = await decrypt(sessionCookie);
   if (!session?.userId || !session?.tenantId) {
-    return notFound();
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',
+        color: 'white',
+        fontFamily: "'Outfit', sans-serif",
+        padding: '2rem',
+        boxSizing: 'border-box'
+      }}>
+        <div style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.03)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '24px',
+          padding: '3rem 2rem',
+          maxWidth: '500px',
+          width: '100%',
+          textAlign: 'center',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)'
+        }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1.5rem auto'
+          }}>
+            <svg style={{ width: '32px', height: '32px', stroke: '#ef4444', strokeWidth: 2, fill: 'none' }} viewBox="0 0 24 24">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '0 0 1rem 0', background: 'linear-gradient(to right, #ffedd5, #fca5a5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            Sesión Expirada
+          </h1>
+          <p style={{ color: '#94a3b8', fontSize: '1rem', lineHeight: '1.6', margin: '0 0 2rem 0' }}>
+            Tu sesión no es válida o ha caducado por motivos de seguridad. Vuelve a ingresar tus credenciales para continuar.
+          </p>
+          <a href="/login" style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#7c3aed',
+            color: 'white',
+            fontWeight: 'bold',
+            padding: '0.85rem 2rem',
+            borderRadius: '50px',
+            textDecoration: 'none',
+            fontSize: '0.95rem',
+            boxShadow: '0 10px 20px rgba(124, 58, 237, 0.3)'
+          }}>
+            Volver a Iniciar Sesión
+          </a>
+        </div>
+      </div>
+    );
   }
 
   const branchCookie = cookieStore.get('pulpos_active_branch')?.value;
@@ -64,7 +190,69 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
   }
 
   if (!activeBranch) {
-    return notFound();
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',
+        color: 'white',
+        fontFamily: "'Outfit', sans-serif",
+        padding: '2rem',
+        boxSizing: 'border-box'
+      }}>
+        <div style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.03)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '24px',
+          padding: '3rem 2rem',
+          maxWidth: '500px',
+          width: '100%',
+          textAlign: 'center',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)'
+        }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(234, 179, 8, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1.5rem auto'
+          }}>
+            <svg style={{ width: '32px', height: '32px', stroke: '#eab308', strokeWidth: 2, fill: 'none' }} viewBox="0 0 24 24">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+          </div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '0 0 1rem 0', background: 'linear-gradient(to right, #fef08a, #fcd34d)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            Sucursal Inactiva
+          </h1>
+          <p style={{ color: '#94a3b8', fontSize: '1rem', lineHeight: '1.6', margin: '0 0 2rem 0' }}>
+            No se detectó ninguna sucursal activa asignada a tu cuenta de cliente. Por favor, selecciona una sucursal en el panel principal antes de intentar generar este catálogo.
+          </p>
+          <a href="/ventas/catalogos" style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#7c3aed',
+            color: 'white',
+            fontWeight: 'bold',
+            padding: '0.85rem 2rem',
+            borderRadius: '50px',
+            textDecoration: 'none',
+            fontSize: '0.95rem',
+            boxShadow: '0 10px 20px rgba(124, 58, 237, 0.3)'
+          }}>
+            Regresar al Panel
+          </a>
+        </div>
+      </div>
+    );
   }
 
   // Obtener los datos del tenant/branch para la portada
