@@ -1,6 +1,6 @@
-import { getPrintProducts } from '@/app/actions/catalog';
+import { prisma } from '@/lib/prisma';
+import { getActiveBranch } from '@/app/actions/auth';
 import { notFound } from 'next/navigation';
-import { Sparkles, Printer, X, Tag } from 'lucide-react';
 
 interface PrintPageProps {
   searchParams: Promise<{
@@ -13,28 +13,91 @@ interface PrintPageProps {
 }
 
 export default async function PrintCatalogPage({ searchParams }: PrintPageProps) {
-  const params = await searchParams;
-  const type = (params.type || 'brands') as 'brands' | 'special' | 'promotions';
-  const brands = params.brands ? params.brands.split(',').filter(Boolean) : [];
-  const categories = params.categories ? params.categories.split(',').filter(Boolean) : [];
-  const selectedIds = params.ids ? params.ids.split(',').filter(Boolean) : [];
-  const limit = params.limit ? parseInt(params.limit) || 100 : 100;
+  let products: any[] = [];
+  let branchName = 'Sucursal Principal';
+  let tenantName = 'CAANMA';
+  let type: 'brands' | 'special' | 'promotions' = 'brands';
 
-  const res = await getPrintProducts({
-    type,
-    brands,
-    categories,
-    selectedIds,
-    limit
-  });
+  try {
+    const params = await searchParams;
+    type = (params.type || 'brands') as 'brands' | 'special' | 'promotions';
+    const brands = params.brands ? params.brands.split(',').filter(Boolean) : [];
+    const categories = params.categories ? params.categories.split(',').filter(Boolean) : [];
+    const selectedIds = params.ids ? params.ids.split(',').filter(Boolean) : [];
+    const limit = params.limit ? parseInt(params.limit) || 100 : 100;
 
-  if (!res.success) {
-    return notFound();
+    const branch = await getActiveBranch();
+    if (!branch) {
+      return notFound();
+    }
+
+    // Obtener los datos del tenant/branch para la portada
+    const branchInfo = await prisma.branch.findUnique({
+      where: { id: branch.id },
+      include: { tenant: true }
+    });
+
+    if (branchInfo) {
+      branchName = branchInfo.name;
+      tenantName = branchInfo.tenant?.name || 'CAANMA';
+    }
+
+    const whereClause: any = {
+      branchId: branch.id,
+      isActive: true
+    };
+
+    if (type === 'brands') {
+      if (brands.length > 0) {
+        whereClause.brand = { in: brands };
+      }
+      if (categories.length > 0) {
+        whereClause.category = { in: categories };
+      }
+    } else if (type === 'special') {
+      if (selectedIds.length === 0) {
+        products = [];
+      } else {
+        whereClause.id = { in: selectedIds };
+      }
+    } else if (type === 'promotions') {
+      whereClause.specialPrice = { gt: 0 };
+    }
+
+    // Ejecutar consulta Prisma directamente en el Server Component
+    if (type !== 'special' || selectedIds.length > 0) {
+      const dbProducts = await prisma.product.findMany({
+        where: whereClause,
+        select: {
+          id: true,
+          sku: true,
+          name: true,
+          description: true,
+          price: true,
+          specialPrice: true,
+          brand: true,
+          category: true,
+          imageUrl: true
+        },
+        orderBy: [
+          { brand: 'asc' },
+          { name: 'asc' }
+        ],
+        take: limit
+      });
+
+      products = dbProducts;
+
+      // Filtrar promociones si por alguna razón specialPrice >= price
+      if (type === 'promotions') {
+        products = dbProducts.filter(p => p.specialPrice !== null && p.specialPrice < p.price);
+      }
+    }
+  } catch (error) {
+    console.error('Error al renderizar catálogo imprimible:', error);
+    // Si hay un error al consultar, lanzamos notFound() o renderizamos vacío en lugar de romper la página
+    products = [];
   }
-
-  const products = res.products || [];
-  const branchName = res.branchName || 'Sucursal Principal';
-  const tenantName = res.tenantName || 'CAANMA';
 
   // Group products by brand for editorial index & separators
   const brandGroups: Record<string, typeof products> = {};
@@ -45,8 +108,6 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
     }
     brandGroups[brandName].push(p);
   });
-
-  const totalBrands = Object.keys(brandGroups).length;
 
   return (
     <>
@@ -437,15 +498,36 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
           color: #475569; 
           border: 1px solid #cbd5e1; 
         }
+
+        .svg-icon {
+          width: 18px;
+          height: 18px;
+          fill: none;
+          stroke: currentColor;
+          stroke-width: 2;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
       `}} />
 
       {/* Floating controls for interactive screen view */}
       <div className="floating-controls no-print">
         <button className="btn-control btn-close" onClick={() => window.close()}>
-          <X size={18} /> Cerrar Vista
+          {/* SVG para cerrar / X */}
+          <svg className="svg-icon" viewBox="0 0 24 24">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          Cerrar Vista
         </button>
         <button className="btn-control btn-print" onClick={() => window.print()}>
-          <Printer size={18} /> Exportar Catálogo a PDF
+          {/* SVG para imprimir / Printer */}
+          <svg className="svg-icon" viewBox="0 0 24 24">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+          Exportar Catálogo a PDF
         </button>
       </div>
 
@@ -467,8 +549,12 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
           </p>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0', opacity: 0.2 }}>
-          <Sparkles size={80} color="white" />
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0', opacity: 0.15 }}>
+          {/* SVG en línea para Sparkles / Destellos */}
+          <svg style={{ width: '80px', height: '80px', fill: 'none', stroke: 'white', strokeWidth: '1.5' }} viewBox="0 0 24 24">
+            <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.3-6.3l-.7.7M6.7 17.3l-.7.7m12.6 0l-.7-.7M6.7 6.7l-.7-.7N"></path>
+            <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"></path>
+          </svg>
         </div>
 
         <div className="cover-footer">
@@ -544,7 +630,11 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
                               <img src={product.imageUrl} alt={product.name} className="item-image" />
                             ) : (
                               <div className="item-image-placeholder">
-                                <Tag size={32} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
+                                {/* SVG para etiqueta de precio / Tag */}
+                                <svg style={{ width: '32px', height: '32px', stroke: 'currentColor', strokeWidth: '1.5', fill: 'none', marginBottom: '0.5rem', opacity: 0.5 }} viewBox="0 0 24 24">
+                                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                                  <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                                </svg>
                                 <span style={{ fontSize: '0.75rem', fontWeight: '600' }}>CAANMA PRO</span>
                               </div>
                             )}
