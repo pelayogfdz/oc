@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
-import { getActiveBranch } from '@/app/actions/auth';
 import { notFound } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { decrypt } from '@/lib/session';
 
 interface PrintPageProps {
   searchParams: Promise<{
@@ -18,22 +19,58 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
   let tenantName = 'CAANMA';
   let type: 'brands' | 'special' | 'promotions' = 'brands';
 
-  try {
-    const params = await searchParams;
-    type = (params.type || 'brands') as 'brands' | 'special' | 'promotions';
-    const brands = params.brands ? params.brands.split(',').filter(Boolean) : [];
-    const categories = params.categories ? params.categories.split(',').filter(Boolean) : [];
-    const selectedIds = params.ids ? params.ids.split(',').filter(Boolean) : [];
-    const limit = params.limit ? parseInt(params.limit) || 100 : 100;
+  const params = (await searchParams) || {};
+  type = (params.type || 'brands') as 'brands' | 'special' | 'promotions';
+  const brands = params.brands ? params.brands.split(',').filter(Boolean) : [];
+  const categories = params.categories ? params.categories.split(',').filter(Boolean) : [];
+  const selectedIds = params.ids ? params.ids.split(',').filter(Boolean) : [];
+  const limit = params.limit ? parseInt(params.limit) || 100 : 100;
 
-    const branch = await getActiveBranch();
-    if (!branch) {
-      return notFound();
+  // Obtener sesión y cookies directamente sin llamar a Server Actions externas
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get('session')?.value;
+  if (!sessionCookie) {
+    return notFound();
+  }
+
+  const session = await decrypt(sessionCookie);
+  if (!session?.userId || !session?.tenantId) {
+    return notFound();
+  }
+
+  const branchCookie = cookieStore.get('pulpos_active_branch')?.value;
+  
+  // Obtener la sucursal activa
+  let activeBranch: any = null;
+  if (branchCookie && branchCookie !== 'GLOBAL') {
+    try {
+      activeBranch = await prisma.branch.findFirst({
+        where: { id: branchCookie, isActive: true, tenantId: session.tenantId }
+      });
+    } catch (e) {
+      console.error('Error fetching active branch:', e);
     }
+  }
 
-    // Obtener los datos del tenant/branch para la portada
+  if (!activeBranch) {
+    try {
+      // Fallback a la primera sucursal activa del Tenant
+      activeBranch = await prisma.branch.findFirst({
+        where: { tenantId: session.tenantId, isActive: true }
+      });
+    } catch (e) {
+      console.error('Error fetching fallback active branch:', e);
+    }
+  }
+
+  if (!activeBranch) {
+    return notFound();
+  }
+
+  // Obtener los datos del tenant/branch para la portada
+  try {
     const branchInfo = await prisma.branch.findUnique({
-      where: { id: branch.id },
+      where: { id: activeBranch.id },
       include: { tenant: true }
     });
 
@@ -41,31 +78,35 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
       branchName = branchInfo.name;
       tenantName = branchInfo.tenant?.name || 'CAANMA';
     }
+  } catch (e) {
+    console.error('Error fetching branch info:', e);
+  }
 
-    const whereClause: any = {
-      branchId: branch.id,
-      isActive: true
-    };
+  const whereClause: any = {
+    branchId: activeBranch.id,
+    isActive: true
+  };
 
-    if (type === 'brands') {
-      if (brands.length > 0) {
-        whereClause.brand = { in: brands };
-      }
-      if (categories.length > 0) {
-        whereClause.category = { in: categories };
-      }
-    } else if (type === 'special') {
-      if (selectedIds.length === 0) {
-        products = [];
-      } else {
-        whereClause.id = { in: selectedIds };
-      }
-    } else if (type === 'promotions') {
-      whereClause.specialPrice = { gt: 0 };
+  if (type === 'brands') {
+    if (brands.length > 0) {
+      whereClause.brand = { in: brands };
     }
+    if (categories.length > 0) {
+      whereClause.category = { in: categories };
+    }
+  } else if (type === 'special') {
+    if (selectedIds.length === 0) {
+      products = [];
+    } else {
+      whereClause.id = { in: selectedIds };
+    }
+  } else if (type === 'promotions') {
+    whereClause.specialPrice = { gt: 0 };
+  }
 
-    // Ejecutar consulta Prisma directamente en el Server Component
-    if (type !== 'special' || selectedIds.length > 0) {
+  // Ejecutar consulta Prisma directamente en el Server Component
+  if (type !== 'special' || selectedIds.length > 0) {
+    try {
       const dbProducts = await prisma.product.findMany({
         where: whereClause,
         select: {
@@ -92,11 +133,10 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
       if (type === 'promotions') {
         products = dbProducts.filter(p => p.specialPrice !== null && p.specialPrice < p.price);
       }
+    } catch (error) {
+      console.error('Error al renderizar catálogo imprimible:', error);
+      products = [];
     }
-  } catch (error) {
-    console.error('Error al renderizar catálogo imprimible:', error);
-    // Si hay un error al consultar, lanzamos notFound() o renderizamos vacío en lugar de romper la página
-    products = [];
   }
 
   // Group products by brand for editorial index & separators
@@ -513,7 +553,6 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
       {/* Floating controls for interactive screen view */}
       <div className="floating-controls no-print">
         <button className="btn-control btn-close" onClick={() => window.close()}>
-          {/* SVG para cerrar / X */}
           <svg className="svg-icon" viewBox="0 0 24 24">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -521,7 +560,6 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
           Cerrar Vista
         </button>
         <button className="btn-control btn-print" onClick={() => window.print()}>
-          {/* SVG para imprimir / Printer */}
           <svg className="svg-icon" viewBox="0 0 24 24">
             <polyline points="6 9 6 2 18 2 18 9"></polyline>
             <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
@@ -550,9 +588,8 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0', opacity: 0.15 }}>
-          {/* SVG en línea para Sparkles / Destellos */}
           <svg style={{ width: '80px', height: '80px', fill: 'none', stroke: 'white', strokeWidth: '1.5' }} viewBox="0 0 24 24">
-            <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.3-6.3l-.7.7M6.7 17.3l-.7.7m12.6 0l-.7-.7M6.7 6.7l-.7-.7N"></path>
+            <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.3-6.3l-.7.7M6.7 17.3l-.7.7m12.6 0l-.7-.7M6.7 6.7l-.7-.7"></path>
             <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"></path>
           </svg>
         </div>
@@ -630,7 +667,6 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
                               <img src={product.imageUrl} alt={product.name} className="item-image" />
                             ) : (
                               <div className="item-image-placeholder">
-                                {/* SVG para etiqueta de precio / Tag */}
                                 <svg style={{ width: '32px', height: '32px', stroke: 'currentColor', strokeWidth: '1.5', fill: 'none', marginBottom: '0.5rem', opacity: 0.5 }} viewBox="0 0 24 24">
                                   <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
                                   <line x1="7" y1="7" x2="7.01" y2="7"></line>
@@ -658,14 +694,14 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
                             <div className="price-box">
                               {hasPromo ? (
                                 <>
-                                  <span className="price-old">${product.price.toFixed(2)}</span>
+                                  <span className="price-old">${(product.price ?? 0).toFixed(2)}</span>
                                   <span className="price-promo">
-                                    ${product.specialPrice!.toFixed(2)}
+                                    ${(product.specialPrice ?? 0).toFixed(2)}
                                     <span className="promo-badge">OFERTA</span>
                                   </span>
                                 </>
                               ) : (
-                                <span className="price-regular">${product.price.toFixed(2)}</span>
+                                <span className="price-regular">${(product.price ?? 0).toFixed(2)}</span>
                               )}
                             </div>
                           </div>
