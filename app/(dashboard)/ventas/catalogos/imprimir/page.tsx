@@ -1,7 +1,8 @@
 import { prisma } from '@/lib/prisma';
-import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/session';
+
+export const dynamic = 'force-dynamic';
 
 interface PrintPageProps {
   searchParams: Promise<{
