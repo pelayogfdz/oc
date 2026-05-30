@@ -1,0 +1,608 @@
+import { getPrintProducts } from '@/app/actions/catalog';
+import { notFound } from 'next/navigation';
+import { Sparkles, Printer, X, Tag } from 'lucide-react';
+
+interface PrintPageProps {
+  searchParams: Promise<{
+    type?: string;
+    brands?: string;
+    categories?: string;
+    ids?: string;
+    limit?: string;
+  }>;
+}
+
+export default async function PrintCatalogPage({ searchParams }: PrintPageProps) {
+  const params = await searchParams;
+  const type = (params.type || 'brands') as 'brands' | 'special' | 'promotions';
+  const brands = params.brands ? params.brands.split(',').filter(Boolean) : [];
+  const categories = params.categories ? params.categories.split(',').filter(Boolean) : [];
+  const selectedIds = params.ids ? params.ids.split(',').filter(Boolean) : [];
+  const limit = params.limit ? parseInt(params.limit) || 100 : 100;
+
+  const res = await getPrintProducts({
+    type,
+    brands,
+    categories,
+    selectedIds,
+    limit
+  });
+
+  if (!res.success) {
+    return notFound();
+  }
+
+  const products = res.products || [];
+  const branchName = res.branchName || 'Sucursal Principal';
+  const tenantName = res.tenantName || 'CAANMA';
+
+  // Group products by brand for editorial index & separators
+  const brandGroups: Record<string, typeof products> = {};
+  products.forEach(p => {
+    const brandName = (p.brand || 'Otras Marcas').toUpperCase();
+    if (!brandGroups[brandName]) {
+      brandGroups[brandName] = [];
+    }
+    brandGroups[brandName].push(p);
+  });
+
+  const totalBrands = Object.keys(brandGroups).length;
+
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{__html: `
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,800;1,600&display=swap');
+
+        @media print {
+          @page { 
+            size: A4 portrait; 
+            margin: 0; 
+          }
+          body { 
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+            background: white; 
+          }
+          .no-print { 
+            display: none !important; 
+          }
+          .page-break { 
+            page-break-before: always; 
+            break-before: page; 
+            height: 0; 
+            margin: 0; 
+            border: none; 
+          }
+        }
+
+        body { 
+          font-family: 'Outfit', sans-serif; 
+          background: #f8fafc; 
+          margin: 0; 
+          padding: 2rem 0; 
+          color: #0f172a; 
+          line-height: 1.5; 
+        }
+
+        .a4-page { 
+          width: 21cm; 
+          height: 29.7cm; 
+          margin: 0 auto 2rem auto; 
+          background: white; 
+          box-shadow: 0 4px 20px rgba(0,0,0,0.06); 
+          position: relative; 
+          box-sizing: border-box; 
+          overflow: hidden; 
+          padding: 2cm 1.5cm 1.5cm 1.5cm; 
+        }
+
+        /* 1. Portada Revista Editorial */
+        .cover-page { 
+          display: flex; 
+          flex-direction: column; 
+          justify-content: space-between; 
+          background: linear-gradient(135deg, #1e1b4b 0%, #311042 40%, #581c87 100%); 
+          color: white; 
+          padding: 3cm 2cm 2cm 2cm !important; 
+        }
+
+        .cover-top { 
+          text-align: center; 
+        }
+
+        .cover-logo-wrapper {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          margin-bottom: 2rem;
+        }
+
+        .cover-logo-icon {
+          width: 36px;
+          height: 36px;
+          background: linear-gradient(135deg, #7c3aed 0%, #db2777 100%);
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 900;
+          font-size: 20px;
+          color: white;
+        }
+
+        .cover-brand { 
+          font-size: 1.5rem; 
+          font-weight: 800; 
+          letter-spacing: 4px; 
+          text-transform: uppercase; 
+          color: #a78bfa; 
+        }
+
+        .cover-title { 
+          font-family: 'Playfair Display', serif; 
+          font-size: 4rem; 
+          font-weight: 900; 
+          line-height: 1.1; 
+          margin: 3rem 0 1rem 0; 
+          background: linear-gradient(to right, #ffffff, #f472b6); 
+          -webkit-background-clip: text; 
+          -webkit-text-fill-color: transparent; 
+        }
+
+        .cover-subtitle { 
+          font-size: 1.25rem; 
+          font-weight: 300; 
+          color: #c084fc; 
+          max-width: 450px; 
+          margin: 0 auto; 
+          line-height: 1.6; 
+        }
+
+        .cover-footer { 
+          border-top: 1px solid rgba(255,255,255,0.15); 
+          padding-top: 2rem; 
+          display: flex; 
+          justify-content: space-between; 
+          align-items: flex-end; 
+        }
+
+        .cover-info-block span { 
+          display: block; 
+          font-size: 0.75rem; 
+          text-transform: uppercase; 
+          letter-spacing: 1.5px; 
+          color: #94a3b8; 
+        }
+
+        .cover-info-block strong { 
+          font-size: 1.1rem; 
+          color: white; 
+        }
+
+        /* 2. Banners de Separación de Marcas */
+        .brand-separator-page { 
+          display: flex; 
+          flex-direction: column; 
+          justify-content: center; 
+          align-items: center; 
+          background: #0f172a; 
+          color: white; 
+          text-align: center; 
+          padding: 2cm !important; 
+        }
+
+        .brand-separator-title { 
+          font-family: 'Playfair Display', serif; 
+          font-size: 4.5rem; 
+          font-weight: 900; 
+          margin: 0 0 1rem 0; 
+          letter-spacing: 2px; 
+          background: linear-gradient(135deg, #a78bfa 0%, #db2777 100%); 
+          -webkit-background-clip: text; 
+          -webkit-text-fill-color: transparent; 
+        }
+
+        /* 3. Cuadrícula e Items */
+        .page-header { 
+          display: flex; 
+          justify-content: space-between; 
+          align-items: center; 
+          border-bottom: 2px solid #f1f5f9; 
+          padding-bottom: 1rem; 
+          margin-bottom: 1.5rem; 
+          height: 1.2cm; 
+        }
+
+        .page-header-logo {
+          font-weight: 900;
+          font-size: 1.25rem;
+          color: #7c3aed;
+          letter-spacing: 1px;
+        }
+
+        .page-header-title { 
+          font-size: 0.85rem; 
+          color: #64748b; 
+          text-transform: uppercase; 
+          letter-spacing: 2px; 
+          font-weight: 600; 
+        }
+
+        .page-footer { 
+          position: absolute; 
+          bottom: 1.5cm; 
+          left: 1.5cm; 
+          right: 1.5cm; 
+          display: flex; 
+          justify-content: space-between; 
+          font-size: 0.75rem; 
+          color: #94a3b8; 
+          border-top: 1px solid #f1f5f9; 
+          padding-top: 0.75rem; 
+          height: 0.8cm; 
+        }
+
+        .catalog-grid { 
+          display: grid; 
+          grid-template-columns: 1fr 1fr; 
+          grid-template-rows: 1fr 1fr; 
+          gap: 1.5cm 1.2cm; 
+          height: 23cm; 
+          box-sizing: border-box; 
+        }
+
+        .catalog-item { 
+          border: 1px solid #f1f5f9; 
+          border-radius: 12px; 
+          padding: 1rem; 
+          display: flex; 
+          flex-direction: column; 
+          justify-content: space-between; 
+          box-sizing: border-box; 
+          background: #ffffff; 
+          position: relative; 
+          height: 100%; 
+        }
+
+        .item-image-wrapper { 
+          height: 5.5cm; 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          background: #f8fafc; 
+          border-radius: 8px; 
+          margin-bottom: 0.75rem; 
+          overflow: hidden; 
+          position: relative; 
+        }
+
+        .item-image { 
+          max-height: 100%; 
+          max-width: 100%; 
+          object-fit: contain; 
+        }
+
+        .item-image-placeholder { 
+          width: 100%; 
+          height: 100%; 
+          display: flex; 
+          flex-direction: column; 
+          align-items: center; 
+          justify-content: center; 
+          background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); 
+          color: #94a3b8; 
+        }
+
+        .item-brand-badge { 
+          position: absolute; 
+          top: 8px; 
+          left: 8px; 
+          background: rgba(15, 23, 42, 0.05); 
+          color: #475569; 
+          font-size: 0.65rem; 
+          font-weight: 800; 
+          padding: 0.2rem 0.5rem; 
+          border-radius: 4px; 
+          text-transform: uppercase; 
+          letter-spacing: 0.5px; 
+        }
+
+        .item-sku-badge { 
+          position: absolute; 
+          top: 8px; 
+          right: 8px; 
+          background: rgba(255,255,255,0.9); 
+          border: 1px solid #e2e8f0; 
+          color: #64748b; 
+          font-size: 0.65rem; 
+          font-weight: 600; 
+          padding: 0.2rem 0.5rem; 
+          border-radius: 4px; 
+        }
+
+        .item-info { 
+          flex: 1; 
+          display: flex; 
+          flex-direction: column; 
+          justify-content: flex-start; 
+        }
+
+        .item-name { 
+          font-size: 0.95rem; 
+          font-weight: 700; 
+          color: #0f172a; 
+          margin: 0 0 0.5rem 0; 
+          line-height: 1.3; 
+          display: -webkit-box; 
+          WebkitLineClamp: 2; 
+          WebkitBoxOrient: 'vertical'; 
+          overflow: hidden; 
+        }
+
+        .item-desc { 
+          font-size: 0.75rem; 
+          color: #64748b; 
+          margin: 0; 
+          line-height: 1.4; 
+          display: -webkit-box; 
+          WebkitLineClamp: 3; 
+          WebkitBoxOrient: 'vertical'; 
+          overflow: hidden; 
+        }
+
+        .item-price-section { 
+          margin-top: 1rem; 
+          display: flex; 
+          justify-content: space-between; 
+          align-items: center; 
+          border-top: 1px dashed #f1f5f9; 
+          padding-top: 0.75rem; 
+        }
+
+        .price-label { 
+          font-size: 0.65rem; 
+          color: #94a3b8; 
+          text-transform: uppercase; 
+          font-weight: bold; 
+        }
+
+        .price-box { 
+          text-align: right; 
+        }
+
+        .price-regular { 
+          font-size: 1.25rem; 
+          font-weight: 800; 
+          color: #0f172a; 
+        }
+
+        .price-old { 
+          font-size: 0.85rem; 
+          color: #94a3b8; 
+          text-decoration: line-through; 
+          margin-right: 0.5rem; 
+          font-weight: 600; 
+        }
+
+        .price-promo { 
+          font-size: 1.35rem; 
+          font-weight: 800; 
+          color: #dc2626; 
+        }
+
+        .promo-badge { 
+          background: #fee2e2; 
+          color: #dc2626; 
+          font-size: 0.65rem; 
+          font-weight: 800; 
+          padding: 0.15rem 0.4rem; 
+          border-radius: 4px; 
+          margin-left: 0.25rem; 
+          vertical-align: middle; 
+          text-transform: uppercase; 
+        }
+
+        /* 4. Panel flotante no-print */
+        .floating-controls { 
+          position: fixed; 
+          bottom: 2rem; 
+          right: 2rem; 
+          display: flex; 
+          gap: 0.75rem; 
+          z-index: 9999; 
+        }
+
+        .btn-control { 
+          display: inline-flex; 
+          align-items: center; 
+          gap: 0.5rem; 
+          padding: 0.75rem 1.5rem; 
+          border-radius: 50px; 
+          border: none; 
+          font-weight: bold; 
+          cursor: pointer; 
+          box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
+          font-size: 0.9rem; 
+          transition: all 0.2s; 
+        }
+
+        .btn-print { 
+          background: linear-gradient(135deg, #7c3aed 0%, #db2777 100%); 
+          color: white; 
+        }
+
+        .btn-close { 
+          background: white; 
+          color: #475569; 
+          border: 1px solid #cbd5e1; 
+        }
+      `}} />
+
+      {/* Floating controls for interactive screen view */}
+      <div className="floating-controls no-print">
+        <button className="btn-control btn-close" onClick={() => window.close()}>
+          <X size={18} /> Cerrar Vista
+        </button>
+        <button className="btn-control btn-print" onClick={() => window.print()}>
+          <Printer size={18} /> Exportar Catálogo a PDF
+        </button>
+      </div>
+
+      {/* PÁGINA 1: PORTADA DE REVISTA EDITORIAL */}
+      <div className="a4-page cover-page">
+        <div className="cover-top">
+          <div className="cover-logo-wrapper">
+            <div className="cover-logo-icon">C</div>
+            <span className="cover-brand">{tenantName}</span>
+          </div>
+          
+          <h1 className="cover-title">
+            {type === 'promotions' ? 'Catálogo de Promociones' : 'Catálogo de Artículos'}
+          </h1>
+          <p className="cover-subtitle">
+            {type === 'promotions' 
+              ? 'Colección exclusiva de productos con precios especiales de descuento y ofertas de temporada.'
+              : `Descubre nuestra selecta colección de artículos líderes, fabricados bajo estándares internacionales de excelencia.`}
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0', opacity: 0.2 }}>
+          <Sparkles size={80} color="white" />
+        </div>
+
+        <div className="cover-footer">
+          <div className="cover-info-block">
+            <span>Sucursal Emisora</span>
+            <strong>{branchName.toUpperCase()}</strong>
+          </div>
+          <div className="cover-info-block" style={{ textAlign: 'right' }}>
+            <span>Fecha de Edición</span>
+            <strong>{new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long' }).toUpperCase()}</strong>
+          </div>
+        </div>
+      </div>
+
+      {/* Renderizado de Separadores y Productos */}
+      {Object.entries(brandGroups).map(([brandName, brandProducts]) => {
+        // Chunk products into pages of 4 items each (2x2 grid)
+        const chunks: typeof products[] = [];
+        for (let i = 0; i < brandProducts.length; i += 4) {
+          chunks.push(brandProducts.slice(i, i + 4));
+        }
+
+        return (
+          <div key={brandName}>
+            {/* SEPARADOR DE MARCA (PÁGINA EXCLUSIVA DE PRESENTACIÓN DE MARCA) */}
+            <div className="page-break" />
+            <div className="a4-page brand-separator-page">
+              <div style={{
+                padding: '2.5rem',
+                border: '2px solid rgba(255,255,255,0.1)',
+                borderRadius: '24px',
+                backgroundColor: 'rgba(255,255,255,0.02)',
+                backdropFilter: 'blur(10px)',
+                width: '80%'
+              }}>
+                <span style={{ fontSize: '0.9rem', color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '4px', fontWeight: 'bold' }}>
+                  Presentación de Línea
+                </span>
+                <h2 className="brand-separator-title">
+                  {brandName}
+                </h2>
+                <div style={{ width: '80px', height: '4px', background: 'linear-gradient(90deg, #7c3aed, #db2777)', margin: '1.5rem auto' }} />
+                <p style={{ color: '#94a3b8', fontSize: '1rem', maxWidth: '400px', margin: '0 auto', lineHeight: '1.6' }}>
+                  Calidad excepcional y rendimiento superior garantizado en cada una de sus soluciones comerciales.
+                </p>
+              </div>
+            </div>
+
+            {/* PÁGINAS DE PRODUCTOS */}
+            {chunks.map((chunk, chunkIdx) => (
+              <div key={chunkIdx}>
+                <div className="page-break" />
+                <div className="a4-page">
+                  {/* Header of Page */}
+                  <div className="page-header">
+                    <span className="page-header-logo">C <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: '#94a3b8' }}>{tenantName}</span></span>
+                    <span className="page-header-title">{brandName}</span>
+                  </div>
+
+                  {/* 2x2 grid */}
+                  <div className="catalog-grid">
+                    {chunk.map(product => {
+                      const hasPromo = product.specialPrice !== null && product.specialPrice > 0 && product.specialPrice < product.price;
+                      return (
+                        <div key={product.id} className="catalog-item">
+                          
+                          {/* Image Wrapper */}
+                          <div className="item-image-wrapper">
+                            {product.brand && <span className="item-brand-badge">{product.brand}</span>}
+                            <span className="item-sku-badge">SKU: {product.sku}</span>
+                            
+                            {product.imageUrl ? (
+                              <img src={product.imageUrl} alt={product.name} className="item-image" />
+                            ) : (
+                              <div className="item-image-placeholder">
+                                <Tag size={32} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
+                                <span style={{ fontSize: '0.75rem', fontWeight: '600' }}>CAANMA PRO</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Info */}
+                          <div className="item-info">
+                            <h4 className="item-name" title={product.name}>
+                              {product.name}
+                            </h4>
+                            {product.description && (
+                              <p className="item-desc">
+                                {product.description}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Price */}
+                          <div className="item-price-section">
+                            <span className="price-label">Precio Catálogo</span>
+                            <div className="price-box">
+                              {hasPromo ? (
+                                <>
+                                  <span className="price-old">${product.price.toFixed(2)}</span>
+                                  <span className="price-promo">
+                                    ${product.specialPrice!.toFixed(2)}
+                                    <span className="promo-badge">OFERTA</span>
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="price-regular">${product.price.toFixed(2)}</span>
+                              )}
+                            </div>
+                          </div>
+
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Footer of Page */}
+                  <div className="page-footer">
+                    <span>CAANMA PRO © {new Date().getFullYear()}</span>
+                    <span>Página {chunkIdx + 1} de {chunks.length}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })}
+
+      {products.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '10rem 2rem', color: '#64748b', fontFamily: 'sans-serif' }}>
+          <h2>No se encontraron artículos para este catálogo</h2>
+          <p>Selecciona otros filtros en el panel de control o asegúrate de tener productos activos.</p>
+        </div>
+      )}
+    </>
+  );
+}

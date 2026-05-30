@@ -13,6 +13,7 @@ const routeMap: Record<string, RouteInfo> = {
   '/ventas/devoluciones/nuevo': { title: 'Devoluciones', subtitle: 'Procesar Devolución' },
   '/ventas/promociones': { title: 'Promociones', subtitle: 'Gestión de promociones y descuentos' },
   '/ventas/promociones/nuevo': { title: 'Nueva Promoción', subtitle: 'Crear promoción' },
+  '/ventas/catalogos': { title: 'Catálogos de Artículos', subtitle: 'Crear y exportar catálogos creativos en PDF' },
   '/productos': { title: 'Inventario', subtitle: 'Productos e Inventario' },
   '/productos/nuevo': { title: 'Crear Producto', subtitle: 'Añadir al catálogo' },
   '/productos/ajustes/nuevo': { title: 'Ajuste de Inventario', subtitle: 'Ajustes Manuales de Inventario' },

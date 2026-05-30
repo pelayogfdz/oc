@@ -36,6 +36,7 @@ export const navStructure: MenuNode[] = [
       { name: 'Devoluciones', path: '/ventas/devoluciones' },
       { name: 'Cotizaciones', path: '/ventas/cotizaciones' },
       { name: 'Consignaciones', path: '/ventas/consignaciones' },
+      { name: 'Catálogos de Artículos', path: '/ventas/catalogos' },
     ]
   },
   { 
