@@ -216,9 +216,28 @@ export default function CatalogosClient({ initialBrands, initialCategories }: Ca
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2.5rem' }}>
               {/* Brands Selectors */}
               <div>
-                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', display: 'block', marginBottom: '0.75rem' }}>
-                  Marcas Disponibles ({initialBrands.length})
-                </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>
+                    Marcas Disponibles ({initialBrands.length})
+                  </span>
+                  <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem' }}>
+                    <button 
+                      type="button" 
+                      onClick={() => setSelectedBrands(initialBrands)}
+                      style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', padding: 0, fontWeight: 'bold' }}
+                    >
+                      Todos
+                    </button>
+                    <span style={{ color: '#cbd5e1' }}>|</span>
+                    <button 
+                      type="button" 
+                      onClick={() => setSelectedBrands([])}
+                      style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0 }}
+                    >
+                      Ninguno
+                    </button>
+                  </div>
+                </div>
                 <div style={{
                   maxHeight: '220px',
                   overflowY: 'auto',
@@ -277,9 +296,28 @@ export default function CatalogosClient({ initialBrands, initialCategories }: Ca
 
               {/* Categories Selectors */}
               <div>
-                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', display: 'block', marginBottom: '0.75rem' }}>
-                  Categorías Disponibles ({initialCategories.length})
-                </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>
+                    Categorías Disponibles ({initialCategories.length})
+                  </span>
+                  <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem' }}>
+                    <button 
+                      type="button" 
+                      onClick={() => setSelectedCategories(initialCategories)}
+                      style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', padding: 0, fontWeight: 'bold' }}
+                    >
+                      Todas
+                    </button>
+                    <span style={{ color: '#cbd5e1' }}>|</span>
+                    <button 
+                      type="button" 
+                      onClick={() => setSelectedCategories([])}
+                      style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0 }}
+                    >
+                      Ninguna
+                    </button>
+                  </div>
+                </div>
                 <div style={{
                   maxHeight: '220px',
                   overflowY: 'auto',
@@ -496,6 +534,44 @@ export default function CatalogosClient({ initialBrands, initialCategories }: Ca
               >
                 {isSearching ? <RefreshCw className="animate-spin" size={18} /> : <Filter size={18} />} Buscar
               </button>
+            </div>
+
+            {/* Results Header and Bulk Actions */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', backgroundColor: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 'bold' }}>
+                Resultados Encontrados ({foundProducts.length})
+              </span>
+              {foundProducts.length > 0 && (
+                <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.8rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const allIds = foundProducts.map(p => p.id);
+                      setSelectedProductIds(prev => {
+                        const newSelection = [...prev];
+                        allIds.forEach(id => {
+                          if (!newSelection.includes(id)) newSelection.push(id);
+                        });
+                        return newSelection;
+                      });
+                    }}
+                    style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', fontWeight: 'bold', padding: 0 }}
+                  >
+                    ☑️ Seleccionar Todos
+                  </button>
+                  <span style={{ color: '#cbd5e1' }}>|</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const allIds = foundProducts.map(p => p.id);
+                      setSelectedProductIds(prev => prev.filter(id => !allIds.includes(id)));
+                    }}
+                    style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0 }}
+                  >
+                    ☒ Deseleccionar
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Results Grid */}
