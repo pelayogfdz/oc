@@ -31,6 +31,41 @@ export default function FaceRecognitionClient({
   // Dynamic model loading cache
   const [modelsLoaded, setModelsLoaded] = useState(false);
 
+  // Pre-load face-api models in background on mount to speed up validation
+  useEffect(() => {
+    let active = true;
+    async function loadModels() {
+      try {
+        const faceapi = await import('@vladmandic/face-api');
+        if (active) {
+          await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+            faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+            faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+          ]);
+          if (active) {
+            setModelsLoaded(true);
+            console.log("Face-api models pre-loaded successfully in background");
+          }
+        }
+      } catch (err) {
+        console.error("Error pre-loading face-api models:", err);
+      }
+    }
+    loadModels();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Automatically detect mobile devices to default to optimized Native System Camera capture
+  useEffect(() => {
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobileDevice) {
+      setCaptureMode('native');
+    }
+  }, []);
+
   // Stop video stream helper
   const stopStream = useCallback(() => {
     if (videoRef.current && videoRef.current.srcObject) {
@@ -116,7 +151,8 @@ export default function FaceRecognitionClient({
         try {
           const tmpCanvas = document.createElement('canvas');
           const mx = Math.max(img.width, img.height);
-          let ratio = mx > 600 ? 600 / mx : 1; // Downscale to save memory
+          // Downscale to max 320px. Saves 75% memory and improves processing speed enormously on low-end CPUs
+          let ratio = mx > 320 ? 320 / mx : 1;
           tmpCanvas.width = img.width * ratio;
           tmpCanvas.height = img.height * ratio;
           
@@ -125,10 +161,10 @@ export default function FaceRecognitionClient({
           ctx.drawImage(img, 0, 0, tmpCanvas.width, tmpCanvas.height);
 
           setStatusMsg('Analizando patrones del rostro...');
-          // 4. Detect single face + landmarks + descriptor
+          // 4. Detect face using smaller inputSize (160 instead of 256) to optimize mobile GPU/CPU calculations
           const detection = await faceapi.detectSingleFace(
             tmpCanvas, 
-            new faceapi.TinyFaceDetectorOptions({ inputSize: 256, scoreThreshold: 0.15 })
+            new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.15 })
           ).withFaceLandmarks().withFaceDescriptor();
 
           if (!detection) {
