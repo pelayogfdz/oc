@@ -28,8 +28,10 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
       config = JSON.parse(sale.branch.settings.configJson);
     } catch(e) {}
   }
+  const globalLogoUrl = config.global?.logoUrl || '';
   const facturaConfig = config.formatos_factura || {};
-  const { logoUrl, primaryColor = '#8b5cf6', showProductSKU, footerNotes, showTaxBreakdown } = facturaConfig;
+  const logoUrl = facturaConfig.logoUrl || globalLogoUrl;
+  const { primaryColor = '#8b5cf6', showProductSKU, footerNotes, showTaxBreakdown } = facturaConfig;
 
   // Auto-print script
   const printScript = `

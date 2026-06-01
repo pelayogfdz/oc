@@ -2,15 +2,25 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('--- WhatsApp Session Status in DB ---');
-  const sessions = await prisma.whatsAppSession.findMany();
-  console.log(sessions);
-
-  console.log('\n--- WhatsApp Sync Requests ---');
-  const syncs = await prisma.whatsAppSyncRequest.findMany();
-  console.log(syncs);
+  const users = await prisma.user.findMany({
+    where: {
+      currentSessionId: {
+        not: null
+      }
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      currentSessionId: true,
+      updatedAt: true
+    },
+    orderBy: {
+      updatedAt: 'desc'
+    }
+  });
+  console.log("=== USERS WITH ACTIVE SESSIONS ===");
+  console.log(JSON.stringify(users, null, 2));
 }
 
-main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect());
+main().finally(() => prisma.$disconnect());

@@ -57,9 +57,20 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
     window.addEventListener('offline', handleOffline);
     
     loadPendingQueues();
-    if (navigator.onLine) {
-       refreshCatalogs();
-    }
+    
+    const shouldRefreshOnStart = async () => {
+      if (!navigator.onLine) return;
+      const lastSync = localStorage.getItem('last_catalog_sync_timestamp');
+      const now = Date.now();
+      const THRESHOLD = 30 * 60 * 1000; // 30 minutes
+      
+      const productCount = await db.products.count();
+      if (productCount === 0 || !lastSync || (now - parseInt(lastSync, 10)) > THRESHOLD) {
+        await refreshCatalogs();
+      }
+    };
+    
+    shouldRefreshOnStart();
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -341,6 +352,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
         await db.products.bulkAdd(productsChunk);
       }
 
+      localStorage.setItem('last_catalog_sync_timestamp', Date.now().toString());
       setSyncMessage(null);
     } catch (e) {
       console.error('Failed to sync catalogs', e);

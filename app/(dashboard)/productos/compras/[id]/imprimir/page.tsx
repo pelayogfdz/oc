@@ -34,8 +34,10 @@ export default async function PrintPurchasePage({ params }: { params: Promise<{ 
     } catch(e) {}
   }
   
+  const globalLogoUrl = config.global?.logoUrl || '';
   const facturaConfig = config.formatos_factura || {};
-  const { logoUrl, primaryColor = '#eab308', footerNotes, showTaxBreakdown } = facturaConfig;
+  const logoUrl = facturaConfig.logoUrl || globalLogoUrl;
+  const { primaryColor = '#eab308', footerNotes, showTaxBreakdown } = facturaConfig;
 
   // Auto-print script
   const printScript = `

@@ -55,7 +55,7 @@ export default async function NuevaVentaPage() {
   const session = await getCurrentSession();
 
   const settings = await getBranchSettings();
-  let ticketConfig = {};
+  let ticketConfig: any = {};
   let metodosConfig = {};
   let ventasConfig: any = {};
   let impresorasConfig = {};
@@ -63,6 +63,7 @@ export default async function NuevaVentaPage() {
     try {
       const parsed = JSON.parse(settings.configJson);
       ticketConfig = parsed.tickets || {};
+      ticketConfig.globalLogo = parsed.global?.logoUrl || '';
       metodosConfig = parsed.metodos || {};
       ventasConfig = parsed.ventas || {};
       impresorasConfig = parsed.impresoras || {};

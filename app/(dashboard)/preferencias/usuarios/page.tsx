@@ -1,8 +1,13 @@
 import { getActiveBranch, getSession } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import UserClient from "./UserClient";
+import { createUser, updateUser, deleteUser } from "@/app/actions/user";
+import { createBranch } from "@/app/actions/branch";
 
 export default async function UsuariosPage() {
+  // Explicitly reference the imported server actions to ensure they are registered by the compiler for this route and not tree-shaken
+  const _registerActions = { createUser, updateUser, deleteUser, createBranch };
+
   const session = await getSession();
   const branch = await getActiveBranch();
   if (!branch) return <div>No hay sucursal seleccionada.</div>;

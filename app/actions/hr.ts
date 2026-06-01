@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/session';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 
 export async function registerAttendance(data: {
   userId: string;
@@ -277,6 +277,7 @@ export async function registerFaceDescriptor(data: {
       }
     });
 
+    revalidateTag(`user-${data.userId}`);
     revalidatePath('/mi-portal');
     return { success: true };
   } catch (e: any) {

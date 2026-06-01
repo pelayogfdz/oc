@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { getActiveBranch, getActiveUser } from './auth';
+import { revalidateTag } from 'next/cache';
 
 export async function getUsersHierarchy() {
   const branch = await getActiveBranch();
@@ -56,6 +57,7 @@ export async function updateCommissionProfile(userId: string, data: any) {
     }
   });
 
+  revalidateTag(`user-${userId}`);
   return { success: true };
 }
 

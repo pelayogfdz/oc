@@ -420,11 +420,14 @@ export default function POSClient({ products: initialProducts, customers, suppli
       .qr-folio { font-size: 14px; font-weight: bold; margin-top: 5px; }
     `;
 
+    const ticketLogo = ticketConfig.logoRecibo || ticketConfig.globalLogo;
+
     const html = `
       <html>
         <head><style>${style}</style></head>
         <body>
           <div class="t-header">
+            ${ticketLogo ? `<img src="${ticketLogo}" style="max-height: 50px; max-width: 150px; object-fit: contain; margin-bottom: 8px; filter: grayscale(100%);" /><br/>` : ''}
             <div class="t-title">${ticketConfig.storeName || 'MI NEGOCIO'}</div>
             ${ticketConfig.rfc ? `<div class="t-line">RFC: ${ticketConfig.rfc}</div>` : ''}
             ${ticketConfig.address ? `<div class="t-line">${ticketConfig.address.replace(/\n/g, '<br/>')}</div>` : ''}

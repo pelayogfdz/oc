@@ -136,8 +136,13 @@ async function crawlImageForProduct(product) {
     // For Office City (office supplies, art supplies, electronics), adding "papeleria" or "office" can help if search is too generic,
     // but the product names are very specific like "VERBATIM CDR CAMPANA 97488", so searching the name directly is perfect.
     let searchQuery = product.name;
+    // Clean technical package markers like (DZ), (L), (D), (P), (LT), (C) to prevent query pollution and unrelated results
+    searchQuery = searchQuery.replace(/\((DZ|L|D|P|LT|C)\)/gi, '');
+    searchQuery = searchQuery.replace(/\((DZ|L|D|P|LT|C)\)\s*\((DZ|L|D|P|LT|C)\)/gi, '');
     // Replace hashtag symbols in the query to avoid breaks
     searchQuery = searchQuery.replace(/#/g, ' ');
+    // Clean double spaces
+    searchQuery = searchQuery.replace(/\s+/g, ' ').trim();
 
     const bingUrl = `https://www.bing.com/images/search?q=${encodeURIComponent(searchQuery)}&first=1`;
     console.log(`  Searching: "${searchQuery}"`);
@@ -247,6 +252,16 @@ async function crawlImageForProduct(product) {
   }
 }
 
+// Helper: Shuffle array in place (Fisher-Yates algorithm)
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 // Stage 1: Crawl remaining images
 async function crawlMissingImages(limit = 150) {
   console.log("\n=== STARTING STAGE 1: BING IMAGES CRAWLER FOR OFFICE CITY ===");
@@ -271,8 +286,12 @@ async function crawlMissingImages(limit = 150) {
     return;
   }
 
-  const toProcess = products.slice(0, limit);
-  console.log(`Processing next batch of ${toProcess.length} products...`);
+  // Shuffle the products to avoid getting stuck on products that consistently fail (crawler trap)
+  console.log("Shuffling matching products to avoid queue traps...");
+  const shuffled = shuffleArray(products);
+  const toProcess = shuffled.slice(0, limit);
+  console.log(`Processing randomized batch of ${toProcess.length} products...`);
+
 
   let successCount = 0;
   let failCount = 0;

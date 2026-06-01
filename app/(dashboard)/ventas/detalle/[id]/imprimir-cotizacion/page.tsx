@@ -28,8 +28,10 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
       config = JSON.parse(quote.branch.settings.configJson);
     } catch(e) {}
   }
+  const globalLogoUrl = config.global?.logoUrl || '';
   const cotizacionConfig = config.formatos_cotizacion || {};
-  const { logoUrl, primaryColor = '#3b82f6', showProductImages, showProductSKU, footerNotes, showTaxBreakdown } = cotizacionConfig;
+  const logoUrl = cotizacionConfig.logoUrl || globalLogoUrl;
+  const { primaryColor = '#3b82f6', showProductImages, showProductSKU, footerNotes, showTaxBreakdown } = cotizacionConfig;
 
   // Auto-print script
   const printScript = `

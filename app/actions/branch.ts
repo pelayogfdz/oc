@@ -28,6 +28,9 @@ export async function createBranch(formData: FormData) {
     }
   });
   
+  if (tenantId) {
+    revalidateTag(`tenant-branches-${tenantId}`);
+  }
   revalidatePath('/preferencias/sucursales');
   revalidatePath('/preferencias/usuarios');
   return { success: true, branch: newBranch };
@@ -82,6 +85,8 @@ export async function updateBranch(id: string, name: string, location: string, f
     });
   }
 
+  revalidateTag(`tenant-branches-${session.tenantId}`);
+  revalidateTag(`branch-${id}`);
   revalidatePath('/preferencias/sucursales');
 }
 
@@ -105,5 +110,7 @@ export async function deleteBranch(id: string) {
     data: { isActive: false }
   });
   
+  revalidateTag(`tenant-branches-${session.tenantId}`);
+  revalidateTag(`branch-${id}`);
   revalidatePath('/preferencias/sucursales');
 }

@@ -166,6 +166,7 @@ export async function updateUser(id: string, formData: FormData) {
     }
   });
   
+  revalidateTag(`user-${id}`);
   revalidatePath('/preferencias/usuarios');
   return { success: true };
 }
@@ -195,6 +196,7 @@ export async function deleteUser(id: string) {
     // Try physical delete first
     try {
       await prisma.user.delete({ where: { id } });
+      revalidateTag(`user-${id}`);
       revalidatePath('/preferencias/usuarios');
       return { success: true };
     } catch (deleteError: any) {
@@ -214,6 +216,7 @@ export async function deleteUser(id: string) {
             managerId: null,
           }
         });
+        revalidateTag(`user-${id}`);
         revalidatePath('/preferencias/usuarios');
         return { success: true };
       }

@@ -150,6 +150,6 @@ export const navStructure: MenuNode[] = [
 ];
 
 export const footerNodes: MenuNode[] = [
-  { title: 'Preferencias', path: '/preferencias', icon: <Settings size={20} />, requiredPermission: ['sys_settings_access', 'sys_users'] },
+  { title: 'Preferencias', path: '/preferencias/general', icon: <Settings size={20} />, requiredPermission: ['sys_settings_access', 'sys_users'] },
   { title: 'Conexión WhatsApp', path: '/configuracion/whatsapp', icon: <MonitorSmartphone size={20} />, badge: 'CRM', desktopOnly: true, requiredPermission: ['sys_settings_access'] },
 ];

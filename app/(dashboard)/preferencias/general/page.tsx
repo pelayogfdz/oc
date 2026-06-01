@@ -1,13 +1,23 @@
 import { getBranchSettings, updateBranchSettings, getTenantSettings, updateTenantSettings } from "@/app/actions/settings";
 import { Settings, Save, Globe } from 'lucide-react';
 import QZTrayConfig from './QZTrayConfig';
+import LogoUploaderClient from './LogoUploaderClient';
 
 export default async function GeneralPreferencesPage() {
   const settings = await getBranchSettings();
   const tenantSettings = await getTenantSettings();
 
+  let globalLogoUrl = '';
+  if (settings.configJson) {
+    try {
+      const parsed = JSON.parse(settings.configJson);
+      globalLogoUrl = parsed.global?.logoUrl || '';
+    } catch (e) {}
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <LogoUploaderClient initialLogoUrl={globalLogoUrl} />
       
       {/* GLOBAL SETTINGS (TENANT) */}
       <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '2rem', border: '1px solid var(--pulpos-border)' }}>

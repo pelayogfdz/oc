@@ -35,8 +35,10 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
     } catch(e) {}
   }
   
+  const globalLogoUrl = config.global?.logoUrl || '';
   const facturaConfig = config.formatos_factura || {};
-  const { logoUrl, primaryColor = '#4f46e5', footerNotes } = facturaConfig;
+  const logoUrl = facturaConfig.logoUrl || globalLogoUrl;
+  const { primaryColor = '#4f46e5', footerNotes } = facturaConfig;
 
   // Auto-print script
   const printScript = `
