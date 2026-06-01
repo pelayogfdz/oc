@@ -466,10 +466,18 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
     
     try {
       if (editingUser) {
-        await updateUser(editingUser.id, formData);
+        const res = await updateUser(editingUser.id, formData);
+        if (res && !res.success) {
+          alert("Error: " + res.error);
+          return;
+        }
         window.location.reload();
       } else {
-        await createUser(formData);
+        const res = await createUser(formData);
+        if (res && !res.success) {
+          alert("Error: " + res.error);
+          return;
+        }
         window.location.reload(); // Quick refresh instead of complex optimistic insert
       }
       closeForm();
