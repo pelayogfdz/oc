@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Users, Plus, Shield, Edit2, Trash2, CheckCircle2, ChevronDown, ChevronRight, X } from 'lucide-react';
+import { Users, Plus, Shield, Edit2, Trash2, CheckCircle2, ChevronDown, ChevronRight, X, Copy } from 'lucide-react';
 import { createUser, updateUser, deleteUser } from '@/app/actions/user';
 import { createBranch } from '@/app/actions/branch';
 
@@ -282,6 +282,56 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
     setSelectedBranchId('');
   };
 
+  const cloneUserPermissions = (user: any) => {
+    setIsEditing(true);
+    setEditingUser(null); // Es un NUEVO usuario con la misma firma de alta
+    setActiveTab('branches');
+    setFaceDescriptor('');
+    setBaselinePhoto('');
+    setBioStatus('');
+    setSchedule(defaultSchedule);
+    setSelectedHrLocations([]);
+    setSelectedBranchId('');
+
+    try {
+      const parsed = user.permissions ? JSON.parse(user.permissions) : {};
+      const obj: Record<string, boolean> = {};
+      
+      if (Array.isArray(parsed)) {
+        parsed.forEach(k => {
+          obj[k] = true;
+        });
+      } else {
+        Object.keys(parsed).forEach(k => {
+          if (parsed[k]) obj[k] = true;
+        });
+      }
+
+      // Autochequeo de retrocompatibilidad
+      dynamicModules.forEach(mod => {
+        let modActive = obj[mod.id] || false;
+        mod.submodules?.forEach((sm: any) => {
+          let smActive = obj[sm.id] || false;
+          sm.permissions?.forEach((p: any) => {
+            if (obj[p.id]) {
+              smActive = true;
+              modActive = true;
+            }
+          });
+          if (smActive) obj[sm.id] = true;
+        });
+        if (modActive) obj[mod.id] = true;
+      });
+
+      setPerms(obj);
+    } catch {
+      setPerms({});
+    }
+
+    // Desplazarse suavemente al formulario de creación
+    document.getElementById('user-form')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   const openEditUser = (user: any) => {
     setIsEditing(true);
     setEditingUser(user);
@@ -521,6 +571,14 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                 </span>
               </td>
               <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'right' }}>
+                <button 
+                  type="button"
+                  onClick={() => cloneUserPermissions(u)} 
+                  title="Clonar Permisos"
+                  style={{ backgroundColor: 'transparent', border: 'none', cursor: 'pointer', color: '#0ea5e9', marginRight: '1rem' }}
+                >
+                  <Copy size={18} />
+                </button>
                 <button onClick={() => {
                     openEditUser(u);
                     // scroll to form
