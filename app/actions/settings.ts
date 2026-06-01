@@ -1,7 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { getActiveBranch } from './auth';
+import { getActiveBranch, getSession } from './auth';
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { cache } from 'react';
 
@@ -9,7 +9,8 @@ export async function updateBranchSettings(formData: FormData) {
   let branch = await getActiveBranch();
   if (!branch) throw new Error("No branch active");
   if (branch.id === 'GLOBAL') {
-    const realBranch = await prisma.branch.findFirst({ where: { isActive: true } });
+    const session = await getSession();
+    const realBranch = await prisma.branch.findFirst({ where: { isActive: true, tenantId: session?.tenantId } });
     if (!realBranch) throw new Error("No real branch exists to store settings");
     branch = realBranch;
   }
@@ -50,7 +51,8 @@ export async function getBranchSettings() {
   let branch = await getActiveBranch();
   if (!branch) throw new Error("No branch active");
   if (branch.id === 'GLOBAL') {
-    const realBranch = await prisma.branch.findFirst({ where: { isActive: true } });
+    const session = await getSession();
+    const realBranch = await prisma.branch.findFirst({ where: { isActive: true, tenantId: session?.tenantId } });
     if (!realBranch) throw new Error("No real branch exists to store settings");
     branch = realBranch;
   }
@@ -181,7 +183,8 @@ export async function updateBranchLogo(logoUrl: string) {
   let branch = await getActiveBranch();
   if (!branch) throw new Error("No branch active");
   if (branch.id === 'GLOBAL') {
-    const realBranch = await prisma.branch.findFirst({ where: { isActive: true } });
+    const session = await getSession();
+    const realBranch = await prisma.branch.findFirst({ where: { isActive: true, tenantId: session?.tenantId } });
     if (!realBranch) throw new Error("No real branch exists to store settings");
     branch = realBranch;
   }

@@ -1,9 +1,12 @@
-import { getBranchSettings, updateBranchSettings, getTenantSettings, updateTenantSettings } from "@/app/actions/settings";
+import { getBranchSettings, updateBranchSettings, getTenantSettings, updateTenantSettings, updateBranchLogo } from "@/app/actions/settings";
 import { Settings, Save, Globe } from 'lucide-react';
 import QZTrayConfig from './QZTrayConfig';
 import LogoUploaderClient from './LogoUploaderClient';
 
 export default async function GeneralPreferencesPage() {
+  // Explicitly reference the imported server actions to ensure they are registered by the compiler for this route and prevent tree-shaking
+  const _registerActions = { updateBranchLogo };
+
   const settings = await getBranchSettings();
   const tenantSettings = await getTenantSettings();
 

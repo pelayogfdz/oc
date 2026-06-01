@@ -51,8 +51,43 @@ export default function RootLayout({
               window.addEventListener('error', function(e) {
                 if (e.target && e.target.tagName === 'IMG') {
                   e.target.style.display = 'none';
+                  return;
+                }
+                
+                const isScriptError = e.target && e.target.tagName === 'SCRIPT';
+                const isChunkError = e.message && (
+                  e.message.indexOf('ChunkLoadError') > -1 || 
+                  e.message.indexOf('Loading chunk') > -1 ||
+                  e.message.indexOf('failed to fetch') > -1
+                );
+                
+                if (isScriptError || isChunkError) {
+                  console.error('Critical script or chunk error detected. Auto-reloading client...');
+                  const lastReload = localStorage.getItem('caanma_last_reload');
+                  const now = Date.now();
+                  if (!lastReload || now - parseInt(lastReload) > 8000) {
+                    localStorage.setItem('caanma_last_reload', now.toString());
+                    window.location.reload();
+                  }
                 }
               }, true);
+
+              window.addEventListener('unhandledrejection', function(e) {
+                const reason = e.reason && e.reason.message;
+                if (reason && (
+                  reason.indexOf('ChunkLoadError') > -1 || 
+                  reason.indexOf('Loading chunk') > -1 ||
+                  reason.indexOf('failed to fetch') > -1
+                )) {
+                  console.error('Critical dynamic chunk promise rejection detected. Auto-reloading client...');
+                  const lastReload = localStorage.getItem('caanma_last_reload');
+                  const now = Date.now();
+                  if (!lastReload || now - parseInt(lastReload) > 8000) {
+                    localStorage.setItem('caanma_last_reload', now.toString());
+                    window.location.reload();
+                  }
+                }
+              });
             `
           }}
         />
