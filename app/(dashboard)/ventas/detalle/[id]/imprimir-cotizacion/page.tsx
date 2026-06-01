@@ -15,7 +15,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
         include: { settings: true, tenant: true }
       },
       items: {
-        include: { product: true }
+        include: { product: true, variant: true }
       }
     }
   });
@@ -31,7 +31,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
   const globalLogoUrl = config.global?.logoUrl || '';
   const cotizacionConfig = config.formatos_cotizacion || {};
   const logoUrl = cotizacionConfig.logoUrl || globalLogoUrl;
-  const { primaryColor = '#3b82f6', showProductImages, showProductSKU, footerNotes, showTaxBreakdown } = cotizacionConfig;
+  const { primaryColor = '#3b82f6', showProductImages, showProductSKU = true, footerNotes, showTaxBreakdown = true } = cotizacionConfig;
 
   // Auto-print script
   const printScript = `
@@ -59,7 +59,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
         .invoice-title { font-size: 2.5rem; font-weight: 900; color: ${primaryColor}; margin: 0 0 0.5rem 0; text-transform: uppercase; }
         .info-card { background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem; }
-        .data-label { font-size: 0.75rem; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 0.25rem; }
+        .data-label { font-size: 0.75rem; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 0.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.25rem; }
         .data-value { font-size: 0.95rem; font-weight: 500; }
         .items-table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; font-size: 0.9rem; }
         .items-table th { background-color: ${primaryColor}; color: white; padding: 0.75rem; text-align: left; font-weight: 600; }
@@ -104,21 +104,42 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
 
         {/* Info Grid */}
         <div className="info-grid">
+          {/* Detailed Customer Tax & Address Profile */}
           <div className="info-card">
-            <div className="data-label">Preparado Para (Cliente)</div>
-            <div className="data-value" style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0f172a' }}>
-              {quote.customer?.name || 'Público en General'}
+            <div className="data-label">Cliente / Receptor</div>
+            <div className="data-value" style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0f172a', marginBottom: '0.25rem' }}>
+              {quote.customer?.legalName || quote.customer?.name || 'Público en General'}
             </div>
-            {quote.customer?.taxId && <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>RFC: {quote.customer.taxId}</div>}
-            {quote.customer?.email && <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{quote.customer.email}</div>}
-            {quote.customer?.phone && <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Tel: {quote.customer.phone}</div>}
+            {quote.customer?.taxId && <div style={{ fontSize: '0.85rem', color: '#475569' }}><strong>RFC:</strong> {quote.customer.taxId}</div>}
+            {quote.customer?.taxRegime && <div style={{ fontSize: '0.85rem', color: '#475569' }}><strong>Régimen Fiscal:</strong> {quote.customer.taxRegime}</div>}
+            {quote.customer?.cfdiUse && <div style={{ fontSize: '0.85rem', color: '#475569' }}><strong>Uso de CFDI:</strong> {quote.customer.cfdiUse}</div>}
+            
+            {/* Structured Address */}
+            {(quote.customer?.street || quote.customer?.zipCode) && (
+              <div style={{ fontSize: '0.85rem', color: '#475569', marginTop: '0.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', lineHeight: '1.4' }}>
+                <strong>Domicilio Fiscal:</strong><br/>
+                {quote.customer.street} {quote.customer.exteriorNumber && `#${quote.customer.exteriorNumber}`} {quote.customer.interiorNumber && `Int. ${quote.customer.interiorNumber}`}<br/>
+                {quote.customer.neighborhood && `Col. ${quote.customer.neighborhood}, `} {quote.customer.zipCode && `C.P. ${quote.customer.zipCode}`}<br/>
+                {quote.customer.city && `${quote.customer.city}, `} {quote.customer.state && `${quote.customer.state}`}
+              </div>
+            )}
+            
+            <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.5rem' }}>
+              {quote.customer?.email && <div>{quote.customer.email}</div>}
+              {quote.customer?.phone && <div>Tel: {quote.customer.phone}</div>}
+            </div>
           </div>
+
           <div className="info-card">
-            <div className="data-label">Preparado Por (Asesor)</div>
-            <div className="data-value" style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0f172a' }}>
-              {quote.user?.name}
-            </div>
-            {quote.user?.email && <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>{quote.user.email}</div>}
+            <div className="data-label">Detalles de la Cotización</div>
+            <table style={{ width: '100%', fontSize: '0.9rem' }}>
+              <tbody>
+                <tr><td style={{ color: '#64748b', padding: '0.2rem 0' }}>Asesor Comercial:</td><td style={{ fontWeight: '600', textAlign: 'right' }}>{quote.user?.name}</td></tr>
+                <tr><td style={{ color: '#64748b', padding: '0.2rem 0' }}>Correo Asesor:</td><td style={{ fontWeight: '600', textAlign: 'right', fontSize: '0.8rem' }}>{quote.user?.email || 'N/A'}</td></tr>
+                <tr><td style={{ color: '#64748b', padding: '0.2rem 0' }}>Caja / Módulo:</td><td style={{ fontWeight: '600', textAlign: 'right' }}>Principal</td></tr>
+                <tr><td style={{ color: '#64748b', padding: '0.2rem 0' }}>Moneda:</td><td style={{ fontWeight: 'bold', textAlign: 'right', color: '#0f172a' }}>MXN ($)</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -148,6 +169,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
                 <td style={{ fontWeight: 'bold', textAlign: 'center' }}>{item.quantity}</td>
                 <td>
                   <div style={{ fontWeight: '600', color: '#1e293b' }}>{item.product?.name || 'Desconocido'}</div>
+                  {item.variant && <div style={{ fontSize: '0.85em', color: '#64748b', marginTop: '0.1rem' }}>Var: {item.variant.attribute}</div>}
                   {showProductSKU && item.product?.sku && <div style={{ fontSize: '0.85em', color: '#64748b', marginTop: '0.1rem' }}>SKU: {item.product.sku}</div>}
                 </td>
                 <td style={{ textAlign: 'right' }}>${item.price.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
@@ -189,7 +211,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
           
           <div style={{ marginTop: '1.5rem', fontSize: '0.85rem', color: '#64748b', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
             <p style={{ fontWeight: 'bold', color: '#1e293b', margin: '0 0 0.5rem 0' }}>Términos y Condiciones:</p>
-            <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{footerNotes || 'Precios sujetos a cambios sin previo aviso.\\nEsta cotización es válida únicamente por el periodo de vigencia indicado.'}</p>
+            <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{footerNotes || 'Precios sujetos a cambios sin previo aviso.\nEsta cotización es válida únicamente por el periodo de vigencia indicado.'}</p>
           </div>
         </div>
 
