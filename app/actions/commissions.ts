@@ -1,16 +1,23 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { getActiveBranch, getActiveUser } from './auth';
+import { getActiveBranch, getActiveUser, getSession } from './auth';
 import { revalidateTag } from 'next/cache';
 
 export async function getUsersHierarchy() {
+  const session = await getSession();
   const branch = await getActiveBranch();
+  if (!branch) throw new Error('Unauthorized');
   
+  const tenantId = session?.tenantId || branch.tenantId;
+  if (!tenantId) throw new Error('Unauthorized: Tenant context missing');
+  
+  const tenantIdClause = { tenantId };
   const whereClause = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
 
   const users = await prisma.user.findMany({
     where: {
+      ...tenantIdClause,
       ...whereClause,
       NOT: {
         email: {
@@ -29,6 +36,7 @@ export async function getUsersHierarchy() {
 
 export async function updateCommissionProfile(userId: string, data: any) {
   const branch = await getActiveBranch();
+  if (!branch) throw new Error('Unauthorized');
   
   // Basic validation that user exists and belongs to branch (unless global)
   const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -57,22 +65,29 @@ export async function updateCommissionProfile(userId: string, data: any) {
     }
   });
 
-  revalidateTag(`user-${userId}`);
+  revalidateTag(`user-${userId}`, 'max');
   return { success: true };
 }
 
 export async function getCommissionReport(month: number, year: number) {
+  const session = await getSession();
   const branch = await getActiveBranch();
-
+  if (!branch) throw new Error('Unauthorized');
+ 
   // Dates for the month
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59, 999);
-
+ 
   // 1. Fetch all users from the branch (or all branches if GLOBAL)
+  const tenantId = session?.tenantId || branch.tenantId;
+  if (!tenantId) throw new Error('Unauthorized: Tenant context missing');
+  
+  const tenantIdClause = { tenantId };
   const whereClause = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
 
   const users = await prisma.user.findMany({
     where: {
+      ...tenantIdClause,
       ...whereClause,
       NOT: {
         email: {

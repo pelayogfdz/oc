@@ -1,17 +1,50 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { getActiveBranch } from './auth';
+import { getActiveBranch, getSession } from './auth';
 
 export async function getGeneralAnalyticsData(startDate: Date, endDate: Date, branchIdFilter?: string, userIdFilter?: string) {
+  const session = await getSession();
   const branch = await getActiveBranch();
+  if (!branch) throw new Error('Unauthorized');
   
-  let branchCondition: any = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
+  const tenantId = session?.tenantId || branch.tenantId;
+  if (!tenantId) throw new Error('Unauthorized: Tenant context missing');
+  
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const tenantBranchIds = tenantBranches.map(b => b.id);
+  
+  let branchCondition: any = branch.id === 'GLOBAL' 
+    ? { branchId: { in: tenantBranchIds } } 
+    : { branchId: branch.id };
+    
   if (branchIdFilter && branchIdFilter !== 'ALL') {
-    branchCondition = { branchId: branchIdFilter };
+    if (tenantBranchIds.includes(branchIdFilter)) {
+      branchCondition = { branchId: branchIdFilter };
+    } else {
+      branchCondition = { branchId: { in: tenantBranchIds } };
+    }
   }
   
-  const userCondition = (userIdFilter && userIdFilter !== 'ALL') ? { userId: userIdFilter } : {};
+  const tenantUsers = await prisma.user.findMany({
+    where: { tenantId },
+    select: { id: true }
+  });
+  const tenantUserIds = tenantUsers.map(u => u.id);
+  
+  let userCondition: any = {};
+  if (userIdFilter && userIdFilter !== 'ALL') {
+    if (tenantUserIds.includes(userIdFilter)) {
+      userCondition = { userId: userIdFilter };
+    } else {
+      userCondition = { userId: { in: tenantUserIds } };
+    }
+  } else {
+    userCondition = { userId: { in: tenantUserIds } };
+  }
 
   const sales = await prisma.sale.findMany({
     where: {
@@ -82,14 +115,47 @@ export async function getGeneralAnalyticsData(startDate: Date, endDate: Date, br
 }
 
 export async function getSalesDetailData(startDate: Date, endDate: Date, branchIdFilter?: string, userIdFilter?: string) {
+  const session = await getSession();
   const branch = await getActiveBranch();
+  if (!branch) throw new Error('Unauthorized');
   
-  let branchCondition: any = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
+  const tenantId = session?.tenantId || branch.tenantId;
+  if (!tenantId) throw new Error('Unauthorized: Tenant context missing');
+  
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const tenantBranchIds = tenantBranches.map(b => b.id);
+  
+  let branchCondition: any = branch.id === 'GLOBAL' 
+    ? { branchId: { in: tenantBranchIds } } 
+    : { branchId: branch.id };
+    
   if (branchIdFilter && branchIdFilter !== 'ALL') {
-    branchCondition = { branchId: branchIdFilter };
+    if (tenantBranchIds.includes(branchIdFilter)) {
+      branchCondition = { branchId: branchIdFilter };
+    } else {
+      branchCondition = { branchId: { in: tenantBranchIds } };
+    }
   }
   
-  const userCondition = (userIdFilter && userIdFilter !== 'ALL') ? { userId: userIdFilter } : {};
+  const tenantUsers = await prisma.user.findMany({
+    where: { tenantId },
+    select: { id: true }
+  });
+  const tenantUserIds = tenantUsers.map(u => u.id);
+  
+  let userCondition: any = {};
+  if (userIdFilter && userIdFilter !== 'ALL') {
+    if (tenantUserIds.includes(userIdFilter)) {
+      userCondition = { userId: userIdFilter };
+    } else {
+      userCondition = { userId: { in: tenantUserIds } };
+    }
+  } else {
+    userCondition = { userId: { in: tenantUserIds } };
+  }
 
   const sales = await prisma.sale.findMany({
     where: {
@@ -165,11 +231,29 @@ export async function getSalesDetailData(startDate: Date, endDate: Date, branchI
 }
 
 export async function getInventoryValuationData(branchIdFilter?: string) {
+  const session = await getSession();
   const branch = await getActiveBranch();
+  if (!branch) throw new Error('Unauthorized');
   
-  let branchCondition: any = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
+  const tenantId = session?.tenantId || branch.tenantId;
+  if (!tenantId) throw new Error('Unauthorized: Tenant context missing');
+  
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const tenantBranchIds = tenantBranches.map(b => b.id);
+  
+  let branchCondition: any = branch.id === 'GLOBAL' 
+    ? { branchId: { in: tenantBranchIds } } 
+    : { branchId: branch.id };
+    
   if (branchIdFilter && branchIdFilter !== 'ALL') {
-    branchCondition = { branchId: branchIdFilter };
+    if (tenantBranchIds.includes(branchIdFilter)) {
+      branchCondition = { branchId: branchIdFilter };
+    } else {
+      branchCondition = { branchId: { in: tenantBranchIds } };
+    }
   }
 
   const products = await prisma.product.findMany({
@@ -220,11 +304,17 @@ export async function getInventoryValuationData(branchIdFilter?: string) {
 }
 
 export async function getAvailableFilters() {
+  const session = await getSession();
   const branch = await getActiveBranch();
+  if (!branch) throw new Error('Unauthorized');
+  
+  const tenantId = session?.tenantId || branch.tenantId;
+  if (!tenantId) throw new Error('Unauthorized: Tenant context missing');
   
   let branches = [];
   if (branch.id === 'GLOBAL') {
     branches = await prisma.branch.findMany({
+      where: { tenantId, isActive: true },
       select: { id: true, name: true },
       orderBy: { name: 'asc' }
     });
@@ -233,13 +323,14 @@ export async function getAvailableFilters() {
   }
 
   const users = await prisma.user.findMany({
+    where: { tenantId },
     select: { id: true, name: true },
     orderBy: { name: 'asc' }
   });
 
   // Find all branches of this tenant
   const tenantBranches = await prisma.branch.findMany({
-    where: { tenantId: branch.tenantId, isActive: true },
+    where: { tenantId, isActive: true },
     select: { id: true }
   });
   const branchIds = tenantBranches.map(b => b.id);
@@ -276,14 +367,47 @@ export async function getConsignmentReportData(
   userIdFilter?: string,
   customerIdFilter?: string
 ) {
+  const session = await getSession();
   const branch = await getActiveBranch();
+  if (!branch) throw new Error('Unauthorized');
   
-  let branchCondition: any = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
+  const tenantId = session?.tenantId || branch.tenantId;
+  if (!tenantId) throw new Error('Unauthorized: Tenant context missing');
+  
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const tenantBranchIds = tenantBranches.map(b => b.id);
+  
+  let branchCondition: any = branch.id === 'GLOBAL' 
+    ? { branchId: { in: tenantBranchIds } } 
+    : { branchId: branch.id };
+    
   if (branchIdFilter && branchIdFilter !== 'ALL') {
-    branchCondition = { branchId: branchIdFilter };
+    if (tenantBranchIds.includes(branchIdFilter)) {
+      branchCondition = { branchId: branchIdFilter };
+    } else {
+      branchCondition = { branchId: { in: tenantBranchIds } };
+    }
   }
   
-  const userCondition = (userIdFilter && userIdFilter !== 'ALL') ? { userId: userIdFilter } : {};
+  const tenantUsers = await prisma.user.findMany({
+    where: { tenantId },
+    select: { id: true }
+  });
+  const tenantUserIds = tenantUsers.map(u => u.id);
+  
+  let userCondition: any = {};
+  if (userIdFilter && userIdFilter !== 'ALL') {
+    if (tenantUserIds.includes(userIdFilter)) {
+      userCondition = { userId: userIdFilter };
+    } else {
+      userCondition = { userId: { in: tenantUserIds } };
+    }
+  } else {
+    userCondition = { userId: { in: tenantUserIds } };
+  }
   const customerCondition = (customerIdFilter && customerIdFilter !== 'ALL') ? { customerId: customerIdFilter } : {};
 
   const consignments = await prisma.consignment.findMany({
@@ -418,18 +542,24 @@ export async function getTopCustomersReport(
   branchIdFilter?: string,
   customerIdFilter?: string
 ) {
+  const session = await getSession();
   const branch = await getActiveBranch();
   if (!branch) return [];
   
-  let branchCondition: any = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
+  const tenantId = session?.tenantId || branch.tenantId;
+  if (!tenantId) return [];
+  
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const tenantBranchIds = tenantBranches.map(b => b.id);
+  
+  let branchCondition: any = branch.id === 'GLOBAL' ? { branchId: { in: tenantBranchIds } } : { branchId: branch.id };
   if (branchIdFilter && branchIdFilter !== 'ALL') {
-    branchCondition = { branchId: branchIdFilter };
-  } else if (branch.id === 'GLOBAL') {
-    const tenantBranches = await prisma.branch.findMany({
-      where: { tenantId: branch.tenantId, isActive: true },
-      select: { id: true }
-    });
-    branchCondition = { branchId: { in: tenantBranches.map(b => b.id) } };
+    if (tenantBranchIds.includes(branchIdFilter)) {
+      branchCondition = { branchId: branchIdFilter };
+    }
   }
 
   const customerCondition = (customerIdFilter && customerIdFilter !== 'ALL') ? { customerId: customerIdFilter } : { customerId: { not: null } };
@@ -482,18 +612,24 @@ export async function getTopProductsReport(
   branchIdFilter?: string,
   categoryFilter?: string
 ) {
+  const session = await getSession();
   const branch = await getActiveBranch();
   if (!branch) return [];
   
-  let branchCondition: any = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
+  const tenantId = session?.tenantId || branch.tenantId;
+  if (!tenantId) return [];
+  
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const tenantBranchIds = tenantBranches.map(b => b.id);
+  
+  let branchCondition: any = branch.id === 'GLOBAL' ? { branchId: { in: tenantBranchIds } } : { branchId: branch.id };
   if (branchIdFilter && branchIdFilter !== 'ALL') {
-    branchCondition = { branchId: branchIdFilter };
-  } else if (branch.id === 'GLOBAL') {
-    const tenantBranches = await prisma.branch.findMany({
-      where: { tenantId: branch.tenantId, isActive: true },
-      select: { id: true }
-    });
-    branchCondition = { branchId: { in: tenantBranches.map(b => b.id) } };
+    if (tenantBranchIds.includes(branchIdFilter)) {
+      branchCondition = { branchId: branchIdFilter };
+    }
   }
 
   const categoryCondition = (categoryFilter && categoryFilter !== 'ALL') 
@@ -552,6 +688,211 @@ export async function getTopProductsReport(
     .sort((a, b) => b.quantitySold - a.quantitySold);
 
   return result;
+}
+
+export async function getTopCategoriesReport(
+  startDate: Date,
+  endDate: Date,
+  branchIdFilter?: string
+) {
+  const session = await getSession();
+  const branch = await getActiveBranch();
+  if (!branch) return [];
+ 
+  const tenantId = session?.tenantId || branch.tenantId;
+  if (!tenantId) return [];
+  
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const tenantBranchIds = tenantBranches.map(b => b.id);
+  
+  let branchCondition: any = branch.id === 'GLOBAL' ? { branchId: { in: tenantBranchIds } } : { branchId: branch.id };
+  if (branchIdFilter && branchIdFilter !== 'ALL') {
+    if (tenantBranchIds.includes(branchIdFilter)) {
+      branchCondition = { branchId: branchIdFilter };
+    }
+  }
+
+  const saleItems = await prisma.saleItem.findMany({
+    where: {
+      sale: {
+        ...branchCondition,
+        createdAt: { gte: startDate, lte: endDate },
+        status: { not: 'CANCELLED' }
+      }
+    },
+    include: {
+      satItem: true, // safe optional
+      product: true
+    } as any
+  });
+
+  const categoryMap = new Map();
+  saleItems.forEach(item => {
+    const category = (item.product as any)?.category || "Sin Categoría";
+    const existing = categoryMap.get(category) || {
+      category,
+      quantitySold: 0,
+      totalRevenue: 0,
+      totalCost: 0
+    };
+    existing.quantitySold += item.quantity;
+    existing.totalRevenue += (item.quantity * item.price);
+    existing.totalCost += (item.quantity * ((item.product as any)?.cost || 0));
+    categoryMap.set(category, existing);
+  });
+
+  const result = Array.from(categoryMap.values())
+    .map(c => {
+      const grossProfit = c.totalRevenue - c.totalCost;
+      const margin = c.totalRevenue > 0 ? (grossProfit / c.totalRevenue) * 100 : 0;
+      return {
+        ...c,
+        grossProfit,
+        margin
+      };
+    })
+    .sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+  return result;
+}
+
+export async function getSalesBySellerReport(
+  startDate: Date,
+  endDate: Date,
+  branchIdFilter?: string
+) {
+  const session = await getSession();
+  const branch = await getActiveBranch();
+  if (!branch) return [];
+ 
+  const tenantId = session?.tenantId || branch.tenantId;
+  if (!tenantId) return [];
+  
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const tenantBranchIds = tenantBranches.map(b => b.id);
+  
+  let branchCondition: any = branch.id === 'GLOBAL' ? { branchId: { in: tenantBranchIds } } : { branchId: branch.id };
+  if (branchIdFilter && branchIdFilter !== 'ALL') {
+    if (tenantBranchIds.includes(branchIdFilter)) {
+      branchCondition = { branchId: branchIdFilter };
+    }
+  }
+
+  const sales = await prisma.sale.findMany({
+    where: {
+      ...branchCondition,
+      createdAt: { gte: startDate, lte: endDate },
+      status: { not: 'CANCELLED' }
+    },
+    include: {
+      user: true
+    }
+  });
+
+  const sellerMap = new Map();
+  sales.forEach(sale => {
+    const userId = sale.userId;
+    const name = sale.user?.name || sale.user?.email || "Vendedor Desconocido";
+    const commissionPct = sale.user?.commissionPct || 0;
+    
+    const existing = sellerMap.get(userId) || {
+      userId,
+      name,
+      totalSales: 0,
+      salesCount: 0,
+      commissionPct,
+      earnedCommission: 0
+    };
+    
+    existing.totalSales += sale.total;
+    existing.salesCount += 1;
+    existing.earnedCommission += (sale.total * (commissionPct / 100));
+    sellerMap.set(userId, existing);
+  });
+
+  const result = Array.from(sellerMap.values())
+    .map(s => {
+      const avgTicket = s.salesCount > 0 ? (s.totalSales / s.salesCount) : 0;
+      return {
+        ...s,
+        avgTicket
+      };
+    })
+    .sort((a, b) => b.totalSales - a.totalSales);
+
+  return result;
+}
+
+export async function getInventoryMovementReport(
+  startDate: Date,
+  endDate: Date,
+  branchIdFilter?: string,
+  typeFilter?: string
+) {
+  const session = await getSession();
+  const branch = await getActiveBranch();
+  if (!branch) return { movements: [], metrics: { totalCount: 0, itemsAdded: 0, itemsRemoved: 0 } };
+  
+  const tenantId = session?.tenantId || branch.tenantId;
+  if (!tenantId) return { movements: [], metrics: { totalCount: 0, itemsAdded: 0, itemsRemoved: 0 } };
+  
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const tenantBranchIds = tenantBranches.map(b => b.id);
+  
+  let branchCondition: any = {};
+  if (branchIdFilter && branchIdFilter !== 'ALL') {
+    if (tenantBranchIds.includes(branchIdFilter)) {
+      branchCondition = { branchId: branchIdFilter };
+    }
+  } else if (branch.id !== 'GLOBAL') {
+    branchCondition = { branchId: branch.id };
+  } else {
+    branchCondition = { branchId: { in: tenantBranchIds } };
+  }
+
+  const typeCondition = (typeFilter && typeFilter !== 'ALL') ? { type: typeFilter } : {};
+
+  const movements = await prisma.inventoryMovement.findMany({
+    where: {
+      product: branchCondition,
+      createdAt: { gte: startDate, lte: endDate },
+      ...typeCondition
+    },
+    include: {
+      product: true,
+      user: true
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  let itemsAdded = 0;
+  let itemsRemoved = 0;
+
+  movements.forEach(m => {
+    if (m.quantity > 0) {
+      itemsAdded += m.quantity;
+    } else {
+      itemsRemoved += Math.abs(m.quantity);
+    }
+  });
+
+  return {
+    movements,
+    metrics: {
+      totalCount: movements.length,
+      itemsAdded,
+      itemsRemoved
+    }
+  };
 }
 
 
