@@ -368,7 +368,7 @@ button {
 .pos-layout {
   display: flex;
   gap: 2rem;
-  height: calc(100vh - 200px);
+  min-height: calc(100vh - 200px);
 }
 
 .pos-products-column {

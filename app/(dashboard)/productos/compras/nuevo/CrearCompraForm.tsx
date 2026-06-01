@@ -98,7 +98,7 @@ export default function CrearCompraForm({ suppliers, products }: { suppliers: an
   });
 
   return (
-    <div style={{ display: 'flex', gap: '2rem', height: 'calc(100vh - 200px)' }}>
+    <div style={{ display: 'flex', gap: '2rem', minHeight: 'calc(100vh - 200px)' }}>
       {/* Left: Products */}
       <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
         {/* Toolbar */}
@@ -154,7 +154,7 @@ export default function CrearCompraForm({ suppliers, products }: { suppliers: an
           </div>
         )}
 
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={{ flex: 1, minHeight: '380px' }}>
           <ProductTableUI 
             products={filteredProducts}
             showCheckboxes={false}
@@ -198,7 +198,7 @@ export default function CrearCompraForm({ suppliers, products }: { suppliers: an
         </div>
 
         {/* Cart Items */}
-        <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1rem', paddingRight: '0.5rem' }}>
+        <div style={{ flex: 1, minHeight: '380px', marginBottom: '1rem', paddingRight: '0.5rem' }}>
           {items.length === 0 ? (
             <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '3rem', fontSize: '0.95rem' }}>
               No hay artículos en la compra.

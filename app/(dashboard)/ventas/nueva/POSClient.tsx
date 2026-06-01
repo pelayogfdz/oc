@@ -906,7 +906,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
             </div>
           </div>
         </div>
-        <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '12px', opacity: isSearching ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+        <div style={{ flex: 1, minHeight: '380px', border: '1px solid #e2e8f0', borderRadius: '12px', opacity: isSearching ? 0.5 : 1, transition: 'opacity 0.2s' }}>
           <ProductTableUI 
             products={filteredProducts}
             showCheckboxes={false}
@@ -1031,7 +1031,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
         </div>
 
         <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Ticket actual</h2>
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={{ flex: 1, minHeight: '380px' }}>
           {cart.length === 0 && <div style={{ color: 'var(--pulpos-text-muted)', textAlign: 'center', marginTop: '2rem' }}>Ticket vacío</div>}
           {cart.map(item => {
             const currentPrice = getProductPrice(item);

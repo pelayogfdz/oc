@@ -113,7 +113,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
   };
 
   return (
-    <div style={{ display: 'flex', gap: '2rem', height: 'calc(100vh - 200px)' }}>
+    <div style={{ display: 'flex', gap: '2rem', minHeight: 'calc(100vh - 200px)' }}>
       {/* Left: Product Selector */}
       <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Buscador de Inventario</h2>
@@ -140,7 +140,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
           </select>
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
+        <div style={{ flex: 1, border: '1px solid #e2e8f0', borderRadius: '12px', minHeight: '380px' }}>
            <ProductTableUI 
              products={displayedProducts}
              showCheckboxes={false}
@@ -182,7 +182,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
             <Truck size={20} /> Artículos a Traspasar
           </h2>
           
-          <div style={{ flex: 1, overflowY: 'auto' }}>
+          <div style={{ flex: 1, minHeight: '380px' }}>
           {transferItems.length === 0 && (
              <div style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--pulpos-text-muted)', border: '2px dashed var(--pulpos-border)', borderRadius: '8px' }}>
                No has agregado productos.<br/>Búscalos en el panel izquierdo y agrégalos al paquete.
