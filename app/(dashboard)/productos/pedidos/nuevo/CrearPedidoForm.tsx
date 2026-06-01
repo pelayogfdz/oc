@@ -100,7 +100,7 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests }
   });
 
   return (
-    <div style={{ display: 'flex', gap: '2rem', height: 'calc(100vh - 200px)' }}>
+    <div style={{ display: 'flex', gap: '2rem', minHeight: 'calc(100vh - 200px)' }}>
       {/* Left: Products */}
       <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', alignItems: 'center' }}>
@@ -150,7 +150,7 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests }
           </button>
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={{ flex: 1, minHeight: '380px' }}>
           {/* Solicitudes Pendientes */}
           {pendingRequests && pendingRequests.length > 0 && (
             <div style={{ padding: '1rem', marginBottom: '1rem', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px' }}>
@@ -224,7 +224,7 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests }
         </div>
 
         {/* Cart Items */}
-        <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1rem', paddingRight: '0.5rem' }}>
+        <div style={{ flex: 1, minHeight: '380px', marginBottom: '1rem', paddingRight: '0.5rem' }}>
           {items.length === 0 ? (
             <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '3rem', fontSize: '0.95rem' }}>
               No hay artículos en el pedido.

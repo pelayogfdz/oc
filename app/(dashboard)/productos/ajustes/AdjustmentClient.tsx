@@ -72,7 +72,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
   };
 
   return (
-    <div style={{ display: 'flex', gap: '2rem', height: 'calc(100vh - 120px)', boxSizing: 'border-box' }}>
+    <div style={{ display: 'flex', gap: '2rem', minHeight: 'calc(100vh - 120px)', boxSizing: 'border-box' }}>
       
       {/* Columna Izquierda: Buscador */}
       <div style={{ flex: 1, backgroundColor: 'white', border: '1px solid var(--pulpos-border)', borderRadius: '12px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -92,7 +92,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
           </div>
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', backgroundColor: '#f1f5f9' }}>
+        <div style={{ flex: 1, minHeight: '380px', padding: '1rem', backgroundColor: '#f1f5f9' }}>
           {displayedProducts.length === 0 && !isSearching && (
             <div style={{ textAlign: 'center', color: 'var(--pulpos-text-muted)', padding: '3rem 1rem' }}>
               No se encontraron resultados para "{searchTerm}"
@@ -197,7 +197,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
           </div>
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', backgroundColor: items.length === 0 ? '#f8fafc' : 'white' }}>
+        <div style={{ flex: 1, minHeight: '380px', backgroundColor: items.length === 0 ? '#f8fafc' : 'white' }}>
           {items.length === 0 ? (
             <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--pulpos-text-muted)', gap: '1rem' }}>
               <ArrowRightLeft size={48} style={{ opacity: 0.2 }} />
