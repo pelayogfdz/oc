@@ -648,13 +648,13 @@ export default function POSClient({ products: initialProducts, customers, suppli
 
       setTimeout(() => {
          if (!isAutoPrint) {
-           if (mode === 'QUOTE') {
-             alert('¡Cotización creada con éxito! Imprimiendo Ticket...');
-           } else if (mode === 'CONSIGNMENT') {
-             alert('¡Consignación creada con éxito! Imprimiendo Ticket...');
-           } else {
-             alert('¡Venta cobrada con éxito! Imprimiendo Ticket...');
-           }
+            if (mode === 'QUOTE') {
+              // No blocking alert, redirect smoothly
+            } else if (mode === 'CONSIGNMENT') {
+              alert('¡Consignación creada con éxito! Imprimiendo Ticket...');
+            } else {
+              alert('¡Venta cobrada con éxito! Imprimiendo Ticket...');
+            }
          }
          printTicket(cartBackup, totalBackup, changeBackup, discountBackup, saleId);
          if (mode === 'QUOTE') {
