@@ -77,7 +77,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
     }}>
       {/* Brand Header */}
       <div style={{ padding: '1.5rem', marginBottom: '0.5rem' }}>
-        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--pulpos-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <Link href="/" style={{ textDecoration: 'none', color: 'var(--pulpos-text)', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
           <div style={{
             width: '28px',
             height: '28px',
@@ -92,9 +92,9 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
           }}>
             C
           </div>
-          CAANMA
+          <span style={{ fontWeight: 'bold', fontSize: '1.5rem' }}>CAANMA</span>
           <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: '#94a3b8', verticalAlign: 'top', marginLeft: '0.25rem' }}>PRO</span>
-        </div>
+        </Link>
       </div>
       
       {/* Nueva Venta Button */}
