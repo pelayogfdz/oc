@@ -19,7 +19,15 @@ interface SearchItem {
   manual: ManualData;
 }
 
-// Complete system modules & submodules directory for CAANMA
+// Accent / Diacritics normalization utility
+const normalizeString = (str: string): string => {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+};
+
+// Complete and exhaustive system modules directory for CAANMA (34 Items)
 const SEARCH_DIRECTORY: SearchItem[] = [
   {
     name: 'Punto de Venta (Nueva Venta)',
@@ -46,7 +54,7 @@ const SEARCH_DIRECTORY: SearchItem[] = [
     name: 'Historial y Bitácora de Ventas',
     path: '/ventas',
     category: 'Ventas',
-    description: 'Listado exhaustivo de transacciones, devoluciones, re-impresiones de tickets y auditoría de egresos.',
+    description: 'Listado de transacciones del día, devoluciones de caja, re-impresión de tickets y auditorías.',
     keywords: ['historial', 'bitacora', 'ventas pasadas', 'folios', 'reimprimir', 'tickets emitidos', 'ventas del dia'],
     manual: {
       purpose: 'Permitir al administrador y vendedores revisar transacciones anteriores, emitir comprobantes duplicados y aplicar devoluciones con control de inventario.',
@@ -63,10 +71,10 @@ const SEARCH_DIRECTORY: SearchItem[] = [
     }
   },
   {
-    name: 'Bandeja de WhatsApp CRM (CRM)',
+    name: 'Bandeja de WhatsApp CRM',
     path: '/ventas/prospeccion',
     category: 'CRM',
-    description: 'Inbox multi-agente sincronizado con WhatsApp web para prospección comercial, CRM y envío directo de folios.',
+    description: 'Inbox multi-agente sincronizado con WhatsApp web para prospección comercial y envío de documentos.',
     keywords: ['whatsapp', 'crm', 'chats', 'mensajes', 'prospectos', 'bandeja whatsapp', 'conversaciones', 'asesor'],
     manual: {
       purpose: 'Centralizar el canal de mensajería instantánea de la sucursal para que los asesores atiendan dudas, registren prospectos y envíen archivos PDF de cotizaciones sin salir de la plataforma.',
@@ -83,7 +91,67 @@ const SEARCH_DIRECTORY: SearchItem[] = [
     }
   },
   {
-    name: 'Cotizaciones Comerciales',
+    name: 'CRM de Prospección Comercial',
+    path: '/ventas/prospeccion',
+    category: 'CRM',
+    description: 'Embudo de conversión (pipeline), asignación de prospectos y bitácora de seguimiento comercial.',
+    keywords: ['crm', 'prospeccion', 'embudo', 'funnel', 'etapas', 'prospectos nuevos', 'asesores', 'seguimiento'],
+    manual: {
+      purpose: 'Administrar el embudo de ventas de la empresa y asegurar que cada prospecto reciba seguimiento oportuno por parte de los asesores.',
+      steps: [
+        'Ingresa al módulo de Prospección en el menú de Ventas.',
+        'Visualiza el tablero Kanban con las etapas de tus prospectos (Nuevo, Contactado, Cotizado, Cerrado).',
+        'Arrastra una tarjeta a otra columna para actualizar la etapa de venta del prospecto.',
+        'Haz clic en un prospecto para añadir notas de seguimiento o programar recordatorios de llamadas.'
+      ],
+      faq: [
+        { q: '¿Cómo asigno un prospecto a un asesor?', a: 'Dentro de la tarjeta de información del prospecto, haz clic en el selector "Asesor" y selecciona el miembro del equipo correspondiente.' },
+        { q: '¿Se pueden importar prospectos de Excel?', a: 'Sí, a través de la herramienta de importación masiva en el módulo de clientes, catalogando el origen como Prospecto.' }
+      ]
+    }
+  },
+  {
+    name: 'Promociones y Descuentos',
+    path: '/ventas/promociones',
+    category: 'Ventas',
+    description: 'Reglas de descuento automático, promociones por volumen, campañas de temporada y cupones.',
+    keywords: ['promociones', 'descuentos', '2x1', 'ofertas', 'rebajas', 'campaña', 'cupones', 'descuento automatico'],
+    manual: {
+      purpose: 'Configurar incentivos comerciales automáticos en el punto de venta para incrementar el ticket promedio de compra.',
+      steps: [
+        'Entra a Promociones y Descuentos en el menú lateral.',
+        'Presiona "+ Nueva Promoción" y define las condiciones (ej. 2x1 en categoría X, o 10% de descuento en la compra de $1,000+).',
+        'Define el rango de fechas de validez y las sucursales participantes.',
+        'Guarda la promoción. Ésta se aplicará automáticamente en el POS al cumplirse las condiciones del carrito.'
+      ],
+      faq: [
+        { q: '¿Puedo limitar una promoción a un solo cliente?', a: 'Sí, al definir la promoción puedes restringirla a un grupo o segmento específico de clientes (ej. Clientes VIP).' },
+        { q: '¿Se pueden acumular dos promociones?', a: 'Por defecto, el sistema aplica la promoción de mayor beneficio para el cliente y bloquea la acumulación, a menos que marques la casilla "Acumulable" al crearla.' }
+      ]
+    }
+  },
+  {
+    name: 'Devoluciones de Caja',
+    path: '/ventas/devoluciones',
+    category: 'Ventas',
+    description: 'Registro de devoluciones de mercancía por clientes y cancelaciones con re-ingreso automático a inventario.',
+    keywords: ['devoluciones', 'cancelaciones', 'regresar producto', 'mermas de caja', 'devolucion ticket'],
+    manual: {
+      purpose: 'Registrar la devolución de artículos comprados, reintegrar el stock al almacén y gestionar reembolsos de caja.',
+      steps: [
+        'Ve al módulo de Devoluciones en el menú lateral.',
+        'Busca la venta original ingresando el folio del ticket o el nombre del cliente.',
+        'Selecciona el o los productos que el cliente desea regresar y especifica el motivo.',
+        'Confirma si el dinero se reembolsará en efectivo (afectando la caja actual) o si se generará un saldo a favor en monedero.'
+      ],
+      faq: [
+        { q: '¿Qué pasa si el artículo devuelto está dañado?', a: 'Al procesar la devolución, selecciona el estatus "Dañado/Merma". Esto impedirá que el producto regrese al stock disponible y lo enviará directo a mermas.' },
+        { q: '¿Puedo hacer una devolución parcial?', a: 'Sí, puedes seleccionar individualmente las piezas y productos específicos a devolver sin afectar el resto de la venta original.' }
+      ]
+    }
+  },
+  {
+    name: 'Cotizaciones y Presupuestos',
     path: '/ventas/cotizaciones',
     category: 'Ventas',
     description: 'Generación, edición y conversión de cotizaciones comerciales a ventas con formatos personalizados y previsualización.',
@@ -103,7 +171,47 @@ const SEARCH_DIRECTORY: SearchItem[] = [
     }
   },
   {
-    name: 'Caja Actual y Turnos (Turno)',
+    name: 'Ventas en Consignación',
+    path: '/ventas/consignaciones',
+    category: 'Ventas',
+    description: 'Control de mercancía entregada en consignación a clientes, cobranza periódica y liquidación de saldos.',
+    keywords: ['consignaciones', 'mercancia en consignacion', 'liquidar consigna', 'credito consignacion', 'devolucion stock'],
+    manual: {
+      purpose: 'Gestionar el inventario prestado a distribuidores o clientes y registrar los cortes periódicos de lo vendido.',
+      steps: [
+        'Ingresa al módulo de Consignaciones.',
+        'Haz clic en "Nueva Consignación", selecciona al cliente y los productos que se le entregarán sin costo inmediato.',
+        'El sistema descontará la mercancía del inventario activo y la registrará en la cuenta de consignaciones del cliente.',
+        'Para liquidar, abre la consignación activa del cliente, registra cuántas piezas vendió (se cobran) y cuántas devolvió al stock físico.'
+      ],
+      faq: [
+        { q: '¿Cómo cobro el stock vendido de una consignación?', a: 'Al hacer el corte de consignación, selecciona "Liquidar Vendidos" e ingresa el cobro por los métodos de pago habituales de caja.' },
+        { q: '¿Se genera una nota de entrega?', a: 'Sí, al guardar la consignación puedes descargar un PDF firmado con la relación de artículos bajo responsabilidad del cliente.' }
+      ]
+    }
+  },
+  {
+    name: 'Catálogos de Artículos PDF',
+    path: '/ventas/catalogos',
+    category: 'Ventas',
+    description: 'Generación automatizada de catálogos digitales en PDF con imágenes y precios para compartir por WhatsApp.',
+    keywords: ['catalogo pdf', 'imprimir catalogo', 'compartir catalogo', 'lista de precios pdf', 'folleto digital'],
+    manual: {
+      purpose: 'Crear catálogos visuales y profesionales en PDF con tus productos e imágenes para compartirlos fácilmente con tus clientes.',
+      steps: [
+        'Ve a Catálogos de Artículos en el menú lateral.',
+        'Filtra los productos por marcas, categorías o etiquetas que desees incluir.',
+        'Selecciona la plantilla visual de tu agrado (ej. Lista de precios simple o Catálogo visual con imágenes grandes).',
+        'Presiona "Generar PDF". Podrás enviarlo directamente a tus chats de WhatsApp CRM.'
+      ],
+      faq: [
+        { q: '¿Las imágenes del catálogo se pixelan?', a: 'No, el sistema genera imágenes redimensionadas de alta calidad optimizadas para lectura en teléfonos móviles.' },
+        { q: '¿Puedo ocultar los precios en el catálogo?', a: 'Sí, en las opciones de generación puedes desactivar la casilla "Mostrar Precios" para emitir un folleto puramente visual.' }
+      ]
+    }
+  },
+  {
+    name: 'Caja y Turno Actual',
     path: '/caja/actual',
     category: 'Caja',
     description: 'Control de flujo de caja, arqueos físicos, retiros parciales de efectivo y corte de caja final.',
@@ -123,104 +231,485 @@ const SEARCH_DIRECTORY: SearchItem[] = [
     }
   },
   {
-    name: 'Control de Inventario y Productos',
+    name: 'Cortes de Caja Históricos',
+    path: '/caja/cortes',
+    category: 'Caja',
+    description: 'Consulta de cierres de turno anteriores, auditorías de sobrantes/faltantes y conciliación de caja.',
+    keywords: ['cortes pasados', 'cierres historicos', 'arqueos de caja', 'conciliaciones', 'auditoria de caja'],
+    manual: {
+      purpose: 'Consultar y auditar los cierres de caja históricos de la sucursal para revisiones financieras e impositivas.',
+      steps: [
+        'Accede a Cortes de Caja en la sección Caja en el menú lateral.',
+        'Utiliza el calendario para filtrar los turnos cerrados por fecha, cajero o sucursal.',
+        'Haz clic sobre un corte específico para revisar el desglose de lo declarado vs. lo vendido por cada método de pago.',
+        'Descarga o reimprime el reporte detallado si lo requieres para contabilidad.'
+      ],
+      faq: [
+        { q: '¿Puedo corregir un corte de caja ya cerrado?', a: 'No, por seguridad contable un corte cerrado es inmutable. Si hubo un error en la declaración de efectivo, se debe registrar una nota aclaratoria o ajuste en el sistema.' },
+        { q: '¿Qué significa el balance en rojo?', a: 'Significa un faltante de efectivo en caja, lo cual indica que la suma contable reportada es mayor al dinero declarado físicamente.' }
+      ]
+    }
+  },
+  {
+    name: 'Facturación Fiscal (SAT CFDI 4.0)',
+    path: '/facturas',
+    category: 'Facturas',
+    description: 'Gestión de facturas timbradas con el SAT, cancelación de CFDI, descarga de XML y PDF.',
+    keywords: ['facturacion', 'sat', 'cfdi 4.0', 'timbrado', 'xml', 'pdf factura', 'cancelar factura', 'rfc', 'razon social'],
+    manual: {
+      purpose: 'Cumplir con las obligaciones fiscales timbrando las ventas en facturas CFDI 4.0 directamente con el SAT.',
+      steps: [
+        'Ve al módulo de Facturas en el menú lateral.',
+        'Selecciona una venta no facturada y presiona el botón "Generar Factura".',
+        'Verifica el RFC, razón social, régimen fiscal y código postal del cliente.',
+        'Selecciona el Uso de CFDI (ej. Gastos en general) y presiona "Timbrar". El XML y PDF se enviarán automáticamente al correo del cliente.'
+      ],
+      faq: [
+        { q: '¿Cómo cancelo una factura con el SAT?', a: 'En el listado de facturas, haz clic sobre la factura timbrada, presiona "Cancelar Factura", selecciona el motivo de cancelación del SAT y confirma la operación.' },
+        { q: '¿Puedo hacer una factura global del día?', a: 'Sí, selecciona el módulo Facturas y presiona "Factura Global del Día" para agrupar todas las ventas al público en general.' }
+      ]
+    }
+  },
+  {
+    name: 'Directorio de Clientes',
+    path: '/clientes',
+    category: 'Clientes',
+    description: 'Registro de datos fiscales de clientes, administración de líneas de crédito, saldos y puntos de lealtad.',
+    keywords: ['clientes', 'directorio', 'credito de cliente', 'saldo', 'puntos de lealtad', 'agregar cliente', 'rfc cliente'],
+    manual: {
+      purpose: 'Llevar la administración completa de los datos de contacto, fiscales, saldo a crédito y monedero de tus compradores.',
+      steps: [
+        'Ve a Clientes en el menú lateral.',
+        'Haz clic en "+ Nuevo Cliente" para capturar nombre, teléfono, dirección y datos de facturación RFC.',
+        'Si el cliente tiene autorizado comprar a crédito, define su "Límite de Crédito" y días de tolerancia de pago.',
+        'Revisa el balance de sus créditos pendientes o realiza abonos directamente desde su perfil.'
+      ],
+      faq: [
+        { q: '¿Cómo abona un cliente a su cuenta por cobrar?', a: 'Entra al perfil del cliente, presiona "Registrar Abono", escribe la cantidad recibida y el método de pago; el sistema actualizará su deuda al instante.' },
+        { q: '¿Cómo veo sus puntos acumulados?', a: 'En su ficha de cliente se muestra el balance actual de sus puntos acumulados por sus compras del programa de lealtad.' }
+      ]
+    }
+  },
+  {
+    name: 'Inventarios y Productos',
     path: '/productos',
     category: 'Inventario',
-    description: 'Administración de catálogo de productos, existencias, códigos de barras, listas de precios y variantes.',
-    keywords: ['productos', 'inventario', 'stock', 'variantes', 'codigo de barras', 'costo', 'precios', 'editar producto'],
+    description: 'Administración de existencias, códigos de barras, variantes, precios de venta, costos y mermas.',
+    keywords: ['inventarios', 'stock', 'existencias', 'tallas', 'colores', 'costos', 'precios de venta', 'mermas', 'editar stock'],
     manual: {
-      purpose: 'Llevar el control centralizado de los artículos de tu sucursal, costos de adquisición y precios de venta al público.',
+      purpose: 'Administrar el catálogo de productos de la sucursal, controlando existencias exactas y precios.',
       steps: [
-        'Accede a Productos desde el menú lateral.',
-        'Haz clic en "+ Agregar Producto" para dar de alta un artículo nuevo, definiendo nombre, código de barra y stock inicial.',
-        'Si manejas tallas o colores, habilita la opción de "Variantes" para desglosar el stock.',
-        'Asigna precios base y asócialos a listas de precios personalizadas si cuentas con clientes mayoristas.'
+        'Ingresa a Productos en el menú lateral.',
+        'Registra artículos nuevos especificando categoría, marca y existencias físicas.',
+        'Utiliza variantes para productos con diferentes presentaciones o tallas.',
+        'Monitorea el reporte de existencias críticas para prevenir quiebres de stock en tienda.'
       ],
       faq: [
-        { q: '¿Cómo cargo mi inventario de forma masiva?', a: 'Usa la funcionalidad de Importación en Excel para cargar cientos de productos con existencias y códigos de barra de una sola vez.' },
-        { q: '¿Qué es el stock mínimo?', a: 'Es la alerta que avisa al sistema cuando las existencias bajan del límite sugerido, agregando el producto al reporte de compras críticas.' }
+        { q: '¿Cómo imprimo códigos de barras?', a: 'En el listado, haz clic en el icono de etiqueta junto al producto, selecciona la plantilla de código y mándalo a tu impresora Brother QL-800.' },
+        { q: '¿Qué es el costo promedio?', a: 'Es el costo calculado automáticamente por el sistema con base en las facturas de compras registradas a tus proveedores.' }
       ]
     }
   },
   {
-    name: 'Configuración de Impresoras y Tickets',
+    name: 'Compras y Proveedores (Gastos)',
+    path: '/productos/compras',
+    category: 'Compras',
+    description: 'Registro de compras de mercancía a proveedores, bitácora de egresos y control de costos de adquisición.',
+    keywords: ['compras', 'proveedores', 'gastos', 'egresos', 'facturas proveedor', 'registrar compra', 'cuentas por pagar'],
+    manual: {
+      purpose: 'Registrar la entrada de stock a través de compras, actualizar costos de inventario y controlar cuentas por pagar a proveedores.',
+      steps: [
+        'Ve a Compras en la sección Compras y Gastos en el menú lateral.',
+        'Presiona "+ Registrar Compra", selecciona el proveedor e ingresa los productos con su respectivo costo de adquisición.',
+        'Define si la compra fue al contado (saldrá efectivo de caja o banco) o a crédito.',
+        'Confirma y el inventario de la tienda se actualizará automáticamente con las nuevas cantidades ingresadas.'
+      ],
+      faq: [
+        { q: '¿Cómo cargo una factura XML del proveedor?', a: 'Al registrar la compra, arrastra el archivo XML del SAT en la sección "Cargar XML" para rellenar de forma automatizada todos los productos y costos.' },
+        { q: '¿Dónde veo los gastos del mes?', a: 'En el módulo de Finanzas o en el listado de Compras/Gastos puedes visualizar el acumulado mensual de egresos de la empresa.' }
+      ]
+    }
+  },
+  {
+    name: 'Traspasos entre Sucursales',
+    path: '/productos/traspasos',
+    category: 'Inventario',
+    description: 'Envíos y recepciones de mercancía entre almacenes y sucursales con bitácora de tránsito.',
+    keywords: ['traspasos', 'mover inventario', 'sucursales', 'enviar mercancia', 'recibir traspaso', 'stock en transito'],
+    manual: {
+      purpose: 'Controlar de forma segura el envío y recepción de inventario entre distintas sucursales físicas sin pérdidas.',
+      steps: [
+        'Ve al módulo de Traspasos.',
+        'Haz clic en "Nuevo Traspaso", selecciona la sucursal de origen, la sucursal de destino y la lista de artículos a enviar.',
+        'Guarda el traspaso; éste cambiará a estatus "En Tránsito" y las piezas se descontarán de la sucursal origen.',
+        'Al llegar a la sucursal destino, el encargado debe abrir el folio y presionar "Recibir e Incrementar Inventario".'
+      ],
+      faq: [
+        { q: '¿Qué pasa si hay piezas faltantes en la recepción?', a: 'Al recibir, el encargado puede registrar discrepancias (piezas dañadas o faltantes), las cuales se enviarán a un reporte de auditoría de tránsito.' },
+        { q: '¿Cómo imprimo el vale de salida?', a: 'Antes del despacho, haz clic en "Imprimir Vale" en la esquina de la cotización/traspaso para emitir el comprobante físico del chofer.' }
+      ]
+    }
+  },
+  {
+    name: 'Logística de Envíos y Rutas',
+    path: '/logistica',
+    category: 'Logística',
+    description: 'Planeación de rutas de entrega, asignación de pedidos a choferes y monitoreo de estatus de entrega.',
+    keywords: ['logistica', 'rutas', 'envios', 'choferes', 'reparto', 'direcciones de entrega', 'monitoreo de envios'],
+    manual: {
+      purpose: 'Organizar de forma eficiente las entregas a domicilio, reduciendo costos de traslado y tiempos de respuesta al cliente.',
+      steps: [
+        'Entra al módulo de Logística en el menú lateral.',
+        'Selecciona las ventas con entrega a domicilio pendientes de programar.',
+        'Agrupa las entregas geográficamente y asígnalas a una "Ruta de Reparto" con un chofer asignado.',
+        'Imprime la hoja de ruta para el chofer. Éste puede actualizar los estatus a "Entregado" o "No localizado" en tiempo real.'
+      ],
+      faq: [
+        { q: '¿Cómo calcula el sistema el orden de paradas?', a: 'La plataforma integra el servicio de Google Maps para sugerir la secuencia óptima de entrega con base en el menor tráfico y distancia.' },
+        { q: '¿El cliente recibe alguna alerta?', a: 'Sí, si está configurado en las preferencias de notificaciones, el cliente recibirá un mensaje de WhatsApp cuando su paquete vaya en camino.' }
+      ]
+    }
+  },
+  {
+    name: 'Recursos Humanos y Asistencias',
+    path: '/rh',
+    category: 'RH',
+    description: 'Reloj checador biométrico/GPS, incidencias de personal, vacaciones y cálculo de prenóminas.',
+    keywords: ['rh', 'asistencias', 'reloj checador', 'gps checador', 'retardos', 'nominas', 'incidencias', 'vacaciones'],
+    manual: {
+      purpose: 'Monitorear la puntualidad, turnos laborales, incidencias de asistencias y prenóminas de todo el personal.',
+      steps: [
+        'Para registrar entrada, el empleado debe entrar a "Reloj Checador" en Mi Portal, ingresar su clave y confirmar ubicación GPS.',
+        'El sistema validará si está dentro del radio permitido de la sucursal y registrará su hora exacta de entrada.',
+        'Los administradores pueden revisar incidencias (retardos, faltas justificadas) en el menú de RH.',
+        'Genera el cierre de quincena para exportar la prenómina consolidada.'
+      ],
+      faq: [
+        { q: '¿Qué pasa si falla el GPS de un empleado?', a: 'El empleado puede solicitar un ajuste de asistencia manual al administrador, el cual quedará registrado en la bitácora de RH.' },
+        { q: '¿Cómo configuro el radio permitido de la sucursal?', a: 'Ve a Preferencias > Sucursales y edita el campo "Radio de geocerca en metros" (por defecto son 50m).' }
+      ]
+    }
+  },
+  {
+    name: 'Panadería y Producción',
+    path: '/panaderia',
+    category: 'Producción',
+    description: 'Gestión de recetas de producción, mermas de insumos, costos de ingredientes y órdenes de fabricación.',
+    keywords: ['panaderia', 'recetas', 'produccion de pan', 'insumos', 'harina', 'mermas de produccion', 'fabricacion'],
+    manual: {
+      purpose: 'Controlar los ingredientes y costos de las recetas y emitir órdenes de producción automáticas que descuentan materia prima.',
+      steps: [
+        'Accede a Panadería en el menú lateral.',
+        'Crea recetas de tus productos terminados (ej. Pan dulce) detallando el peso exacto de insumos necesarios (Harina, Azúcar, etc.).',
+        'Genera una "Orden de Producción" por la cantidad de piezas deseadas.',
+        'Al confirmar, el sistema descontará la materia prima en base a la receta e incrementará la existencia del producto terminado.'
+      ],
+      faq: [
+        { q: '¿Cómo registro la merma de ingredientes?', a: 'En el módulo de producción, selecciona "Ajuste de materia prima" y registra los gramos perdidos para mantener la exactitud del inventario.' },
+        { q: '¿El sistema calcula el costo unitario de fabricación?', a: 'Sí, sumando los costos de compra actualizados de cada insumo utilizado en la receta.' }
+      ]
+    }
+  },
+  {
+    name: 'E-Commerce / Tienda Online',
+    path: '/catalogo',
+    category: 'Catálogo',
+    description: 'Administración de tu portal web de e-commerce b2c para ventas directas en línea y carrito web.',
+    keywords: ['ecommerce', 'tienda online', 'carrito de compras', 'ventas web', 'catalogo digital b2c', 'pedidos en linea'],
+    manual: {
+      purpose: 'Habilitar un canal de ventas digital 24/7 para que tus clientes consulten productos y realicen pedidos directamente por internet.',
+      steps: [
+        'Activa la Tienda Online en Preferencias > Catálogo B2C.',
+        'Configura los productos que deseas que sean visibles en el portal web marcando la casilla "Visible en Tienda Online".',
+        'Los clientes ingresan a la URL de tu sucursal, añaden artículos al carrito y finalizan el pedido.',
+        'El pedido llegará instantáneamente a tu panel de ventas pendientes en el POS como un pedido web a procesar.'
+      ],
+      faq: [
+        { q: '¿Sincroniza stock en tiempo real?', a: 'Sí. El stock de la tienda online está directamente enlazado al inventario físico de tu sucursal, previniendo sobreventas de productos agotados.' },
+        { q: '¿Cómo cobro las ventas en línea?', a: 'Puedes configurar pagos contra entrega en efectivo/tarjeta o integrar pasarelas de pago digitales desde preferencias.' }
+      ]
+    }
+  },
+  {
+    name: 'Finanzas y Contabilidad',
+    path: '/finanzas',
+    category: 'Finanzas',
+    description: 'Estado de pérdidas y ganancias, flujo de efectivo contable, egresos corporativos y balances.',
+    keywords: ['finanzas', 'ganancias', 'perdidas y ganancias', 'flujo de efectivo', 'contabilidad', 'gastos corporativos', 'utilidad'],
+    manual: {
+      purpose: 'Monitorear la salud financiera de tu empresa, analizando los márgenes de utilidad reales descontando costos y gastos operativos.',
+      steps: [
+        'Ve a Finanzas en el menú lateral.',
+        'Visualiza el tablero con los ingresos por ventas vs. los egresos por compras de inventario y gastos de sucursal.',
+        'Ajusta los filtros de periodo de tiempo (semanal, mensual, anual) o filtra por sucursal específica.',
+        'Exporta el reporte detallado para tu contador en formato Excel o PDF.'
+      ],
+      faq: [
+        { q: '¿Se restan los sueldos en la utilidad?', a: 'Sí, las nóminas validadas a través del módulo de Recursos Humanos se descuentan automáticamente del balance de gastos de la empresa.' },
+        { q: '¿La facturación fiscal afecta el balance contable?', a: 'El sistema registra contablemente tanto las ventas con remisión/ticket como las facturadas ante el SAT para darte el flujo de efectivo real.' }
+      ]
+    }
+  },
+  {
+    name: 'Preferencias Generales (Sucursal)',
+    path: '/preferencias/general',
+    category: 'Preferencias',
+    description: 'Configura las reglas fiscales básicas de tu sucursal: tasa de IVA base, logotipo comercial y auto-cierre.',
+    keywords: ['preferencias generales', 'iva sucursal', 'cambiar logo', 'auto cierre de caja', 'moneda nativa', 'encabezado ticket'],
+    manual: {
+      purpose: 'Configurar los datos fiscales transversales, identidad corporativa y comportamiento básico de la sucursal.',
+      steps: [
+        'Entra a Preferencias > General.',
+        'Carga el archivo del Logotipo oficial de tu empresa en formato JPG/PNG.',
+        'Define el pie del ticket (ej. políticas de devolución o redes sociales) y el encabezado fiscal (RFC, dirección).',
+        'Establece el IVA transversal (por defecto 16.0%) y guarda los cambios.'
+      ],
+      faq: [
+        { q: '¿Dónde se refleja el logotipo cargado?', a: 'Se inyecta automáticamente en tus PDF de cotizaciones, facturas SAT y catálogos en línea.' },
+        { q: '¿Qué hace la opción Auto Cierre de Caja?', a: 'Reinicia el turno de caja automáticamente a las 11:59 PM todos los días para cortar transacciones de forma limpia y transparente.' }
+      ]
+    }
+  },
+  {
+    name: 'Preferencias de Impresoras y Tickets',
     path: '/preferencias/impresoras',
     category: 'Preferencias',
-    description: 'Ajustes centralizados de hardware: QZ Tray silencioso, anchos de papel (80mm/58mm), impresión automática y certificados.',
-    keywords: ['impresora', 'qz tray', 'certificado qz', 'impresion automatica', 'ancho ticket', 'papel termico', 'ip impresora'],
+    description: 'Consolida la gestión de hardware de tickets, QZ Tray, firmas criptográficas seguras y anchos de papel.',
+    keywords: ['impresora preferencias', 'qz tray', 'firmas qz', 'ticket de prueba', ' receiptWidth', 'ip impresora', 'ip de red'],
     manual: {
-      purpose: 'Unificar toda la configuración de impresión de tickets y etiquetas en un solo lugar seguro e intuitivo.',
+      purpose: 'Gestionar todo el hardware de impresión física de tu sucursal en una sola pantalla segura.',
       steps: [
-        'Navega a Preferencias > Impresoras y Tickets.',
-        'Habilita o deshabilita la opción de "Impresión Automática al Cobrar" y define el ancho de papel (80mm/58mm).',
-        'Para impresión directa sin advertencias de seguridad, descarga QZ Tray localmente y actívalo.',
-        'Pega tu Certificado Público Digital y Clave Privada PEM en el formulario de la parte inferior.',
-        'Presiona "Guardar Credenciales" y realiza una "Impresión de Prueba" para verificar la comunicación directa.'
+        'Navega a Preferencias > Impresoras.',
+        'Define el ancho del papel de tus tickets (80mm o 58mm) y activa o desactiva "Impresión Automática al Cobrar".',
+        'Si utilizas QZ Tray, pega tus claves digitales (Certificado y Clave Privada PEM) en el panel criptográfico inferior.',
+        'Presiona "Guardar Credenciales" para configurar la firma de sockets en el servidor.',
+        'Haz clic en "Imprimir Ticket de Prueba" para confirmar que la comunicación local sea correcta.'
       ],
       faq: [
-        { q: '¿Por qué sigue saliendo el popup de QZ Tray?', a: 'Asegúrate de pegar correctamente las credenciales (incluyendo las líneas BEGIN y END del certificado y clave) y de guardar los cambios para habilitar la firma segura.' },
-        { q: '¿Cómo imprimo a una impresora de red con IP?', a: 'Escribe la dirección IP física de tu impresora de tickets en el campo "Dirección IP de Impresora en Red" y el sistema le mandará las solicitudes vía socket raw.' }
+        { q: '¿Qué pasa si mi impresora es USB?', a: 'Selecciona el controlador de tu impresora USB en el listado de impresoras detectadas por QZ Tray tras iniciar el servicio local.' },
+        { q: '¿La IP de red de la impresora es obligatoria?', a: 'No, únicamente se completa si tienes una impresora térmica conectada directo al módem de red por cable ethernet.' }
       ]
     }
   },
   {
-    name: 'Consecutivos y Folios',
-    path: '/preferencias/folios',
+    name: 'Preferencias de Sucursales y GPS',
+    path: '/preferencias/sucursales',
     category: 'Preferencias',
-    description: 'Personaliza los prefijos iniciales por sucursal y folia todos tus documentos a partir de la secuencia 1,001.',
-    keywords: ['folios', 'consecutivos', 'prefijo', 'serie fiscal', 'consecutivo 1001', 'configurar folios', 'inicializar folios'],
+    description: 'Gestión de sucursales físicas de tu tenant, dirección, geolocalización GPS y radio de geocerca.',
+    keywords: ['editar sucursal', 'geocerca', 'coordenadas gps', 'alta de sucursal', 'almacen fisico', 'sucursales'],
     manual: {
-      purpose: 'Estructurar una nomenclatura organizada para las ventas, compras, cotizaciones y traspasos de cada sucursal de tu organización.',
+      purpose: 'Dar de alta nuevas ubicaciones físicas y configurar coordenadas geográficas para control de asistencia de personal.',
       steps: [
-        'Ve a Preferencias > Consecutivos y Folios.',
-        'Define el prefijo que identificará tu tienda (ej. "MTZ" para Matriz, "SUC" para Sucursal).',
-        'Ingresa el consecutivo inicial sugerido (ej. "1001").',
-        'Presiona el botón "Guardar". Puedes aplicar una inicialización masiva retroactiva a toda tu base histórica si lo necesitas.'
+        'Ve a Preferencias > Sucursales.',
+        'Haz clic en "Aperturar Nueva Sucursal" e ingresa el nombre y ubicación física.',
+        'Para el checador, ingresa la Latitud, Longitud y el Radio de tolerancia en metros.',
+        'Presiona "Guardar". Los cajeros y choferes ya podrán iniciar sesión asignados a esta nueva sucursal.'
       ],
       faq: [
-        { q: '¿Los folios son globales o por sucursal?', a: 'Cada sucursal gestiona sus folios y prefijos de forma independiente para evitar duplicados en sistemas multi-tienda.' },
-        { q: '¿Puedo reiniciar la secuencia en cero?', a: 'Sí, pero se recomienda mantener una secuencia consecutiva lineal para evitar auditorías confusas.' }
+        { q: '¿Qué es el radio de geocerca?', a: 'Es la distancia máxima permitida para que el checador de RH acepte el registro de entrada del empleado (ej. 50 metros a la redonda de la sucursal).' },
+        { q: '¿Cómo archivo una sucursal inactiva?', a: 'Haz clic en "Archivar" en el listado. Esto mantendrá los históricos financieros a salvo pero la ocultará del menú diario.' }
       ]
     }
   },
   {
-    name: 'Usuarios y Permisos',
+    name: 'Preferencias de Usuarios y Roles',
     path: '/preferencias/usuarios',
     category: 'Preferencias',
-    description: 'Gestión de personal de la sucursal, contraseñas, roles jerárquicos y permisos de acceso técnico.',
-    keywords: ['usuarios', 'empleados', 'permisos', 'roles', 'crear usuario', 'cajeros', 'contraseña', 'acceso sucursales'],
+    description: 'Configura las cuentas de tus cajeros y administradores, asigna permisos de sucursales y accesos técnicos.',
+    keywords: ['permisos de usuarios', 'crear cajero', 'privilegios', 'rol administrador', 'clave acceso', 'usuarios sistema'],
     manual: {
-      purpose: 'Controlar de forma segura quién tiene acceso a los diferentes módulos, reportes y privilegios del sistema comercial.',
+      purpose: 'Definir el personal autorizado, contraseñas y permisos exactos a los que cada empleado puede acceder en el sistema.',
       steps: [
-        'Ve a Preferencias > Usuarios y Roles.',
-        'Haz clic en "Crear Nuevo Usuario" y rellena los datos de nombre, email y contraseña inicial.',
-        'Define su Rol (ADMIN para permisos completos, USER para limitados).',
-        'Activa los permisos específicos del listado (ej. gestionar inventario, ver reportes, autorizar descuentos).',
-        'Asigna la sucursal o sucursales autorizadas para su inicio de sesión.'
+        'Ve a Preferencias > Usuarios.',
+        'Registra una cuenta de usuario nueva con su dirección de correo y contraseña.',
+        'Establece el Rol principal (ADMIN para control total, USER para operativo).',
+        'Marca los privilegios específicos que correspondan (ej. permitir ver reportes, autorizar descuentos de POS, etc.).',
+        'Asigna las sucursales a las que se les permite iniciar sesión.'
       ],
       faq: [
-        { q: '¿Cómo restrinjo la visibilidad de costos de compra?', a: 'Desmarca el permiso "Ver costos de compra de productos" al configurar el rol del empleado en su perfil de usuario.' },
-        { q: '¿Qué es la Visibilidad Global?', a: 'Es un permiso especial para administradores corporativos que les permite alternar entre todas las sucursales con un solo clic.' }
+        { q: '¿Puedo bloquear a un empleado temporalmente?', a: 'Sí, edita el perfil del usuario y desmarca la casilla "Activo" para suspender su inicio de sesión sin borrar su histórico.' },
+        { q: '¿Qué es la clave biométrica?', a: 'Es la clave única utilizada para autorizar descuentos críticos en caja en lugar de requerir que el administrador digite su usuario.' }
       ]
     }
   },
   {
-    name: 'Diseñador de Formatos de Impresión',
+    name: 'Preferencias de Diseñador de Formatos',
     path: '/preferencias/formatos',
     category: 'Preferencias',
-    description: 'Personaliza visualmente las plantillas y diseño de tus tickets, facturas fiscales y cotizaciones en PDF.',
-    keywords: ['diseño ticket', 'formatos', 'plantilla', 'factura pdf', 'personalizar ticket', 'colores', 'diseñador de formatos'],
+    description: 'Personaliza los tamaños de tipografía, columnas y elementos visibles en tickets, facturas y cotizaciones.',
+    keywords: ['diseño de ticket', 'formatos de ticket', 'personalizar factura', 'visualizar ticket', 'columnas de ticket'],
     manual: {
-      purpose: 'Adaptar el diseño de tus documentos comerciales a la identidad de marca de tu empresa de manera responsiva y flexible.',
+      purpose: 'Configurar la estética visual de todos tus entregables impresos y digitales para reflejar una identidad de marca unificada.',
       steps: [
         'Ve a Preferencias > Diseñador de Formatos.',
-        'Selecciona la pestaña del documento que deseas diseñar: Ticket, Factura o Cotización.',
-        'Ajusta parámetros como tamaño de fuente, márgenes, visualización de logotipo, colores de cabecera y columnas visibles.',
-        'Usa el visualizador en vivo a la derecha para ver cómo lucirá el ticket físico antes de guardar.'
+        'Selecciona el formato a editar (ej. Ticket de venta de 80mm).',
+        'Habilita o deshabilita los campos opcionales como: Logotipo, Desglose de IVA, Teléfono del cajero, Puntos acumulados, etc.',
+        'Revisa el resultado interactivo de la derecha y presiona "Guardar Plantilla".'
       ],
       faq: [
-        { q: '¿Puedo agregar mi logotipo al ticket de 80mm?', a: 'Sí, asegúrate de subir el logotipo en las Preferencias Generales y activar la casilla "Mostrar logotipo en el encabezado del ticket" en este diseñador.' },
-        { q: '¿Cómo incluyo mis términos de garantía?', a: 'Escribe el texto en el campo "Pie del Ticket" de las configuraciones de sucursal para que aparezca automáticamente en la parte inferior.' }
+        { q: '¿Cómo cambio los colores del PDF de facturación?', a: 'En la pestaña "Factura PDF", selecciona tu paleta de colores sugerida o ingresa el código de color hexadecimal oficial de tu marca.' },
+        { q: '¿Puedo quitar el código QR del ticket?', a: 'Sí, desmarca la casilla "Mostrar código QR de folio al pie del ticket" en este panel.' }
+      ]
+    }
+  },
+  {
+    name: 'Preferencias de Folios y Consecutivos',
+    path: '/preferencias/folios',
+    category: 'Preferencias',
+    description: 'Configura el folio inicial 1,001 y los prefijos de sucursal para tus ventas, cotizaciones y compras.',
+    keywords: ['folios configuracion', 'prefijos sucursal', 'folios iniciales', 'consecutivos folios', 'consecutivo 1001'],
+    manual: {
+      purpose: 'Personalizar y ordenar la numeración cronológica de las transacciones de cada sucursal de forma independiente.',
+      steps: [
+        'Ve a Preferencias > Consecutivos y Folios.',
+        'Ingresa el prefijo de tu sucursal (ej. "MTZ-" para Matriz).',
+        'Define el folio inicial que utilizará el Punto de Venta (sugerido: "1001").',
+        'Presiona "Guardar" para activar la secuencia en todas tus nuevas transacciones.'
+      ],
+      faq: [
+        { q: '¿El sistema permite folio duplicado?', a: 'No, la base de datos previene y bloquea folios idénticos de la misma secuencia de sucursal mediante llaves únicas.' },
+        { q: '¿Qué es el botón de inicialización masiva?', a: 'Es una herramienta técnica que renombra retrospectivamente todas tus ventas históricas para emparejarlas con el prefijo y secuencia elegida a partir de la pieza 1,001.' }
+      ]
+    }
+  },
+  {
+    name: 'Preferencias de Comisiones de Vendedores',
+    path: '/preferencias/vendedores',
+    category: 'Preferencias',
+    description: 'Establece las tasas de comisión por vendedor, metas del mes y esquemas de incentivos sobre cobros.',
+    keywords: ['comisiones', 'vendedores comision', 'porcentaje comision', 'incentivos ventas', 'metas de venta'],
+    manual: {
+      purpose: 'Automatizar el cálculo y la asignación de comisiones a los vendedores en base a sus ventas efectivas de caja.',
+      steps: [
+        'Ve a Preferencias > Vendedores y Comisiones.',
+        'Define el esquema base (ej. Comisión fija del 2% sobre el total neto de la venta o comisiones escalonadas).',
+        'Asigna las metas de venta mensuales para cada vendedor.',
+        'El sistema calculará las comisiones en tiempo real en base a los cobros ingresados y reflejará los resultados en nómina.'
+      ],
+      faq: [
+        { q: '¿La comisión se calcula sobre ventas a crédito?', a: 'Por defecto, el sistema calcula la comisión únicamente cuando el crédito es cobrado efectivamente por el cliente.' },
+        { q: '¿Dónde consulto el reporte de comisiones?', a: 'En el módulo de Finanzas o en Reportes de Empleados en el menú lateral.' }
+      ]
+    }
+  },
+  {
+    name: 'Preferencias de Métodos de Pago',
+    path: '/preferencias/metodos',
+    category: 'Preferencias',
+    description: 'Activa o desactiva métodos de pago en caja: Efectivo, Tarjeta, Crédito, Transferencia y Vales.',
+    keywords: ['metodos de pago', 'pagos en caja', 'efectivo tarjeta', 'vales de despensa', 'configurar pagos'],
+    manual: {
+      purpose: 'Configurar las vías autorizadas que los cajeros pueden seleccionar en la pantalla final de cobro.',
+      steps: [
+        'Ve a Preferencias > Métodos de Pago.',
+        'Activa los interruptores de los métodos de pago aceptados en tus sucursales (ej. Vales de despensa, Transferencia SPEI).',
+        'Define si se aplica alguna comisión bancaria al pagar con tarjeta de crédito/débito.',
+        'Guarda los cambios. Las opciones se actualizarán inmediatamente en la pantalla de cobro del POS.'
+      ],
+      faq: [
+        { q: '¿Cómo configuro cobros a crédito?', a: 'Activa el interruptor "Venta a Crédito". Únicamente se podrá seleccionar en el POS si el cliente tiene una línea de crédito autorizada y activa.' },
+        { q: '¿Se desglosan las comisiones de tarjeta?', a: 'Sí, si configuras un factor de comisión (ej. 3.0% en tarjeta), el POS desglosará el costo en el desglose final del ticket.' }
+      ]
+    }
+  },
+  {
+    name: 'Preferencias de Cuentas de Bancos',
+    path: '/preferencias/bancos',
+    category: 'Preferencias',
+    description: 'Control de terminales bancarias asignadas a las cajas y registro de cuentas de depósito comercial.',
+    keywords: ['cuentas bancarias', 'terminales', 'bancos preferencias', 'cuentas de deposito', 'banco terminal'],
+    manual: {
+      purpose: 'Llevar el registro exacto de las cuentas y terminales donde se depositan los ingresos electrónicos de la sucursal.',
+      steps: [
+        'Ve a Preferencias > Cuentas y Bancos.',
+        'Haz clic en "Agregar Cuenta Bancaria" y escribe el banco, número de cuenta y CLABE.',
+        'Asocia la cuenta bancaria a la Terminal de Tarjetas del punto de venta.',
+        'El sistema conciliará de forma automatizada los cortes de tarjeta del POS con tus saldos en banco.'
+      ],
+      faq: [
+        { q: '¿Puedo asociar una terminal a varias cajas?', a: 'Sí, puedes asignar una terminal bancaria física a una o más cajas de la sucursal en este módulo.' },
+        { q: '¿Dónde se reflejan las comisiones bancarias?', a: 'En el reporte mensual de egresos financieros en la sección de contabilidad.' }
+      ]
+    }
+  },
+  {
+    name: 'Preferencias de Notificaciones WhatsApp',
+    path: '/preferencias/notificaciones',
+    category: 'Preferencias',
+    description: 'Mensajes automáticos enviados por WhatsApp: alertas de envío, recordatorios de cobro y avisos de puntos.',
+    keywords: ['notificaciones automaticas', 'whatsapp alertas', 'avisos clientes', 'plantillas whatsapp', 'mensajes pos'],
+    manual: {
+      purpose: 'Automatizar la comunicación directa con tus clientes a través de WhatsApp para mejorar la experiencia de compra y cobranza.',
+      steps: [
+        'Ve a Preferencias > Notificaciones.',
+        'Activa los disparadores automáticos sugeridos (ej. "Enviar ticket digital al cobrar", "Aviso de ruta de reparto en camino").',
+        'Personaliza la plantilla de texto de cada mensaje usando variables dinámicas como {cliente}, {folio} y {monto}.',
+        'Presiona "Guardar". El sistema enviará los mensajes por detrás a través del CRM sincronizado.'
+      ],
+      faq: [
+        { q: '¿Este servicio tiene costo extra?', a: 'No, el envío automatizado se procesa a través de tu sesión de WhatsApp Web vinculada en el sistema sin costo adicional.' },
+        { q: '¿Cómo sé si los mensajes se enviaron con éxito?', a: 'Puedes auditar la bitácora de envíos en el panel de control de WhatsApp CRM en cualquier momento.' }
+      ]
+    }
+  },
+  {
+    name: 'Preferencias de Configuración de Etiquetas',
+    path: '/preferencias/etiquetas',
+    category: 'Preferencias',
+    description: 'Ajustes visuales para la impresión de etiquetas de códigos de barras (ej. Brother QL-800) y dimensiones.',
+    keywords: ['etiquetas configuracion', 'brother ql 800', 'ancho etiqueta', 'codigo barra diseño', 'imprimir stickers'],
+    manual: {
+      purpose: 'Definir el tamaño de papel de las etiquetas, márgenes y campos a imprimir en tus códigos de barras.',
+      steps: [
+        'Ve a Preferencias > Etiquetas.',
+        'Selecciona el modelo de tu impresora de etiquetas y define las dimensiones del papel (sugerido: 62mm x 20mm).',
+        'Elige los campos que se incluirán en el sticker (ej. Código de barra, Precio, Nombre del producto, Categoría).',
+        'Presiona "Guardar". Ya podrás imprimir etiquetas directamente desde el listado de productos o recepciones de compras.'
+      ],
+      faq: [
+        { q: '¿Se requiere software Brother instalado?', a: 'Sí, asegúrate de instalar el controlador nativo de la Brother QL-800 en Windows/Mac y tener la impresora conectada antes de mandar a imprimir.' },
+        { q: '¿Cómo evito que el código de barras salga cortado?', a: 'En las dimensiones, verifica que el ancho del papel configurado coincida exactamente con el rollo de etiquetas cargado en tu hardware.' }
+      ]
+    }
+  },
+  {
+    name: 'Preferencias del Motor de Lealtad (Puntos)',
+    path: '/preferencias/puntos',
+    category: 'Preferencias',
+    description: 'Reglas para premiar a tus clientes: factor de puntos por peso comprado, vigencias y reglas de monedero.',
+    keywords: ['lealtad', 'puntos configurar', 'fidelizacion', 'monedero electronico', 'reglas de puntos', 'peso por punto'],
+    manual: {
+      purpose: 'Fidelizar a tus clientes recurrentes premiándolos con un monedero electrónico que los incentiva a regresar a comprar.',
+      steps: [
+        'Navega a Preferencias > Puntos de Lealtad.',
+        'Establece la regla de acumulación (ej. 1 punto por cada $10.00 de compra en efectivo).',
+        'Define el valor de canje del punto (ej. 1 punto = $1.00 de saldo a favor en caja).',
+        'Establece si los puntos tienen vigencia anual o si se cancelan tras periodos de inactividad.',
+        'Guarda los cambios para que el POS los inyecte automáticamente al asociar un cliente.'
+      ],
+      faq: [
+        { q: '¿Se acumulan puntos al pagar a crédito?', a: 'Por defecto, la acumulación se restringe a pagos de contado, pero puedes activar la opción "Acumular puntos en abonos a crédito" si lo consideras adecuado.' },
+        { q: '¿Cómo canjea el cliente sus puntos en caja?', a: 'En el POS, al cobrar a un cliente con puntos, selecciona "Pagar con Monedero" e ingresa el monto equivalente en base a su balance.' }
+      ]
+    }
+  },
+  {
+    name: 'Preferencias de Fabricación y Recetas',
+    path: '/preferencias/fabricacion',
+    category: 'Preferencias',
+    description: 'Configura las reglas para fabricar productos: mermas de insumos toleradas y costos indirectos.',
+    keywords: ['fabricacion recetas', 'insumos de produccion', 'costo de fabricacion', 'reglas de recetas', 'mermas toleradas'],
+    manual: {
+      purpose: 'Establecer los factores matemáticos e insumos predeterminados para la fabricación automatizada de productos compuestos.',
+      steps: [
+        'Ve a Preferencias > Fabricación.',
+        'Define el factor de costo indirecto de manufactura (ej. porcentaje adicional por luz, gas o mano de obra).',
+        'Establece las mermas promedio toleradas de ingredientes básicos (Harina, Levadura).',
+        'Presiona "Guardar". Los cálculos se aplicarán al emitir órdenes de producción en el módulo de panadería.'
+      ],
+      faq: [
+        { q: '¿Qué es el costo indirecto?', a: 'Es un porcentaje sugerido para amortizar los costos de mano de obra y servicios de la planta en el costo unitario de tu pan o producto final.' },
+        { q: '¿El sistema bloquea producciones si no hay insumos?', a: 'Sí, a menos que actives la casilla "Permitir inventario de insumos en negativo" en este panel de configuración.' }
       ]
     }
   }
@@ -247,23 +736,23 @@ export default function GlobalSearch() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Search logic
+  // Diacritic-insensitive Search Logic
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
       return;
     }
     
-    const searchVal = query.toLowerCase().trim();
+    const searchVal = normalizeString(query);
     const filtered = SEARCH_DIRECTORY.filter(item => {
-      const matchName = item.name.toLowerCase().includes(searchVal);
-      const matchDesc = item.description.toLowerCase().includes(searchVal);
-      const matchCat = item.category.toLowerCase().includes(searchVal);
-      const matchKeywords = item.keywords.some(kw => kw.toLowerCase().includes(searchVal));
+      const matchName = normalizeString(item.name).includes(searchVal);
+      const matchDesc = normalizeString(item.description).includes(searchVal);
+      const matchCat = normalizeString(item.category).includes(searchVal);
+      const matchKeywords = item.keywords.some(kw => normalizeString(kw).includes(searchVal));
       return matchName || matchDesc || matchCat || matchKeywords;
     });
     
-    setResults(filtered.slice(0, 6)); // Cap at 6 results for elegance
+    setResults(filtered.slice(0, 8)); // Expanded view list cap
   }, [query]);
 
   // Dynamic Print PDF Function
@@ -488,8 +977,8 @@ export default function GlobalSearch() {
               }}
             >
               <div style={{ flex: 1, minWidth: 0, paddingRight: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#4f46e5', backgroundColor: '#eef2ff', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: '700', color: '#4f46e5', backgroundColor: '#eef2ff', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
                     {item.category}
                   </span>
                   <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -521,7 +1010,8 @@ export default function GlobalSearch() {
                   justifyContent: 'center',
                   color: '#4f46e5',
                   transition: 'all 0.2s',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                  flexShrink: 0
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = '#4f46e5';
