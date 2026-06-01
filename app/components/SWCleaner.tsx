@@ -5,43 +5,40 @@ import { useEffect } from 'react';
 export default function SWCleaner() {
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        if (registrations && registrations.length > 0) {
-          console.log('[SWCleaner] Stale Service Workers found. Unregistering and clearing caches...');
+      // Register our custom clean no-op service worker
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('[PWA] Service Worker registered with scope:', registration.scope);
           
-          // Unregister all service workers
-          const unregisterPromises = registrations.map((registration) => {
-            console.log('[SWCleaner] Unregistering Service Worker:', registration.scope);
-            return registration.unregister();
+          // Force immediate update check on the Service Worker & PWA Manifest
+          // This forces Chrome/Edge to check for icon changes and update the desktop shortcut automatically.
+          registration.update().then(() => {
+            console.log('[PWA] Forced immediate manifest and icon update check.');
+          }).catch((err) => {
+            console.warn('[PWA] Failed to trigger update check:', err);
           });
-          
-          Promise.all(unregisterPromises).then(() => {
-            console.log('[SWCleaner] Service Workers unregistered. Clearing Cache Storage...');
-            
-            // Delete all cache storage databases
-            if (typeof caches !== 'undefined') {
-              caches.keys().then((keys) => {
-                const deletePromises = keys.map((key) => {
-                  console.log('[SWCleaner] Deleting cache database:', key);
-                  return caches.delete(key);
-                });
-                
-                Promise.all(deletePromises).finally(() => {
-                  console.log('[SWCleaner] Caches cleared. Reloading page...');
-                  window.location.reload();
-                });
+        })
+        .catch((err) => {
+          console.error('[PWA] Service Worker registration failed:', err);
+        });
+
+      // Periodically clean up legacy/stale caches from older Workbox setups once, without infinite reload loop
+      if (typeof caches !== 'undefined') {
+        const hasCleanedKey = 'caanma_pwa_cache_cleaned_v6';
+        if (!localStorage.getItem(hasCleanedKey)) {
+          caches.keys().then((keys) => {
+            if (keys.length > 0) {
+              console.log('[PWA] Legacy cache stores found. Performing one-time cleanup...');
+              Promise.all(keys.map(key => caches.delete(key))).finally(() => {
+                localStorage.setItem(hasCleanedKey, 'true');
+                console.log('[PWA] Legacy cache cleanup completed.');
               });
             } else {
-              console.log('[SWCleaner] Cache Storage not supported. Reloading page...');
-              window.location.reload();
+              localStorage.setItem(hasCleanedKey, 'true');
             }
-          }).catch((err) => {
-            console.error('[SWCleaner] Error during unregistration:', err);
           });
-        } else {
-          console.log('[SWCleaner] No active Service Workers registered. Browser is clean.');
         }
-      });
+      }
     }
   }, []);
 
