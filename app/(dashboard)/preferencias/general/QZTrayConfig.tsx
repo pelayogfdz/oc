@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Printer, RefreshCw, CheckCircle2, AlertCircle, Laptop, Wifi, ShieldCheck, ChevronRight } from 'lucide-react';
+import { Printer, RefreshCw, CheckCircle2, AlertCircle, Laptop, Wifi, ShieldCheck, ChevronRight, Key, Lock, FileText, Check, ShieldAlert } from 'lucide-react';
 import qz from 'qz-tray';
+import { saveQZSettings } from '@/app/actions/settings';
 
-export default function QZTrayConfig() {
+export default function QZTrayConfig({ qzConfig = {} }: { qzConfig?: { certificate?: string; hasPrivateKey?: boolean } }) {
   const [printMode, setPrintMode] = useState<'browser' | 'qz'>('browser'); // 'browser' or 'qz'
   const [printers, setPrinters] = useState<string[]>([]);
   const [selectedPrinter, setSelectedPrinter] = useState<string>('');
@@ -13,6 +14,15 @@ export default function QZTrayConfig() {
   const [error, setError] = useState('');
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const [hoveredBtn, setHoveredBtn] = useState<string | null>(null);
+
+  // States for QZ Credentials
+  const [cert, setCert] = useState(qzConfig.certificate || '');
+  const [pkey, setPkey] = useState('');
+  const [hasPkey, setHasPkey] = useState(qzConfig.hasPrivateKey || false);
+  const [isSavingCreds, setIsSavingCreds] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+  const [saveError, setSaveError] = useState('');
+  const [hoveredCredsBtn, setHoveredCredsBtn] = useState(false);
 
   useEffect(() => {
     // Load saved printer on mount
@@ -50,6 +60,29 @@ export default function QZTrayConfig() {
     setError('');
     try {
       if (!qz.websocket.isActive()) {
+        // Setup QZ Security if certificate is present
+        if (cert) {
+          qz.security.setCertificatePromise((resolve) => resolve(cert));
+          qz.security.setSignaturePromise((toSign) => {
+            return (resolve, reject) => {
+              fetch('/api/qz/sign', {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: toSign
+              })
+              .then(res => {
+                if (!res.ok) throw new Error('Error al firmar petición');
+                return res.text();
+              })
+              .then(resolve)
+              .catch(reject);
+            };
+          });
+        } else {
+          // Reset security to anonymous connections
+          qz.security.setCertificatePromise((resolve) => resolve(undefined));
+          qz.security.setSignaturePromise((toSign) => (resolve) => resolve(''));
+        }
         // Use 0 retries to fail instantly if QZ Tray is not running, preventing UI freeze!
         await qz.websocket.connect({ retries: 0, delay: 1 });
       }
@@ -62,6 +95,35 @@ export default function QZTrayConfig() {
       setError('No se pudo conectar a QZ Tray. Asegúrate de que el programa esté instalado y ejecutándose en este equipo.');
     } finally {
       setIsConnecting(false);
+    }
+  };
+
+  const handleSaveCredentials = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingCreds(true);
+    setSaveMessage('');
+    setSaveError('');
+    try {
+      const res = await saveQZSettings(cert, pkey);
+      if (res.success) {
+        setSaveMessage('Credenciales de impresión QZ guardadas exitosamente.');
+        if (pkey) {
+          setHasPkey(true);
+          setPkey(''); // Clear key state for safety
+        }
+        // Restart websocket connection
+        if (qz.websocket.isActive()) {
+          await qz.websocket.disconnect();
+          setIsConnected(false);
+        }
+        alert('Credenciales de firma guardadas con éxito. Se reiniciará la conexión segura.');
+        await connectQZ();
+      }
+    } catch (err: any) {
+      console.error(err);
+      setSaveError('Error al guardar credenciales: ' + err.message);
+    } finally {
+      setIsSavingCreds(false);
     }
   };
 
@@ -557,6 +619,146 @@ export default function QZTrayConfig() {
                 )}
               </div>
             )}
+
+            {/* Cryptographic Credentials Form */}
+            <div style={{
+              marginTop: '2rem',
+              padding: '1.75rem',
+              borderRadius: '12px',
+              backgroundColor: '#f8fafc',
+              border: '1px dashed #cbd5e1',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.25rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Key size={20} color="#4f46e5" />
+                <h3 style={{ fontSize: '1.1rem', fontWeight: '750', color: '#1e293b', margin: 0 }}>
+                  🔒 Credenciales Seguras de Impresión (Recomendado)
+                </h3>
+              </div>
+              <p style={{ fontSize: '0.85rem', color: '#475569', margin: 0, lineHeight: '1.4' }}>
+                Configura tu certificado público de QZ Tray y tu clave privada para habilitar la firma de sockets en el servidor. Esto eliminará las ventanas de advertencia y permitirá la impresión directa de tickets sin clics molestos.
+              </p>
+              
+              <form onSubmit={handleSaveCredentials} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {/* Certificate Input */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <FileText size={14} /> Certificado Digital Público (Format PEM / digital-certificate.txt)
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={cert}
+                    onChange={(e) => setCert(e.target.value)}
+                    placeholder="-----BEGIN CERTIFICATE-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END CERTIFICATE-----"
+                    style={{
+                      padding: '0.75rem',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.8rem',
+                      fontFamily: 'monospace',
+                      width: '100%',
+                      outline: 'none',
+                      resize: 'vertical',
+                      backgroundColor: 'white'
+                    }}
+                  />
+                </div>
+
+                {/* Private Key Input */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <Lock size={14} /> Clave Privada PEM (private-key.pem)
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={pkey}
+                    onChange={(e) => setPkey(e.target.value)}
+                    placeholder={hasPkey ? "•••••••••••••••• (Clave guardada con éxito. Pega una nueva clave aquí para cambiarla)" : "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQ...\n-----END PRIVATE KEY-----"}
+                    style={{
+                      padding: '0.75rem',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.8rem',
+                      fontFamily: 'monospace',
+                      width: '100%',
+                      outline: 'none',
+                      resize: 'vertical',
+                      backgroundColor: 'white'
+                    }}
+                  />
+                  {hasPkey && (
+                    <div style={{
+                      fontSize: '0.75rem',
+                      color: '#16a34a',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      marginTop: '0.1rem'
+                    }}>
+                      <Check size={14} /> Hay una clave privada activa y guardada encriptada en la sucursal.
+                    </div>
+                  )}
+                </div>
+
+                {saveMessage && (
+                  <div style={{
+                    padding: '0.75rem',
+                    backgroundColor: 'hsl(142, 70%, 97%)',
+                    border: '1px solid hsl(142, 60%, 85%)',
+                    color: 'hsl(142, 76%, 20%)',
+                    borderRadius: '8px',
+                    fontSize: '0.85rem',
+                    fontWeight: '600'
+                  }}>
+                    {saveMessage}
+                  </div>
+                )}
+
+                {saveError && (
+                  <div style={{
+                    padding: '0.75rem',
+                    backgroundColor: 'hsl(0, 84%, 97%)',
+                    border: '1px solid hsl(0, 84%, 89%)',
+                    color: 'hsl(0, 84%, 20%)',
+                    borderRadius: '8px',
+                    fontSize: '0.85rem',
+                    fontWeight: '600'
+                  }}>
+                    {saveError}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isSavingCreds}
+                  onMouseEnter={() => setHoveredCredsBtn(true)}
+                  onMouseLeave={() => setHoveredCredsBtn(false)}
+                  style={{
+                    alignSelf: 'flex-start',
+                    padding: '0.75rem 1.5rem',
+                    backgroundColor: isSavingCreds ? '#cbd5e1' : '#4f46e5',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: 'white',
+                    fontWeight: '700',
+                    fontSize: '0.85rem',
+                    cursor: isSavingCreds ? 'wait' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.2s',
+                    boxShadow: hoveredCredsBtn && !isSavingCreds ? '0 4px 12px rgba(79, 70, 229, 0.2)' : 'none',
+                    transform: hoveredCredsBtn && !isSavingCreds ? 'translateY(-1px)' : 'none'
+                  }}
+                >
+                  <ShieldCheck size={16} />
+                  {isSavingCreds ? 'Guardando credenciales...' : 'Guardar Credenciales Seguras'}
+                </button>
+              </form>
+            </div>
           </div>
         )}
       </div>

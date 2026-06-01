@@ -36,6 +36,48 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
+  const [readStatus, setReadStatus] = useState<Record<string, number>>({});
+  const [filterTab, setFilterTab] = useState<'all' | 'read' | 'unread'>('all');
+
+  // Cargar estado de lectura desde localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("whatsapp_chats_read_status");
+      if (saved) {
+        try {
+          setReadStatus(JSON.parse(saved));
+        } catch (e) {
+          console.error("Error parsing read status from localStorage", e);
+        }
+      }
+    }
+  }, []);
+
+  // Función para marcar un chat como leído
+  const markAsRead = (prospectId: string, timestamp?: string) => {
+    const time = timestamp ? new Date(timestamp).getTime() : Date.now();
+    setReadStatus(prev => {
+      if (prev[prospectId] && prev[prospectId] >= time) {
+        return prev;
+      }
+      const updated = { ...prev, [prospectId]: time };
+      localStorage.setItem("whatsapp_chats_read_status", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // Marcar chat seleccionado como leído automáticamente
+  useEffect(() => {
+    if (selectedProspectId) {
+      const prospect = prospects.find((p: any) => p.id === selectedProspectId);
+      if (prospect) {
+        const lastMsg = prospect.messages && prospect.messages.length > 0 
+          ? prospect.messages[prospect.messages.length - 1] 
+          : null;
+        markAsRead(selectedProspectId, lastMsg?.timestamp);
+      }
+    }
+  }, [selectedProspectId, prospects]);
 
   const handleManualSync = async () => {
     setIsSyncing(true);
@@ -543,13 +585,63 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
     }
   };
 
-  const filteredProspects = prospects.filter((p: any) => {
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    const nameMatch = p.name ? p.name.toLowerCase().includes(term) : false;
-    const phoneMatch = p.phone ? p.phone.includes(term) : false;
-    return nameMatch || phoneMatch;
-  });
+  // Helper para obtener el último mensaje
+  const getLastMessage = (p: any) => {
+    return p.messages && p.messages.length > 0 
+      ? p.messages[p.messages.length - 1] 
+      : null;
+  };
+
+  // Helper para verificar si un prospecto tiene mensajes no leídos
+  const isProspectUnread = (p: any) => {
+    const lastMsg = getLastMessage(p);
+    if (!lastMsg) return false;
+    if (lastMsg.isFromMe) return false;
+    const lastReadTime = readStatus[p.id];
+    if (!lastReadTime) return true;
+    return new Date(lastMsg.timestamp).getTime() > lastReadTime;
+  };
+
+  // Helper para contar la cantidad de mensajes no leídos
+  const getUnreadMessagesCount = (p: any) => {
+    if (!p.messages || p.messages.length === 0) return 0;
+    const lastReadTime = readStatus[p.id];
+    if (!lastReadTime) {
+      return p.messages.filter((m: any) => !m.isFromMe).length;
+    }
+    return p.messages.filter((m: any) => !m.isFromMe && new Date(m.timestamp).getTime() > lastReadTime).length;
+  };
+
+  // Helper para determinar el timestamp de la última actividad
+  const getLatestActivityTime = (p: any) => {
+    const lastMsg = getLastMessage(p);
+    if (lastMsg) {
+      return new Date(lastMsg.timestamp).getTime();
+    }
+    return new Date(p.updatedAt || p.createdAt).getTime();
+  };
+
+  const filteredProspects = prospects
+    .filter((p: any) => {
+      // 1. Filtro por término de búsqueda
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        const nameMatch = p.name ? p.name.toLowerCase().includes(term) : false;
+        const phoneMatch = p.phone ? p.phone.includes(term) : false;
+        if (!nameMatch && !phoneMatch) return false;
+      }
+      
+      // 2. Filtro por estado de lectura (Tabs)
+      if (filterTab === 'unread') {
+        return isProspectUnread(p);
+      } else if (filterTab === 'read') {
+        return !isProspectUnread(p);
+      }
+      return true;
+    })
+    .sort((a: any, b: any) => {
+      return getLatestActivityTime(b) - getLatestActivityTime(a);
+    });
 
   return (
     <div style={{ display: 'flex', height: '100%', position: 'relative' }}>
@@ -1074,55 +1166,199 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ width: '100%', marginTop: '0.75rem', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
           />
+
+          {/* Filtros de Chats Segmented Control */}
+          <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.75rem', padding: '0.15rem', backgroundColor: '#f1f5f9', borderRadius: '10px' }}>
+            <button 
+              type="button"
+              onClick={() => setFilterTab('all')} 
+              style={{
+                flex: 1,
+                padding: '0.45rem 0.25rem',
+                borderRadius: '8px',
+                fontSize: '0.775rem',
+                fontWeight: '700',
+                border: 'none',
+                cursor: 'pointer',
+                backgroundColor: filterTab === 'all' ? 'white' : 'transparent',
+                color: filterTab === 'all' ? '#0f172a' : '#64748b',
+                boxShadow: filterTab === 'all' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                transition: 'all 0.2s ease',
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.25rem'
+              }}
+            >
+              Todos
+            </button>
+            <button 
+              type="button"
+              onClick={() => setFilterTab('read')} 
+              style={{
+                flex: 1,
+                padding: '0.45rem 0.25rem',
+                borderRadius: '8px',
+                fontSize: '0.775rem',
+                fontWeight: '700',
+                border: 'none',
+                cursor: 'pointer',
+                backgroundColor: filterTab === 'read' ? 'white' : 'transparent',
+                color: filterTab === 'read' ? '#0f172a' : '#64748b',
+                boxShadow: filterTab === 'read' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                transition: 'all 0.2s ease',
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.25rem'
+              }}
+            >
+              Leídos
+            </button>
+            <button 
+              type="button"
+              onClick={() => setFilterTab('unread')} 
+              style={{
+                flex: 1,
+                padding: '0.45rem 0.25rem',
+                borderRadius: '8px',
+                fontSize: '0.775rem',
+                fontWeight: '700',
+                border: 'none',
+                cursor: 'pointer',
+                backgroundColor: filterTab === 'unread' ? 'white' : 'transparent',
+                color: filterTab === 'unread' ? '#0f172a' : '#64748b',
+                boxShadow: filterTab === 'unread' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                transition: 'all 0.2s ease',
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.25rem'
+              }}
+            >
+              <span>No leídos</span>
+              {prospects.filter((p: any) => isProspectUnread(p)).length > 0 && (
+                <span style={{ 
+                  backgroundColor: '#ef4444', 
+                  color: 'white', 
+                  fontSize: '0.65rem', 
+                  fontWeight: 'bold', 
+                  padding: '0.05rem 0.35rem', 
+                  borderRadius: '10px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {prospects.filter((p: any) => isProspectUnread(p)).length}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {filteredProspects.map((prospect: any) => {
             const isSelected = selectedProspectId === prospect.id;
             const isUnassigned = !prospect.assignedUserId;
+            const isUnread = isProspectUnread(prospect);
             
-            // Determinar último mensaje (ahora están ordenados por asc en la query de DB para que el chat funcione)
-            const lastMessage = prospect.messages && prospect.messages.length > 0 
-              ? prospect.messages[prospect.messages.length - 1] 
-              : null;
+            // Determinar último mensaje
+            const lastMessage = getLastMessage(prospect);
 
             return (
               <div 
                 key={prospect.id}
                 onClick={() => setSelectedProspectId(prospect.id)}
                 style={{ 
-                  padding: '1rem', 
+                  padding: '1rem 1rem 1rem 0.75rem', 
                   borderBottom: '1px solid #e2e8f0', 
                   cursor: 'pointer',
-                  backgroundColor: isSelected ? '#eff6ff' : 'white',
-                  transition: 'background-color 0.2s ease',
+                  backgroundColor: isSelected 
+                    ? '#eff6ff' 
+                    : isUnread 
+                      ? '#f8fafc' 
+                      : 'white',
+                  borderLeft: isSelected 
+                    ? '4px solid #2563eb' 
+                    : isUnread 
+                      ? '4px solid #4f46e5' 
+                      : '4px solid transparent',
+                  transition: 'all 0.2s ease',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '0.25rem'
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <strong style={{ fontSize: '1rem', color: '#1e293b' }}>{prospect.name}</strong>
-                  {isUnassigned && (
-                    <span style={{ fontSize: '0.7rem', backgroundColor: '#ef4444', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '1rem', fontWeight: 'bold' }}>
-                      NUEVO
-                    </span>
-                  )}
+                  <strong style={{ 
+                    fontSize: '1rem', 
+                    color: isSelected ? '#1e40af' : isUnread ? '#0f172a' : '#334155',
+                    fontWeight: isUnread ? '700' : '600'
+                  }}>
+                    {prospect.name}
+                  </strong>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    {isUnassigned && (
+                      <span style={{ fontSize: '0.65rem', backgroundColor: '#ef4444', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '1rem', fontWeight: 'bold' }}>
+                        NUEVO
+                      </span>
+                    )}
+                  </div>
                 </div>
                 
-                <div style={{ fontSize: '0.875rem', color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ fontSize: '0.875rem', color: isUnread ? '#475569' : '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>{prospect.phone}</span>
                   {lastMessage && (
-                    <span style={{ fontSize: '0.75rem' }}>
-                      {new Date(lastMessage.timestamp).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    <span style={{ 
+                      fontSize: '0.725rem', 
+                      color: isUnread ? '#4f46e5' : '#94a3b8', 
+                      fontWeight: isUnread ? '600' : 'normal' 
+                    }}>
+                      {new Date(lastMessage.timestamp).toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </span>
                   )}
                 </div>
                 
-                {lastMessage && (
-                  <div style={{ fontSize: '0.875rem', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {lastMessage.isFromMe ? "Tú: " : ""}{lastMessage.body}
-                  </div>
-                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                  {lastMessage ? (
+                    <div style={{ 
+                      fontSize: '0.825rem', 
+                      color: isSelected ? '#3b82f6' : isUnread ? '#334155' : '#94a3b8', 
+                      fontWeight: isUnread ? '600' : 'normal',
+                      whiteSpace: 'nowrap', 
+                      overflow: 'hidden', 
+                      textOverflow: 'ellipsis',
+                      flex: 1
+                    }}>
+                      {lastMessage.isFromMe ? "Tú: " : ""}{lastMessage.body}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '0.825rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                      Sin mensajes
+                    </div>
+                  )}
+                  {isUnread && (
+                    <span style={{ 
+                      backgroundColor: '#4f46e5', 
+                      color: 'white', 
+                      borderRadius: '50%', 
+                      minWidth: '18px', 
+                      height: '18px', 
+                      fontSize: '0.7rem', 
+                      fontWeight: 'bold', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      padding: '0 4px',
+                      flexShrink: 0,
+                      boxShadow: '0 2px 4px rgba(79, 70, 229, 0.2)'
+                    }}>
+                      {getUnreadMessagesCount(prospect)}
+                    </span>
+                  )}
+                </div>
 
                 <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: prospect.assignedUser ? '#2563eb' : '#f59e0b', fontWeight: '500' }}>
                   {prospect.assignedUser ? `Asignado a: ${prospect.assignedUser.name}` : 'Sin asignar'}

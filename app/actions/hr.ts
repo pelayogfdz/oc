@@ -544,7 +544,12 @@ export async function getGlobalAttendanceLogs(startDateStr: string, endDateStr: 
   endDate.setHours(23, 59, 59, 999);
 
   const logs = await prisma.attendanceLog.findMany({
-    where: { timestamp: { gte: startDate, lte: endDate } },
+    where: { 
+      timestamp: { gte: startDate, lte: endDate },
+      user: {
+        tenantId: session.tenantId
+      }
+    },
     include: { user: { select: { name: true, branch: { select: { name: true } } } } },
     orderBy: { timestamp: 'asc' }
   });

@@ -1,4 +1,7 @@
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
 const { PrismaClient } = require('@prisma/client');
 const express = require('express');
 const cors = require('cors');
@@ -418,10 +421,11 @@ async function getClientForBranch(originalBranchId, forceRecreate = false) {
             dataPath: './.wwebjs_auth'
         }),
         puppeteer: {
+            launcher: puppeteer,
             args: [
-                '--no-sandbox', 
+                '--no-sandbox',
                 '--disable-setuid-sandbox',
-                '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+                '--disable-blink-features=AutomationControlled'
             ],
             headless: true,
         }
