@@ -1031,7 +1031,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
         </div>
 
         <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Ticket actual</h2>
-        <div style={{ flex: 1, minHeight: '380px' }}>
+        <div style={{ minHeight: '0px' }}>
           {cart.length === 0 && <div style={{ color: 'var(--pulpos-text-muted)', textAlign: 'center', marginTop: '2rem' }}>Ticket vacío</div>}
           {cart.map(item => {
             const currentPrice = getProductPrice(item);
