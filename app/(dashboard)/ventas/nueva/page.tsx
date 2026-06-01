@@ -59,6 +59,7 @@ export default async function NuevaVentaPage() {
   let metodosConfig = {};
   let ventasConfig: any = {};
   let impresorasConfig = {};
+  let qzCert = '';
   if (settings.configJson) {
     try {
       const parsed = JSON.parse(settings.configJson);
@@ -67,6 +68,7 @@ export default async function NuevaVentaPage() {
       metodosConfig = parsed.metodos || {};
       ventasConfig = parsed.ventas || {};
       impresorasConfig = parsed.impresoras || {};
+      qzCert = parsed.qz?.certificate || '';
     } catch(e) {}
   }
 
@@ -104,6 +106,7 @@ export default async function NuevaVentaPage() {
               metodosConfig={metodosConfig}
               ventasConfig={ventasConfig}
               impresorasConfig={impresorasConfig}
+              qzCert={qzCert}
             />
           </Suspense>
         )}

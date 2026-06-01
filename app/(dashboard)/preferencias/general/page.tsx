@@ -1,6 +1,5 @@
 import { getBranchSettings, updateBranchSettings, getTenantSettings, updateTenantSettings, updateBranchLogo } from "@/app/actions/settings";
 import { Settings, Save, Globe } from 'lucide-react';
-import QZTrayConfig from './QZTrayConfig';
 import LogoUploaderClient from './LogoUploaderClient';
 
 export default async function GeneralPreferencesPage() {
@@ -140,8 +139,6 @@ export default async function GeneralPreferencesPage() {
         </div>
       </form>
       </div>
-
-      <QZTrayConfig />
     </div>
   );
 }

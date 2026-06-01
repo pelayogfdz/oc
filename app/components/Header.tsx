@@ -5,6 +5,7 @@ import MobileMenuToggle from './MobileMenuToggle';
 import DesktopMenuToggle from './DesktopMenuToggle';
 import HeaderNetworkStatus from './HeaderNetworkStatus';
 import HeaderTitle from './HeaderTitle';
+import GlobalSearch from './GlobalSearch';
 
 export default async function Header() {
   const [currentBranch, currentUser] = await Promise.all([
@@ -47,6 +48,7 @@ export default async function Header() {
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <HeaderNetworkStatus />
+        <GlobalSearch />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div className="header-user-info" style={{ textAlign: 'right' }}>

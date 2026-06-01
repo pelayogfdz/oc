@@ -221,3 +221,52 @@ export async function updateBranchLogo(logoUrl: string) {
   revalidatePath('/preferencias', 'layout');
 }
 
+export async function saveQZSettings(certificate: string, privateKey?: string) {
+  let branch = await getActiveBranch();
+  if (!branch) throw new Error("No branch active");
+  if (branch.id === 'GLOBAL') {
+    const session = await getSession();
+    const realBranch = await prisma.branch.findFirst({ where: { isActive: true, tenantId: session?.tenantId } });
+    if (!realBranch) throw new Error("No real branch exists to store settings");
+    branch = realBranch;
+  }
+
+  let settings = await prisma.branchSettings.findUnique({ where: { branchId: branch.id } });
+  
+  if (!settings) {
+    settings = await prisma.branchSettings.create({ data: { branchId: branch.id } });
+  }
+
+  let currentJson: Record<string, any> = {};
+  if (settings.configJson) {
+    try {
+      const parsed = JSON.parse(settings.configJson);
+      if (parsed && typeof parsed === 'object') {
+        currentJson = parsed;
+      }
+    } catch (e) {
+      console.error("Error parsing configJson:", e);
+    }
+  }
+
+  if (!currentJson.qz) {
+    currentJson.qz = {};
+  }
+
+  currentJson.qz.certificate = certificate ? certificate.trim() : '';
+
+  // If a private key was specified, update it, otherwise keep the old one
+  if (privateKey && privateKey.trim()) {
+    currentJson.qz.privateKey = privateKey.trim();
+  }
+
+  await prisma.branchSettings.update({
+    where: { branchId: branch.id },
+    data: { configJson: JSON.stringify(currentJson) }
+  });
+
+  revalidatePath('/preferencias/general');
+  return { success: true };
+}
+
+

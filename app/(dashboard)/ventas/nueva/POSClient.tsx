@@ -11,7 +11,7 @@ import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import ProductTableUI from '@/app/components/ProductTableUI';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 
-export default function POSClient({ products: initialProducts, customers, suppliers = [], promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {}, impresorasConfig = {}, dynamicPriceLists = [], pendingQuotes = [], initialCustomerId }: { products: any[], customers: any[], suppliers?: any[], promotions?: any[], mode?: "SALE" | "QUOTE" | "CONSIGNMENT", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any, impresorasConfig?: any, dynamicPriceLists?: any[], pendingQuotes?: any[], initialCustomerId?: string }) {
+export default function POSClient({ products: initialProducts, customers, suppliers = [], promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {}, impresorasConfig = {}, dynamicPriceLists = [], pendingQuotes = [], initialCustomerId, qzCert }: { products: any[], customers: any[], suppliers?: any[], promotions?: any[], mode?: "SALE" | "QUOTE" | "CONSIGNMENT", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any, impresorasConfig?: any, dynamicPriceLists?: any[], pendingQuotes?: any[], initialCustomerId?: string, qzCert?: string }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isOnline, pushOfflineSale } = useOfflineSync();
@@ -501,6 +501,31 @@ export default function POSClient({ products: initialProducts, customers, suppli
     if (qzPrinter && qzPrinter !== '__browser__' && qzPrinter !== 'browser') {
        try {
          const qz = (await import('qz-tray')).default;
+         
+         // Configure QZ security/signing if a certificate is configured
+         if (qzCert) {
+            qz.security.setCertificatePromise((resolve) => resolve(qzCert));
+            qz.security.setSignaturePromise((toSign) => {
+              return (resolve, reject) => {
+                fetch('/api/qz/sign', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'text/plain' },
+                  body: toSign
+                })
+                .then(res => {
+                  if (!res.ok) throw new Error('Error al firmar');
+                  return res.text();
+                })
+                .then(resolve)
+                .catch(reject);
+              };
+            });
+         } else {
+             // Fallback to anonymous
+             qz.security.setCertificatePromise((resolve) => resolve(undefined));
+             qz.security.setSignaturePromise((toSign) => (resolve) => resolve(''));
+         }
+
          if (!qz.websocket.isActive()) {
             await qz.websocket.connect({ retries: 1, delay: 1 });
          }

@@ -1,9 +1,22 @@
 import { getBranchSettings } from "@/app/actions/settings";
 import SettingsFormClient from "../SettingsFormClient";
+import QZTrayConfig from "../general/QZTrayConfig";
 
 export default async function Page() {
   const settings = await getBranchSettings();
   const config = settings.configJson ? JSON.parse(settings.configJson)['impresoras'] || {} : {};
+
+  let qzConfig = {};
+  if (settings.configJson) {
+    try {
+      const parsed = JSON.parse(settings.configJson);
+      const qz = parsed.qz || {};
+      qzConfig = {
+        certificate: qz.certificate || '',
+        hasPrivateKey: !!qz.privateKey
+      };
+    } catch (e) {}
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -19,6 +32,9 @@ export default async function Page() {
           { name: 'impresoraEtiquetas', label: 'Nombre de Impresora de Etiquetas (Opcional - Uso futuro)', type: 'text', placeholder: 'Brother QL-800' }
         ]}
       />
+
+      <QZTrayConfig qzConfig={qzConfig} />
+
 
       <div className="card" style={{ backgroundColor: '#fffbeb', border: '1px solid #fcd34d' }}>
         <h3 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#b45309', marginBottom: '0.5rem' }}>
