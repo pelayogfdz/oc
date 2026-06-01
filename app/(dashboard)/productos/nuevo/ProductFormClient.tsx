@@ -6,6 +6,8 @@ import { Image as ImageIcon, Plus, Trash2, Camera } from 'lucide-react';
 import { createProduct } from "@/app/actions/product";
 import { useFormState } from 'react-dom';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
+import ProductFinanceSection from '../ProductFinanceSection';
+import ProductImageSection from '../ProductImageSection';
 
 const initialState = {
   error: '',
@@ -20,64 +22,7 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
   const [hasBatches, setHasBatches] = useState(false);
   const [batches, setBatches] = useState<{ batchNumber: string, expirationDate: string, stock: number }[]>([]);
   
-  // States for margin calculation
-  const [cost, setCost] = useState<number>(() => parseFloat(cloneProduct?.cost || "0"));
-  const [price, setPrice] = useState<number>(() => parseFloat(cloneProduct?.price || "0"));
-  
-  const [previewImage, setPreviewImage] = useState(cloneProduct?.imageUrl || '');
 
-  const handleCapturePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 800;
-          const MAX_HEIGHT = 800;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          
-          const input = document.querySelector('input[name="imageUrl"]') as HTMLInputElement;
-          if (input) {
-            input.value = dataUrl;
-            setPreviewImage(dataUrl);
-          }
-        };
-        img.src = event.target?.result as string;
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-  
-  const [dynamicPrices, setDynamicPrices] = useState<Record<string, number>>(() => {
-    const init: Record<string, number> = {};
-    if (priceLists && cloneProduct?.prices) {
-      priceLists.forEach((pl: any) => {
-        const p = cloneProduct.prices.find((cp: any) => cp.priceListId === pl.id);
-        if (p) init[pl.id] = parseFloat(p.price) || 0;
-      });
-    }
-    return init;
-  });
 
   const handleAddVariant = () => {
     setVariants([...variants, { attribute: '', stock: 0, sku: '' }]);
@@ -131,33 +76,14 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
       <input type="hidden" name="hasBatches" value={hasBatches ? "1" : "0"} />
       
       {/* Imagen */}
-      <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem', display: 'flex', gap: '2rem', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ width: '100px', height: '100px', backgroundColor: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', overflow: 'hidden', flexShrink: 0 }}>
-          {previewImage ? <img src={previewImage} style={{width: '100%', height: '100%', objectFit: 'cover'}} alt="thumb"/> : <ImageIcon size={32} />}
-        </div>
-        <div style={{ flex: 1, minWidth: '250px' }}>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Multimedia del Producto</h2>
-          <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.875rem', marginBottom: '1rem' }}>Sube una foto desde la cámara o ingresa una URL.</p>
-          
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', backgroundColor: 'white', border: '1px solid var(--pulpos-primary)', color: 'var(--pulpos-primary)', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
-              <Camera size={18} /> Tomar Foto o Subir
-              <input type="file" accept="image/*" capture="environment" onChange={handleCapturePhoto} style={{ display: 'none' }} />
-            </label>
-          </div>
-
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.85rem' }}>Imagen URL (o Base64)</label>
-          <input type="text" name="imageUrl" defaultValue={cloneProduct?.imageUrl || ''} onChange={e => setPreviewImage(e.target.value)} placeholder="https://ejemplo.com/foto.jpg" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', marginBottom: '1rem' }} />
-          
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.85rem' }}>YouTube Video URL</label>
-          <input type="url" name="youtubeUrl" defaultValue={cloneProduct?.youtubeUrl || ''} placeholder="https://www.youtube.com/watch?v=..." style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-          
-          {state?.error && (
-            <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', borderRadius: '6px', fontWeight: 'bold' }}>
-               {state.error}
-            </div>
-          )}
-        </div>
+      <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>Multimedia del Producto</h2>
+        <ProductImageSection 
+          initialImageUrl={cloneProduct?.imageUrl || ''}
+          initialYoutubeUrl={cloneProduct?.youtubeUrl || ''}
+          showYoutubeEmbed={false}
+          stateError={state?.error}
+        />
       </div>
 
       {/* Identificación */}
@@ -207,53 +133,15 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
       {/* Finanzas y Precios */}
       <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
         <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>Finanzas y Precios</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: '1.5rem' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Costo de Reposición ($)</label>
-            <input type="number" step="0.01" name="cost" value={cost} onChange={(e) => setCost(parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-          </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Costo Promedio ($)</label>
-            <input type="number" step="0.01" name="averageCost" defaultValue={cloneProduct?.averageCost || "0"} readOnly style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', backgroundColor: '#f3f4f6', cursor: 'not-allowed', color: 'var(--pulpos-text-muted)' }} title="Se calcula ponderadamente al registrar compras" />
-          </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Precio Público normal ($) *</label>
-            <input type="number" step="0.01" name="price" value={price} onChange={(e) => setPrice(parseFloat(e.target.value) || 0)} required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-            <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: (price - cost) >= 0 ? '#16a34a' : '#dc2626', fontWeight: '500' }}>
-              Ganancia: ${(price - cost).toFixed(2)} ({ cost > 0 ? (((price - cost) / cost) * 100).toFixed(1) : (price > 0 ? '100' : '0') }% de utilidad sobre costo / { price > 0 ? (((price - cost) / price) * 100).toFixed(1) : '0'}% margen)
-            </div>
-          </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Impuesto / IVA (%)</label>
-            <input type="number" step="0.01" name="taxRate" defaultValue={cloneProduct?.taxRate || "16.0"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-          </div>
-        </div>
-        {priceLists.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: '1.5rem', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--pulpos-border)' }}>
-              {priceLists.map((pl: any) => {
-                const plPrice = dynamicPrices[pl.id] || 0;
-                return (
-                  <div key={pl.id}>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Lista: {pl.name} ($)</label>
-                    <input 
-                       type="number" 
-                       step="0.01" 
-                       name={`priceList_${pl.id}`} 
-                       value={dynamicPrices[pl.id] === undefined ? '' : dynamicPrices[pl.id]} 
-                       onChange={(e) => setDynamicPrices({...dynamicPrices, [pl.id]: parseFloat(e.target.value) || 0})}
-                       placeholder="Opcional" 
-                       style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} 
-                    />
-                    {plPrice > 0 && (
-                      <div style={{ marginTop: '0.5rem', fontSize: '0.80rem', color: (plPrice - cost) >= 0 ? '#16a34a' : '#dc2626', fontWeight: '500' }}>
-                        Ganancia: ${(plPrice - cost).toFixed(2)} ({ cost > 0 ? (((plPrice - cost) / cost) * 100).toFixed(1) : '100'}% de utilidad / { (((plPrice - cost) / plPrice) * 100).toFixed(1)}% margen)
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+        <ProductFinanceSection 
+          initialCost={parseFloat(cloneProduct?.cost || "0")}
+          initialPrice={parseFloat(cloneProduct?.price || "0")}
+          initialTaxRate={parseFloat(cloneProduct?.taxRate || "16.0")}
+          initialWholesalePrice={cloneProduct?.wholesalePrice}
+          initialSpecialPrice={cloneProduct?.specialPrice}
+          priceLists={priceLists}
+          initialPrices={cloneProduct?.prices}
+        />
       </div>
 
       {/* Variantes Selector */}

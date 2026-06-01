@@ -4,6 +4,8 @@ import { notFound, redirect } from "next/navigation";
 import { ProductDetailClient } from "./ProductDetailClient";
 import { updateProduct, deleteProduct } from "@/app/actions/product";
 import { Image as ImageIcon } from 'lucide-react';
+import ProductFinanceSection from '../ProductFinanceSection';
+import ProductImageSection from '../ProductImageSection';
 
 export default async function ProductDetailPage({ params }: { params: { id: string } }) {
   const { id } = await params;
@@ -23,6 +25,12 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
       },
       batches: {
         orderBy: { expirationDate: 'asc' }
+      },
+      prices: {
+        select: {
+          priceListId: true,
+          price: true
+        }
       }
     }
   });
@@ -30,6 +38,11 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
   if (!product) return notFound();
 
   const suppliers = await prisma.supplier.findMany({
+    where: { branchId: product.branchId },
+    orderBy: { name: 'asc' }
+  });
+
+  const dynamicPriceLists = await prisma.priceList.findMany({
     where: { branchId: product.branchId },
     orderBy: { name: 'asc' }
   });
@@ -84,30 +97,12 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
             <input type="hidden" name="sku" value={product.sku} />
             
             <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>Multimedia</h2>
-              <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
-                <div style={{ width: '100px', height: '100px', backgroundColor: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', overflow: 'hidden' }}>
-                  {product.imageUrl ? <img src={product.imageUrl} style={{width: '100%', height: '100%', objectFit: 'cover'}} alt={product.name}/> : <ImageIcon size={32} />}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.875rem', marginBottom: '1rem' }}>Ingresa la URL de la miniatura para visualizarla en el POS, y opcionalmente un video reseña de YouTube.</p>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.85rem' }}>Imagen URL</label>
-                  <input type="url" name="imageUrl" defaultValue={product.imageUrl || ''} placeholder="https://ejemplo.com/foto.jpg" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', marginBottom: '1rem' }} />
-
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.85rem' }}>YouTube Video URL</label>
-                  <input type="url" name="youtubeUrl" defaultValue={product.youtubeUrl || ''} placeholder="https://www.youtube.com/watch?v=..." style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-                </div>
-              </div>
-              {product.youtubeUrl && (
-                 <div style={{ marginTop: '1.5rem', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--pulpos-border)', backgroundColor: '#000', position: 'relative', paddingTop: '56.25%' }}>
-                   <iframe 
-                     src={product.youtubeUrl.replace('watch?v=', 'embed/')} 
-                     style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }} 
-                     allowFullScreen 
-                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                   ></iframe>
-                 </div>
-              )}
+              <h2 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>Multimedia</h2>
+              <ProductImageSection 
+                initialImageUrl={product.imageUrl || ''}
+                initialYoutubeUrl={product.youtubeUrl || ''}
+                showYoutubeEmbed={true}
+              />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
               <button type="submit" className="btn-primary" style={{ padding: '0.75rem 2.5rem', fontSize: '1.1rem' }}>
@@ -165,35 +160,15 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
           {/* Finanzas y Precios */}
           <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
             <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>Finanzas y Precios</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Costo de Reposición ($)</label>
-                <input type="number" step="0.01" name="cost" defaultValue={product.cost} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Costo Promedio ($)</label>
-                <input type="number" step="0.01" name="averageCost" defaultValue={product.averageCost || 0} readOnly title="Calculado ponderadamente según historial de compras" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', backgroundColor: '#f3f4f6', cursor: 'not-allowed', color: 'var(--pulpos-text-muted)' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Precio Público normal ($) *</label>
-                <input type="number" step="0.01" name="price" defaultValue={product.price} required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Impuesto / IVA (%)</label>
-                <input type="number" step="0.01" name="taxRate" defaultValue={product.taxRate} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: '1.5rem' }}>
-              <div></div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Precio Mayoreo ($)</label>
-                <input type="number" step="0.01" name="wholesalePrice" defaultValue={product.wholesalePrice || ''} placeholder="Opcional" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Precio Especial ($)</label>
-                <input type="number" step="0.01" name="specialPrice" defaultValue={product.specialPrice || ''} placeholder="Opcional" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-              </div>
-            </div>
+            <ProductFinanceSection 
+              initialCost={product.cost}
+              initialPrice={product.price}
+              initialTaxRate={product.taxRate}
+              initialWholesalePrice={product.wholesalePrice}
+              initialSpecialPrice={product.specialPrice}
+              priceLists={dynamicPriceLists}
+              initialPrices={product.prices}
+            />
           </div>
 
           {/* Inventario Fijo */}
