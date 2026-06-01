@@ -2,7 +2,14 @@ import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import POSClient from "../../nueva/POSClient";
 
-export default async function NuevaCotizacionPage({ searchParams }: { searchParams: { customerId?: string } }) {
+export default async function NuevaCotizacionPage({ 
+  searchParams 
+}: { 
+  searchParams: Promise<{ customerId?: string; quoteId?: string }> | { customerId?: string; quoteId?: string } 
+}) {
+  const resolvedParams = await searchParams;
+  const customerId = resolvedParams?.customerId;
+  const quoteId = resolvedParams?.quoteId;
   const branch = await getActiveBranch();
   
   if (!branch || branch.id === 'GLOBAL') {
@@ -33,9 +40,13 @@ export default async function NuevaCotizacionPage({ searchParams }: { searchPara
     where: { branchId: branch.id, active: true }
   });
 
+  const isEditing = !!quoteId;
+
   return (
     <div>
-      <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', color: '#854d0e' }}>Crear Nueva Cotización</h1>
+      <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', color: isEditing ? '#0284c7' : '#854d0e' }}>
+        {isEditing ? 'Editar Cotización' : 'Crear Nueva Cotización'}
+      </h1>
       <POSClient 
         products={products} 
         customers={customers} 
@@ -43,7 +54,7 @@ export default async function NuevaCotizacionPage({ searchParams }: { searchPara
         promotions={promotions} 
         mode="QUOTE" 
         branchId={branch.id} 
-        initialCustomerId={searchParams.customerId}
+        initialCustomerId={customerId}
       />
     </div>
   );

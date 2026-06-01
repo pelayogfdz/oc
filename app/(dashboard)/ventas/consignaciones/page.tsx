@@ -57,8 +57,8 @@ export default async function ConsignacionesPage() {
           <tbody>
             {consignments.map(consignment => (
               <tr key={consignment.id} style={{ borderBottom: '1px solid var(--pulpos-border)', transition: 'background-color 0.15s' }}>
-                <td data-label="ID Consignación" style={{ padding: '1.25rem 1rem', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                  #{consignment.id.slice(0, 8).toUpperCase()}
+                <td data-label="ID Consignación" style={{ padding: '1.25rem 1rem', fontWeight: 'bold', fontSize: '0.9rem', fontFamily: 'monospace' }}>
+                  #{consignment.folio || consignment.id.slice(0, 8).toUpperCase()}
                 </td>
                 <td data-label="Fecha" style={{ padding: '1.25rem 1rem', color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>
                   {new Date(consignment.createdAt).toLocaleString('es-MX')}

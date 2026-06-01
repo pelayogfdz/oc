@@ -20,10 +20,14 @@ export async function requestTransfer(
 
   const authUser = await getActiveUser();
 
+  const { getNextFolio } = await import('./folios');
+  const folio = await getNextFolio(branchActive.id, 'transfer');
+
   // Here, we just CREATE the request. We do NOT deduct stock yet.
   // The items here are mapped to the DESTINATION's catalog so they know what they asked for.
   await prisma.transfer.create({
     data: {
+      folio,
       branchId: payload.fromBranchId, // Quien surte
       toBranchId: branchActive.id,    // Quien pide
       status: "REQUESTED",
@@ -81,9 +85,13 @@ export async function dispatchDirectTransfer(
   const authUser = await getActiveUser();
 
   await prisma.$transaction(async (tx) => {
+    const { getNextFolio } = await import('./folios');
+    const folio = await getNextFolio(branchActive.id, 'transfer', tx);
+
     // We create the Transfer and Items immediately as DISPATCHED
     const transfer = await tx.transfer.create({
       data: {
+        folio,
         branchId: branchActive.id, // Origen
         toBranchId: payload.toBranchId, // Destino
         status: "DISPATCHED",

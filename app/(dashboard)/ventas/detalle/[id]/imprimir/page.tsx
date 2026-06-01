@@ -1,10 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import { getActiveBranch } from "@/app/actions/auth";
 
 export default async function PrintVentaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const branch = await getActiveBranch();
   
   const sale = await prisma.sale.findUnique({
     where: { id: id },
@@ -91,7 +89,7 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
           <div style={{ textAlign: 'right' }}>
             <h2 className="invoice-title">NOTA DE VENTA</h2>
             <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#334155' }}>
-              Folio: #{sale.id.slice(0, 8).toUpperCase()}
+              Folio: #{sale.folio || sale.id.slice(0, 8).toUpperCase()}
             </div>
             <div style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.5rem' }}>
               Fecha: {new Date(sale.createdAt).toLocaleString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -183,7 +181,7 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
               <h4 style={{ margin: '0 0 0.25rem 0', color: '#0f172a', fontSize: '1rem' }}>¿Requieres Factura Electrónica?</h4>
               <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>
                 Escanea el código QR o ingresa a <strong>clientes.pulpos.com</strong> con tu folio:<br/>
-                <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: primaryColor, letterSpacing: '1px' }}>{sale.id.slice(0, 8).toUpperCase()}</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: primaryColor, letterSpacing: '1px' }}>{sale.folio || sale.id.slice(0, 8).toUpperCase()}</span>
               </p>
             </div>
           </div>

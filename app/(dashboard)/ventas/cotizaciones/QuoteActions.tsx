@@ -2,17 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Printer, Send, Share2, Loader2, CheckCircle, ArrowRight } from 'lucide-react';
+import { Printer, Send, Share2, Loader2, CheckCircle, ArrowRight, Pencil } from 'lucide-react';
 
 interface QuoteActionsProps {
   quoteId: string;
+  quoteFolio?: string | null;
   status: string;
   customerPhone?: string | null;
   customerName?: string | null;
   quoteTotal: number;
 }
 
-export default function QuoteActions({ quoteId, status, customerPhone, customerName, quoteTotal }: QuoteActionsProps) {
+export default function QuoteActions({ quoteId, quoteFolio, status, customerPhone, customerName, quoteTotal }: QuoteActionsProps) {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [phone, setPhone] = useState(customerPhone || '');
@@ -27,8 +28,9 @@ export default function QuoteActions({ quoteId, status, customerPhone, customerN
   const getShareMessage = () => {
     const formattedTotal = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(quoteTotal);
     const link = `${window.location.origin}/ventas/detalle/${quoteId}/imprimir-cotizacion`;
+    const displayFolio = quoteFolio || quoteId.slice(0, 8).toUpperCase();
     return `¡Hola ${customerName || 'Cliente'}! Le comparto la cotización solicitada de CAANMA.\n\n` +
-      `*Folio:* #COT-${quoteId.slice(0, 8).toUpperCase()}\n` +
+      `*Folio:* #${displayFolio}\n` +
       `*Total:* ${formattedTotal}\n\n` +
       `Puede ver el detalle e imprimir su cotización en el siguiente enlace:\n${link}\n\n` +
       `Quedo muy al pendiente de sus comentarios. ¡Excelente día!`;
@@ -121,8 +123,10 @@ export default function QuoteActions({ quoteId, status, customerPhone, customerN
   return (
     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', alignItems: 'center' }}>
       {/* Print Quote */}
-      <button
-        onClick={handlePrint}
+      <a
+        href={`/ventas/detalle/${quoteId}/imprimir-cotizacion`}
+        target="_blank"
+        rel="noopener noreferrer"
         title="Imprimir o Descargar PDF"
         style={{
           display: 'inline-flex',
@@ -136,6 +140,7 @@ export default function QuoteActions({ quoteId, status, customerPhone, customerN
           fontWeight: '600',
           fontSize: '0.825rem',
           color: '#475569',
+          textDecoration: 'none',
           transition: 'all 0.15s ease',
         }}
         onMouseEnter={(e) => {
@@ -149,7 +154,7 @@ export default function QuoteActions({ quoteId, status, customerPhone, customerN
       >
         <Printer size={15} />
         Imprimir
-      </button>
+      </a>
 
       {/* Share Quote WhatsApp */}
       <button
@@ -182,6 +187,39 @@ export default function QuoteActions({ quoteId, status, customerPhone, customerN
         WhatsApp
       </button>
 
+      {/* Edit Quote Button (If Pending) */}
+      {status === 'PENDING' && (
+        <button
+          onClick={() => router.push(`/ventas/cotizaciones/nueva?quoteId=${quoteId}`)}
+          title="Editar Cotización"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            padding: '0.4rem 0.8rem',
+            backgroundColor: '#e0f2fe',
+            border: '1px solid #bae6fd',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '0.825rem',
+            color: '#0369a1',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#bae6fd';
+            e.currentTarget.style.borderColor = '#7dd3fc';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#e0f2fe';
+            e.currentTarget.style.borderColor = '#bae6fd';
+          }}
+        >
+          <Pencil size={15} />
+          Editar
+        </button>
+      )}
+
       {/* Convert Quote to Sale (If Pending) */}
       {status === 'PENDING' && (
         <button
@@ -208,7 +246,7 @@ export default function QuoteActions({ quoteId, status, customerPhone, customerN
             e.currentTarget.style.backgroundColor = 'var(--pulpos-primary, #6366f1)';
           }}
         >
-          Cobrar <ArrowRight size={14} />
+          Convertir <ArrowRight size={14} />
         </button>
       )}
 
@@ -267,7 +305,7 @@ export default function QuoteActions({ quoteId, status, customerPhone, customerN
             >
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  💬 Compartir Cotización #{quoteId.slice(0, 8).toUpperCase()}
+                  💬 Compartir Cotización #{quoteFolio || quoteId.slice(0, 8).toUpperCase()}
                 </h3>
                 <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.75rem', opacity: 0.9 }}>
                   Elige la forma preferida de enviarle la cotización a tu cliente.

@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Settings, Users, Store, Banknote, Shield, CheckCircle, Smartphone, MapPin, HardDrive, LayoutTemplate, Box, FileText, List, Star, Zap, CreditCard, Wrench, Bell, Tag } from 'lucide-react';
+import { Settings, Users, Store, Banknote, Shield, CheckCircle, Smartphone, MapPin, HardDrive, LayoutTemplate, Box, FileText, List, Star, Zap, CreditCard, Wrench, Bell, Tag, Hash } from 'lucide-react';
 
 const prefTabs = [
   { name: 'Mi Suscripción', path: '/preferencias/subscripcion', icon: <CreditCard size={18} /> },
@@ -11,6 +11,7 @@ const prefTabs = [
   { name: 'Impresoras Térmicas', path: '/preferencias/impresoras', icon: <HardDrive size={18} /> },
   { name: 'Plantillas de Tickets', path: '/preferencias/tickets', icon: <LayoutTemplate size={18} /> },
   { name: 'Formatos de Documento', path: '/preferencias/formatos', icon: <FileText size={18} /> },
+  { name: 'Folios de Documentos', path: '/preferencias/folios', icon: <Hash size={18} /> },
   { name: 'Sucursales y Almacenes', path: '/preferencias/sucursales', icon: <Store size={18} /> },
   { name: 'Punto de Venta', path: '/preferencias/ventas', icon: <Banknote size={18} /> },
   { name: 'Cotizaciones', path: '/preferencias/cotizaciones', icon: <FileText size={18} /> },

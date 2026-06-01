@@ -122,8 +122,12 @@ export async function createSale(
       balanceDue = finalSaleTotal;
     }
 
+    const { getNextFolio } = await import('./folios');
+    const folio = await getNextFolio(branch.id, 'sale');
+
     const sale = await prisma.sale.create({
       data: {
+        folio,
         total: finalSaleTotal,
         paymentMethod,
         customerId,

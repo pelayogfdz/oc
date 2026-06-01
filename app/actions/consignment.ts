@@ -24,9 +24,13 @@ export async function createConsignment(
     }
   }
 
+  const { getNextFolio } = await import('./folios');
+  const folio = await getNextFolio(branch.id, 'consignment');
+
   // Create Consignment record (Status: ACTIVE as inventory is deducted immediately)
   const consignment = await prisma.consignment.create({
     data: {
+      folio,
       total,
       paymentMethod,
       customerId,

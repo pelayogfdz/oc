@@ -42,7 +42,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
         <div style={{ paddingBottom: '1rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #f1f5f9' }}>
           <div>
             <h1 style={{ fontSize: '2rem', fontWeight: 'bold', margin: '0 0 0.5rem 0', color: '#1e293b' }}>Resumen de Venta</h1>
-            <div style={{ fontSize: '1.2rem', color: '#64748b' }}>Folio: #{sale.id.slice(0, 8).toUpperCase()}</div>
+            <div style={{ fontSize: '1.2rem', color: '#64748b' }}>Folio: #{sale.folio || sale.id.slice(0, 8).toUpperCase()}</div>
             <div style={{ display: 'inline-block', marginTop: '0.5rem', padding: '0.25rem 0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold', backgroundColor: sale.status === 'COMPLETED' ? '#dcfce7' : '#fee2e2', color: sale.status === 'COMPLETED' ? '#166534' : '#991b1b' }}>
               {sale.status === 'COMPLETED' ? 'Venta Concluida' : 'Cancelada / Devuelta'}
             </div>

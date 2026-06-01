@@ -8,7 +8,8 @@ export async function createQuote(
   items: { productId: string; quantity: number; price: number }[], 
   total: number,
   paymentMethod: string = 'CASH',
-  customerId: string | null = null
+  customerId: string | null = null,
+  quoteId?: string
 ) {
   const branch = await getActiveBranch();
   if (!branch) throw new Error("No hay sucursal activa.");
@@ -17,8 +18,41 @@ export async function createQuote(
   
   if (items.length === 0) throw new Error("Quote is empty");
 
+  if (quoteId) {
+    // Delete existing items for this quote
+    await prisma.quoteItem.deleteMany({
+      where: { quoteId }
+    });
+
+    // Update the quote
+    const quote = await prisma.quote.update({
+      where: { id: quoteId },
+      data: {
+        total,
+        paymentMethod,
+        customerId,
+        branchId: branch.id,
+        userId: user.id,
+        items: {
+          create: items.map(item => ({
+            quantity: item.quantity,
+            price: item.price,
+            productId: item.productId
+          }))
+        }
+      }
+    });
+
+    revalidatePath('/ventas/cotizaciones');
+    return quote;
+  }
+
+  const { getNextFolio } = await import('./folios');
+  const folio = await getNextFolio(branch.id, 'quote');
+
   const quote = await prisma.quote.create({
     data: {
+      folio,
       total,
       paymentMethod,
       customerId,

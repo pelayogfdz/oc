@@ -170,11 +170,11 @@ export default async function CotizacionesPage() {
               <tr key={quote.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
                 <td data-label="ID Cotización" style={{ padding: '1rem' }}>
                   <div className="quote-id-wrapper">
-                    <span className="quote-id-text">#{quote.id.slice(0, 8).toUpperCase()}</span>
+                    <span className="quote-id-text">#{quote.folio || quote.id.slice(0, 8).toUpperCase()}</span>
                     <div className="quote-preview-tooltip">
                       <div className="quote-tooltip-header">
                         <div className="quote-tooltip-title">Resumen de Cotización</div>
-                        <div className="quote-tooltip-folio">Folio: #COT-{quote.id.slice(0, 8).toUpperCase()}</div>
+                        <div className="quote-tooltip-folio">Folio: #{quote.folio || quote.id.slice(0, 8).toUpperCase()}</div>
                       </div>
                       <div className="quote-tooltip-body">
                         <div className="quote-tooltip-meta">
@@ -230,6 +230,7 @@ export default async function CotizacionesPage() {
                 <td data-label="Acción" style={{ padding: '1rem', textAlign: 'right' }}>
                   <QuoteActions 
                     quoteId={quote.id} 
+                    quoteFolio={quote.folio}
                     status={quote.status}
                     customerPhone={quote.customer?.phone}
                     customerName={quote.customer?.name}

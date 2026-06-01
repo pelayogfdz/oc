@@ -48,8 +48,8 @@ export default async function VentasPage() {
           <tbody>
             {sales.map(sale => (
               <tr key={sale.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                <td data-label="ID Venta" style={{ padding: '1rem', fontFamily: 'monospace' }}>
-                  {sale.id.slice(0, 8)}
+                <td data-label="ID Venta" style={{ padding: '1rem', fontFamily: 'monospace', fontWeight: 'bold' }}>
+                  {sale.folio || sale.id.slice(0, 8).toUpperCase()}
                 </td>
                 <td data-label="Fecha / Hora" style={{ padding: '1rem' }}>
                   {new Date(sale.createdAt).toLocaleString()}

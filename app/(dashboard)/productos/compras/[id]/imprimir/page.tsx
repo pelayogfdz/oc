@@ -98,7 +98,7 @@ export default async function PrintPurchasePage({ params }: { params: Promise<{ 
           <div style={{ textAlign: 'right' }}>
             <h2 className="invoice-title">ORDEN DE COMPRA</h2>
             <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#334155' }}>
-              Folio: #OC-{purchase.id.slice(0, 8).toUpperCase()}
+              Folio: #{purchase.folio || "OC-" + purchase.id.slice(0, 8).toUpperCase()}
             </div>
             <div style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.5rem' }}>
               Fecha Emisión: {new Date(purchase.createdAt).toLocaleString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -126,7 +126,7 @@ export default async function PrintPurchasePage({ params }: { params: Promise<{ 
             <table style={{ width: '100%', fontSize: '0.9rem' }}>
               <tbody>
                 <tr><td style={{ color: '#64748b', padding: '0.2rem 0' }}>Registrado por:</td><td style={{ fontWeight: '600', textAlign: 'right' }}>{purchase.user?.name || 'N/A'}</td></tr>
-                <tr><td style={{ color: '#64748b', padding: '0.2rem 0' }}>Referencia:</td><td style={{ fontWeight: '600', textAlign: 'right' }}>{purchase.id.slice(0, 8)}</td></tr>
+                <tr><td style={{ color: '#64748b', padding: '0.2rem 0' }}>Referencia:</td><td style={{ fontWeight: '600', textAlign: 'right' }}>{purchase.folio || purchase.id.slice(0, 8)}</td></tr>
               </tbody>
             </table>
           </div>
@@ -202,7 +202,7 @@ export default async function PrintPurchasePage({ params }: { params: Promise<{ 
               <h4 style={{ margin: '0 0 0.25rem 0', color: '#0f172a', fontSize: '1rem' }}>Verificación Interna</h4>
               <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>
                 Escanea el código QR o ingresa a <strong>clientes.pulpos.com</strong> con el folio:<br/>
-                <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: primaryColor, letterSpacing: '1px' }}>OC-{purchase.id.slice(0, 8).toUpperCase()}</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: primaryColor, letterSpacing: '1px' }}>{purchase.folio || "OC-" + purchase.id.slice(0, 8).toUpperCase()}</span>
               </p>
             </div>
           </div>

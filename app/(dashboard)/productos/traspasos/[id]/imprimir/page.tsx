@@ -92,7 +92,7 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
           <div style={{ textAlign: 'right' }}>
             <h2 className="invoice-title">REMISIÓN DE TRASPASO</h2>
             <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#334155' }}>
-              Folio: #TR-{transfer.id.slice(0, 8).toUpperCase()}
+              Folio: #{transfer.folio || "TR-" + transfer.id.slice(0, 8).toUpperCase()}
             </div>
             <div style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.5rem' }}>
               Fecha Emisión: {new Date(transfer.createdAt).toLocaleString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -183,7 +183,7 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
               <h4 style={{ margin: '0 0 0.25rem 0', color: '#0f172a', fontSize: '1rem' }}>Verificación Interna</h4>
               <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>
                 Escanea el código QR o ingresa a <strong>clientes.pulpos.com</strong> con el folio:<br/>
-                <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: primaryColor, letterSpacing: '1px' }}>TR-{transfer.id.slice(0, 8).toUpperCase()}</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: primaryColor, letterSpacing: '1px' }}>{transfer.folio || "TR-" + transfer.id.slice(0, 8).toUpperCase()}</span>
               </p>
             </div>
           </div>

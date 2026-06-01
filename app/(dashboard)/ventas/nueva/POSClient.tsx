@@ -584,7 +584,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
       let saleId: string | undefined;
 
       if (mode === 'QUOTE') {
-        const quote = await createQuote(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null);
+        const quote = await createQuote(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null, loadedQuoteId || undefined);
       } else if (mode === 'CONSIGNMENT') {
         const consignment = await createConsignment(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null);
       } else {
@@ -642,6 +642,8 @@ export default function POSClient({ products: initialProducts, customers, suppli
       setTipAmount(0);
       setPointsRedeemed(0);
       setManualDiscountValue('');
+      setLoadedQuoteId(null);
+      setLoadedConsignmentId(null);
       setIsProcessing(false);
 
       const isAutoPrint = impresorasConfig.printAutomatically === 'true' || impresorasConfig.printAutomatically === true;

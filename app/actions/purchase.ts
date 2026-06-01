@@ -44,8 +44,12 @@ export async function createPurchase(
       });
     }
 
+    const { getNextFolio } = await import('./folios');
+    const folio = await getNextFolio(branch.id, 'purchase', tx);
+
     const purchase = await tx.purchase.create({
       data: {
+        folio,
         total,
         paymentMethod,
         supplierId,
