@@ -17,9 +17,13 @@ export default async function NuevoTraspasoPage() {
     );
   }
   
-  // All branches except the current one (for destination selection)
+  // All branches except the current one for this tenant (for destination selection)
   const branches = await prisma.branch.findMany({
-    where: { NOT: { id: branch?.id || '' } }
+    where: { 
+      tenantId: branch?.tenantId,
+      NOT: { id: branch?.id || '' },
+      isActive: true
+    }
   });
 
   // Load origin inventory (Active branch)

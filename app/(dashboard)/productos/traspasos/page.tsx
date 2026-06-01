@@ -11,12 +11,16 @@ export const dynamic = 'force-dynamic';
 
 export default async function Page() {
   const branch = await getActiveBranch();
-  const whereClause = branch.id === 'GLOBAL' ? {} : { 
-    OR: [
-      { branchId: branch.id },
-      { toBranchId: branch.id }
-    ]
-  };
+  if (!branch || !branch.tenantId) return <div>No hay sucursal seleccionada.</div>;
+
+  const whereClause = branch.id === 'GLOBAL' 
+    ? { branch: { tenantId: branch.tenantId } }
+    : { 
+        OR: [
+          { branchId: branch.id },
+          { toBranchId: branch.id }
+        ]
+      };
 
   const data = await prisma.transfer.findMany({ 
     where: whereClause,

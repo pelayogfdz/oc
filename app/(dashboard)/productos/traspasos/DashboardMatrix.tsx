@@ -1,11 +1,25 @@
 import { prisma } from "@/lib/prisma";
 
 export default async function DashboardMatrix({ activeBranch }: { activeBranch: any }) {
+  if (!activeBranch || !activeBranch.tenantId) return null;
+
   const branches = await prisma.branch.findMany({
+    where: { 
+      tenantId: activeBranch.tenantId,
+      isActive: true
+    },
     orderBy: { name: 'asc' }
   });
 
+  const branchIds = branches.map(b => b.id);
+
   const transfers = await prisma.transfer.findMany({
+    where: {
+      OR: [
+        { branchId: { in: branchIds } },
+        { toBranchId: { in: branchIds } }
+      ]
+    },
     select: {
       id: true,
       status: true,
@@ -15,7 +29,10 @@ export default async function DashboardMatrix({ activeBranch }: { activeBranch: 
   });
 
   const purchaseReqs = await prisma.purchaseRequest.findMany({
-    where: { status: 'PENDING' },
+    where: { 
+      status: 'PENDING',
+      branchId: { in: branchIds }
+    },
     select: {
       id: true,
       branchId: true

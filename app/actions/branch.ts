@@ -34,6 +34,20 @@ export async function createBranch(formData: FormData) {
 }
 
 export async function updateBranch(id: string, name: string, location: string, facturapiLiveKey?: string, facturapiTestKey?: string, lat?: number, lng?: number, radius?: number) {
+  const sessionCookie = (await cookies()).get('session')?.value;
+  const session = await decrypt(sessionCookie);
+  if (!session || !session.tenantId) {
+    throw new Error('Unauthorized');
+  }
+
+  // Verificar pertenencia al tenant
+  const branch = await prisma.branch.findFirst({
+    where: { id, tenantId: session.tenantId }
+  });
+  if (!branch) {
+    throw new Error('Sucursal no encontrada');
+  }
+
   await prisma.branch.update({
     where: { id },
     data: { name, location }
@@ -72,11 +86,20 @@ export async function updateBranch(id: string, name: string, location: string, f
 }
 
 export async function deleteBranch(id: string) {
-  // En lugar de borrar la sucursal y huérfanos/perder inventario (Hard Delete),
-  // Hacemos un Soft Delete cambiando el estado a inactivo.
-  // De este modo el inventario no se pierde y los reportes históricos siguen 
-  // relacionando ventas pasadas a la sucursal desactivada.
-  
+  const sessionCookie = (await cookies()).get('session')?.value;
+  const session = await decrypt(sessionCookie);
+  if (!session || !session.tenantId) {
+    throw new Error('Unauthorized');
+  }
+
+  // Verificar pertenencia al tenant
+  const branch = await prisma.branch.findFirst({
+    where: { id, tenantId: session.tenantId }
+  });
+  if (!branch) {
+    throw new Error('Sucursal no encontrada');
+  }
+
   await prisma.branch.update({
     where: { id },
     data: { isActive: false }

@@ -1,37 +1,23 @@
-import { getActiveBranch } from "@/app/actions/auth";
+import { getActiveBranch, getSession } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
-import { Store, Plus, MapPin, Trash2 } from 'lucide-react';
-import { revalidatePath } from "next/cache";
-
-async function createBranch(formData: FormData) {
-  'use server';
-  const name = formData.get('name') as string;
-  const location = formData.get('location') as string;
-  
-  await prisma.branch.create({
-    data: {
-      name,
-      location,
-      settings: {
-        create: {
-          taxIVA: 16.0,
-          currencySymbol: '$',
-          autoCloseCash: false
-        }
-      }
-    }
-  });
-  
-  revalidatePath('/preferencias/sucursales');
-}
+import { Store, Plus } from 'lucide-react';
+import { redirect } from "next/navigation";
+import { createBranch } from "@/app/actions/branch";
 
 import BranchClient from './BranchClient';
 
 export default async function SucursalesPage() {
+  const session = await getSession();
+  if (!session || !session.tenantId) {
+    return redirect('/login');
+  }
+
   const currentBranch = await getActiveBranch();
-  // An ADMIN should view all branches across the company. Since MVP implies 1 tenant, we query all.
   const branches = await prisma.branch.findMany({
-    where: { isActive: true },
+    where: { 
+      isActive: true,
+      tenantId: session.tenantId
+    },
     include: { 
       _count: { select: { users: true, products: true } },
       settings: true,
