@@ -153,6 +153,8 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
   const [isEditing, setIsEditing] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('branches');
+  const [cloneVersion, setCloneVersion] = useState(0);
+  const [clonedFromName, setClonedFromName] = useState<string | null>(null);
   
   // Branches list state
   const [branchesList, setBranchesList] = useState(branches);
@@ -280,11 +282,14 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
     setSchedule(defaultSchedule);
     setSelectedHrLocations([]);
     setSelectedBranchId('');
+    setClonedFromName(null);
   };
 
   const cloneUserPermissions = (user: any) => {
     setIsEditing(true);
     setEditingUser(null); // Es un NUEVO usuario con la misma firma de alta
+    setCloneVersion(prev => prev + 1);
+    setClonedFromName(user.name);
     setActiveTab('branches');
     setFaceDescriptor('');
     setBaselinePhoto('');
@@ -335,6 +340,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
   const openEditUser = (user: any) => {
     setIsEditing(true);
     setEditingUser(user);
+    setClonedFromName(null);
     setActiveTab('branches');
     setFaceDescriptor(user.faceDescriptor || '');
     setBaselinePhoto(user.baselinePhoto || '');
@@ -574,24 +580,74 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                 <button 
                   type="button"
                   onClick={() => cloneUserPermissions(u)} 
-                  title="Clonar Permisos"
-                  style={{ backgroundColor: 'transparent', border: 'none', cursor: 'pointer', color: '#0ea5e9', marginRight: '1rem' }}
+                  style={{ 
+                    backgroundColor: 'rgba(14, 165, 233, 0.1)', 
+                    border: 'none', 
+                    borderRadius: '6px',
+                    padding: '0.4rem 0.6rem',
+                    cursor: 'pointer', 
+                    color: '#0284c7', 
+                    marginRight: '0.5rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(14, 165, 233, 0.2)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(14, 165, 233, 0.1)' }}
                 >
-                  <Copy size={18} />
-                </button>
-                <button onClick={() => {
-                    openEditUser(u);
-                    // scroll to form
-                    document.getElementById('user-form')?.scrollIntoView({ behavior: 'smooth' });
-                }} style={{ backgroundColor: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--pulpos-primary)', marginRight: '1rem' }}>
-                  <Edit2 size={18} />
+                  <Copy size={14} /> Clonar
                 </button>
                 <button 
+                  type="button"
+                  onClick={() => {
+                    openEditUser(u);
+                    document.getElementById('user-form')?.scrollIntoView({ behavior: 'smooth' });
+                  }} 
+                  style={{ 
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)', 
+                    border: 'none', 
+                    borderRadius: '6px',
+                    padding: '0.4rem 0.6rem',
+                    cursor: 'pointer', 
+                    color: '#4f46e5', 
+                    marginRight: '0.5rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.2)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.1)' }}
+                >
+                  <Edit2 size={14} /> Editar
+                </button>
+                <button 
+                  type="button"
                   onClick={() => handleDelete(u.id)} 
                   disabled={isProtected} 
-                  style={{ backgroundColor: 'transparent', border: 'none', cursor: isProtected ? 'not-allowed' : 'pointer', color: isProtected ? '#cbd5e1' : '#ef4444' }}
+                  style={{ 
+                    backgroundColor: isProtected ? '#f1f5f9' : 'rgba(239, 68, 68, 0.1)', 
+                    border: 'none', 
+                    borderRadius: '6px',
+                    padding: '0.4rem 0.6rem',
+                    cursor: isProtected ? 'not-allowed' : 'pointer', 
+                    color: isProtected ? '#cbd5e1' : '#dc2626', 
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => { if (!isProtected) e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)' }}
+                  onMouseLeave={(e) => { if (!isProtected) e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)' }}
                 >
-                  <Trash2 size={18} />
+                  <Trash2 size={14} /> Eliminar
                 </button>
               </td>
             </tr>
@@ -638,7 +694,50 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
           ))}
         </div>
 
-        <form key={editingUser?.id || 'new_user'} onSubmit={handleSubmit}>
+        {clonedFromName && (
+          <div style={{ 
+            backgroundColor: '#eff6ff', 
+            border: '1px solid #bfdbfe', 
+            borderRadius: '8px', 
+            padding: '1rem', 
+            marginBottom: '1.5rem', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            color: '#1e40af',
+            fontSize: '0.9rem',
+            boxShadow: '0 2px 4px rgba(59, 130, 246, 0.05)'
+          }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Copy size={16} style={{ color: '#2563eb' }} />
+              <span>Se han copiado únicamente los permisos de <strong>{clonedFromName}</strong>. Los demás campos están vacíos y listos para editar.</span>
+            </span>
+            <button 
+              type="button" 
+              onClick={() => {
+                setClonedFromName(null);
+                setPerms({});
+              }} 
+              style={{ 
+                background: 'rgba(37, 99, 235, 0.1)', 
+                border: 'none', 
+                color: '#2563eb', 
+                cursor: 'pointer', 
+                fontSize: '0.75rem', 
+                fontWeight: 'bold',
+                padding: '0.25rem 0.75rem',
+                borderRadius: '4px',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.2)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.1)' }}
+            >
+              Limpiar Permisos
+            </button>
+          </div>
+        )}
+
+        <form key={editingUser?.id || `new_user_${cloneVersion}`} onSubmit={handleSubmit}>
           
           {/* TAB 1: BÁSICOS Y PERMISOS */}
           <div style={{ display: (activeTab === 'basics' || activeTab.startsWith('branches') || dynamicModules.map(m=>m.id).includes(activeTab)) ? 'block' : 'none' }}>

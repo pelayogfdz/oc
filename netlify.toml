@@ -1,9 +1,5 @@
 [build]
   command = "npm run build"
-  publish = ".next"
-
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
 
 [functions]
   # Configures all functions to include the Prisma engine
@@ -23,5 +19,3 @@
   for = "/*"
   [headers.values]
     Clear-Site-Data = "\"cache\""
-
-# Trigger build for OfficeCity - v6

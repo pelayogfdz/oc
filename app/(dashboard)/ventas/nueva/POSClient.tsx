@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star } from 'lucide-react';
+import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star, X } from 'lucide-react';
 import { createSale } from '@/app/actions/sale';
 import { getLoyaltySettings } from '@/app/actions/loyalty';
 import { createQuote, getQuoteForPOS, createQuickProductsForQuote } from '@/app/actions/quote';
@@ -17,6 +17,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
   const { isOnline, pushOfflineSale } = useOfflineSync();
   const [cart, setCart] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isMobileSearchActive, setIsMobileSearchActive] = useState(false);
   const [priceList, setPriceList] = useState('price');
   
   const initialCustomer = initialCustomerId ? customers.find(c => c.id === initialCustomerId) : null;
@@ -316,6 +317,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
       setSelectedProductForVariant(product);
     } else {
       addToCart(product);
+      setIsMobileSearchActive(false); // Close search overlay on mobile
     }
   }, [addToCart]);
 
@@ -670,6 +672,39 @@ export default function POSClient({ products: initialProducts, customers, suppli
 
   return (
     <div className="pos-layout">
+      <style>{`
+        .mobile-only {
+          display: none !important;
+        }
+        @media (max-width: 768px) {
+          .mobile-only {
+            display: flex !important;
+          }
+          .desktop-only {
+            display: none !important;
+          }
+          .pos-products-column {
+            display: ${isMobileSearchActive ? 'flex !important' : 'none !important'};
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            z-index: 1000 !important;
+            background-color: white !important;
+            padding: 1rem !important;
+            flex-direction: column !important;
+            overflow-y: auto !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+            border: none !important;
+          }
+          .pos-cart-column {
+            display: ${isMobileSearchActive ? 'none !important' : 'flex !important'};
+            margin-top: 0 !important;
+          }
+        }
+      `}</style>
       {showScanner && (
         <BarcodeScannerModal 
           onScan={(decodedText) => {
@@ -680,7 +715,45 @@ export default function POSClient({ products: initialProducts, customers, suppli
         />
       )}
       {/* Left: Products */}
-      <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <div className="card pos-products-column" style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        
+        {/* Mobile-Only Search Header */}
+        <div 
+          className="mobile-only"
+          style={{ 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            marginBottom: '1.25rem', 
+            paddingBottom: '0.75rem', 
+            borderBottom: '1px solid #e2e8f0',
+            width: '100%' 
+          }}
+        >
+          <span style={{ fontSize: '1.2rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e293b' }}>
+            <Search size={20} color="var(--pulpos-primary)" /> Buscar productos
+          </span>
+          <button 
+            type="button"
+            onClick={() => setIsMobileSearchActive(false)}
+            style={{ 
+              background: '#f1f5f9', 
+              border: 'none', 
+              borderRadius: '50%', 
+              width: '32px', 
+              height: '32px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              cursor: 'pointer',
+              color: '#64748b',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#e2e8f0' }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9' }}
+          >
+            <X size={18} />
+          </button>
+        </div>
         {/* Toolbar and Always-Visible Filters */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           {/* Main Search Bar */}
@@ -689,7 +762,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
               <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
               <input 
                 type="text" 
-                placeholder="Buscar por nombre, SKU o código de barras..." 
+                placeholder={isMobileSearchActive ? "Buscar Productos" : "Buscar por nombre, SKU o código de barras..."} 
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 style={{ 
@@ -824,7 +897,52 @@ export default function POSClient({ products: initialProducts, customers, suppli
       </div>
 
       {/* Right: Cart */}
-      <div className="card pos-cart">
+      <div className="card pos-cart pos-cart-column">
+        
+        {/* Mobile-Only Search Trigger */}
+        <div 
+          className="mobile-only"
+          onClick={() => setIsMobileSearchActive(true)}
+          style={{ 
+            position: 'relative', 
+            marginBottom: '1rem', 
+            cursor: 'pointer',
+            backgroundColor: 'white',
+            border: '1px solid #cbd5e1',
+            borderRadius: '8px',
+            padding: '0.75rem 1rem 0.75rem 2.5rem',
+            alignItems: 'center',
+            color: '#94a3b8',
+            fontSize: '1rem',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+            width: '100%'
+          }}
+        >
+          <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+          <span>Buscar productos...</span>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMobileSearchActive(true);
+              setShowScanner(true);
+            }}
+            style={{
+              position: 'absolute',
+              right: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--pulpos-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '4px'
+            }}
+          >
+            <Camera size={20} />
+          </button>
+        </div>
         
         {/* Ticket Config */}
         <div style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>
@@ -1473,6 +1591,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                   onClick={() => {
                     addToCart(selectedProductForVariant, v);
                     setSelectedProductForVariant(null);
+                    setIsMobileSearchActive(false); // Close search overlay on mobile
                   }}
                   style={{
                     display: 'flex',
