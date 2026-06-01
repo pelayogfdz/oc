@@ -12,7 +12,7 @@ export async function GET(request: Request) {
       (
         <div
           style={{
-            fontSize: size * 0.4,
+            fontSize: size * 0.6,
             background: '#8b5cf6',
             width: '100%',
             height: '100%',
@@ -20,11 +20,11 @@ export async function GET(request: Request) {
             alignItems: 'center',
             justifyContent: 'center',
             color: 'white',
-            fontWeight: 800,
-            borderRadius: '20%',
+            fontWeight: 900,
+            borderRadius: '22%',
           }}
         >
-          CP
+          C
         </div>
       ),
       {

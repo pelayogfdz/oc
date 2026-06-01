@@ -18,7 +18,7 @@ import type { Metadata, Viewport } from "next";
 export const metadata: Metadata = {
   title: "CAANMA PRO",
   description: "CAANMA ERP - Desktop Offline POS",
-  manifest: "/manifest.json",
+  manifest: "/manifest.json?v=6",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
