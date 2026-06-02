@@ -848,15 +848,16 @@ export async function getInventoryMovementReport(
   });
   const tenantBranchIds = tenantBranches.map(b => b.id);
   
-  let branchCondition: any = {};
+  let branchCondition: any = branch.id === 'GLOBAL' 
+    ? { branchId: { in: tenantBranchIds } } 
+    : { branchId: branch.id };
+    
   if (branchIdFilter && branchIdFilter !== 'ALL') {
     if (tenantBranchIds.includes(branchIdFilter)) {
       branchCondition = { branchId: branchIdFilter };
+    } else {
+      branchCondition = { branchId: { in: tenantBranchIds } };
     }
-  } else if (branch.id !== 'GLOBAL') {
-    branchCondition = { branchId: branch.id };
-  } else {
-    branchCondition = { branchId: { in: tenantBranchIds } };
   }
 
   const typeCondition = (typeFilter && typeFilter !== 'ALL') ? { type: typeFilter } : {};

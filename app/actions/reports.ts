@@ -1,19 +1,44 @@
 'use server';
 import { prisma } from "@/lib/prisma";
+import { getActiveBranch, getSession } from "./auth";
 
 export async function getDashboardMetrics(branchId?: string) {
   try {
+    const session = await getSession();
+    const branch = await getActiveBranch();
+    if (!branch) throw new Error('Unauthorized');
+
+    const tenantId = session?.tenantId || branch.tenantId;
+    if (!tenantId) throw new Error('Unauthorized: Tenant context missing');
+
+    const tenantBranches = await prisma.branch.findMany({
+      where: { tenantId, isActive: true },
+      select: { id: true }
+    });
+    const tenantBranchIds = tenantBranches.map(b => b.id);
+
+    let resolvedBranchFilter: any = {};
+    if (branchId && branchId !== 'ALL') {
+      if (tenantBranchIds.includes(branchId)) {
+        resolvedBranchFilter = { branchId };
+      } else {
+        resolvedBranchFilter = { branchId: { in: tenantBranchIds } };
+      }
+    } else if (branch.id !== 'GLOBAL') {
+      resolvedBranchFilter = { branchId: branch.id };
+    } else {
+      resolvedBranchFilter = { branchId: { in: tenantBranchIds } };
+    }
+
     const today = new Date();
     today.setHours(0,0,0,0);
-
-    const branchFilter = branchId ? { branchId } : {};
 
     // Ventas de hoy
     const todaySales = await prisma.sale.findMany({
       where: {
         createdAt: { gte: today },
         status: { not: "CANCELLED" },
-        ...branchFilter
+        ...resolvedBranchFilter
       },
       select: { total: true }
     });
@@ -26,7 +51,7 @@ export async function getDashboardMetrics(branchId?: string) {
       where: {
         isActive: true,
         stock: { gt: 0 },
-        ...branchFilter
+        ...resolvedBranchFilter
       },
       select: { stock: true, cost: true }
     });
