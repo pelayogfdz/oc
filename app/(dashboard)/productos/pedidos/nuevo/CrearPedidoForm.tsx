@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Trash2, Save, Wand2, Search, Filter, Plus, Minus, FileText, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Trash2, Save, Wand2, Search, Filter, Plus, Minus, FileText, CheckCircle2, AlertTriangle, ShoppingBag, Camera, ArrowDownUp } from 'lucide-react';
 import { createPurchaseOrder } from '@/app/actions/pedidos';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
+import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 
 export default function CrearPedidoForm({ suppliers, products, pendingRequests, branchId }: { suppliers: any[], products: any[], pendingRequests?: any[], branchId: string }) {
   const router = useRouter();
@@ -21,9 +22,9 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
 
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
-  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const [filterCategory, setFilterCategory] = useState('ALL');
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const [availableProducts, setAvailableProducts] = useState(products || []);
   const [availableSuppliers, setAvailableSuppliers] = useState(suppliers || []);
@@ -195,132 +196,107 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
         )}
       </div>
 
-      {/* TOP CONFIGURATION ROW & SEARCH */}
-      <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem', position: 'relative' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.5rem' }}>Proveedor (Opcional)</label>
-            <select className="input" value={supplierId} onChange={(e) => setSupplierId(e.target.value)} style={{ width: '100%', fontSize: '0.9rem', height: '42px', borderRadius: '8px' }}>
-              <option value="">-- Público en General / Sin Proveedor --</option>
-              {availableSuppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.5rem' }}>Notas del Pedido</label>
-            <input type="text" className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Tiempos de entrega, condiciones comerciales, referencias..." style={{ width: '100%', fontSize: '0.9rem', height: '42px', borderRadius: '8px' }} />
-          </div>
-        </div>
+      {showScanner && (
+        <BarcodeScannerModal 
+          onScan={(decodedText) => {
+            setSearchTerm(decodedText);
+            setShowScanner(false);
+            setIsSearchModalOpen(true);
+          }} 
+          onClose={() => setShowScanner(false)} 
+        />
+      )}
 
-        {/* SEARCH INPUT BAR */}
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', position: 'relative' }}>
-          <div style={{ position: 'relative', flexGrow: 1 }}>
-            <Search size={20} color="#94a3b8" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
-            <input 
-              type="text" 
-              placeholder="Buscar producto por nombre, SKU o código de barras para añadir..." 
-              value={searchTerm}
-              onChange={e => {
-                setSearchTerm(e.target.value);
-                setShowSearchDropdown(true);
-              }}
-              onFocus={() => setShowSearchDropdown(true)}
+      {/* TOP ROW: Filters, Search bar trigger & Supplier configurations */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem', padding: '1rem 0', marginBottom: '1.5rem', width: '100%', flexWrap: 'wrap', borderBottom: '1px solid #e2e8f0' }}>
+        
+        {/* Left Side: Search Trigger & Search filters */}
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap', flex: 1, minWidth: '300px' }}>
+          
+          {/* SEARCH INPUT TRIGGER (opens popup) */}
+          <div style={{ display: 'flex', flexDirection: 'column', width: '280px' }}>
+            <div 
+              onClick={() => setIsSearchModalOpen(true)}
               style={{ 
-                padding: '0.75rem 1rem 0.75rem 2.8rem', 
-                width: '100%', 
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0.65rem 1rem', 
                 borderRadius: '8px', 
                 border: '1px solid #cbd5e1', 
                 backgroundColor: 'white', 
-                fontSize: '1rem',
-                outline: 'none',
-                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)',
-                transition: 'border-color 0.2s'
+                fontSize: '0.95rem',
+                cursor: 'pointer',
+                color: '#94a3b8',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                userSelect: 'none',
+                position: 'relative',
+                height: '40px'
               }}
-            />
-
-            {/* FLOATING SEARCH DROPDOWN */}
-            {showSearchDropdown && searchTerm.trim() !== '' && (
-              <>
-                <div 
-                  onClick={() => setShowSearchDropdown(false)}
-                  style={{ position: 'fixed', inset: 0, zIndex: 40, backgroundColor: 'transparent' }}
-                />
-                <div style={{
+            >
+              <Search size={18} color="#94a3b8" style={{ marginRight: '8px' }} />
+              Buscar por nombre, SKU o código de barras...
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowScanner(true);
+                }}
+                style={{
                   position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  backgroundColor: 'white',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '8px',
-                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-                  zIndex: 50,
-                  maxHeight: '320px',
-                  overflowY: 'auto',
-                  marginTop: '0.5rem'
-                }}>
-                  {filteredProducts.length === 0 ? (
-                    <div style={{ padding: '1.25rem', color: '#64748b', textAlign: 'center', fontSize: '0.95rem' }}>
-                      No se encontraron productos coincidentes
-                    </div>
-                  ) : (
-                    filteredProducts.slice(0, 15).map(p => (
-                      <div
-                        key={p.id}
-                        onClick={() => {
-                          handleAddItem(p);
-                          setSearchTerm('');
-                          setShowSearchDropdown(false);
-                        }}
-                        style={{
-                          padding: '0.75rem 1.25rem',
-                          borderBottom: '1px solid #f1f5f9',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          transition: 'background-color 0.15s'
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                      >
-                        <div>
-                          <div style={{ fontWeight: '600', fontSize: '0.95rem', color: '#1e293b' }}>{p.name}</div>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.2rem' }}>
-                            SKU: {p.sku || 'S/N'} | Stock actual: {p.stock}
-                          </div>
-                        </div>
-                        <div style={{ fontWeight: 'bold', color: '#8b5cf6', fontSize: '0.95rem' }}>
-                          Costo: ${p.cost ? p.cost.toFixed(2) : '0.00'}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </>
-            )}
+                  right: '12px',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#8b5cf6',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <span style={{ border: '1px solid #a78bfa', borderRadius: '4px', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Camera size={14} color="#8b5cf6" />
+                </span>
+              </button>
+            </div>
           </div>
-          
-          <select 
-            value={filterCategory} 
-            onChange={e => setFilterCategory(e.target.value)} 
-            style={{ padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', color: '#334155', backgroundColor: 'white', minWidth: '160px', fontSize: '0.95rem', outline: 'none', height: '46px' }}
-          >
-            <option value="ALL">Todas las Categorías</option>
-            {Array.from(new Set(availableProducts.map(p => p.category).filter(Boolean))).map((cat: any) => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
 
+          {/* Category selector */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', alignItems: 'flex-start' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>Categoría</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <select 
+                value={filterCategory} 
+                onChange={e => setFilterCategory(e.target.value)} 
+                style={{ 
+                  border: 'none', 
+                  background: 'transparent', 
+                  outline: 'none', 
+                  fontSize: '0.95rem', 
+                  fontWeight: 'bold', 
+                  color: '#1e293b', 
+                  cursor: 'pointer',
+                  height: '40px',
+                  paddingRight: '0.5rem'
+                }}
+              >
+                <option value="ALL">Todas</option>
+                {Array.from(new Set(availableProducts.map(p => p.category).filter(Boolean))).map((cat: any) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Autocompletar Faltantes Button */}
           <button 
             type="button" 
             onClick={generateSuggested} 
             style={{ 
               display: 'flex', alignItems: 'center', gap: '0.5rem', 
-              padding: '0.75rem 1.25rem', borderRadius: '8px', 
+              padding: '0.5rem 1rem', borderRadius: '8px', 
               border: '1px solid #8b5cf6', 
               backgroundColor: '#f3e8ff', color: '#8b5cf6', 
-              fontWeight: 'bold', cursor: 'pointer', fontSize: '0.95rem',
-              height: '46px',
+              fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem',
+              height: '40px',
               transition: 'background-color 0.2s'
             }}
             onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e9d5ff'}
@@ -329,84 +305,23 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
             <Wand2 size={16} /> Autocompletar Faltantes
           </button>
         </div>
+
+        {/* Right Side: Supplier info aligned with the sidebar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '380px', justifyContent: 'flex-end' }}>
+          <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#475569' }}>Proveedor</span>
+          <select 
+            value={supplierId} 
+            onChange={(e) => setSupplierId(e.target.value)} 
+            style={{ width: '280px', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', height: '40px' }}
+          >
+            <option value="">-- Público en General / Sin Proveedor --</option>
+            {availableSuppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+
       </div>
 
-      {/* HORIZONTAL BROWSER TABS FOR ORDERS ON HOLD */}
-      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1.5rem', paddingBottom: '0.5rem' }}>
-        <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b', marginRight: '0.5rem' }}>Pedidos en Espera:</span>
-        {onHoldOrders.length === 0 ? (
-          <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>No hay pedidos pendientes</span>
-        ) : (
-          onHoldOrders.map((order) => (
-            <div key={order.id} style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-              <button
-                type="button"
-                onClick={() => handleRestoreOrder(order)}
-                style={{
-                  padding: '0.4rem 0.8rem',
-                  border: 'none',
-                  backgroundColor: 'white',
-                  color: '#475569',
-                  fontSize: '0.8rem',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.15s'
-                }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
-                title={`Cargar ${order.name}`}
-              >
-                {order.name}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDeleteOnHold(order.id)}
-                style={{
-                  padding: '0.4rem 0.6rem',
-                  border: 'none',
-                  borderLeft: '1px solid #cbd5e1',
-                  backgroundColor: '#fee2e2',
-                  color: '#ef4444',
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'background-color 0.15s'
-                }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#fecaca'}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = '#fee2e2'}
-                title="Eliminar borrador"
-              >
-                <Trash2 size={12} />
-              </button>
-            </div>
-          ))
-        )}
-        <button 
-          type="button"
-          onClick={handlePutOnHold}
-          style={{
-            padding: '0.4rem 0.8rem',
-            border: '1px dashed #8b5cf6',
-            borderRadius: '6px',
-            backgroundColor: 'transparent',
-            color: '#8b5cf6',
-            fontSize: '0.8rem',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.25rem',
-            marginLeft: 'auto',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f3e8ff'}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-        >
-          ⏸️ Guardar en Espera
-        </button>
-      </div>
+
 
       {/* MAIN TWO-COLUMN BODY LAYOUT */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '1.5rem', alignItems: 'start' }}>
@@ -470,18 +385,12 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
           )}
 
           {/* ORDER ITEMS CART */}
-          <div className="card" style={{ padding: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-              Artículos en el Pedido ({items.length})
-            </h3>
-
+          <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', minHeight: '450px', border: '1px solid #cbd5e1' }}>
             {items.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '4rem 2rem', color: '#94a3b8', border: '2px dashed #e2e8f0', borderRadius: '12px' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📦</div>
-                <div style={{ fontWeight: 'bold', fontSize: '1.05rem', color: '#64748b' }}>No hay artículos en el pedido</div>
-                <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.25rem' }}>
-                  Busca productos en la barra superior o usa el botón de Autocompletar Faltantes.
-                </p>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#94a3b8', padding: '4rem 1rem' }}>
+                <ShoppingBag size={64} color="#cbd5e1" style={{ marginBottom: '1rem' }} />
+                <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#64748b' }}>El ticket está vacío</div>
+                <div style={{ fontSize: '0.9rem', marginTop: '0.5rem', color: '#94a3b8' }}>Escribe en el buscador de arriba para agregar artículos.</div>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -587,6 +496,91 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
         {/* RIGHT COLUMN: SUMMARY & SUBMIT (30% width) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
+          {/* TABS (On-Hold drafts visual tabs & Pause button) */}
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{
+              padding: '0.5rem 1rem',
+              border: '1px solid #cbd5e1',
+              borderRadius: '8px',
+              backgroundColor: 'white',
+              color: '#334155',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              userSelect: 'none'
+            }}>
+              Pedido Activo
+            </div>
+            {onHoldOrders.map((order) => (
+              <div key={order.id} style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'white' }}>
+                <button
+                  type="button"
+                  onClick={() => handleRestoreOrder(order)}
+                  style={{
+                    padding: '0.5rem 0.8rem',
+                    border: 'none',
+                    backgroundColor: 'white',
+                    color: '#475569',
+                    fontSize: '0.9rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {order.name}
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => handleDeleteOnHold(order.id)}
+                  style={{ border: 'none', borderLeft: '1px solid #cbd5e1', padding: '0.5rem', backgroundColor: '#fee2e2', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            ))}
+
+            <button 
+              type="button"
+              onClick={handlePutOnHold}
+              style={{
+                padding: '0.5rem 1.2rem',
+                border: '1px dashed #8b5cf6',
+                borderRadius: '8px',
+                backgroundColor: 'white',
+                color: '#8b5cf6',
+                fontSize: '0.9rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.35rem',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#f3e8ff';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = 'white';
+              }}
+            >
+              <span style={{ 
+                backgroundColor: '#8b5cf6', 
+                color: 'white', 
+                borderRadius: '4px', 
+                width: '16px', 
+                height: '16px', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                fontSize: '0.65rem',
+                fontWeight: 'bold',
+                lineHeight: 1
+              }}>
+                ⏸
+              </span>
+              Pausar Pedido
+            </button>
+          </div>
+
           {/* Notes area */}
           <div className="card" style={{ padding: '1.25rem' }}>
             <h4 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -608,8 +602,8 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
           <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
             
             <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Pedido</div>
-              <div style={{ fontSize: '2.4rem', fontWeight: '800', color: '#1e293b', marginTop: '0.5rem' }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>TOTAL PEDIDO</div>
+              <div style={{ fontSize: '2.8rem', fontWeight: '900', color: '#1e293b', marginTop: '0.25rem' }}>
                 ${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
               </div>
             </div>
@@ -622,13 +616,13 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
                 width: '100%',
                 padding: '1.1rem',
                 borderRadius: '10px',
-                backgroundColor: '#a78bfa', // Premium lavender
+                backgroundColor: '#a78bfa',
                 color: 'white',
                 border: 'none',
-                fontSize: '1.1rem',
+                fontSize: '1.2rem',
                 fontWeight: '800',
                 cursor: (isSubmitting || items.length === 0) ? 'not-allowed' : 'pointer',
-                boxShadow: '0 4px 14px rgba(167, 139, 250, 0.35)',
+                boxShadow: '0 4px 14px rgba(167, 139, 250, 0.4)',
                 transition: 'background-color 0.2s, transform 0.1s',
                 opacity: (isSubmitting || items.length === 0) ? 0.6 : 1,
                 display: 'flex',
@@ -657,6 +651,95 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
 
       </div>
 
+      {/* PRODUCT SEARCH MODAL */}
+      {isSearchModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div 
+            onClick={() => {
+              setIsSearchModalOpen(false);
+              setSearchTerm('');
+            }}
+            style={{ position: 'absolute', inset: 0 }}
+          />
+          <div className="card" style={{ position: 'relative', width: '700px', maxWidth: '95%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', padding: '1.5rem', backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', zIndex: 10000 }}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', margin: 0, color: '#1e293b' }}>Buscar Artículos</h3>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setIsSearchModalOpen(false);
+                  setSearchTerm('');
+                }} 
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: '1.25rem', fontWeight: 'bold' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ position: 'relative', marginBottom: '1rem' }}>
+              <Search size={20} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input 
+                type="text" 
+                autoFocus
+                placeholder="Escribe el nombre, SKU o código de barras del producto..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1.05rem', outline: 'none' }}
+              />
+            </div>
+
+            {/* Results list */}
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', minHeight: '300px' }}>
+              {filteredProducts.length === 0 ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No se encontraron productos coincidentes</div>
+              ) : (
+                filteredProducts.slice(0, 30).map((p: any) => {
+                  const inCart = items.some(i => i.productId === p.id);
+                  return (
+                    <div 
+                      key={p.id}
+                      onClick={() => {
+                        handleAddItem(p);
+                        setSearchTerm('');
+                        setIsSearchModalOpen(false);
+                      }}
+                      style={{
+                        padding: '0.75rem 1rem',
+                        borderBottom: '1px solid #f1f5f9',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        borderRadius: '6px',
+                        transition: 'background-color 0.15s'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b' }}>{p.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
+                          SKU: {p.sku || 'N/A'} | Stock: <span style={{ color: p.stock > 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>{p.stock}</span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ fontWeight: 'bold', color: '#8b5cf6', fontSize: '1rem' }}>
+                          Costo: ${p.cost ? p.cost.toFixed(2) : '0.00'}
+                        </div>
+                        {inCart && (
+                          <span style={{ fontSize: '0.75rem', backgroundColor: '#e9d5ff', color: '#6b21a8', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>Agregado</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

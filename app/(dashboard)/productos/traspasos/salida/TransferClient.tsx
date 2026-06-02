@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { requestTransfer, dispatchDirectTransfer } from '@/app/actions/transfer';
 import { useRouter } from 'next/navigation';
-import { Truck, ArrowRight, Trash2, Search, Plus, Minus, FileText, CheckCircle2 } from 'lucide-react';
+import { Truck, ArrowRight, Trash2, Search, Plus, Minus, FileText, CheckCircle2, ShoppingBag, Camera, ArrowDownUp } from 'lucide-react';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
+import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 
 export default function TransferClient({ originBranchId, originBranchName, otherBranches: initialOtherBranches, inventory: initialInventory, ventasConfig = {}, isDirectDispatch = false }: any) {
   const router = useRouter();
@@ -13,7 +14,8 @@ export default function TransferClient({ originBranchId, originBranchName, other
   const [reason, setReason] = useState(isDirectDispatch ? 'Traspaso Directo' : 'Reabastecimiento');
   const [searchTerm, setSearchTerm] = useState('');
   const [stockFilter, setStockFilter] = useState('ALL');
-  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   
   const [inventory, setInventory] = useState(initialInventory || []);
   const [otherBranches, setOtherBranches] = useState(initialOtherBranches || []);
@@ -239,241 +241,138 @@ export default function TransferClient({ originBranchId, originBranchName, other
         )}
       </div>
 
-      {/* TOP CONFIGURATION ROW & SEARCH */}
-      <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem', position: 'relative' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+      {showScanner && (
+        <BarcodeScannerModal 
+          onScan={(decodedText) => {
+            setSearchTerm(decodedText);
+            setShowScanner(false);
+            setIsSearchModalOpen(true);
+          }} 
+          onClose={() => setShowScanner(false)} 
+        />
+      )}
+
+      {/* TOP ROW: Filters, Search bar trigger & Branch configurations */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem', padding: '1rem 0', marginBottom: '1.5rem', width: '100%', flexWrap: 'wrap', borderBottom: '1px solid #e2e8f0' }}>
+        
+        {/* Left Side: Search Trigger & Stock Filter */}
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap', flex: 1, minWidth: '300px' }}>
           
-          {/* Branch configuration visuals */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.5rem' }}>Sucursal de Origen</label>
-              <div style={{ padding: '0.65rem 0.75rem', backgroundColor: '#f1f5f9', borderRadius: '8px', border: '1px solid #cbd5e1', color: '#475569', fontWeight: '600', fontSize: '0.9rem', minHeight: '40px', display: 'flex', alignItems: 'center' }}>
-                {isDirectDispatch ? originBranchName : 'Sucursal de Destino'}
-              </div>
-            </div>
-            
-            <div style={{ alignSelf: 'flex-end', paddingBottom: '0.5rem', color: '#a78bfa' }}>
-              <ArrowRight size={24} />
-            </div>
-
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.5rem' }}>Sucursal de Destino <span style={{ color: 'red' }}>*</span></label>
-              <select value={targetBranchId} onChange={e => setTargetBranchId(e.target.value)} style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontWeight: 'bold', fontSize: '0.9rem', height: '42px', outline: 'none' }}>
-                <option value="">-- Seleccionar Destino --</option>
-                {otherBranches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.5rem' }}>Motivo / Justificación</label>
-            <input type="text" value={reason} onChange={e => setReason(e.target.value)} style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', height: '42px', outline: 'none' }} placeholder="Ej. Reabastecimiento, Devolución..." />
-          </div>
-        </div>
-
-        {/* SEARCH INPUT BAR */}
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', position: 'relative' }}>
-          <div style={{ position: 'relative', flexGrow: 1 }}>
-            <Search size={20} color="#94a3b8" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
-            <input 
-              type="text" 
-              placeholder="Buscar producto por nombre, SKU o código de barras para añadir..." 
-              value={searchTerm}
-              onChange={e => {
-                setSearchTerm(e.target.value);
-                setShowSearchDropdown(true);
-              }}
-              onFocus={() => setShowSearchDropdown(true)}
+          {/* SEARCH INPUT TRIGGER (opens popup) */}
+          <div style={{ display: 'flex', flexDirection: 'column', width: '280px' }}>
+            <div 
+              onClick={() => setIsSearchModalOpen(true)}
               style={{ 
-                padding: '0.75rem 1rem 0.75rem 2.8rem', 
-                width: '100%', 
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0.65rem 1rem', 
                 borderRadius: '8px', 
                 border: '1px solid #cbd5e1', 
                 backgroundColor: 'white', 
-                fontSize: '1rem',
-                outline: 'none',
-                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)',
-                transition: 'border-color 0.2s'
+                fontSize: '0.95rem',
+                cursor: 'pointer',
+                color: '#94a3b8',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                userSelect: 'none',
+                position: 'relative',
+                height: '40px'
               }}
-            />
-
-            {/* FLOATING SEARCH DROPDOWN */}
-            {showSearchDropdown && searchTerm.trim() !== '' && (
-              <>
-                <div 
-                  onClick={() => setShowSearchDropdown(false)}
-                  style={{ position: 'fixed', inset: 0, zIndex: 40, backgroundColor: 'transparent' }}
-                />
-                <div style={{
+            >
+              <Search size={18} color="#94a3b8" style={{ marginRight: '8px' }} />
+              Buscar por nombre, SKU o código de barras...
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowScanner(true);
+                }}
+                style={{
                   position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  backgroundColor: 'white',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '8px',
-                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-                  zIndex: 50,
-                  maxHeight: '320px',
-                  overflowY: 'auto',
-                  marginTop: '0.5rem'
-                }}>
-                  {displayedProducts.length === 0 ? (
-                    <div style={{ padding: '1.25rem', color: '#64748b', textAlign: 'center', fontSize: '0.95rem' }}>
-                      No se encontraron productos coincidentes
-                    </div>
-                  ) : (
-                    displayedProducts.slice(0, 15).map((p: any) => (
-                      <div
-                        key={p.id}
-                        onClick={() => {
-                          if (ventasConfig.venderSinStock || p.stock > 0 || !isDirectDispatch) {
-                            handleProductClick(p);
-                            setSearchTerm('');
-                            setShowSearchDropdown(false);
-                          } else {
-                            alert('Producto sin stock disponible para traspaso.');
-                          }
-                        }}
-                        style={{
-                          padding: '0.75rem 1.25rem',
-                          borderBottom: '1px solid #f1f5f9',
-                          cursor: (ventasConfig.venderSinStock || p.stock > 0 || !isDirectDispatch) ? 'pointer' : 'not-allowed',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          transition: 'background-color 0.15s',
-                          opacity: (ventasConfig.venderSinStock || p.stock > 0 || !isDirectDispatch) ? 1 : 0.5
-                        }}
-                        onMouseEnter={e => {
-                          if (ventasConfig.venderSinStock || p.stock > 0 || !isDirectDispatch) {
-                            e.currentTarget.style.backgroundColor = '#f8fafc';
-                          }
-                        }}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                      >
-                        <div>
-                          <div style={{ fontWeight: '600', fontSize: '0.95rem', color: '#1e293b' }}>{p.name}</div>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.2rem' }}>
-                            SKU: {p.sku || 'S/N'} | Categoría: {p.category || 'General'}
-                          </div>
-                        </div>
-                        <div style={{ fontWeight: 'bold', color: p.stock > 0 ? '#16a34a' : '#dc2626', fontSize: '0.95rem' }}>
-                          Existencia: {p.stock} pza(s)
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-          
-          <select 
-            value={stockFilter} 
-            onChange={e => setStockFilter(e.target.value)} 
-            style={{ padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', color: '#334155', backgroundColor: 'white', minWidth: '160px', fontSize: '0.95rem', outline: 'none', height: '46px' }}
-          >
-            <option value="ALL">Todas las existencias</option>
-            <option value="WITH_STOCK">Con Stock</option>
-            <option value="WITHOUT_STOCK">Agotados</option>
-          </select>
-        </div>
-      </div>
-
-      {/* HORIZONTAL BROWSER TABS FOR TRANSFERS ON HOLD */}
-      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1.5rem', paddingBottom: '0.5rem' }}>
-        <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b', marginRight: '0.5rem' }}>Traspasos en Espera:</span>
-        {onHoldTransfers.length === 0 ? (
-          <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>No hay traspasos pendientes</span>
-        ) : (
-          onHoldTransfers.map((transfer) => (
-            <div key={transfer.id} style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-              <button
-                type="button"
-                onClick={() => handleRestoreTransfer(transfer)}
-                style={{
-                  padding: '0.4rem 0.8rem',
+                  right: '12px',
+                  background: 'none',
                   border: 'none',
-                  backgroundColor: 'white',
-                  color: '#475569',
-                  fontSize: '0.8rem',
-                  fontWeight: 'bold',
                   cursor: 'pointer',
-                  transition: 'background-color 0.15s'
-                }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
-                title={`Cargar ${transfer.name}`}
-              >
-                {transfer.name}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDeleteOnHold(transfer.id)}
-                style={{
-                  padding: '0.4rem 0.6rem',
-                  border: 'none',
-                  borderLeft: '1px solid #cbd5e1',
-                  backgroundColor: '#fee2e2',
-                  color: '#ef4444',
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
+                  color: '#8b5cf6',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'background-color 0.15s'
+                  alignItems: 'center'
                 }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#fecaca'}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = '#fee2e2'}
-                title="Eliminar borrador"
               >
-                <Trash2 size={12} />
+                <span style={{ border: '1px solid #a78bfa', borderRadius: '4px', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Camera size={14} color="#8b5cf6" />
+                </span>
               </button>
             </div>
-          ))
-        )}
-        <button 
-          type="button"
-          onClick={handlePutOnHold}
-          style={{
-            padding: '0.4rem 0.8rem',
-            border: '1px dashed #8b5cf6',
-            borderRadius: '6px',
-            backgroundColor: 'transparent',
-            color: '#8b5cf6',
-            fontSize: '0.8rem',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.25rem',
-            marginLeft: 'auto',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f3e8ff'}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-        >
-          ⏸️ Guardar en Espera
-        </button>
+          </div>
+
+          {/* Stock Filter */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', alignItems: 'flex-start' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>Filtrar por Stock</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <select 
+                value={stockFilter} 
+                onChange={e => setStockFilter(e.target.value)} 
+                style={{ 
+                  border: 'none', 
+                  background: 'transparent', 
+                  outline: 'none', 
+                  fontSize: '0.95rem', 
+                  fontWeight: 'bold', 
+                  color: '#1e293b', 
+                  cursor: 'pointer',
+                  height: '40px',
+                  paddingRight: '0.5rem'
+                }}
+              >
+                <option value="ALL">Todas las existencias</option>
+                <option value="WITH_STOCK">Con Stock</option>
+                <option value="WITHOUT_STOCK">Agotados</option>
+              </select>
+              <button 
+                type="button" 
+                onClick={() => setStockFilter('ALL')} 
+                style={{ 
+                  color: '#3b82f6', 
+                  background: 'none', 
+                  border: 'none', 
+                  cursor: 'pointer', 
+                  textDecoration: 'underline', 
+                  fontSize: '0.85rem', 
+                  fontWeight: '500' 
+                }}
+              >
+                Limpiar Filtros
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side: Destination Branch Selector aligned with sidebar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '380px', justifyContent: 'flex-end' }}>
+          <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#475569' }}>Destino</span>
+          <select 
+            value={targetBranchId} 
+            onChange={e => setTargetBranchId(e.target.value)} 
+            style={{ width: '280px', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', fontWeight: 'bold', outline: 'none', height: '40px' }}
+          >
+            <option value="">-- Seleccionar Destino --</option>
+            {otherBranches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
+        </div>
+
       </div>
+
+
 
       {/* MAIN TWO-COLUMN BODY LAYOUT */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '1.5rem', alignItems: 'start' }}>
         
         {/* LEFT COLUMN: LIST OF TRANSFER ITEMS (70% width) */}
-        <div className="card" style={{ padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-            Artículos en este Paquete ({transferItems.length})
-          </h3>
-
+        <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', minHeight: '450px', border: '1px solid #cbd5e1' }}>
           {transferItems.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '4rem 2rem', color: '#94a3b8', border: '2px dashed #e2e8f0', borderRadius: '12px' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚚</div>
-              <div style={{ fontWeight: 'bold', fontSize: '1.05rem', color: '#64748b' }}>No hay artículos en el traspaso</div>
-              <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.25rem' }}>
-                Busca productos en la barra superior para agregarlos al envío.
-              </p>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#94a3b8', padding: '4rem 1rem' }}>
+              <ShoppingBag size={64} color="#cbd5e1" style={{ marginBottom: '1rem' }} />
+              <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#64748b' }}>El ticket está vacío</div>
+              <div style={{ fontSize: '0.9rem', marginTop: '0.5rem', color: '#94a3b8' }}>Escribe en el buscador de arriba para agregar artículos.</div>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -563,6 +462,105 @@ export default function TransferClient({ originBranchId, originBranchName, other
         {/* RIGHT COLUMN: ACTION & SUMMARY SIDEBAR (30% width) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
+          {/* TABS (On-Hold drafts visual tabs & Pause button) */}
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{
+              padding: '0.5rem 1rem',
+              border: '1px solid #cbd5e1',
+              borderRadius: '8px',
+              backgroundColor: 'white',
+              color: '#334155',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              userSelect: 'none'
+            }}>
+              Traspaso Activo
+            </div>
+            {onHoldTransfers.map((transfer) => (
+              <div key={transfer.id} style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'white' }}>
+                <button
+                  type="button"
+                  onClick={() => handleRestoreTransfer(transfer)}
+                  style={{
+                    padding: '0.5rem 0.8rem',
+                    border: 'none',
+                    backgroundColor: 'white',
+                    color: '#475569',
+                    fontSize: '0.9rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {transfer.name}
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => handleDeleteOnHold(transfer.id)}
+                  style={{ border: 'none', borderLeft: '1px solid #cbd5e1', padding: '0.5rem', backgroundColor: '#fee2e2', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            ))}
+
+            <button 
+              type="button"
+              onClick={handlePutOnHold}
+              style={{
+                padding: '0.5rem 1.2rem',
+                border: '1px dashed #8b5cf6',
+                borderRadius: '8px',
+                backgroundColor: 'white',
+                color: '#8b5cf6',
+                fontSize: '0.9rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.35rem',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#f3e8ff';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = 'white';
+              }}
+            >
+              <span style={{ 
+                backgroundColor: '#8b5cf6', 
+                color: 'white', 
+                borderRadius: '4px', 
+                width: '16px', 
+                height: '16px', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                fontSize: '0.65rem',
+                fontWeight: 'bold',
+                lineHeight: 1
+              }}>
+                ⏸
+              </span>
+              Pausar Traspaso
+            </button>
+          </div>
+
+          {/* Branch configuration visuals */}
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.5rem' }}>Sucursal de Origen</label>
+            <div style={{ padding: '0.65rem 0.75rem', backgroundColor: '#f1f5f9', borderRadius: '8px', border: '1px solid #cbd5e1', color: '#475569', fontWeight: '600', fontSize: '0.9rem', minHeight: '40px', display: 'flex', alignItems: 'center' }}>
+              {originBranchName}
+            </div>
+          </div>
+
+          {/* Motivo / Justificación */}
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.5rem' }}>Motivo / Justificación</label>
+            <input type="text" value={reason} onChange={e => setReason(e.target.value)} style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', height: '40px', outline: 'none' }} placeholder="Ej. Reabastecimiento, Devolución..." />
+          </div>
+
           {/* Summary/Instructions Info */}
           <div className="card" style={{ padding: '1.25rem' }}>
             <h4 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -574,8 +572,14 @@ export default function TransferClient({ originBranchId, originBranchName, other
           </div>
 
           {/* Action Execution card */}
-          <div className="card" style={{ padding: '1.5rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-            
+          <div className="card" style={{ padding: '1.5rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Artículos</div>
+              <div style={{ fontSize: '2.8rem', fontWeight: '900', color: '#1e293b', marginTop: '0.25rem' }}>
+                {transferItems.reduce((acc, i) => acc + i.quantity, 0)}
+              </div>
+            </div>
+
             <button 
               type="button"
               onClick={handleSubmit}
@@ -584,13 +588,13 @@ export default function TransferClient({ originBranchId, originBranchName, other
                 width: '100%',
                 padding: '1.1rem',
                 borderRadius: '10px',
-                backgroundColor: '#a78bfa', // Premium lavender
+                backgroundColor: '#a78bfa',
                 color: 'white',
                 border: 'none',
-                fontSize: '1.1rem',
+                fontSize: '1.2rem',
                 fontWeight: '800',
                 cursor: (isProcessing || !targetBranchId || transferItems.length === 0) ? 'not-allowed' : 'pointer',
-                boxShadow: '0 4px 14px rgba(167, 139, 250, 0.35)',
+                boxShadow: '0 4px 14px rgba(167, 139, 250, 0.4)',
                 transition: 'background-color 0.2s, transform 0.1s',
                 opacity: (isProcessing || !targetBranchId || transferItems.length === 0) ? 0.6 : 1,
                 display: 'flex',
@@ -618,6 +622,101 @@ export default function TransferClient({ originBranchId, originBranchName, other
         </div>
 
       </div>
+
+      {/* PRODUCT SEARCH MODAL */}
+      {isSearchModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div 
+            onClick={() => {
+              setIsSearchModalOpen(false);
+              setSearchTerm('');
+            }}
+            style={{ position: 'absolute', inset: 0 }}
+          />
+          <div className="card" style={{ position: 'relative', width: '700px', maxWidth: '95%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', padding: '1.5rem', backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', zIndex: 10000 }}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', margin: 0, color: '#1e293b' }}>Buscar Artículos</h3>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setIsSearchModalOpen(false);
+                  setSearchTerm('');
+                }} 
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: '1.25rem', fontWeight: 'bold' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ position: 'relative', marginBottom: '1rem' }}>
+              <Search size={20} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input 
+                type="text" 
+                autoFocus
+                placeholder="Escribe el nombre, SKU o código de barras del producto..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1.05rem', outline: 'none' }}
+              />
+            </div>
+
+            {/* Results list */}
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', minHeight: '300px' }}>
+              {displayedProducts.length === 0 ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No se encontraron productos coincidentes</div>
+              ) : (
+                displayedProducts.slice(0, 30).map((p: any) => {
+                  const inCart = transferItems.some(i => i.productId === p.id);
+                  const isSelectable = ventasConfig.venderSinStock || p.stock > 0 || !isDirectDispatch;
+                  return (
+                    <div 
+                      key={p.id}
+                      onClick={() => {
+                        if (isSelectable) {
+                          handleProductClick(p);
+                          setSearchTerm('');
+                          setIsSearchModalOpen(false);
+                        } else {
+                          alert('Producto sin stock disponible para traspaso.');
+                        }
+                      }}
+                      style={{
+                        padding: '0.75rem 1rem',
+                        borderBottom: '1px solid #f1f5f9',
+                        cursor: isSelectable ? 'pointer' : 'not-allowed',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        borderRadius: '6px',
+                        transition: 'background-color 0.15s',
+                        opacity: isSelectable ? 1 : 0.5
+                      }}
+                      onMouseEnter={e => {
+                        if (isSelectable) e.currentTarget.style.backgroundColor = '#f8fafc';
+                      }}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b' }}>{p.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
+                          SKU: {p.sku || 'N/A'} | Stock: <span style={{ color: p.stock > 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>{p.stock}</span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        {inCart && (
+                          <span style={{ fontSize: '0.75rem', backgroundColor: '#e9d5ff', color: '#6b21a8', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>Agregado</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* Variant Selection Modal */}
       {selectedProductForVariant && (
