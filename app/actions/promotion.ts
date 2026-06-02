@@ -36,3 +36,18 @@ export async function deletePromotion(id: string) {
   revalidatePath('/ventas/promociones');
   revalidatePath('/ventas/nueva');
 }
+
+export async function updatePromotion(id: string, name: string, type: string, value: number, active: boolean, metadata?: string) {
+  await prisma.promotion.update({
+    where: { id },
+    data: {
+      name,
+      type,
+      value,
+      active,
+      metadata
+    }
+  });
+  revalidatePath('/ventas/promociones');
+  revalidatePath('/ventas/nueva');
+}

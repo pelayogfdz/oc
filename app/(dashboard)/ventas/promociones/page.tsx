@@ -1,7 +1,7 @@
 import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import * as Icons from 'lucide-react';
-import { FileText, Plus, Trash2 } from 'lucide-react';
+import { FileText, Plus, Trash2, Edit } from 'lucide-react';
 import Link from 'next/link';
 import { deleteEntity } from '@/app/actions/crud';
 
@@ -38,11 +38,15 @@ export default async function Page() {
             {data.map((item: any) => (
               <tr key={item.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
                 <td style={{ padding: '1rem' }}>
-                  <div style={{ fontWeight: '500' }}>{item.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)' }}>Tipo: {item.type === 'PERCENTAGE' ? 'Porcentaje' : 'Monto Fijo'}</div>
+                  <Link href={`/ventas/promociones/${item.id}`} style={{ textDecoration: 'none', color: '#ec4899', fontWeight: 'bold' }}>
+                    {item.name}
+                  </Link>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)' }}>
+                    Tipo: {item.type === 'PERCENTAGE' ? 'Porcentaje' : item.type === 'FIXED_AMOUNT' ? 'Monto Fijo' : item.type === 'BOGO' ? 'Paga/Lleva (3x2, 2x1, etc.)' : item.type}
+                  </div>
                 </td>
                 <td style={{ padding: '1rem', fontWeight: 'bold' }}>
-                  {item.type === 'PERCENTAGE' ? `${item.value}%` : `$${item.value.toFixed(2)}`}
+                  {item.type === 'PERCENTAGE' ? `${item.value}%` : item.type === 'BOGO' ? 'N/A' : `$${item.value.toFixed(2)}`}
                 </td>
                 <td style={{ padding: '1rem' }}>
                   <span style={{ backgroundColor: item.active ? '#dcfce7' : '#fee2e2', color: item.active ? '#166534' : '#991b1b', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
@@ -50,9 +54,14 @@ export default async function Page() {
                   </span>
                 </td>
                 <td style={{ padding: '1rem' }}>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <Link href={`/ventas/promociones/${item.id}`} style={{ color: '#ec4899', textDecoration: 'none', display: 'flex', alignItems: 'center' }} title="Editar">
+                      <Edit size={16} />
+                    </Link>
                     <form action={async () => { 'use server'; await deleteEntity('promotion', item.id); }}>
-                       <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={16}/></button>
+                       <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }} title="Eliminar"><Trash2 size={16}/></button>
                     </form>
+                  </div>
                 </td>
               </tr>
             ))}
