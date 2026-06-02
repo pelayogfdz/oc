@@ -48,6 +48,30 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
+              // Force Mexico City Timezone globally in client rendering
+              (function() {
+                const originalToLocaleDateString = Date.prototype.toLocaleDateString;
+                Date.prototype.toLocaleDateString = function(locale, options) {
+                  const opts = options || {};
+                  if (!opts.timeZone) opts.timeZone = 'America/Mexico_City';
+                  return originalToLocaleDateString.call(this, locale || 'es-MX', opts);
+                };
+
+                const originalToLocaleString = Date.prototype.toLocaleString;
+                Date.prototype.toLocaleString = function(locale, options) {
+                  const opts = options || {};
+                  if (!opts.timeZone) opts.timeZone = 'America/Mexico_City';
+                  return originalToLocaleString.call(this, locale || 'es-MX', opts);
+                };
+
+                const originalToLocaleTimeString = Date.prototype.toLocaleTimeString;
+                Date.prototype.toLocaleTimeString = function(locale, options) {
+                  const opts = options || {};
+                  if (!opts.timeZone) opts.timeZone = 'America/Mexico_City';
+                  return originalToLocaleTimeString.call(this, locale || 'es-MX', opts);
+                };
+              })();
+
               window.addEventListener('error', function(e) {
                 if (e.target && e.target.tagName === 'IMG') {
                   e.target.style.display = 'none';

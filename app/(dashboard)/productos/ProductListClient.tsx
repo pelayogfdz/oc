@@ -9,7 +9,7 @@ import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 import ImportButton from './ImportButton';
 import ExportButton from './ExportButton';
 
-export default function ProductListClient({ initialProducts, branchId }: { initialProducts: any[], branchId: string }) {
+export default function ProductListClient({ initialProducts, branchId, categories }: { initialProducts: any[], branchId: string, categories: string[] }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [displayedProducts, setDisplayedProducts] = useState<any[]>(initialProducts);
@@ -29,6 +29,7 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
   const [pageSize, setPageSize] = useState(50);
 
   const [isInitialized, setIsInitialized] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Load state from sessionStorage on mount
   useEffect(() => {
@@ -67,11 +68,19 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
   }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, currentPage, pageSize, isInitialized]);
 
   useEffect(() => {
+    if (!isInitialized) return;
+
+    // Prevent searching on mount when searchTerm is empty (initialProducts is already loaded)
+    if (searchTerm === '' && !hasSearched) {
+      return;
+    }
+
     const delayDebounceFn = setTimeout(async () => {
       setIsSearching(true);
       try {
         const results = await searchProducts(searchTerm, branchId);
         setDisplayedProducts(results);
+        setHasSearched(true);
       } catch (e) {
         console.error(e);
       } finally {
@@ -80,7 +89,7 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, branchId]);
+  }, [searchTerm, branchId, isInitialized, hasSearched]);
 
   const filteredProducts = useMemo(() => displayedProducts.filter(p => {
     if (filterCategory !== 'ALL' && p.category !== filterCategory) return false;
@@ -274,7 +283,7 @@ export default function ProductListClient({ initialProducts, branchId }: { initi
             <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Categoría</label>
             <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
               <option value="ALL">Todas</option>
-              {Array.from(new Set(initialProducts.map(p => p.category).filter(Boolean))).map((cat: any) => (
+              {categories.map((cat: string) => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>

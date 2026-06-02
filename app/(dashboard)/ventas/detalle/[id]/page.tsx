@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getActiveBranch } from "@/app/actions/auth";
 import Link from "next/link";
 import { Printer, ArrowLeft } from "lucide-react";
+import VentaActionsClient from "./VentaActionsClient";
 
 export default async function VentaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -26,15 +27,27 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
   if (!sale) return notFound();
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif', color: 'black' }}>
+    <div style={{ maxWidth: '900px', margin: '0 auto', fontFamily: 'sans-serif', color: 'black' }}>
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
          <Link href="/ventas" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--pulpos-text-muted)', textDecoration: 'none', fontWeight: 'bold' }}>
             <ArrowLeft size={20} /> Volver a Ventas
          </Link>
-         <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir`} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px' }}>
-            <Printer size={20} /> Imprimir Comprobante
-         </Link>
+         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir`} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px' }}>
+               <Printer size={20} /> Imprimir Comprobante
+            </Link>
+            <VentaActionsClient 
+              saleId={sale.id}
+              saleFolio={sale.folio}
+              status={sale.status}
+              paymentMethod={sale.paymentMethod}
+              customerPhone={sale.customer?.phone}
+              customerName={sale.customer?.name}
+              saleTotal={sale.total}
+              invoiceId={sale.invoiceId}
+            />
+         </div>
       </div>
 
       <div className="card" style={{ padding: '2rem' }}>
@@ -43,10 +56,11 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
           <div>
             <h1 style={{ fontSize: '2rem', fontWeight: 'bold', margin: '0 0 0.5rem 0', color: '#1e293b' }}>Resumen de Venta</h1>
             <div style={{ fontSize: '1.2rem', color: '#64748b' }}>Folio: #{sale.folio || sale.id.slice(0, 8).toUpperCase()}</div>
-            <div style={{ display: 'inline-block', marginTop: '0.5rem', padding: '0.25rem 0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold', backgroundColor: sale.status === 'COMPLETED' ? '#dcfce7' : '#fee2e2', color: sale.status === 'COMPLETED' ? '#166534' : '#991b1b' }}>
-              {sale.status === 'COMPLETED' ? 'Venta Concluida' : 'Cancelada / Devuelta'}
+            <div style={{ display: 'inline-block', marginTop: '0.5rem', padding: '0.25rem 0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold', backgroundColor: sale.status === 'COMPLETED' ? '#dcfce7' : sale.status === 'CANCELLED' ? '#fee2e2' : '#fef3c7', color: sale.status === 'COMPLETED' ? '#166534' : sale.status === 'CANCELLED' ? '#991b1b' : '#b45309' }}>
+              {sale.status === 'COMPLETED' ? 'Venta Concluida' : sale.status === 'CANCELLED' ? 'Cancelada' : sale.status}
             </div>
           </div>
+
           <div style={{ textAlign: 'right' }}>
              <div style={{ fontSize: '1rem', color: '#64748b' }}>Fecha de Emisión</div>
              <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{new Date(sale.createdAt).toLocaleString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>

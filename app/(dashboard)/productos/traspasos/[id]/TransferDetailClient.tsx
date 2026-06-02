@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ArrowLeft, Package, User, CheckCircle, Truck, MapPin, ClipboardList, PackageOpen, Inbox } from 'lucide-react';
-import { receiveTransfer, approveTransfer, dispatchTransfer } from '@/app/actions/transfer';
+import { receiveTransfer, approveTransfer, dispatchTransfer, cancelTransfer } from '@/app/actions/transfer';
 import { useTransition, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -54,6 +54,19 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
       try {
         await receiveTransfer(transfer.id);
         alert('Traspaso recibido correctamente.');
+        router.refresh();
+      } catch(err: any) {
+        alert(err.message || 'Ocurrió un error');
+      }
+    });
+  };
+
+  const handleCancel = () => {
+    if (!confirm('¿Estás seguro de que deseas cancelar este traspaso? Esto revertirá cualquier stock enviado y no se podrá deshacer.')) return;
+    startTransition(async () => {
+      try {
+        await cancelTransfer(transfer.id);
+        alert('Traspaso cancelado correctamente.');
         router.refresh();
       } catch(err: any) {
         alert(err.message || 'Ocurrió un error');
@@ -168,6 +181,11 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
           </h2>
           
           <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {transfer.status !== 'RECEIVED' && transfer.status !== 'CANCELLED' && (
+              <button onClick={handleCancel} disabled={isProcessing} className="btn-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: isProcessing ? 0.7 : 1, backgroundColor: '#ef4444', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', fontWeight: 500, border: 'none', cursor: 'pointer' }}>
+                Cancelar Traspaso
+              </button>
+            )}
             {isOrigin && transfer.status === 'REQUESTED' && (
               <button onClick={handleApprove} disabled={isProcessing} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: isProcessing ? 0.7 : 1 }}>
                 <CheckCircle size={16} /> Aprobar Traspaso

@@ -14,20 +14,6 @@ export default async function DashboardPage() {
   const endOfDay = new Date();
   endOfDay.setHours(23, 59, 59, 999);
 
-  const todaySales = await prisma.sale.findMany({
-    where: {
-      branchId: branch.id,
-      createdAt: {
-        gte: startOfDay,
-        lte: endOfDay
-      }
-    }
-  });
-
-  const totalSalesValue = todaySales.reduce((acc, sale) => acc + sale.total, 0);
-  const totalOrders = todaySales.length;
-  const avgTicket = totalOrders > 0 ? totalSalesValue / totalOrders : 0;
-
   // Start and end of current month
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
@@ -42,61 +28,136 @@ export default async function DashboardPage() {
     ? { branch: { tenantId: branch.tenantId } }
     : { branchId: branch.id };
 
-  const monthSales = await prisma.sale.findMany({
-    where: {
-      ...branchFilter,
-      createdAt: {
-        gte: startOfMonth,
-        lte: endOfMonth
-      },
-      status: { not: 'CANCELLED' }
-    },
-    include: {
-      customer: true,
-      items: {
-        include: {
-          product: true
-        }
+  // Phase 1: Parallel DB Aggregations and Counts
+  const [
+    todayAggregate,
+    recentSales,
+    topCustomersGroup,
+    topProductsGroup,
+    lowStockProducts
+  ] = await Promise.all([
+    prisma.sale.aggregate({
+      _sum: { total: true },
+      _count: { id: true },
+      where: {
+        branchId: branch.id,
+        createdAt: { gte: startOfDay, lte: endOfDay }
       }
-    }
+    }),
+    prisma.sale.findMany({
+      where: {
+        branchId: branch.id,
+        createdAt: { gte: startOfDay, lte: endOfDay }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5
+    }),
+    prisma.sale.groupBy({
+      by: ['customerId'],
+      where: {
+        ...branchFilter,
+        createdAt: { gte: startOfMonth, lte: endOfMonth },
+        status: { not: 'CANCELLED' },
+        customerId: { not: null }
+      },
+      _sum: { total: true },
+      _count: { id: true },
+      orderBy: {
+        _sum: { total: 'desc' }
+      },
+      take: 5
+    }),
+    prisma.saleItem.groupBy({
+      by: ['productId'],
+      where: {
+        sale: {
+          ...branchFilter,
+          createdAt: { gte: startOfMonth, lte: endOfMonth },
+          status: { not: 'CANCELLED' }
+        }
+      },
+      _sum: { quantity: true },
+      orderBy: {
+        _sum: { quantity: 'desc' }
+      },
+      take: 5
+    }),
+    prisma.product.count({
+      where: {
+        branchId: branch.id,
+        stock: { lte: 5 } // Arbitrary threshold or we could use minStock
+      }
+    })
+  ]);
+
+  const totalSalesValue = todayAggregate._sum.total || 0;
+  const totalOrders = todayAggregate._count.id || 0;
+  const avgTicket = totalOrders > 0 ? totalSalesValue / totalOrders : 0;
+
+  // Phase 2: Parallel Fetching of metadata for Top 5 Clientes and Top 5 Productos
+  const customerIds = topCustomersGroup.map(g => g.customerId).filter(Boolean) as string[];
+  const productIds = topProductsGroup.map(g => g.productId).filter(Boolean) as string[];
+
+  const [customers, products, revenueItems] = await Promise.all([
+    prisma.customer.findMany({
+      where: { id: { in: customerIds } },
+      select: { id: true, name: true, phone: true }
+    }),
+    prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true, sku: true }
+    }),
+    prisma.saleItem.findMany({
+      where: {
+        productId: { in: productIds },
+        sale: {
+          ...branchFilter,
+          createdAt: { gte: startOfMonth, lte: endOfMonth },
+          status: { not: 'CANCELLED' }
+        }
+      },
+      select: {
+        productId: true,
+        quantity: true,
+        price: true
+      }
+    })
+  ]);
+
+  const customerLookup = new Map(customers.map(c => [c.id, c]));
+  const productLookup = new Map(products.map(p => [p.id, p]));
+
+  const productRevenueMap = new Map<string, number>();
+  revenueItems.forEach(item => {
+    const current = productRevenueMap.get(item.productId) || 0;
+    productRevenueMap.set(item.productId, current + (item.quantity * item.price));
   });
 
-  // Calculate MTD Top 5 Customers
-  const customerMap = new Map();
-  monthSales.forEach(sale => {
-    if (!sale.customerId) return;
-    const name = sale.customer?.name || "Sin Nombre";
-    const phone = sale.customer?.phone || "Sin Teléfono";
-    const id = sale.customerId;
-    const existing = customerMap.get(id) || { id, name, phone, totalPurchased: 0, orderCount: 0 };
-    existing.totalPurchased += sale.total;
-    existing.orderCount += 1;
-    customerMap.set(id, existing);
+  // Format topCustomers
+  const topCustomers = topCustomersGroup.map(g => {
+    const cust = customerLookup.get(g.customerId!);
+    return {
+      id: g.customerId,
+      name: cust?.name || "Sin Nombre",
+      phone: cust?.phone || "Sin Teléfono",
+      totalPurchased: g._sum.total || 0,
+      orderCount: g._count.id || 0
+    };
   });
-  
-  const topCustomers = Array.from(customerMap.values())
-    .sort((a, b) => b.totalPurchased - a.totalPurchased)
-    .slice(0, 5);
 
   const maxCustomerPurchased = topCustomers.length > 0 ? topCustomers[0].totalPurchased : 1;
 
-  // Calculate MTD Top 5 Products
-  const productMap = new Map();
-  monthSales.forEach(sale => {
-    sale.items.forEach(item => {
-      const id = item.productId;
-      const name = item.product?.name || "Producto Desconocido";
-      const sku = item.product?.sku || "S/K";
-      const existing = productMap.get(id) || { id, name, sku, quantitySold: 0, totalRevenue: 0 };
-      existing.quantitySold += item.quantity;
-      existing.totalRevenue += (item.quantity * item.price);
-      productMap.set(id, existing);
-    });
+  // Format topProducts
+  const topProducts = topProductsGroup.map((g, idx) => {
+    const prod = productLookup.get(g.productId);
+    return {
+      id: g.productId,
+      name: prod?.name || "Producto Desconocido",
+      sku: prod?.sku || "S/K",
+      quantitySold: g._sum.quantity || 0,
+      totalRevenue: productRevenueMap.get(g.productId) || 0
+    };
   });
-  
-  const topProducts = Array.from(productMap.values())
-    .sort((a, b) => b.quantitySold - a.quantitySold)
-    .slice(0, 5);
 
   const getInitials = (name: string) => {
     if (!name) return "C";
@@ -115,14 +176,6 @@ export default async function DashboardPage() {
     const h = Math.abs(hash % 360);
     return `hsl(${h}, 75%, 40%)`;
   };
-
-
-  const lowStockProducts = await prisma.product.count({
-    where: {
-      branchId: branch.id,
-      stock: { lte: 5 } // Arbitrary threshold or we could use minStock
-    }
-  });
 
   const activeDebts = 0; // TODO: Implement accounts receivable logic based on unpaid Sales OR add balance field to Customer model
 
@@ -166,7 +219,7 @@ export default async function DashboardPage() {
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
         <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #f3f4f6' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Actividad Reciente</h2>
-          {todaySales.length > 0 ? (
+          {recentSales.length > 0 ? (
              <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                <thead>
                  <tr style={{ borderBottom: '2px solid #f3f4f6', textAlign: 'left' }}>
@@ -176,7 +229,7 @@ export default async function DashboardPage() {
                  </tr>
                </thead>
                <tbody>
-                 {todaySales.slice(0, 5).map(sale => (
+                 {recentSales.map(sale => (
                    <tr key={sale.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                      <td data-label="Ticket" style={{ padding: '1rem 0', fontSize: '0.9rem', fontWeight: '500' }}>#{sale.id.slice(-6).toUpperCase()}</td>
                      <td data-label="Hora" style={{ padding: '1rem 0', fontSize: '0.9rem', color: '#6b7280' }}>

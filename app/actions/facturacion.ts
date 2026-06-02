@@ -284,3 +284,61 @@ export async function createPaymentReceipt(invoiceId: string, amount: number, pa
     return { success: false, error: error.message || "Error desconocido al emitir el recibo de pago." };
   }
 }
+
+export async function cancelInvoice(saleId: string) {
+  try {
+    const branch = await getActiveBranch();
+    
+    const branchSettings = await prisma.branchSettings.findUnique({
+      where: { branchId: branch.id }
+    });
+
+    if (!branchSettings || !branchSettings.configJson) {
+      throw new Error("La sucursal no tiene configuraciones establecidas.");
+    }
+
+    let config: any;
+    try {
+      config = JSON.parse(branchSettings.configJson);
+    } catch(e) {
+      throw new Error("El archivo de configuración de la sucursal es inválido.");
+    }
+
+    const apiKey = config.facturacion?.testKey || config.facturacion?.liveKey;
+
+    if (!apiKey) {
+      throw new Error("No hay llaves de Facturapi configuradas en las preferencias de esta Sucursal.");
+    }
+
+    const facturapi = new Facturapi(apiKey);
+
+    const sale = await prisma.sale.findUnique({
+      where: { id: saleId }
+    });
+
+    if (!sale) {
+      throw new Error("La venta especificada no existe.");
+    }
+
+    if (!sale.invoiceId) {
+      throw new Error("Esta venta no cuenta con una factura timbrada para cancelar.");
+    }
+
+    // Cancel invoice in Facturapi with motive "02" (Comprobante emitido con errores sin relación)
+    await facturapi.invoices.cancel(sale.invoiceId, { motive: "02" });
+
+    // Clear invoice ID in database to allow re-stamping if needed
+    await prisma.sale.update({
+      where: { id: saleId },
+      data: { invoiceId: null }
+    });
+
+    revalidatePath('/facturas/ventas');
+    revalidatePath(`/ventas/detalle/${saleId}`);
+    return { success: true };
+  } catch (error: any) {
+    console.error("Facturapi Cancel Error:", error);
+    return { success: false, error: error.message || "Error desconocido al cancelar la factura." };
+  }
+}
+

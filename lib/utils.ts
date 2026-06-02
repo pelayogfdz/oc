@@ -22,6 +22,28 @@ export function formatDate(date: Date | string) {
   return new Date(date).toLocaleDateString('es-MX', {
     year: 'numeric',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
+    timeZone: 'America/Mexico_City'
+  });
+}
+
+export function formatDateTime(date: Date | string) {
+  return new Date(date).toLocaleString('es-MX', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    timeZone: 'America/Mexico_City'
+  });
+}
+
+export function formatTime(date: Date | string) {
+  return new Date(date).toLocaleTimeString('es-MX', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    timeZone: 'America/Mexico_City'
   });
 }

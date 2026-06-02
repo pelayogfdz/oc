@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { getActiveBranch } from './auth';
 
-export async function createPromotion(name: string, type: string, value: number) {
+export async function createPromotion(name: string, type: string, value: number, metadata?: string) {
   const branch = await getActiveBranch();
   
   await prisma.promotion.create({
@@ -13,7 +13,8 @@ export async function createPromotion(name: string, type: string, value: number)
       type,
       value,
       active: true,
-      branchId: branch.id
+      branchId: branch.id,
+      metadata
     }
   });
 

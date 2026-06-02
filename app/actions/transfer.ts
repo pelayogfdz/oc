@@ -358,3 +358,78 @@ export async function deleteTransfer(id: string) {
   await prisma.transfer.delete({ where: { id } });
   revalidatePath('/productos/traspasos');
 }
+
+export async function cancelTransfer(transferId: string) {
+  const branchActive = await getActiveBranch();
+  if (branchActive?.id === 'GLOBAL') throw new Error("Vista global no permitida.");
+  const authUser = await getActiveUser();
+
+  const transfer = await prisma.transfer.findUnique({
+    where: { id: transferId },
+    include: { items: { include: { product: true, variant: true } } }
+  });
+
+  if (!transfer) throw new Error("Traspaso no encontrado");
+  if (transfer.status === 'RECEIVED') throw new Error("No se puede cancelar un traspaso que ya ha sido recibido físicamente en la sucursal de destino.");
+  if (transfer.status === 'CANCELLED') throw new Error("Este traspaso ya se encuentra cancelado.");
+
+  await prisma.$transaction(async (tx) => {
+    // If it was already dispatched, we return the items back to the origin branch stock
+    if (transfer.status === 'DISPATCHED') {
+      for (const item of transfer.items) {
+        if (item.quantity <= 0) continue;
+
+        const productToSearch = item.product;
+        const variantToSearch = item.variant;
+
+        const originProduct = await tx.product.findFirst({
+          where: { sku: productToSearch.sku, branchId: transfer.branchId! }
+        });
+
+        if (!originProduct) {
+          throw new Error(`Producto SKU: ${productToSearch.sku} no existe en la sucursal origen para realizar la devolución.`);
+        }
+
+        // Return stock at Origin
+        await tx.product.update({
+          where: { id: originProduct.id },
+          data: { stock: { increment: item.quantity } }
+        });
+
+        let originVariantId = null;
+        if (variantToSearch) {
+          const originVariant = await tx.productVariant.findFirst({
+            where: { productId: originProduct.id, sku: variantToSearch.sku, attribute: variantToSearch.attribute }
+          });
+          if (originVariant) {
+            originVariantId = originVariant.id;
+            await tx.productVariant.update({
+              where: { id: originVariant.id },
+              data: { stock: { increment: item.quantity } }
+            });
+          }
+        }
+
+        await tx.inventoryMovement.create({
+          data: {
+            productId: originProduct.id,
+            variantId: originVariantId,
+            type: 'IN',
+            quantity: item.quantity,
+            reason: `Devolución por Cancelación de Traspaso ID: ${transfer.id}`
+          }
+        });
+      }
+    }
+
+    // Set status to CANCELLED
+    await tx.transfer.update({
+      where: { id: transfer.id },
+      data: { status: 'CANCELLED' }
+    });
+  });
+
+  revalidatePath('/productos/traspasos');
+  revalidatePath('/productos');
+}
+

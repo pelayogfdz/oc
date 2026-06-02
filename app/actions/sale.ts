@@ -400,3 +400,145 @@ export async function refundSale(formData: FormData) {
   revalidatePath('/ventas');
   revalidatePath('/productos');
 }
+
+export async function cancelSale(formData: FormData) {
+  const saleId = formData.get('saleId') as string;
+  
+  const sale = await prisma.sale.findUnique({
+    where: { id: saleId },
+    include: { items: true, cashSession: true }
+  });
+
+  if (!sale || sale.status === 'CANCELLED') throw new Error("Venta no encontrada o ya cancelada");
+
+  // Re-stock items
+  for (const item of sale.items) {
+    await prisma.product.update({
+      where: { id: item.productId },
+      data: { stock: { increment: item.quantity } }
+    });
+    
+    if (item.variantId) {
+      await prisma.productVariant.update({
+        where: { id: item.variantId },
+        data: { stock: { increment: item.quantity } }
+      });
+    }
+
+    // Revert batch stock if batch movement took place
+    const movements = await prisma.inventoryMovement.findMany({
+      where: {
+        productId: item.productId,
+        variantId: item.variantId || null,
+        reason: { startsWith: `Venta #${sale.id.slice(0, 8)}` }
+      }
+    });
+
+    for (const mov of movements) {
+      if (mov.batchId) {
+        const qtyToReturn = Math.abs(mov.quantity);
+        await prisma.productBatch.update({
+          where: { id: mov.batchId },
+          data: { stock: { increment: qtyToReturn } }
+        });
+      }
+    }
+
+    await prisma.inventoryMovement.create({
+      data: {
+        productId: item.productId,
+        variantId: item.variantId || null,
+        type: 'IN',
+        quantity: item.quantity,
+        reason: `Cancelación de Venta #${sale.id.slice(0, 8)}`
+      }
+    });
+  }
+
+  // Revert customer credit if credit sale
+  if (sale.paymentMethod === 'CREDIT' && sale.customerId) {
+    await prisma.customer.update({
+      where: { id: sale.customerId },
+      data: { creditBalance: { decrement: sale.total } }
+    });
+  }
+
+  // Revert Loyalty points (earned/redeemed)
+  if (sale.customerId) {
+    // 1. Points redeemed (restore to customer)
+    const pointsRedeemedTx = await prisma.loyaltyTransaction.findFirst({
+      where: { customerId: sale.customerId, saleId: sale.id, type: 'REDEEMED' }
+    });
+    if (pointsRedeemedTx) {
+      await prisma.customer.update({
+        where: { id: sale.customerId },
+        data: { pointsBalance: { increment: pointsRedeemedTx.points } }
+      });
+      await prisma.loyaltyTransaction.create({
+        data: {
+          customerId: sale.customerId,
+          type: 'EARNED',
+          points: pointsRedeemedTx.points,
+          reason: `Puntos devueltos por Cancelación de Venta #${sale.id.slice(0, 8)}`,
+          saleId: sale.id
+        }
+      });
+    }
+
+    // 2. Points earned (deduct from customer)
+    const pointsEarnedTx = await prisma.loyaltyTransaction.findFirst({
+      where: { customerId: sale.customerId, saleId: sale.id, type: 'EARNED' }
+    });
+    if (pointsEarnedTx) {
+      await prisma.customer.update({
+        where: { id: sale.customerId },
+        data: { pointsBalance: { decrement: pointsEarnedTx.points } }
+      });
+      await prisma.loyaltyTransaction.create({
+        data: {
+          customerId: sale.customerId,
+          type: 'EXPIRED',
+          points: -pointsEarnedTx.points,
+          reason: `Puntos cancelados por Cancelación de Venta #${sale.id.slice(0, 8)}`,
+          saleId: sale.id
+        }
+      });
+    }
+  }
+
+  // Handle cash logic if paid in cash
+  if (sale.paymentMethod === 'CASH' && sale.cashSessionId) {
+    const targetSession = await prisma.cashSession.findUnique({ where: { id: sale.cashSessionId } });
+    if (targetSession && targetSession.status === 'OPEN') {
+      await prisma.cashMovement.create({
+         data: {
+           sessionId: targetSession.id,
+           type: 'OUT',
+           amount: sale.total,
+           reason: `Cancelación Venta #${sale.id.slice(0, 8)}`
+         }
+      });
+    }
+  } else if (sale.paymentMethod === 'MIXTO' && sale.cashSessionId && sale.cashAmount) {
+     const targetSession = await prisma.cashSession.findUnique({ where: { id: sale.cashSessionId } });
+     if (targetSession && targetSession.status === 'OPEN') {
+        await prisma.cashMovement.create({
+           data: {
+             sessionId: targetSession.id,
+             type: 'OUT',
+             amount: sale.cashAmount,
+             reason: `Cancelación Venta Mixta #${sale.id.slice(0, 8)}`
+           }
+        });
+     }
+  }
+
+  await prisma.sale.update({
+    where: { id: sale.id },
+    data: { status: 'CANCELLED' }
+  });
+
+  revalidatePath('/ventas');
+  revalidatePath('/productos');
+}
+

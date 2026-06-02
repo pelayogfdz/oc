@@ -132,3 +132,82 @@ export async function createPurchase(
   revalidatePath('/productos/compras');
   revalidatePath('/productos');
 }
+
+export async function cancelPurchase(purchaseId: string) {
+  const branch = await getActiveBranch();
+  if (branch.id === 'GLOBAL') throw new Error('Debes seleccionar una sucursal específica para realizar esta acción.');
+
+  const purchase = await prisma.purchase.findUnique({
+    where: { id: purchaseId },
+    include: { items: true }
+  });
+
+  if (!purchase || purchase.status === 'CANCELLED') {
+    throw new Error("Compra no encontrada o ya cancelada");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Revert Supplier Credit if CREDIT
+    if (purchase.paymentMethod === 'CREDIT' && purchase.supplierId) {
+      await tx.supplier.update({
+        where: { id: purchase.supplierId },
+        data: { creditBalance: { decrement: purchase.total } }
+      });
+    }
+
+    const baseItemsValue = purchase.items.reduce((acc, item) => acc + (item.cost * item.quantity), 0);
+
+    for (const item of purchase.items) {
+      const product = await tx.product.findUnique({ where: { id: item.productId } });
+      if (!product) continue;
+
+      const itemTotalValue = item.cost * item.quantity;
+      const freightProRata = baseItemsValue > 0 ? (itemTotalValue / baseItemsValue) * (purchase.freightCost || 0) : 0;
+      const effectiveUnitCost = item.quantity > 0 ? item.cost + (freightProRata / item.quantity) : item.cost;
+
+      // Revert batch stock if batch was created
+      if (item.batchId) {
+        await tx.productBatch.update({
+          where: { id: item.batchId },
+          data: { stock: { decrement: item.quantity } }
+        });
+      }
+
+      // Recalculate Average Cost
+      const currentStock = product.stock;
+      const currentAverage = product.averageCost || 0;
+      const totalValue = (currentStock * currentAverage) - (item.quantity * effectiveUnitCost);
+      const newStock = currentStock - item.quantity;
+      const newAverageCost = newStock > 0 ? totalValue / newStock : 0;
+
+      await tx.product.update({
+        where: { id: item.productId },
+        data: {
+          stock: { decrement: item.quantity },
+          averageCost: newAverageCost
+        }
+      });
+
+      // Register Kardex movement
+      await tx.inventoryMovement.create({
+        data: {
+          productId: item.productId,
+          type: 'OUT',
+          quantity: -item.quantity,
+          reason: `Cancelación Compra #${purchase.id.slice(0, 8)}`,
+          batchId: item.batchId
+        }
+      });
+    }
+
+    // Set status to CANCELLED
+    await tx.purchase.update({
+      where: { id: purchase.id },
+      data: { status: 'CANCELLED' }
+    });
+  });
+
+  revalidatePath('/productos/compras');
+  revalidatePath('/productos');
+}
+

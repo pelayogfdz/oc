@@ -21,40 +21,46 @@ export default async function NuevaVentaPage() {
     );
   }
   
-  const products = await prisma.product.findMany({
-    where: { branchId: branch?.id || '', isActive: true },
-    include: { variants: true, prices: true },
-    orderBy: { name: 'asc' },
-    take: 50
-  });
+  const branchId = branch?.id || '';
 
-  const customers = await prisma.customer.findMany({
-    where: { branchId: branch?.id || '' },
-    orderBy: { name: 'asc' }
-  });
-
-  const suppliers = await prisma.supplier.findMany({
-    where: { branchId: branch?.id || '' },
-    orderBy: { name: 'asc' }
-  });
-
-  const promotions = await prisma.promotion.findMany({
-    where: { branchId: branch?.id || '', active: true }
-  });
-
-  const dynamicPriceLists = await prisma.priceList.findMany({
-    where: { branchId: branch?.id || '' }
-  });
-
-  const pendingQuotes = await prisma.quote.findMany({
-    where: { branchId: branch?.id || '', status: 'PENDING' },
-    orderBy: { createdAt: 'desc' },
-    take: 20
-  });
-
-  const session = await getCurrentSession();
-
-  const settings = await getBranchSettings();
+  const [
+    products,
+    customers,
+    suppliers,
+    promotions,
+    dynamicPriceLists,
+    pendingQuotes,
+    session,
+    settings
+  ] = await Promise.all([
+    prisma.product.findMany({
+      where: { branchId, isActive: true },
+      include: { variants: true, prices: true },
+      orderBy: { name: 'asc' },
+      take: 50
+    }),
+    prisma.customer.findMany({
+      where: { branchId },
+      orderBy: { name: 'asc' }
+    }),
+    prisma.supplier.findMany({
+      where: { branchId },
+      orderBy: { name: 'asc' }
+    }),
+    prisma.promotion.findMany({
+      where: { branchId, active: true }
+    }),
+    prisma.priceList.findMany({
+      where: { branchId }
+    }),
+    prisma.quote.findMany({
+      where: { branchId, status: 'PENDING' },
+      orderBy: { createdAt: 'desc' },
+      take: 20
+    }),
+    getCurrentSession(),
+    getBranchSettings()
+  ]);
   let ticketConfig: any = {};
   let metodosConfig = {};
   let ventasConfig: any = {};

@@ -130,6 +130,106 @@ export default function POSClient({ products: initialProducts, customers, suppli
     }
   }, [branchId]);
 
+  // Checkout Success Modal State
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successModalData, setSuccessModalData] = useState<any>(null);
+  
+  const [successPhone, setSuccessPhone] = useState('');
+  const [successProspects, setSuccessProspects] = useState<any[]>([]);
+  const [successSelectedProspectId, setSuccessSelectedProspectId] = useState<string>('');
+  const [successIsLoadingProspects, setSuccessIsLoadingProspects] = useState(false);
+  const [successIsSending, setSuccessIsSending] = useState(false);
+  const [successSendSuccess, setSuccessSendSuccess] = useState(false);
+  const [successSendError, setSuccessSendError] = useState<string | null>(null);
+
+  // Fetch prospects for option B when success modal opens
+  useEffect(() => {
+    if (showSuccessModal && successModalData) {
+      setSuccessPhone(successModalData.customerPhone || '');
+      setSuccessIsLoadingProspects(true);
+      setSuccessSendError(null);
+      setSuccessSendSuccess(false);
+      fetch(`/api/prospects?t=${Date.now()}`)
+        .then((res) => {
+          if (res.ok) return res.json();
+          throw new Error('Failed to load prospects');
+        })
+        .then((data) => {
+          if (data.prospects) {
+            setSuccessProspects(data.prospects);
+            const matched = data.prospects.find(
+              (p: any) =>
+                (successModalData.customerPhone && p.phone === successModalData.customerPhone) ||
+                (successModalData.customerName && p.name?.toLowerCase().includes(successModalData.customerName.toLowerCase()))
+            );
+            if (matched) {
+              setSuccessSelectedProspectId(matched.id);
+            } else if (data.prospects.length > 0) {
+              setSuccessSelectedProspectId(data.prospects[0].id);
+            }
+          }
+        })
+        .catch((err) => console.error('Error fetching prospects:', err))
+        .finally(() => setSuccessIsLoadingProspects(false));
+    }
+  }, [showSuccessModal, successModalData]);
+
+  const getSuccessShareMessage = () => {
+    if (!successModalData) return '';
+    const formattedTotal = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(successModalData.total);
+    const link = `${window.location.origin}/ventas/detalle/${successModalData.saleId}/imprimir`;
+    return `¡Hola ${successModalData.customerName || 'Cliente'}! Le comparto el comprobante de su compra de CAANMA.\n\n` +
+      `*Folio:* #${successModalData.folio}\n` +
+      `*Total:* ${formattedTotal}\n\n` +
+      `Puede ver e imprimir el recibo detallado aquí:\n${link}\n\n` +
+      `¡Muchas gracias por su preferencia! Que tenga un excelente día.`;
+  };
+
+  const handleSuccessWhatsAppWeb = () => {
+    const cleanPhone = successPhone.replace(/\D/g, '');
+    const finalPhone = cleanPhone.startsWith('52') ? cleanPhone : `52${cleanPhone}`;
+    const text = encodeURIComponent(getSuccessShareMessage());
+    window.open(`https://api.whatsapp.com/send?phone=${finalPhone}&text=${text}`, '_blank');
+  };
+
+  const handleSuccessSendViaCaanma = async () => {
+    if (!successSelectedProspectId) return;
+    const selectedProspect = successProspects.find((p) => p.id === successSelectedProspectId);
+    if (!selectedProspect) return;
+
+    setSuccessIsSending(true);
+    setSuccessSendError(null);
+
+    try {
+      const res = await fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: selectedProspect.phone,
+          message: getSuccessShareMessage(),
+          prospectId: selectedProspect.id,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSuccessSendSuccess(true);
+        setTimeout(() => {
+          setSuccessSendSuccess(false);
+          setShowSuccessModal(false);
+          setSuccessModalData(null);
+        }, 1500);
+      } else {
+        throw new Error(data.error || 'Error al enviar mensaje');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setSuccessSendError(err.message || 'Error de red o microservicio desconectado.');
+    } finally {
+      setSuccessIsSending(false);
+    }
+  };
+
   const handleCustomerChange = async (customerId: string) => {
     setSelectedCustomerId(customerId);
     const customer = activeCustomers.find((c: any) => c.id === customerId);
@@ -336,34 +436,62 @@ export default function POSClient({ products: initialProducts, customers, suppli
   const discount = useMemo(() => {
     let d = 0;
     promotions.forEach(promo => {
-      const meta = promo.metadata ? JSON.parse(promo.metadata) : { targetType: 'ALL' };
+      if (!promo.active) return;
+      
+      let meta: any = {};
+      try {
+        meta = promo.metadata ? JSON.parse(promo.metadata) : {};
+      } catch (e) {
+        meta = { targetType: 'ALL' };
+      }
+      
+      // Date validity check
+      const now = new Date();
+      if (meta.startDate) {
+        const sDate = new Date(meta.startDate);
+        if (now < sDate) return;
+      }
+      if (meta.endDate) {
+        const eDate = new Date(meta.endDate);
+        if (now > eDate) return;
+      }
+      
+      // Target segments check
+      const hasNewTargets = (meta.targetProducts?.length > 0) || (meta.targetCategories?.length > 0) || (meta.targetBrands?.length > 0);
       
       let applicableCartItems = cart;
-      
-      if (meta.targetType === 'CATEGORY') {
-        applicableCartItems = cart.filter(item => meta.applyToCategories?.includes(item.category));
-      } else if (meta.targetType === 'BRAND') {
-        applicableCartItems = cart.filter(item => meta.applyToBrands?.includes(item.brand));
-      } else if (meta.targetType === 'PRODUCTS') {
-        applicableCartItems = cart.filter(item => meta.applyToProducts?.includes(item.id));
+      if (hasNewTargets) {
+        applicableCartItems = cart.filter(item => {
+          const matchProduct = meta.targetProducts?.includes(item.id);
+          const matchCategory = item.category && meta.targetCategories?.includes(item.category);
+          const matchBrand = item.brand && meta.targetBrands?.includes(item.brand);
+          return matchProduct || matchCategory || matchBrand;
+        });
+      } else {
+        // Fallback to legacy structure
+        if (meta.targetType === 'CATEGORY') {
+          applicableCartItems = cart.filter(item => meta.applyToCategories?.includes(item.category));
+        } else if (meta.targetType === 'BRAND') {
+          applicableCartItems = cart.filter(item => meta.applyToBrands?.includes(item.brand));
+        } else if (meta.targetType === 'PRODUCTS') {
+          applicableCartItems = cart.filter(item => meta.applyToProducts?.includes(item.id));
+        }
       }
       
       const applicableSubTotal = applicableCartItems.reduce((sum, item) => sum + (getProductPrice(item) * item.quantity), 0);
-      const applicableQuantity = applicableCartItems.reduce((sum, item) => sum + item.quantity, 0);
 
       if (applicableSubTotal > 0) {
         if (promo.type === 'PERCENTAGE') {
           d += applicableSubTotal * (promo.value / 100);
-        } else if (promo.type === 'FIXED_AMOUNT') { // updated to match FIXED_AMOUNT
-          // Apply fixed amount once if valid
+        } else if (promo.type === 'FIXED_AMOUNT') {
           d += promo.value;
         } else if (promo.type === 'BOGO') {
-          // BOGO Logic: Group by product to handle 2x1. For every 2 items of the same applicable product, 1 is free (the cheapest if mixed, but since it's grouped by product, it's the product price).
-          // Assuming simple 2x1 for now where `promo.value` could represent N (pay N, get 1 free). But default is 2x1 so pay 1 get 1 free.
           applicableCartItems.forEach(item => {
-             const freeItems = Math.floor(item.quantity / 2);
-             if (freeItems > 0) {
-               d += freeItems * getProductPrice(item);
+             const pay = meta.payQty || 1;
+             const rec = meta.receiveQty || 2;
+             const freeQty = Math.floor(item.quantity / rec) * (rec - pay);
+             if (freeQty > 0) {
+               d += freeQty * getProductPrice(item);
              }
           });
         }
@@ -398,8 +526,31 @@ export default function POSClient({ products: initialProducts, customers, suppli
 
   const printTicket = async (cartItems: any[], tTotal: number, tChange: number, tDiscount: number, saleId?: string) => {
     // Generate inner styling for the ticket
-    const style = `
-      body { font-family: 'Courier New', Courier, monospace; font-size: 14px; margin: 0; padding: 10px; color: #000; width: 300px; }
+    const paperWidth = ticketConfig.anchoTicket === '58mm' || impresorasConfig.receiptWidth === '58mm' ? '58mm' : '80mm';
+    const is58 = paperWidth === '58mm';
+
+    const style = is58 ? `
+      body { font-family: 'Courier New', Courier, monospace; font-size: 11px; margin: 0; padding: 2px; color: #000; width: 190px; }
+      .t-header { text-align: center; margin-bottom: 6px; }
+      .t-title { font-size: 13px; font-weight: bold; margin-bottom: 2px; }
+      .t-line { font-size: 10px; margin-bottom: 2px; }
+      .t-divider { border-top: 1px dashed #000; margin: 6px 0; }
+      .t-body { font-size: 10px; margin-bottom: 6px; }
+      .info-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+      .items-table { width: 100%; font-size: 10px; }
+      .item-head { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 4px; }
+      .item-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+      .col-cant { width: 25px; }
+      .col-desc { flex: 1; margin: 0 5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+      .col-price { width: 50px; text-align: right; }
+      .totals { font-size: 11px; font-weight: bold; margin-top: 6px; }
+      .total-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+      .t-footer { text-align: center; font-size: 10px; margin-top: 10px; }
+      .qr-container { text-align: center; margin-top: 10px; }
+      .qr-text { font-size: 9px; margin-bottom: 3px; }
+      .qr-folio { font-size: 11px; font-weight: bold; margin-top: 3px; }
+    ` : `
+      body { font-family: 'Courier New', Courier, monospace; font-size: 14px; margin: 0; padding: 10px; color: #000; width: 280px; }
       .t-header { text-align: center; margin-bottom: 10px; }
       .t-title { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
       .t-line { font-size: 12px; margin-bottom: 2px; }
@@ -607,6 +758,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
       const discountBackup = discount;
 
       let saleId: string | undefined;
+      let responseSale: any = null;
 
       if (mode === 'QUOTE') {
         const quote = await createQuote(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null, loadedQuoteId || undefined);
@@ -656,6 +808,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
             throw new Error(response.error);
           }
           saleId = response.sale?.id;
+          responseSale = response.sale;
         }
       }
       
@@ -673,26 +826,40 @@ export default function POSClient({ products: initialProducts, customers, suppli
 
       const isAutoPrint = impresorasConfig.printAutomatically === 'true' || impresorasConfig.printAutomatically === true;
 
-      setTimeout(() => {
-         if (!isAutoPrint) {
-            if (mode === 'QUOTE') {
-              // No blocking alert, redirect smoothly
-            } else if (mode === 'CONSIGNMENT') {
-              alert('¡Consignación creada con éxito! Imprimiendo Ticket...');
-            } else {
-              alert('¡Venta cobrada con éxito! Imprimiendo Ticket...');
-            }
-         }
-         printTicket(cartBackup, totalBackup, changeBackup, discountBackup, saleId);
-         if (mode === 'QUOTE') {
-            router.push('/ventas/cotizaciones');
-         } else if (mode === 'CONSIGNMENT') {
-            router.push('/ventas/consignaciones');
-         } else {
-            router.push('/ventas');
-         }
-         router.refresh();
-      }, 100);
+      if (mode === 'SALE') {
+        if (isAutoPrint) {
+          printTicket(cartBackup, totalBackup, changeBackup, discountBackup, saleId);
+        }
+        setSuccessModalData({
+          saleId,
+          folio: responseSale?.folio || saleId?.slice(0, 8).toUpperCase(),
+          total: totalBackup,
+          change: changeBackup,
+          discount: discountBackup,
+          customerName: selectedCust ? selectedCust.name : 'Público en General',
+          customerPhone: selectedCust?.phone || '',
+          cartBackup
+        });
+        setShowSuccessModal(true);
+        router.refresh();
+      } else {
+        setTimeout(() => {
+           if (!isAutoPrint) {
+              if (mode === 'QUOTE') {
+                // No blocking alert
+              } else if (mode === 'CONSIGNMENT') {
+                alert('¡Consignación creada con éxito! Imprimiendo Ticket...');
+              }
+           }
+           printTicket(cartBackup, totalBackup, changeBackup, discountBackup, saleId);
+           if (mode === 'QUOTE') {
+              router.push('/ventas/cotizaciones');
+           } else if (mode === 'CONSIGNMENT') {
+              router.push('/ventas/consignaciones');
+           }
+           router.refresh();
+        }, 100);
+      }
 
     } catch (e) {
       alert('Error en la venta: ' + String(e));
@@ -1649,6 +1816,183 @@ export default function POSClient({ products: initialProducts, customers, suppli
             <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
               <button onClick={() => setSelectedProductForVariant(null)} style={{ padding: '0.75rem 1.5rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', cursor: 'pointer', background: 'white', fontWeight: 'bold' }}>
                 Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && successModalData && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '16px', width: '500px', maxWidth: '95%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', overflow: 'hidden', color: '#1e293b' }}>
+            <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', padding: '2rem 1.5rem', textAlign: 'center' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(255, 255, 255, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
+                <span style={{ fontSize: '2rem', fontWeight: 'bold' }}>✓</span>
+              </div>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>¡Venta Cobrada con Éxito!</h2>
+              <p style={{ margin: '0.5rem 0 0 0', opacity: 0.9, fontSize: '0.9rem' }}>Folio: #{successModalData.folio}</p>
+            </div>
+
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Sale Info */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+                <div>
+                  <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Total de Venta</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>
+                    ${successModalData.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+                {successModalData.change > 0 && (
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Cambio</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>
+                      ${successModalData.change.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
+                <button
+                  onClick={() => printTicket(successModalData.cartBackup, successModalData.total, successModalData.change, successModalData.discount, successModalData.saleId)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    padding: '0.75rem 1rem',
+                    backgroundColor: '#f1f5f9',
+                    color: '#334155',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    fontSize: '0.95rem'
+                  }}
+                >
+                  🖨️ Re-Imprimir Ticket
+                </button>
+              </div>
+
+              {/* WhatsApp options */}
+              <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '1rem', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 'bold', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  💬 Compartir Ticket por WhatsApp
+                </h4>
+
+                {/* Option A */}
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.35rem', fontWeight: '600' }}>Opción A: WhatsApp Web</div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input
+                      type="tel"
+                      placeholder="Teléfono (ej. 4421234567)"
+                      value={successPhone}
+                      onChange={(e) => setSuccessPhone(e.target.value)}
+                      style={{
+                        flex: 1,
+                        padding: '0.5rem',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '0.85rem',
+                        outline: 'none',
+                      }}
+                    />
+                    <button
+                      onClick={handleSuccessWhatsAppWeb}
+                      disabled={!successPhone}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        backgroundColor: '#25d366',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      Enviar Chat
+                    </button>
+                  </div>
+                </div>
+
+                {/* Option B */}
+                <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.35rem', fontWeight: '600' }}>Opción B: Bandeja CAANMA</div>
+                  {successIsLoadingProspects ? (
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Cargando bandeja de WhatsApp...</div>
+                  ) : successProspects.length === 0 ? (
+                    <div style={{ fontSize: '0.8rem', color: '#ef4444' }}>No hay chats activos en la bandeja.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <select
+                        value={successSelectedProspectId}
+                        onChange={(e) => setSuccessSelectedProspectId(e.target.value)}
+                        style={{
+                          padding: '0.5rem',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.85rem',
+                          outline: 'none',
+                          backgroundColor: 'white'
+                        }}
+                      >
+                        {successProspects.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name || 'Chat sin Nombre'} ({p.phone})
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={handleSuccessSendViaCaanma}
+                        disabled={successIsSending || !successSelectedProspectId || successSendSuccess}
+                        style={{
+                          padding: '0.5rem',
+                          backgroundColor: '#075e54',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.25rem'
+                        }}
+                      >
+                        {successIsSending ? 'Enviando...' : successSendSuccess ? '✓ ¡Enviado!' : 'Enviar Directo'}
+                      </button>
+                    </div>
+                  )}
+                  {successSendError && (
+                    <div style={{ marginTop: '0.5rem', color: '#ef4444', fontSize: '0.75rem' }}>{successSendError}</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Reset POS & Close */}
+              <button
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  setSuccessModalData(null);
+                }}
+                style={{
+                  padding: '1rem',
+                  backgroundColor: 'var(--pulpos-primary)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  marginTop: '0.5rem'
+                }}
+              >
+                ➕ Nueva Venta (Limpiar)
               </button>
             </div>
           </div>

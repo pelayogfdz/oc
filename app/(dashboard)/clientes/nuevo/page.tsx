@@ -1,7 +1,14 @@
 import { createCustomer } from "@/app/actions/customer";
+import { getActiveBranch } from "@/app/actions/auth";
+import { prisma } from "@/lib/prisma";
 import Link from 'next/link';
 
-export default function NuevoCliente() {
+export default async function NuevoCliente() {
+  const branch = await getActiveBranch();
+  const priceLists = await prisma.priceList.findMany({
+    where: { branchId: branch.id }
+  });
+
   const saveAction = async (formData: FormData) => {
     'use server';
     await createCustomer(formData);
@@ -132,6 +139,9 @@ export default function NuevoCliente() {
                  <option value="price">Precio Público (Default)</option>
                  <option value="wholesalePrice">Precio Mayoreo</option>
                  <option value="specialPrice">Precio Especial Comercial</option>
+                 {priceLists.map((list) => (
+                   <option key={list.id} value={`priceList_${list.id}`}>{list.name}</option>
+                 ))}
               </select>
             </div>
           </div>

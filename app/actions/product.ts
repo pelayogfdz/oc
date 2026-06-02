@@ -251,7 +251,8 @@ export async function searchProducts(query: string, branchId: string) {
     return await prisma.product.findMany({
       where: { branchId, isActive: true },
       include: { variants: true, prices: true },
-      orderBy: { name: 'asc' }
+      orderBy: { name: 'asc' },
+      take: 100
     });
   }
 
@@ -274,7 +275,8 @@ export async function searchProducts(query: string, branchId: string) {
       AND: searchConditions
     },
     include: { variants: true, prices: true },
-    orderBy: { name: 'asc' }
+    orderBy: { name: 'asc' },
+    take: 100
   });
 }
 
