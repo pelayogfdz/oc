@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star, X, Clock, FolderOpen, Trash2 } from 'lucide-react';
+import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star, X, Clock, FolderOpen, Trash2, ShoppingBag } from 'lucide-react';
 import { createSale } from '@/app/actions/sale';
 import { getLoyaltySettings } from '@/app/actions/loyalty';
 import { createQuote, getQuoteForPOS, createQuickProductsForQuote } from '@/app/actions/quote';
@@ -21,6 +21,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
   // States for sales/quotes/consignments on hold (en espera)
   const [onHoldTickets, setOnHoldTickets] = useState<any[]>([]);
   const [showOnHoldModal, setShowOnHoldModal] = useState(false);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -426,6 +427,21 @@ export default function POSClient({ products: initialProducts, customers, suppli
           quantity: 1 
         }];
       }
+    });
+  }, [ventasConfig.venderSinStock, mode]);
+
+  const handleUpdateQty = useCallback((cartItemId: string, newQ: number) => {
+    if (newQ < 1) return;
+    setCart(prevCart => {
+      const item = prevCart.find(c => c.cartItemId === cartItemId);
+      if (!item) return prevCart;
+      if (ventasConfig.venderSinStock === false && mode === 'SALE') {
+         if (item.stock < newQ) {
+           alert('STOCK INSUFICIENTE.');
+           return prevCart;
+         }
+      }
+      return prevCart.map(c => c.cartItemId === cartItemId ? { ...c, quantity: newQ } : c);
     });
   }, [ventasConfig.venderSinStock, mode]);
 
@@ -996,445 +1012,471 @@ export default function POSClient({ products: initialProducts, customers, suppli
           onClose={() => setShowScanner(false)} 
         />
       )}
-      {/* Left: Products */}
-      <div className="card pos-products-column" style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-        
-        {/* Mobile-Only Search Header */}
-        <div 
-          className="mobile-only"
-          style={{ 
-            alignItems: 'center', 
-            justifyContent: 'space-between', 
-            marginBottom: '1.25rem', 
-            paddingBottom: '0.75rem', 
-            borderBottom: '1px solid #e2e8f0',
-            width: '100%' 
-          }}
-        >
-          <span style={{ fontSize: '1.2rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e293b' }}>
-            <Search size={20} color="var(--pulpos-primary)" /> Buscar productos
-          </span>
-          <button 
-            type="button"
-            onClick={() => setIsMobileSearchActive(false)}
-            style={{ 
-              background: '#f1f5f9', 
-              border: 'none', 
-              borderRadius: '50%', 
-              width: '32px', 
-              height: '32px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              cursor: 'pointer',
-              color: '#64748b',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#e2e8f0' }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9' }}
-          >
-            <X size={18} />
-          </button>
-        </div>
-        {/* Toolbar and Always-Visible Filters */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          {/* Main Search Bar */}
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', flexGrow: 1, minWidth: '300px', maxWidth: '800px' }}>
-              <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-              <input 
-                type="text" 
-                placeholder={isMobileSearchActive ? "Buscar Productos" : "Buscar por nombre, SKU o código de barras..."} 
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                style={{ 
-                  padding: '0.75rem 1rem 0.75rem 2.5rem', 
-                  width: '100%', 
-                  borderRadius: '8px', 
-                  border: '1px solid #cbd5e1', 
-                  backgroundColor: 'white', 
-                  fontSize: '1rem',
-                  outline: 'none',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                }}
-                autoFocus
-              />
-              <button 
-                onClick={() => setShowScanner(true)}
-                style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--pulpos-primary)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '4px'
-                }}
-                title="Escanear Código de Barras"
-              >
-                <Camera size={20} />
-              </button>
-            </div>
 
-          <button 
-            style={{ 
-              display: 'flex', alignItems: 'center', gap: '0.5rem', 
-              backgroundColor: 'white', 
-              border: '1px solid #e2e8f0', 
-              padding: '0.6rem 1rem', 
-              borderRadius: '8px', 
-              fontWeight: '500', 
-              cursor: 'pointer',
-              fontSize: '0.95rem'
-            }}>
-            <MapPin size={16} /> Ubicación
-          </button>
-
-          <button 
-            style={{ 
-              display: 'flex', alignItems: 'center', gap: '0.5rem', 
-              backgroundColor: 'white', 
-              border: '1px solid #e2e8f0', 
-              padding: '0.6rem 1rem', 
-              borderRadius: '8px', 
-              fontWeight: '500', 
-              cursor: 'pointer',
-              fontSize: '0.95rem'
-            }}>
-            <ArrowDownUp size={16} /> Ordenar
-          </button>
-
-          {mode === 'QUOTE' && (
-            <button 
-              onClick={() => {
-                setFastItemName('');
-                setFastItemPrice('');
-                setFastItemQuantity(1);
-                setShowFastItemModal(true);
-              }}
-              style={{ 
-                display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                backgroundColor: '#fef3c7', 
-                border: '1px solid #fde68a', 
-                color: '#d97706',
-                padding: '0.6rem 1rem', 
-                borderRadius: '8px', 
-                fontWeight: 'bold', 
-                cursor: 'pointer',
-                fontSize: '0.95rem'
-              }}>
-              ➕ Artículo Rápido
-            </button>
-          )}
-          </div>
-
-          {/* Filters Row */}
-          <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Categoría</label>
-              <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
-                <option value="ALL">Todas</option>
-                {Array.from(new Set(initialProducts.map(p => p.category).filter(Boolean))).map((cat: any) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Filtrar por Stock</label>
-              <select value={stockFilter} onChange={e => setStockFilter(e.target.value as any)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
-                <option value="ALL">Todas las existencias</option>
-                <option value="IN_STOCK">Con Existencia</option>
-                <option value="OUT_OF_STOCK">Sin Existencia</option>
-              </select>
-            </div>
-            <div style={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end' }}>
-               <button onClick={() => { setFilterCategory('ALL'); setStockFilter('ALL'); }} style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '500' }}>
-                 Limpiar Filtros
-               </button>
-            </div>
-          </div>
-        </div>
-        <div style={{ flex: 1, minHeight: '380px', border: '1px solid #e2e8f0', borderRadius: '12px', opacity: isSearching ? 0.5 : 1, transition: 'opacity 0.2s' }}>
-          <ProductTableUI 
-            products={filteredProducts}
-            showCheckboxes={false}
-            onRowClick={handleProductClick}
-            priceExtractor={getProductPrice}
-          />
-          {displayedProducts.length === 0 && !isSearching && (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
-              No se encontraron productos en la base de datos.
-            </div>
-          )}
-          {isSearching && (
-             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
-               Buscando en Base de Datos...
-             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Right: Cart */}
-      <div className="card pos-cart pos-cart-column">
-        
-        {/* Mobile-Only Search Trigger */}
-        <div 
-          className="mobile-only"
-          onClick={() => setIsMobileSearchActive(true)}
-          style={{ 
-            position: 'relative', 
-            marginBottom: '1rem', 
-            cursor: 'pointer',
-            backgroundColor: 'white',
-            border: '1px solid #cbd5e1',
-            borderRadius: '8px',
-            padding: '0.75rem 1rem 0.75rem 2.5rem',
-            alignItems: 'center',
-            color: '#94a3b8',
-            fontSize: '1rem',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-            width: '100%'
-          }}
-        >
-          <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-          <span>Buscar productos...</span>
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsMobileSearchActive(true);
-              setShowScanner(true);
-            }}
-            style={{
-              position: 'absolute',
-              right: '12px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--pulpos-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              padding: '4px'
-            }}
-          >
-            <Camera size={20} />
-          </button>
-        </div>
-        
-        {/* Ticket Config */}
-        <div style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>
-          <div style={{ marginBottom: '0.75rem' }}>
-            <label style={{ display: 'block', fontSize: '1rem', fontWeight: 600, color: 'var(--pulpos-text-muted)', marginBottom: '0.25rem' }}>Cliente</label>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type="text"
-                placeholder="🔎 Buscar o escribir nombre de cliente..."
-                value={customerSearchTerm}
-                onChange={e => {
-                  setCustomerSearchTerm(e.target.value);
-                  const matched = customers.find((c: any) => c.name.toLowerCase() === e.target.value.toLowerCase());
-                  if (matched) handleCustomerChange(matched.id);
-                  else handleCustomerChange('');
-                }}
-                style={{ width: '100%', padding: '0.85rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
-              />
-              {customerSearchTerm && !selectedCustomerId && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid var(--pulpos-border)', borderRadius: '4px', zIndex: 10, maxHeight: '250px', overflowY: 'auto', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                  <div 
-                    onClick={() => { setCustomerSearchTerm('Público en General'); handleCustomerChange(''); }}
-                    style={{ padding: '1rem', fontSize: '1.1rem', cursor: 'pointer', borderBottom: '1px solid var(--pulpos-border)' }}
-                  >
-                    Público en General
-                  </div>
-                  {customers.filter((c:any) => c.name.toLowerCase().includes(customerSearchTerm.toLowerCase())).map((c: any) => (
-                    <div 
-                      key={c.id} 
-                      onClick={() => { setCustomerSearchTerm(c.name); handleCustomerChange(c.id); }}
-                      style={{ padding: '1rem', fontSize: '1.1rem', cursor: 'pointer', borderBottom: '1px solid var(--pulpos-border)' }}
-                    >
-                      {c.name}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            {selectedCustomerId && (
-               <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '0.25rem', fontWeight: 'bold' }}>
-                 ✓ Cliente vinculado
-               </div>
-            )}
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.25rem' }}>Lista de Precios del Ticket</label>
-            <select value={priceList} onChange={e => setPriceList(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', fontWeight: 'bold', color: priceList !== 'price' ? 'var(--pulpos-primary)' : 'inherit' }}>
+      {/* TOP ROW: Filters & Search bar */}
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.25rem', marginBottom: '1.5rem', width: '100%' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
+          {/* Price list selector */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>Lista de Precios del Ticket</label>
+            <select value={priceList} onChange={e => setPriceList(e.target.value)} className="input" style={{ minWidth: '180px', padding: '0.5rem', fontSize: '0.9rem', borderRadius: '6px' }}>
               <option value="price">Normal (Público General)</option>
-              <option value="wholesalePrice">Mayoreo</option>
-              <option value="specialPrice">Especial (Distribuidor)</option>
-              {dynamicPriceLists.map((pl: any) => (
+              {dynamicPriceLists.map(pl => (
                 <option key={pl.id} value={`priceList_${pl.id}`}>{pl.name}</option>
+              ))}
+              {ventasConfig.wholesalePriceActive && <option value="wholesalePrice">Mayoreo</option>}
+              {ventasConfig.specialPriceActive && <option value="specialPrice">Precio Especial</option>}
+            </select>
+          </div>
+
+          {/* Category selector */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>Categoría</label>
+            <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="input" style={{ minWidth: '150px', padding: '0.5rem', fontSize: '0.9rem', borderRadius: '6px' }}>
+              <option value="ALL">Todas</option>
+              {Array.from(new Set(initialProducts.map(p => p.category).filter(Boolean))).map((cat: any) => (
+                <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
           </div>
-        </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Ticket actual</h2>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button 
-              type="button"
-              onClick={handlePutOnHold}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '0.25rem',
-                backgroundColor: '#fee2e2', border: '1px solid #fca5a5', color: '#b91c1c',
-                padding: '0.4rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem',
-                fontWeight: 'bold', cursor: 'pointer'
-              }}
-              title="Poner en espera la venta actual"
-            >
-              ⏸️ En Espera
-            </button>
-            <button 
-              type="button"
-              onClick={() => setShowOnHoldModal(true)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '0.25rem',
-                backgroundColor: '#e0f2fe', border: '1px solid #7dd3fc', color: '#0369a1',
-                padding: '0.4rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem',
-                fontWeight: 'bold', cursor: 'pointer', position: 'relative'
-              }}
-              title="Ver tickets en espera"
-            >
-              📂 Recuperar
-              {onHoldTickets.length > 0 && (
-                <span style={{
-                  position: 'absolute', top: '-8px', right: '-8px',
-                  backgroundColor: '#ef4444', color: 'white', borderRadius: '50%',
-                  width: '18px', height: '18px', display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold'
-                }}>
-                  {onHoldTickets.length}
-                </span>
-              )}
-            </button>
+          {/* Stock Filter */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>Filtrar por Stock</label>
+            <select value={stockFilter} onChange={e => setStockFilter(e.target.value as any)} className="input" style={{ minWidth: '150px', padding: '0.5rem', fontSize: '0.9rem', borderRadius: '6px' }}>
+              <option value="ALL">Todas las existencias</option>
+              <option value="IN_STOCK">Con Existencia</option>
+              <option value="OUT_OF_STOCK">Sin Existencia</option>
+            </select>
           </div>
-        </div>
-        <div style={{ minHeight: '380px' }}>
-          {cart.length === 0 && <div style={{ color: 'var(--pulpos-text-muted)', textAlign: 'center', marginTop: '2rem' }}>Ticket vacío</div>}
-          {cart.map(item => {
-            const currentPrice = getProductPrice(item);
-            return (
-              <div key={item.cartItemId} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--pulpos-border)' }}>
-                <div>
-                  <div style={{ fontWeight: '500' }}>{item.name}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--pulpos-border)', borderRadius: '4px', overflow: 'hidden' }}>
-                      <button 
-                        onClick={() => {
-                          const newQ = Math.max(1, item.quantity - 1);
-                          setCart(cart.map(c => c.cartItemId === item.cartItemId ? { ...c, quantity: newQ } : c));
-                        }}
-                        style={{ padding: '0.25rem 0.6rem', background: '#f8fafc', borderRight: '1px solid var(--pulpos-border)', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem', color: '#64748b' }}
-                      >-</button>
-                      <input 
-                        type="number" 
-                        min="1" 
-                        value={item.quantity} 
-                        onChange={e => {
-                          const newQ = parseInt(e.target.value) || 1;
-                          if (ventasConfig.venderSinStock === false && mode === 'SALE') {
-                             if (item.stock < newQ) {
-                               alert('STOCK INSUFICIENTE.');
-                               return;
-                             }
-                          }
-                          setCart(cart.map(c => c.cartItemId === item.cartItemId ? { ...c, quantity: newQ } : c));
-                        }}
-                        className="no-spinners"
-                        style={{ width: '40px', padding: '0.25rem 0', border: 'none', textAlign: 'center', outline: 'none', fontWeight: '500', fontSize: '0.95rem' }} 
-                      />
-                      <button 
-                        onClick={() => {
-                          const newQ = item.quantity + 1;
-                          if (ventasConfig.venderSinStock === false && mode === 'SALE') {
-                             if (item.stock < newQ) {
-                               alert('STOCK INSUFICIENTE.');
-                               return;
-                             }
-                          }
-                          setCart(cart.map(c => c.cartItemId === item.cartItemId ? { ...c, quantity: newQ } : c));
-                        }}
-                        style={{ padding: '0.25rem 0.6rem', background: '#f8fafc', borderLeft: '1px solid var(--pulpos-border)', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem', color: '#64748b' }}
-                      >+</button>
-                    </div>
-                    <span style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.875rem' }}>
-                      x ${currentPrice.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-                <div style={{ fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
-                  <span>${(item.quantity * currentPrice).toFixed(2)}</span>
-                  <button 
-                     onClick={() => setCart(cart.filter(c => c.cartItemId !== item.cartItemId))}
-                     style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', marginTop: '0.25rem', textDecoration: 'underline' }}
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        
-        <div style={{ borderTop: '2px solid var(--pulpos-border)', paddingTop: '1rem', marginTop: '1rem' }}>
-          
-          {/* Opciones de Descuento Manual */}
-          {cart.length > 0 && ventasConfig.bloquearDescuentos !== true && (
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '0.25rem' }}>Descuento Manual al Total</label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <select 
-                  value={manualDiscountType} 
-                  onChange={e => setManualDiscountType(e.target.value as '$' | '%')} 
-                  style={{ width: '60px', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
-                >
-                  <option value="$">$</option>
-                  <option value="%">%</option>
-                </select>
-                <input 
-                  type="number" 
-                  min="0"
-                  placeholder="Monto"
-                  value={manualDiscountValue}
-                  onChange={e => setManualDiscountValue(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                  style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', textAlign: 'right' }}
-                />
-              </div>
-            </div>
-          )}
 
-          {discount > 0 && (
-            <div style={{ display: 'flex', justifyItems: 'space-between', fontSize: '1rem', color: '#dc2626', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-              <span style={{flex: 1}}>Descuentos Aplicados</span>
-              <span>-${discount.toFixed(2)}</span>
-            </div>
-          )}
-          <div style={{ display: 'flex', justifyItems: 'space-between', fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>
-            <span style={{flex: 1}}>Total a Cobrar</span>
-            <span style={{ color: 'var(--pulpos-primary)' }}>${total.toFixed(2)}</span>
-          </div>
-          {cart.length > 0 && (
-             <div style={{ textAlign: 'right', fontSize: '0.85rem', color: estimatedProfit > 0 ? '#16a34a' : '#dc2626', marginBottom: '1rem', fontWeight: '500' }}>
-               Ganancia neta: ${estimatedProfit.toFixed(2)} ({markupPct}% utilidad / {marginPct}% margen {mode === 'QUOTE' ? 'de cotización' : mode === 'CONSIGNMENT' ? 'de consignación' : 'de venta'})
-             </div>
-          )}
-          <button onClick={() => setIsCheckoutOpen(true)} disabled={cart.length === 0} className="btn-primary" style={{ width: '100%', fontSize: '1.25rem', padding: '1rem', opacity: cart.length === 0 ? 0.5 : 1 }}>
-            {mode === 'QUOTE' ? 'Generar Cotización' : mode === 'CONSIGNMENT' ? 'Generar Consignación' : 'Cobrar Venta'}
+          <button type="button" onClick={() => { setFilterCategory('ALL'); setStockFilter('ALL'); }} style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.85rem', fontWeight: '500', marginTop: '1rem' }}>
+            Limpiar Filtros
           </button>
+
+          {/* SEARCH BAR (Autocompletable) */}
+          <div style={{ position: 'relative', flexGrow: 1, minWidth: '250px', zIndex: 100 }}>
+            <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+            <input 
+              type="text" 
+              placeholder="Buscar por nombre, SKU o código de barras..." 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              onFocus={() => setShowSearchDropdown(true)}
+              style={{ 
+                padding: '0.6rem 1rem 0.6rem 2.5rem', 
+                width: '100%', 
+                borderRadius: '8px', 
+                border: '1px solid #cbd5e1', 
+                backgroundColor: 'white', 
+                fontSize: '0.95rem',
+                outline: 'none',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+            />
+            <button 
+              type="button"
+              onClick={() => setShowScanner(true)}
+              style={{
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--pulpos-primary)',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+              title="Escanear Código de Barras"
+            >
+              <Camera size={20} />
+            </button>
+
+            {/* FLOATING SEARCH DROPDOWN */}
+            {showSearchDropdown && searchTerm.trim() !== '' && (
+              <>
+                {/* Click-outside backdrop overlay */}
+                <div 
+                  onClick={() => setShowSearchDropdown(false)}
+                  style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 40,
+                    backgroundColor: 'transparent'
+                  }}
+                />
+                {/* Dropdown list */}
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                  zIndex: 50,
+                  maxHeight: '350px',
+                  overflowY: 'auto',
+                  marginTop: '0.25rem'
+                }}>
+                  {isSearching ? (
+                    <div style={{ padding: '1rem', color: '#64748b', textAlign: 'center' }}>
+                      Buscando en Base de Datos...
+                    </div>
+                  ) : filteredProducts.length === 0 ? (
+                    <div style={{ padding: '1rem', color: '#64748b', textAlign: 'center' }}>
+                      No se encontraron productos
+                    </div>
+                  ) : (
+                    filteredProducts.map(p => {
+                      const pPrice = getProductPrice(p);
+                      return (
+                        <div
+                          key={p.id}
+                          onClick={() => {
+                            handleProductClick(p);
+                            setSearchTerm('');
+                            setShowSearchDropdown(false);
+                          }}
+                          style={{
+                            padding: '0.75rem 1rem',
+                            borderBottom: '1px solid #f1f5f9',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8fafc' }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                        >
+                          <div>
+                            <div style={{ fontWeight: '600', color: '#1e293b', fontSize: '0.9rem' }}>{p.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.1rem' }}>
+                              SKU: {p.sku || '--'} | Existencia: <span style={{ fontWeight: '600', color: p.stock > 0 ? '#16a34a' : '#dc2626' }}>{p.stock}</span>
+                            </div>
+                          </div>
+                          <div style={{ fontWeight: 'bold', color: 'var(--pulpos-primary)', fontSize: '0.95rem' }}>
+                            ${pPrice?.toFixed(2)}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Ubicación & Ordenar Buttons */}
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <button type="button" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: 'white', border: '1px solid #e2e8f0', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer', height: '36px' }}><MapPin size={14} /> Ubicación</button>
+            <button type="button" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: 'white', border: '1px solid #e2e8f0', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer', height: '36px' }}><ArrowDownUp size={14} /> Ordenar</button>
+            {mode === 'QUOTE' && (
+              <button type="button" onClick={() => { setFastItemName(''); setFastItemPrice(''); setFastItemQuantity(1); setShowFastItemModal(true); }} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: '#fef3c7', border: '1px solid #fde68a', color: '#d97706', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', height: '36px' }}>➕ Artículo Rápido</button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* BOTTOM MAIN BODY: 2 Columns */}
+      <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', width: '100%', alignItems: 'flex-start' }}>
+        {/* LEFT COLUMN: Cart items (70% width) */}
+        <div className="card" style={{ flex: 2, minWidth: '400px', display: 'flex', flexDirection: 'column', padding: '1.5rem' }}>
+          
+          {/* CLIENT SEARCH & PARKED TABS ROW */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
+            {/* Customer select */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '250px' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b', whiteSpace: 'nowrap' }}>Cliente</span>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <input 
+                  type="text" 
+                  placeholder="Buscar o escribir nombre de cliente..." 
+                  value={customerSearchTerm}
+                  onChange={e => {
+                    setCustomerSearchTerm(e.target.value);
+                    const matched = customers.find((c: any) => c.name.toLowerCase() === e.target.value.toLowerCase());
+                    if (matched) handleCustomerChange(matched.id);
+                    else handleCustomerChange('');
+                  }}
+                  style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                />
+                {/* Customer Dropdown */}
+                {customerSearchTerm.trim() !== '' && !selectedCustomerId && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', zIndex: 10, maxHeight: '200px', overflowY: 'auto', marginTop: '0.25rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                    <div 
+                      onClick={() => {
+                        setCustomerSearchTerm('Público en General');
+                        handleCustomerChange('');
+                      }}
+                      style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem' }}
+                      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      Público en General
+                    </div>
+                    {activeCustomers.filter(c => c.name.toLowerCase().includes(customerSearchTerm.toLowerCase())).map(c => (
+                      <div 
+                        key={c.id} 
+                        onClick={() => {
+                          setSelectedCustomerId(c.id);
+                          setCustomerSearchTerm(c.name);
+                        }}
+                        style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem' }}
+                        onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
+                        {c.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* TABS (On-Hold drafts visual tabs) */}
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              {onHoldTickets.map((ticket, index) => (
+                <button
+                  type="button"
+                  key={ticket.id}
+                  onClick={() => handleRestoreTicket(ticket)}
+                  style={{
+                    padding: '0.4rem 0.8rem',
+                    border: '2px solid #cbd5e1',
+                    borderRadius: '6px',
+                    backgroundColor: 'white',
+                    color: '#475569',
+                    fontSize: '0.8rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    transition: 'border-color 0.2s, background-color 0.2s'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = 'var(--pulpos-primary)';
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = '#cbd5e1';
+                    e.currentTarget.style.backgroundColor = 'white';
+                  }}
+                  title={`Cargar ${ticket.name}`}
+                >
+                  {ticket.name}
+                </button>
+              ))}
+              <button 
+                type="button"
+                onClick={handlePutOnHold}
+                style={{
+                  padding: '0.4rem 0.8rem',
+                  border: '2px dashed var(--pulpos-primary)',
+                  borderRadius: '6px',
+                  backgroundColor: 'var(--pulpos-bg)',
+                  color: 'var(--pulpos-primary)',
+                  fontSize: '0.8rem',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
+                }}
+                title="Poner en espera ticket actual"
+              >
+                ⏸️ Pausar Venta
+              </button>
+            </div>
+          </div>
+
+          {/* ITEMS LIST (Cart table layout) */}
+          <div style={{ minHeight: '380px', display: 'flex', flexDirection: 'column' }}>
+            {cart.length === 0 ? (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: 'var(--pulpos-text-muted)', padding: '4rem 1rem' }}>
+                <ShoppingBag size={48} color="#cbd5e1" style={{ marginBottom: '1rem' }} />
+                <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>El ticket está vacío</div>
+                <div style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>Escribe en el buscador de arriba para agregar artículos.</div>
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #cbd5e1', color: '#64748b', fontSize: '0.85rem' }}>
+                    <th style={{ padding: '0.75rem 0.5rem', width: '30px' }}><input type="checkbox" readOnly checked style={{ cursor: 'not-allowed' }} /></th>
+                    <th style={{ padding: '0.75rem 0.5rem' }}>Artículo</th>
+                    <th style={{ padding: '0.75rem 0.5rem', width: '130px', textAlign: 'center' }}>Cantidad</th>
+                    <th style={{ padding: '0.75rem 0.5rem', width: '100px', textAlign: 'right' }}>Precio</th>
+                    <th style={{ padding: '0.75rem 0.5rem', width: '110px', textAlign: 'right' }}>Subtotal</th>
+                    <th style={{ padding: '0.75rem 0.5rem', width: '40px' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cart.map(item => {
+                    const itemPrice = getProductPrice(item);
+                    const itemSubtotal = itemPrice * item.quantity;
+                    return (
+                      <tr key={item.listId} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }}>
+                        <td style={{ padding: '1rem 0.5rem' }}>
+                          <input type="checkbox" readOnly checked style={{ cursor: 'not-allowed' }} />
+                        </td>
+                        <td style={{ padding: '1rem 0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            {/* Avatar initials badge */}
+                            <div style={{
+                              width: '32px', height: '32px', borderRadius: '6px',
+                              backgroundColor: '#eff6ff', color: '#3b82f6',
+                              fontWeight: 'bold', fontSize: '0.8rem',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              {item.name.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: '600', color: '#1e293b', fontSize: '0.9rem' }}>{item.name}</div>
+                              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.1rem' }}>SKU: {item.sku || '--'}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ padding: '1rem 0.5rem', textAlign: 'center' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.15rem' }}>
+                            <button 
+                              type="button"
+                              onClick={() => handleUpdateQty(item.listId, item.quantity - 1)}
+                              style={{ border: 'none', background: 'none', color: '#64748b', width: '24px', height: '24px', cursor: 'pointer', fontWeight: 'bold' }}
+                            >-</button>
+                            <span style={{ fontSize: '0.9rem', fontWeight: '600', minWidth: '24px', textAlign: 'center' }}>{item.quantity}</span>
+                            <button 
+                              type="button"
+                              onClick={() => handleUpdateQty(item.listId, item.quantity + 1)}
+                              style={{ border: 'none', background: 'none', color: '#64748b', width: '24px', height: '24px', cursor: 'pointer', fontWeight: 'bold' }}
+                            >+</button>
+                          </div>
+                        </td>
+                        <td style={{ padding: '1rem 0.5rem', textAlign: 'right', fontSize: '0.9rem', color: '#475569' }}>
+                          ${itemPrice.toFixed(2)}
+                        </td>
+                        <td style={{ padding: '1rem 0.5rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--pulpos-primary)', fontSize: '0.95rem' }}>
+                          ${itemSubtotal.toFixed(2)}
+                        </td>
+                        <td style={{ padding: '1rem 0.5rem', textAlign: 'center' }}>
+                          <button 
+                            type="button"
+                            onClick={() => setCart(cart.filter(c => c.cartItemId !== item.cartItemId))}
+                            style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
+                            title="Eliminar artículo"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Total and actions (30% width) */}
+        <div style={{ flex: 1, minWidth: '300px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Action Buttons Panel */}
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1.25rem' }}>
+            <button type="button" style={{ width: '100%', padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: 'white', fontWeight: 'bold', color: '#475569', fontSize: '0.85rem', cursor: 'pointer', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}>
+              Añadir Promoción
+            </button>
+            <button type="button" onClick={() => setIsQuoteModalOpen(true)} style={{ width: '100%', padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: 'white', fontWeight: 'bold', color: '#475569', fontSize: '0.85rem', cursor: 'pointer', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}>
+              Cargar Cotización
+            </button>
+          </div>
+
+          {/* Totals & checkout card */}
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: '1.5rem', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total a Cobrar</div>
+              <div style={{ fontSize: '2.5rem', fontWeight: '800', color: '#1e293b', marginTop: '0.5rem' }}>
+                ${total.toFixed(2)}
+              </div>
+              {manualDiscountValue && (
+                <div style={{ fontSize: '0.85rem', color: '#16a34a', fontWeight: '500', marginTop: '0.25rem' }}>
+                  Descuento aplicado: ${discount.toFixed(2)}
+                </div>
+              )}
+            </div>
+
+            {/* Manual Discount Selection */}
+            {cart.length > 0 && ventasConfig.bloquearDescuentos !== true && (
+              <div style={{ marginBottom: '1rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.25rem' }}>Descuento Manual al Total</label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <select 
+                    value={manualDiscountType} 
+                    onChange={e => setManualDiscountType(e.target.value as '$' | '%')} 
+                    style={{ width: '60px', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', outline: 'none' }}
+                  >
+                    <option value="$">$</option>
+                    <option value="%">%</option>
+                  </select>
+                  <input 
+                    type="number" 
+                    min="0"
+                    placeholder="Monto"
+                    value={manualDiscountValue}
+                    onChange={e => setManualDiscountValue(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                    style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', textAlign: 'right', outline: 'none' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Estimated profit info */}
+            {cart.length > 0 && (
+              <div style={{ textAlign: 'center', fontSize: '0.8rem', color: estimatedProfit > 0 ? '#16a34a' : '#dc2626', marginBottom: '1rem', fontWeight: '500' }}>
+                Ganancia neta: ${estimatedProfit.toFixed(2)} ({markupPct}% utilidad / {marginPct}% margen {mode === 'QUOTE' ? 'de cotización' : mode === 'CONSIGNMENT' ? 'de consignación' : 'de venta'})
+              </div>
+            )}
+
+            {/* Notes field */}
+            {cart.length > 0 && (
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.25rem' }}>Notas del Ticket</label>
+                <input type="text" className="input" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Agregar comentarios..." style={{ width: '100%', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+              </div>
+            )}
+
+            {/* Primary Checkout Button */}
+            <button
+              type="button"
+              onClick={() => setIsCheckoutOpen(true)}
+              disabled={cart.length === 0 || isProcessing}
+              style={{
+                width: '100%',
+                padding: '1.25rem',
+                borderRadius: '10px',
+                backgroundColor: '#a78bfa', // Lavender/purple as in mockup
+                color: 'white',
+                border: 'none',
+                fontSize: '1.15rem',
+                fontWeight: '800',
+                cursor: cart.length === 0 ? 'not-allowed' : 'pointer',
+                boxShadow: '0 4px 14px rgba(167, 139, 250, 0.4)',
+                transition: 'background-color 0.2s, transform 0.1s',
+                opacity: cart.length === 0 ? 0.6 : 1
+              }}
+              onMouseEnter={e => {
+                if (cart.length > 0) e.currentTarget.style.backgroundColor = '#8b5cf6';
+              }}
+              onMouseLeave={e => {
+                if (cart.length > 0) e.currentTarget.style.backgroundColor = '#a78bfa';
+              }}
+            >
+              {isProcessing ? 'Procesando...' : mode === 'QUOTE' ? 'Guardar Cotización' : mode === 'CONSIGNMENT' ? 'Crear Consignación' : 'Cobrar Venta'}
+            </button>
+          </div>
         </div>
       </div>
 
