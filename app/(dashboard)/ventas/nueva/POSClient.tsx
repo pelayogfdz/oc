@@ -1251,13 +1251,13 @@ export default function POSClient({ products: initialProducts, customers, suppli
                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.15rem', backgroundColor: 'white' }}>
                             <button 
                               type="button"
-                              onClick={() => handleUpdateQty(item.listId, item.quantity - 1)}
+                              onClick={() => handleUpdateQty(item.cartItemId, item.quantity - 1)}
                               style={{ border: 'none', background: 'none', color: '#64748b', width: '24px', height: '24px', cursor: 'pointer', fontWeight: 'bold' }}
                             >-</button>
                             <span style={{ fontSize: '0.9rem', fontWeight: '600', minWidth: '24px', textAlign: 'center' }}>{item.quantity}</span>
                             <button 
                               type="button"
-                              onClick={() => handleUpdateQty(item.listId, item.quantity + 1)}
+                              onClick={() => handleUpdateQty(item.cartItemId, item.quantity + 1)}
                               style={{ border: 'none', background: 'none', color: '#64748b', width: '24px', height: '24px', cursor: 'pointer', fontWeight: 'bold' }}
                             >+</button>
                           </div>

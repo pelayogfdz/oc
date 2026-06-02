@@ -307,13 +307,33 @@ export default function CrearCompraForm({ suppliers, products, branchId }: { sup
                       {/* Quantity field */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
                         <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Cant.</span>
-                        <input 
-                          type="number" 
-                          min="1" 
-                          value={item.quantity} 
-                          onChange={(e) => handleUpdateItem(idx, 'quantity', parseInt(e.target.value) || 1)} 
-                          style={{ width: '65px', height: '32px', padding: '0 0.5rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.85rem', outline: 'none', textAlign: 'center' }} 
-                        />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateItem(idx, 'quantity', Math.max(1, item.quantity - 1))}
+                            style={{ border: '1px solid #cbd5e1', background: 'white', borderRadius: '6px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background-color 0.2s' }}
+                            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
+                          >
+                            <Minus size={14} color="#64748b" />
+                          </button>
+                          <input 
+                            type="number" 
+                            min="1" 
+                            value={item.quantity} 
+                            onChange={(e) => handleUpdateItem(idx, 'quantity', parseInt(e.target.value) || 1)} 
+                            style={{ width: '50px', height: '32px', textAlign: 'center', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem', outline: 'none' }} 
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateItem(idx, 'quantity', item.quantity + 1)}
+                            style={{ border: '1px solid #cbd5e1', background: 'white', borderRadius: '6px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background-color 0.2s' }}
+                            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
+                          >
+                            <Plus size={14} color="#64748b" />
+                          </button>
+                        </div>
                       </div>
                       
                       {/* Cost field */}
