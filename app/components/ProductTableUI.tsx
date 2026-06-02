@@ -196,9 +196,8 @@ const ProductTableUI = memo(function ProductTableUI({
                 </th>
               )}
               <th style={{ padding: '0.5rem 0.4rem', fontWeight: 'bold' }}>Producto</th>
-              <th style={{ padding: '0.5rem 0.4rem', fontWeight: 'bold', textAlign: 'center', width: '80px' }}>Stock</th>
-              <th style={{ padding: '0.5rem 0.4rem', fontWeight: 'bold', textAlign: 'center', width: '90px' }}>Categoría</th>
-              <th style={{ padding: '0.5rem 0.4rem', fontWeight: 'bold', textAlign: 'right', width: '80px' }}>Precio</th>
+              <th style={{ padding: '0.5rem 0.4rem', fontWeight: 'bold', textAlign: 'center', width: '60px' }}>Stock</th>
+              <th style={{ padding: '0.5rem 0.4rem', fontWeight: 'bold', textAlign: 'right', width: '90px' }}>Precio</th>
               {renderCustomActions && <th style={{ padding: '0.5rem 0.4rem' }}></th>}
             </tr>
           </thead>
@@ -282,40 +281,40 @@ const ProductTableUI = memo(function ProductTableUI({
                           {/* Product Image (Overlaid with higher z-index) */}
                           {prod.imageUrl && !imageErrors[prod.id] && (
                             <img 
-                              src={getFormattedImageUrl(prod.imageUrl)} 
-                              alt="" 
-                              data-table-img="true"
-                              data-prod-id={prod.id}
-                              data-initials={prod.name.substring(0, 2).toUpperCase()}
-                              onLoad={(e) => {
-                                e.currentTarget.style.opacity = '1';
-                                e.currentTarget.style.visibility = 'visible';
-                              }}
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                e.currentTarget.style.visibility = 'hidden';
-                                setImageErrors(prev => ({ ...prev, [prod.id]: true }));
-                              }}
-                              style={{ 
-                                position: 'absolute', 
-                                inset: 0, 
-                                width: '100%', 
-                                height: '100%', 
-                                objectFit: 'cover', 
-                                zIndex: 2,
-                                opacity: 0, // Starts transparent to prevent broken icon flash
-                                visibility: 'hidden', // Hidden by default to suppress broken icon
-                                transition: 'opacity 0.2s ease-in-out'
-                              }} 
+                               src={getFormattedImageUrl(prod.imageUrl)} 
+                               alt="" 
+                               data-table-img="true"
+                               data-prod-id={prod.id}
+                               data-initials={prod.name.substring(0, 2).toUpperCase()}
+                               onLoad={(e) => {
+                                 e.currentTarget.style.opacity = '1';
+                                 e.currentTarget.style.visibility = 'visible';
+                               }}
+                               onError={(e) => {
+                                 e.currentTarget.style.display = 'none';
+                                 e.currentTarget.style.visibility = 'hidden';
+                                 setImageErrors(prev => ({ ...prev, [prod.id]: true }));
+                               }}
+                               style={{ 
+                                 position: 'absolute', 
+                                 inset: 0, 
+                                 width: '100%', 
+                                 height: '100%', 
+                                 objectFit: 'cover', 
+                                 zIndex: 2,
+                                 opacity: 0, // Starts transparent to prevent broken icon flash
+                                 visibility: 'hidden', // Hidden by default to suppress broken icon
+                                 transition: 'opacity 0.2s ease-in-out'
+                               }} 
                             />
                           )}
                         </div>
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
                         {onRowClick ? (
-                           <div style={{ color: '#0ea5e9', fontWeight: '500', marginBottom: '0.1rem', fontSize: '0.85rem', wordBreak: 'break-word', overflow: 'hidden' }}>{prod.name}</div>
+                           <div style={{ color: '#0ea5e9', fontWeight: '600', marginBottom: '0.1rem', fontSize: '0.85rem', wordBreak: 'break-word', overflow: 'hidden' }}>{prod.name}</div>
                         ) : (
-                           <Link href={`/productos/${prod.id}`} style={{ color: '#0ea5e9', fontWeight: '500', textDecoration: 'none', marginBottom: '0.1rem', display: 'block', fontSize: '0.85rem', wordBreak: 'break-word', overflow: 'hidden' }}>
+                           <Link href={`/productos/${prod.id}`} style={{ color: '#0ea5e9', fontWeight: '600', textDecoration: 'none', marginBottom: '0.1rem', display: 'block', fontSize: '0.85rem', wordBreak: 'break-word', overflow: 'hidden' }}>
                              {prod.name}
                            </Link>
                         )}
@@ -323,23 +322,20 @@ const ProductTableUI = memo(function ProductTableUI({
                       </div>
                     </div>
                   </td>
-                  <td data-label="Stock" style={{ padding: '0.5rem 0.4rem', textAlign: 'center' }}>
+                  <td data-label="Stock" style={{ padding: '0.5rem 0.3rem', textAlign: 'center' }}>
                     <span style={{ 
                       backgroundColor: prod.stock > 0 ? '#dcfce7' : '#fee2e2', 
                       color: prod.stock > 0 ? '#16a34a' : '#dc2626',
-                      padding: '0.15rem 0.5rem',
+                      padding: '0.15rem 0.4rem',
                       borderRadius: '999px',
                       fontSize: '0.75rem',
-                      fontWeight: '500',
+                      fontWeight: '600',
                       whiteSpace: 'nowrap'
                     }}>
-                      {prod.stock} {prod.unit || 'piezas'}
+                      {prod.stock}
                     </span>
                   </td>
-                  <td data-label="Categoría" style={{ padding: '0.5rem 0.4rem', color: '#64748b', textAlign: 'center', fontSize: '0.75rem' }}>
-                    {prod.category?.toUpperCase() || 'GENERAL'}
-                  </td>
-                  <td data-label="Precio" style={{ padding: '0.5rem 0.4rem', color: '#64748b', textAlign: 'right', fontWeight: 'bold', fontSize: '0.8rem' }}>
+                  <td data-label="Precio" style={{ padding: '0.5rem 0.4rem', color: '#0f172a', textAlign: 'right', fontWeight: 'bold', fontSize: '0.85rem' }}>
                     ${parseFloat((priceExtractor ? priceExtractor(prod) : prod.price) || 0).toFixed(2)}
                   </td>
                   {renderCustomActions && (
@@ -352,7 +348,7 @@ const ProductTableUI = memo(function ProductTableUI({
             })}
             {products.length === 0 && (
               <tr>
-                <td colSpan={showCheckboxes ? (renderCustomActions ? 6 : 5) : (renderCustomActions ? 5 : 4)} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                <td colSpan={showCheckboxes ? (renderCustomActions ? 5 : 4) : (renderCustomActions ? 4 : 3)} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
                   No se encontraron productos.
                 </td>
               </tr>
