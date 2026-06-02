@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star, X } from 'lucide-react';
+import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star, X, Clock, FolderOpen, Trash2 } from 'lucide-react';
 import { createSale } from '@/app/actions/sale';
 import { getLoyaltySettings } from '@/app/actions/loyalty';
 import { createQuote, getQuoteForPOS, createQuickProductsForQuote } from '@/app/actions/quote';
@@ -17,6 +17,23 @@ export default function POSClient({ products: initialProducts, customers, suppli
   const { isOnline, pushOfflineSale } = useOfflineSync();
   const [cart, setCart] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // States for sales/quotes/consignments on hold (en espera)
+  const [onHoldTickets, setOnHoldTickets] = useState<any[]>([]);
+  const [showOnHoldModal, setShowOnHoldModal] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`caanma_on_hold_${branchId}_${mode}`);
+      if (stored) {
+        try {
+          setOnHoldTickets(JSON.parse(stored));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+  }, [branchId, mode]);
   const [isMobileSearchActive, setIsMobileSearchActive] = useState(false);
   const [priceList, setPriceList] = useState('price');
   
@@ -718,6 +735,74 @@ export default function POSClient({ products: initialProducts, customers, suppli
     }
   };
 
+  const handlePutOnHold = () => {
+    if (cart.length === 0) {
+      alert('El ticket actual está vacío.');
+      return;
+    }
+    const name = prompt('Asigna un nombre o identificador para esta venta en espera (opcional):', `Ticket #${onHoldTickets.length + 1}`);
+    if (name === null) return; // user cancelled
+
+    const newTicket = {
+      id: Date.now().toString(),
+      name: name.trim() || `Ticket #${onHoldTickets.length + 1}`,
+      cart,
+      selectedCustomerId,
+      customerSearchTerm,
+      priceList,
+      notes,
+      manualDiscountValue,
+      loadedQuoteId,
+      loadedConsignmentId,
+      total: total, // current dynamic total
+      timestamp: new Date().toLocaleString(),
+    };
+
+    const updated = [newTicket, ...onHoldTickets];
+    setOnHoldTickets(updated);
+    localStorage.setItem(`caanma_on_hold_${branchId}_${mode}`, JSON.stringify(updated));
+
+    // Clear current cart/customer
+    setCart([]);
+    setSelectedCustomerId(null);
+    setCustomerSearchTerm('');
+    setPriceList('price');
+    setNotes('');
+    setManualDiscountValue('');
+    setLoadedQuoteId(null);
+    setLoadedConsignmentId(null);
+    alert('Venta guardada en espera.');
+  };
+
+  const handleRestoreTicket = (ticket: any) => {
+    if (cart.length > 0) {
+      const confirmMerge = confirm('Tienes artículos en el ticket actual. ¿Deseas reemplazar el ticket actual con el seleccionado en espera?');
+      if (!confirmMerge) return;
+    }
+
+    setCart(ticket.cart);
+    setSelectedCustomerId(ticket.selectedCustomerId || null);
+    setCustomerSearchTerm(ticket.customerSearchTerm || '');
+    setPriceList(ticket.priceList || 'price');
+    setNotes(ticket.notes || '');
+    setManualDiscountValue(ticket.manualDiscountValue || '');
+    setLoadedQuoteId(ticket.loadedQuoteId || null);
+    setLoadedConsignmentId(ticket.loadedConsignmentId || null);
+
+    // Remove from list
+    const updated = onHoldTickets.filter(t => t.id !== ticket.id);
+    setOnHoldTickets(updated);
+    localStorage.setItem(`caanma_on_hold_${branchId}_${mode}`, JSON.stringify(updated));
+    setShowOnHoldModal(false);
+  };
+
+  const handleDeleteOnHold = (ticketId: string) => {
+    if (!confirm('¿Estás seguro de eliminar este ticket en espera?')) return;
+    const updated = onHoldTickets.filter(t => t.id !== ticketId);
+    setOnHoldTickets(updated);
+    localStorage.setItem(`caanma_on_hold_${branchId}_${mode}`, JSON.stringify(updated));
+  };
+
   const handleCheckout = async () => {
     if (cart.length === 0) return;
     setIsProcessing(true);
@@ -1197,8 +1282,48 @@ export default function POSClient({ products: initialProducts, customers, suppli
           </div>
         </div>
 
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Ticket actual</h2>
-        <div style={{ minHeight: '0px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Ticket actual</h2>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button 
+              type="button"
+              onClick={handlePutOnHold}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.25rem',
+                backgroundColor: '#fee2e2', border: '1px solid #fca5a5', color: '#b91c1c',
+                padding: '0.4rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem',
+                fontWeight: 'bold', cursor: 'pointer'
+              }}
+              title="Poner en espera la venta actual"
+            >
+              ⏸️ En Espera
+            </button>
+            <button 
+              type="button"
+              onClick={() => setShowOnHoldModal(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.25rem',
+                backgroundColor: '#e0f2fe', border: '1px solid #7dd3fc', color: '#0369a1',
+                padding: '0.4rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem',
+                fontWeight: 'bold', cursor: 'pointer', position: 'relative'
+              }}
+              title="Ver tickets en espera"
+            >
+              📂 Recuperar
+              {onHoldTickets.length > 0 && (
+                <span style={{
+                  position: 'absolute', top: '-8px', right: '-8px',
+                  backgroundColor: '#ef4444', color: 'white', borderRadius: '50%',
+                  width: '18px', height: '18px', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold'
+                }}>
+                  {onHoldTickets.length}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+        <div style={{ minHeight: '380px' }}>
           {cart.length === 0 && <div style={{ color: 'var(--pulpos-text-muted)', textAlign: 'center', marginTop: '2rem' }}>Ticket vacío</div>}
           {cart.map(item => {
             const currentPrice = getProductPrice(item);
@@ -1993,6 +2118,116 @@ export default function POSClient({ products: initialProducts, customers, suppli
                 }}
               >
                 ➕ Nueva Venta (Limpiar)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showOnHoldModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div className="card" style={{
+            width: '600px',
+            maxWidth: '95%',
+            maxHeight: '85vh',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '2rem',
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.75rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                <Clock size={20} color="var(--pulpos-primary)" /> Tickets en Espera ({mode === 'QUOTE' ? 'Cotizaciones' : mode === 'CONSIGNMENT' ? 'Consignaciones' : 'Ventas'})
+              </h3>
+              <button type="button" onClick={() => setShowOnHoldModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <X size={24} />
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1.5rem' }}>
+              {onHoldTickets.length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#94a3b8', padding: '3rem 1rem' }}>
+                  No hay tickets en espera.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {onHoldTickets.map(ticket => (
+                    <div key={ticket.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid var(--pulpos-border)', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+                      <div>
+                        <div style={{ fontWeight: 'bold', fontSize: '1rem', color: '#1e293b' }}>{ticket.name}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
+                          Creado: {ticket.timestamp}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-primary)', fontWeight: '500', marginTop: '0.25rem' }}>
+                          {ticket.cart.length} art. | Total: ${ticket.total.toFixed(2)}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button 
+                          type="button"
+                          onClick={() => handleRestoreTicket(ticket)}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            backgroundColor: 'var(--pulpos-primary)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontWeight: 'bold',
+                            fontSize: '0.85rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Cargar
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => handleDeleteOnHold(ticket.id)}
+                          style={{
+                            padding: '0.5rem',
+                            backgroundColor: '#fee2e2',
+                            color: '#ef4444',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--pulpos-border)', paddingTop: '1rem' }}>
+              <button 
+                type="button"
+                onClick={() => setShowOnHoldModal(false)}
+                style={{
+                  padding: '0.6rem 2rem',
+                  backgroundColor: '#f1f5f9',
+                  color: '#334155',
+                  border: '1px solid var(--pulpos-border)',
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                Cerrar
               </button>
             </div>
           </div>

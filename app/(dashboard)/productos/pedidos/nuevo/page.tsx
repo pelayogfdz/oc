@@ -10,7 +10,7 @@ export default async function NuevoPedidoPage() {
   const branch = await getActiveBranch();
   
   // Data for the form
-  const query = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
+  const query = branch?.id === 'GLOBAL' ? {} : { branchId: branch?.id || '' };
   const products = await prisma.product.findMany({
     where: query,
     select: { id: true, name: true, stock: true, minStock: true, cost: true }
@@ -48,7 +48,7 @@ export default async function NuevoPedidoPage() {
         </div>
       </div>
 
-      <CrearPedidoForm products={products} suppliers={suppliers} pendingRequests={pendingRequests} />
+      <CrearPedidoForm products={products} suppliers={suppliers} pendingRequests={pendingRequests} branchId={branch?.id || ''} />
     </div>
   );
 }

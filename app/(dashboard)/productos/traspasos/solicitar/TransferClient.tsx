@@ -1,8 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { requestTransfer } from '@/app/actions/transfer';
 import { useRouter } from 'next/navigation';
-import { Truck, ArrowRight, Trash2, Search } from 'lucide-react';
+import { Truck, ArrowRight, Trash2, Search, Clock, X } from 'lucide-react';
 import ProductTableUI from '@/app/components/ProductTableUI';
 
 export default function TransferClient({ originBranchId, originBranchName, otherBranches, inventory, ventasConfig = {} }: any) {
@@ -14,6 +14,75 @@ export default function TransferClient({ originBranchId, originBranchName, other
   
   const [transferItems, setTransferItems] = useState<any[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // States for transfers en espera
+  const [onHoldTransfers, setOnHoldTransfers] = useState<any[]>([]);
+  const [showOnHoldModal, setShowOnHoldModal] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`caanma_on_hold_transfers_req_${originBranchId}`);
+      if (stored) {
+        try {
+          setOnHoldTransfers(JSON.parse(stored));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+  }, [originBranchId]);
+
+  const handlePutOnHold = () => {
+    if (transferItems.length === 0) {
+      alert('No hay artículos agregados al traspaso.');
+      return;
+    }
+    const name = prompt('Asigna un nombre o identificador para esta solicitud de traspaso en espera (opcional):', `Solicitud #${onHoldTransfers.length + 1}`);
+    if (name === null) return; // user cancelled
+
+    const newTransfer = {
+      id: Date.now().toString(),
+      name: name.trim() || `Solicitud #${onHoldTransfers.length + 1}`,
+      transferItems,
+      fromBranchId,
+      reason,
+      timestamp: new Date().toLocaleString(),
+    };
+
+    const updated = [newTransfer, ...onHoldTransfers];
+    setOnHoldTransfers(updated);
+    localStorage.setItem(`caanma_on_hold_transfers_req_${originBranchId}`, JSON.stringify(updated));
+
+    // Clear current fields
+    setTransferItems([]);
+    setFromBranchId('');
+    setReason('Reabastecimiento');
+    alert('Solicitud de traspaso guardada en espera.');
+  };
+
+  const handleRestoreTransfer = (transfer: any) => {
+    if (transferItems.length > 0) {
+      const confirmMerge = confirm('Tienes artículos en la solicitud de traspaso actual. ¿Deseas reemplazar el traspaso actual con el seleccionado en espera?');
+      if (!confirmMerge) return;
+    }
+
+    setTransferItems(transfer.transferItems);
+    setFromBranchId(transfer.fromBranchId || '');
+    setReason(transfer.reason || 'Reabastecimiento');
+
+    // Remove from list
+    const updated = onHoldTransfers.filter(t => t.id !== transfer.id);
+    setOnHoldTransfers(updated);
+    localStorage.setItem(`caanma_on_hold_transfers_req_${originBranchId}`, JSON.stringify(updated));
+    setShowOnHoldModal(false);
+  };
+
+  const handleDeleteOnHold = (transferId: string) => {
+    if (!confirm('¿Estás seguro de eliminar esta solicitud de traspaso en espera?')) return;
+    const updated = onHoldTransfers.filter(t => t.id !== transferId);
+    setOnHoldTransfers(updated);
+    localStorage.setItem(`caanma_on_hold_transfers_req_${originBranchId}`, JSON.stringify(updated));
+  };
 
   // Variant Modal
   const [selectedProductForVariant, setSelectedProductForVariant] = useState<any | null>(null);
@@ -178,9 +247,49 @@ export default function TransferClient({ originBranchId, originBranchName, other
         </div>
 
         <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Truck size={20} /> Artículos a Traspasar
-          </h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+              <Truck size={20} /> Artículos a Traspasar
+            </h2>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button 
+                type="button"
+                onClick={handlePutOnHold}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.25rem',
+                  backgroundColor: '#fee2e2', border: '1px solid #fca5a5', color: '#b91c1c',
+                  padding: '0.4rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem',
+                  fontWeight: 'bold', cursor: 'pointer'
+                }}
+                title="Poner en espera la solicitud actual"
+              >
+                ⏸️ En Espera
+              </button>
+              <button 
+                type="button"
+                onClick={() => setShowOnHoldModal(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.25rem',
+                  backgroundColor: '#e0f2fe', border: '1px solid #7dd3fc', color: '#0369a1',
+                  padding: '0.4rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem',
+                  fontWeight: 'bold', cursor: 'pointer', position: 'relative'
+                }}
+                title="Ver solicitudes en espera"
+              >
+                📂 Recuperar
+                {onHoldTransfers.length > 0 && (
+                  <span style={{
+                    position: 'absolute', top: '-8px', right: '-8px',
+                    backgroundColor: '#ef4444', color: 'white', borderRadius: '50%',
+                    width: '18px', height: '18px', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold'
+                  }}>
+                    {onHoldTransfers.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
           
           <div style={{ flex: 1, minHeight: '380px' }}>
           {transferItems.length === 0 && (
@@ -295,6 +404,113 @@ export default function TransferClient({ originBranchId, originBranchName, other
         </div>
       )}
 
+      {showOnHoldModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999
+        }}>
+          <div className="card" style={{
+            width: '600px',
+            maxWidth: '95%',
+            maxHeight: '85vh',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '2rem',
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.75rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                <Clock size={20} color="var(--pulpos-primary)" /> Solicitudes en Espera
+              </h3>
+              <button type="button" onClick={() => setShowOnHoldModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <X size={24} />
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1.5rem' }}>
+              {onHoldTransfers.length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#94a3b8', padding: '3rem 1rem' }}>
+                  No hay solicitudes en espera.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {onHoldTransfers.map(transfer => (
+                    <div key={transfer.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid var(--pulpos-border)', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+                      <div>
+                        <div style={{ fontWeight: 'bold', fontSize: '1rem', color: '#1e293b' }}>{transfer.name}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
+                          Creado: {transfer.timestamp}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-primary)', fontWeight: '500', marginTop: '0.25rem' }}>
+                          {transfer.transferItems.length} art.
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button 
+                          type="button"
+                          onClick={() => handleRestoreTransfer(transfer)}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            backgroundColor: 'var(--pulpos-primary)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontWeight: 'bold',
+                            fontSize: '0.85rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Cargar
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => handleDeleteOnHold(transfer.id)}
+                          style={{
+                            padding: '0.5rem',
+                            backgroundColor: '#fee2e2',
+                            color: '#ef4444',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--pulpos-border)', paddingTop: '1rem' }}>
+              <button 
+                type="button"
+                onClick={() => setShowOnHoldModal(false)}
+                style={{
+                  padding: '0.6rem 2rem',
+                  backgroundColor: '#f1f5f9',
+                  color: '#334155',
+                  border: '1px solid var(--pulpos-border)',
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

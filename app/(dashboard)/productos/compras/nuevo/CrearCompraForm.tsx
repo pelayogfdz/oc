@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Trash2, Save, ShoppingBag, Image as ImageIcon, Search, Filter } from 'lucide-react';
+import { Trash2, Save, ShoppingBag, Image as ImageIcon, Search, Filter, Clock, X } from 'lucide-react';
 import { createPurchase } from '@/app/actions/purchase';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import ProductTableUI from '@/app/components/ProductTableUI';
 
-export default function CrearCompraForm({ suppliers, products }: { suppliers: any[], products: any[] }) {
+export default function CrearCompraForm({ suppliers, products, branchId }: { suppliers: any[], products: any[], branchId: string }) {
   const router = useRouter();
   const { isOnline, pushOfflinePurchase } = useOfflineSync();
   const [supplierId, setSupplierId] = useState('');
@@ -18,9 +18,79 @@ export default function CrearCompraForm({ suppliers, products }: { suppliers: an
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [isMounted, setIsMounted] = useState(false);
 
+  // States for purchase on hold
+  const [onHoldPurchases, setOnHoldPurchases] = useState<any[]>([]);
+  const [showOnHoldModal, setShowOnHoldModal] = useState(false);
+
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`caanma_on_hold_purchases_${branchId}`);
+      if (stored) {
+        try {
+          setOnHoldPurchases(JSON.parse(stored));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+  }, [branchId]);
+
+  const handlePutOnHold = () => {
+    if (items.length === 0) {
+      alert('La compra actual no tiene artículos.');
+      return;
+    }
+    const name = prompt('Asigna un nombre o identificador para esta compra en espera (opcional):', `Compra #${onHoldPurchases.length + 1}`);
+    if (name === null) return; // user cancelled
+
+    const newPurchase = {
+      id: Date.now().toString(),
+      name: name.trim() || `Compra #${onHoldPurchases.length + 1}`,
+      items,
+      supplierId,
+      paymentMethod,
+      freightCost,
+      total,
+      timestamp: new Date().toLocaleString(),
+    };
+
+    const updated = [newPurchase, ...onHoldPurchases];
+    setOnHoldPurchases(updated);
+    localStorage.setItem(`caanma_on_hold_purchases_${branchId}`, JSON.stringify(updated));
+
+    // Clear current fields
+    setItems([]);
+    setSupplierId('');
+    setPaymentMethod('CASH');
+    setFreightCost(0);
+    alert('Compra guardada en espera.');
+  };
+
+  const handleRestorePurchase = (purchase: any) => {
+    if (items.length > 0) {
+      const confirmMerge = confirm('Tienes artículos en la compra actual. ¿Deseas reemplazar la compra actual con la seleccionada en espera?');
+      if (!confirmMerge) return;
+    }
+
+    setItems(purchase.items);
+    setSupplierId(purchase.supplierId || '');
+    setPaymentMethod(purchase.paymentMethod || 'CASH');
+    setFreightCost(purchase.freightCost || 0);
+
+    // Remove from list
+    const updated = onHoldPurchases.filter(p => p.id !== purchase.id);
+    setOnHoldPurchases(updated);
+    localStorage.setItem(`caanma_on_hold_purchases_${branchId}`, JSON.stringify(updated));
+    setShowOnHoldModal(false);
+  };
+
+  const handleDeleteOnHold = (purchaseId: string) => {
+    if (!confirm('¿Estás seguro de eliminar esta compra en espera?')) return;
+    const updated = onHoldPurchases.filter(p => p.id !== purchaseId);
+    setOnHoldPurchases(updated);
+    localStorage.setItem(`caanma_on_hold_purchases_${branchId}`, JSON.stringify(updated));
+  };
 
   const [availableProducts, setAvailableProducts] = useState(products || []);
   const [availableSuppliers, setAvailableSuppliers] = useState(suppliers || []);
@@ -166,9 +236,49 @@ export default function CrearCompraForm({ suppliers, products }: { suppliers: an
 
       {/* Right: Cart & Form */}
       <div className="card" style={{ width: '400px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-        <h2 style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <ShoppingBag size={20} color="var(--pulpos-primary)" /> Ingresar Compra
-        </h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+            <ShoppingBag size={20} color="var(--pulpos-primary)" /> Ingresar Compra
+          </h2>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button 
+              type="button"
+              onClick={handlePutOnHold}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.25rem',
+                backgroundColor: '#fee2e2', border: '1px solid #fca5a5', color: '#b91c1c',
+                padding: '0.4rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem',
+                fontWeight: 'bold', cursor: 'pointer'
+              }}
+              title="Poner en espera la compra actual"
+            >
+              ⏸️ En Espera
+            </button>
+            <button 
+              type="button"
+              onClick={() => setShowOnHoldModal(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.25rem',
+                backgroundColor: '#e0f2fe', border: '1px solid #7dd3fc', color: '#0369a1',
+                padding: '0.4rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem',
+                fontWeight: 'bold', cursor: 'pointer', position: 'relative'
+              }}
+              title="Ver compras en espera"
+            >
+              📂 Recuperar
+              {onHoldPurchases.length > 0 && (
+                <span style={{
+                  position: 'absolute', top: '-8px', right: '-8px',
+                  backgroundColor: '#ef4444', color: 'white', borderRadius: '50%',
+                  width: '18px', height: '18px', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold'
+                }}>
+                  {onHoldPurchases.length}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
 
         {/* Form Inputs */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -338,6 +448,114 @@ export default function CrearCompraForm({ suppliers, products }: { suppliers: an
           </button>
         </div>
       </div>
+
+      {showOnHoldModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999
+        }}>
+          <div className="card" style={{
+            width: '600px',
+            maxWidth: '95%',
+            maxHeight: '85vh',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '2rem',
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.75rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                <Clock size={20} color="var(--pulpos-primary)" /> Compras en Espera
+              </h3>
+              <button type="button" onClick={() => setShowOnHoldModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <X size={24} />
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1.5rem' }}>
+              {onHoldPurchases.length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#94a3b8', padding: '3rem 1rem' }}>
+                  No hay compras en espera.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {onHoldPurchases.map(purchase => (
+                    <div key={purchase.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid var(--pulpos-border)', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+                      <div>
+                        <div style={{ fontWeight: 'bold', fontSize: '1rem', color: '#1e293b' }}>{purchase.name}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
+                          Creado: {purchase.timestamp}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-primary)', fontWeight: '500', marginTop: '0.25rem' }}>
+                          {purchase.items.length} art. | Total: ${(purchase.total + (purchase.freightCost || 0)).toFixed(2)}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button 
+                          type="button"
+                          onClick={() => handleRestorePurchase(purchase)}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            backgroundColor: 'var(--pulpos-primary)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontWeight: 'bold',
+                            fontSize: '0.85rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Cargar
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => handleDeleteOnHold(purchase.id)}
+                          style={{
+                            padding: '0.5rem',
+                            backgroundColor: '#fee2e2',
+                            color: '#ef4444',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--pulpos-border)', paddingTop: '1rem' }}>
+              <button 
+                type="button"
+                onClick={() => setShowOnHoldModal(false)}
+                style={{
+                  padding: '0.6rem 2rem',
+                  backgroundColor: '#f1f5f9',
+                  color: '#334155',
+                  border: '1px solid var(--pulpos-border)',
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -39,7 +39,7 @@ export default async function NuevaCompraPage() {
         </div>
       </div>
 
-      <CrearCompraForm products={products} suppliers={suppliers} />
+      <CrearCompraForm products={products} suppliers={suppliers} branchId={branch.id} />
     </div>
   );
 }

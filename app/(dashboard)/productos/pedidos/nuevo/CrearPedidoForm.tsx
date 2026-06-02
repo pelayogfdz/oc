@@ -2,18 +2,88 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, Save, Wand2, Search, Filter, MapPin, ArrowDownUp } from 'lucide-react';
+import { Plus, Trash2, Save, Wand2, Search, Filter, MapPin, ArrowDownUp, Clock, X } from 'lucide-react';
 import { createPurchaseOrder } from '@/app/actions/pedidos';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import ProductTableUI from '@/app/components/ProductTableUI';
 
-export default function CrearPedidoForm({ suppliers, products, pendingRequests }: { suppliers: any[], products: any[], pendingRequests?: any[] }) {
+export default function CrearPedidoForm({ suppliers, products, pendingRequests, branchId }: { suppliers: any[], products: any[], pendingRequests?: any[], branchId: string }) {
   const router = useRouter();
   const { isOnline, pushOfflinePurchase } = useOfflineSync();
   const [supplierId, setSupplierId] = useState('');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<{ productId: string, name: string, quantity: number, cost: number, requestId?: string }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // States for order on hold
+  const [onHoldOrders, setOnHoldOrders] = useState<any[]>([]);
+  const [showOnHoldModal, setShowOnHoldModal] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`caanma_on_hold_orders_${branchId}`);
+      if (stored) {
+        try {
+          setOnHoldOrders(JSON.parse(stored));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+  }, [branchId]);
+
+  const handlePutOnHold = () => {
+    if (items.length === 0) {
+      alert('El pedido actual no tiene artículos.');
+      return;
+    }
+    const name = prompt('Asigna un nombre o identificador para este pedido en espera (opcional):', `Pedido #${onHoldOrders.length + 1}`);
+    if (name === null) return; // user cancelled
+
+    const newOrder = {
+      id: Date.now().toString(),
+      name: name.trim() || `Pedido #${onHoldOrders.length + 1}`,
+      items,
+      supplierId,
+      notes,
+      total,
+      timestamp: new Date().toLocaleString(),
+    };
+
+    const updated = [newOrder, ...onHoldOrders];
+    setOnHoldOrders(updated);
+    localStorage.setItem(`caanma_on_hold_orders_${branchId}`, JSON.stringify(updated));
+
+    // Clear current fields
+    setItems([]);
+    setSupplierId('');
+    setNotes('');
+    alert('Pedido guardado en espera.');
+  };
+
+  const handleRestoreOrder = (order: any) => {
+    if (items.length > 0) {
+      const confirmMerge = confirm('Tienes artículos en el pedido actual. ¿Deseas reemplazar el pedido actual con el seleccionado en espera?');
+      if (!confirmMerge) return;
+    }
+
+    setItems(order.items);
+    setSupplierId(order.supplierId || '');
+    setNotes(order.notes || '');
+
+    // Remove from list
+    const updated = onHoldOrders.filter(o => o.id !== order.id);
+    setOnHoldOrders(updated);
+    localStorage.setItem(`caanma_on_hold_orders_${branchId}`, JSON.stringify(updated));
+    setShowOnHoldModal(false);
+  };
+
+  const handleDeleteOnHold = (orderId: string) => {
+    if (!confirm('¿Estás seguro de eliminar este pedido en espera?')) return;
+    const updated = onHoldOrders.filter(o => o.id !== orderId);
+    setOnHoldOrders(updated);
+    localStorage.setItem(`caanma_on_hold_orders_${branchId}`, JSON.stringify(updated));
+  };
 
   const [availableProducts, setAvailableProducts] = useState(products || []);
   const [availableSuppliers, setAvailableSuppliers] = useState(suppliers || []);
@@ -204,9 +274,49 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests }
 
       {/* Right: Cart & Form */}
       <div className="card" style={{ width: '400px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-        <h2 style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Save size={20} color="var(--pulpos-primary)" /> Pedido a Proveedor
-        </h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+            <Save size={20} color="var(--pulpos-primary)" /> Pedido a Proveedor
+          </h2>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button 
+              type="button"
+              onClick={handlePutOnHold}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.25rem',
+                backgroundColor: '#fee2e2', border: '1px solid #fca5a5', color: '#b91c1c',
+                padding: '0.4rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem',
+                fontWeight: 'bold', cursor: 'pointer'
+              }}
+              title="Poner en espera el pedido actual"
+            >
+              ⏸️ En Espera
+            </button>
+            <button 
+              type="button"
+              onClick={() => setShowOnHoldModal(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.25rem',
+                backgroundColor: '#e0f2fe', border: '1px solid #7dd3fc', color: '#0369a1',
+                padding: '0.4rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem',
+                fontWeight: 'bold', cursor: 'pointer', position: 'relative'
+              }}
+              title="Ver pedidos en espera"
+            >
+              📂 Recuperar
+              {onHoldOrders.length > 0 && (
+                <span style={{
+                  position: 'absolute', top: '-8px', right: '-8px',
+                  backgroundColor: '#ef4444', color: 'white', borderRadius: '50%',
+                  width: '18px', height: '18px', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold'
+                }}>
+                  {onHoldOrders.length}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
 
         {/* Form Inputs */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -293,6 +403,114 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests }
           </button>
         </div>
       </div>
+
+      {showOnHoldModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999
+        }}>
+          <div className="card" style={{
+            width: '600px',
+            maxWidth: '95%',
+            maxHeight: '85vh',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '2rem',
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.75rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                <Clock size={20} color="var(--pulpos-primary)" /> Pedidos en Espera
+              </h3>
+              <button type="button" onClick={() => setShowOnHoldModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <X size={24} />
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1.5rem' }}>
+              {onHoldOrders.length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#94a3b8', padding: '3rem 1rem' }}>
+                  No hay pedidos en espera.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {onHoldOrders.map(order => (
+                    <div key={order.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid var(--pulpos-border)', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+                      <div>
+                        <div style={{ fontWeight: 'bold', fontSize: '1rem', color: '#1e293b' }}>{order.name}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
+                          Creado: {order.timestamp}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-primary)', fontWeight: '500', marginTop: '0.25rem' }}>
+                          {order.items.length} art. | Total: ${order.total.toFixed(2)}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button 
+                          type="button"
+                          onClick={() => handleRestoreOrder(order)}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            backgroundColor: 'var(--pulpos-primary)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontWeight: 'bold',
+                            fontSize: '0.85rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Cargar
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => handleDeleteOnHold(order.id)}
+                          style={{
+                            padding: '0.5rem',
+                            backgroundColor: '#fee2e2',
+                            color: '#ef4444',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--pulpos-border)', paddingTop: '1rem' }}>
+              <button 
+                type="button"
+                onClick={() => setShowOnHoldModal(false)}
+                style={{
+                  padding: '0.6rem 2rem',
+                  backgroundColor: '#f1f5f9',
+                  color: '#334155',
+                  border: '1px solid var(--pulpos-border)',
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
