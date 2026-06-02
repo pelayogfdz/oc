@@ -39,7 +39,7 @@ export default async function Page() {
               <tr key={item.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
                 <td data-label="Ticket Original" style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: '500' }}>Venta #{item.id.substring(0,8).toUpperCase()}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)' }}>{new Date(item.createdAt).toLocaleString()}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)' }}>{new Date(item.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}</div>
                 </td>
                 <td data-label="Método de Pago" style={{ padding: '1rem' }}>
                   <span style={{ fontSize: '0.85rem', fontWeight: '500', color: '#64748b' }}>{item.paymentMethod === 'MIXTO' ? 'Mixto (Efectivo/Tarjeta)' : item.paymentMethod === 'CASH' ? 'Efectivo' : 'Tarjeta/Otro'}</span>

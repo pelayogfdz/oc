@@ -53,7 +53,7 @@ export default async function VentasPage() {
                   {sale.folio || sale.id.slice(0, 8).toUpperCase()}
                 </td>
                 <td data-label="Fecha / Hora" style={{ padding: '1rem' }}>
-                  {new Date(sale.createdAt).toLocaleString()}
+                  {new Date(sale.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}
                 </td>
                 <td data-label="Sucursal / Vendedor" style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: '500' }}>{sale.branch?.name || branch.name}</div>

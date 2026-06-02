@@ -179,7 +179,7 @@ export default async function CotizacionesPage() {
                       <div className="quote-tooltip-body">
                         <div className="quote-tooltip-meta">
                           <div><strong>Cliente:</strong> {quote.customer?.name || 'Público en General'}</div>
-                          <div><strong>Fecha:</strong> {new Date(quote.createdAt).toLocaleString('es-MX')}</div>
+                          <div><strong>Fecha:</strong> {new Date(quote.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}</div>
                           <div><strong>Creado por:</strong> {quote.user.name}</div>
                         </div>
                         <div className="quote-tooltip-items">
@@ -213,7 +213,7 @@ export default async function CotizacionesPage() {
                   </div>
                 </td>
                 <td data-label="Fecha" style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>
-                  {new Date(quote.createdAt).toLocaleString('es-MX')}
+                  {new Date(quote.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}
                 </td>
                 <td data-label="Cliente" style={{ padding: '1rem' }}>{quote.customer?.name || 'Público en General'}</td>
                 <td data-label="Creado por" style={{ padding: '1rem' }}>{quote.user.name}</td>

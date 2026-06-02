@@ -92,7 +92,7 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
               Folio: #{sale.folio || sale.id.slice(0, 8).toUpperCase()}
             </div>
             <div style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.5rem' }}>
-              Fecha: {new Date(sale.createdAt).toLocaleString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              Fecha: {new Date(sale.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </div>
           </div>
         </div>
