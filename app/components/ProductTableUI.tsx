@@ -182,24 +182,24 @@ const ProductTableUI = memo(function ProductTableUI({
       )}
 
       <div style={{ overflowX: 'auto' }}>
-        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '#fafafa', color: '#1e293b' }}>
               {showCheckboxes && (
-                <th style={{ padding: '1rem', width: '40px', textAlign: 'center' }}>
+                <th style={{ padding: '0.5rem 0.4rem', width: '30px', textAlign: 'center' }}>
                   <input 
                     type="checkbox" 
                     checked={allSelected}
                     onChange={onToggleSelectAll}
-                    style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--pulpos-primary)' }}
+                    style={{ width: '14px', height: '14px', cursor: 'pointer', accentColor: 'var(--pulpos-primary)' }}
                   />
                 </th>
               )}
-              <th style={{ padding: '1rem', fontWeight: 'bold' }}>Producto</th>
-              <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'center' }}>Stock</th>
-              <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'center' }}>Categoría</th>
-              <th style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>Precio</th>
-              {renderCustomActions && <th style={{ padding: '1rem' }}></th>}
+              <th style={{ padding: '0.5rem 0.4rem', fontWeight: 'bold' }}>Producto</th>
+              <th style={{ padding: '0.5rem 0.4rem', fontWeight: 'bold', textAlign: 'center', width: '80px' }}>Stock</th>
+              <th style={{ padding: '0.5rem 0.4rem', fontWeight: 'bold', textAlign: 'center', width: '90px' }}>Categoría</th>
+              <th style={{ padding: '0.5rem 0.4rem', fontWeight: 'bold', textAlign: 'right', width: '80px' }}>Precio</th>
+              {renderCustomActions && <th style={{ padding: '0.5rem 0.4rem' }}></th>}
             </tr>
           </thead>
           <tbody>
@@ -219,24 +219,24 @@ const ProductTableUI = memo(function ProductTableUI({
                   onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
                 >
                   {showCheckboxes && (
-                    <td data-label="Seleccionar" style={{ padding: '1rem', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                    <td data-label="Seleccionar" style={{ padding: '0.5rem 0.4rem', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
                       <input 
                         type="checkbox" 
                         checked={isSelected}
                         onChange={() => onToggleSelect && onToggleSelect(prod.id)}
-                        style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--pulpos-primary)' }}
+                        style={{ width: '14px', height: '14px', cursor: 'pointer', accentColor: 'var(--pulpos-primary)' }}
                       />
                     </td>
                   )}
-                  <td data-label="Producto" style={{ padding: '1rem' }} className="full-width">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <td data-label="Producto" style={{ padding: '0.5rem 0.4rem' }} className="full-width">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <div 
                         style={{ 
-                          width: '40px', 
-                          height: '40px', 
+                          width: '32px', 
+                          height: '32px', 
                           flexShrink: 0, 
                           backgroundColor: '#f1f5f9', 
-                          borderRadius: '8px', 
+                          borderRadius: '6px', 
                           display: 'flex', 
                           alignItems: 'center', 
                           justifyContent: 'center', 
@@ -273,7 +273,7 @@ const ProductTableUI = memo(function ProductTableUI({
                             backgroundColor: '#eff6ff', 
                             color: '#3b82f6', 
                             fontWeight: 'bold', 
-                            fontSize: '0.8rem',
+                            fontSize: '0.75rem',
                             zIndex: 1
                           }}>
                             {prod.name.substring(0, 2).toUpperCase()}
@@ -311,39 +311,39 @@ const ProductTableUI = memo(function ProductTableUI({
                           )}
                         </div>
                       </div>
-                      <div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
                         {onRowClick ? (
-                           <div style={{ color: '#0ea5e9', fontWeight: '500', marginBottom: '0.2rem', fontSize: '0.95rem' }}>{prod.name}</div>
+                           <div style={{ color: '#0ea5e9', fontWeight: '500', marginBottom: '0.1rem', fontSize: '0.85rem', wordBreak: 'break-word', overflow: 'hidden' }}>{prod.name}</div>
                         ) : (
-                           <Link href={`/productos/${prod.id}`} style={{ color: '#0ea5e9', fontWeight: '500', textDecoration: 'none', marginBottom: '0.2rem', display: 'block', fontSize: '0.95rem' }}>
+                           <Link href={`/productos/${prod.id}`} style={{ color: '#0ea5e9', fontWeight: '500', textDecoration: 'none', marginBottom: '0.1rem', display: 'block', fontSize: '0.85rem', wordBreak: 'break-word', overflow: 'hidden' }}>
                              {prod.name}
                            </Link>
                         )}
-                        <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{prod.sku || prod.barcode || 'Sin SKU'}</div>
+                        <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>{prod.sku || prod.barcode || 'Sin SKU'}</div>
                       </div>
                     </div>
                   </td>
-                  <td data-label="Stock" style={{ padding: '1rem', textAlign: 'center' }}>
+                  <td data-label="Stock" style={{ padding: '0.5rem 0.4rem', textAlign: 'center' }}>
                     <span style={{ 
                       backgroundColor: prod.stock > 0 ? '#dcfce7' : '#fee2e2', 
                       color: prod.stock > 0 ? '#16a34a' : '#dc2626',
-                      padding: '0.25rem 0.75rem',
+                      padding: '0.15rem 0.5rem',
                       borderRadius: '999px',
-                      fontSize: '0.85rem',
+                      fontSize: '0.75rem',
                       fontWeight: '500',
                       whiteSpace: 'nowrap'
                     }}>
                       {prod.stock} {prod.unit || 'piezas'}
                     </span>
                   </td>
-                  <td data-label="Categoría" style={{ padding: '1rem', color: '#64748b', textAlign: 'center' }}>
+                  <td data-label="Categoría" style={{ padding: '0.5rem 0.4rem', color: '#64748b', textAlign: 'center', fontSize: '0.75rem' }}>
                     {prod.category?.toUpperCase() || 'GENERAL'}
                   </td>
-                  <td data-label="Precio" style={{ padding: '1rem', color: '#64748b', textAlign: 'right', fontWeight: 'bold' }}>
+                  <td data-label="Precio" style={{ padding: '0.5rem 0.4rem', color: '#64748b', textAlign: 'right', fontWeight: 'bold', fontSize: '0.8rem' }}>
                     ${parseFloat((priceExtractor ? priceExtractor(prod) : prod.price) || 0).toFixed(2)}
                   </td>
                   {renderCustomActions && (
-                    <td className="no-label" style={{ padding: '1rem', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                    <td className="no-label" style={{ padding: '0.5rem 0.4rem', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                       {renderCustomActions(prod)}
                     </td>
                   )}
@@ -352,7 +352,7 @@ const ProductTableUI = memo(function ProductTableUI({
             })}
             {products.length === 0 && (
               <tr>
-                <td colSpan={showCheckboxes ? (renderCustomActions ? 6 : 5) : (renderCustomActions ? 5 : 4)} style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
+                <td colSpan={showCheckboxes ? (renderCustomActions ? 6 : 5) : (renderCustomActions ? 5 : 4)} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
                   No se encontraron productos.
                 </td>
               </tr>
