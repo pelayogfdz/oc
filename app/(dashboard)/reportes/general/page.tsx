@@ -8,6 +8,9 @@ export default async function GeneralAnalyticsPage() {
   startDate.setDate(endDate.getDate() - 30);
   
   const branch = await getActiveBranch();
+  if (!branch) {
+    throw new Error('Unauthorized');
+  }
   const initialBranchId = branch.id === 'GLOBAL' ? 'ALL' : branch.id;
 
   const data = await getGeneralAnalyticsData(startDate, endDate, initialBranchId, 'ALL');

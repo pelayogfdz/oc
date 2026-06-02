@@ -8,6 +8,9 @@ export default async function VentasDesglosePage() {
   startDate.setDate(endDate.getDate() - 30);
 
   const branch = await getActiveBranch();
+  if (!branch) {
+    throw new Error('Unauthorized');
+  }
   const initialBranchId = branch.id === 'GLOBAL' ? 'ALL' : branch.id;
 
   const data = await getSalesDetailData(startDate, endDate, initialBranchId, 'ALL');

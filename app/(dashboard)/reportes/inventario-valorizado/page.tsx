@@ -4,6 +4,9 @@ import InventarioValorizadoClient from "./InventarioValorizadoClient";
 
 export default async function InventarioValorizadoPage() {
   const branch = await getActiveBranch();
+  if (!branch) {
+    throw new Error('Unauthorized');
+  }
   const initialBranchId = branch.id === 'GLOBAL' ? 'ALL' : branch.id;
 
   const data = await getInventoryValuationData(initialBranchId);
