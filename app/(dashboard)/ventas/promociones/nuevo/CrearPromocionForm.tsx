@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPromotion } from '@/app/actions/promotion';
+import { searchProducts } from '@/app/actions/product';
 import { Calendar, Tag, CheckSquare, Square, ShoppingBag, Folder, Award, Settings } from 'lucide-react';
 
 interface Product {
@@ -15,11 +16,12 @@ interface Product {
 
 interface CrearPromocionFormProps {
   products: Product[];
+  branchId: string;
   categories: string[];
   brands: string[];
 }
 
-export default function CrearPromocionForm({ products, categories, brands }: CrearPromocionFormProps) {
+export default function CrearPromocionForm({ products, branchId, categories, brands }: CrearPromocionFormProps) {
   const router = useRouter();
   const [name, setName] = useState('');
   const [type, setType] = useState('PERCENTAGE'); // PERCENTAGE, FIXED_AMOUNT, BOGO
@@ -40,11 +42,44 @@ export default function CrearPromocionForm({ products, categories, brands }: Cre
 
   // Search filter for products
   const [productSearch, setProductSearch] = useState('');
+  const [productList, setProductList] = useState<Product[]>(products);
+  const [searching, setSearching] = useState(false);
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-    p.sku.toLowerCase().includes(productSearch.toLowerCase())
-  );
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const results = await searchProducts(productSearch, branchId);
+        const formatted = results.map(p => ({
+          id: p.id,
+          name: p.name,
+          sku: p.sku || '',
+          brand: p.brand,
+          category: p.category
+        }));
+        
+        setProductList(prev => {
+          const selected = prev.filter(p => selectedProducts.includes(p.id));
+          const newItems = formatted.filter(p => !selected.some(x => x.id === p.id));
+          return [...selected, ...newItems];
+        });
+      } catch (err) {
+        console.error("Error searching products:", err);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [productSearch, branchId, selectedProducts]);
+
+  const filteredProducts = productList.filter(p => {
+    const isSelected = selectedProducts.includes(p.id);
+    if (isSelected) return true;
+    const matchesSearch = p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+      (p.sku && p.sku.toLowerCase().includes(productSearch.toLowerCase()));
+    return matchesSearch;
+  });
 
   const handleToggleProduct = (id: string) => {
     setSelectedProducts(prev => 
@@ -223,7 +258,7 @@ export default function CrearPromocionForm({ products, categories, brands }: Cre
           {/* Products Selector */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderRight: '1px solid #f1f5f9', paddingRight: '1.5rem' }}>
             <h4 style={{ fontSize: '1.05rem', fontWeight: 'bold', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e293b' }}>
-              <ShoppingBag size={18} /> Artículos ({selectedProducts.length} seleccionados)
+              <ShoppingBag size={18} /> Artículos ({selectedProducts.length} seleccionados) {searching && <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#ec4899', marginLeft: 'auto', animation: 'pulse 1.5s infinite' }}>Buscando...</span>}
             </h4>
             <input
               type="text"

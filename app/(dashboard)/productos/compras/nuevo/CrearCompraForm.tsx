@@ -174,6 +174,75 @@ export default function CrearCompraForm({ suppliers, products, branchId }: { sup
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem 0' }}>
+      <style>{`
+        .compra-action-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 0.75rem;
+          width: 100%;
+        }
+        .compra-action-card {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 1.5rem 1rem;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          background-color: white;
+          cursor: pointer;
+          transition: all 0.2s;
+          width: 100%;
+          gap: 0.75rem;
+          text-align: center;
+        }
+        .compra-action-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+          border-color: #cbd5e1;
+        }
+        .compra-action-icon-wrapper {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 44px;
+          height: 44px;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+        }
+        .compra-action-label {
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #1e293b;
+        }
+        .compra-checkout-btn {
+          width: 100%;
+          padding: 1rem 1.5rem;
+          background-color: #a78bfa;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 1.1rem;
+          font-weight: 800;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 4px 10px rgba(167, 139, 250, 0.25);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+        }
+        .compra-checkout-btn:hover:not(:disabled) {
+          background-color: #8b5cf6;
+          box-shadow: 0 6px 14px rgba(167, 139, 250, 0.35);
+        }
+        .compra-checkout-btn:disabled {
+          background-color: #cbd5e1;
+          color: #94a3b8;
+          cursor: not-allowed;
+          box-shadow: none;
+        }
+      `}</style>
       
       {/* HEADER SECTION */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -192,14 +261,21 @@ export default function CrearCompraForm({ suppliers, products, branchId }: { sup
         )}
       </div>
 
-      {/* TOP ROW: Search trigger & Supplier configurations */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem', padding: '1rem 0', marginBottom: '1.5rem', width: '100%', flexWrap: 'wrap', borderBottom: '1px solid #e2e8f0' }}>
-        
-        {/* Left Side: Search Trigger & Search filters */}
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap', flex: 1, minWidth: '300px' }}>
-          
-          {/* SEARCH INPUT TRIGGER (opens popup) */}
-          <div style={{ display: 'flex', flexDirection: 'column', width: '280px' }}>
+      {/* TOP HEADER ROW: Search trigger & Supplier selector */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: '1fr 340px', 
+        gap: '1.5rem', 
+        marginBottom: '1.5rem', 
+        alignItems: 'end',
+        width: '100%',
+        borderBottom: '1px solid #e2e8f0',
+        paddingBottom: '1.25rem'
+      }}>
+        {/* Left Side: Product Search & category selector */}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'end', flex: 1 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1 }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Buscar productos</label>
             <div 
               onClick={() => setIsSearchModalOpen(true)}
               style={{ 
@@ -207,236 +283,274 @@ export default function CrearCompraForm({ suppliers, products, branchId }: { sup
                 alignItems: 'center',
                 padding: '0.65rem 1rem', 
                 borderRadius: '8px', 
-                border: '1px solid #cbd5e1', 
+                border: '2px solid #a78bfa', 
                 backgroundColor: 'white', 
                 fontSize: '0.95rem',
                 cursor: 'pointer',
                 color: '#94a3b8',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                 userSelect: 'none',
-                position: 'relative',
-                height: '40px'
+                height: '42px'
               }}
             >
               <Search size={18} color="#94a3b8" style={{ marginRight: '8px' }} />
-              Buscar por nombre, SKU o código de barras...
+              {searchTerm || "Buscar por nombre, SKU o código de barras..."}
             </div>
           </div>
-
-          {/* Category selector */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>Categoría</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <select 
-                value={filterCategory} 
-                onChange={e => setFilterCategory(e.target.value)} 
-                style={{ 
-                  border: 'none', 
-                  background: 'transparent', 
-                  outline: 'none', 
-                  fontSize: '0.95rem', 
-                  fontWeight: 'bold', 
-                  color: '#1e293b', 
-                  cursor: 'pointer',
-                  height: '40px',
-                  paddingRight: '0.5rem'
-                }}
-              >
-                <option value="ALL">Todas</option>
-                {Array.from(new Set(availableProducts.map(p => p.category).filter(Boolean))).map((cat: any) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', width: '150px' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Categoría</label>
+            <select 
+              value={filterCategory} 
+              onChange={e => setFilterCategory(e.target.value)} 
+              style={{ 
+                width: '100%',
+                padding: '0 0.5rem',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1', 
+                outline: 'none', 
+                fontSize: '0.9rem', 
+                fontWeight: 'bold', 
+                color: '#1e293b', 
+                cursor: 'pointer',
+                height: '42px',
+                backgroundColor: 'white'
+              }}
+            >
+              <option value="ALL">Todas</option>
+              {Array.from(new Set(availableProducts.map(p => p.category).filter(Boolean))).map((cat: any) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* Right Side: Supplier info aligned with the sidebar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '380px', justifyContent: 'flex-end' }}>
-          <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#475569' }}>Proveedor</span>
+        {/* Right Side: Supplier */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          <label style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Proveedor</label>
           <select 
             value={supplierId} 
             onChange={(e) => setSupplierId(e.target.value)} 
-            style={{ width: '280px', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', height: '40px' }}
+            style={{ 
+              width: '100%', 
+              padding: '0.5rem 0.75rem', 
+              borderRadius: '8px', 
+              border: '1px solid #cbd5e1', 
+              fontSize: '0.9rem', 
+              outline: 'none', 
+              height: '42px',
+              backgroundColor: 'white',
+              fontWeight: '600',
+              color: '#1e293b'
+            }}
           >
             <option value="">-- Público en General / Sin Proveedor --</option>
             {availableSuppliers.map(s => <option key={s.id} value={s.id}>{s.name} {s.creditLimit ? `(Crédito: $${s.creditLimit})` : ''}</option>)}
           </select>
         </div>
-
       </div>
 
       {/* BOTTOM MAIN BODY: 2 Columns */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '1.5rem', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem', alignItems: 'start' }}>
         
-        {/* LEFT COLUMN: Cart items (70% width) */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {/* LEFT COLUMN: Cart items */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           
-          <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', minHeight: '450px', border: '1px solid #cbd5e1' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', minHeight: '300px' }}>
             {items.length === 0 ? (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#94a3b8', padding: '4rem 1rem' }}>
-                <ShoppingBag size={64} color="#cbd5e1" style={{ marginBottom: '1rem' }} />
-                <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#64748b' }}>La compra está vacía</div>
-                <div style={{ fontSize: '0.9rem', marginTop: '0.5rem', color: '#94a3b8' }}>Escribe en el buscador de arriba para agregar artículos.</div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#94a3b8', padding: '5rem 1rem', border: '1px dashed #cbd5e1', borderRadius: '12px', backgroundColor: 'white' }}>
+                <ShoppingBag size={56} color="#cbd5e1" style={{ marginBottom: '1rem' }} />
+                <div style={{ fontSize: '1.15rem', fontWeight: '800', color: '#64748b' }}>La compra está vacía</div>
+                <div style={{ fontSize: '0.85rem', marginTop: '0.25rem', color: '#94a3b8' }}>Busca artículos arriba para agregar al registro.</div>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {items.map((item, idx) => (
-                  <div 
-                    key={`${item.productId}-${idx}`} 
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'space-between', 
-                      padding: '1rem', 
-                      backgroundColor: '#f8fafc', 
-                      borderRadius: '8px', 
-                      border: '1px solid #e2e8f0',
-                      gap: '1rem',
-                      flexWrap: 'wrap'
-                    }}
-                  >
-                    {/* Name and SKU */}
-                    <div style={{ flex: 1, minWidth: '200px' }}>
-                      <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '0.95rem' }}>{item.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>SKU: {item.sku || 'S/N'}</div>
-                    </div>
-
-                    {/* Numeric configurations */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                      {/* Quantity field */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Cant.</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateItem(idx, 'quantity', Math.max(1, item.quantity - 1))}
-                            style={{ border: '1px solid #cbd5e1', background: 'white', borderRadius: '6px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background-color 0.2s' }}
-                            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
-                          >
-                            <Minus size={14} color="#64748b" />
-                          </button>
-                          <input 
-                            type="number" 
-                            min="1" 
-                            value={item.quantity} 
-                            onChange={(e) => handleUpdateItem(idx, 'quantity', parseInt(e.target.value) || 1)} 
-                            style={{ width: '50px', height: '32px', textAlign: 'center', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem', outline: 'none' }} 
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateItem(idx, 'quantity', item.quantity + 1)}
-                            style={{ border: '1px solid #cbd5e1', background: 'white', borderRadius: '6px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background-color 0.2s' }}
-                            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
-                          >
-                            <Plus size={14} color="#64748b" />
-                          </button>
-                        </div>
-                      </div>
-                      
-                      {/* Cost field */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Costo Unit.</span>
-                        <div style={{ position: 'relative', width: '90px' }}>
-                          <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem', color: '#64748b' }}>$</span>
-                          <input 
-                            type="number" 
-                            step="0.01" 
-                            min="0"
-                            value={item.cost} 
-                            onChange={(e) => handleUpdateItem(idx, 'cost', parseFloat(e.target.value) || 0)} 
-                            style={{ width: '100%', height: '32px', padding: '0 0.5rem 0 1.25rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.85rem', outline: 'none', textAlign: 'right' }} 
-                          />
-                        </div>
-                      </div>
-
-                      {/* Batch field */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Lote</span>
-                        <input 
-                          type="text" 
-                          placeholder="Lote" 
-                          value={item.batchNumber || ''} 
-                          onChange={(e) => handleUpdateItem(idx, 'batchNumber', e.target.value)} 
-                          style={{ width: '80px', height: '32px', padding: '0 0.5rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', outline: 'none' }} 
-                        />
-                      </div>
-
-                      {/* Expiration date */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Caducidad</span>
-                        <input 
-                          type="date" 
-                          value={item.expirationDate || ''} 
-                          onChange={(e) => handleUpdateItem(idx, 'expirationDate', e.target.value)} 
-                          style={{ width: '115px', height: '32px', padding: '0 0.25rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', outline: 'none' }} 
-                        />
-                      </div>
-                    </div>
-
-                    {/* Subtotal & Delete action */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', minWidth: '120px', justifyContent: 'flex-end' }}>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block' }}>Subtotal</span>
-                        <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.95rem' }}>
-                          ${(item.quantity * item.cost).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <button 
-                        type="button"
-                        onClick={() => setItems(items.filter((_, i) => i !== idx))} 
-                        style={{ color: '#ef4444', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background-color 0.2s' }}
-                        onMouseEnter={e => e.currentTarget.style.backgroundColor = '#fee2e2'}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = '#fef2f2'}
-                        title="Eliminar artículo"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-
+              items.map((item, idx) => (
+                <div 
+                  key={`${item.productId}-${idx}`} 
+                  style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: '52px 1.5fr 70px 100px 90px 120px 90px 40px', 
+                    alignItems: 'center', 
+                    padding: '0.85rem 1rem', 
+                    backgroundColor: 'white', 
+                    borderRadius: '12px', 
+                    border: '1px solid #cbd5e1',
+                    gap: '0.75rem'
+                  }}
+                >
+                  {/* Image or Initials */}
+                  <div style={{
+                    width: '52px',
+                    height: '52px',
+                    borderRadius: '10px',
+                    backgroundColor: '#f1f5f9',
+                    color: '#64748b',
+                    fontWeight: 'bold',
+                    fontSize: '0.95rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden'
+                  }}>
+                    {item.imageUrl ? (
+                      <img 
+                        src={item.imageUrl} 
+                        alt={item.name} 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const parent = e.currentTarget.parentElement;
+                          if (parent) {
+                            parent.innerHTML = `<span>${item.name.substring(0, 2).toUpperCase()}</span>`;
+                          }
+                        }}
+                      />
+                    ) : (
+                      <span>{item.name.substring(0, 2).toUpperCase()}</span>
+                    )}
                   </div>
-                ))}
-              </div>
+
+                  {/* Name and SKU */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '0.9rem', lineHeight: '1.2' }}>{item.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>SKU: {item.sku || 'S/N'}</div>
+                  </div>
+
+                  {/* Quantity field */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Cant.</span>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      value={item.quantity} 
+                      onChange={(e) => handleUpdateItem(idx, 'quantity', parseInt(e.target.value) || 1)} 
+                      style={{ width: '100%', height: '36px', textAlign: 'center', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem', outline: 'none', backgroundColor: 'white' }} 
+                    />
+                  </div>
+                  
+                  {/* Cost field */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Costo Unit.</span>
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem', color: '#64748b' }}>$</span>
+                      <input 
+                        type="number" 
+                        step="0.01" 
+                        min="0"
+                        value={item.cost} 
+                        onChange={(e) => handleUpdateItem(idx, 'cost', parseFloat(e.target.value) || 0)} 
+                        style={{ width: '100%', height: '36px', padding: '0 0.5rem 0 1.15rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.85rem', outline: 'none', textAlign: 'right', backgroundColor: 'white' }} 
+                      />
+                    </div>
+                  </div>
+
+                  {/* Batch field */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Lote</span>
+                    <input 
+                      type="text" 
+                      placeholder="Lote" 
+                      value={item.batchNumber || ''} 
+                      onChange={(e) => handleUpdateItem(idx, 'batchNumber', e.target.value)} 
+                      style={{ width: '100%', height: '36px', padding: '0 0.5rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', outline: 'none', backgroundColor: 'white' }} 
+                    />
+                  </div>
+
+                  {/* Expiration date */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Caducidad</span>
+                    <input 
+                      type="date" 
+                      value={item.expirationDate || ''} 
+                      onChange={(e) => handleUpdateItem(idx, 'expirationDate', e.target.value)} 
+                      style={{ width: '100%', height: '36px', padding: '0 0.25rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', outline: 'none', backgroundColor: 'white' }} 
+                    />
+                  </div>
+
+                  {/* Subtotal */}
+                  <div style={{ textAlign: 'right', paddingRight: '0.5rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', textTransform: 'uppercase', fontWeight: 'bold' }}>Subtotal</span>
+                    <span style={{ fontWeight: '800', color: '#1e293b', fontSize: '0.95rem' }}>
+                      ${(item.quantity * item.cost).toFixed(2)}
+                    </span>
+                  </div>
+
+                  {/* Delete button */}
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <button 
+                      type="button"
+                      onClick={() => setItems(items.filter((_, i) => i !== idx))} 
+                      style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      title="Eliminar artículo"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+
+                </div>
+              ))
             )}
           </div>
+
+          {/* BOTTOM SUMMARY ROW & REGISTER CTA */}
+          <div style={{ marginTop: '1.25rem', padding: '1.25rem 0 0 0', borderTop: '1px solid #cbd5e1' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', fontSize: '0.95rem', color: '#475569', fontWeight: '600' }}>
+              <span>Subtotal ({items.reduce((s, i) => s + i.quantity, 0)} artículos)</span>
+              <span style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a' }}>
+                ${(total + freightCost).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+
+            <button 
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitting || items.length === 0} 
+              className="compra-checkout-btn"
+            >
+              {isSubmitting ? (
+                'Procesando...'
+              ) : (
+                `Ingresar Compra $${(total + freightCost).toFixed(2)}`
+              )}
+            </button>
+          </div>
+
         </div>
 
-        {/* RIGHT COLUMN: Total and actions (30% width) */}
+        {/* RIGHT COLUMN: Sidebar (Payment settings, Observations & Quick Actions) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
-          {/* Forma de Pago selector */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', width: '100%', paddingBottom: '0.25rem' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>Forma de Pago</label>
-            <div style={{ position: 'relative', width: '100%' }}>
-              <select 
-                value={paymentMethod} 
-                onChange={(e) => setPaymentMethod(e.target.value)} 
-                style={{ 
-                  width: '100%', 
-                  border: 'none', 
-                  background: 'transparent', 
-                  outline: 'none', 
-                  fontWeight: '600', 
-                  color: '#1e293b', 
-                  fontSize: '0.95rem', 
-                  cursor: 'pointer',
-                  padding: '0.25rem 0'
-                }}
-              >
-                <option value="CASH">Efectivo</option>
-                <option value="TRANSFER">Transferencia</option>
-                <option value="CARD">Tarjeta (Débito/Crédito)</option>
-                <option value="CREDIT">Crédito CxP (Pendiente de Pago)</option>
-              </select>
-            </div>
+          {/* Payment Method selector */}
+          <div style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Forma de Pago</label>
+            <select 
+              value={paymentMethod} 
+              onChange={(e) => setPaymentMethod(e.target.value)} 
+              style={{ 
+                width: '100%', 
+                padding: '0.5rem 0.75rem',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontWeight: '600', 
+                color: '#1e293b', 
+                fontSize: '0.9rem', 
+                cursor: 'pointer',
+                height: '40px',
+                outline: 'none',
+                backgroundColor: 'white'
+              }}
+            >
+              <option value="CASH">Efectivo</option>
+              <option value="TRANSFER">Transferencia</option>
+              <option value="CARD">Tarjeta (Débito/Crédito)</option>
+              <option value="CREDIT">Crédito CxP (Pendiente de Pago)</option>
+            </select>
           </div>
 
           {/* Costo de Flete input */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', width: '100%', paddingBottom: '0.25rem' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>Costo de Flete / Envíos</label>
-            <div style={{ display: 'flex', alignItems: 'center', height: '40px', border: '1px solid #cbd5e1', borderRadius: '6px', backgroundColor: 'white', padding: '0 0.5rem' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Costo de Flete / Envíos</label>
+            <div style={{ display: 'flex', alignItems: 'center', height: '40px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: 'white', padding: '0 0.5rem' }}>
                <span style={{ color: '#64748b', fontSize: '0.9rem', marginRight: '0.25rem' }}>$</span>
                <input 
                  type="number" 
@@ -450,158 +564,85 @@ export default function CrearCompraForm({ suppliers, products, branchId }: { sup
             </div>
           </div>
 
-          {/* TABS (On-Hold drafts visual tabs & Pause button) */}
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{
-              padding: '0.5rem 1rem',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              backgroundColor: 'white',
-              color: '#334155',
-              fontSize: '0.9rem',
-              fontWeight: '600',
-              userSelect: 'none'
-            }}>
-              Compra Activa
-            </div>
-            {onHoldPurchases.map((purchase) => (
-              <div key={purchase.id} style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'white' }}>
-                <button
-                  type="button"
-                  onClick={() => handleRestorePurchase(purchase)}
-                  style={{
-                    padding: '0.5rem 0.8rem',
-                    border: 'none',
-                    backgroundColor: 'white',
-                    color: '#475569',
-                    fontSize: '0.9rem',
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {purchase.name}
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => handleDeleteOnHold(purchase.id)}
-                  style={{ border: 'none', borderLeft: '1px solid #cbd5e1', padding: '0.5rem', backgroundColor: '#fee2e2', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                >
-                  <Trash2 size={12} />
-                </button>
+          {/* Action Cards Panel */}
+          <div className="compra-action-grid">
+            
+            {/* Card 1: Crear Producto Rápido */}
+            <button 
+              type="button"
+              onClick={() => alert('Para añadir productos, puedes usar el buscador principal al tope de la pantalla.')}
+              className="compra-action-card"
+            >
+              <div className="compra-action-icon-wrapper" style={{ backgroundColor: '#ccfbf1', color: '#0d9488' }}>
+                <Plus size={20} />
               </div>
-            ))}
+              <span className="compra-action-label">Crear Producto Rápido</span>
+            </button>
 
+            {/* Card 2: Pausar Compra */}
             <button 
               type="button"
               onClick={handlePutOnHold}
-              style={{
-                padding: '0.5rem 1.2rem',
-                border: '1px dashed #8b5cf6',
-                borderRadius: '8px',
-                backgroundColor: 'white',
-                color: '#8b5cf6',
-                fontSize: '0.9rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.35rem',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f3e8ff'}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
+              className="compra-action-card"
+              disabled={items.length === 0}
             >
-              <span style={{ 
-                backgroundColor: '#8b5cf6', 
-                color: 'white', 
-                borderRadius: '4px', 
-                width: '16px', 
-                height: '16px', 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                fontSize: '0.65rem',
-                fontWeight: 'bold',
-                lineHeight: 1
-              }}>
-                ⏸
-              </span>
-              Pausar Compra
+              <div className="compra-action-icon-wrapper" style={{ backgroundColor: '#f3e8ff', color: '#8b5cf6' }}>
+                <Clock size={20} />
+              </div>
+              <span className="compra-action-label">Pausar Compra</span>
             </button>
+
+            {/* List of On Hold purchases drafts */}
+            {onHoldPurchases.length > 0 && (
+              <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid #cbd5e1', paddingTop: '1rem' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Compras en Espera</span>
+                {onHoldPurchases.map((purchase) => (
+                  <div key={purchase.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'white', width: '100%' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleRestorePurchase(purchase)}
+                      style={{
+                        flex: 1,
+                        padding: '0.5rem 0.75rem',
+                        border: 'none',
+                        backgroundColor: 'white',
+                        color: '#475569',
+                        fontSize: '0.85rem',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      {purchase.name} (${purchase.total.toFixed(2)})
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => handleDeleteOnHold(purchase.id)}
+                      style={{ border: 'none', borderLeft: '1px solid #cbd5e1', padding: '0.5rem 0.75rem', backgroundColor: '#fee2e2', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
           </div>
 
-          {/* Notes area */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>Observaciones de la Compra</label>
+          {/* Observations Area */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Observaciones de la Compra</label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
               placeholder="Comentarios, número de factura..."
-              style={{ width: '100%', height: '80px', fontSize: '0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0.5rem', resize: 'none', outline: 'none' }}
+              style={{ width: '100%', height: '80px', fontSize: '0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '0.5rem', resize: 'none', outline: 'none', backgroundColor: 'white' }}
             />
           </div>
 
-          {/* Pricing Summary card */}
-          <div className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
-            
-            <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
-              <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Compra</div>
-              <div style={{ fontSize: '2.4rem', fontWeight: '900', color: '#1e293b', marginTop: '0.25rem' }}>
-                ${(total + freightCost).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                <span style={{ color: '#64748b' }}>Importe Artículos:</span>
-                <span style={{ color: '#334155', fontWeight: '600' }}>${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                <span style={{ color: '#64748b' }}>Fletes y Envíos (+):</span>
-                <span style={{ color: '#334155', fontWeight: '600' }}>${freightCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-
-            <button 
-              type="button"
-              onClick={handleSubmit}
-              disabled={isSubmitting || items.length === 0} 
-              style={{
-                width: '100%',
-                padding: '1.1rem',
-                borderRadius: '10px',
-                backgroundColor: '#a78bfa',
-                color: 'white',
-                border: 'none',
-                fontSize: '1.15rem',
-                fontWeight: '800',
-                cursor: (isSubmitting || items.length === 0) ? 'not-allowed' : 'pointer',
-                boxShadow: '0 4px 14px rgba(167, 139, 250, 0.4)',
-                transition: 'background-color 0.2s, transform 0.1s',
-                opacity: (isSubmitting || items.length === 0) ? 0.6 : 1,
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}
-              onMouseEnter={e => {
-                if (!isSubmitting && items.length > 0) e.currentTarget.style.backgroundColor = '#8b5cf6';
-              }}
-              onMouseLeave={e => {
-                if (!isSubmitting && items.length > 0) e.currentTarget.style.backgroundColor = '#a78bfa';
-              }}
-            >
-              {isSubmitting ? (
-                'Guardando...'
-              ) : (
-                <>
-                  <CheckCircle2 size={20} />
-                  Ingresar Compra
-                </>
-              )}
-            </button>
-          </div>
         </div>
 
       </div>
@@ -650,7 +691,7 @@ export default function CrearCompraForm({ suppliers, products, branchId }: { sup
                 <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No se encontraron productos coincidentes</div>
               ) : (
                 filteredProducts.slice(0, 30).map((p: any) => {
-                  const inCart = items.some(i => i.id === p.id);
+                  const inCart = items.some(i => i.productId === p.id);
                   return (
                     <div 
                       key={p.id}

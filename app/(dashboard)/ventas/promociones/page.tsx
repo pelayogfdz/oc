@@ -7,6 +7,7 @@ import { deleteEntity } from '@/app/actions/crud';
 
 export default async function Page() {
   const branch = await getActiveBranch();
+  if (!branch) return null;
   const data = await prisma.promotion.findMany({ where: { branchId: branch.id } });
   const SpecificIcon = (Icons as any)['Tag'] || Icons.Box;
 

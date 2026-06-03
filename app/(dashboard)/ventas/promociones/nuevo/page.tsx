@@ -5,20 +5,8 @@ import CrearPromocionForm from "./CrearPromocionForm";
 
 export default async function NuevoPromocion() {
   const branch = await getActiveBranch();
+  if (!branch) return null;
   
-  // Fetch active products in this branch
-  const products = await prisma.product.findMany({
-    where: { branchId: branch.id, isActive: true },
-    select: {
-      id: true,
-      name: true,
-      sku: true,
-      brand: true,
-      category: true
-    },
-    orderBy: { name: 'asc' }
-  });
-
   // Extract unique categories and brands that are not null or empty
   const categoriesRaw = await prisma.product.findMany({
     where: { branchId: branch.id, category: { not: null, notIn: [""] } },
@@ -43,7 +31,8 @@ export default async function NuevoPromocion() {
       </div>
 
       <CrearPromocionForm 
-        products={products}
+        products={[]}
+        branchId={branch.id}
         categories={categories}
         brands={brands}
       />

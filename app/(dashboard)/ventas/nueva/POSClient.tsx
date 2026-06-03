@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star, X, Clock, FolderOpen, Trash2, ShoppingBag } from 'lucide-react';
+import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star, X, Clock, FolderOpen, Trash2, ShoppingBag, Plus, Percent, Tag, PlusCircle, MoreVertical } from 'lucide-react';
 import { createSale } from '@/app/actions/sale';
 import { getLoyaltySettings } from '@/app/actions/loyalty';
 import { createQuote, getQuoteForPOS, createQuickProductsForQuote } from '@/app/actions/quote';
@@ -10,13 +10,231 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import ProductTableUI from '@/app/components/ProductTableUI';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
-
 export default function POSClient({ products: initialProducts, customers, suppliers = [], promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {}, impresorasConfig = {}, dynamicPriceLists = [], pendingQuotes = [], initialCustomerId, qzCert }: { products: any[], customers: any[], suppliers?: any[], promotions?: any[], mode?: "SALE" | "QUOTE" | "CONSIGNMENT", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any, impresorasConfig?: any, dynamicPriceLists?: any[], pendingQuotes?: any[], initialCustomerId?: string, qzCert?: string }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isOnline, pushOfflineSale } = useOfflineSync();
+  const initialCustomer = initialCustomerId ? customers.find(c => c.id === initialCustomerId) : null;
+
   const [cart, setCart] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [transactionType, setTransactionType] = useState<'VENTA' | 'PEDIDO'>('VENTA');
+  const [activeItemMenuId, setActiveItemMenuId] = useState<string | null>(null);
+  const [activeTabId, setActiveTabId] = useState<string>('1');
+  const [tabs, setTabs] = useState<any[]>([
+    {
+      id: '1',
+      name: mode === 'QUOTE' ? 'Nueva Cotización' : mode === 'CONSIGNMENT' ? 'Nueva Consignación' : 'Nueva Venta',
+      cart: [],
+      selectedCustomerId: initialCustomerId || null,
+      customerSearchTerm: initialCustomer ? initialCustomer.name : '',
+      priceList: 'price',
+      manualDiscountType: '$',
+      manualDiscountValue: '',
+      pointsRedeemed: 0,
+      tipAmount: 0,
+      paymentMethod: 'CASH',
+      amountReceived: '',
+      cardAmount: '',
+      notes: '',
+      documentType: 'TICKET',
+      transactionType: 'VENTA'
+    }
+  ]);
+
+  const switchTab = (targetTabId: string) => {
+    setTabs(prev => {
+      const updated = prev.map(t => t.id === activeTabId ? {
+        ...t,
+        cart,
+        selectedCustomerId,
+        customerSearchTerm,
+        priceList,
+        manualDiscountType,
+        manualDiscountValue,
+        pointsRedeemed,
+        tipAmount,
+        paymentMethod,
+        amountReceived,
+        cardAmount,
+        notes,
+        documentType,
+        transactionType
+      } : t);
+      
+      const target = updated.find(t => t.id === targetTabId);
+      if (target) {
+        setCart(target.cart);
+        setSelectedCustomerId(target.selectedCustomerId);
+        setCustomerSearchTerm(target.customerSearchTerm);
+        setPriceList(target.priceList);
+        setManualDiscountType(target.manualDiscountType as '$' | '%');
+        setManualDiscountValue(target.manualDiscountValue as number | "");
+        setPointsRedeemed(target.pointsRedeemed || 0);
+        setTipAmount(target.tipAmount || 0);
+        setPaymentMethod(target.paymentMethod || 'CASH');
+        setAmountReceived((target.amountReceived || '') as number | "");
+        setCardAmount((target.cardAmount || '') as number | "");
+        setNotes(target.notes || '');
+        setDocumentType((target.documentType || 'TICKET') as 'TICKET' | 'FACTURA');
+        setTransactionType((target.transactionType || 'VENTA') as 'VENTA' | 'PEDIDO');
+        setActiveTabId(targetTabId);
+      }
+      return updated;
+    });
+  };
+
+  const addTab = () => {
+    const nextNumber = tabs.length + 1;
+    const newId = Math.random().toString(36).substr(2, 9);
+    const newName = mode === 'QUOTE' ? `Nueva Cotización ${nextNumber}` : mode === 'CONSIGNMENT' ? `Nueva Consignación ${nextNumber}` : `Nueva Venta ${nextNumber}`;
+    
+    let defaultCustId = null;
+    let defaultCustName = '';
+    if (activeCustomers.length > 0) {
+      const defaultCustomer = activeCustomers.find(c => 
+        c.name.toLowerCase().includes('público en general') || 
+        c.name.toLowerCase().includes('publico en general')
+      );
+      if (defaultCustomer) {
+        defaultCustId = defaultCustomer.id;
+        defaultCustName = defaultCustomer.name;
+      }
+    }
+
+    const newTab = {
+      id: newId,
+      name: newName,
+      cart: [],
+      selectedCustomerId: defaultCustId,
+      customerSearchTerm: defaultCustName,
+      priceList: 'price',
+      manualDiscountType: '$',
+      manualDiscountValue: '',
+      pointsRedeemed: 0,
+      tipAmount: 0,
+      paymentMethod: 'CASH',
+      amountReceived: '',
+      cardAmount: '',
+      notes: '',
+      documentType: 'TICKET',
+      transactionType: 'VENTA'
+    };
+
+    setTabs(prev => {
+      const updated = prev.map(t => t.id === activeTabId ? {
+        ...t,
+        cart,
+        selectedCustomerId,
+        customerSearchTerm,
+        priceList,
+        manualDiscountType,
+        manualDiscountValue,
+        pointsRedeemed,
+        tipAmount,
+        paymentMethod,
+        amountReceived,
+        cardAmount,
+        notes,
+        documentType,
+        transactionType
+      } : t);
+      
+      setCart(newTab.cart);
+      setSelectedCustomerId(newTab.selectedCustomerId);
+      setCustomerSearchTerm(newTab.customerSearchTerm);
+      setPriceList(newTab.priceList);
+      setManualDiscountType(newTab.manualDiscountType as '$' | '%');
+      setManualDiscountValue(newTab.manualDiscountValue as number | "");
+      setPointsRedeemed(newTab.pointsRedeemed);
+      setTipAmount(newTab.tipAmount);
+      setPaymentMethod(newTab.paymentMethod);
+      setAmountReceived((newTab.amountReceived || '') as number | "");
+      setCardAmount((newTab.cardAmount || '') as number | "");
+      setNotes(newTab.notes);
+      setDocumentType(newTab.documentType as 'TICKET' | 'FACTURA');
+      setTransactionType(newTab.transactionType as 'VENTA' | 'PEDIDO');
+      setActiveTabId(newId);
+
+      return [...updated, newTab];
+    });
+  };
+
+  const closeTab = (tabId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (tabs.length === 1) return;
+    
+    setTabs(prev => {
+      const remaining = prev.filter(t => t.id !== tabId);
+      if (activeTabId === tabId) {
+        const lastTab = remaining[remaining.length - 1];
+        setCart(lastTab.cart);
+        setSelectedCustomerId(lastTab.selectedCustomerId);
+        setCustomerSearchTerm(lastTab.customerSearchTerm);
+        setPriceList(lastTab.priceList);
+        setManualDiscountType(lastTab.manualDiscountType as '$' | '%');
+        setManualDiscountValue(lastTab.manualDiscountValue as number | "");
+        setPointsRedeemed(lastTab.pointsRedeemed || 0);
+        setTipAmount(lastTab.tipAmount || 0);
+        setPaymentMethod(lastTab.paymentMethod || 'CASH');
+        setAmountReceived((lastTab.amountReceived || '') as number | "");
+        setCardAmount((lastTab.cardAmount || '') as number | "");
+        setNotes(lastTab.notes || '');
+        setDocumentType((lastTab.documentType || 'TICKET') as 'TICKET' | 'FACTURA');
+        setTransactionType((lastTab.transactionType || 'VENTA') as 'VENTA' | 'PEDIDO');
+        setActiveTabId(lastTab.id);
+      }
+      return remaining;
+    });
+  };
+
+  const resetActiveTab = () => {
+    let defaultCustId = null;
+    let defaultCustName = '';
+    if (activeCustomers.length > 0) {
+      const defaultCustomer = activeCustomers.find(c => 
+        c.name.toLowerCase().includes('público en general') || 
+        c.name.toLowerCase().includes('publico en general')
+      );
+      if (defaultCustomer) {
+        defaultCustId = defaultCustomer.id;
+        defaultCustName = defaultCustomer.name;
+      }
+    }
+
+    setCart([]);
+    setSelectedCustomerId(defaultCustId);
+    setCustomerSearchTerm(defaultCustName);
+    setPriceList('price');
+    setNotes('');
+    setTipAmount(0);
+    setPointsRedeemed(0);
+    setManualDiscountValue('');
+    setLoadedQuoteId(null);
+    setLoadedConsignmentId(null);
+    setAmountReceived('');
+    setCardAmount('');
+    setDocumentType('TICKET');
+    setTransactionType('VENTA');
+
+    setTabs(prev => prev.map(t => t.id === activeTabId ? {
+      ...t,
+      cart: [],
+      selectedCustomerId: defaultCustId,
+      customerSearchTerm: defaultCustName,
+      priceList: 'price',
+      manualDiscountType: '$',
+      manualDiscountValue: '',
+      pointsRedeemed: 0,
+      tipAmount: 0,
+      paymentMethod: 'CASH',
+      amountReceived: '',
+      cardAmount: '',
+      notes: '',
+      documentType: 'TICKET',
+      transactionType: 'VENTA'
+    } : t));
+  };
   
   // States for sales/quotes/consignments on hold (en espera)
   const [onHoldTickets, setOnHoldTickets] = useState<any[]>([]);
@@ -39,7 +257,6 @@ export default function POSClient({ products: initialProducts, customers, suppli
   const [isMobileSearchActive, setIsMobileSearchActive] = useState(false);
   const [priceList, setPriceList] = useState('price');
   
-  const initialCustomer = initialCustomerId ? customers.find(c => c.id === initialCustomerId) : null;
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(initialCustomerId || null);
   const [customerSearchTerm, setCustomerSearchTerm] = useState(initialCustomer ? initialCustomer.name : '');
 
@@ -779,15 +996,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
     setOnHoldTickets(updated);
     localStorage.setItem(`caanma_on_hold_${branchId}_${mode}`, JSON.stringify(updated));
 
-    // Clear current cart/customer
-    setCart([]);
-    setSelectedCustomerId(null);
-    setCustomerSearchTerm('');
-    setPriceList('price');
-    setNotes('');
-    setManualDiscountValue('');
-    setLoadedQuoteId(null);
-    setLoadedConsignmentId(null);
+    resetActiveTab();
     alert('Venta guardada en espera.');
   };
 
@@ -806,12 +1015,25 @@ export default function POSClient({ products: initialProducts, customers, suppli
     setLoadedQuoteId(ticket.loadedQuoteId || null);
     setLoadedConsignmentId(ticket.loadedConsignmentId || null);
 
-    // Remove from list
+    setTabs(prev => prev.map(t => t.id === activeTabId ? {
+      ...t,
+      cart: ticket.cart,
+      selectedCustomerId: ticket.selectedCustomerId || null,
+      customerSearchTerm: ticket.customerSearchTerm || '',
+      priceList: ticket.priceList || 'price',
+      manualDiscountValue: ticket.manualDiscountValue || '',
+      notes: ticket.notes || '',
+      loadedQuoteId: ticket.loadedQuoteId || null,
+      loadedConsignmentId: ticket.loadedConsignmentId || null
+    } : t));
+
     const updated = onHoldTickets.filter(t => t.id !== ticket.id);
     setOnHoldTickets(updated);
     localStorage.setItem(`caanma_on_hold_${branchId}_${mode}`, JSON.stringify(updated));
     setShowOnHoldModal(false);
   };
+
+
 
   const handleDeleteOnHold = (ticketId: string) => {
     if (!confirm('¿Estás seguro de eliminar este ticket en espera?')) return;
@@ -913,17 +1135,8 @@ export default function POSClient({ products: initialProducts, customers, suppli
           responseSale = response.sale;
         }
       }
-      
-      setCart([]);
+      resetActiveTab();
       setIsCheckoutOpen(false);
-      setAmountReceived('');
-      setCardAmount('');
-      setNotes('');
-      setTipAmount(0);
-      setPointsRedeemed(0);
-      setManualDiscountValue('');
-      setLoadedQuoteId(null);
-      setLoadedConsignmentId(null);
       setIsProcessing(false);
 
       const isAutoPrint = impresorasConfig.printAutomatically === 'true' || impresorasConfig.printAutomatically === true;
@@ -970,8 +1183,287 @@ export default function POSClient({ products: initialProducts, customers, suppli
   };
 
   return (
-    <div className="pos-layout">
+    <div className="pos-layout" style={{ maxWidth: '100%', margin: '0 auto', padding: '0.5rem 0' }}>
       <style>{`
+        .pos-top-header {
+          display: grid;
+          grid-template-columns: 1fr 340px;
+          gap: 1.5rem;
+          margin-bottom: 1.25rem;
+          align-items: end;
+        }
+        @media (max-width: 1024px) {
+          .pos-top-header {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+          }
+        }
+        .pos-grid-container {
+          display: grid;
+          grid-template-columns: 1fr 340px;
+          gap: 1.5rem;
+          align-items: start;
+          width: 100%;
+        }
+        @media (max-width: 1024px) {
+          .pos-grid-container {
+            grid-template-columns: 1fr;
+          }
+        }
+        
+        .pos-tabs-container {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          border-bottom: 2px solid #e2e8f0;
+          padding-bottom: 0px;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+        .pos-tabs-container::-webkit-scrollbar {
+          display: none;
+        }
+        .pos-tab {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 0.6rem 1rem;
+          border: 1px solid #cbd5e1;
+          border-bottom: none;
+          border-radius: 8px 8px 0 0;
+          background-color: #f8fafc;
+          color: #64748b;
+          font-size: 0.85rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+          position: relative;
+          bottom: -2px;
+          height: 38px;
+          white-space: nowrap;
+        }
+        .pos-tab-active {
+          background-color: white;
+          color: #0da5aa;
+          border-color: #cbd5e1;
+          border-bottom: 2.5px solid white;
+          box-shadow: 0 -2px 10px rgba(0,0,0,0.02);
+          z-index: 1;
+        }
+        .pos-tab-add {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background-color: #f1f5f9;
+          border: 1px solid #cbd5e1;
+          color: #475569;
+          cursor: pointer;
+          transition: all 0.2s;
+          margin-left: 6px;
+          flex-shrink: 0;
+        }
+        .pos-tab-add:hover {
+          background-color: #e2e8f0;
+          color: #1e293b;
+          transform: scale(1.05);
+        }
+        .pos-tab-close {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          width: 16px;
+          height: 16px;
+          color: #94a3b8;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          transition: all 0.15s;
+          padding: 0;
+        }
+        .pos-tab-close:hover {
+          background-color: #fee2e2;
+          color: #ef4444;
+        }
+
+        .pos-toggle-container {
+          display: flex;
+          background-color: #f1f5f9;
+          border-radius: 8px;
+          padding: 3px;
+          width: fit-content;
+          gap: 2px;
+        }
+        .pos-toggle-btn {
+          padding: 0.45rem 1rem;
+          border-radius: 6px;
+          border: none;
+          font-size: 0.85rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+          background: transparent;
+          color: #64748b;
+        }
+        .pos-toggle-btn-active {
+          background-color: white;
+          color: #0f172a;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .pos-action-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 0.75rem;
+          width: 100%;
+        }
+        .pos-action-card {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 1.5rem 1rem;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          background-color: white;
+          cursor: pointer;
+          transition: all 0.2s;
+          width: 100%;
+          gap: 0.75rem;
+          text-align: center;
+        }
+        .pos-action-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+          border-color: #cbd5e1;
+        }
+        .pos-action-icon-wrapper {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 44px;
+          height: 44px;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+        }
+        .pos-action-label {
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #1e293b;
+        }
+
+        .pos-cart-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          margin-top: 0.5rem;
+          margin-bottom: 1.5rem;
+          min-height: 250px;
+          max-height: 520px;
+          overflow-y: auto;
+          padding-right: 4px;
+        }
+        .pos-cart-item {
+          display: grid;
+          grid-template-columns: 52px 1fr 80px 100px 40px;
+          align-items: center;
+          padding: 0.85rem 1rem;
+          border-radius: 12px;
+          background-color: white;
+          border: 1px solid #cbd5e1;
+          gap: 1rem;
+          transition: all 0.2s;
+        }
+        .pos-cart-item:hover {
+          background-color: #f8fafc;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .pos-cart-item-image {
+          width: 52px;
+          height: 52px;
+          border-radius: 10px;
+          background-color: #f1f5f9;
+          color: #64748b;
+          font-weight: bold;
+          font-size: 0.95rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          overflow: hidden;
+        }
+        .pos-cart-item-info {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .pos-cart-item-title {
+          font-size: 0.925rem;
+          font-weight: 700;
+          color: #1e293b;
+          line-height: 1.25;
+        }
+        .pos-cart-item-price {
+          font-size: 0.8rem;
+          color: #64748b;
+          font-weight: 500;
+        }
+        .pos-cart-item-subtotal {
+          font-size: 0.95rem;
+          font-weight: 800;
+          color: #0f172a;
+          text-align: right;
+        }
+        
+        .pos-footer-section {
+          margin-top: auto;
+          padding: 1.25rem 0 0 0;
+          border-top: 1px solid #cbd5e1;
+        }
+        .pos-subtotal-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.75rem;
+          font-size: 0.95rem;
+          color: #475569;
+          font-weight: 600;
+        }
+        .pos-subtotal-value {
+          font-size: 1.15rem;
+          font-weight: 800;
+          color: #0f172a;
+        }
+        .pos-checkout-btn {
+          width: 100%;
+          padding: 1rem 1.5rem;
+          background-color: #0da5aa;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 1.1rem;
+          font-weight: 800;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 4px 10px rgba(13, 165, 170, 0.25);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+        }
+        .pos-checkout-btn:hover:not(:disabled) {
+          background-color: #0b8d91;
+          box-shadow: 0 6px 14px rgba(13, 165, 170, 0.35);
+        }
+        .pos-checkout-btn:disabled {
+          background-color: #cbd5e1;
+          color: #94a3b8;
+          cursor: not-allowed;
+          box-shadow: none;
+        }
         .mobile-only {
           display: none !important;
         }
@@ -982,47 +1474,16 @@ export default function POSClient({ products: initialProducts, customers, suppli
           .desktop-only {
             display: none !important;
           }
-          .pos-products-column {
-            display: ${isMobileSearchActive ? 'flex !important' : 'none !important'};
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
-            z-index: 1000 !important;
-            background-color: white !important;
-            padding: 1rem !important;
-            flex-direction: column !important;
-            overflow-y: auto !important;
-            margin: 0 !important;
-            border-radius: 0 !important;
-            border: none !important;
-          }
-          .pos-cart-column {
-            display: ${isMobileSearchActive ? 'none !important' : 'flex !important'};
-            margin-top: 0 !important;
-          }
         }
       `}</style>
-      {showScanner && (
-        <BarcodeScannerModal 
-          onScan={(decodedText) => {
-            setSearchTerm(decodedText);
-            setShowScanner(false);
-            setIsSearchModalOpen(true);
-          }} 
-          onClose={() => setShowScanner(false)} 
-        />
-      )}
 
-      {/* TOP ROW: Filters, Search bar trigger & Customer configurations */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem', padding: '1rem 0', marginBottom: '1.5rem', width: '100%', flexWrap: 'wrap', borderBottom: '1px solid #e2e8f0' }}>
+      {/* TOP HEADER ROW: Search Product Left, Client Search Right */}
+      <div className="pos-top-header">
         
-        {/* Left Side: Search Trigger & Search filters */}
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap', flex: 1, minWidth: '300px' }}>
-          
-          {/* SEARCH INPUT TRIGGER (opens popup) */}
-          <div style={{ display: 'flex', flexDirection: 'column', width: '280px' }}>
+        {/* Left: Product Search */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          <label style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Buscar productos</label>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
             <div 
               onClick={() => setIsSearchModalOpen(true)}
               style={{ 
@@ -1030,148 +1491,76 @@ export default function POSClient({ products: initialProducts, customers, suppli
                 alignItems: 'center',
                 padding: '0.65rem 1rem', 
                 borderRadius: '8px', 
-                border: '1px solid #cbd5e1', 
+                border: '2px solid #0da5aa', 
                 backgroundColor: 'white', 
                 fontSize: '0.95rem',
                 cursor: 'pointer',
                 color: '#94a3b8',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                 userSelect: 'none',
-                position: 'relative',
-                height: '40px'
+                height: '42px',
+                flex: 1
               }}
             >
               <Search size={18} color="#94a3b8" style={{ marginRight: '8px' }} />
-              Buscar por nombre, SKU o código de barras...
-              <button 
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowScanner(true);
-                }}
-                style={{
-                  position: 'absolute',
-                  right: '12px',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: '#8b5cf6',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                <Camera size={18} color="#8b5cf6" />
-              </button>
+              {searchTerm || "Buscar por nombre, SKU o código de barras"}
             </div>
-          </div>
-
-          {/* Category selector */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>Categoría</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <select 
-                value={filterCategory} 
-                onChange={e => setFilterCategory(e.target.value)} 
-                style={{ 
-                  border: 'none', 
-                  background: 'transparent', 
-                  outline: 'none', 
-                  fontSize: '0.95rem', 
-                  fontWeight: 'bold', 
-                  color: '#1e293b', 
-                  cursor: 'pointer',
-                  height: '40px',
-                  paddingRight: '0.5rem'
-                }}
-              >
-                <option value="ALL">Todas</option>
-                {Array.from(new Set(initialProducts.map(p => p.category).filter(Boolean))).map((cat: any) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-              <button 
-                type="button"
-                style={{ 
-                  display: 'flex', alignItems: 'center', gap: '0.35rem',
-                  border: '1px solid #cbd5e1', borderRadius: '6px', backgroundColor: 'white',
-                  padding: '0.4rem 0.75rem', fontSize: '0.85rem', fontWeight: '500', color: '#475569',
-                  cursor: 'pointer', height: '36px'
-                }}
-              >
-                <ArrowDownUp size={14} /> Ordenar
-              </button>
-            </div>
-          </div>
-
-          {/* Stock Filter */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>Filtrar por Stock</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <select 
-                value={stockFilter} 
-                onChange={e => setStockFilter(e.target.value as any)} 
-                style={{ 
-                  border: 'none', 
-                  background: 'transparent', 
-                  outline: 'none', 
-                  fontSize: '0.95rem', 
-                  fontWeight: 'bold', 
-                  color: '#1e293b', 
-                  cursor: 'pointer',
-                  height: '40px',
-                  paddingRight: '0.5rem'
-                }}
-              >
-                <option value="ALL">Todas las existencias</option>
-                <option value="IN_STOCK">Con Existencia</option>
-                <option value="OUT_OF_STOCK">Sin Existencia</option>
-              </select>
-              <button 
-                type="button" 
-                onClick={() => { setFilterCategory('ALL'); setStockFilter('ALL'); }} 
-                style={{ 
-                  color: '#3b82f6', 
-                  background: 'none', 
-                  border: 'none', 
-                  cursor: 'pointer', 
-                  textDecoration: 'underline', 
-                  fontSize: '0.85rem', 
-                  fontWeight: '500' 
-                }}
-              >
-                Limpiar Filtros
-              </button>
-            </div>
+            <button 
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowScanner(true);
+              }}
+              style={{
+                position: 'absolute',
+                right: '12px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#0da5aa',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+            >
+              <Camera size={18} />
+            </button>
           </div>
         </div>
 
-        {/* Right Side: Customer info aligned with the sidebar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '380px', justifyContent: 'flex-end' }}>
-          <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#475569' }}>Cliente</span>
-          <div style={{ position: 'relative', width: '280px' }}>
+        {/* Right: Client Search Selector */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', position: 'relative' }}>
+          <label style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cliente</label>
+          <div style={{ position: 'relative', width: '100%' }}>
             <input 
               type="text" 
               placeholder="Buscar o escribir nombre de cliente..." 
               value={customerSearchTerm}
               onChange={e => {
                 setCustomerSearchTerm(e.target.value);
-                const matched = customers.find((c: any) => c.name.toLowerCase() === e.target.value.toLowerCase());
+                const matched = customers.find((c: any) => c.id === e.target.value || c.name.toLowerCase() === e.target.value.toLowerCase());
                 if (matched) handleCustomerChange(matched.id);
                 else handleCustomerChange('');
               }}
-              style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', height: '40px' }}
+              style={{ 
+                width: '100%', 
+                padding: '0.55rem 0.75rem', 
+                borderRadius: '8px', 
+                border: '1px solid #cbd5e1', 
+                fontSize: '0.9rem', 
+                outline: 'none', 
+                height: '42px',
+                backgroundColor: 'white'
+              }}
             />
             {/* Customer Dropdown */}
             {customerSearchTerm.trim() !== '' && !selectedCustomerId && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', zIndex: 10, maxHeight: '200px', overflowY: 'auto', marginTop: '0.25rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginTop: '0.25rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
                 <div 
                   onClick={() => {
                     setCustomerSearchTerm('Público en General');
                     handleCustomerChange('');
                   }}
-                  style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem' }}
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                  style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem', color: '#1e293b' }}
                 >
                   Público en General
                 </div>
@@ -1182,9 +1571,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                       setSelectedCustomerId(c.id);
                       setCustomerSearchTerm(c.name);
                     }}
-                    style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem' }}
-                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
-                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                    style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem', color: '#1e293b' }}
                   >
                     {c.name}
                   </div>
@@ -1192,299 +1579,427 @@ export default function POSClient({ products: initialProducts, customers, suppli
               </div>
             )}
           </div>
+          {selectedCustomerId && selectedCust && (
+            <div style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 'bold', marginTop: '0.15rem' }}>
+              ✓ Seleccionado: {selectedCust.name} {selectedCust.creditLimit > 0 ? `($${selectedCust.creditLimit})` : ''}
+            </div>
+          )}
         </div>
 
       </div>
 
-      {/* BOTTOM MAIN BODY: 2 Columns */}
-      <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', width: '100%', alignItems: 'flex-start' }}>
+      <div className="pos-grid-container">
         
-        {/* LEFT COLUMN: Cart items (70% width) */}
-        <div style={{ flex: 2, minWidth: '400px', display: 'flex', flexDirection: 'column' }}>
+        {/* LEFT COLUMN: Tabs, Pill controls, Cart items, Checkout */}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
           
-          <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', minHeight: '450px', border: '1px solid #cbd5e1' }}>
-            {cart.length === 0 ? (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#94a3b8', padding: '4rem 1rem' }}>
-                <ShoppingBag size={64} color="#cbd5e1" style={{ marginBottom: '1rem' }} />
-                <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#64748b' }}>El ticket está vacío</div>
-                <div style={{ fontSize: '0.9rem', marginTop: '0.5rem', color: '#94a3b8' }}>Escribe en el buscador de arriba para agregar artículos.</div>
-              </div>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid #cbd5e1', color: '#64748b', fontSize: '0.85rem' }}>
-                    <th style={{ padding: '0.75rem 0.5rem', width: '30px' }}><input type="checkbox" readOnly checked style={{ cursor: 'not-allowed' }} /></th>
-                    <th style={{ padding: '0.75rem 0.5rem' }}>Artículo</th>
-                    <th style={{ padding: '0.75rem 0.5rem', width: '130px', textAlign: 'center' }}>Cantidad</th>
-                    <th style={{ padding: '0.75rem 0.5rem', width: '100px', textAlign: 'right' }}>Precio</th>
-                    <th style={{ padding: '0.75rem 0.5rem', width: '110px', textAlign: 'right' }}>Subtotal</th>
-                    <th style={{ padding: '0.75rem 0.5rem', width: '40px' }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cart.map(item => {
-                    const itemPrice = getProductPrice(item);
-                    const itemSubtotal = itemPrice * item.quantity;
-                    return (
-                      <tr key={item.listId} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }}>
-                        <td style={{ padding: '1rem 0.5rem' }}>
-                          <input type="checkbox" readOnly checked style={{ cursor: 'not-allowed' }} />
-                        </td>
-                        <td style={{ padding: '1rem 0.5rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{
-                              width: '36px', height: '36px', borderRadius: '8px',
-                              backgroundColor: '#eff6ff', color: '#3b82f6',
-                              fontWeight: 'bold', fontSize: '0.85rem',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              flexShrink: 0
-                            }}>
-                              {item.name.substring(0, 2).toUpperCase()}
-                            </div>
-                            <div>
-                              <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '0.9rem' }}>{item.name}</div>
-                              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.1rem' }}>SKU: {item.sku || '--'}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td style={{ padding: '1rem 0.5rem', textAlign: 'center' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.15rem', backgroundColor: 'white' }}>
-                            <button 
-                              type="button"
-                              onClick={() => handleUpdateQty(item.cartItemId, item.quantity - 1)}
-                              style={{ border: 'none', background: 'none', color: '#64748b', width: '24px', height: '24px', cursor: 'pointer', fontWeight: 'bold' }}
-                            >-</button>
-                            <span style={{ fontSize: '0.9rem', fontWeight: '600', minWidth: '24px', textAlign: 'center' }}>{item.quantity}</span>
-                            <button 
-                              type="button"
-                              onClick={() => handleUpdateQty(item.cartItemId, item.quantity + 1)}
-                              style={{ border: 'none', background: 'none', color: '#64748b', width: '24px', height: '24px', cursor: 'pointer', fontWeight: 'bold' }}
-                            >+</button>
-                          </div>
-                        </td>
-                        <td style={{ padding: '1rem 0.5rem', textAlign: 'right', fontSize: '0.9rem', color: '#475569' }}>
-                          ${itemPrice.toFixed(2)}
-                        </td>
-                        <td style={{ padding: '1rem 0.5rem', textAlign: 'right', fontWeight: 'bold', color: '#8b5cf6', fontSize: '0.95rem' }}>
-                          ${itemSubtotal.toFixed(2)}
-                        </td>
-                        <td style={{ padding: '1rem 0.5rem', textAlign: 'center' }}>
-                          <button 
-                            type="button"
-                            onClick={() => setCart(cart.filter(c => c.cartItemId !== item.cartItemId))}
-                            style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
-                            title="Eliminar artículo"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN: Total and actions (30% width) */}
-        <div style={{ flex: 1, minWidth: '300px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          
-          {/* Price list selector */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', width: '100%', paddingBottom: '0.25rem' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>Lista de Precios del Ticket</label>
-            <div style={{ position: 'relative', width: '100%' }}>
-              <select 
-                value={priceList} 
-                onChange={e => setPriceList(e.target.value)} 
-                style={{ 
-                  width: '100%', 
-                  border: 'none', 
-                  background: 'transparent', 
-                  outline: 'none', 
-                  fontWeight: '600', 
-                  color: '#1e293b', 
-                  fontSize: '0.95rem', 
-                  cursor: 'pointer',
-                  padding: '0.25rem 0'
-                }}
+          {/* TABS ROW WITH MENU BUTTON */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderBottom: 'none', borderRadius: '8px 8px 0 0', padding: '6px 8px 0 8px', overflow: 'hidden' }}>
+            <div className="pos-tabs-container" style={{ borderBottom: 'none', marginBottom: 0 }}>
+              {tabs.map((tab) => {
+                const isActive = tab.id === activeTabId;
+                return (
+                  <div 
+                    key={tab.id}
+                    onClick={() => switchTab(tab.id)}
+                    className={`pos-tab ${isActive ? 'pos-tab-active' : ''}`}
+                  >
+                    <span>{tab.name}</span>
+                    {tabs.length > 1 && (
+                      <button 
+                        type="button" 
+                        onClick={(e) => closeTab(tab.id, e)}
+                        className="pos-tab-close"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+              <button 
+                type="button"
+                onClick={addTab}
+                className="pos-tab-add"
+                title="Nueva Pestaña"
               >
-                <option value="price">Normal (Público General)</option>
-                {dynamicPriceLists.map(pl => (
-                  <option key={pl.id} value={`priceList_${pl.id}`}>{pl.name}</option>
-                ))}
-                {ventasConfig.wholesalePriceActive && <option value="wholesalePrice">Mayoreo</option>}
-                {ventasConfig.specialPriceActive && <option value="specialPrice">Precio Especial</option>}
-              </select>
+                <Plus size={16} />
+              </button>
             </div>
+            
+            {/* Menu icon on the right side of tabs */}
+            <button
+              type="button"
+              style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px' }}
+            >
+              <MoreVertical size={18} />
+            </button>
           </div>
 
-          {/* TABS (On-Hold drafts visual tabs & Pause button) */}
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{
-              padding: '0.5rem 1rem',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              backgroundColor: 'white',
-              color: '#334155',
-              fontSize: '0.9rem',
-              fontWeight: '600',
-              userSelect: 'none'
-            }}>
-              Ticket #1
-            </div>
-            {onHoldTickets.map((ticket) => (
-              <div key={ticket.id} style={{ display: 'flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'white' }}>
+          {/* ROW BELOW TABS: Pill toggles, Price List, trash, options */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', padding: '0.85rem 1rem', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc' }}>
+            
+            {/* Pill Toggle for Venta vs Pedido */}
+            {mode === 'SALE' ? (
+              <div className="pos-toggle-container">
                 <button
                   type="button"
-                  onClick={() => handleRestoreTicket(ticket)}
-                  style={{
-                    padding: '0.5rem 0.8rem',
-                    border: 'none',
-                    backgroundColor: 'white',
-                    color: '#475569',
-                    fontSize: '0.9rem',
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                  }}
+                  onClick={() => setTransactionType('VENTA')}
+                  className={`pos-toggle-btn ${transactionType === 'VENTA' ? 'pos-toggle-btn-active' : ''}`}
                 >
-                  {ticket.name}
+                  Venta
                 </button>
-                <button 
-                  type="button" 
-                  onClick={() => handleDeleteOnHold(ticket.id)}
-                  style={{ border: 'none', borderLeft: '1px solid #cbd5e1', padding: '0.5rem', backgroundColor: '#fee2e2', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                <button
+                  type="button"
+                  onClick={() => setTransactionType('PEDIDO')}
+                  className={`pos-toggle-btn ${transactionType === 'PEDIDO' ? 'pos-toggle-btn-active' : ''}`}
                 >
-                  <Trash2 size={12} />
+                  Pedido
                 </button>
               </div>
-            ))}
-
-            <button 
-              type="button"
-              onClick={handlePutOnHold}
-              style={{
-                padding: '0.5rem 1.2rem',
-                border: '1px dashed #8b5cf6',
-                borderRadius: '8px',
-                backgroundColor: 'white',
-                color: '#8b5cf6',
-                fontSize: '0.9rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.35rem',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = '#f3e8ff';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = 'white';
-              }}
-            >
-              <span style={{ 
-                backgroundColor: '#8b5cf6', 
-                color: 'white', 
-                borderRadius: '4px', 
-                width: '16px', 
-                height: '16px', 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                fontSize: '0.65rem',
-                fontWeight: 'bold',
-                lineHeight: 1
-              }}>
-                ⏸
-              </span>
-              Pausar Venta
-            </button>
-          </div>
-
-          {/* Action Buttons Panel */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <button type="button" style={{ width: '100%', padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: 'white', fontWeight: 'bold', color: '#475569', fontSize: '0.85rem', cursor: 'pointer', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}>
-              Añadir Promoción
-            </button>
-            <button type="button" onClick={() => setIsQuoteModalOpen(true)} style={{ width: '100%', padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: 'white', fontWeight: 'bold', color: '#475569', fontSize: '0.85rem', cursor: 'pointer', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}>
-              Cargar Cotización
-            </button>
-          </div>
-
-          {/* Totals & checkout card */}
-          <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: '1.25rem', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
-            
-            <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
-              <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>TOTAL A COBRAR</div>
-              <div style={{ fontSize: '2.8rem', fontWeight: '900', color: '#1e293b', marginTop: '0.25rem' }}>
-                ${total.toFixed(2)}
-              </div>
-              {manualDiscountValue && (
-                <div style={{ fontSize: '0.85rem', color: '#16a34a', fontWeight: '500', marginTop: '0.25rem' }}>
-                  Descuento aplicado: ${discount.toFixed(2)}
-                </div>
-              )}
-            </div>
-
-            {/* Manual Discount Selection */}
-            {cart.length > 0 && ventasConfig.bloquearDescuentos !== true && (
-              <div style={{ marginBottom: '1rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.25rem' }}>Descuento Manual al Total</label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <select 
-                    value={manualDiscountType} 
-                    onChange={e => setManualDiscountType(e.target.value as '$' | '%')} 
-                    style={{ width: '60px', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', outline: 'none' }}
-                  >
-                    <option value="$">$</option>
-                    <option value="%">%</option>
-                  </select>
-                  <input 
-                    type="number" 
-                    min="0"
-                    placeholder="Monto"
-                    value={manualDiscountValue}
-                    onChange={e => setManualDiscountValue(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                    style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', textAlign: 'right', outline: 'none' }}
-                  />
-                </div>
+            ) : (
+              <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#64748b' }}>
+                {mode === 'QUOTE' ? 'Documento: Cotización' : 'Documento: Consignación'}
               </div>
             )}
 
-            {/* Primary Checkout Button */}
+            {/* Price list and actions */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              
+              {/* Price lists select */}
+              <div style={{ display: 'flex', alignItems: 'center', border: 'none', borderRadius: '6px', backgroundColor: '#78716c', padding: '0 0.75rem', height: '36px', color: 'white' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', marginRight: '0.35rem' }}>Listas de Precios:</span>
+                <select 
+                  value={priceList} 
+                  onChange={e => setPriceList(e.target.value)} 
+                  style={{ 
+                    border: 'none', 
+                    background: 'transparent', 
+                    outline: 'none', 
+                    fontWeight: '700', 
+                    color: 'white', 
+                    fontSize: '0.8rem', 
+                    cursor: 'pointer',
+                    paddingRight: '0.25rem'
+                  }}
+                >
+                  <option value="price" style={{ color: '#1e293b' }}>Normal (Público General)</option>
+                  {dynamicPriceLists.map(pl => (
+                    <option key={pl.id} value={`priceList_${pl.id}`} style={{ color: '#1e293b' }}>{pl.name}</option>
+                  ))}
+                  {ventasConfig.wholesalePriceActive && <option value="wholesalePrice" style={{ color: '#1e293b' }}>Mayoreo</option>}
+                  {ventasConfig.specialPriceActive && <option value="specialPrice" style={{ color: '#1e293b' }}>Precio Especial</option>}
+                </select>
+              </div>
+
+              {/* Trash/Clear cart */}
+              <button 
+                type="button"
+                onClick={() => {
+                  if (cart.length > 0 && confirm('¿Deseas vaciar el carrito actual?')) {
+                    setCart([]);
+                  }
+                }}
+                style={{
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  backgroundColor: 'white',
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ef4444',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
+                title="Vaciar ticket"
+                disabled={cart.length === 0}
+              >
+                <Trash2 size={16} />
+              </button>
+
+              {/* Pause ticket icon */}
+              <button
+                type="button"
+                onClick={handlePutOnHold}
+                style={{
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  backgroundColor: 'white',
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#475569',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
+                title="Pausar ticket actual"
+                disabled={cart.length === 0}
+              >
+                <Clock size={16} />
+              </button>
+
+            </div>
+          </div>
+
+          {/* CART ITEMS LIST */}
+          <div className="pos-cart-list" style={{ border: '1px solid #cbd5e1', borderTop: 'none', padding: '1rem', backgroundColor: 'white', borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px', minHeight: '300px' }}>
+            {cart.length === 0 ? (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#94a3b8', padding: '5rem 1rem' }}>
+                <ShoppingBag size={56} color="#cbd5e1" style={{ marginBottom: '1rem' }} />
+                <div style={{ fontSize: '1.15rem', fontWeight: '800', color: '#64748b' }}>El ticket está vacío</div>
+                <div style={{ fontSize: '0.85rem', marginTop: '0.25rem', color: '#94a3b8' }}>Busca artículos arriba o haz clic en "Crear producto" para agregar.</div>
+              </div>
+            ) : (
+              cart.map(item => {
+                const itemPrice = getProductPrice(item);
+                const itemSubtotal = itemPrice * item.quantity;
+                return (
+                  <div key={item.listId || item.cartItemId} className="pos-cart-item" style={{ marginBottom: '0.75rem' }}>
+                    
+                    {/* Image or Initials */}
+                    <div className="pos-cart-item-image">
+                      {item.imageUrl ? (
+                        <img 
+                          src={item.imageUrl} 
+                          alt={item.name} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `<span>${item.name.substring(0, 2).toUpperCase()}</span>`;
+                            }
+                          }}
+                        />
+                      ) : (
+                        <span>{item.name.substring(0, 2).toUpperCase()}</span>
+                      )}
+                    </div>
+
+                    {/* Product description & Price details */}
+                    <div className="pos-cart-item-info">
+                      <div className="pos-cart-item-title">{item.name}</div>
+                      <div className="pos-cart-item-price">${itemPrice.toFixed(2)}</div>
+                    </div>
+
+                    {/* Quantity input box */}
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      <input 
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={e => handleUpdateQty(item.cartItemId, parseInt(e.target.value) || 1)}
+                        style={{ 
+                          width: '56px', 
+                          height: '36px', 
+                          border: '1px solid #cbd5e1', 
+                          borderRadius: '6px', 
+                          textAlign: 'center', 
+                          fontWeight: '700',
+                          fontSize: '0.95rem',
+                          color: '#1e293b',
+                          outline: 'none',
+                          backgroundColor: 'white'
+                        }}
+                      />
+                    </div>
+
+                    {/* Subtotal */}
+                    <div className="pos-cart-item-subtotal">
+                      ${itemSubtotal.toFixed(2)}
+                    </div>
+
+                    {/* Actions menu */}
+                    <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+                      <button 
+                        type="button"
+                        onClick={() => setActiveItemMenuId(activeItemMenuId === item.cartItemId ? null : item.cartItemId)}
+                        style={{ border: 'none', background: 'none', color: '#64748b', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <MoreVertical size={18} />
+                      </button>
+                      {activeItemMenuId === item.cartItemId && (
+                        <>
+                          <div 
+                            onClick={() => setActiveItemMenuId(null)}
+                            style={{ position: 'fixed', inset: 0, zIndex: 10 }}
+                          />
+                          <div style={{ position: 'absolute', right: 0, top: '100%', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 11, minWidth: '120px', padding: '4px' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCart(cart.filter(c => c.cartItemId !== item.cartItemId));
+                                setActiveItemMenuId(null);
+                              }}
+                              style={{ display: 'flex', width: '100%', padding: '8px 12px', fontSize: '0.85rem', color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', borderRadius: '4px' }}
+                              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* PAYMENT SUMMARY AND CHECKOUT CTA */}
+          <div className="pos-footer-section">
+            
+            <div className="pos-subtotal-row">
+              <span>Subtotal ({cart.reduce((s, i) => s + i.quantity, 0)} artículos)</span>
+              <span className="pos-subtotal-value">${subTotal.toFixed(2)}</span>
+            </div>
+
+            {manualDiscountValue && (
+              <div className="pos-subtotal-row" style={{ color: '#16a34a', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+                <span>Descuento aplicado</span>
+                <span>-${discount.toFixed(2)}</span>
+              </div>
+            )}
+
+            {/* Manual Discount selection */}
+            {cart.length > 0 && ventasConfig.bloquearDescuentos !== true && (
+              <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b' }}>Descuento Manual:</span>
+                <select 
+                  value={manualDiscountType} 
+                  onChange={e => setManualDiscountType(e.target.value as '$' | '%')} 
+                  style={{ width: '50px', padding: '0.25rem', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.85rem' }}
+                >
+                  <option value="$">$</option>
+                  <option value="%">%</option>
+                </select>
+                <input 
+                  type="number" 
+                  min="0"
+                  placeholder="Monto"
+                  value={manualDiscountValue}
+                  onChange={e => setManualDiscountValue(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                  style={{ width: '80px', padding: '0.25rem', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', outline: 'none', fontSize: '0.85rem' }}
+                />
+              </div>
+            )}
+
+            {/* Main checkout CTA */}
             <button
               type="button"
               onClick={() => setIsCheckoutOpen(true)}
               disabled={cart.length === 0 || isProcessing}
-              style={{
-                width: '100%',
-                padding: '1.1rem',
-                borderRadius: '10px',
-                backgroundColor: '#a78bfa',
-                color: 'white',
-                border: 'none',
-                fontSize: '1.2rem',
-                fontWeight: '800',
-                cursor: cart.length === 0 ? 'not-allowed' : 'pointer',
-                boxShadow: '0 4px 14px rgba(167, 139, 250, 0.4)',
-                transition: 'background-color 0.2s, transform 0.1s',
-                opacity: cart.length === 0 ? 0.6 : 1
-              }}
-              onMouseEnter={e => {
-                if (cart.length > 0) e.currentTarget.style.backgroundColor = '#8b5cf6';
-              }}
-              onMouseLeave={e => {
-                if (cart.length > 0) e.currentTarget.style.backgroundColor = '#a78bfa';
-              }}
+              className="pos-checkout-btn"
             >
-              {isProcessing ? 'Procesando...' : mode === 'QUOTE' ? 'Guardar Cotización' : mode === 'CONSIGNMENT' ? 'Crear Consignación' : 'Cobrar Venta'}
+              {isProcessing ? 'Procesando...' : (
+                mode === 'QUOTE' ? `Guardar Cotización $${total.toFixed(2)}` : 
+                mode === 'CONSIGNMENT' ? `Crear Consignación $${total.toFixed(2)}` :
+                transactionType === 'PEDIDO' ? `Guardar Pedido $${total.toFixed(2)}` : `Cobrar $${total.toFixed(2)}`
+              )}
             </button>
+
           </div>
+
         </div>
+
+        {/* RIGHT COLUMN: Sidebar Action Cards & On Hold list */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          
+          <div className="pos-action-grid">
+            
+            {/* Card 1: Añadir Promoción */}
+            <button 
+              type="button"
+              onClick={() => {
+                if (promotions.length === 0) {
+                  alert('No hay promociones activas registradas.');
+                  return;
+                }
+                const activePromoList = promotions.map((p: any) => `- ${p.name} (${p.type === 'PERCENTAGE' ? `${p.value}%` : `$${p.value}`})`).join('\n');
+                alert(`Promociones vigentes que se aplican automáticamente:\n\n${activePromoList}`);
+              }}
+              className="pos-action-card"
+            >
+              <div className="pos-action-icon-wrapper" style={{ backgroundColor: '#f3e8ff', color: '#8b5cf6' }}>
+                <Percent size={20} />
+              </div>
+              <span className="pos-action-label">Añadir Promoción</span>
+            </button>
+
+            {/* Card 2: Crear producto */}
+            <button 
+              type="button"
+              onClick={() => setShowFastItemModal(true)}
+              className="pos-action-card"
+            >
+              <div className="pos-action-icon-wrapper" style={{ backgroundColor: '#ccfbf1', color: '#0d9488' }}>
+                <Plus size={20} />
+              </div>
+              <span className="pos-action-label">Crear producto</span>
+            </button>
+
+            {/* Card 3: Cargar Cotización */}
+            <button 
+              type="button"
+              onClick={() => setIsQuoteModalOpen(true)}
+              className="pos-action-card"
+            >
+              <div className="pos-action-icon-wrapper" style={{ backgroundColor: '#e0f2fe', color: '#0284c7' }}>
+                <FolderOpen size={20} />
+              </div>
+              <span className="pos-action-label">Cargar Cotización</span>
+            </button>
+
+            {/* List of On Hold tickets */}
+            {onHoldTickets.length > 0 && (
+              <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid #cbd5e1', paddingTop: '1rem' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Tickets en Espera</span>
+                {onHoldTickets.map((ticket) => (
+                  <div key={ticket.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'white', width: '100%' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleRestoreTicket(ticket)}
+                      style={{
+                        flex: 1,
+                        padding: '0.5rem 0.75rem',
+                        border: 'none',
+                        backgroundColor: 'white',
+                        color: '#475569',
+                        fontSize: '0.85rem',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      {ticket.name} (${ticket.total.toFixed(2)})
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => handleDeleteOnHold(ticket.id)}
+                      style={{ border: 'none', borderLeft: '1px solid #cbd5e1', padding: '0.5rem 0.75rem', backgroundColor: '#fee2e2', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+          </div>
+
+        </div>
+
       </div>
+
 
       {/* Fast Item Modal */}
       {showFastItemModal && (

@@ -18,9 +18,24 @@ export default async function EditarPromocionPage({ params }: { params: Promise<
 
   if (!promotion) return notFound();
 
-  // Fetch active products in this branch
+  // Extract selected products from promotion metadata
+  let selectedProductIds: string[] = [];
+  try {
+    if (promotion.metadata) {
+      const parsed = JSON.parse(promotion.metadata);
+      if (Array.isArray(parsed.targetProducts)) {
+        selectedProductIds = parsed.targetProducts;
+      }
+    }
+  } catch (e) {
+    console.error("Failed to parse metadata", e);
+  }
+
+  // Fetch only the selected products initially
   const products = await prisma.product.findMany({
-    where: { branchId: branch.id, isActive: true },
+    where: { 
+      id: { in: selectedProductIds }
+    },
     select: {
       id: true,
       name: true,
@@ -31,7 +46,7 @@ export default async function EditarPromocionPage({ params }: { params: Promise<
     orderBy: { name: 'asc' }
   });
 
-  // Extract unique categories and brands
+  // Fetch unique categories and brands
   const categoriesRaw = await prisma.product.findMany({
     where: { branchId: branch.id, category: { not: null, notIn: [""] } },
     select: { category: true },
@@ -60,6 +75,7 @@ export default async function EditarPromocionPage({ params }: { params: Promise<
       <EditarPromocionForm 
         promotion={safePromotion}
         products={safeProducts}
+        branchId={branch.id}
         categories={categories}
         brands={brands}
       />
