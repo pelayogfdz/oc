@@ -73,7 +73,9 @@ export async function addMovement(formData: FormData) {
 
 export async function closeSession(formData: FormData) {
   const sessionId = formData.get('sessionId') as string;
-  const actualAmount = parseFloat(formData.get('actualAmount') as string);
+  const actualAmount = parseFloat(formData.get('actualAmount') as string) || 0;
+  const notes = formData.get('notes') as string | null;
+  const detailsJson = formData.get('detailsJson') as string | null;
 
   const sessionRecord = await prisma.cashSession.findUnique({
     where: { id: sessionId },
@@ -84,20 +86,15 @@ export async function closeSession(formData: FormData) {
     throw new Error("La caja no está abierta");
   }
 
-  // Calculate expected amount
-  // Expected = Initial + Sum of Cash Sales + Sum of IN movements - Sum of OUT movements
-  
-  // En Pulpos POS, usualmente solo las ventas en EFECTIVO entran a la caja física
-  const cashSales = sessionRecord.sales.filter(s => s.paymentMethod === 'CASH');
-  const totalSalesCash = cashSales.reduce((acc, sale) => acc + sale.total, 0);
-
-  const mixtoSales = sessionRecord.sales.filter(s => s.paymentMethod === 'MIXTO');
-  const totalSalesMixtoCash = mixtoSales.reduce((acc, sale) => acc + (sale.cashAmount || 0), 0);
+  // Filtrar ventas no canceladas
+  const activeSales = sessionRecord.sales.filter(s => s.status !== 'CANCELLED');
+  const totalSales = activeSales.reduce((acc, sale) => acc + sale.total, 0);
 
   const totalIn = sessionRecord.movements.filter(m => m.type === 'IN').reduce((acc, m) => acc + m.amount, 0);
   const totalOut = sessionRecord.movements.filter(m => m.type === 'OUT').reduce((acc, m) => acc + m.amount, 0);
 
-  const expectedAmount = sessionRecord.initialAmount + totalSalesCash + totalSalesMixtoCash + totalIn - totalOut;
+  // Total esperado global = Inicial + Suma de todas las ventas activas + Ingresos - Egresos
+  const expectedAmount = sessionRecord.initialAmount + totalSales + totalIn - totalOut;
   const difference = actualAmount - expectedAmount;
 
   await prisma.cashSession.update({
@@ -107,7 +104,9 @@ export async function closeSession(formData: FormData) {
       closedAt: new Date(),
       expectedAmount,
       actualAmount,
-      difference
+      difference,
+      notes,
+      detailsJson
     }
   });
 

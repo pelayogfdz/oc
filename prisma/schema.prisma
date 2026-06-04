@@ -608,6 +608,8 @@ model CashSession {
   actualAmount   Float?
   difference     Float?
   status         String         @default("OPEN")
+  notes          String?
+  detailsJson    String?
   movements      CashMovement[]
   branch         Branch?        @relation(fields: [branchId], references: [id])
   user           User           @relation(fields: [userId], references: [id])

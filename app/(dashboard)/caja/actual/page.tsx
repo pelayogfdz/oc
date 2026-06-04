@@ -1,5 +1,6 @@
 import { getCurrentSession } from "@/app/actions/caja";
 import { getActiveBranch, getActiveUser } from "@/app/actions/auth";
+import { getBranchSettings } from "@/app/actions/settings";
 import CajaActualClient from "./CajaActualClient";
 
 export default async function CajaActualPage() {
@@ -17,6 +18,15 @@ export default async function CajaActualPage() {
     );
   }
 
+  const settings = await getBranchSettings();
+  let metodosConfig = {};
+  if (settings.configJson) {
+    try {
+      const parsed = JSON.parse(settings.configJson);
+      metodosConfig = parsed.metodos || {};
+    } catch(e) {}
+  }
+
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', fontFamily: 'var(--font-geist-sans)' }}>
       <div style={{ marginBottom: '2rem' }}>
@@ -26,7 +36,7 @@ export default async function CajaActualPage() {
         </p>
       </div>
 
-      <CajaActualClient initialSession={currentSession} branchName={branch.name} userName={user?.name || ''} />
+      <CajaActualClient initialSession={currentSession} branchName={branch.name} userName={user?.name || ''} metodosConfig={metodosConfig} />
     </div>
   );
 }
