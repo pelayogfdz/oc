@@ -175,75 +175,81 @@ export async function createProduct(prevState: any, formData: FormData) {
 }
 
 export async function updateProduct(productId: string, formData: FormData) {
-  const branchId = formData.get('branchId') as string;
-  const sku = formData.get('sku') as string;
-  const barcode = (formData.get('barcode') as string) || null;
-  const name = formData.get('name') as string;
-  const description = formData.get('description') as string;
-  
-  const price = parseFloat(formData.get('price') as string) || 0;
-  const cost = parseFloat(formData.get('cost') as string) || 0;
-  const taxRate = parseFloat(formData.get('taxRate') as string) || 16.0;
-  
-  const category = formData.get('category') as string;
-  const brand = formData.get('brand') as string;
-  const imageUrl = formData.get('imageUrl') as string;
-  const youtubeUrl = formData.get('youtubeUrl') as string;
-  const isActive = formData.get('isActive') !== 'false';
-  const unit = formData.get('unit') as string || 'Pza';
-  const satKey = (formData.get('satKey') as string) || null;
-  const satUnit = (formData.get('satUnit') as string) || null;
-  const minStock = parseInt(formData.get('minStock') as string, 10) || 0;
-  const supplierId = (formData.get('supplierId') as string) || null;
-  const expirationDateStr = formData.get('expirationDate') as string;
-  const expirationDate = expirationDateStr ? new Date(expirationDateStr) : null;
+  try {
+    const branchId = formData.get('branchId') as string;
+    const sku = formData.get('sku') as string;
+    const barcode = (formData.get('barcode') as string) || null;
+    const name = formData.get('name') as string;
+    const description = formData.get('description') as string;
+    
+    const price = parseFloat(formData.get('price') as string) || 0;
+    const cost = parseFloat(formData.get('cost') as string) || 0;
+    const taxRate = parseFloat(formData.get('taxRate') as string) || 16.0;
+    
+    const category = formData.get('category') as string;
+    const brand = formData.get('brand') as string;
+    const imageUrl = formData.get('imageUrl') as string;
+    const youtubeUrl = formData.get('youtubeUrl') as string;
+    const isActive = formData.get('isActive') !== 'false';
+    const unit = formData.get('unit') as string || 'Pza';
+    const satKey = (formData.get('satKey') as string) || null;
+    const satUnit = (formData.get('satUnit') as string) || null;
+    const minStock = parseInt(formData.get('minStock') as string, 10) || 0;
+    const supplierId = (formData.get('supplierId') as string) || null;
+    const expirationDateStr = formData.get('expirationDate') as string;
+    const expirationDate = expirationDateStr ? new Date(expirationDateStr) : null;
 
-  if (!sku || !name || !branchId) return;
+    if (!sku || !name || !branchId) return;
 
-  await prisma.product.update({
-    where: { id: productId },
-    data: {
-      sku,
-      barcode,
-      name,
-      description,
-      price,
-      cost,
-      taxRate,
-      category,
-      brand,
-      imageUrl,
-      youtubeUrl,
-      isActive,
-      unit,
-      minStock,
-      supplierId,
-      satKey,
-      satUnit,
-      expirationDate
-    }
-  });
+    await prisma.product.update({
+      where: { id: productId },
+      data: {
+        sku,
+        barcode,
+        name,
+        description,
+        price,
+        cost,
+        taxRate,
+        category,
+        brand,
+        imageUrl,
+        youtubeUrl,
+        isActive,
+        unit,
+        minStock,
+        supplierId,
+        satKey,
+        satUnit,
+        expirationDate
+      }
+    });
 
-  // Upsert dynamic prices
-  const keys = Array.from(formData.keys());
-  for (const key of keys) {
-    if (key.startsWith('priceList_')) {
-      const priceListId = key.replace('priceList_', '');
-      const listPrice = parseFloat(formData.get(key) as string);
-      if (!isNaN(listPrice)) {
-        await prisma.productPrice.upsert({
-          where: { 
-            productId_priceListId: { productId, priceListId }
-          },
-          create: { productId, priceListId, price: listPrice },
-          update: { price: listPrice }
-        });
+    // Upsert dynamic prices
+    const keys = Array.from(formData.keys());
+    for (const key of keys) {
+      if (key.startsWith('priceList_')) {
+        const priceListId = key.replace('priceList_', '');
+        const listPrice = parseFloat(formData.get(key) as string);
+        if (!isNaN(listPrice)) {
+          await prisma.productPrice.upsert({
+            where: { 
+              productId_priceListId: { productId, priceListId }
+            },
+            create: { productId, priceListId, price: listPrice },
+            update: { price: listPrice }
+          });
+        }
       }
     }
-  }
 
-  revalidatePath(`/productos/${productId}`);
-  revalidatePath('/productos');
+    revalidatePath(`/productos/${productId}`);
+    revalidatePath('/productos');
+  } catch (error) {
+    console.error("Error updating product:", error);
+    throw new Error("No se pudieron guardar los cambios. Verifique si el SKU ya existe en esta sucursal.");
+  }
+  redirect('/productos');
 }
 
 export async function searchProducts(query: string, branchId: string) {

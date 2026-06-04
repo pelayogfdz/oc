@@ -33,8 +33,8 @@ export default function ProductFinanceSection({
   initialPrices = []
 }: ProductFinanceSectionProps) {
   // Base states
-  const [cost, setCost] = useState<number>(initialCost);
-  const [price, setPrice] = useState<number>(initialPrice);
+  const [cost, setCost] = useState<string | number>(initialCost);
+  const [price, setPrice] = useState<string | number>(initialPrice);
   const [taxRate, setTaxRate] = useState<number>(initialTaxRate);
   const [wholesalePrice, setWholesalePrice] = useState<string>(
     initialWholesalePrice != null ? String(initialWholesalePrice) : ''
@@ -78,28 +78,31 @@ export default function ProductFinanceSection({
 
   // Handle Base Price change
   const handlePriceChange = (val: string) => {
+    setPrice(val);
     const numPrice = parseFloat(val) || 0;
-    setPrice(numPrice);
-    setPriceMargin(getMarginFromPrice(numPrice, cost));
+    const numCost = parseFloat(String(cost)) || 0;
+    setPriceMargin(getMarginFromPrice(numPrice, numCost));
   };
 
   // Handle Base Margin change
   const handleMarginChange = (val: string) => {
     setPriceMargin(val);
     const numMargin = parseFloat(val) || 0;
+    const numCost = parseFloat(String(cost)) || 0;
     if (numMargin < 100) {
-      const calculatedPrice = getPriceFromMargin(numMargin, cost);
+      const calculatedPrice = getPriceFromMargin(numMargin, numCost);
       setPrice(calculatedPrice);
     }
   };
 
   // Handle Cost change (recalculates margins for all active prices)
   const handleCostChange = (val: string) => {
+    setCost(val);
     const numCost = parseFloat(val) || 0;
-    setCost(numCost);
+    const numPrice = parseFloat(String(price)) || 0;
 
     // Update base margin based on current price and new cost
-    setPriceMargin(getMarginFromPrice(price, numCost));
+    setPriceMargin(getMarginFromPrice(numPrice, numCost));
 
     // Update all dynamic price list margins based on their current price and new cost
     setListPrices(prev => {
@@ -121,11 +124,12 @@ export default function ProductFinanceSection({
   // Handle dynamic price list input change
   const handleListPriceChange = (plId: string, val: string) => {
     const numPrice = parseFloat(val) || 0;
+    const numCost = parseFloat(String(cost)) || 0;
     setListPrices(prev => ({
       ...prev,
       [plId]: {
         price: val,
-        margin: val !== '' ? getMarginFromPrice(numPrice, cost) : ''
+        margin: val !== '' ? getMarginFromPrice(numPrice, numCost) : ''
       }
     }));
   };
@@ -133,6 +137,7 @@ export default function ProductFinanceSection({
   // Handle dynamic margin list input change
   const handleListMarginChange = (plId: string, val: string) => {
     const numMargin = parseFloat(val) || 0;
+    const numCost = parseFloat(String(cost)) || 0;
     setListPrices(prev => {
       const currentPrice = prev[plId]?.price || '';
       if (val === '') {
@@ -142,7 +147,7 @@ export default function ProductFinanceSection({
         };
       }
       if (numMargin < 100) {
-        const calculatedPrice = getPriceFromMargin(numMargin, cost);
+        const calculatedPrice = getPriceFromMargin(numMargin, numCost);
         return {
           ...prev,
           [plId]: {
@@ -154,6 +159,9 @@ export default function ProductFinanceSection({
       return prev;
     });
   };
+
+  const parsedPrice = parseFloat(String(price)) || 0;
+  const parsedCost = parseFloat(String(cost)) || 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -167,7 +175,7 @@ export default function ProductFinanceSection({
             type="number"
             step="0.01"
             name="cost"
-            value={cost === 0 ? '' : cost}
+            value={cost}
             onChange={e => handleCostChange(e.target.value)}
             placeholder="0.00"
             style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', outline: 'none' }}
@@ -200,7 +208,7 @@ export default function ProductFinanceSection({
               type="number"
               step="0.01"
               name="price"
-              value={price === 0 ? '' : price}
+              value={price}
               onChange={e => handlePriceChange(e.target.value)}
               required
               placeholder="0.00"
@@ -218,9 +226,9 @@ export default function ProductFinanceSection({
               <span style={{ position: 'absolute', right: '6px', color: '#94a3b8', fontSize: '0.85rem' }}>%</span>
             </div>
           </div>
-          {price > 0 && (
-            <div style={{ marginTop: '0.4rem', fontSize: '0.775rem', color: (price - cost) >= 0 ? '#16a34a' : '#dc2626', fontWeight: '500' }}>
-              Utilidad: ${(price - cost).toFixed(2)} ({cost > 0 ? (((price - cost) / cost) * 100).toFixed(0) : '100'}% sob. costo)
+          {parsedPrice > 0 && (
+            <div style={{ marginTop: '0.4rem', fontSize: '0.775rem', color: (parsedPrice - parsedCost) >= 0 ? '#16a34a' : '#dc2626', fontWeight: '500' }}>
+              Utilidad: ${(parsedPrice - parsedCost).toFixed(2)} ({parsedCost > 0 ? (((parsedPrice - parsedCost) / parsedCost) * 100).toFixed(0) : '100'}% sob. costo)
             </div>
           )}
         </div>
@@ -321,8 +329,8 @@ export default function ProductFinanceSection({
                   </div>
 
                   {plVal > 0 && (
-                    <div style={{ marginTop: '0.4rem', fontSize: '0.75rem', color: (plVal - cost) >= 0 ? '#16a34a' : '#dc2626', fontWeight: '500' }}>
-                      Ganancia: ${(plVal - cost).toFixed(2)} ({cost > 0 ? (((plVal - cost) / cost) * 100).toFixed(0) : '100'}% util.)
+                    <div style={{ marginTop: '0.4rem', fontSize: '0.75rem', color: (plVal - parsedCost) >= 0 ? '#16a34a' : '#dc2626', fontWeight: '500' }}>
+                      Ganancia: ${(plVal - parsedCost).toFixed(2)} ({parsedCost > 0 ? (((plVal - parsedCost) / parsedCost) * 100).toFixed(0) : '100'}% util.)
                     </div>
                   )}
                 </div>
