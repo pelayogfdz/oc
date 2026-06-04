@@ -215,8 +215,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push('/');
-      router.refresh();
+      window.location.href = '/';
     } catch (err: any) {
       const errMsg = err.message || 'Error de conexión';
       if (
@@ -294,8 +293,7 @@ export default function LoginPage() {
       if (!res.ok) throw new Error(data.error || 'Error al cambiar contraseña.');
       
       setIsForceChangeOpen(false);
-      router.push('/');
-      router.refresh();
+      window.location.href = '/';
     } catch (err: any) {
       setChangeError(err.message);
     } finally {
