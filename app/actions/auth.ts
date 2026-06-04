@@ -77,8 +77,55 @@ export const getActiveBranch = cache(async () => {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
   
+  // 1. Fetch user to check role, permissions and assigned branchId
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { id: true, email: true, role: true, permissions: true, branchId: true }
+  });
+  
+  let isGlobal = true;
+  const allowedBranchIds: string[] = [];
+  
+  if (user) {
+    isGlobal = user.role === 'ADMIN' || user.email?.toLowerCase() === 'pelayogfdz@gmail.com';
+    
+    if (user.permissions) {
+      try {
+        const parsed = JSON.parse(user.permissions);
+        const permArr = Array.isArray(parsed) ? parsed : Object.keys(parsed).filter(k => parsed[k]);
+        
+        if (permArr.includes('GLOBAL_VIEW')) {
+          isGlobal = true;
+        }
+        
+        permArr.forEach((p: string) => {
+          if (p.startsWith('__BRANCH_')) {
+            allowedBranchIds.push(p.replace('__BRANCH_', ''));
+          }
+        });
+      } catch (e) {
+        console.error("Failed to parse user permissions in getActiveBranch:", e);
+      }
+    }
+    
+    // Add the explicitly assigned branch to the allowed list if not present
+    if (user.branchId && !allowedBranchIds.includes(user.branchId)) {
+      allowedBranchIds.push(user.branchId);
+    }
+  }
+
   const cookieStore = await cookies();
-  const branchId = cookieStore.get('pulpos_active_branch')?.value;
+  let branchId = cookieStore.get('pulpos_active_branch')?.value;
+  
+  // 2. Enforce restrictions for non-global users
+  if (user && !isGlobal && allowedBranchIds.length > 0) {
+    if (!branchId || !allowedBranchIds.includes(branchId)) {
+      // Fallback to assigned branchId first, then the first allowed branchId
+      branchId = (user.branchId && allowedBranchIds.includes(user.branchId))
+        ? user.branchId
+        : allowedBranchIds[0];
+    }
+  }
   
   if (branchId) {
     if (branchId === 'GLOBAL') {

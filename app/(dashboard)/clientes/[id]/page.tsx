@@ -2,10 +2,13 @@ import { prisma } from "@/lib/prisma";
 import Link from 'next/link';
 import ClientProfile from "./ClientProfile";
 
+import { getActiveBranch } from "@/app/actions/auth";
+
 export const dynamic = 'force-dynamic';
 
 export default async function ClientProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const branch = await getActiveBranch();
 
   const customer = await prisma.customer.findUnique({
     where: { id }
@@ -15,6 +18,15 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
     return (
       <div style={{ textAlign: 'center', padding: '4rem' }}>
         <h2>Cliente no encontrado</h2>
+        <Link href="/clientes" className="btn-primary" style={{ marginTop: '1rem', display: 'inline-block', textDecoration: 'none' }}>Volver al Directorio</Link>
+      </div>
+    );
+  }
+
+  if (branch.id !== 'GLOBAL' && customer.branchId !== branch.id) {
+    return (
+      <div style={{ textAlign: 'center', padding: '4rem' }}>
+        <h2>Acceso denegado: este cliente no pertenece a tu sucursal.</h2>
         <Link href="/clientes" className="btn-primary" style={{ marginTop: '1rem', display: 'inline-block', textDecoration: 'none' }}>Volver al Directorio</Link>
       </div>
     );

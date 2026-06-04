@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ProductDetailClient } from "./ProductDetailClient";
 import { updateProduct, deleteProduct } from "@/app/actions/product";
+import { getActiveBranch } from "@/app/actions/auth";
 import { Image as ImageIcon } from 'lucide-react';
 import ProductFinanceSection from '../ProductFinanceSection';
 import ProductImageSection from '../ProductImageSection';
@@ -36,6 +37,19 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
   });
 
   if (!product) return notFound();
+
+  const branch = await getActiveBranch();
+  if (branch && branch.id !== 'GLOBAL' && product.branchId !== branch.id) {
+    // Try to find a sibling product with the same SKU in the user's active branch
+    const siblingInActiveBranch = await prisma.product.findFirst({
+      where: { sku: product.sku, branchId: branch.id }
+    });
+    if (siblingInActiveBranch) {
+      redirect(`/productos/${siblingInActiveBranch.id}`);
+    } else {
+      return notFound();
+    }
+  }
 
   const suppliers = await prisma.supplier.findMany({
     where: { branchId: product.branchId },

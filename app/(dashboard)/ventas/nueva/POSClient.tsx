@@ -961,7 +961,11 @@ export default function POSClient({ products: initialProducts, customers, suppli
       // Allow image to load before printing
       iframe.onload = () => {
         iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
+        if (typeof window !== 'undefined' && (window.navigator.webdriver || (window as any).__isTesting)) {
+          console.log("Bypassing browser print dialog in testing environment");
+        } else {
+          iframe.contentWindow?.print();
+        }
         setTimeout(() => {
           document.body.removeChild(iframe);
         }, 1000);
@@ -1485,6 +1489,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
           <label style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Buscar productos</label>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
             <div 
+              id="product-search-trigger"
               onClick={() => setIsSearchModalOpen(true)}
               style={{ 
                 display: 'flex',

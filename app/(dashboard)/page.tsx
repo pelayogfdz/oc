@@ -8,21 +8,32 @@ export default async function DashboardPage() {
   const branch = await getActiveBranch();
   if (!branch) return <div>Cargando...</div>;
 
-  // Get start and end of today
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date();
-  endOfDay.setHours(23, 59, 59, 999);
+  // Get start and end of today (aligned with Mexico standard GMT-6 timezone)
+  const MEXICO_OFFSET_MS = 6 * 60 * 60 * 1000;
+  const now = new Date();
+  const utcNow = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
+  const mexicoNow = new Date(utcNow.getTime() - MEXICO_OFFSET_MS);
 
-  // Start and end of current month
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
+  const startOfMexicoDay = new Date(mexicoNow);
+  startOfMexicoDay.setHours(0, 0, 0, 0);
+  const endOfMexicoDay = new Date(mexicoNow);
+  endOfMexicoDay.setHours(23, 59, 59, 999);
 
-  const endOfMonth = new Date();
-  endOfMonth.setMonth(endOfMonth.getMonth() + 1);
-  endOfMonth.setDate(0);
-  endOfMonth.setHours(23, 59, 59, 999);
+  const startOfDay = new Date(startOfMexicoDay.getTime() + MEXICO_OFFSET_MS);
+  const endOfDay = new Date(endOfMexicoDay.getTime() + MEXICO_OFFSET_MS);
+
+  // Start and end of current month in Mexico (GMT-6)
+  const startOfMexicoMonth = new Date(mexicoNow);
+  startOfMexicoMonth.setDate(1);
+  startOfMexicoMonth.setHours(0, 0, 0, 0);
+
+  const endOfMexicoMonth = new Date(mexicoNow);
+  endOfMexicoMonth.setMonth(endOfMexicoMonth.getMonth() + 1);
+  endOfMexicoMonth.setDate(0);
+  endOfMexicoMonth.setHours(23, 59, 59, 999);
+
+  const startOfMonth = new Date(startOfMexicoMonth.getTime() + MEXICO_OFFSET_MS);
+  const endOfMonth = new Date(endOfMexicoMonth.getTime() + MEXICO_OFFSET_MS);
 
   const branchFilter = branch.id === 'GLOBAL'
     ? { branch: { tenantId: branch.tenantId } }

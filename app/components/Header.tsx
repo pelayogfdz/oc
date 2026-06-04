@@ -18,12 +18,35 @@ export default async function Header() {
 
   // Filter branches based on permissions
   let visibleBranches = branches;
-  const isGlobal = currentUser?.role === 'ADMIN' || currentUser?.permissions?.includes('GLOBAL_VIEW');
-  
-  if (!isGlobal && currentUser?.permissions) {
-    visibleBranches = branches.filter(b => currentUser.permissions?.includes(`__BRANCH_${b.id}`));
+  let isGlobal = currentUser?.role === 'ADMIN' || currentUser?.email?.toLowerCase() === 'pelayogfdz@gmail.com';
+  const allowedBranchIds: string[] = [];
+
+  if (currentUser) {
+    if (currentUser.permissions) {
+      try {
+        const parsed = JSON.parse(currentUser.permissions);
+        const permArr = Array.isArray(parsed) ? parsed : Object.keys(parsed).filter(k => parsed[k]);
+        if (permArr.includes('GLOBAL_VIEW')) {
+          isGlobal = true;
+        }
+        permArr.forEach((p: string) => {
+          if (p.startsWith('__BRANCH_')) {
+            allowedBranchIds.push(p.replace('__BRANCH_', ''));
+          }
+        });
+      } catch (e) {}
+    }
+    if (currentUser.branchId && !allowedBranchIds.includes(currentUser.branchId)) {
+      allowedBranchIds.push(currentUser.branchId);
+    }
+  }
+
+  if (!isGlobal) {
+    visibleBranches = branches.filter(b => allowedBranchIds.includes(b.id));
     // Fallback if no branches assigned
-    if (visibleBranches.length === 0 && branches.length > 0) visibleBranches = [branches[0]];
+    if (visibleBranches.length === 0 && branches.length > 0) {
+      visibleBranches = [branches[0]];
+    }
   }
 
   const finalOptions = isGlobal 

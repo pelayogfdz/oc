@@ -16,7 +16,7 @@ export default function BranchSelector({ branches, currentBranchId }: { branches
     <select 
       value={currentBranchId}
       onChange={handleChange}
-      disabled={isPending}
+      disabled={isPending || branches.length <= 1}
       style={{
         fontWeight: 'bold',
         fontSize: '0.875rem',

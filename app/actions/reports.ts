@@ -30,13 +30,24 @@ export async function getDashboardMetrics(branchId?: string) {
       resolvedBranchFilter = { branchId: { in: tenantBranchIds } };
     }
 
-    const today = new Date();
-    today.setHours(0,0,0,0);
+    // Start of today aligned with Mexico standard GMT-6 timezone
+    const MEXICO_OFFSET_MS = 6 * 60 * 60 * 1000;
+    const now = new Date();
+    const utcNow = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
+    const mexicoNow = new Date(utcNow.getTime() - MEXICO_OFFSET_MS);
+
+    const startOfMexicoDay = new Date(mexicoNow);
+    startOfMexicoDay.setHours(0, 0, 0, 0);
+    const today = new Date(startOfMexicoDay.getTime() + MEXICO_OFFSET_MS);
+
+    const endOfMexicoDay = new Date(mexicoNow);
+    endOfMexicoDay.setHours(23, 59, 59, 999);
+    const endOfToday = new Date(endOfMexicoDay.getTime() + MEXICO_OFFSET_MS);
 
     // Ventas de hoy
     const todaySales = await prisma.sale.findMany({
       where: {
-        createdAt: { gte: today },
+        createdAt: { gte: today, lte: endOfToday },
         status: { not: "CANCELLED" },
         ...resolvedBranchFilter
       },
