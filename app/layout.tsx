@@ -24,6 +24,11 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "CAANMA PRO",
   },
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/icon-192x192.png",
+  },
 };
 
 export const viewport: Viewport = {
