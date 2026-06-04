@@ -121,6 +121,123 @@ export default function FloatingWhatsappWidget() {
     checkAuthStatus();
   }, []);
 
+  // Widget Position & Dragging logic
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isTopHalf, setIsTopHalf] = useState(false);
+  const positionRef = useRef({ x: 0, y: 0 });
+  const dragRef = useRef({
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    startOffsetX: 0,
+    startOffsetY: 0,
+    hasMoved: false
+  });
+  const justDraggedRef = useRef(false);
+
+  useEffect(() => {
+    // Load from localStorage on mount
+    try {
+      const saved = localStorage.getItem("whatsapp_widget_position");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed.x === "number" && typeof parsed.y === "number") {
+          setPosition(parsed);
+          positionRef.current = parsed;
+          const buttonTop = window.innerHeight - 80 + parsed.y;
+          setIsTopHalf(buttonTop < window.innerHeight / 2);
+        }
+      }
+    } catch (e) {}
+
+    const handleGlobalMove = (clientX: number, clientY: number) => {
+      if (!dragRef.current.isDragging) return;
+      
+      const dx = clientX - dragRef.current.startX;
+      const dy = clientY - dragRef.current.startY;
+      
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        dragRef.current.hasMoved = true;
+      }
+      
+      const newX = dragRef.current.startOffsetX + dx;
+      const newY = dragRef.current.startOffsetY + dy;
+      
+      const minX = 10 - (window.innerWidth - 80);
+      const maxX = 14;
+      const minY = 10 - (window.innerHeight - 80);
+      const maxY = 14;
+      
+      const clampedX = Math.min(Math.max(newX, minX), maxX);
+      const clampedY = Math.min(Math.max(newY, minY), maxY);
+      
+      const newPos = { x: clampedX, y: clampedY };
+      setPosition(newPos);
+      positionRef.current = newPos;
+      
+      const buttonTop = window.innerHeight - 80 + clampedY;
+      setIsTopHalf(buttonTop < window.innerHeight / 2);
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      handleGlobalMove(e.clientX, e.clientY);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!dragRef.current.isDragging) return;
+      if (e.touches.length === 1) {
+        e.preventDefault();
+        handleGlobalMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    const handleGlobalEnd = () => {
+      if (!dragRef.current.isDragging) return;
+      
+      if (dragRef.current.hasMoved) {
+        justDraggedRef.current = true;
+        try {
+          localStorage.setItem("whatsapp_widget_position", JSON.stringify(positionRef.current));
+        } catch (e) {}
+      }
+      
+      dragRef.current.isDragging = false;
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleGlobalEnd);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleGlobalEnd);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleGlobalEnd);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleGlobalEnd);
+    };
+  }, []);
+
+  const startDrag = (clientX: number, clientY: number) => {
+    dragRef.current = {
+      isDragging: true,
+      startX: clientX,
+      startY: clientY,
+      startOffsetX: positionRef.current.x,
+      startOffsetY: positionRef.current.y,
+      hasMoved: false
+    };
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    startDrag(e.clientX, e.clientY);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    startDrag(e.touches[0].clientX, e.touches[0].clientY);
+  };
+
   const [prospects, setProspects] = useState<any[]>([]);
   const [isFloatingOpen, setIsFloatingOpen] = useState(false);
   const [floatingActiveChatId, setFloatingActiveChatId] = useState<string | null>(null);
@@ -564,10 +681,12 @@ export default function FloatingWhatsappWidget() {
       right: '24px', 
       zIndex: 100, 
       display: 'flex', 
-      flexDirection: 'column', 
+      flexDirection: isTopHalf ? 'column-reverse' : 'column', 
       alignItems: 'flex-end',
       gap: '12px',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      transform: `translate(${position.x}px, ${position.y}px)`,
+      transition: dragRef.current.isDragging ? 'none' : 'transform 0.15s ease-out'
     }}>
       {/* Style tag for keyframes and custom scrollbars */}
       <style>{`
@@ -647,7 +766,9 @@ export default function FloatingWhatsappWidget() {
       {isFloatingOpen && (
         <div style={{
           width: '360px',
+          maxWidth: 'calc(100vw - 48px)',
           height: '480px',
+          maxHeight: 'calc(100vh - 100px)',
           borderRadius: '16px',
           boxShadow: '0 15px 35px rgba(15, 23, 42, 0.15)',
           border: '1px solid #e2e8f0',
@@ -1445,7 +1566,15 @@ export default function FloatingWhatsappWidget() {
 
       {/* Floating Bubble Button */}
       <button
-        onClick={() => setIsFloatingOpen(!isFloatingOpen)}
+        onClick={() => {
+          if (justDraggedRef.current) {
+            justDraggedRef.current = false;
+            return;
+          }
+          setIsFloatingOpen(!isFloatingOpen);
+        }}
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
         style={{
           background: 'linear-gradient(135deg, #25d366 0%, #128c7e 100%)',
           border: 'none',
@@ -1462,7 +1591,8 @@ export default function FloatingWhatsappWidget() {
           animation: !isFloatingOpen ? 'floatingPulse 2.5s infinite ease-in-out' : 'none',
           transition: 'transform 0.2s',
           outline: 'none',
-          userSelect: 'none'
+          userSelect: 'none',
+          touchAction: 'none'
         }}
         onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'}
         onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
