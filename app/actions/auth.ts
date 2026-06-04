@@ -56,18 +56,10 @@ export const getActiveUser = cache(async () => {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
 
-  const getCachedUser = unstable_cache(
-    async (userId: string) => {
-      return prisma.user.findUnique({
-        where: { id: userId },
-        include: { tenant: true }
-      });
-    },
-    [`user-${session.userId}`],
-    { tags: [`user-${session.userId}`] }
-  );
-
-  const user = await getCachedUser(session.userId);
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    include: { tenant: true }
+  });
   
   if (!user) throw new Error("User not found");
 
