@@ -166,11 +166,15 @@ export default function TransferClient({ originBranchId, originBranchName, other
     if (!fromBranchId || transferItems.length === 0) return;
     setIsProcessing(true);
     try {
-      await requestTransfer({
+      const res = await requestTransfer({
         fromBranchId,
         reason,
         items: transferItems.map(i => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity }))
       });
+
+      if (res && !res.success) {
+        throw new Error(res.error || "Error al solicitar traspaso");
+      }
 
       if (confirm('Solicitud de traspaso enviada correctamente. ¿Deseas imprimir etiquetas para los productos solicitados?')) {
         const ids = transferItems.map(i => i.productId).join(',');

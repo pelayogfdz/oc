@@ -218,10 +218,14 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
         if (t.failed && t.retryCount >= 5) continue;
         try {
            const { requestTransfer, dispatchDirectTransfer } = await import('../actions/transfer');
+           let res;
            if (t.isDirectDispatch) {
-             await dispatchDirectTransfer({ toBranchId: t.toBranchId!, reason: t.reason, items: t.items });
+             res = await dispatchDirectTransfer({ toBranchId: t.toBranchId!, reason: t.reason, items: t.items });
            } else {
-             await requestTransfer({ fromBranchId: t.fromBranchId, reason: t.reason, items: t.items });
+             res = await requestTransfer({ fromBranchId: t.fromBranchId, reason: t.reason, items: t.items });
+           }
+           if (res && !res.success) {
+             throw new Error(res.error || "Error de validación en traspaso");
            }
            await db.pendingTransfers.delete(t.id);
            syncedAny = true;
@@ -239,7 +243,10 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
         try {
           if (p.isDirectPurchase) {
             const { createPurchase } = await import('../actions/purchase');
-            await createPurchase(p.items, p.total || 0, p.paymentMethod || 'CASH', p.supplierId || '', p.freightCost || 0);
+            const res = await createPurchase(p.items, p.total || 0, p.paymentMethod || 'CASH', p.supplierId || '', p.freightCost || 0);
+            if (res && !res.success) {
+              throw new Error(res.error);
+            }
           } else {
             const { createPurchaseOrder } = await import('../actions/pedidos');
             await createPurchaseOrder(p.supplierId || null, p.notes || '', p.items, p.total || 0);

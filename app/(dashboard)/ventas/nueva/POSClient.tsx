@@ -1183,7 +1183,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
   };
 
   return (
-    <div className="pos-layout" style={{ maxWidth: '100%', margin: '0 auto', padding: '0.5rem 0' }}>
+    <div className="pos-layout" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: '100%', margin: '0 auto', padding: '0.5rem 0' }}>
       <style>{`
         .pos-top-header {
           display: grid;

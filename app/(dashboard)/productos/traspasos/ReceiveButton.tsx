@@ -12,7 +12,10 @@ export default function ReceiveButton({ transferId }: { transferId: string }) {
     
     try {
       setLoading(true);
-      await receiveTransfer(transferId);
+      const res = await receiveTransfer(transferId);
+      if (res && !res.success) {
+        throw new Error(res.error || 'Error al recibir traspaso.');
+      }
       alert('Inventario recibido y sumado con éxito.');
     } catch (err) {
       console.error(err);

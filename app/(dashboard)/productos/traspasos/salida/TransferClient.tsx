@@ -199,10 +199,14 @@ export default function TransferClient({ originBranchId, originBranchName, other
             isDirectDispatch
          });
       } else {
+         let res;
          if (isDirectDispatch) {
-            await dispatchDirectTransfer({ toBranchId: targetBranchId, reason, items: itemsPayload });
+            res = await dispatchDirectTransfer({ toBranchId: targetBranchId, reason, items: itemsPayload });
          } else {
-            await requestTransfer({ fromBranchId: targetBranchId, reason, items: itemsPayload });
+            res = await requestTransfer({ fromBranchId: targetBranchId, reason, items: itemsPayload });
+         }
+         if (res && !res.success) {
+            throw new Error(res.error || "Error al realizar el traspaso");
          }
       }
 

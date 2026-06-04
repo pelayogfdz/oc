@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Trash2, ShoppingBag, Search, Filter, Plus, Minus, FileText, CheckCircle2 } from 'lucide-react';
+import { Trash2, ShoppingBag, Search, Filter, Plus, Minus, FileText, CheckCircle2, Clock } from 'lucide-react';
 import { createPurchase } from '@/app/actions/purchase';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 
@@ -146,7 +146,10 @@ export default function CrearCompraForm({ suppliers, products, branchId }: { sup
         });
         alert('Compra guardada en modo Offline. Se sincronizará al recuperar conexión.');
       } else {
-        await createPurchase(items, total, paymentMethod, supplierId || null, freightCost);
+        const res = await createPurchase(items, total, paymentMethod, supplierId || null, freightCost);
+        if (res && !res.success) {
+          throw new Error(res.error);
+        }
       }
 
       if (confirm('Compra registrada con éxito. ¿Deseas imprimir etiquetas para los productos ingresados?')) {

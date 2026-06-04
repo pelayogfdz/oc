@@ -26,7 +26,10 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
     if (!confirm('¿Aprobar y comenzar preparación de este traspaso?')) return;
     startTransition(async () => {
       try {
-        await approveTransfer(transfer.id);
+        const res = await approveTransfer(transfer.id);
+        if (res && !res.success) {
+          throw new Error(res.error || 'Ocurrió un error');
+        }
         alert('Traspaso en preparación.');
         router.refresh();
       } catch(err: any) {
@@ -39,7 +42,10 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
     if (!confirm('¿Confirmar envío? Los artículos faltantes generarán una Solicitud de Compra.')) return;
     startTransition(async () => {
       try {
-        await dispatchTransfer(transfer.id, dispatchQuantities);
+        const res = await dispatchTransfer(transfer.id, dispatchQuantities);
+        if (res && !res.success) {
+          throw new Error(res.error || 'Ocurrió un error');
+        }
         alert('Traspaso surtido y en camino.');
         router.refresh();
       } catch(err: any) {
@@ -52,7 +58,10 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
     if (!confirm('¿Estás seguro de que deseas recibir este traspaso? El inventario será sumado a tu sucursal.')) return;
     startTransition(async () => {
       try {
-        await receiveTransfer(transfer.id);
+        const res = await receiveTransfer(transfer.id);
+        if (res && !res.success) {
+          throw new Error(res.error || 'Ocurrió un error');
+        }
         alert('Traspaso recibido correctamente.');
         router.refresh();
       } catch(err: any) {
@@ -65,7 +74,10 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
     if (!confirm('¿Estás seguro de que deseas cancelar este traspaso? Esto revertirá cualquier stock enviado y no se podrá deshacer.')) return;
     startTransition(async () => {
       try {
-        await cancelTransfer(transfer.id);
+        const res = await cancelTransfer(transfer.id);
+        if (res && !res.success) {
+          throw new Error(res.error || 'Ocurrió un error');
+        }
         alert('Traspaso cancelado correctamente.');
         router.refresh();
       } catch(err: any) {

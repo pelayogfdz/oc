@@ -112,7 +112,7 @@ export async function registerAttendance(data: {
         targetLng = user.homeLng;
         targetRadius = user.homeRadius || 50;
         
-        const distance = calcDist(data.latitude, data.longitude, targetLat, targetLng);
+        const distance = calcDist(data.latitude!, data.longitude!, targetLat, targetLng);
         if (distance <= (targetRadius + toleranceMargin)) {
           isWithinRange = true;
         }
@@ -144,7 +144,7 @@ export async function registerAttendance(data: {
 
         if (allowedLocations.length > 0) {
           const locationDistances = allowedLocations.map(loc => {
-            const distance = calcDist(data.latitude, data.longitude, loc.lat, loc.lng);
+            const distance = calcDist(data.latitude!, data.longitude!, loc.lat, loc.lng);
             return { loc, distance };
           });
 
@@ -166,7 +166,7 @@ export async function registerAttendance(data: {
       }
 
       if (!isWithinRange && targetLat !== null && targetLng !== null) {
-        const distance = calcDist(data.latitude, data.longitude, targetLat, targetLng);
+        const distance = calcDist(data.latitude!, data.longitude!, targetLat, targetLng);
         if (user.flexibleGps) {
           gpsWarningPrefix = `[⚠️ Fuera de Rango: ${Math.round(distance)}m] `;
         } else {
@@ -248,8 +248,15 @@ export async function registerAttendance(data: {
     return { 
       success: true, 
       log: {
-        ...log,
-        timestamp: log.timestamp.toISOString() // Serialize Date to string
+        id: log.id,
+        userId: log.userId,
+        type: log.type,
+        status: log.status,
+        timestamp: log.timestamp.toISOString(),
+        lat: log.lat,
+        lng: log.lng,
+        photoUrl: log.photoUrl,
+        deviceInfo: log.deviceInfo
       } 
     };
   } catch (e: any) {
@@ -277,7 +284,7 @@ export async function registerFaceDescriptor(data: {
       }
     });
 
-    revalidateTag(`user-${data.userId}`);
+    revalidateTag(`user-${data.userId}`, 'max');
     revalidatePath('/mi-portal');
     return { success: true };
   } catch (e: any) {
@@ -313,7 +320,20 @@ export async function registerAttendanceAdmin(data: {
 
   revalidatePath('/rh/monitoreo');
   revalidatePath('/rh/reportes');
-  return { success: true, log };
+  return { 
+    success: true, 
+    log: {
+      id: log.id,
+      userId: log.userId,
+      type: log.type,
+      status: log.status,
+      timestamp: log.timestamp.toISOString(),
+      lat: log.lat,
+      lng: log.lng,
+      photoUrl: log.photoUrl,
+      deviceInfo: log.deviceInfo
+    } 
+  };
 }
 
 export async function createLeaveRequest(data: {
@@ -350,7 +370,20 @@ export async function createLeaveRequest(data: {
     });
 
     revalidatePath('/mi-portal');
-    return { success: true, request };
+    return { 
+      success: true, 
+      request: {
+        id: request.id,
+        userId: request.userId,
+        type: request.type,
+        startDate: request.startDate.toISOString(),
+        endDate: request.endDate.toISOString(),
+        status: request.status,
+        notes: request.notes,
+        createdAt: request.createdAt.toISOString(),
+        updatedAt: request.updatedAt.toISOString()
+      } 
+    };
   } catch (e: any) {
     console.error("Error in createLeaveRequest:", e);
     return { success: false, error: e.message || "Error al crear la solicitud." };
@@ -391,7 +424,20 @@ export async function createIncidentAdmin(data: {
 
   revalidatePath('/rh/calendario');
   revalidatePath('/rh/tramites');
-  return { success: true, request };
+  return { 
+    success: true, 
+    request: {
+      id: request.id,
+      userId: request.userId,
+      type: request.type,
+      startDate: request.startDate.toISOString(),
+      endDate: request.endDate.toISOString(),
+      status: request.status,
+      notes: request.notes,
+      createdAt: request.createdAt.toISOString(),
+      updatedAt: request.updatedAt.toISOString()
+    } 
+  };
 }
 
 export async function updateLeaveRequestStatus(id: string, status: 'APPROVED' | 'REJECTED') {
@@ -409,7 +455,20 @@ export async function updateLeaveRequestStatus(id: string, status: 'APPROVED' | 
 
   revalidatePath('/rh/tramites');
   revalidatePath('/mi-portal');
-  return { success: true, request };
+  return { 
+    success: true, 
+    request: {
+      id: request.id,
+      userId: request.userId,
+      type: request.type,
+      startDate: request.startDate.toISOString(),
+      endDate: request.endDate.toISOString(),
+      status: request.status,
+      notes: request.notes,
+      createdAt: request.createdAt.toISOString(),
+      updatedAt: request.updatedAt.toISOString()
+    } 
+  };
 }
 
 export async function calculatePayroll(startDateStr: string, endDateStr: string, discountLates: boolean = false) {
@@ -587,7 +646,20 @@ export async function editLeaveRequest(id: string, data: { type: string, startDa
 
   revalidatePath('/rh/tramites');
   revalidatePath('/mi-portal');
-  return { success: true, req };
+  return { 
+    success: true, 
+    req: {
+      id: req.id,
+      userId: req.userId,
+      type: req.type,
+      startDate: req.startDate.toISOString(),
+      endDate: req.endDate.toISOString(),
+      status: req.status,
+      notes: req.notes,
+      createdAt: req.createdAt.toISOString(),
+      updatedAt: req.updatedAt.toISOString()
+    } 
+  };
 }
 
 export async function getFilteredAttendanceLogs(filters: {
@@ -655,22 +727,36 @@ export async function getFilteredAttendanceLogs(filters: {
       take: 200 // Limit results to prevent memory pressure
     });
 
-    const serializedLogs = logs.map(l => ({
-      ...l,
-      timestamp: l.timestamp.toISOString(),
-      user: {
-        ...l.user,
-        createdAt: l.user.createdAt.toISOString(),
-        updatedAt: l.user.updatedAt.toISOString(),
-        hireDate: l.user.hireDate ? l.user.hireDate.toISOString() : null,
-        birthDate: l.user.birthDate ? l.user.birthDate.toISOString() : null,
-        branch: l.user.branch ? {
-          ...l.user.branch,
-          createdAt: l.user.branch.createdAt.toISOString(),
-          updatedAt: l.user.branch.updatedAt.toISOString()
+    const serializedLogs = logs.map(l => {
+      const user = l.user;
+      const branch = user?.branch;
+      return {
+        id: l.id,
+        userId: l.userId,
+        type: l.type,
+        timestamp: l.timestamp.toISOString(),
+        lat: l.lat,
+        lng: l.lng,
+        photoUrl: l.photoUrl,
+        deviceInfo: l.deviceInfo,
+        status: l.status,
+        user: user ? {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          createdAt: user.createdAt.toISOString(),
+          updatedAt: user.updatedAt.toISOString(),
+          hireDate: user.hireDate ? user.hireDate.toISOString() : null,
+          birthDate: user.birthDate ? user.birthDate.toISOString() : null,
+          branch: branch ? {
+            id: branch.id,
+            name: branch.name,
+            createdAt: branch.createdAt.toISOString(),
+            updatedAt: branch.updatedAt.toISOString()
+          } : null
         } : null
-      }
-    }));
+      };
+    });
 
     return { success: true, logs: serializedLogs };
   } catch (e: any) {

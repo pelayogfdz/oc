@@ -137,7 +137,15 @@ export default function TraspasosClient({ initialTransfers, currentBranchId }: {
                     Ver Detalle &rarr;
                   </Link>
                   {isIncoming && item.status === 'IN_TRANSIT' && (
-                     <button onClick={async () => { const t = await import('@/app/actions/transfer'); await t.receiveTransfer(item.id); window.location.reload(); }} style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '0.4rem 1rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                     <button onClick={async () => {
+                       const t = await import('@/app/actions/transfer');
+                       const res = await t.receiveTransfer(item.id);
+                       if (res && !res.success) {
+                         alert("Error: " + res.error);
+                       } else {
+                         window.location.reload();
+                       }
+                     }} style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '0.4rem 1rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem' }}>
                        Recibir
                      </button>
                   )}
@@ -201,7 +209,15 @@ export default function TraspasosClient({ initialTransfers, currentBranchId }: {
                          Ver Detalle
                       </Link>
                       {isIncoming && item.status === 'IN_TRANSIT' && (
-                         <button onClick={async () => { const t = await import('@/app/actions/transfer'); await t.receiveTransfer(item.id); window.location.reload(); }} style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '0.4rem 0.75rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                         <button onClick={async () => {
+                           const t = await import('@/app/actions/transfer');
+                           const res = await t.receiveTransfer(item.id);
+                           if (res && !res.success) {
+                             alert("Error: " + res.error);
+                           } else {
+                             window.location.reload();
+                           }
+                         }} style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '0.4rem 0.75rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem' }}>
                            Recibir
                          </button>
                       )}

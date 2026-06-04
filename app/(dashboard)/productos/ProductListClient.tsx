@@ -314,7 +314,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             </select>
           </div>
           <div style={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end' }}>
-             <button onClick={() => { setFilterCategory('ALL'); setFilterStatus('ACTIVE'); setFilterStock('ALL'); setFilterImage('ALL'); }} style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '500' }}>
+             <button onClick={() => { setSearchTerm(''); setFilterCategory('ALL'); setFilterStatus('ACTIVE'); setFilterStock('ALL'); setFilterImage('ALL'); }} style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '500' }}>
                Limpiar Filtros
              </button>
           </div>

@@ -199,12 +199,13 @@ export default function FaceRecognitionClient({
           const MATCH_THRESHOLD = 0.75; // Set to 0.75 (50% similarity) to make check-in easier for users as requested
 
           if (similarityScore >= 50) {
+            const downscaledPhoto = tmpCanvas.toDataURL('image/jpeg', 0.8);
             setMatchStatus('success');
-            setCapturedPhoto(photoUrl);
+            setCapturedPhoto(downscaledPhoto);
             setHasPhoto(true);
             onFaceMatched(true);
             if (onPhotoCaptured) {
-              onPhotoCaptured(photoUrl);
+              onPhotoCaptured(downscaledPhoto);
             }
             stopStream();
           } else {
