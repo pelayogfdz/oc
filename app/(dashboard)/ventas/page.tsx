@@ -1,10 +1,20 @@
 import { prisma } from "@/lib/prisma";
-import Link from "next/link";
 import { getActiveBranch } from "@/app/actions/auth";
 import { getBranchFilter } from "@/lib/utils";
+import VentasHistoryClient from "./VentasHistoryClient";
 
 export default async function VentasPage() {
   const branch = await getActiveBranch();
+
+  // Fetch all branches to populate branch selector
+  const branches = await prisma.branch.findMany({
+    orderBy: { name: 'asc' }
+  });
+
+  // Fetch all users/sellers to populate seller selector
+  const users = await prisma.user.findMany({
+    orderBy: { name: 'asc' }
+  });
   
   const sales = await prisma.sale.findMany({
     where: getBranchFilter(branch),
@@ -18,87 +28,54 @@ export default async function VentasPage() {
       }
     },
     orderBy: { createdAt: 'desc' },
-    take: 100
+    take: 500
   });
 
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Historial de Ventas</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Módulo de ventas y cortes de caja</p>
-        </div>
-        <Link href="/ventas/nueva" className="btn-primary" style={{ padding: '0.75rem 1.5rem', textDecoration: 'none' }}>
-          + Nueva Venta / TPV
-        </Link>
-      </div>
+  // Safe mapping to serialize data and avoid RSC warnings
+  const serializedSales = sales.map(s => ({
+    id: s.id,
+    folio: s.folio,
+    createdAt: s.createdAt.toISOString(),
+    userId: s.userId,
+    branchId: s.branchId,
+    total: s.total,
+    status: s.status,
+    user: {
+      id: s.user.id,
+      name: s.user.name
+    },
+    branch: s.branch ? {
+      id: s.branch.id,
+      name: s.branch.name
+    } : null,
+    items: s.items.map(item => ({
+      id: item.id,
+      quantity: item.quantity
+    }))
+  }));
 
-      <div className="card">
-        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: '#f9fafb' }}>
-              <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>ID Venta</th>
-              <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Fecha / Hora</th>
-              <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Sucursal / Vendedor</th>
-              <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500', textAlign: 'right' }}>Artículos</th>
-              <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500', textAlign: 'right' }}>Total</th>
-              <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500', textAlign: 'center' }}>Estado</th>
-              <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500', textAlign: 'center' }}>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sales.map(sale => (
-              <tr key={sale.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                <td data-label="ID Venta" style={{ padding: '1rem', fontFamily: 'monospace', fontWeight: 'bold' }}>
-                  {sale.folio || sale.id.slice(0, 8).toUpperCase()}
-                </td>
-                <td data-label="Fecha / Hora" style={{ padding: '1rem' }}>
-                  {new Date(sale.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}
-                </td>
-                <td data-label="Sucursal / Vendedor" style={{ padding: '1rem' }}>
-                  <div style={{ fontWeight: '500' }}>{sale.branch?.name || branch.name}</div>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--pulpos-text-muted)' }}>Vendió: {sale.user.name}</div>
-                </td>
-                <td data-label="Artículos" style={{ padding: '1rem', textAlign: 'right', color: 'var(--pulpos-text-muted)' }}>
-                  {sale.items.reduce((sum, item) => sum + item.quantity, 0)} Pzas
-                </td>
-                <td data-label="Total" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>
-                  ${sale.total.toFixed(2)}
-                </td>
-                <td data-label="Estado" style={{ padding: '1rem', textAlign: 'center' }}>
-                  <span style={{ 
-                    padding: '0.25rem 0.5rem', 
-                    borderRadius: '12px', 
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    backgroundColor: sale.status === 'COMPLETED' ? '#dcfce7' : '#f1f5f9',
-                    color: sale.status === 'COMPLETED' ? '#166534' : '#334155'
-                  }}>
-                    {sale.status === 'COMPLETED' ? 'Completado' : sale.status}
-                  </span>
-                </td>
-                <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }}>
-                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                    <Link href={`/ventas/detalle/${sale.id}`} style={{ padding: '0.25rem', color: '#64748b', display: 'flex', alignItems: 'center' }} title="Ver Detalle">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </Link>
-                    <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir`} style={{ padding: '0.25rem', color: '#64748b', display: 'flex', alignItems: 'center' }} title="Imprimir">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
-                    </Link>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {sales.length === 0 && (
-              <tr>
-                <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
-                  Aún no se han registrado ventas en esta sucursal.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+  const serializedBranches = branches.map(b => ({
+    id: b.id,
+    name: b.name
+  }));
+
+  const serializedUsers = users.map(u => ({
+    id: u.id,
+    name: u.name
+  }));
+
+  const serializedBranch = {
+    id: branch.id,
+    name: branch.name
+  };
+
+  return (
+    <VentasHistoryClient 
+      initialSales={serializedSales} 
+      branches={serializedBranches} 
+      users={serializedUsers} 
+      currentBranch={serializedBranch} 
+    />
   );
 }
+
