@@ -1,7 +1,7 @@
 import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import * as Icons from 'lucide-react';
-import { FileText, Plus, Trash2 } from 'lucide-react';
+import { FileText, Plus, Trash2, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { deleteEntity } from '@/app/actions/crud';
 
@@ -49,11 +49,16 @@ export default async function Page() {
                   ${item.creditLimit?.toFixed(2) || '0.00'}
                 </td>
                 <td data-label="Acciones" style={{ padding: '1rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <Link href={`/proveedores/${item.id}/editar`} style={{ display: 'flex', alignItems: 'center', color: '#3b82f6', padding: '0.5rem' }}>
+                      <Pencil size={16} />
+                    </Link>
                     <form action={async () => { 'use server'; await deleteEntity('supplier', item.id); }}>
-                       <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem' }}>
+                       <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.5rem' }}>
                          <Trash2 size={16}/> 
                        </button>
                     </form>
+                  </div>
                 </td>
               </tr>
             ))}

@@ -2,6 +2,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star, X, Clock, FolderOpen, Trash2, ShoppingBag, Plus, Percent, Tag, PlusCircle, MoreVertical } from 'lucide-react';
 import { createSale } from '@/app/actions/sale';
+import { createCustomerPOS } from '@/app/actions/customer';
 import { getLoyaltySettings } from '@/app/actions/loyalty';
 import { createQuote, getQuoteForPOS, createQuickProductsForQuote } from '@/app/actions/quote';
 import { createConsignment, getConsignmentForPOS } from '@/app/actions/consignment';
@@ -307,6 +308,16 @@ export default function POSClient({ products: initialProducts, customers, suppli
   const [fastItemQuantity, setFastItemQuantity] = useState<number>(1);
   const [fastItemCost, setFastItemCost] = useState<number | ''>('');
   const [fastItemSupplierId, setFastItemSupplierId] = useState<string>('');
+
+  // Customer Modal State
+  const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+  const [newCustName, setNewCustName] = useState('');
+  const [newCustPhone, setNewCustPhone] = useState('');
+  const [newCustEmail, setNewCustEmail] = useState('');
+  const [newCustStreet, setNewCustStreet] = useState('');
+  const [newCustZipCode, setNewCustZipCode] = useState('');
+  const [newCustTaxId, setNewCustTaxId] = useState('');
+  const [isSavingCustomer, setIsSavingCustomer] = useState(false);
   
   // Checkout Modal State
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -486,6 +497,49 @@ export default function POSClient({ products: initialProducts, customers, suppli
        setBillRfc('');
        setBillName('');
        setBillZipCode('');
+    }
+  };
+
+  const handleSaveCustomer = async () => {
+    if (!newCustName.trim()) {
+      alert('El nombre del cliente es obligatorio.');
+      return;
+    }
+    setIsSavingCustomer(true);
+    try {
+      const created = await createCustomerPOS({
+        name: newCustName.trim(),
+        phone: newCustPhone.trim() || undefined,
+        email: newCustEmail.trim() || undefined,
+        street: newCustStreet.trim() || undefined,
+        zipCode: newCustZipCode.trim() || undefined,
+        taxId: newCustTaxId.trim() || undefined
+      });
+
+      setActiveCustomers(prev => [...prev, created]);
+      setSelectedCustomerId(created.id);
+      setCustomerSearchTerm(created.name);
+      
+      if (created.priceList) {
+        setPriceList(created.priceList || 'price');
+      }
+      setBillRfc(created.taxId || '');
+      setBillName(created.legalName || created.name || '');
+      setBillZipCode(created.zipCode || '');
+
+      setShowAddCustomerModal(false);
+      setNewCustName('');
+      setNewCustPhone('');
+      setNewCustEmail('');
+      setNewCustStreet('');
+      setNewCustZipCode('');
+      setNewCustTaxId('');
+
+      alert('¡Cliente creado y seleccionado con éxito!');
+    } catch (e: any) {
+      alert('Error al crear cliente: ' + (e.message || String(e)));
+    } finally {
+      setIsSavingCustomer(false);
     }
   };
 
@@ -1536,54 +1590,84 @@ export default function POSClient({ products: initialProducts, customers, suppli
         {/* Right: Client Search Selector */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', position: 'relative' }}>
           <label style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cliente</label>
-          <div style={{ position: 'relative', width: '100%' }}>
-            <input 
-              type="text" 
-              placeholder="Buscar o escribir nombre de cliente..." 
-              value={customerSearchTerm}
-              onChange={e => {
-                setCustomerSearchTerm(e.target.value);
-                const matched = customers.find((c: any) => c.id === e.target.value || c.name.toLowerCase() === e.target.value.toLowerCase());
-                if (matched) handleCustomerChange(matched.id);
-                else handleCustomerChange('');
-              }}
-              style={{ 
-                width: '100%', 
-                padding: '0.55rem 0.75rem', 
-                borderRadius: '8px', 
-                border: '1px solid #cbd5e1', 
-                fontSize: '0.9rem', 
-                outline: 'none', 
-                height: '42px',
-                backgroundColor: 'white'
-              }}
-            />
-            {/* Customer Dropdown */}
-            {customerSearchTerm.trim() !== '' && !selectedCustomerId && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginTop: '0.25rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                <div 
-                  onClick={() => {
-                    setCustomerSearchTerm('Público en General');
-                    handleCustomerChange('');
-                  }}
-                  style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem', color: '#1e293b' }}
-                >
-                  Público en General
-                </div>
-                {activeCustomers.filter(c => c.name.toLowerCase().includes(customerSearchTerm.toLowerCase())).map(c => (
+          <div style={{ display: 'flex', gap: '0.5rem', width: '100%', alignItems: 'center' }}>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <input 
+                type="text" 
+                placeholder="Buscar o escribir nombre de cliente..." 
+                value={customerSearchTerm}
+                onChange={e => {
+                  setCustomerSearchTerm(e.target.value);
+                  const matched = customers.find((c: any) => c.id === e.target.value || c.name.toLowerCase() === e.target.value.toLowerCase());
+                  if (matched) handleCustomerChange(matched.id);
+                  else handleCustomerChange('');
+                }}
+                style={{ 
+                  width: '100%', 
+                  padding: '0.55rem 0.75rem', 
+                  borderRadius: '8px', 
+                  border: '1px solid #cbd5e1', 
+                  fontSize: '0.9rem', 
+                  outline: 'none', 
+                  height: '42px',
+                  backgroundColor: 'white'
+                }}
+              />
+              {/* Customer Dropdown */}
+              {customerSearchTerm.trim() !== '' && !selectedCustomerId && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginTop: '0.25rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
                   <div 
-                    key={c.id} 
                     onClick={() => {
-                      setSelectedCustomerId(c.id);
-                      setCustomerSearchTerm(c.name);
+                      setCustomerSearchTerm('Público en General');
+                      handleCustomerChange('');
                     }}
                     style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem', color: '#1e293b' }}
                   >
-                    {c.name}
+                    Público en General
                   </div>
-                ))}
-              </div>
-            )}
+                  {activeCustomers.filter(c => c.name.toLowerCase().includes(customerSearchTerm.toLowerCase())).map(c => (
+                    <div 
+                      key={c.id} 
+                      onClick={() => {
+                        setSelectedCustomerId(c.id);
+                        setCustomerSearchTerm(c.name);
+                      }}
+                      style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem', color: '#1e293b' }}
+                    >
+                      {c.name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (customerSearchTerm.trim() !== '' && customerSearchTerm !== 'Público en General' && !selectedCustomerId) {
+                  setNewCustName(customerSearchTerm);
+                } else {
+                  setNewCustName('');
+                }
+                setShowAddCustomerModal(true);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '42px',
+                height: '42px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: 'white',
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                color: '#0da5aa',
+                flexShrink: 0
+              }}
+              title="Registrar Nuevo Cliente"
+            >
+              <Plus size={20} />
+            </button>
           </div>
           {selectedCustomerId && selectedCust && (
             <div style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 'bold', marginTop: '0.15rem' }}>
@@ -2123,6 +2207,125 @@ export default function POSClient({ products: initialProducts, customers, suppli
                  Añadir a Cotización
                </button>
              </div>
+          </div>
+        </div>
+      )}
+
+      {showAddCustomerModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
+          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', width: '500px', maxWidth: '95%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.25rem', color: '#0da5aa' }}>
+              Registrar Nuevo Cliente
+            </h2>
+            
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontWeight: '600', fontSize: '0.85rem', marginBottom: '0.25rem', color: '#475569' }}>Nombre Completo *</label>
+              <input 
+                type="text"
+                autoFocus
+                value={newCustName}
+                onChange={e => setNewCustName(e.target.value)}
+                placeholder="Nombre o Razón Social"
+                style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontWeight: '600', fontSize: '0.85rem', marginBottom: '0.25rem', color: '#475569' }}>Teléfono</label>
+                <input 
+                  type="text"
+                  value={newCustPhone}
+                  onChange={e => setNewCustPhone(e.target.value)}
+                  placeholder="10 dígitos"
+                  style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontWeight: '600', fontSize: '0.85rem', marginBottom: '0.25rem', color: '#475569' }}>Correo Electrónico</label>
+                <input 
+                  type="email"
+                  value={newCustEmail}
+                  onChange={e => setNewCustEmail(e.target.value)}
+                  placeholder="ejemplo@correo.com"
+                  style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '1rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#64748b', marginBottom: '0.75rem' }}>Datos de Facturación (Opcional)</h3>
+              
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontWeight: '600', fontSize: '0.85rem', marginBottom: '0.25rem', color: '#475569' }}>RFC</label>
+                  <input 
+                    type="text"
+                    value={newCustTaxId}
+                    onChange={e => setNewCustTaxId(e.target.value.toUpperCase())}
+                    placeholder="RFC del cliente"
+                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontWeight: '600', fontSize: '0.85rem', marginBottom: '0.25rem', color: '#475569' }}>Código Postal</label>
+                  <input 
+                    type="text"
+                    value={newCustZipCode}
+                    onChange={e => setNewCustZipCode(e.target.value)}
+                    placeholder="5 dígitos"
+                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '0.5rem' }}>
+                <label style={{ display: 'block', fontWeight: '600', fontSize: '0.85rem', marginBottom: '0.25rem', color: '#475569' }}>Calle y Número</label>
+                <input 
+                  type="text"
+                  value={newCustStreet}
+                  onChange={e => setNewCustStreet(e.target.value)}
+                  placeholder="Dirección fiscal"
+                  style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+              <button 
+                type="button"
+                onClick={() => {
+                  setShowAddCustomerModal(false);
+                  setNewCustName('');
+                  setNewCustPhone('');
+                  setNewCustEmail('');
+                  setNewCustStreet('');
+                  setNewCustZipCode('');
+                  setNewCustTaxId('');
+                }}
+                style={{ flex: 1, padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', background: 'white', fontSize: '0.9rem' }}
+              >
+                Cancelar
+              </button>
+              <button 
+                type="button"
+                onClick={handleSaveCustomer}
+                disabled={!newCustName.trim() || isSavingCustomer}
+                className="btn-primary"
+                style={{ 
+                  flex: 1, 
+                  padding: '0.75rem', 
+                  fontWeight: 'bold', 
+                  fontSize: '0.9rem',
+                  backgroundColor: (!newCustName.trim() || isSavingCustomer) ? '#cbd5e1' : '#0da5aa', 
+                  borderColor: (!newCustName.trim() || isSavingCustomer) ? '#cbd5e1' : '#0da5aa',
+                  color: 'white',
+                  cursor: (!newCustName.trim() || isSavingCustomer) ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {isSavingCustomer ? 'Guardando...' : 'Guardar y Seleccionar'}
+              </button>
+            </div>
           </div>
         </div>
       )}

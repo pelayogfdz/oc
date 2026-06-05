@@ -88,3 +88,32 @@ export async function toggleCustomerBlock(id: string, isBlocked: boolean) {
   revalidatePath('/clientes');
   revalidatePath(`/clientes/${id}`);
 }
+
+export async function createCustomerPOS(data: {
+  name: string;
+  email?: string;
+  phone?: string;
+  street?: string;
+  zipCode?: string;
+  taxId?: string;
+}) {
+  const branch = await getActiveBranch();
+  if (!data.name) {
+    throw new Error('El nombre es obligatorio.');
+  }
+
+  const customer = await prisma.customer.create({
+    data: {
+      name: data.name,
+      email: data.email || null,
+      phone: data.phone || null,
+      street: data.street || null,
+      zipCode: data.zipCode || null,
+      taxId: data.taxId || null,
+      branchId: branch.id
+    }
+  });
+
+  revalidatePath('/ventas/nueva');
+  return customer;
+}

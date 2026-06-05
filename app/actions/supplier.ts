@@ -59,5 +59,5 @@ export async function updateSupplier(id: string, formData: FormData) {
   });
 
   revalidatePath('/proveedores');
-  redirect('/proveedores');
+  return { success: true };
 }
