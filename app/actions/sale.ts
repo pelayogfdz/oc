@@ -16,13 +16,33 @@ export async function createSale(
   billingData?: { rfc: string; name: string; zipCode: string; regime: string; use: string },
   quoteIdToConvert?: string,
   consignmentIdToConvert?: string,
-  pointsRedeemed: number = 0
+  pointsRedeemed: number = 0,
+  branchId?: string
 ) {
   try {
-    const branch = await getActiveBranch();
-    if (!branch || branch.id === 'GLOBAL') {
-      throw new Error('Debes seleccionar una sucursal específica para realizar esta acción.');
+    const activeBranch = await getActiveBranch();
+    let finalBranchId = branchId;
+    
+    // Si no se pasó branchId explícitamente, intentar obtenerlo de la sesión de caja
+    if (!finalBranchId) {
+      if (cashSessionId) {
+        const sessionRecord = await prisma.cashSession.findUnique({
+          where: { id: cashSessionId }
+        });
+        if (sessionRecord && sessionRecord.branchId) {
+          finalBranchId = sessionRecord.branchId;
+        }
+      }
     }
+    
+    // Si tampoco hay sesión de caja, fallback a la sucursal activa actual
+    if (!finalBranchId) {
+      if (!activeBranch || activeBranch.id === 'GLOBAL') {
+        throw new Error('Debes seleccionar una sucursal específica para realizar esta acción.');
+      }
+      finalBranchId = activeBranch.id;
+    }
+
     const user = await getActiveUser();
     
     if (items.length === 0) throw new Error("Ticket is empty");
@@ -34,7 +54,7 @@ export async function createSale(
       }
     }
     // Load preferences
-    const branchSettings = await prisma.branchSettings.findUnique({ where: { branchId: branch.id } });
+    const branchSettings = await prisma.branchSettings.findUnique({ where: { branchId: finalBranchId } });
     const config = branchSettings?.configJson ? JSON.parse(branchSettings.configJson)['ventas'] || {} : {};
     const permitirVenderSinStock = config.venderSinStock === true;
     const permitirVenderBajoCosto = config.venderBajoCosto === true;
@@ -74,7 +94,7 @@ export async function createSale(
     let pointsDiscount = 0;
     if (pointsRedeemed > 0 && customerId) {
       const loyaltySettings = await prisma.loyaltySettings.findUnique({
-        where: { branchId: branch.id }
+        where: { branchId: finalBranchId }
       });
       const pointValue = loyaltySettings?.pointValueInPesos ?? 1.0;
       pointsDiscount = pointsRedeemed * pointValue;
@@ -123,7 +143,7 @@ export async function createSale(
     }
 
     const { getNextFolio } = await import('./folios');
-    const folio = await getNextFolio(branch.id, 'sale');
+    const folio = await getNextFolio(finalBranchId, 'sale');
 
     const sale = await prisma.sale.create({
       data: {
@@ -135,7 +155,7 @@ export async function createSale(
         notes,
         cashAmount,
         cardAmount,
-        branchId: branch.id,
+        branchId: finalBranchId,
         userId: user.id,
         dueDate,
         balanceDue,
@@ -234,7 +254,7 @@ export async function createSale(
 
       try {
         const loyaltySettings = await prisma.loyaltySettings.findUnique({
-          where: { branchId: branch.id }
+          where: { branchId: finalBranchId }
         });
 
         if (loyaltySettings && loyaltySettings.isActive) {

@@ -202,7 +202,21 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
         try {
           // Dynamic import to avoid cycles
           const { createSale } = await import('../actions/sale');
-          await createSale(sale.items, sale.total, sale.paymentMethod, sale.customerId, sale.sessionId, sale.notes, sale.cashValue, sale.cardValue, sale.billingData);
+          await createSale(
+            sale.items, 
+            sale.total, 
+            sale.paymentMethod, 
+            sale.customerId, 
+            sale.sessionId, 
+            sale.notes, 
+            sale.cashValue, 
+            sale.cardValue, 
+            sale.billingData,
+            undefined,
+            undefined,
+            0,
+            sale.branchId
+          );
           await db.pendingSales.delete(sale.id);
           syncedAny = true;
         } catch (e: any) { 

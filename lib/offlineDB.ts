@@ -19,6 +19,7 @@ export interface OfflineSale extends DLQMetadata {
   billingData?: any;
   timestamp: string;
   synced: boolean;
+  branchId?: string;
 }
 
 export interface OfflineTransfer extends DLQMetadata {

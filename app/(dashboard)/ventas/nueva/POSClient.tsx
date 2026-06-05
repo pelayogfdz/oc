@@ -1123,7 +1123,8 @@ export default function POSClient({ products: initialProducts, customers, suppli
                 notes: finalNotes,
                 cashValue,
                 cardValue,
-                billingData
+                billingData,
+                branchId
              },
              retryCount: 0,
              failed: false
@@ -1131,7 +1132,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
           saleId = `OFFLINE-${Date.now()}`;
         } else {
           // ONLINE MODE
-          const response = await createSale(items, total + tipAmount, paymentMethod, selectedCustomerId || null, sessionId, finalNotes, cashValue, cardValue, billingData, loadedQuoteId || undefined, loadedConsignmentId || undefined, pointsRedeemed);
+          const response = await createSale(items, total + tipAmount, paymentMethod, selectedCustomerId || null, sessionId, finalNotes, cashValue, cardValue, billingData, loadedQuoteId || undefined, loadedConsignmentId || undefined, pointsRedeemed, branchId);
           if (!response.success) {
             throw new Error(response.error);
           }
