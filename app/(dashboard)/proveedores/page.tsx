@@ -50,7 +50,7 @@ export default async function Page() {
                 </td>
                 <td data-label="Acciones" style={{ padding: '1rem' }}>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <Link href={`/proveedores/${item.id}/editar`} style={{ display: 'flex', alignItems: 'center', color: '#3b82f6', padding: '0.5rem' }}>
+                    <Link href={`/proveedores/${item.id}`} style={{ display: 'flex', alignItems: 'center', color: '#3b82f6', padding: '0.5rem' }}>
                       <Pencil size={16} />
                     </Link>
                     <form action={async () => { 'use server'; await deleteEntity('supplier', item.id); }}>
