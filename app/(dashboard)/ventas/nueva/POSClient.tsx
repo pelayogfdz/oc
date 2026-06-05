@@ -348,14 +348,15 @@ export default function POSClient({ products: initialProducts, customers, suppli
 
   
   const customMethods = (Array.isArray(metodosConfig?.methods) && metodosConfig.methods.length > 0) 
-     ? metodosConfig.methods 
+     ? metodosConfig.methods.filter((m: any) => m.id !== 'CREDIT') 
      : [{ id: 'CASH', name: 'Efectivo' }, { id: 'CARD', name: 'Tarjeta' }, { id: 'TRANSFER', name: 'Transferencia' }];
 
   const [paymentMethod, setPaymentMethod] = useState(customMethods[0]?.id || 'CASH');
   
   const selectedCust = activeCustomers.find((c: any) => c.id === selectedCustomerId);
   const allowedMethods = [...customMethods];
-  if (selectedCust && selectedCust.creditLimit > 0) {
+  const isCreditEnabled = metodosConfig?.enabledIds ? metodosConfig.enabledIds.includes('CREDIT') : true;
+  if (isCreditEnabled && selectedCust && selectedCust.creditLimit > 0) {
     allowedMethods.push({ id: 'CREDIT', name: 'Crédito Cta.' });
   }
   allowedMethods.push({ id: 'MIXTO', name: 'Mixto' });
