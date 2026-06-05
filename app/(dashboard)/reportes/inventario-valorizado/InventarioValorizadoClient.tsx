@@ -11,6 +11,7 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
   const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const handleFilterChange = async (filters: ReportFilterState) => {
     setLoading(true);
@@ -120,7 +121,33 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
                 {filteredInventory.map((i: any) => (
                   <tr key={i.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
                     <td data-label="SKU" style={{ padding: '1rem 0.5rem', fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', fontFamily: 'monospace' }}>{i.sku}</td>
-                    <td data-label="Producto" style={{ padding: '1rem 0.5rem', fontWeight: '500' }}>{i.name}</td>
+                    <td data-label="Producto" style={{ padding: '1rem 0.5rem', fontWeight: '500' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div 
+                          onClick={() => i.imageUrl && setLightboxImage(i.imageUrl)}
+                          style={{ 
+                            width: '40px', 
+                            height: '40px', 
+                            borderRadius: '6px', 
+                            border: '1px solid var(--pulpos-border)', 
+                            overflow: 'hidden', 
+                            backgroundColor: '#f8fafc',
+                            cursor: i.imageUrl ? 'pointer' : 'default',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}
+                        >
+                          {i.imageUrl ? (
+                            <img src={i.imageUrl} alt={i.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>S/F</span>
+                          )}
+                        </div>
+                        <span>{i.name}</span>
+                      </div>
+                    </td>
                     <td data-label="Stock" style={{ padding: '1rem 0.5rem', textAlign: 'center' }}>
                       <span style={{ 
                         padding: '0.25rem 0.5rem', 
@@ -168,6 +195,75 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
         </div>
 
       </div>
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div 
+          onClick={() => setLightboxImage(null)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            cursor: 'zoom-out'
+          }}
+        >
+          <div 
+            style={{ 
+              position: 'relative', 
+              maxWidth: '90%', 
+              maxHeight: '90%',
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '8px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <img 
+              src={lightboxImage} 
+              alt="Ampliada" 
+              style={{ 
+                maxWidth: '100%', 
+                maxHeight: '80vh', 
+                borderRadius: '8px', 
+                objectFit: 'contain' 
+              }} 
+            />
+            <button 
+              onClick={() => setLightboxImage(null)}
+              style={{
+                position: 'absolute',
+                top: '-15px',
+                right: '-15px',
+                backgroundColor: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '50%',
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

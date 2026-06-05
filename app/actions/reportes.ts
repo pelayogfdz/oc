@@ -278,6 +278,7 @@ export async function getInventoryValuationData(branchIdFilter?: string) {
       id: p.id,
       name: p.name,
       sku: p.sku || 'N/A',
+      imageUrl: p.imageUrl || null,
       stock: p.stock,
       cost: p.cost,
       price: p.price,
@@ -665,6 +666,7 @@ export async function getTopProductsReport(
       category,
       cost,
       price,
+      imageUrl: item.product?.imageUrl || null,
       quantitySold: 0,
       totalRevenue: 0,
       totalCost: 0
@@ -937,7 +939,49 @@ export async function getRestockReportData(
       ...categoryCondition,
       isActive: true
     },
+    include: {
+      supplier: {
+        select: {
+          name: true
+        }
+      }
+    },
     orderBy: { name: 'asc' }
+  });
+
+  // Fetch all purchase items for these branch IDs to determine the last supplier
+  const purchaseItems = await prisma.purchaseItem.findMany({
+    where: {
+      product: branchCondition
+    },
+    select: {
+      productId: true,
+      purchase: {
+        select: {
+          createdAt: true,
+          supplier: {
+            select: {
+              name: true
+            }
+          }
+        }
+      }
+    },
+    orderBy: {
+      purchase: {
+        createdAt: 'desc'
+      }
+    }
+  });
+
+  const lastSupplierMap = new Map<string, string>();
+  purchaseItems.forEach(item => {
+    if (!lastSupplierMap.has(item.productId)) {
+      const supplierName = item.purchase?.supplier?.name;
+      if (supplierName) {
+        lastSupplierMap.set(item.productId, supplierName);
+      }
+    }
   });
 
   const saleItems = await prisma.saleItem.findMany({
@@ -967,10 +1011,14 @@ export async function getRestockReportData(
   const data = products.map(p => {
     const quantitySold = salesMap.get(p.id) || 0;
     const dailyAvg = quantitySold / daysDiff;
+    const lastSupplier = lastSupplierMap.get(p.id) || p.supplier?.name || 'N/A';
     return {
       id: p.id,
       name: p.name,
       sku: p.sku || 'N/A',
+      barcode: p.barcode || 'N/A',
+      imageUrl: p.imageUrl || null,
+      lastSupplier,
       category: p.category || 'Sin Categoría',
       stock: p.stock || 0,
       cost: p.cost || 0,

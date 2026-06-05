@@ -7,8 +7,10 @@ export default function BranchSelector({ branches, currentBranchId }: { branches
   const [isPending, startTransition] = useTransition();
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    startTransition(() => {
-      setActiveBranch(e.target.value);
+    const val = e.target.value;
+    startTransition(async () => {
+      await setActiveBranch(val);
+      window.location.reload();
     });
   };
 

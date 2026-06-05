@@ -8,12 +8,15 @@ interface RestockProduct {
   id: string;
   name: string;
   sku: string;
+  barcode?: string;
+  lastSupplier?: string;
   category: string;
   stock: number;
   cost: number;
   price: number;
   quantitySold: number;
   dailyAvg: number;
+  imageUrl?: string | null;
 }
 
 export default function RestockClient({ 
@@ -32,6 +35,7 @@ export default function RestockClient({
   const [searchTerm, setSearchTerm] = useState("");
   const [coverageDays, setCoverageDays] = useState(30);
   const [onlyNeedsRestock, setOnlyNeedsRestock] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   // Sorting state
   const [sortBy, setSortBy] = useState<string>('suggestedRestock');
@@ -144,7 +148,8 @@ export default function RestockClient({
       const matchesSearch = !searchTerm || 
         p.name.toLowerCase().includes(term) ||
         (p.sku && p.sku.toLowerCase().includes(term)) ||
-        (p.category && p.category.toLowerCase().includes(term));
+        (p.barcode && p.barcode.toLowerCase().includes(term)) ||
+        (p.lastSupplier && p.lastSupplier.toLowerCase().includes(term));
 
       // Filter by restock constraint
       const matchesRestock = !onlyNeedsRestock || p.suggestedRestock > 0;
@@ -197,13 +202,13 @@ export default function RestockClient({
   const downloadCSV = () => {
     const headers = [
       "SKU", 
+      "Código de Barras",
       "Nombre del Producto", 
-      "Categoría", 
+      "Último Proveedor",
       "Costo Unitario", 
       "Precio Unitario", 
       "Existencias", 
       "Uds Vendidas", 
-      "Promedio Diario", 
       `Días Cobertura (${coverageDays})`, 
       "Requerido", 
       "Sugerido a Comprar", 
@@ -211,13 +216,13 @@ export default function RestockClient({
     ];
     const rows = filteredData.map(p => [
       p.sku || "N/A",
+      p.barcode || "N/A",
       p.name,
-      p.category || "General",
+      p.lastSupplier || "N/A",
       p.cost.toFixed(2),
       p.price.toFixed(2),
       p.stock,
       p.quantitySold,
-      p.dailyAvg.toFixed(4),
       coverageDays,
       p.neededStock,
       p.suggestedRestock,
@@ -439,7 +444,7 @@ export default function RestockClient({
               <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
               <input 
                 type="text" 
-                placeholder="Buscar por SKU, nombre, categoría..." 
+                placeholder="Buscar por SKU, CB, nombre, proveedor..." 
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 style={{ width: '100%', padding: '0.45rem 0.75rem 0.45rem 2.2rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
@@ -454,11 +459,14 @@ export default function RestockClient({
                   <th style={{ padding: '1rem 0.75rem', cursor: 'pointer' }} onClick={() => handleSort('sku')}>
                     SKU <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
                   </th>
+                  <th style={{ padding: '1rem 0.75rem', cursor: 'pointer' }} onClick={() => handleSort('barcode')}>
+                    Código de Barras <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
+                  </th>
                   <th style={{ padding: '1rem 0.75rem', cursor: 'pointer' }} onClick={() => handleSort('name')}>
                     Nombre del Producto <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
                   </th>
-                  <th style={{ padding: '1rem 0.75rem', cursor: 'pointer' }} onClick={() => handleSort('category')}>
-                    Categoría <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
+                  <th style={{ padding: '1rem 0.75rem', cursor: 'pointer' }} onClick={() => handleSort('lastSupplier')}>
+                    Último Proveedor <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
                   </th>
                   <th style={{ padding: '1rem 0.75rem', textAlign: 'right', cursor: 'pointer' }} onClick={() => handleSort('cost')}>
                     Costo <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
@@ -468,9 +476,6 @@ export default function RestockClient({
                   </th>
                   <th style={{ padding: '1rem 0.75rem', textAlign: 'center', cursor: 'pointer' }} onClick={() => handleSort('quantitySold')}>
                     Ventas <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
-                  </th>
-                  <th style={{ padding: '1rem 0.75rem', textAlign: 'right', cursor: 'pointer' }} onClick={() => handleSort('dailyAvg')}>
-                    Prom. Diario <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
                   </th>
                   <th style={{ padding: '1rem 0.75rem', textAlign: 'right', cursor: 'pointer' }} onClick={() => handleSort('neededStock')}>
                     Requerido ({coverageDays}d) <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
@@ -490,12 +495,38 @@ export default function RestockClient({
                     return (
                       <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.15s', backgroundColor: needsBuy ? '#fef2f2' : 'transparent' }} onMouseOver={e => e.currentTarget.style.backgroundColor=needsBuy ? '#fee2e2' : '#f8fafc'} onMouseOut={e => e.currentTarget.style.backgroundColor=needsBuy ? '#fef2f2' : 'transparent'}>
                         <td style={{ padding: '0.85rem 0.75rem', fontFamily: 'monospace', fontSize: '0.8rem' }}>{p.sku || "N/A"}</td>
-                        <td style={{ padding: '0.85rem 0.75rem', fontWeight: 'bold', color: '#0f172a' }}>{p.name}</td>
-                        <td style={{ padding: '0.85rem 0.75rem', color: '#64748b' }}>{p.category || "General"}</td>
+                        <td style={{ padding: '0.85rem 0.75rem', fontFamily: 'monospace', fontSize: '0.8rem' }}>{p.barcode || "N/A"}</td>
+                        <td style={{ padding: '0.85rem 0.75rem', fontWeight: 'bold', color: '#0f172a' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div 
+                              onClick={() => p.imageUrl && setLightboxImage(p.imageUrl)}
+                              style={{ 
+                                width: '40px', 
+                                height: '40px', 
+                                borderRadius: '6px', 
+                                border: '1px solid #cbd5e1', 
+                                overflow: 'hidden', 
+                                backgroundColor: '#f8fafc',
+                                cursor: p.imageUrl ? 'pointer' : 'default',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                              }}
+                            >
+                              {p.imageUrl ? (
+                                <img src={p.imageUrl} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>S/F</span>
+                              )}
+                            </div>
+                            <span>{p.name}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.85rem 0.75rem', color: '#64748b' }}>{p.lastSupplier || "N/A"}</td>
                         <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', color: '#64748b' }}>{formatter.format(p.cost)}</td>
                         <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', fontWeight: p.stock <= 0 ? 'bold' : 'normal', color: p.stock <= 0 ? '#ef4444' : '#334155' }}>{p.stock}</td>
                         <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center', color: '#475569' }}>{p.quantitySold}</td>
-                        <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', color: '#475569' }}>{p.dailyAvg.toFixed(2)}</td>
                         <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', color: '#475569' }}>{p.neededStock}</td>
                         <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', fontWeight: 'bold', color: needsBuy ? '#ef4444' : '#16a34a' }}>
                           {needsBuy ? `+${p.suggestedRestock}` : '0'}
@@ -559,6 +590,75 @@ export default function RestockClient({
           )}
         </div>
       </div>
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div 
+          onClick={() => setLightboxImage(null)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            cursor: 'zoom-out'
+          }}
+        >
+          <div 
+            style={{ 
+              position: 'relative', 
+              maxWidth: '90%', 
+              maxHeight: '90%',
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '8px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <img 
+              src={lightboxImage} 
+              alt="Ampliada" 
+              style={{ 
+                maxWidth: '100%', 
+                maxHeight: '80vh', 
+                borderRadius: '8px', 
+                objectFit: 'contain' 
+              }} 
+            />
+            <button 
+              onClick={() => setLightboxImage(null)}
+              style={{
+                position: 'absolute',
+                top: '-15px',
+                right: '-15px',
+                backgroundColor: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '50%',
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

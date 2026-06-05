@@ -11,6 +11,7 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
   const [category, setCategory] = useState('ALL');
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   // Default dates (last 30 days)
   const defaultEnd = new Date();
@@ -360,7 +361,33 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
                     return (
                       <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.15s' }} onMouseOver={e => e.currentTarget.style.backgroundColor='#f8fafc'} onMouseOut={e => e.currentTarget.style.backgroundColor='transparent'}>
                         <td style={{ padding: '0.85rem 0.75rem', fontWeight: 'bold', color: '#64748b' }}>#{idx + 1}</td>
-                        <td style={{ padding: '0.85rem 0.75rem', fontWeight: 'bold', color: '#0f172a' }}>{p.name}</td>
+                        <td style={{ padding: '0.85rem 0.75rem', fontWeight: 'bold', color: '#0f172a' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div 
+                              onClick={() => p.imageUrl && setLightboxImage(p.imageUrl)}
+                              style={{ 
+                                width: '40px', 
+                                height: '40px', 
+                                borderRadius: '6px', 
+                                border: '1px solid #cbd5e1', 
+                                overflow: 'hidden', 
+                                backgroundColor: '#f8fafc',
+                                cursor: p.imageUrl ? 'pointer' : 'default',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                              }}
+                            >
+                              {p.imageUrl ? (
+                                <img src={p.imageUrl} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>S/F</span>
+                              )}
+                            </div>
+                            <span>{p.name}</span>
+                          </div>
+                        </td>
                         <td style={{ padding: '0.85rem 0.75rem', fontFamily: 'monospace', fontSize: '0.8rem' }}>{p.sku || "Sin SKU"}</td>
                         <td style={{ padding: '0.85rem 0.75rem', color: '#64748b' }}>{p.category || "General"}</td>
                         <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', color: '#64748b' }}>{formatter.format(p.cost)}</td>
@@ -387,6 +414,75 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
           </div>
         </div>
       </div>
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div 
+          onClick={() => setLightboxImage(null)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            cursor: 'zoom-out'
+          }}
+        >
+          <div 
+            style={{ 
+              position: 'relative', 
+              maxWidth: '90%', 
+              maxHeight: '90%',
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '8px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <img 
+              src={lightboxImage} 
+              alt="Ampliada" 
+              style={{ 
+                maxWidth: '100%', 
+                maxHeight: '80vh', 
+                borderRadius: '8px', 
+                objectFit: 'contain' 
+              }} 
+            />
+            <button 
+              onClick={() => setLightboxImage(null)}
+              style={{
+                position: 'absolute',
+                top: '-15px',
+                right: '-15px',
+                backgroundColor: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '50%',
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

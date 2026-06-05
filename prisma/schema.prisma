@@ -116,6 +116,7 @@ model User {
   subordinates              User[]                   @relation("UserManager")
   tenant                    Tenant?                  @relation(fields: [tenantId], references: [id])
   hrLocations               HrLocation[]             @relation("UserHrLocations")
+  appointments              Appointment[]
 }
 
 model Branch {
@@ -131,6 +132,7 @@ model Branch {
   loyaltySettings         LoyaltySettings?
   cashSessions            CashSession[]
   customers               Customer[]
+  appointments            Appointment[]
   customerPayments        CustomerPayment[]
   expenses                Expense[]
   hrLocation              HrLocation?
@@ -206,6 +208,7 @@ model Customer {
   consignments     Consignment[]
   sales            Sale[]
   loyaltyTransactions LoyaltyTransaction[]
+  appointments     Appointment[]
 }
 
 model CustomerPayment {
@@ -981,4 +984,24 @@ model LoyaltyTransaction {
   saleId     String?
   createdAt  DateTime @default(now())
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model Appointment {
+  id          String   @id @default(uuid())
+  branchId    String
+  customerId  String?
+  userId      String?
+  title       String
+  notes       String?
+  scheduledAt DateTime
+  duration    Int      @default(30)
+  clientName  String?
+  clientPhone String?
+  clientEmail String?
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  customer    Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 }

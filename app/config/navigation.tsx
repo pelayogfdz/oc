@@ -37,6 +37,7 @@ export const navStructure: MenuNode[] = [
       { name: 'Cotizaciones', path: '/ventas/cotizaciones' },
       { name: 'Consignaciones', path: '/ventas/consignaciones' },
       { name: 'Catálogos de Artículos', path: '/ventas/catalogos' },
+      { name: 'Citas y Calendario', path: '/ventas/citas', badge: 'CRM' },
     ]
   },
   { 
