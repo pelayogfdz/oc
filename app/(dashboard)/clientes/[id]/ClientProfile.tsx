@@ -4,10 +4,12 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { 
   UserCircle, ShoppingBag, HandCoins, History, Edit, 
-  MapPin, Mail, Phone, Building, Briefcase, FileText, CheckCircle, Square, AlertTriangle, CheckSquare, Trash2
+  MapPin, Mail, Phone, Building, Briefcase, FileText, CheckCircle, Square, AlertTriangle, CheckSquare, Trash2,
+  Star
 } from 'lucide-react';
 import { addCustomerPaymentBatch, deleteCustomerPayment } from '@/app/actions/customerPayment';
 import { toggleCustomerBlock } from '@/app/actions/customer';
+import { formatCurrency } from '@/lib/utils';
 
 export default function ClientProfile({ customer, sales, payments }: { customer: any, sales: any[], payments: any[] }) {
   const [activeTab, setActiveTab] = useState('resumen');
@@ -140,19 +142,19 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
             <div>
               <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Deuda Total</div>
               <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: customer.creditBalance > 0 ? '#ef4444' : '#10b981' }}>
-                ${Math.max(0, customer.creditBalance || 0).toFixed(2)}
+                {formatCurrency(Math.max(0, customer.creditBalance || 0))}
               </div>
             </div>
             <div>
               <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Límite de Crédito</div>
               <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a' }}>
-                ${(customer.creditLimit || 0).toFixed(2)}
+                {formatCurrency(customer.creditLimit || 0)}
               </div>
             </div>
             <div>
               <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Saldo a Favor</div>
               <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: customer.storeCredit > 0 ? '#10b981' : '#0f172a' }}>
-                ${(customer.storeCredit || 0).toFixed(2)}
+                {formatCurrency(customer.storeCredit || 0)}
               </div>
             </div>
             <div>
@@ -289,7 +291,7 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', alignItems: 'center' }}>
                             <span style={{ fontWeight: 'bold', color: '#334155' }}>#{sale.id.slice(0,8).toUpperCase()}</span>
-                            <span style={{ fontWeight: 'bold', color: '#dc2626' }}>Deuda: ${sale.balanceDue.toFixed(2)}</span>
+                            <span style={{ fontWeight: 'bold', color: '#dc2626' }}>Deuda: {formatCurrency(sale.balanceDue)}</span>
                           </div>
                           
                           {/* Input Parcial Editable */}
@@ -410,7 +412,7 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
                      <tr key={sale.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
                         <td style={{ padding: '1rem', fontWeight: 'bold' }}>#{sale.id.slice(0,8).toUpperCase()}</td>
                         <td style={{ padding: '1rem', color: '#64748b' }}>{new Date(sale.createdAt).toLocaleDateString()}</td>
-                        <td style={{ padding: '1rem', fontWeight: 'bold' }}>${sale.total.toFixed(2)}</td>
+                        <td style={{ padding: '1rem', fontWeight: 'bold' }}>{formatCurrency(sale.total)}</td>
                         <td style={{ padding: '1rem' }}>
                            {sale.paymentMethod === 'CREDIT' ? (
                               <span style={{ padding: '0.25rem 0.5rem', backgroundColor: '#fef3c7', color: '#d97706', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>CRÉDITO</span>
@@ -449,7 +451,7 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
                            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{new Date(p.paymentDate || p.createdAt).toLocaleTimeString()}</div>
                         </td>
                         <td style={{ padding: '1rem' }}>{p.reason}</td>
-                        <td style={{ padding: '1rem', fontWeight: 'bold', color: '#10b981' }}>+${p.amount.toFixed(2)}</td>
+                        <td style={{ padding: '1rem', fontWeight: 'bold', color: '#10b981' }}>+{formatCurrency(p.amount)}</td>
                         <td style={{ padding: '1rem' }}>
                            <button onClick={() => handleDeletePayment(p.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }}>
                               <Trash2 size={16} /> Revertir Pago
