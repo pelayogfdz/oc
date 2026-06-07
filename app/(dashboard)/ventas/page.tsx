@@ -21,6 +21,7 @@ export default async function VentasPage() {
     include: {
       user: true,
       branch: true,
+      customer: true,
       items: {
         include: {
           product: true
@@ -40,6 +41,11 @@ export default async function VentasPage() {
     branchId: s.branchId,
     total: s.total,
     status: s.status,
+    invoiceId: s.invoiceId,
+    customer: s.customer ? {
+      id: s.customer.id,
+      name: s.customer.name
+    } : null,
     user: {
       id: s.user.id,
       name: s.user.name

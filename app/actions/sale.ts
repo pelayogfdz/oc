@@ -47,6 +47,24 @@ export async function createSale(
     
     if (items.length === 0) throw new Error("Ticket is empty");
 
+    if (!customerId) {
+      let publicCustomer = await prisma.customer.findFirst({
+        where: {
+          name: { equals: 'Público General', mode: 'insensitive' },
+          branchId: finalBranchId
+        }
+      });
+      if (!publicCustomer) {
+        publicCustomer = await prisma.customer.create({
+          data: {
+            name: 'Público General',
+            branchId: finalBranchId
+          }
+        });
+      }
+      customerId = publicCustomer.id;
+    }
+
     if (customerId) {
       const customerCheck = await prisma.customer.findUnique({ where: { id: customerId } });
       if (customerCheck?.isBlocked) {

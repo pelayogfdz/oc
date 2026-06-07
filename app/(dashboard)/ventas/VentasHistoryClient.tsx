@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Eye, Printer, RotateCcw, Calendar, User, MapPin, Tag } from 'lucide-react';
+import { Eye, Printer, RotateCcw, Calendar, User, MapPin, Tag, Receipt } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
 export default function VentasHistoryClient({
@@ -20,6 +20,8 @@ export default function VentasHistoryClient({
   const [filterUser, setFilterUser] = useState('');
   const [filterBranch, setFilterBranch] = useState(currentBranch.id === 'GLOBAL' ? '' : currentBranch.id);
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterClient, setFilterClient] = useState('');
+  const [filterCfdi, setFilterCfdi] = useState('');
 
   // Extract unique statuses present in sales
   const statuses = useMemo(() => {
@@ -54,17 +56,35 @@ export default function VentasHistoryClient({
         return false;
       }
 
+      // Client filter
+      if (filterClient) {
+        const clientName = sale.customer?.name || '';
+        if (!clientName.toLowerCase().includes(filterClient.toLowerCase())) {
+          return false;
+        }
+      }
+
+      // CFDI filter
+      if (filterCfdi) {
+        const folioCfdi = sale.invoiceId || '';
+        if (!folioCfdi.toLowerCase().includes(filterCfdi.toLowerCase())) {
+          return false;
+        }
+      }
+
       return true;
     });
-  }, [initialSales, filterDate, filterUser, filterBranch, filterStatus]);
+  }, [initialSales, filterDate, filterUser, filterBranch, filterStatus, filterClient, filterCfdi]);
 
-  const hasActiveFilters = filterDate || filterUser || (currentBranch.id === 'GLOBAL' && filterBranch) || filterStatus;
+  const hasActiveFilters = filterDate || filterUser || (currentBranch.id === 'GLOBAL' && filterBranch) || filterStatus || filterClient || filterCfdi;
 
   const handleClearFilters = () => {
     setFilterDate('');
     setFilterUser('');
     setFilterBranch(currentBranch.id === 'GLOBAL' ? '' : currentBranch.id);
     setFilterStatus('');
+    setFilterClient('');
+    setFilterCfdi('');
   };
 
   return (
@@ -99,6 +119,34 @@ export default function VentasHistoryClient({
             type="date" 
             value={filterDate} 
             onChange={(e) => setFilterDate(e.target.value)} 
+            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
+          />
+        </div>
+
+        {/* Client Filter */}
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>
+            <User size={14} /> Cliente
+          </label>
+          <input 
+            type="text" 
+            placeholder="Buscar por cliente" 
+            value={filterClient} 
+            onChange={(e) => setFilterClient(e.target.value)} 
+            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
+          />
+        </div>
+
+        {/* CFDI Filter */}
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>
+            <Receipt size={14} /> Folio CFDI
+          </label>
+          <input 
+            type="text" 
+            placeholder="Buscar folio CFDI" 
+            value={filterCfdi} 
+            onChange={(e) => setFilterCfdi(e.target.value)} 
             style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
           />
         </div>
@@ -184,6 +232,8 @@ export default function VentasHistoryClient({
             <tr style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: '#f9fafb' }}>
               <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>ID Venta</th>
               <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Fecha / Hora</th>
+              <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Cliente</th>
+              <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Folio CFDI</th>
               <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Sucursal / Vendedor</th>
               <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500', textAlign: 'right' }}>Artículos</th>
               <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500', textAlign: 'right' }}>Total</th>
@@ -201,6 +251,34 @@ export default function VentasHistoryClient({
                   </td>
                   <td data-label="Fecha / Hora" style={{ padding: '1rem' }}>
                     {new Date(sale.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}
+                  </td>
+                  <td data-label="Cliente" style={{ padding: '1rem' }}>
+                    {sale.customer ? (
+                      <div style={{ fontWeight: '500' }}>{sale.customer.name}</div>
+                    ) : (
+                      <div style={{ color: 'var(--pulpos-text-muted)', fontStyle: 'italic' }}>Público General</div>
+                    )}
+                  </td>
+                  <td data-label="Folio CFDI" style={{ padding: '1rem' }}>
+                    {sale.invoiceId ? (
+                      <span 
+                        style={{ 
+                          fontFamily: 'monospace', 
+                          fontSize: '0.85rem', 
+                          fontWeight: '500', 
+                          color: '#0369a1', 
+                          backgroundColor: '#e0f2fe', 
+                          padding: '0.2rem 0.4rem', 
+                          borderRadius: '4px',
+                          wordBreak: 'break-all'
+                        }} 
+                        title={sale.invoiceId}
+                      >
+                        {sale.invoiceId}
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--pulpos-text-muted)' }}>-</span>
+                    )}
                   </td>
                   <td data-label="Sucursal / Vendedor" style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: '500' }}>{sale.branch?.name || currentBranch.name}</div>
@@ -239,7 +317,7 @@ export default function VentasHistoryClient({
             })}
             {filteredSales.length === 0 && (
               <tr>
-                <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                <td colSpan={9} style={{ padding: '3rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
                   No se encontraron ventas con los filtros seleccionados.
                 </td>
               </tr>
