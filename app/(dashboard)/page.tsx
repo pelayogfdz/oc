@@ -51,13 +51,13 @@ export default async function DashboardPage() {
       _sum: { total: true },
       _count: { id: true },
       where: {
-        branchId: branch.id,
+        ...branchFilter,
         createdAt: { gte: startOfDay, lte: endOfDay }
       }
     }),
     prisma.sale.findMany({
       where: {
-        branchId: branch.id,
+        ...branchFilter,
         createdAt: { gte: startOfDay, lte: endOfDay }
       },
       orderBy: { createdAt: 'desc' },
@@ -95,7 +95,7 @@ export default async function DashboardPage() {
     }),
     prisma.product.count({
       where: {
-        branchId: branch.id,
+        ...branchFilter,
         stock: { lte: 5 } // Arbitrary threshold or we could use minStock
       }
     })
@@ -213,9 +213,9 @@ export default async function DashboardPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2rem' }}>
         {[
           { title: 'Ingresos de Hoy', value: formatter.format(totalSalesValue), icon: <DollarSign size={24} color="#10b981" /> },
-          { title: 'Ventas de Hoy', value: totalOrders.toString(), icon: <ShoppingCart size={24} color="#3b82f6" /> },
+          { title: 'Ventas de Hoy', value: totalOrders.toLocaleString('es-MX'), icon: <ShoppingCart size={24} color="#3b82f6" /> },
           { title: 'Ticket Promedio', value: formatter.format(avgTicket), icon: <DollarSign size={24} color="#f59e0b" /> },
-          { title: 'Alertas de Restock', value: lowStockProducts.toString() + ' SKUs críticos', icon: <PackagePlus size={24} color="#ef4444" /> },
+          { title: 'Alertas de Restock', value: lowStockProducts.toLocaleString('es-MX') + ' SKUs críticos', icon: <PackagePlus size={24} color="#ef4444" /> },
         ].map(stat => (
           <div key={stat.title} style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
@@ -273,7 +273,7 @@ export default async function DashboardPage() {
              {lowStockProducts > 0 && (
                <div style={{ padding: '1rem', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px' }}>
                  <h4 style={{ color: '#b45309', fontWeight: 'bold', marginBottom: '0.25rem' }}>Stock Crítico</h4>
-                 <p style={{ color: '#92400e', fontSize: '0.875rem' }}>{lowStockProducts} SKUs están por agotarse o vacíos.</p>
+                 <p style={{ color: '#92400e', fontSize: '0.875rem' }}>{lowStockProducts.toLocaleString('es-MX')} SKUs están por agotarse o vacíos.</p>
                  <Link href="/productos" style={{ display: 'inline-block', marginTop: '0.5rem', fontSize: '0.875rem', color: '#d97706', fontWeight: 'bold', textDecoration: 'underline' }}>Reponer inventario</Link>
                </div>
              )}
@@ -316,7 +316,7 @@ export default async function DashboardPage() {
                         </span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>
-                        <span style={{ flexShrink: 0 }}>🛒 {cust.orderCount} compras</span>
+                        <span style={{ flexShrink: 0 }}>🛒 {cust.orderCount.toLocaleString('es-MX')} compras</span>
                         <div style={{ flex: 1, height: '6px', backgroundColor: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
                           <div style={{ width: `${percentage}%`, height: '100%', backgroundColor: '#22c55e', borderRadius: '3px', transition: 'width 0.5s ease-out' }} />
                         </div>
@@ -366,7 +366,7 @@ export default async function DashboardPage() {
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a', display: 'block' }}>
-                            {prod.quantitySold} uds
+                            {prod.quantitySold.toLocaleString('es-MX')} uds
                           </span>
                           <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
                             {formatter.format(prod.totalRevenue)}
