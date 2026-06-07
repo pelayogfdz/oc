@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Trash2, Save, Wand2, Search, Filter, Plus, Minus, FileText, CheckCircle2, AlertTriangle, ShoppingBag, Camera, ArrowDownUp } from 'lucide-react';
+import { Trash2, Save, Wand2, Search, Filter, Plus, Minus, FileText, CheckCircle2, AlertTriangle, ShoppingBag, Camera, ArrowDownUp, X } from 'lucide-react';
 import { createPurchaseOrder } from '@/app/actions/pedidos';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
@@ -10,9 +10,58 @@ import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 export default function CrearPedidoForm({ suppliers, products, pendingRequests, branchId }: { suppliers: any[], products: any[], pendingRequests?: any[], branchId: string }) {
   const router = useRouter();
   const { isOnline, pushOfflinePurchase } = useOfflineSync();
-  const [supplierId, setSupplierId] = useState('');
-  const [notes, setNotes] = useState('');
-  const [items, setItems] = useState<{ productId: string, name: string, quantity: number, cost: number, requestId?: string, imageUrl?: string }[]>([]);
+  
+  // Tab management states
+  const [tabs, setTabs] = useState<any[]>([
+    { id: '1', name: 'Pedido #1', items: [], supplierId: '', notes: '' }
+  ]);
+  const [activeTabId, setActiveTabId] = useState('1');
+
+  // Resolve active tab data reactively
+  const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0] || { id: '1', name: 'Pedido #1', items: [], supplierId: '', notes: '' };
+  const items = activeTab.items || [];
+  const supplierId = activeTab.supplierId || '';
+  const notes = activeTab.notes || '';
+
+  // Wrappers to keep existing code working without modification
+  const setItems = (val: any) => {
+    setTabs(prev => prev.map(t => t.id === activeTabId ? {
+      ...t,
+      items: typeof val === 'function' ? val(t.items || []) : val
+    } : t));
+  };
+
+  const setSupplierId = (val: any) => {
+    setTabs(prev => prev.map(t => {
+      if (t.id === activeTabId) {
+        const nextSupplierId = typeof val === 'function' ? val(t.supplierId || '') : val;
+        // Find supplier name to update tab name
+        const supplierObj = availableSuppliers.find(s => s.id === nextSupplierId);
+        let name = t.name;
+        if (supplierObj) {
+          name = `Pedido - ${supplierObj.name.split(' / ')[0]}`;
+        } else if (!nextSupplierId) {
+          // Reset to default name if no supplier
+          const idx = prev.findIndex(x => x.id === t.id) + 1;
+          name = `Pedido #${idx}`;
+        }
+        return {
+          ...t,
+          supplierId: nextSupplierId,
+          name: name
+        };
+      }
+      return t;
+    }));
+  };
+
+  const setNotes = (val: any) => {
+    setTabs(prev => prev.map(t => t.id === activeTabId ? {
+      ...t,
+      notes: typeof val === 'function' ? val(t.notes || '') : val
+    } : t));
+  };
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [isMounted, setIsMounted] = useState(false);
@@ -29,19 +78,80 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
   const [availableProducts, setAvailableProducts] = useState(products || []);
   const [availableSuppliers, setAvailableSuppliers] = useState(suppliers || []);
 
+  // Switch Tab
+  const switchTab = (targetTabId: string) => {
+    setActiveTabId(targetTabId);
+  };
+
+  // Add Tab
+  const addTab = () => {
+    const nextNumber = tabs.length + 1;
+    const newId = Math.random().toString(36).substr(2, 9);
+    const newTab = {
+      id: newId,
+      name: `Pedido #${nextNumber}`,
+      items: [],
+      supplierId: '',
+      notes: ''
+    };
+    setTabs(prev => [...prev, newTab]);
+    setActiveTabId(newId);
+  };
+
+  // Close Tab
+  const closeTab = (tabId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (tabs.length === 1) return;
+    
+    if (!confirm('¿Estás seguro de cerrar esta pestaña? Se perderán los cambios de este borrador.')) return;
+    
+    const tabIndex = tabs.findIndex(t => t.id === tabId);
+    const remainingTabs = tabs.filter(t => t.id !== tabId);
+    
+    setTabs(remainingTabs);
+    
+    if (activeTabId === tabId) {
+      const newActiveTab = remainingTabs[Math.max(0, tabIndex - 1)];
+      setActiveTabId(newActiveTab.id);
+    }
+  };
+
+  // Load active tabs and onHoldOrders from localStorage
   useEffect(() => {
     setIsMounted(true);
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(`caanma_on_hold_orders_${branchId}`);
-      if (stored) {
+      const storedTabs = localStorage.getItem(`caanma_active_purchase_tabs_${branchId}`);
+      const storedActiveId = localStorage.getItem(`caanma_active_purchase_tab_id_${branchId}`);
+      if (storedTabs) {
         try {
-          setOnHoldOrders(JSON.parse(stored));
+          const parsedTabs = JSON.parse(storedTabs);
+          if (parsedTabs && parsedTabs.length > 0) {
+            setTabs(parsedTabs);
+            if (storedActiveId) setActiveTabId(storedActiveId);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      
+      const storedHold = localStorage.getItem(`caanma_on_hold_orders_${branchId}`);
+      if (storedHold) {
+        try {
+          setOnHoldOrders(JSON.parse(storedHold));
         } catch (e) {
           console.error(e);
         }
       }
     }
   }, [branchId]);
+
+  // Persist active tabs to localStorage
+  useEffect(() => {
+    if (isMounted) {
+      localStorage.setItem(`caanma_active_purchase_tabs_${branchId}`, JSON.stringify(tabs));
+      localStorage.setItem(`caanma_active_purchase_tab_id_${branchId}`, activeTabId);
+    }
+  }, [tabs, activeTabId, isMounted, branchId]);
 
   useEffect(() => {
     if (!isOnline) {
@@ -160,6 +270,24 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
       } else {
         await createPurchaseOrder(supplierId || null, notes, items, total);
       }
+      
+      // Remove active tab after successful purchase order creation
+      const remainingTabs = tabs.filter(t => t.id !== activeTabId);
+      if (remainingTabs.length === 0) {
+        // Create a new blank tab if none are left
+        const newTab = { id: Math.random().toString(36).substr(2, 9), name: 'Pedido #1', items: [], supplierId: '', notes: '' };
+        setTabs([newTab]);
+        setActiveTabId(newTab.id);
+        localStorage.setItem(`caanma_active_purchase_tabs_${branchId}`, JSON.stringify([newTab]));
+        localStorage.setItem(`caanma_active_purchase_tab_id_${branchId}`, newTab.id);
+      } else {
+        setTabs(remainingTabs);
+        // Switch to the first available tab
+        setActiveTabId(remainingTabs[0].id);
+        localStorage.setItem(`caanma_active_purchase_tabs_${branchId}`, JSON.stringify(remainingTabs));
+        localStorage.setItem(`caanma_active_purchase_tab_id_${branchId}`, remainingTabs[0].id);
+      }
+      
       router.push('/productos/pedidos');
     } catch (err: any) {
       alert('Error: ' + err.message);
@@ -178,6 +306,85 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem 0' }}>
+      <style>{`
+        .purchase-tabs-container {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          border-bottom: 2px solid #e2e8f0;
+          padding-bottom: 0px;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+        .purchase-tabs-container::-webkit-scrollbar {
+          display: none;
+        }
+        .purchase-tab {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 0.6rem 1rem;
+          border: 1px solid #cbd5e1;
+          border-bottom: none;
+          border-radius: 8px 8px 0 0;
+          background-color: #f8fafc;
+          color: #64748b;
+          font-size: 0.85rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+          position: relative;
+          bottom: -2px;
+          height: 38px;
+          white-space: nowrap;
+        }
+        .purchase-tab-active {
+          background-color: white;
+          color: #8b5cf6;
+          border-color: #cbd5e1;
+          border-bottom: 2.5px solid white;
+          box-shadow: 0 -2px 10px rgba(0,0,0,0.02);
+          z-index: 1;
+        }
+        .purchase-tab-add {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background-color: #f1f5f9;
+          border: 1px solid #cbd5e1;
+          color: #475569;
+          cursor: pointer;
+          transition: all 0.2s;
+          margin-left: 6px;
+          flex-shrink: 0;
+        }
+        .purchase-tab-add:hover {
+          background-color: #e2e8f0;
+          color: #1e293b;
+          transform: scale(1.05);
+        }
+        .purchase-tab-close {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          width: 16px;
+          height: 16px;
+          color: #94a3b8;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          transition: all 0.15s;
+          padding: 0;
+        }
+        .purchase-tab-close:hover {
+          background-color: #fee2e2;
+          color: #ef4444;
+        }
+      `}</style>
       
       {/* HEADER SECTION */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -328,6 +535,41 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
         
         {/* LEFT COLUMN: PENDING REQUESTS & ORDER ITEMS (70% width) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          
+          {/* TABS ROW */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '6px 8px 6px 8px', overflow: 'hidden' }}>
+            <div className="purchase-tabs-container" style={{ borderBottom: 'none', marginBottom: 0, width: '100%' }}>
+              {tabs.map((tab, idx) => {
+                const isActive = tab.id === activeTabId;
+                return (
+                  <div 
+                    key={tab.id}
+                    onClick={() => switchTab(tab.id)}
+                    className={`purchase-tab ${isActive ? 'purchase-tab-active' : ''}`}
+                  >
+                    <span>{tab.name}</span>
+                    {tabs.length > 1 && (
+                      <button 
+                        type="button" 
+                        onClick={(e) => closeTab(tab.id, e)}
+                        className="purchase-tab-close"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+              <button 
+                type="button"
+                onClick={addTab}
+                className="purchase-tab-add"
+                title="Nueva Pestaña"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+          </div>
           
           {/* PENDING BRANCH REQUESTS INTEGRATION */}
           {pendingRequests && pendingRequests.length > 0 && (

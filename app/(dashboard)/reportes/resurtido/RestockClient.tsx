@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { TrendingUp, Package, ArrowDownToLine, Loader2, Calendar, Search, DollarSign, ArrowUpDown, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { TrendingUp, Package, ArrowDownToLine, Loader2, Calendar, Search, DollarSign, ArrowUpDown, ChevronLeft, ChevronRight, Filter, ShoppingCart } from 'lucide-react';
 import { getRestockReportData } from '@/app/actions/reportes';
 
 interface RestockProduct {
@@ -10,6 +11,7 @@ interface RestockProduct {
   sku: string;
   barcode?: string;
   lastSupplier?: string;
+  lastSupplierId?: string | null;
   category: string;
   stock: number;
   cost: number;
@@ -28,8 +30,113 @@ export default function RestockClient({
   initialBranchId: string; 
   availableFilters: any; 
 }) {
+  const router = useRouter();
   const [data, setData] = useState<RestockProduct[]>(initialData);
   const [branchId, setBranchId] = useState(initialBranchId);
+
+  const handleAddToOrder = () => {
+    // 1. Filter products that need restock from filteredData
+    const itemsToRestock = filteredData.filter(p => p.suggestedRestock > 0);
+    if (itemsToRestock.length === 0) {
+      alert("No hay productos con faltante en la consulta actual para agregar al pedido.");
+      return;
+    }
+
+    if (!confirm(`Se generarán borradores de pedidos para ${itemsToRestock.length} artículos con faltantes. ¿Deseas continuar?`)) {
+      return;
+    }
+
+    // 2. Group items by supplierId
+    const groups: Record<string, { supplierName: string, items: any[] }> = {};
+    itemsToRestock.forEach(p => {
+      const supplierId = p.lastSupplierId || ""; // "" represents Public/No Supplier
+      const supplierName = p.lastSupplier || "Público en General / Sin Proveedor";
+      
+      if (!groups[supplierId]) {
+        groups[supplierId] = { supplierName, items: [] };
+      }
+      
+      groups[supplierId].items.push({
+        productId: p.id,
+        name: p.name,
+        quantity: p.suggestedRestock,
+        cost: p.cost,
+        imageUrl: p.imageUrl
+      });
+    });
+
+    // 3. Load existing purchase tabs from localStorage
+    const activeBranchId = branchId === 'ALL' ? 'GLOBAL' : branchId;
+    const localStorageKey = `caanma_active_purchase_tabs_${activeBranchId}`;
+    const localStorageActiveIdKey = `caanma_active_purchase_tab_id_${activeBranchId}`;
+
+    let existingTabs: any[] = [];
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(localStorageKey);
+      if (stored) {
+        try {
+          existingTabs = JSON.parse(stored) || [];
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+
+    // Ensure we don't keep an empty default tab
+    if (existingTabs.length === 1 && existingTabs[0].items.length === 0 && existingTabs[0].supplierId === '') {
+      existingTabs = [];
+    }
+
+    let lastActiveTabId = "";
+
+    // 4. Merge or create new tabs
+    Object.keys(groups).forEach(supplierId => {
+      const { supplierName, items: newItems } = groups[supplierId];
+      
+      // Look if tab for this supplier already exists
+      const existingTabIdx = existingTabs.findIndex(t => t.supplierId === supplierId);
+      
+      if (existingTabIdx !== -1) {
+        // Merge items into existing tab
+        const currentItems = [...existingTabs[existingTabIdx].items];
+        newItems.forEach(newItem => {
+          const matchIdx = currentItems.findIndex(ci => ci.productId === newItem.productId);
+          if (matchIdx !== -1) {
+            currentItems[matchIdx].quantity = Math.max(currentItems[matchIdx].quantity, newItem.quantity);
+          } else {
+            currentItems.push(newItem);
+          }
+        });
+        existingTabs[existingTabIdx].items = currentItems;
+        lastActiveTabId = existingTabs[existingTabIdx].id;
+      } else {
+        // Create new tab
+        const newTabId = Math.random().toString(36).substr(2, 9);
+        const newTab = {
+          id: newTabId,
+          name: `Pedido - ${supplierName.split(' / ')[0]}`,
+          supplierId: supplierId,
+          notes: `Generado automáticamente desde Reporte de Resurtido (${new Date().toLocaleDateString()})`,
+          items: newItems
+        };
+        existingTabs.push(newTab);
+        lastActiveTabId = newTabId;
+      }
+    });
+
+    // 5. Save back to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(localStorageKey, JSON.stringify(existingTabs));
+      if (lastActiveTabId) {
+        localStorage.setItem(localStorageActiveIdKey, lastActiveTabId);
+      }
+    }
+
+    alert(`¡Se agregaron los faltantes correctamente a los pedidos por proveedor! Redirigiendo a la pantalla de pedidos...`);
+    
+    // 6. Redirect to nuevo pedido page
+    router.push('/productos/pedidos/nuevo');
+  };
   const [category, setCategory] = useState('ALL');
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -252,14 +359,37 @@ export default function RestockClient({
             Sugerencia de abastecimiento de stock en base al ritmo de venta y stock actual.
           </p>
         </div>
-        <button 
-          onClick={downloadCSV}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0f172a', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor='#1e293b'}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor='#0f172a'}
-        >
-          <ArrowDownToLine size={18} /> Exportar CSV
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <button 
+            onClick={handleAddToOrder}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              backgroundColor: '#8b5cf6', 
+              color: 'white', 
+              border: 'none', 
+              padding: '0.65rem 1.25rem', 
+              borderRadius: '8px', 
+              fontWeight: 'bold', 
+              cursor: 'pointer', 
+              transition: 'background-color 0.2s',
+              boxShadow: '0 4px 6px -1px rgba(139, 92, 246, 0.2)'
+            }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor='#7c3aed'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor='#8b5cf6'}
+          >
+            <ShoppingCart size={18} /> Agregar a pedido
+          </button>
+          <button 
+            onClick={downloadCSV}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0f172a', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor='#1e293b'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor='#0f172a'}
+          >
+            <ArrowDownToLine size={18} /> Exportar CSV
+          </button>
+        </div>
       </div>
 
       {/* Advanced Filter Bar */}

@@ -942,6 +942,7 @@ export async function getRestockReportData(
     include: {
       supplier: {
         select: {
+          id: true,
           name: true
         }
       }
@@ -961,6 +962,7 @@ export async function getRestockReportData(
           createdAt: true,
           supplier: {
             select: {
+              id: true,
               name: true
             }
           }
@@ -974,12 +976,13 @@ export async function getRestockReportData(
     }
   });
 
-  const lastSupplierMap = new Map<string, string>();
+  const lastSupplierMap = new Map<string, { id: string; name: string }>();
   purchaseItems.forEach(item => {
     if (!lastSupplierMap.has(item.productId)) {
       const supplierName = item.purchase?.supplier?.name;
-      if (supplierName) {
-        lastSupplierMap.set(item.productId, supplierName);
+      const supplierId = item.purchase?.supplier?.id;
+      if (supplierName && supplierId) {
+        lastSupplierMap.set(item.productId, { id: supplierId, name: supplierName });
       }
     }
   });
@@ -1011,7 +1014,9 @@ export async function getRestockReportData(
   const data = products.map(p => {
     const quantitySold = salesMap.get(p.id) || 0;
     const dailyAvg = quantitySold / daysDiff;
-    const lastSupplier = lastSupplierMap.get(p.id) || p.supplier?.name || 'N/A';
+    const lastSupplierData = lastSupplierMap.get(p.id) || (p.supplier ? { id: p.supplier.id, name: p.supplier.name } : null);
+    const lastSupplier = lastSupplierData?.name || 'N/A';
+    const lastSupplierId = lastSupplierData?.id || null;
     return {
       id: p.id,
       name: p.name,
@@ -1019,6 +1024,7 @@ export async function getRestockReportData(
       barcode: p.barcode || 'N/A',
       imageUrl: p.imageUrl || null,
       lastSupplier,
+      lastSupplierId,
       category: p.category || 'Sin Categoría',
       stock: p.stock || 0,
       cost: p.cost || 0,
