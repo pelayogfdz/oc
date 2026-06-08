@@ -80,30 +80,7 @@ export default async function Header() {
         {/* IA Shortcut Link */}
         <Link 
           href="/ia" 
-          className="desktop-only-header-item"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            padding: '0.4rem 0.85rem',
-            borderRadius: '9999px',
-            backgroundColor: '#eff6ff',
-            border: '1px solid #bfdbfe',
-            color: '#1d4ed8',
-            textDecoration: 'none',
-            fontWeight: '600',
-            fontSize: '0.85rem',
-            transition: 'all 0.2s',
-            boxShadow: '0 1px 2px rgba(30, 64, 175, 0.05)'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#dbeafe';
-            e.currentTarget.style.color = '#1e40af';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#eff6ff';
-            e.currentTarget.style.color = '#1d4ed8';
-          }}
+          className="desktop-only-header-item header-ia-link"
         >
           <Sparkles size={14} style={{ color: '#3b82f6' }} />
           <span>IA</span>
