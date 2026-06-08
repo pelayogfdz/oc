@@ -72,11 +72,11 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
         height: '100vh',
         boxShadow: '2px 0 10px rgba(0,0,0,0.1)',
 
-      overflowY: 'auto',
-      fontSize: '0.9rem'
+      overflowY: 'hidden',
+      fontSize: '0.82rem'
     }}>
       {/* Brand Header */}
-      <div style={{ padding: '1.5rem', marginBottom: '0.5rem' }}>
+      <div style={{ padding: '0.75rem 1rem', marginBottom: '0.25rem' }}>
         <Link href="/" style={{ textDecoration: 'none', color: 'var(--pulpos-text)', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
           <div style={{
             width: '28px',
@@ -99,7 +99,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
       
       {/* Nueva Venta Button */}
       {!isSuperAdmin && (
-        <div style={{ padding: '0 1rem', marginBottom: '1rem' }}>
+        <div style={{ padding: '0 0.75rem', marginBottom: '0.5rem' }}>
           <Link href="/ventas/nueva" style={{ 
             display: 'flex', 
             alignItems: 'center', 
@@ -107,12 +107,12 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
             width: '100%', 
             backgroundColor: 'var(--pulpos-primary)', 
             color: 'white', 
-            padding: '0.75rem 1rem', 
+            padding: '0.5rem 0.75rem', 
             borderRadius: '8px', 
             textDecoration: 'none',
             fontWeight: 'bold',
             transition: 'background 0.2s',
-            fontSize: '1rem'
+            fontSize: '0.9rem'
           }}>
             <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '50%', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px' }}>
               <span style={{ fontSize: '16px', lineHeight: 1, fontWeight: 'bold' }}>+</span>
@@ -123,7 +123,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
       )}
 
       {/* Main Navigation */}
-      <nav style={{ flex: 1, padding: '0.5rem 1rem 2rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+      <nav style={{ flex: 1, padding: '0.25rem 0.5rem 0.5rem 0.5rem', display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
         {navStructure.map((node) => {
           // Check permissions
           if (!isSuperAdmin && node.requiredPermission && userRole !== 'OWNER' && userRole !== 'ADMIN') {
@@ -146,7 +146,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: '1rem', 
-                  padding: '0.75rem 1rem', 
+                  padding: '0.4rem 0.75rem', 
                   borderRadius: '6px', 
                   textDecoration: 'none', 
                   backgroundColor: NodeActive ? 'var(--pulpos-sidebar-hover)' : 'transparent',
@@ -177,7 +177,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: '1rem', 
-                  padding: '0.75rem 1rem', 
+                  padding: '0.4rem 0.75rem', 
                   borderRadius: '6px', 
                   cursor: 'pointer',
                   color: NodeActive && !isOpen ? 'var(--pulpos-primary)' : 'inherit', // In pulpos, active parents look highlighted if closed
@@ -246,7 +246,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: '1rem', 
-                padding: '0.75rem 1rem', 
+                padding: '0.4rem 0.75rem', 
                 borderRadius: '6px', 
                 textDecoration: 'none', 
                 color: 'var(--pulpos-text-muted)',
@@ -266,7 +266,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: '1rem', 
-                padding: '0.75rem 1rem', 
+                padding: '0.4rem 0.75rem', 
                 marginTop: '0.5rem',
                 borderRadius: '6px', 
                 textDecoration: 'none', 

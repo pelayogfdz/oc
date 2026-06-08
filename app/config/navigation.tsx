@@ -24,7 +24,6 @@ export type MenuNode = {
 
 export const navStructure: MenuNode[] = [
   { title: 'Mi Portal', path: '/mi-portal', icon: <UserCircle size={20} /> },
-  { title: 'IA', path: '/ia', icon: <Sparkles size={20} /> },
   { 
     title: 'Ventas', icon: <Banknote size={20} />, 
     requiredPermission: ['pos_access', 'pos_discount', 'pos_cancel', 'pos_returns'],
