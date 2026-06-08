@@ -26,10 +26,15 @@ export default async function NuevoTraspasoPage() {
     }
   });
 
-  // Load origin inventory (Active branch)
+  // Load origin inventory (Active branch) - limit to 50 for fast page load
   const originProducts = await prisma.product.findMany({
-    where: { branchId: branch?.id || '' },
-    include: { variants: true }
+    where: { 
+      branchId: branch?.id || '',
+      isActive: true
+    },
+    include: { variants: true },
+    orderBy: { updatedAt: 'desc' },
+    take: 50
   });
 
   const settings = await getBranchSettings();

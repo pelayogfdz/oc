@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { requestTransfer, getBranchStocksForTransfer } from '@/app/actions/transfer';
+import { searchProducts } from '@/app/actions/product';
 import { useRouter } from 'next/navigation';
 import { Truck, ArrowRight, Trash2, Search, Plus, Minus, FileText, CheckCircle2, ShoppingBag, Camera, ArrowDownUp } from 'lucide-react';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
@@ -14,6 +15,8 @@ export default function TransferClient({ originBranchId, originBranchName, other
   const [stockFilter, setStockFilter] = useState('ALL');
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [products, setProducts] = useState<any[]>(inventory);
+  const [isSearching, setIsSearching] = useState(false);
   
   const [transferItems, setTransferItems] = useState<any[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -43,6 +46,28 @@ export default function TransferClient({ originBranchId, originBranchName, other
       }
     }
   }, [originBranchId]);
+
+  // Debounced search for products on-demand
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setProducts(inventory);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await searchProducts(searchTerm, originBranchId);
+        setProducts(results || []);
+      } catch (error) {
+        console.error("Error searching products:", error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, originBranchId, inventory]);
 
   // Load stocks when fromBranchId changes
   useEffect(() => {
@@ -82,18 +107,18 @@ export default function TransferClient({ originBranchId, originBranchName, other
     setTransferItems(prevItems => {
       let changed = false;
       const updated = prevItems.map(item => {
-        const localProduct = inventory.find((p: any) => p.id === item.productId);
-        if (!localProduct) return item;
-
         let newMaxStock = 0;
+        const pSku = item.productSku || inventory.find((p: any) => p.id === item.productId)?.sku;
         if (item.variantId) {
-          const localVariant = localProduct.variants?.find((v: any) => v.id === item.variantId);
-          if (localVariant) {
-            const key = `${localProduct.sku}_${localVariant.attribute}`;
+          const vAttr = item.variantAttribute || inventory.find((p: any) => p.id === item.productId)?.variants?.find((v: any) => v.id === item.variantId)?.attribute;
+          if (pSku && vAttr) {
+            const key = `${pSku}_${vAttr}`;
             newMaxStock = sourceStocks.variantStocks[key] ?? 0;
           }
         } else {
-          newMaxStock = sourceStocks.productStocks[localProduct.sku] ?? 0;
+          if (pSku) {
+            newMaxStock = sourceStocks.productStocks[pSku] ?? 0;
+          }
         }
 
         if (item.maxStock !== newMaxStock) {
@@ -160,7 +185,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
 
   const removeAccents = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-  const displayedProducts = inventory.filter((p: any) => {
+  const displayedProducts = products.filter((p: any) => {
     // Stock Filter in origin branch
     const sourceStock = sourceStocks ? (sourceStocks.productStocks[p.sku] ?? 0) : 0;
     if (stockFilter === 'WITH_STOCK' && sourceStock <= 0) return false;
@@ -212,6 +237,8 @@ export default function TransferClient({ originBranchId, originBranchName, other
         variantId: variant ? variant.id : null,
         name,
         sku,
+        productSku: product.sku,
+        variantAttribute: variant ? variant.attribute : null,
         maxStock,
         quantity: 1,
         imageUrl: product.imageUrl
@@ -709,7 +736,12 @@ export default function TransferClient({ originBranchId, originBranchName, other
 
             {/* Results list */}
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', minHeight: '300px' }}>
-              {displayedProducts.length === 0 ? (
+              {isSearching ? (
+                <div style={{ padding: '4rem 2rem', textAlign: 'center', color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
+                  <div className="animate-spin" style={{ width: '32px', height: '32px', border: '3px solid #f3e8ff', borderTopColor: '#8b5cf6', borderRadius: '50%' }} />
+                  <span style={{ fontSize: '0.95rem', fontWeight: '500', color: '#64748b' }}>Buscando productos...</span>
+                </div>
+              ) : displayedProducts.length === 0 ? (
                 <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No se encontraron productos coincidentes</div>
               ) : (
                 displayedProducts.slice(0, 30).map((p: any) => {
