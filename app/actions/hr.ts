@@ -833,3 +833,38 @@ export async function verifyUserPassword(userId: string, password: string) {
   }
 }
 
+export async function registerAttendanceByFingerprint(data: {
+  credentialId: string;
+  type: 'CHECK_IN' | 'CHECK_OUT';
+  latitude?: number;
+  longitude?: number;
+  deviceInfo?: string;
+  timestamp?: string;
+}) {
+  try {
+    const user = await prisma.user.findFirst({
+      where: {
+        webauthnCredentialId: data.credentialId
+      }
+    });
+
+    if (!user) {
+      return { success: false, error: "Huella dactilar no reconocida o no asociada a ningún colaborador." };
+    }
+
+    // Invoke existing registerAttendance helper
+    return await registerAttendance({
+      userId: user.id,
+      type: data.type,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      deviceInfo: data.deviceInfo,
+      timestamp: data.timestamp
+    });
+  } catch (e: any) {
+    console.error("Error in registerAttendanceByFingerprint Server Action:", e);
+    return { success: false, error: e.message || "Error al registrar asistencia por huella dactilar." };
+  }
+}
+
+

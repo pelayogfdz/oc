@@ -131,3 +131,45 @@ export async function authenticateFingerprint(credentialId: string) {
     throw new Error("Error al verificar huella: " + err.message);
   }
 }
+
+/**
+ * Authenticates any registered user by requesting their fingerprint via WebAuthn discoverable credentials.
+ * Returns the credentialId (base64url) of the matched fingerprint.
+ */
+export async function authenticateFingerprintAuto(): Promise<string> {
+  if (typeof window === 'undefined' || !window.PublicKeyCredential) {
+    throw new Error("La autenticación biométrica no es soportada por este navegador o dispositivo.");
+  }
+
+  // Check if platform biometric authentication is available
+  const platformAuthAvailable = await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+  if (!platformAuthAvailable) {
+    throw new Error("No hay un lector biométrico activo compatible con Windows Hello. Si usas el lector USB HID (de la foto), asegúrate de que esté conectado y tenga instalado el controlador WBF.");
+  }
+
+  // Create unique challenge
+  const challenge = new Uint8Array(32);
+  window.crypto.getRandomValues(challenge);
+
+  const options: PublicKeyCredentialRequestOptions = {
+    challenge: challenge,
+    // Omitting allowCredentials triggers the discoverable credentials flow
+    userVerification: "required",
+    timeout: 60000
+  };
+
+  try {
+    const assertion = await navigator.credentials.get({ publicKey: options }) as PublicKeyCredential;
+    if (!assertion) {
+      throw new Error("La verificación de huella dactilar falló.");
+    }
+
+    return base64UrlFromBuffer(assertion.rawId);
+  } catch (err: any) {
+    if (err.name === 'NotAllowedError') {
+      throw new Error("El proceso de autenticación fue cancelado o no se colocó el dedo a tiempo en el lector.");
+    }
+    throw new Error("Error al verificar huella: " + err.message);
+  }
+}
+
