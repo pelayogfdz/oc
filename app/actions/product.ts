@@ -176,54 +176,72 @@ export async function createProduct(prevState: any, formData: FormData) {
 
 export async function updateProduct(productId: string, formData: FormData) {
   try {
-    const branchId = formData.get('branchId') as string;
-    const sku = formData.get('sku') as string;
-    const barcode = (formData.get('barcode') as string) || null;
-    const name = formData.get('name') as string;
-    const description = formData.get('description') as string;
-    
-    const price = parseFloat(formData.get('price') as string) || 0;
-    const cost = parseFloat(formData.get('cost') as string) || 0;
-    const taxRate = parseFloat(formData.get('taxRate') as string) || 16.0;
-    
-    const category = formData.get('category') as string;
-    const brand = formData.get('brand') as string;
-    const imageUrl = formData.get('imageUrl') as string;
-    const youtubeUrl = formData.get('youtubeUrl') as string;
-    const isActive = formData.get('isActive') !== 'false';
-    const unit = formData.get('unit') as string || 'Pza';
-    const satKey = (formData.get('satKey') as string) || null;
-    const satUnit = (formData.get('satUnit') as string) || null;
-    const minStock = parseInt(formData.get('minStock') as string, 10) || 0;
-    const supplierId = (formData.get('supplierId') as string) || null;
-    const expirationDateStr = formData.get('expirationDate') as string;
-    const expirationDate = expirationDateStr ? new Date(expirationDateStr) : null;
+    const sku = formData.get('sku');
+    const name = formData.get('name');
 
-    if (!sku || !name || !branchId) return;
+    if (sku !== null && !sku) return;
+    if (name !== null && !name) return;
 
-    await prisma.product.update({
-      where: { id: productId },
-      data: {
-        sku,
-        barcode,
-        name,
-        description,
-        price,
-        cost,
-        taxRate,
-        category,
-        brand,
-        imageUrl,
-        youtubeUrl,
-        isActive,
-        unit,
-        minStock,
-        supplierId,
-        satKey,
-        satUnit,
-        expirationDate
-      }
-    });
+    const data: any = {};
+    if (sku !== null) data.sku = sku as string;
+    if (name !== null) data.name = name as string;
+    
+    const barcode = formData.get('barcode');
+    if (barcode !== null) data.barcode = (barcode as string) || null;
+
+    const description = formData.get('description');
+    if (description !== null) data.description = (description as string) || null;
+
+    const price = formData.get('price');
+    if (price !== null) data.price = parseFloat(price as string) || 0;
+
+    const cost = formData.get('cost');
+    if (cost !== null) data.cost = parseFloat(cost as string) || 0;
+
+    const taxRate = formData.get('taxRate');
+    if (taxRate !== null) data.taxRate = parseFloat(taxRate as string) || 16.0;
+
+    const category = formData.get('category');
+    if (category !== null) data.category = (category as string) || null;
+
+    const brand = formData.get('brand');
+    if (brand !== null) data.brand = (brand as string) || null;
+
+    const imageUrl = formData.get('imageUrl');
+    if (imageUrl !== null) data.imageUrl = (imageUrl as string) || null;
+
+    const youtubeUrl = formData.get('youtubeUrl');
+    if (youtubeUrl !== null) data.youtubeUrl = (youtubeUrl as string) || null;
+
+    const isActive = formData.get('isActive');
+    if (isActive !== null) data.isActive = isActive !== 'false';
+
+    const unit = formData.get('unit');
+    if (unit !== null) data.unit = (unit as string) || 'Pza';
+
+    const minStock = formData.get('minStock');
+    if (minStock !== null) data.minStock = parseInt(minStock as string, 10) || 0;
+
+    const supplierId = formData.get('supplierId');
+    if (supplierId !== null) data.supplierId = (supplierId as string) || null;
+
+    const satKey = formData.get('satKey');
+    if (satKey !== null) data.satKey = (satKey as string) || null;
+
+    const satUnit = formData.get('satUnit');
+    if (satUnit !== null) data.satUnit = (satUnit as string) || null;
+
+    const expirationDateStr = formData.get('expirationDate');
+    if (expirationDateStr !== null) {
+      data.expirationDate = (expirationDateStr as string) ? new Date(expirationDateStr as string) : null;
+    }
+
+    if (Object.keys(data).length > 0) {
+      await prisma.product.update({
+        where: { id: productId },
+        data
+      });
+    }
 
     // Upsert dynamic prices
     const keys = Array.from(formData.keys());

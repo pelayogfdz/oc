@@ -24,16 +24,26 @@ export default function BranchSelector({ branches, currentBranchId }: { branches
       onChange={handleChange}
       disabled={isLoading || branches.length <= 1}
       style={{
-        fontWeight: 'bold',
-        fontSize: '0.875rem',
-        padding: '0.25rem 0.5rem',
-        borderRadius: '4px',
-        border: '1px solid var(--pulpos-border)',
-        backgroundColor: 'var(--pulpos-bg)',
+        fontWeight: '600',
+        fontSize: '0.85rem',
+        padding: '0.4rem 2rem 0.4rem 1rem',
+        borderRadius: '9999px',
+        border: '1px solid #e2e8f0',
+        backgroundColor: '#f8fafc',
         cursor: 'pointer',
         outline: 'none',
-        color: 'var(--pulpos-text)',
-        maxWidth: '200px'
+        color: '#1e293b',
+        maxWidth: '180px',
+        appearance: 'none',
+        backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'right 0.75rem center',
+        backgroundSize: '1rem',
+        transition: 'all 0.2s ease-in-out',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden'
       }}
     >
       {branches.map(b => (

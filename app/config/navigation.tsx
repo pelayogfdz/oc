@@ -31,6 +31,7 @@ export const navStructure: MenuNode[] = [
     items: [
       { name: 'Historial de Ventas', path: '/ventas' },
       { name: 'Bandeja WhatsApp', path: '/ventas/whatsapp', badge: 'Admin', desktopOnly: true },
+      { name: 'Conexión WhatsApp', path: '/configuracion/whatsapp', badge: 'CRM', desktopOnly: true },
       { name: 'Prospección (CRM)', path: '/ventas/prospeccion', badge: 'Kanban', desktopOnly: true },
       { name: 'Promociones y Descuentos', path: '/ventas/promociones' },
       { name: 'Devoluciones', path: '/ventas/devoluciones' },
@@ -154,5 +155,4 @@ export const navStructure: MenuNode[] = [
 
 export const footerNodes: MenuNode[] = [
   { title: 'Preferencias', path: '/preferencias/general', icon: <Settings size={20} />, requiredPermission: ['sys_settings_access', 'sys_users'] },
-  { title: 'Conexión WhatsApp', path: '/configuracion/whatsapp', icon: <MonitorSmartphone size={20} />, badge: 'CRM', desktopOnly: true, requiredPermission: ['sys_settings_access'] },
 ];

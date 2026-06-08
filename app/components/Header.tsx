@@ -6,6 +6,8 @@ import DesktopMenuToggle from './DesktopMenuToggle';
 import HeaderNetworkStatus from './HeaderNetworkStatus';
 import HeaderTitle from './HeaderTitle';
 import GlobalSearch from './GlobalSearch';
+import Link from 'next/link';
+import { Sparkles } from 'lucide-react';
 
 export default async function Header() {
   const [currentBranch, currentUser] = await Promise.all([
@@ -71,26 +73,76 @@ export default async function Header() {
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <HeaderNetworkStatus />
-        <GlobalSearch />
+        <div className="desktop-only-header-item">
+          <GlobalSearch />
+        </div>
+        
+        {/* IA Shortcut Link */}
+        <Link 
+          href="/ia" 
+          className="desktop-only-header-item"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            padding: '0.4rem 0.85rem',
+            borderRadius: '9999px',
+            backgroundColor: '#eff6ff',
+            border: '1px solid #bfdbfe',
+            color: '#1d4ed8',
+            textDecoration: 'none',
+            fontWeight: '600',
+            fontSize: '0.85rem',
+            transition: 'all 0.2s',
+            boxShadow: '0 1px 2px rgba(30, 64, 175, 0.05)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#dbeafe';
+            e.currentTarget.style.color = '#1e40af';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#eff6ff';
+            e.currentTarget.style.color = '#1d4ed8';
+          }}
+        >
+          <Sparkles size={14} style={{ color: '#3b82f6' }} />
+          <span>IA</span>
+        </Link>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div className="header-user-info" style={{ textAlign: 'right' }}>
-            <div style={{ marginBottom: '0.25rem' }}>
-              {currentUser?.email?.toLowerCase() !== 'pelayogfdz@gmail.com' && (
-                <BranchSelector branches={finalOptions} currentBranchId={currentBranch?.id || ''} />
-              )}
+          {currentUser?.email?.toLowerCase() !== 'pelayogfdz@gmail.com' && (
+            <div>
+              <BranchSelector branches={finalOptions} currentBranchId={currentBranch?.id || ''} />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.75rem' }}>{currentUser?.name || 'Usuario'}</span>
-              <form action={async () => { 'use server'; await logout(); }} style={{ margin: 0, padding: 0 }}>
-                 <button type="submit" style={{ background: 'none', border: 'none', padding: 0, margin: 0, color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline', fontWeight: 'bold' }}>
+          )}
+          
+          <div className="header-user-info" style={{ textAlign: 'right' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.4rem' }}>
+              <span style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: '500' }}>{currentUser?.name || 'Usuario'}</span>
+              <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>|</span>
+              <form action={async () => { 'use server'; await logout(); }} style={{ margin: 0, padding: 0, display: 'inline' }}>
+                 <button type="submit" style={{ background: 'none', border: 'none', padding: 0, margin: 0, color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '600' }}>
                    Salir
                  </button>
               </form>
             </div>
           </div>
-          <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--pulpos-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'white' }}>
-            {currentUser?.name ? currentUser.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'US'}
+          
+          <div style={{ 
+            width: '32px', 
+            height: '32px', 
+            borderRadius: '50%', 
+            backgroundColor: 'var(--pulpos-primary)', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            fontWeight: '700', 
+            fontSize: '0.8rem',
+            color: 'white',
+            flexShrink: 0,
+            boxShadow: '0 0 0 2px #fff, 0 0 0 3px var(--pulpos-primary)'
+          }}>
+            {currentUser?.name ? currentUser.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'US'}
           </div>
         </div>
       </div>

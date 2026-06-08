@@ -124,6 +124,10 @@ button {
     display: none !important;
   }
 
+  .desktop-only-header-item {
+    display: none !important;
+  }
+
   .desktop-sidebar-wrapper {
     display: none !important;
   }
