@@ -12,6 +12,7 @@ import { cookies } from 'next/headers';
 import { getActiveUser } from '@/app/actions/auth';
 import { prisma } from '@/lib/prisma';
 import FloatingWhatsappWidget from '../components/FloatingWhatsappWidget';
+import CollaboratorTaskPopup from '../components/CollaboratorTaskPopup';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,6 +65,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <MobileGridMenu isSuperAdmin={isSuperAdmin} userPermissions={userPermissions} userRole={userRole} />
         <MobileBottomNav />
         {user && <FloatingWhatsappWidget />}
+        {user && <CollaboratorTaskPopup userId={user.id} />}
       </MobileMenuProvider>
     </OfflineSyncProvider>
   );

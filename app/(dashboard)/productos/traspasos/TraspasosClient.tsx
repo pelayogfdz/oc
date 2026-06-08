@@ -1,26 +1,82 @@
 'use client';
 
 import { useState } from 'react';
-import { Truck, Search, LayoutGrid, List, FileText, ArrowRight, MoreVertical } from 'lucide-react';
+import { Truck, Search, LayoutGrid, List, FileText, ArrowRight, MoreVertical, SlidersHorizontal, X, Hash } from 'lucide-react';
 import Link from 'next/link';
 
-export default function TraspasosClient({ initialTransfers, currentBranchId }: { initialTransfers: any[], currentBranchId: string }) {
+export default function TraspasosClient({ 
+  initialTransfers, 
+  currentBranchId,
+  branches = []
+}: { 
+  initialTransfers: any[], 
+  currentBranchId: string,
+  branches?: { id: string; name: string }[]
+}) {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
+  // Filter States
+  const [idFilter, setIdFilter] = useState('');
+  const [fromBranchFilter, setFromBranchFilter] = useState('');
+  const [toBranchFilter, setToBranchFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
   const filteredTransfers = initialTransfers.filter(transfer => {
-    const term = searchTerm.toLowerCase();
-    const idMatch = transfer.id.toLowerCase().includes(term);
-    const branchNameMatch = (transfer.branch?.name || '').toLowerCase().includes(term);
-    const toBranchNameMatch = (transfer.toBranch?.name || '').toLowerCase().includes(term);
-    return idMatch || branchNameMatch || toBranchNameMatch;
+    // Search Term (General search on ID or branch names)
+    const term = searchTerm.toLowerCase().trim();
+    const matchesGeneral = term === '' || 
+      transfer.id.toLowerCase().includes(term) ||
+      (transfer.branch?.name || '').toLowerCase().includes(term) ||
+      (transfer.toBranch?.name || '').toLowerCase().includes(term);
+
+    // ID Filter Match (specific)
+    const matchesId = idFilter.trim() === '' || 
+      transfer.id.toLowerCase().includes(idFilter.toLowerCase().trim());
+
+    // Sending Branch Filter Match
+    const matchesFromBranch = fromBranchFilter === '' || 
+      transfer.branchId === fromBranchFilter;
+
+    // Receiving Branch Filter Match
+    const matchesToBranch = toBranchFilter === '' || 
+      transfer.toBranchId === toBranchFilter;
+
+    // Status Filter Match
+    const matchesStatus = statusFilter === '' || 
+      transfer.status === statusFilter;
+
+    // Date Filter Match
+    let matchesDate = true;
+    if (dateFilter) {
+      const transferDate = new Date(transfer.createdAt);
+      const year = transferDate.getFullYear();
+      const month = String(transferDate.getMonth() + 1).padStart(2, '0');
+      const day = String(transferDate.getDate()).padStart(2, '0');
+      const formattedTransferDate = `${year}-${month}-${day}`;
+      matchesDate = formattedTransferDate === dateFilter;
+    }
+
+    return matchesGeneral && matchesId && matchesFromBranch && matchesToBranch && matchesStatus && matchesDate;
   });
+
+  const clearFilters = () => {
+    setIdFilter('');
+    setFromBranchFilter('');
+    setToBranchFilter('');
+    setDateFilter('');
+    setStatusFilter('');
+    setSearchTerm('');
+  };
+
+  const hasActiveFilters = idFilter || fromBranchFilter || toBranchFilter || dateFilter || statusFilter || searchTerm;
 
   return (
     <div style={{ fontFamily: 'var(--font-geist-sans)' }}>
       {/* Toolbar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', gap: '1rem', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', gap: '1rem', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', maxWidth: '600px', position: 'relative' }}>
           <Search size={18} style={{ position: 'absolute', left: '1rem', color: 'var(--pulpos-text-muted)' }} />
           <input 
@@ -45,6 +101,165 @@ export default function TraspasosClient({ initialTransfers, currentBranchId }: {
           >
             <List size={20} />
           </button>
+        </div>
+      </div>
+
+      {/* Advanced Filters */}
+      <div style={{ 
+        backgroundColor: 'white', 
+        border: '1px solid var(--pulpos-border)', 
+        borderRadius: '12px', 
+        padding: '1.25rem', 
+        marginBottom: '2rem', 
+        boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, fontSize: '0.9rem', color: 'var(--pulpos-text)' }}>
+            <SlidersHorizontal size={16} color="var(--pulpos-primary)" />
+            <span>Filtros detallados</span>
+          </div>
+          {hasActiveFilters && (
+            <button 
+              onClick={clearFilters}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--pulpos-primary)',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                padding: '0.25rem 0.5rem',
+                borderRadius: '4px',
+                backgroundColor: '#f8fafc'
+              }}
+            >
+              <X size={12} /> Limpiar filtros
+            </button>
+          )}
+        </div>
+
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
+          gap: '1rem' 
+        }}>
+          {/* ID Filter */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>ID del Traspaso</label>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <Hash size={14} style={{ position: 'absolute', left: '0.75rem', color: '#94a3b8' }} />
+              <input 
+                type="text" 
+                placeholder="Filtrar por ID..."
+                value={idFilter}
+                onChange={e => setIdFilter(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem 0.75rem 0.5rem 2rem',
+                  borderRadius: '6px',
+                  border: '1px solid var(--pulpos-border)',
+                  fontSize: '0.85rem',
+                  outline: 'none',
+                  backgroundColor: '#f8fafc'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Sending Branch Filter */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Sucursal que envía</label>
+            <select
+              value={fromBranchFilter}
+              onChange={e => setFromBranchFilter(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.5rem 0.75rem',
+                borderRadius: '6px',
+                border: '1px solid var(--pulpos-border)',
+                fontSize: '0.85rem',
+                outline: 'none',
+                backgroundColor: '#f8fafc',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="">Todas</option>
+              {branches.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Receiving Branch Filter */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Sucursal que recibe</label>
+            <select
+              value={toBranchFilter}
+              onChange={e => setToBranchFilter(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.5rem 0.75rem',
+                borderRadius: '6px',
+                border: '1px solid var(--pulpos-border)',
+                fontSize: '0.85rem',
+                outline: 'none',
+                backgroundColor: '#f8fafc',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="">Todas</option>
+              {branches.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Date Filter */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Fecha de creación</label>
+            <input 
+              type="date" 
+              value={dateFilter}
+              onChange={e => setDateFilter(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.4rem 0.75rem',
+                borderRadius: '6px',
+                border: '1px solid var(--pulpos-border)',
+                fontSize: '0.85rem',
+                outline: 'none',
+                backgroundColor: '#f8fafc',
+                cursor: 'pointer'
+              }}
+            />
+          </div>
+
+          {/* Status Filter */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Estatus</label>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.5rem 0.75rem',
+                borderRadius: '6px',
+                border: '1px solid var(--pulpos-border)',
+                fontSize: '0.85rem',
+                outline: 'none',
+                backgroundColor: '#f8fafc',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="">Todos</option>
+              <option value="REQUESTED">Solicitado</option>
+              <option value="IN_TRANSIT">En Tránsito</option>
+              <option value="COMPLETED">Completado</option>
+            </select>
+          </div>
         </div>
       </div>
 

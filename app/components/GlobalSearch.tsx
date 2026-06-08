@@ -391,22 +391,22 @@ const SEARCH_DIRECTORY: SearchItem[] = [
     }
   },
   {
-    name: 'Panadería y Producción',
-    path: '/panaderia',
+    name: 'Procesos y Producción',
+    path: '/procesos',
     category: 'Producción',
-    description: 'Gestión de recetas de producción, mermas de insumos, costos de ingredientes y órdenes de fabricación.',
-    keywords: ['panaderia', 'recetas', 'produccion de pan', 'insumos', 'harina', 'mermas de produccion', 'fabricacion'],
+    description: 'Gestión de fórmulas de producción, asignación de tareas a colaboradores, mermas de insumos y órdenes de fabricación.',
+    keywords: ['procesos', 'formulas', 'insumos', 'tareas', 'colaboradores', 'mermas', 'fabricacion'],
     manual: {
-      purpose: 'Controlar los ingredientes y costos de las recetas y emitir órdenes de producción automáticas que descuentan materia prima.',
+      purpose: 'Controlar los ingredientes de fórmulas, emitir órdenes de producción y asignar tareas recurrentes o únicas a colaboradores.',
       steps: [
-        'Accede a Panadería en el menú lateral.',
-        'Crea recetas de tus productos terminados (ej. Pan dulce) detallando el peso exacto de insumos necesarios (Harina, Azúcar, etc.).',
-        'Genera una "Orden de Producción" por la cantidad de piezas deseadas.',
-        'Al confirmar, el sistema descontará la materia prima en base a la receta e incrementará la existencia del producto terminado.'
+        'Accede a Procesos en el menú lateral.',
+        'Asigna tareas a tus colaboradores con instrucciones claras. Se les enviará un correo y les aparecerá un pop-up para subir evidencia.',
+        'Crea fórmulas de tus productos terminados detallando insumos requeridos.',
+        'Genera una "Orden de Producción" para descontar materias primas e incrementar el stock del producto terminado.'
       ],
       faq: [
-        { q: '¿Cómo registro la merma de ingredientes?', a: 'En el módulo de producción, selecciona "Ajuste de materia prima" y registra los gramos perdidos para mantener la exactitud del inventario.' },
-        { q: '¿El sistema calcula el costo unitario de fabricación?', a: 'Sí, sumando los costos de compra actualizados de cada insumo utilizado en la receta.' }
+        { q: '¿Cómo suben los colaboradores la evidencia de sus tareas?', a: 'Al ingresar al sistema, verán una ventana emergente que les requiere subir una fotografía o archivo antes de marcar la tarea como completada.' },
+        { q: '¿El sistema calcula el costo unitario de fabricación?', a: 'Sí, sumando los costos de compra actualizados de cada insumo utilizado en la fórmula.' }
       ]
     }
   },

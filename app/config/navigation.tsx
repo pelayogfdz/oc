@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   Home, Tag, Package, Calculator, ArrowRightLeft, 
   Settings, UserCircle, ShoppingCart, Banknote, FileText,
-  Sparkles, MonitorSmartphone, Landmark, BarChart3, Inbox, Briefcase, Truck, ChefHat
+  Sparkles, MonitorSmartphone, Landmark, BarChart3, Inbox, Briefcase, Truck, ChefHat, ClipboardList
 } from 'lucide-react';
 
 export type MenuItem = {
@@ -101,12 +101,13 @@ export const navStructure: MenuNode[] = [
     ]
   },
   { 
-    title: 'Panadería', icon: <ChefHat size={20} />, 
+    title: 'Procesos', icon: <ClipboardList size={20} />, 
     requiredPermission: ['panaderia_access'],
     items: [
-      { name: 'Órdenes de Producción', path: '/panaderia', badge: 'Procesos' },
-      { name: 'Reporte de Producción', path: '/reportes/produccion', badge: 'Nuevo' },
-      { name: 'Recetas e Insumos', path: '/configuracion/fabricacion' },
+      { name: 'Tareas', path: '/procesos/tareas' },
+      { name: 'Órdenes de Producción', path: '/procesos', badge: 'Activas' },
+      { name: 'Reporte de Producción', path: '/reportes/produccion' },
+      { name: 'Fórmulas e Insumos', path: '/procesos/formulas' },
     ]
   },
   { 

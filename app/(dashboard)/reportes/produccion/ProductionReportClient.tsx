@@ -56,8 +56,8 @@ export default function ProductionReportClient({
 
       const res = await createProductionOrdersBulk(payload);
       if (res && res.success) {
-        alert(`¡Se crearon ${res.count} órdenes de producción con éxito! Redirigiendo al panel de panadería...`);
-        router.push('/panaderia');
+        alert(`¡Se crearon ${res.count} órdenes de producción con éxito! Redirigiendo al panel de procesos...`);
+        router.push('/procesos');
       } else {
         alert(res?.error || "Error al enviar artículos a producción.");
       }
@@ -282,7 +282,7 @@ export default function ProductionReportClient({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            📋 Reporte de Producción (Panadería)
+            📋 Reporte de Producción
           </h1>
           <p style={{ color: 'var(--pulpos-text-muted)' }}>
             Sugerencia de fabricación de stock en base al ritmo de venta y stock actual de productos con receta.

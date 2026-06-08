@@ -27,6 +27,13 @@ export default async function Page() {
     include: { toBranch: true, branch: true, createdBy: true, receivedBy: true },
     orderBy: { createdAt: 'desc' }
   });
+
+  const branches = await prisma.branch.findMany({
+    where: { tenantId: branch.tenantId, isActive: true },
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' }
+  });
+
   const SpecificIcon = (Icons as any)['Truck'] || Icons.Box;
 
   return (
@@ -50,7 +57,7 @@ export default async function Page() {
 
       <DashboardMatrix activeBranch={branch} />
 
-      <TraspasosClient initialTransfers={data} currentBranchId={branch.id} />
+      <TraspasosClient initialTransfers={data} currentBranchId={branch.id} branches={branches} />
     </div>
   );
 }

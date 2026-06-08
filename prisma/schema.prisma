@@ -119,6 +119,8 @@ model User {
   tenant                    Tenant?                  @relation(fields: [tenantId], references: [id])
   hrLocations               HrLocation[]             @relation("UserHrLocations")
   appointments              Appointment[]
+  assignedTasks             CollaboratorTask[]       @relation("AssignedTasks")
+  createdTasks              CollaboratorTask[]       @relation("CreatedTasks")
 }
 
 model Branch {
@@ -159,6 +161,7 @@ model Branch {
   transfersTo             Transfer[]               @relation("TransferTo")
   users                   User[]
   whatsappSessions        WhatsAppSession?
+  collaboratorTasks       CollaboratorTask[]
 }
 
 model BranchSettings {
@@ -1007,3 +1010,23 @@ model Appointment {
   customer    Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
   user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
+
+model CollaboratorTask {
+  id             String    @id @default(uuid())
+  title          String
+  instructions   String
+  assignedToId   String
+  assignedTo     User      @relation("AssignedTasks", fields: [assignedToId], references: [id], onDelete: Cascade)
+  createdById    String
+  createdBy      User      @relation("CreatedTasks", fields: [createdById], references: [id])
+  branchId       String
+  branch         Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  status         String    @default("PENDING") // "PENDING", "COMPLETED"
+  recurrence     String    @default("ONCE") // "ONCE", "DAILY", "WEEKLY", "MONTHLY"
+  dueDate        DateTime?
+  evidenceFile   String?   // Archivo de evidencia en formato base64/dataURL
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
