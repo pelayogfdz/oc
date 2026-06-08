@@ -6,14 +6,33 @@ import { getActiveBranch } from "./auth";
 export async function syncBasicCatalogs() {
   const branch = await getActiveBranch();
   const branchId = branch?.id || '';
+  const tenantId = branch?.tenantId || '';
 
   const customers = await prisma.customer.findMany({ where: { branchId } });
   const suppliers = await prisma.supplier.findMany();
   const branches = await prisma.branch.findMany({ where: { isActive: true } });
   const settingsDb = await prisma.branchSettings.findUnique({ where: { branchId } });
   const totalProducts = await prisma.product.count({ where: { isActive: true } });
+  
+  // Fetch active users in the tenant for offline Kiosk Mode
+  const users = await prisma.user.findMany({
+    where: { 
+      tenantId,
+      branchId: { not: null }
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      faceDescriptor: true,
+      webauthnCredentialId: true,
+      webauthnPublicKey: true,
+      branchId: true
+    }
+  });
 
-  return { customers, suppliers, branches, settings: settingsDb, totalProducts };
+  return { customers, suppliers, branches, settings: settingsDb, totalProducts, users };
 }
 
 export async function syncProductsPage(page: number, limit: number) {

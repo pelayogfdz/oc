@@ -12,12 +12,19 @@ export async function registerAttendance(data: {
   longitude?: number;
   photoUrl?: string;
   deviceInfo?: string;
+  timestamp?: string;
 }) {
   try {
     const sessionCookie = (await cookies()).get('session')?.value;
     const session = await decrypt(sessionCookie);
     
-    if (!session?.userId || session.userId !== data.userId) {
+    if (!session?.userId) {
+      return { success: false, error: "No autorizado" };
+    }
+
+    const activeUser = await prisma.user.findUnique({ where: { id: session.userId } });
+    const isAuthorized = session.userId === data.userId || activeUser?.role === 'ADMIN' || activeUser?.role === 'MANAGER';
+    if (!isAuthorized) {
       return { success: false, error: "No autorizado" };
     }
 
@@ -38,7 +45,7 @@ export async function registerAttendance(data: {
       orderBy: { timestamp: 'desc' }
     });
 
-    const now = new Date();
+    const now = data.timestamp ? new Date(data.timestamp) : new Date();
 
     if (lastLog) {
       const diffMinutes = (now.getTime() - lastLog.timestamp.getTime()) / (1000 * 60);
@@ -236,7 +243,7 @@ export async function registerAttendance(data: {
         userId: data.userId,
         type: data.type,
         status: gpsWarningPrefix ? 'OUTSIDE_RADIUS' : status,
-        timestamp: new Date(),
+        timestamp: now,
         lat: data.latitude,
         lng: data.longitude,
         photoUrl: data.photoUrl,
@@ -273,7 +280,14 @@ export async function registerFaceDescriptor(data: {
     const sessionCookie = (await cookies()).get('session')?.value;
     const session = await decrypt(sessionCookie);
     
-    if (!session?.userId || session.userId !== data.userId) {
+    if (!session?.userId) {
+      return { success: false, error: "No autorizado" };
+    }
+
+    const activeUser = await prisma.user.findUnique({ where: { id: session.userId } });
+    const isAuthorized = session.userId === data.userId || activeUser?.role === 'ADMIN' || activeUser?.role === 'MANAGER';
+    
+    if (!isAuthorized) {
       return { success: false, error: "No autorizado" };
     }
 
@@ -290,6 +304,43 @@ export async function registerFaceDescriptor(data: {
   } catch (e: any) {
     console.error("Error in registerFaceDescriptor:", e);
     return { success: false, error: e.message || "Error al actualizar registro facial." };
+  }
+}
+
+export async function registerFingerprintCredential(data: {
+  userId: string;
+  credentialId: string;
+  publicKey: string;
+}) {
+  try {
+    const sessionCookie = (await cookies()).get('session')?.value;
+    const session = await decrypt(sessionCookie);
+    
+    if (!session?.userId) {
+      return { success: false, error: "No autorizado" };
+    }
+
+    const activeUser = await prisma.user.findUnique({ where: { id: session.userId } });
+    const isAuthorized = session.userId === data.userId || activeUser?.role === 'ADMIN' || activeUser?.role === 'MANAGER';
+    
+    if (!isAuthorized) {
+      return { success: false, error: "No autorizado" };
+    }
+
+    await prisma.user.update({
+      where: { id: data.userId },
+      data: {
+        webauthnCredentialId: data.credentialId,
+        webauthnPublicKey: data.publicKey
+      }
+    });
+
+    revalidateTag(`user-${data.userId}`, 'max');
+    revalidatePath('/mi-portal');
+    return { success: true };
+  } catch (e: any) {
+    console.error("Error in registerFingerprintCredential:", e);
+    return { success: false, error: e.message || "Error al actualizar registro de huella dactilar." };
   }
 }
 
@@ -764,3 +815,21 @@ export async function getFilteredAttendanceLogs(filters: {
     return { success: false, error: e.message || "Error al consultar historial." };
   }
 }
+
+export async function verifyUserPassword(userId: string, password: string) {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return { success: false, error: "Usuario no encontrado" };
+    
+    const bcrypt = await import('bcryptjs');
+    if (user.password !== password) {
+      const isMatch = await bcrypt.default.compare(password, user.password || '');
+      if (!isMatch) return { success: false, error: "Contraseña incorrecta" };
+    }
+    return { success: true };
+  } catch (e: any) {
+    console.error("Error verifying password:", e);
+    return { success: false, error: e.message || "Error al verificar contraseña" };
+  }
+}
+

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Clock, MapPin, CalendarDays, CheckCircle2, AlertTriangle, FileText, User, Camera } from 'lucide-react';
-import { registerAttendance, createLeaveRequest, registerFaceDescriptor } from '@/app/actions/hr';
+import { Clock, MapPin, CalendarDays, CheckCircle2, AlertTriangle, FileText, User, Camera, Fingerprint } from 'lucide-react';
+import { registerAttendance, createLeaveRequest, registerFaceDescriptor, registerFingerprintCredential } from '@/app/actions/hr';
 import FaceRecognitionClient from './FaceRecognitionClient';
 
 export default function PortalEmpleadoClient({ 
@@ -115,6 +115,72 @@ export default function PortalEmpleadoClient({
         return;
       }
       setErrorMsg("Error al registrar: " + e.message);
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
+  const [isRegisteringHuella, setIsRegisteringHuella] = useState(false);
+
+  const handleRegisterFingerprint = async () => {
+    setIsRegisteringHuella(true);
+    try {
+      const { registerFingerprint } = await import('@/app/lib/webauthn');
+      const credential = await registerFingerprint(user.id, user.name || user.email);
+      
+      const res = await registerFingerprintCredential({
+        userId: user.id,
+        credentialId: credential.credentialId,
+        publicKey: credential.publicKey
+      });
+
+      if (!res.success) {
+        throw new Error(res.error || "No se pudo guardar la huella en el servidor");
+      }
+
+      alert('Huella dactilar vinculada correctamente');
+      window.location.reload();
+    } catch (e: any) {
+      alert('Error al registrar huella: ' + e.message);
+    } finally {
+      setIsRegisteringHuella(false);
+    }
+  };
+
+  const handleFingerprintCheck = async (type: 'CHECK_IN' | 'CHECK_OUT') => {
+    setIsRegistering(true);
+    setErrorMsg(null);
+    try {
+      let coords = currentCoords;
+      if (user.reqGps) {
+        setLocationStatus('Obteniendo ubicación precisa...');
+        try {
+          coords = await getGPSCoordinates();
+        } catch (e: any) {
+          if (!coords) throw e;
+        }
+      }
+
+      const { authenticateFingerprint } = await import('@/app/lib/webauthn');
+      await authenticateFingerprint(user.webauthnCredentialId);
+
+      const res = await registerAttendance({
+        userId: user.id,
+        type,
+        latitude: coords?.lat,
+        longitude: coords?.lng,
+        photoUrl: undefined,
+        deviceInfo: navigator.userAgent + " (Huella)"
+      });
+      
+      if (!res.success) {
+        throw new Error(res.error || "Error desconocido");
+      }
+      
+      alert('Asistencia registrada correctamente con huella dactilar');
+      window.location.reload();
+    } catch (e: any) {
+      setErrorMsg("Error al validar huella: " + e.message);
     } finally {
       setIsRegistering(false);
     }
@@ -355,6 +421,37 @@ export default function PortalEmpleadoClient({
               </div>
             )}
 
+            {user.webauthnCredentialId && !hasCheckedOut && (
+              <div style={{ marginBottom: '1.75rem', padding: '1rem', border: '1px solid #bfdbfe', borderRadius: '12px', backgroundColor: '#eff6ff' }}>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#1e3a8a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
+                  <Fingerprint size={18} /> Asistencia por Huella Dactilar
+                </h4>
+                <p style={{ fontSize: '0.8rem', color: '#2563eb', margin: '0 0 1rem 0' }}>
+                  Puedes registrar tu {!hasCheckedIn ? 'Entrada' : 'Salida'} colocando tu dedo sobre el lector.
+                </p>
+                <button
+                  onClick={() => handleFingerprintCheck(!hasCheckedIn ? 'CHECK_IN' : 'CHECK_OUT')}
+                  disabled={isRegistering || (hasCheckedIn && hasCheckedOut)}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <Fingerprint size={16} /> {!hasCheckedIn ? 'Registrar Entrada' : 'Registrar Salida'}
+                </button>
+              </div>
+            )}
+
             {(user.reqPhoto && user.faceDescriptor && !hasCheckedOut) && (
               <div style={{ marginBottom: '1.75rem' }}>
                 <FaceRecognitionClient user={user} onFaceMatched={setFaceMatched} onPhotoCaptured={setPhotoUrl} />
@@ -400,6 +497,31 @@ export default function PortalEmpleadoClient({
                 Salida (Check-Out)
               </button>
             </div>
+
+            {!user.webauthnCredentialId && (
+              <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+                <button
+                  onClick={handleRegisterFingerprint}
+                  disabled={isRegisteringHuella}
+                  style={{
+                    padding: '0.6rem 1.25rem',
+                    backgroundColor: '#f1f5f9',
+                    color: '#334155',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    fontSize: '0.85rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Fingerprint size={16} /> Registrar mi Huella Dactilar
+                </button>
+              </div>
+            )}
 
             <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center', gap: '1rem', fontSize: '0.8rem', color: '#64748b', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

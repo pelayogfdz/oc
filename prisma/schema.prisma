@@ -89,6 +89,8 @@ model User {
   deductLunchHour           Boolean                  @default(false)
   strictCheckinTime         Boolean                  @default(false)
   currentSessionId          String?
+  webauthnCredentialId      String?
+  webauthnPublicKey         String?
   attendanceLogs            AttendanceLog[]
   cashSessions              CashSession[]
   customerPayments          CustomerPayment[]

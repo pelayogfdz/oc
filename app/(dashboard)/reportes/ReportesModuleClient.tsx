@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, TrendingUp, Package, Calculator, Users, Clock, ArrowRight } from 'lucide-react';
+import { BarChart3, TrendingUp, Package, Calculator, Users, Clock, ArrowRight, ChefHat } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -16,6 +16,7 @@ export default function ReportesModuleClient({ initialMetrics }: { initialMetric
     { title: 'Ventas por Vendedor', icon: <Users size={24} color="#3b82f6" />, description: 'Rendimiento y comisiones por cajero/vendedor.', route: '/reportes/ventas-por-vendedor' },
     { title: 'Inventario Valorizado', icon: <Package size={24} color="#6366f1" />, description: 'Valor total de tu mercancía a costo y precio venta.', route: '/reportes/inventario-valorizado' },
     { title: 'Reporte de Resurtido', icon: <Package size={24} color="#10b981" />, description: 'Sugerencias de compra basadas en promedio de ventas y stock.', route: '/reportes/resurtido' },
+    { title: 'Reporte de Producción', icon: <ChefHat size={24} color="#f59e0b" />, description: 'Sugerencias de fabricación basadas en ritmo de ventas y stock.', route: '/reportes/produccion' },
     { title: 'Bitácora de Inventario', icon: <Clock size={24} color="#8b5cf6" />, description: 'Movimientos, ajustes, entradas y salidas.', route: '/reportes/bitacora-inventario' },
     { title: 'Consignaciones', icon: <Package size={24} color="#6366f1" />, description: 'Rendimiento y cobros de productos prestados a clientes.', route: '/reportes/consignaciones' },
     { title: 'Gastos', icon: <Calculator size={24} color="#ef4444" />, description: 'Registro y análisis de egresos operativos.', route: '/productos/gastos' },

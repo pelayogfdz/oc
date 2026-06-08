@@ -101,6 +101,29 @@ export interface OfflineSettings {
   metodosConfig: any;
 }
 
+export interface OfflineUser {
+  id: string;
+  name: string;
+  email: string | null;
+  role: string;
+  faceDescriptor?: string | null;
+  webauthnCredentialId?: string | null;
+  webauthnPublicKey?: string | null;
+  branchId?: string | null;
+}
+
+export interface OfflinePendingAttendance extends DLQMetadata {
+  id: string;
+  userId: string;
+  type: 'CHECK_IN' | 'CHECK_OUT';
+  timestamp: string;
+  latitude?: number;
+  longitude?: number;
+  photoUrl?: string;
+  deviceInfo?: string;
+  synced: boolean;
+}
+
 export interface OfflinePendingProduct extends DLQMetadata {
   id: string; // Temp local id
   branchId: string;
@@ -134,25 +157,29 @@ export class CAANMAOfflineDB extends Dexie {
   pendingTransfers!: Table<OfflineTransfer>;
   pendingPurchases!: Table<OfflinePurchase>;
   pendingProducts!: Table<OfflinePendingProduct>;
+  pendingAttendance!: Table<OfflinePendingAttendance>;
   
   products!: Table<OfflineProduct>;
   customers!: Table<OfflineCustomer>;
   suppliers!: Table<OfflineSupplier>;
   branches!: Table<OfflineBranch>;
   settings!: Table<OfflineSettings>;
+  users!: Table<OfflineUser>;
 
   constructor() {
     super('CAANMAOfflineDB');
-    this.version(17).stores({
+    this.version(18).stores({
       pendingSales: 'id, timestamp, synced, failed',
       pendingTransfers: 'id, timestamp, synced, failed',
       pendingPurchases: 'id, timestamp, synced, failed',
       pendingProducts: 'id, timestamp, synced, failed',
+      pendingAttendance: 'id, timestamp, synced, failed',
       products: 'id, branchId, sku, barcode, name',
       customers: 'id, branchId, name',
       suppliers: 'id, name',
       branches: 'id, name',
-      settings: 'id'
+      settings: 'id',
+      users: 'id, branchId, name'
     });
   }
 }

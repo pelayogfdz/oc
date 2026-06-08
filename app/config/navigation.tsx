@@ -105,6 +105,7 @@ export const navStructure: MenuNode[] = [
     requiredPermission: ['panaderia_access'],
     items: [
       { name: 'Órdenes de Producción', path: '/panaderia', badge: 'Procesos' },
+      { name: 'Reporte de Producción', path: '/reportes/produccion', badge: 'Nuevo' },
       { name: 'Recetas e Insumos', path: '/configuracion/fabricacion' },
     ]
   },
@@ -123,6 +124,7 @@ export const navStructure: MenuNode[] = [
     title: 'Recursos Humanos', icon: <Briefcase size={20} />, 
     requiredPermission: ['admin_reports_access'],
     items: [
+      { name: 'Modo Kiosko', path: '/rh/kiosko', badge: 'Asistencia' },
       { name: 'Monitoreo de Asistencia', path: '/rh/monitoreo' },
       { name: 'Calendario de Incidencias', path: '/rh/calendario' },
       { name: 'Reportes Históricos', path: '/rh/reportes' },

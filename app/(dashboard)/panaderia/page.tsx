@@ -35,7 +35,11 @@ export default async function PanaderiaPage() {
       recipe: {
         include: {
           product: true,
-          ingredients: true
+          ingredients: {
+            include: {
+              product: true
+            }
+          }
         }
       },
       currentProcess: true,

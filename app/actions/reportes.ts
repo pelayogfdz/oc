@@ -1037,5 +1037,110 @@ export async function getRestockReportData(
   return data;
 }
 
+export async function getProductionReportData(
+  startDate: Date,
+  endDate: Date,
+  branchIdFilter?: string,
+  categoryFilter?: string
+) {
+  const session = await getSession();
+  const branch = await getActiveBranch();
+  if (!branch) throw new Error('Unauthorized');
+  
+  const tenantId = session?.tenantId || branch.tenantId;
+  if (!tenantId) throw new Error('Unauthorized: Tenant context missing');
+  
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const tenantBranchIds = tenantBranches.map(b => b.id);
+  
+  let branchCondition: any = branch.id === 'GLOBAL' 
+    ? { branchId: { in: tenantBranchIds } } 
+    : { branchId: branch.id };
+    
+  if (branchIdFilter && branchIdFilter !== 'ALL') {
+    if (tenantBranchIds.includes(branchIdFilter)) {
+      branchCondition = { branchId: branchIdFilter };
+    } else {
+      branchCondition = { branchId: { in: tenantBranchIds } };
+    }
+  }
+
+  const categoryCondition = (categoryFilter && categoryFilter !== 'ALL') 
+    ? { category: categoryFilter } 
+    : {};
+
+  // Find products that have a recipe
+  const products = await prisma.product.findMany({
+    where: {
+      ...branchCondition,
+      ...categoryCondition,
+      isActive: true,
+      Recipe: { isNot: null }
+    },
+    include: {
+      Recipe: {
+        select: {
+          id: true
+        }
+      },
+      supplier: {
+        select: {
+          id: true,
+          name: true
+        }
+      }
+    },
+    orderBy: { name: 'asc' }
+  });
+
+  const saleItems = await prisma.saleItem.findMany({
+    where: {
+      sale: {
+        ...branchCondition,
+        createdAt: { gte: startDate, lte: endDate },
+        status: { not: 'CANCELLED' }
+      },
+      product: categoryCondition
+    },
+    select: {
+      productId: true,
+      quantity: true
+    }
+  });
+
+  const salesMap = new Map<string, number>();
+  saleItems.forEach(item => {
+    const current = salesMap.get(item.productId) || 0;
+    salesMap.set(item.productId, current + item.quantity);
+  });
+
+  const msDiff = endDate.getTime() - startDate.getTime();
+  const daysDiff = Math.max(1, Math.ceil(msDiff / (1000 * 60 * 60 * 24)));
+
+  const data = products.map(p => {
+    const quantitySold = salesMap.get(p.id) || 0;
+    const dailyAvg = quantitySold / daysDiff;
+    return {
+      id: p.id,
+      name: p.name,
+      sku: p.sku || 'N/A',
+      barcode: p.barcode || 'N/A',
+      imageUrl: p.imageUrl || null,
+      category: p.category || 'Sin Categoría',
+      stock: p.stock || 0,
+      cost: p.cost || 0,
+      price: p.price || 0,
+      quantitySold,
+      dailyAvg,
+      recipeId: p.Recipe?.id || null
+    };
+  });
+
+  return data;
+}
+
 
 

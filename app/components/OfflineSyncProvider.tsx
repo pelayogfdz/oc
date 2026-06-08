@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { db, OfflineSale } from '@/lib/offlineDB';
+import { db, OfflineSale, OfflinePendingAttendance, OfflineUser } from '@/lib/offlineDB';
 import { createSale } from '../actions/sale';
 
 interface OfflineContextType {
@@ -12,6 +12,7 @@ interface OfflineContextType {
   pushOfflineTransfer: (transferParams: any) => Promise<void>;
   pushOfflinePurchase: (purchaseParams: any) => Promise<void>;
   pushOfflineProduct: (productParams: any) => Promise<void>;
+  pushOfflineAttendance: (attendanceParams: Omit<OfflinePendingAttendance, 'id' | 'timestamp' | 'synced' | 'retryCount' | 'failed' | 'errorMessage'>) => Promise<void>;
   forceSync: () => Promise<void>;
   refreshCatalogs: () => Promise<void>;
 }
@@ -24,6 +25,7 @@ const OfflineContext = createContext<OfflineContextType>({
   pushOfflineTransfer: async () => {},
   pushOfflinePurchase: async () => {},
   pushOfflineProduct: async () => {},
+  pushOfflineAttendance: async () => {},
   forceSync: async () => {},
   refreshCatalogs: async () => {},
 });
@@ -35,6 +37,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   const [pendingTransfers, setPendingTransfers] = useState<any[]>([]);
   const [pendingPurchases, setPendingPurchases] = useState<any[]>([]);
   const [pendingProducts, setPendingProducts] = useState<any[]>([]);
+  const [pendingAttendance, setPendingAttendance] = useState<OfflinePendingAttendance[]>([]);
   const [showToast, setShowToast] = useState<{message: string, type: 'success' | 'warn' | 'error'} | null>(null);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
@@ -88,6 +91,8 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       setPendingPurchases(purchases);
       const products = await db.pendingProducts.toArray();
       setPendingProducts(products);
+      const attendance = await db.pendingAttendance.toArray();
+      setPendingAttendance(attendance);
     } catch (e) {
       console.error('Error loading offline DB', e);
     }
@@ -187,6 +192,28 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       else forceSync();
     } catch (e) {
       setShowToast({ message: 'Error guardando producto offline', type: 'error' });
+    }
+  };
+
+  const pushOfflineAttendance = async (attendanceParams: Omit<OfflinePendingAttendance, 'id' | 'timestamp' | 'synced' | 'retryCount' | 'failed' | 'errorMessage'>) => {
+    try {
+      const newAttendance: OfflinePendingAttendance = {
+        ...attendanceParams,
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        synced: false,
+        retryCount: 0,
+        failed: false
+      };
+      await db.pendingAttendance.add(newAttendance);
+      setPendingAttendance(prev => [...prev, newAttendance]);
+      if (!isOnline) {
+        setShowToast({ message: 'Asistencia registrada localmente en modo Offline.', type: 'warn' });
+      } else {
+        forceSync();
+      }
+    } catch (e) {
+      setShowToast({ message: 'Error guardando registro de asistencia offline', type: 'error' });
     }
   };
 
@@ -322,6 +349,33 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
         }
       }
 
+      // Sync Attendance
+      const attendanceLogs = await db.pendingAttendance.toArray();
+      for (const log of attendanceLogs) {
+        if (log.failed && log.retryCount >= 5) continue;
+        try {
+          const { registerAttendance } = await import('../actions/hr');
+          const res = await registerAttendance({
+            userId: log.userId,
+            type: log.type,
+            latitude: log.latitude,
+            longitude: log.longitude,
+            photoUrl: log.photoUrl,
+            deviceInfo: log.deviceInfo,
+            timestamp: log.timestamp
+          });
+          if (res && !res.success) {
+            throw new Error(res.error || "Error de validación en asistencia");
+          }
+          await db.pendingAttendance.delete(log.id);
+          syncedAny = true;
+        } catch (e: any) {
+          console.error('Sync error attendance', e);
+          const newCount = (log.retryCount || 0) + 1;
+          await db.pendingAttendance.update(log.id, { retryCount: newCount, failed: newCount >= 5, errorMessage: e?.message });
+        }
+      }
+
       if (syncedAny) {
         loadPendingQueues();
         setShowToast({ message: 'Caché Offline Sincronizado a la Nube.', type: 'success' });
@@ -333,14 +387,13 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
 
   const refreshCatalogs = async () => {
     if (!navigator.onLine) return;
-    if (typeof window !== 'undefined' && window.innerWidth < 1024) return;
     try {
       const { syncBasicCatalogs, syncProductsPage } = await import('../actions/sync');
       setShowToast({ message: 'Preparando sincronización de catálogos...', type: 'warn' });
       
       const basicData = await syncBasicCatalogs();
       
-      await db.transaction('rw', db.customers, db.suppliers, db.branches, db.settings, async () => {
+      await db.transaction('rw', [db.customers, db.suppliers, db.branches, db.settings, db.users], async () => {
         await db.customers.clear();
         await db.customers.bulkAdd(basicData.customers);
         
@@ -349,6 +402,9 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
         
         await db.branches.clear();
         await db.branches.bulkAdd(basicData.branches);
+
+        await db.users.clear();
+        await db.users.bulkAdd(basicData.users || []);
         
         if (basicData.settings) {
           await db.settings.clear();
@@ -383,7 +439,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   };
 
   return (
-    <OfflineContext.Provider value={{ isOnline, pendingSales, syncMessage, pushOfflineSale, forceSync, pushOfflineTransfer, pushOfflinePurchase, pushOfflineProduct, refreshCatalogs }}>
+    <OfflineContext.Provider value={{ isOnline, pendingSales, syncMessage, pushOfflineSale, forceSync, pushOfflineTransfer, pushOfflinePurchase, pushOfflineProduct, pushOfflineAttendance, refreshCatalogs }}>
       {children}
     </OfflineContext.Provider>
   );
