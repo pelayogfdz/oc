@@ -26,6 +26,16 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
 
   if (!sale) return notFound();
 
+  const customers = await prisma.customer.findMany({
+    where: {
+      branch: {
+        tenantId: branch?.tenantId || sale.branch?.tenantId || undefined
+      }
+    },
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true }
+  });
+
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', fontFamily: 'sans-serif', color: 'black' }}>
       
@@ -46,6 +56,9 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
               customerName={sale.customer?.name}
               saleTotal={sale.total}
               invoiceId={sale.invoiceId}
+              currentCustomerId={sale.customerId}
+              currentNotes={sale.notes}
+              customers={customers}
             />
          </div>
       </div>

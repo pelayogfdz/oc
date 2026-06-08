@@ -580,3 +580,77 @@ export async function cancelSale(formData: FormData) {
   revalidatePath('/productos');
 }
 
+export async function updateSale(
+  saleId: string,
+  customerId: string | null,
+  notes: string | null
+) {
+  try {
+    const sale = await prisma.sale.findUnique({
+      where: { id: saleId }
+    });
+
+    if (!sale) throw new Error("Venta no encontrada");
+    if (sale.status === 'CANCELLED') throw new Error("No se puede editar una venta cancelada");
+
+    let finalCustomerId = customerId;
+    if (!finalCustomerId) {
+      let publicCustomer = await prisma.customer.findFirst({
+        where: {
+          name: { equals: 'Público General', mode: 'insensitive' },
+          branchId: sale.branchId || undefined
+        }
+      });
+      if (!publicCustomer && sale.branchId) {
+        publicCustomer = await prisma.customer.create({
+          data: {
+            name: 'Público General',
+            branchId: sale.branchId
+          }
+        });
+      }
+      if (publicCustomer) {
+        finalCustomerId = publicCustomer.id;
+      }
+    }
+
+    // If customer has changed, we might need to handle credit/debit re-allocation if the paymentMethod was CREDIT.
+    if (sale.paymentMethod === 'CREDIT' && sale.customerId !== finalCustomerId) {
+      // Decrement old customer credit balance
+      if (sale.customerId) {
+        await prisma.customer.update({
+          where: { id: sale.customerId },
+          data: { creditBalance: { decrement: sale.total } }
+        });
+      }
+      // Increment new customer credit balance
+      if (finalCustomerId) {
+        const newCustomer = await prisma.customer.findUnique({
+          where: { id: finalCustomerId }
+        });
+        if (newCustomer) {
+          await prisma.customer.update({
+            where: { id: finalCustomerId },
+            data: { creditBalance: { increment: sale.total } }
+          });
+        }
+      }
+    }
+
+    await prisma.sale.update({
+      where: { id: saleId },
+      data: {
+        customerId: finalCustomerId,
+        notes
+      }
+    });
+
+    revalidatePath('/ventas');
+    revalidatePath(`/ventas/detalle/${saleId}`);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || String(error) };
+  }
+}
+
+

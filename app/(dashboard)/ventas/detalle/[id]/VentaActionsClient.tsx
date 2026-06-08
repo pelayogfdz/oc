@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Share2, AlertTriangle, Send, Loader2, CheckCircle } from 'lucide-react';
-import { cancelSale } from '@/app/actions/sale';
+import { Share2, AlertTriangle, Send, Loader2, CheckCircle, Edit3 } from 'lucide-react';
+import { cancelSale, updateSale } from '@/app/actions/sale';
 import { cancelInvoice } from '@/app/actions/facturacion';
 
 interface VentaActionsClientProps {
@@ -15,6 +15,9 @@ interface VentaActionsClientProps {
   customerName?: string | null;
   saleTotal: number;
   invoiceId?: string | null;
+  currentCustomerId?: string | null;
+  currentNotes?: string | null;
+  customers: { id: string; name: string }[];
 }
 
 export default function VentaActionsClient({
@@ -25,7 +28,10 @@ export default function VentaActionsClient({
   customerPhone,
   customerName,
   saleTotal,
-  invoiceId
+  invoiceId,
+  currentCustomerId = '',
+  currentNotes = '',
+  customers = []
 }: VentaActionsClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -37,6 +43,31 @@ export default function VentaActionsClient({
   const [isSending, setIsSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+
+  // Edit Sale States
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editCustomerId, setEditCustomerId] = useState(currentCustomerId || '');
+  const [editNotes, setEditNotes] = useState(currentNotes || '');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const handleSaveEdit = async () => {
+    setIsSavingEdit(true);
+    setEditError(null);
+    try {
+      const res = await updateSale(saleId, editCustomerId || null, editNotes || null);
+      if (res.success) {
+        setIsEditModalOpen(false);
+        router.refresh();
+      } else {
+        throw new Error(res.error || 'Error al guardar los cambios');
+      }
+    } catch (err: any) {
+      setEditError(err.message || 'Error al actualizar la venta.');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   // Prefilled WhatsApp message
   const getShareMessage = () => {
@@ -181,6 +212,29 @@ export default function VentaActionsClient({
         >
           <Share2 size={18} />
           Enviar Venta (WhatsApp)
+        </button>
+      )}
+
+      {/* Edit Sale */}
+      {status !== 'CANCELLED' && (
+        <button
+          onClick={() => setIsEditModalOpen(true)}
+          className="btn-secondary"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.75rem 1.25rem',
+            borderRadius: '4px',
+            backgroundColor: '#f1f5f9',
+            color: '#475569',
+            border: '1px solid #cbd5e1',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+          }}
+        >
+          <Edit3 size={18} />
+          Editar Venta
         </button>
       )}
 
@@ -417,6 +471,178 @@ export default function VentaActionsClient({
                     {sendError}
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Sale Modal */}
+      {isEditModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.45)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            color: '#1e293b'
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '520px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+              border: '1px solid #e2e8f0',
+              overflow: 'hidden',
+              textAlign: 'left'
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                padding: '1.25rem 1.5rem',
+                borderBottom: '1px solid #f1f5f9',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                color: 'white',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '700' }}>
+                  ✏️ Editar Venta #{saleFolio || saleId.slice(0, 8).toUpperCase()}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '28px',
+                  height: '28px',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#475569' }}>
+                  Cliente asignado:
+                </label>
+                <select
+                  value={editCustomerId}
+                  onChange={(e) => setEditCustomerId(e.target.value)}
+                  style={{
+                    padding: '0.6rem 0.75rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                    backgroundColor: 'white',
+                    color: 'black'
+                  }}
+                >
+                  <option value="">Público General</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#475569' }}>
+                  Notas del Ticket:
+                </label>
+                <textarea
+                  placeholder="Escribe aquí notas internas o comentarios..."
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  rows={4}
+                  style={{
+                    padding: '0.6rem 0.75rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                    resize: 'vertical',
+                    color: 'black'
+                  }}
+                />
+              </div>
+
+              {editError && (
+                <div style={{ padding: '0.75rem', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', fontSize: '0.8rem', color: '#b91c1c' }}>
+                  {editError}
+                </div>
+              )}
+
+              {/* Footer Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button
+                  onClick={() => setIsEditModalOpen(false)}
+                  disabled={isSavingEdit}
+                  style={{
+                    padding: '0.6rem 1.25rem',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    backgroundColor: '#f8fafc',
+                    color: '#64748b',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={isSavingEdit}
+                  style={{
+                    padding: '0.6rem 1.5rem',
+                    border: 'none',
+                    borderRadius: '8px',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  {isSavingEdit ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> Guardando...
+                    </>
+                  ) : (
+                    'Guardar Cambios'
+                  )}
+                </button>
               </div>
             </div>
           </div>
