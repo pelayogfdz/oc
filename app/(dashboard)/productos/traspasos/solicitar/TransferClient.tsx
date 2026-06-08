@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { requestTransfer } from '@/app/actions/transfer';
+import { requestTransfer, getBranchStocksForTransfer } from '@/app/actions/transfer';
 import { useRouter } from 'next/navigation';
 import { Truck, ArrowRight, Trash2, Search, Plus, Minus, FileText, CheckCircle2, ShoppingBag, Camera, ArrowDownUp } from 'lucide-react';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
@@ -26,6 +26,10 @@ export default function TransferClient({ originBranchId, originBranchName, other
   // Variant Modal
   const [selectedProductForVariant, setSelectedProductForVariant] = useState<any | null>(null);
 
+  // Stock from source branch states
+  const [sourceStocks, setSourceStocks] = useState<any>(null);
+  const [isLoadingStocks, setIsLoadingStocks] = useState(false);
+
   useEffect(() => {
     setIsMounted(true);
     if (typeof window !== 'undefined') {
@@ -39,6 +43,69 @@ export default function TransferClient({ originBranchId, originBranchName, other
       }
     }
   }, [originBranchId]);
+
+  // Load stocks when fromBranchId changes
+  useEffect(() => {
+    if (!fromBranchId) {
+      setSourceStocks(null);
+      setTransferItems([]);
+      return;
+    }
+
+    setIsLoadingStocks(true);
+    getBranchStocksForTransfer(fromBranchId)
+      .then(res => {
+        if (res && res.success) {
+          setSourceStocks({
+            productStocks: res.productStocks || {},
+            variantStocks: res.variantStocks || {}
+          });
+        } else {
+          alert(res?.error || 'Error al obtener existencias de la sucursal de origen.');
+          setSourceStocks(null);
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert('Error de red al obtener existencias.');
+        setSourceStocks(null);
+      })
+      .finally(() => {
+        setIsLoadingStocks(false);
+      });
+  }, [fromBranchId]);
+
+  // Reactively sync existing items maxStock and quantity based on new origin branch stocks
+  useEffect(() => {
+    if (!sourceStocks) return;
+
+    setTransferItems(prevItems => {
+      let changed = false;
+      const updated = prevItems.map(item => {
+        const localProduct = inventory.find((p: any) => p.id === item.productId);
+        if (!localProduct) return item;
+
+        let newMaxStock = 0;
+        if (item.variantId) {
+          const localVariant = localProduct.variants?.find((v: any) => v.id === item.variantId);
+          if (localVariant) {
+            const key = `${localProduct.sku}_${localVariant.attribute}`;
+            newMaxStock = sourceStocks.variantStocks[key] ?? 0;
+          }
+        } else {
+          newMaxStock = sourceStocks.productStocks[localProduct.sku] ?? 0;
+        }
+
+        if (item.maxStock !== newMaxStock) {
+          changed = true;
+          const newQty = (!ventasConfig.venderSinStock && item.quantity > newMaxStock) ? Math.max(1, newMaxStock) : item.quantity;
+          return { ...item, maxStock: newMaxStock, quantity: newQty };
+        }
+        return item;
+      });
+      return changed ? updated : prevItems;
+    });
+  }, [sourceStocks, inventory, ventasConfig.venderSinStock]);
 
   const handlePutOnHold = () => {
     if (transferItems.length === 0) {
@@ -94,9 +161,10 @@ export default function TransferClient({ originBranchId, originBranchName, other
   const removeAccents = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
   const displayedProducts = inventory.filter((p: any) => {
-    // Stock Filter
-    if (stockFilter === 'WITH_STOCK' && p.stock <= 0) return false;
-    if (stockFilter === 'WITHOUT_STOCK' && p.stock > 0) return false;
+    // Stock Filter in origin branch
+    const sourceStock = sourceStocks ? (sourceStocks.productStocks[p.sku] ?? 0) : 0;
+    if (stockFilter === 'WITH_STOCK' && sourceStock <= 0) return false;
+    if (stockFilter === 'WITHOUT_STOCK' && sourceStock > 0) return false;
 
     if (!searchTerm.trim()) return true;
     const searchTerms = removeAccents(searchTerm.toLowerCase().trim()).split(/\s+/);
@@ -116,19 +184,26 @@ export default function TransferClient({ originBranchId, originBranchName, other
   const handleAdd = (product: any, variant: any | null) => {
     const listId = variant ? `v_${variant.id}` : product.id;
     const name = variant ? `${product.name} (${variant.attribute})` : product.name;
-    const maxStock = variant ? variant.stock : product.stock;
+    
+    // Resolve maxStock using sourceStocks!
+    const key = variant ? `${product.sku}_${variant.attribute}` : product.sku;
+    const sourceStock = variant 
+      ? (sourceStocks?.variantStocks[key] ?? 0)
+      : (sourceStocks?.productStocks[key] ?? 0);
+    const maxStock = sourceStock;
+    
     const sku = variant?.sku || product.sku;
 
     const existing = transferItems.find(i => i.listId === listId);
     if (existing) {
       if (!ventasConfig.venderSinStock && existing.quantity >= maxStock) {
-          alert('Cantidad excede el stock disponible.');
+          alert('Cantidad excede el stock disponible en origen.');
           return;
       }
       setTransferItems(transferItems.map(i => i.listId === listId ? { ...i, quantity: i.quantity + 1 } : i));
     } else {
       if (!ventasConfig.venderSinStock && maxStock <= 0) {
-          alert('Este producto no tiene stock y los traspasos sin stock están desactivados.');
+          alert('Este producto no tiene stock disponible en origen y los traspasos sin stock están desactivados.');
           return;
       }
       setTransferItems([...transferItems, {
@@ -224,7 +299,13 @@ export default function TransferClient({ originBranchId, originBranchName, other
           {/* SEARCH INPUT TRIGGER (opens popup) */}
           <div style={{ display: 'flex', flexDirection: 'column', width: '280px' }}>
             <div 
-              onClick={() => setIsSearchModalOpen(true)}
+              onClick={() => {
+                if (!fromBranchId) {
+                  alert('Por favor, selecciona primero la sucursal de origen en "Solicitar A".');
+                  return;
+                }
+                setIsSearchModalOpen(true);
+              }}
               style={{ 
                 display: 'flex',
                 alignItems: 'center',
@@ -247,6 +328,10 @@ export default function TransferClient({ originBranchId, originBranchName, other
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (!fromBranchId) {
+                    alert('Por favor, selecciona primero la sucursal de origen en "Solicitar A".');
+                    return;
+                  }
                   setShowScanner(true);
                 }}
                 style={{
@@ -629,7 +714,8 @@ export default function TransferClient({ originBranchId, originBranchName, other
               ) : (
                 displayedProducts.slice(0, 30).map((p: any) => {
                   const inCart = transferItems.some(i => i.productId === p.id);
-                  const isSelectable = ventasConfig.venderSinStock || p.stock > 0;
+                  const sourceStock = sourceStocks ? (sourceStocks.productStocks[p.sku] ?? 0) : 0;
+                  const isSelectable = ventasConfig.venderSinStock || sourceStock > 0;
                   return (
                     <div 
                       key={p.id}
@@ -661,7 +747,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
                       <div>
                         <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b' }}>{p.name}</div>
                         <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
-                          SKU: {p.sku || 'N/A'} | Stock: <span style={{ color: p.stock > 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>{p.stock}</span>
+                          SKU: {p.sku || 'N/A'} | Stock en origen: <span style={{ color: sourceStock > 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>{sourceStock}</span>
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -692,7 +778,9 @@ export default function TransferClient({ originBranchId, originBranchName, other
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '50vh', overflowY: 'auto' }}>
               {selectedProductForVariant.variants.map((v: any) => {
-                const canSelect = ventasConfig.venderSinStock || v.stock > 0;
+                const key = `${selectedProductForVariant.sku}_${v.attribute}`;
+                const sourceVStock = sourceStocks ? (sourceStocks.variantStocks[key] ?? 0) : 0;
+                const canSelect = ventasConfig.venderSinStock || sourceVStock > 0;
                 return (
                   <button
                     key={v.id}
@@ -731,8 +819,8 @@ export default function TransferClient({ originBranchId, originBranchName, other
                       <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{v.attribute}</div>
                       <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.1rem' }}>SKU: {v.sku || 'N/A'}</div>
                     </div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: '600', color: v.stock > 0 ? '#16a34a' : '#dc2626' }}>
-                      {v.stock} disp.
+                    <div style={{ fontSize: '0.85rem', fontWeight: '600', color: sourceVStock > 0 ? '#16a34a' : '#dc2626' }}>
+                      {sourceVStock} disp. en origen
                     </div>
                   </button>
                 );

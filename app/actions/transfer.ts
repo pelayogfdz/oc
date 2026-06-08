@@ -480,3 +480,46 @@ export async function cancelTransfer(transferId: string) {
   }
 }
 
+export async function getBranchStocksForTransfer(sourceBranchId: string) {
+  try {
+    if (!sourceBranchId) {
+      return { success: true, productStocks: {}, variantStocks: {} };
+    }
+
+    const sourceProducts = await prisma.product.findMany({
+      where: { branchId: sourceBranchId },
+      select: {
+        sku: true,
+        stock: true,
+        variants: {
+          select: {
+            attribute: true,
+            sku: true,
+            stock: true
+          }
+        }
+      }
+    });
+
+    const productStocks: Record<string, number> = {};
+    const variantStocks: Record<string, number> = {};
+
+    for (const p of sourceProducts) {
+      if (p.sku) {
+        productStocks[p.sku] = p.stock;
+        for (const v of p.variants) {
+          if (v.attribute) {
+            const key = `${p.sku}_${v.attribute}`;
+            variantStocks[key] = v.stock;
+          }
+        }
+      }
+    }
+
+    return { success: true, productStocks, variantStocks };
+  } catch (error: any) {
+    console.error("Error fetching branch stocks:", error);
+    return { success: false, error: error.message || "Error al obtener existencias de la sucursal origen." };
+  }
+}
+
