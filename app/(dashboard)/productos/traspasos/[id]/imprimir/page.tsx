@@ -5,6 +5,7 @@ import { getActiveBranch } from "@/app/actions/auth";
 export default async function PrintTransferPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const branch = await getActiveBranch();
+  if (!branch) return notFound();
   
   const transfer = await prisma.transfer.findUnique({
     where: { id: id },
@@ -23,9 +24,20 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
 
   if (!transfer) return notFound();
 
-  // Basic authorization: user must be part of either origin or destination branch
-  if (branch.id !== transfer.branchId && branch.id !== transfer.toBranchId) {
-    return <div>No autorizado para ver este traspaso.</div>;
+  // Ensure the transfer belongs to the user's tenant
+  const transferTenantId = transfer.branch?.tenantId || transfer.toBranch?.tenantId;
+  if (transferTenantId !== branch.tenantId) {
+    return notFound();
+  }
+
+  // Basic authorization: user must be part of either origin or destination branch, or be a global user
+  if (branch.id !== 'GLOBAL' && branch.id !== transfer.branchId && branch.id !== transfer.toBranchId) {
+    return (
+      <div style={{ padding: '3rem', textAlign: 'center', backgroundColor: '#fee2e2', borderRadius: '12px', color: '#991b1b', border: '1px solid #f87171', margin: '2rem auto', maxWidth: '600px' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>ACCESO NO AUTORIZADO</h2>
+        <p>No tienes permisos para ver o imprimir este traspaso.</p>
+      </div>
+    );
   }
 
   let config: any = {};
