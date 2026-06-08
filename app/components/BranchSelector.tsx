@@ -1,24 +1,28 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useState } from 'react';
 import { setActiveBranch } from '@/app/actions/auth';
 
 export default function BranchSelector({ branches, currentBranchId }: { branches: any[], currentBranchId: string }) {
-  const [isPending, startTransition] = useTransition();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
-    startTransition(async () => {
+    setIsLoading(true);
+    try {
       await setActiveBranch(val);
       window.location.reload();
-    });
+    } catch (err) {
+      console.error("Error setting active branch:", err);
+      setIsLoading(false);
+    }
   };
 
   return (
     <select 
       value={currentBranchId}
       onChange={handleChange}
-      disabled={isPending || branches.length <= 1}
+      disabled={isLoading || branches.length <= 1}
       style={{
         fontWeight: 'bold',
         fontSize: '0.875rem',

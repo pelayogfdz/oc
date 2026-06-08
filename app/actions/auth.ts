@@ -77,11 +77,19 @@ export const getActiveBranch = cache(async () => {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
   
-  // 1. Fetch user to check role, permissions and assigned branchId
-  const user = await prisma.user.findUnique({
-    where: { id: session.userId },
-    select: { id: true, email: true, role: true, permissions: true, branchId: true }
-  });
+  // 1. Fetch user to check role, permissions and assigned branchId (cached across requests)
+  const getCachedUserPerms = unstable_cache(
+    async (uId: string) => {
+      return prisma.user.findUnique({
+        where: { id: uId },
+        select: { id: true, email: true, role: true, permissions: true, branchId: true }
+      });
+    },
+    [`user-perms-${session.userId}`],
+    { tags: [`user-${session.userId}`] }
+  );
+
+  const user = await getCachedUserPerms(session.userId);
   
   let isGlobal = true;
   const allowedBranchIds: string[] = [];
