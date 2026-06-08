@@ -278,9 +278,22 @@ export default function TransferClient({ originBranchId, originBranchName, other
         throw new Error(res.error || "Error al solicitar traspaso");
       }
 
-      if (confirm('Solicitud de traspaso enviada correctamente. ¿Deseas imprimir etiquetas para los productos solicitados?')) {
-        const ids = transferItems.map(i => i.productId).join(',');
-        window.open(`/productos/etiquetas?ids=${ids}`, '_blank', 'width=400,height=600');
+      const createdTransferId = res.transferId || '';
+      if (createdTransferId) {
+        if (confirm('Solicitud de traspaso enviada correctamente. ¿Deseas imprimir la etiqueta logística para el chofer?')) {
+          window.open(`/productos/traspasos/${createdTransferId}/etiqueta`, '_blank', 'width=400,height=600');
+        }
+        if (confirm('¿Deseas imprimir etiquetas de códigos de barra para los productos solicitados?')) {
+          const ids = transferItems.map(i => i.productId).join(',');
+          const qtys = transferItems.map(i => i.quantity).join(',');
+          window.open(`/productos/etiquetas?ids=${ids}&qtys=${qtys}`, '_blank', 'width=400,height=600');
+        }
+      } else {
+        if (confirm('Solicitud de traspaso enviada correctamente. ¿Deseas imprimir etiquetas para los productos solicitados?')) {
+          const ids = transferItems.map(i => i.productId).join(',');
+          const qtys = transferItems.map(i => i.quantity).join(',');
+          window.open(`/productos/etiquetas?ids=${ids}&qtys=${qtys}`, '_blank', 'width=400,height=600');
+        }
       }
 
       router.push('/productos/traspasos');

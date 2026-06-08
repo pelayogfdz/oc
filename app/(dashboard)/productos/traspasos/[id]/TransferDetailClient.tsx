@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Package, User, CheckCircle, Truck, MapPin, ClipboardList, PackageOpen, Inbox } from 'lucide-react';
+import { ArrowLeft, Package, User, CheckCircle, Truck, MapPin, ClipboardList, PackageOpen, Inbox, Printer } from 'lucide-react';
 import { receiveTransfer, approveTransfer, dispatchTransfer, cancelTransfer } from '@/app/actions/transfer';
 import { useTransition, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -116,8 +116,52 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', margin: '0 0 0.5rem 0' }}>Traspaso #{transfer.id.substring(0,8).toUpperCase()}</h1>
           <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.95rem' }}>Fecha de solicitud: {new Date(transfer.createdAt).toLocaleString()}</div>
         </div>
-        <div style={{ padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: 'bold', backgroundColor: '#f1f5f9', color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          Estatus: {transfer.status}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <Link 
+              href={`/productos/traspasos/${transfer.id}/imprimir`}
+              target="_blank"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.5rem 1rem',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: 'white',
+                color: '#475569',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                textDecoration: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <Printer size={16} /> Imprimir A4
+            </Link>
+            <Link 
+              href={`/productos/traspasos/${transfer.id}/etiqueta`}
+              target="_blank"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.5rem 1rem',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: 'white',
+                color: '#475569',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                textDecoration: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <Printer size={16} /> Etiqueta Logística
+            </Link>
+          </div>
+          <div style={{ padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: 'bold', backgroundColor: '#f1f5f9', color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            Estatus: {transfer.status}
+          </div>
         </div>
       </div>
 

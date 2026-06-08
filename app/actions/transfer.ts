@@ -26,7 +26,7 @@ export async function requestTransfer(
 
     // Here, we just CREATE the request. We do NOT deduct stock yet.
     // The items here are mapped to the DESTINATION's catalog so they know what they asked for.
-    await prisma.transfer.create({
+    const newTransfer = await prisma.transfer.create({
       data: {
         folio,
         branchId: payload.fromBranchId, // Quien surte
@@ -47,7 +47,7 @@ export async function requestTransfer(
 
     revalidatePath('/productos');
     revalidatePath('/productos/traspasos');
-    return { success: true };
+    return { success: true, transferId: newTransfer.id };
   } catch (error: any) {
     console.error("Error al solicitar traspaso:", error);
     return { success: false, error: error.message || "Error desconocido al solicitar el traspaso." };
@@ -99,6 +99,7 @@ export async function dispatchDirectTransfer(
 
     const authUser = await getActiveUser();
 
+    let transferId = '';
     await prisma.$transaction(async (tx) => {
       const { getNextFolio } = await import('./folios');
       const folio = await getNextFolio(branchActive.id, 'transfer', tx);
@@ -115,6 +116,7 @@ export async function dispatchDirectTransfer(
           dispatchedAt: new Date()
         }
       });
+      transferId = transfer.id;
 
       for (const item of payload.items) {
         const dispatchedQty = item.quantity;
@@ -185,7 +187,7 @@ export async function dispatchDirectTransfer(
 
     revalidatePath('/productos');
     revalidatePath('/productos/traspasos');
-    return { success: true };
+    return { success: true, transferId };
   } catch (error: any) {
     console.error("Error al enviar traspaso directo:", error);
     return { success: false, error: error.message || "Error desconocido al realizar el traspaso directo." };

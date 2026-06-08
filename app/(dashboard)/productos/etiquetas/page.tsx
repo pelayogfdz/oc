@@ -2,13 +2,12 @@ import { prisma } from "@/lib/prisma";
 import { getBranchSettings } from "@/app/actions/settings";
 import ImprimirEtiquetasClient from "./ImprimirEtiquetasClient";
 
-export default async function ImprimirEtiquetasPage({
-  searchParams
-}: {
-  searchParams: { ids?: string; qtys?: string; ref?: string }
+export default async function ImprimirEtiquetasPage(props: {
+  searchParams: Promise<{ ids?: string; qtys?: string; ref?: string }>
 }) {
-  const idsParam = searchParams.ids || '';
-  const qtysParam = searchParams.qtys || '';
+  const resolvedSearchParams = await props.searchParams;
+  const idsParam = resolvedSearchParams.ids || '';
+  const qtysParam = resolvedSearchParams.qtys || '';
   const idsArray = idsParam.split(',').filter(Boolean);
   const qtysArray = qtysParam.split(',').filter(Boolean);
 
