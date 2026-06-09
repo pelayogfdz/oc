@@ -1,11 +1,33 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getActiveBranch } from '@/app/actions/auth';
+import { getActiveBranch, getActiveUser } from '@/app/actions/auth';
 
 export async function POST(req: Request) {
   try {
     const branch = await getActiveBranch();
-    
+    if (!branch) {
+      return NextResponse.json({ error: 'No autorizado. Sucursal no activa o no configurada.' }, { status: 401 });
+    }
+
+    let user;
+    try {
+      user = await getActiveUser();
+    } catch (e) {
+      // Fallback to a user from the branch or tenant if session cannot be resolved
+      user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { branchId: branch.id },
+            { tenantId: branch.tenantId }
+          ]
+        }
+      });
+    }
+
+    if (!user) {
+      return NextResponse.json({ error: 'No se encontró ningún usuario configurado en esta sucursal para asociar la venta.' }, { status: 400 });
+    }
+
     const integration = await prisma.storeIntegration.findUnique({
       where: { branchId_platform: { branchId: branch.id, platform: 'RAPPI' } }
     });
@@ -82,7 +104,8 @@ export async function POST(req: Request) {
               productId: localProduct.id,
               type: 'OUT',
               quantity: -item.qty,
-              reason: `Venta Rappi - Pedido #${order.orderId}`
+              reason: `Venta Rappi - Pedido #${order.orderId}`,
+              userId: user.id
             }
           });
           itemsSubtracted += item.qty;
@@ -99,6 +122,7 @@ export async function POST(req: Request) {
             paymentMethod: 'CARD',
             customerId: rappiCustomer.id,
             branchId: branch.id,
+            userId: user.id,
             notes: `Pedido de Rappi importado automáticamente. ID: ${order.orderId}`,
             items: {
               create: saleItemsToCreate.map(item => ({
