@@ -53,6 +53,12 @@ export default async function Page() {
       label: 'Token Facturapi (Producción)', 
       type: 'text', 
       placeholder: 'sk_live_...' 
+    },
+    { 
+      name: 'apiTokenUser', 
+      label: 'Token Facturapi (Usuario/Admin)', 
+      type: 'text', 
+      placeholder: 'sk_user_...' 
     }
   ];
 

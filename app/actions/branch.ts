@@ -76,8 +76,14 @@ export async function updateBranch(id: string, name: string, location: string, f
     }
     
     if (!config.facturacion) config.facturacion = {};
-    if (facturapiLiveKey !== undefined) config.facturacion.liveKey = facturapiLiveKey;
-    if (facturapiTestKey !== undefined) config.facturacion.testKey = facturapiTestKey;
+    if (facturapiLiveKey !== undefined) {
+      config.facturacion.liveKey = facturapiLiveKey;
+      config.facturacion.apiTokenLive = facturapiLiveKey;
+    }
+    if (facturapiTestKey !== undefined) {
+      config.facturacion.testKey = facturapiTestKey;
+      config.facturacion.apiTokenTest = facturapiTestKey;
+    }
     
     await prisma.branchSettings.update({
       where: { branchId: id },

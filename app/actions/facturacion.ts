@@ -5,6 +5,20 @@ import Facturapi from "facturapi";
 import { getActiveBranch } from "./auth";
 import { revalidatePath } from "next/cache";
 
+function getFacturapiApiKey(config: any): string | null {
+  if (!config || !config.facturacion) return null;
+  const f = config.facturacion;
+  const testKey = f.testKey || f.apiTokenTest;
+  const liveKey = f.liveKey || f.apiTokenLive;
+  const entorno = f.entornoFacturapi;
+  
+  if (entorno === 'live') {
+    return liveKey || testKey || null;
+  } else {
+    return testKey || liveKey || null;
+  }
+}
+
 export async function stampInvoice(saleId: string) {
   try {
     const branch = await getActiveBranch();
@@ -25,11 +39,7 @@ export async function stampInvoice(saleId: string) {
       throw new Error("El archivo de configuración de la sucursal es inválido.");
     }
 
-    const testKey = config.facturacion?.testKey;
-    const liveKey = config.facturacion?.liveKey;
-    // For MVP safety, we use testKey if available, otherwise liveKey. 
-    // Ideally we'd have an environment toggle. Let's use testKey primarily if it exists for safe testing.
-    const apiKey = testKey || liveKey;
+    const apiKey = getFacturapiApiKey(config);
 
     if (!apiKey) {
       throw new Error("No hay llaves de Facturapi configuradas en las preferencias de esta Sucursal.");
@@ -154,9 +164,7 @@ export async function stampGlobalInvoice(formData?: FormData) {
       throw new Error("El archivo de configuración de la sucursal es inválido.");
     }
 
-    const testKey = config.facturacion?.testKey;
-    const liveKey = config.facturacion?.liveKey;
-    const apiKey = testKey || liveKey;
+    const apiKey = getFacturapiApiKey(config);
 
     if (!apiKey) {
       throw new Error("No hay llaves de Facturapi configuradas en las preferencias de esta Sucursal.");
@@ -259,7 +267,7 @@ export async function createPaymentReceipt(invoiceId: string, amount: number, pa
     }
 
     const config = JSON.parse(branchSettings.configJson);
-    const apiKey = config.facturacion?.testKey || config.facturacion?.liveKey;
+    const apiKey = getFacturapiApiKey(config);
 
     if (!apiKey) {
       throw new Error("No hay llaves de Facturapi configuradas en las preferencias.");
@@ -304,7 +312,7 @@ export async function cancelInvoice(saleId: string) {
       throw new Error("El archivo de configuración de la sucursal es inválido.");
     }
 
-    const apiKey = config.facturacion?.testKey || config.facturacion?.liveKey;
+    const apiKey = getFacturapiApiKey(config);
 
     if (!apiKey) {
       throw new Error("No hay llaves de Facturapi configuradas en las preferencias de esta Sucursal.");
