@@ -17,15 +17,25 @@ export async function createCollaboratorTask(data: {
   const activeUser = await getActiveUser();
   const activeBranch = await getActiveBranch();
   if (!activeUser) throw new Error('No autorizado');
-  if (!activeBranch || activeBranch.id === 'GLOBAL') {
-    throw new Error('Debes seleccionar una sucursal específica para realizar esta acción.');
+  if (!activeBranch) {
+    throw new Error('Debes seleccionar una sucursal para realizar esta acción.');
   }
 
   const assignee = await prisma.user.findUnique({
     where: { id: data.assignedToId },
-    select: { id: true, name: true, email: true }
+    select: { id: true, name: true, email: true, branchId: true }
   });
   if (!assignee) throw new Error('Colaborador asignado no encontrado');
+
+  let targetBranchId: string;
+  if (activeBranch.id === 'GLOBAL') {
+    if (!assignee.branchId) {
+      throw new Error('El colaborador seleccionado no está asignado a ninguna sucursal.');
+    }
+    targetBranchId = assignee.branchId;
+  } else {
+    targetBranchId = activeBranch.id;
+  }
 
   const parsedDueDate = data.dueDate ? new Date(data.dueDate) : null;
 
@@ -35,7 +45,7 @@ export async function createCollaboratorTask(data: {
       instructions: data.instructions,
       assignedToId: data.assignedToId,
       createdById: activeUser.id,
-      branchId: activeBranch.id,
+      branchId: targetBranchId,
       status: 'PENDING',
       recurrence: data.recurrence || 'ONCE',
       dueDate: parsedDueDate,
@@ -44,7 +54,7 @@ export async function createCollaboratorTask(data: {
 
   // Enviar correo electrónico
   try {
-    const creatorName = creator.name || creator.email || 'Administrador';
+    const creatorName = activeUser.name || activeUser.email || 'Administrador';
     if (assignee.email) {
       await sendTaskEmail(
         assignee.email,

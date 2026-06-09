@@ -11,35 +11,41 @@ export default async function TareasPage() {
   if (!activeUser) redirect('/login');
   if (!activeBranch) redirect('/');
 
-  if (activeBranch.id === 'GLOBAL') {
-    return (
-      <div style={{ padding: '3rem', textAlign: 'center', backgroundColor: '#fee2e2', borderRadius: '12px', color: '#991b1b', border: '1px solid #f87171', margin: '2rem auto', maxWidth: '600px' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>VISTA GLOBAL</h2>
-        <p>Selecciona una sucursal específica en la barra superior para ver y gestionar tareas.</p>
-      </div>
-    );
-  }
+  const isGlobal = activeBranch.id === 'GLOBAL';
 
-  // Fetch collaborators (users in the active branch)
-  const collaborators = await prisma.user.findMany({
-    where: { 
-      branchId: activeBranch.id
-    },
+  // Fetch collaborators (users in the active branch or all tenant users if global)
+  const rawCollaborators = await prisma.user.findMany({
+    where: isGlobal
+      ? { tenantId: activeUser.tenantId }
+      : { branchId: activeBranch.id },
     select: { 
       id: true, 
       name: true, 
-      email: true 
+      email: true,
+      branch: {
+        select: {
+          name: true
+        }
+      }
     },
     orderBy: { 
       name: 'asc' 
     }
   });
 
-  // Fetch tasks in the active branch
+  const collaborators = rawCollaborators.map(user => ({
+    id: user.id,
+    name: isGlobal && user.branch?.name
+      ? `${user.name || user.email} (${user.branch.name})`
+      : (user.name || user.email),
+    email: user.email
+  }));
+
+  // Fetch tasks in the active branch or all tenant tasks if global
   const tasks = await prisma.collaboratorTask.findMany({
-    where: { 
-      branchId: activeBranch.id
-    },
+    where: isGlobal
+      ? { branch: { tenantId: activeUser.tenantId } }
+      : { branchId: activeBranch.id },
     include: {
       assignedTo: {
         select: { name: true, email: true }
