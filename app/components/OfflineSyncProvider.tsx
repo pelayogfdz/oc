@@ -393,7 +393,21 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       
       const basicData = await syncBasicCatalogs();
       
-      await db.transaction('rw', [db.customers, db.suppliers, db.branches, db.settings, db.users], async () => {
+      const totalProducts = basicData.totalProducts;
+      const pageSize = 1500;
+      const totalPages = Math.ceil(totalProducts / pageSize);
+      
+      const allNewProducts: any[] = [];
+      for (let i = 1; i <= totalPages; i++) {
+        setSyncMessage(`Sincronizando Catálogo... (${i}/${totalPages})`);
+        const productsChunk = await syncProductsPage(i, pageSize);
+        if (productsChunk && productsChunk.length > 0) {
+          allNewProducts.push(...productsChunk);
+        }
+      }
+
+      // Perform a single Dexie transaction to rewrite all local tables atomically
+      await db.transaction('rw', [db.customers, db.suppliers, db.branches, db.settings, db.users, db.products], async () => {
         await db.customers.clear();
         await db.customers.bulkAdd(basicData.customers);
         
@@ -415,26 +429,18 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
             metodosConfig: JSON.parse(basicData.settings.configJson || '{}').metodos || {}
           });
         }
-      });
 
-      const totalProducts = basicData.totalProducts;
-      const pageSize = 1500;
-      const totalPages = Math.ceil(totalProducts / pageSize);
-      
-      await db.products.clear();
-      
-      for (let i = 1; i <= totalPages; i++) {
-        setSyncMessage(`Sincronizando Catálogo... (${i}/${totalPages})`);
-        const productsChunk = await syncProductsPage(i, pageSize);
-        await db.products.bulkAdd(productsChunk);
-      }
+        await db.products.clear();
+        await db.products.bulkAdd(allNewProducts);
+      });
 
       localStorage.setItem('last_catalog_sync_timestamp', Date.now().toString());
       setSyncMessage(null);
+      setShowToast({ message: 'Catálogos actualizados y guardados en local.', type: 'success' });
     } catch (e) {
       console.error('Failed to sync catalogs', e);
       setSyncMessage(null);
-      setShowToast({ message: 'Error descargando catálogos en Offline', type: 'error' });
+      setShowToast({ message: 'Error al actualizar catálogos. Se mantiene la versión local anterior.', type: 'error' });
     }
   };
 

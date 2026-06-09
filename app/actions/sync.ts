@@ -9,10 +9,18 @@ export async function syncBasicCatalogs() {
   const tenantId = branch?.tenantId || '';
 
   const customers = await prisma.customer.findMany({ where: { branchId } });
-  const suppliers = await prisma.supplier.findMany();
-  const branches = await prisma.branch.findMany({ where: { isActive: true } });
+  const suppliers = await prisma.supplier.findMany({ where: { branchId } });
+  const branches = await prisma.branch.findMany({ where: { tenantId, isActive: true } });
   const settingsDb = await prisma.branchSettings.findUnique({ where: { branchId } });
-  const totalProducts = await prisma.product.count({ where: { isActive: true } });
+  
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const branchIds = tenantBranches.map(b => b.id);
+  const totalProducts = await prisma.product.count({ 
+    where: { branchId: { in: branchIds }, isActive: true } 
+  });
   
   // Fetch active users in the tenant for offline Kiosk Mode
   const users = await prisma.user.findMany({
@@ -36,9 +44,19 @@ export async function syncBasicCatalogs() {
 }
 
 export async function syncProductsPage(page: number, limit: number) {
+  const branch = await getActiveBranch();
+  if (!branch) return [];
+  const tenantId = branch.tenantId || '';
+  
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const branchIds = tenantBranches.map(b => b.id);
+
   const skip = (page - 1) * limit;
   const products = await prisma.product.findMany({
-    where: { isActive: true },
+    where: { branchId: { in: branchIds }, isActive: true },
     include: { variants: true, prices: true },
     skip,
     take: limit,
@@ -49,25 +67,34 @@ export async function syncProductsPage(page: number, limit: number) {
 export async function syncAllCatalogs() {
   const branch = await getActiveBranch();
   const branchId = branch?.id || '';
+  const tenantId = branch?.tenantId || '';
+
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const branchIds = tenantBranches.map(b => b.id);
 
   // 1. Productos
   const products = await prisma.product.findMany({
-    where: { isActive: true }, // We should probably download ALL products across branches for transfers? Yes.
+    where: { branchId: { in: branchIds }, isActive: true },
     include: { variants: true, prices: true },
-    take: 1000 // Failsafe to prevent OOM in monolithic sync, we use chunking in offline DB now
+    take: 1000
   });
 
   // 2. Clientes
   const customers = await prisma.customer.findMany({
-    where: { branchId } // Clients are usually branch-specific or global. Let's pull all for simplicity.
+    where: { branchId }
   });
 
   // 3. Proveedores
-  const suppliers = await prisma.supplier.findMany();
+  const suppliers = await prisma.supplier.findMany({
+    where: { branchId }
+  });
 
   // 4. Sucursales
   const branches = await prisma.branch.findMany({
-    where: { isActive: true }
+    where: { tenantId, isActive: true }
   });
 
   // 5. Settings (solo de la sucursal activa)
