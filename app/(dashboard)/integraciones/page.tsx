@@ -11,7 +11,9 @@ export default async function IntegracionesPage() {
     { id: 'MERCADO_LIBRE', name: 'Mercado Libre', icon: '🛒', color: '#ffe600', text: '#333' },
     { id: 'AMAZON', name: 'Amazon Seller', icon: '📦', color: '#ff9900', text: '#fff' },
     { id: 'WALMART', name: 'Walmart Marketplace', icon: '🏪', color: '#0071ce', text: '#fff' },
-    { id: 'LIVERPOOL', name: 'Liverpool Partners', icon: '🏬', color: '#e10098', text: '#fff' }
+    { id: 'LIVERPOOL', name: 'Liverpool Partners', icon: '🏬', color: '#e10098', text: '#fff' },
+    { id: 'UBER_EATS', name: 'Uber Eats', icon: '🛵', color: '#06C167', text: '#fff' },
+    { id: 'RAPPI', name: 'Rappi', icon: '🍊', color: '#FF441F', text: '#fff' }
   ];
 
   return (
