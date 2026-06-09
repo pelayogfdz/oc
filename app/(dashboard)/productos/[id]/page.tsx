@@ -163,6 +163,36 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
                   ))}
                 </select>
               </div>
+              <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '2rem', marginTop: '0.5rem', marginBottom: '0.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input type="hidden" name="allowProduction" value="false" />
+                  <input 
+                    type="checkbox" 
+                    id="allowProduction"
+                    name="allowProduction" 
+                    value="true"
+                    defaultChecked={product.allowProduction || false} 
+                    style={{ width: '20px', height: '20px', cursor: 'pointer' }} 
+                  />
+                  <label htmlFor="allowProduction" style={{ fontWeight: '500', cursor: 'pointer', fontSize: '0.95rem' }}>
+                    🟢 Permitir Producir (Se puede fabricar con una fórmula)
+                  </label>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input type="hidden" name="isProductionInput" value="false" />
+                  <input 
+                    type="checkbox" 
+                    id="isProductionInput"
+                    name="isProductionInput" 
+                    value="true"
+                    defaultChecked={product.isProductionInput || false} 
+                    style={{ width: '20px', height: '20px', cursor: 'pointer' }} 
+                  />
+                  <label htmlFor="isProductionInput" style={{ fontWeight: '500', cursor: 'pointer', fontSize: '0.95rem' }}>
+                    🧪 Insumo para Producción (Se puede usar como ingrediente)
+                  </label>
+                </div>
+              </div>
             </div>
             
             <div>

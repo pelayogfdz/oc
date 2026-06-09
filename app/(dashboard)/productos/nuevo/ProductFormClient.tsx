@@ -111,6 +111,36 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Código de Barras</label>
             <input type="text" name="barcode" defaultValue="" placeholder="(Opcional)" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
           </div>
+          <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '2rem', marginTop: '0.5rem', marginBottom: '0.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input type="hidden" name="allowProduction" value="false" />
+              <input 
+                type="checkbox" 
+                id="allowProduction"
+                name="allowProduction" 
+                value="true"
+                defaultChecked={cloneProduct?.allowProduction || false} 
+                style={{ width: '20px', height: '20px', cursor: 'pointer' }} 
+              />
+              <label htmlFor="allowProduction" style={{ fontWeight: '500', cursor: 'pointer', fontSize: '0.95rem' }}>
+                🟢 Permitir Producir (Se puede fabricar con una fórmula)
+              </label>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input type="hidden" name="isProductionInput" value="false" />
+              <input 
+                type="checkbox" 
+                id="isProductionInput"
+                name="isProductionInput" 
+                value="true"
+                defaultChecked={cloneProduct?.isProductionInput || false} 
+                style={{ width: '20px', height: '20px', cursor: 'pointer' }} 
+              />
+              <label htmlFor="isProductionInput" style={{ fontWeight: '500', cursor: 'pointer', fontSize: '0.95rem' }}>
+                🧪 Insumo para Producción (Se puede usar como ingrediente)
+              </label>
+            </div>
+          </div>
           <div style={{ padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '4px', border: '1px dashed #22c55e', gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#166534' }}>Clave de Producto SAT (Product Key)</label>

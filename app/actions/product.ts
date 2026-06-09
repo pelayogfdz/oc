@@ -21,6 +21,8 @@ export async function createProduct(prevState: any, formData: FormData) {
   const imageUrl = formData.get('imageUrl') as string;
   const youtubeUrl = formData.get('youtubeUrl') as string;
   const isActive = formData.get('isActive') !== 'false';
+  const allowProduction = formData.get('allowProduction') === 'true';
+  const isProductionInput = formData.get('isProductionInput') === 'true';
   const unit = formData.get('unit') as string || 'Pza';
   const satKey = (formData.get('satKey') as string) || null;
   const satUnit = (formData.get('satUnit') as string) || null;
@@ -77,6 +79,8 @@ export async function createProduct(prevState: any, formData: FormData) {
       imageUrl,
       youtubeUrl,
       isActive,
+      allowProduction,
+      isProductionInput,
       unit,
       stock,
       minStock,
@@ -215,6 +219,12 @@ export async function updateProduct(productId: string, formData: FormData) {
 
     const isActive = formData.get('isActive');
     if (isActive !== null) data.isActive = isActive !== 'false';
+
+    const allowProduction = formData.get('allowProduction');
+    if (allowProduction !== null) data.allowProduction = allowProduction === 'true';
+
+    const isProductionInput = formData.get('isProductionInput');
+    if (isProductionInput !== null) data.isProductionInput = isProductionInput === 'true';
 
     const unit = formData.get('unit');
     if (unit !== null) data.unit = (unit as string) || 'Pza';

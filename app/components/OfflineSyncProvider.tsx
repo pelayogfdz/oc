@@ -111,12 +111,13 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       await db.pendingSales.add(newSale);
       setPendingSales(prev => [...prev, newSale]);
       if (!isOnline) {
-        setShowToast({ message: 'Venta guardada en modo Offline.', type: 'warn' });
+        const typeLabel = saleParams.type === 'QUOTE' ? 'Cotización' : saleParams.type === 'CONSIGNMENT' ? 'Consignación' : 'Venta';
+        setShowToast({ message: `${typeLabel} guardada en modo Offline.`, type: 'warn' });
       } else {
         forceSync();
       }
     } catch (error) {
-      setShowToast({ message: 'Error al intentar guardar la venta.', type: 'error' });
+      setShowToast({ message: 'Error al intentar guardar la operación.', type: 'error' });
     }
   };
 
@@ -173,7 +174,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       
       // Mirror to products table so it's instantly available offline for search/sale
       const mirrorProduct = {
-        id: crypto.randomUUID(), // fake id
+        id: newProduct.productId || crypto.randomUUID(),
         branchId: newProduct.branchId,
         name: newProduct.name,
         sku: newProduct.sku,
@@ -186,10 +187,15 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
         variants: JSON.parse(newProduct.variantsJson || '[]'),
         prices: [] 
       };
-      await db.products.add(mirrorProduct);
+      if (newProduct.productId) {
+        await db.products.put(mirrorProduct);
+        if (!isOnline) setShowToast({ message: 'Cambios de producto guardados localmente.', type: 'warn' });
+      } else {
+        await db.products.add(mirrorProduct);
+        if (!isOnline) setShowToast({ message: 'Producto registrado localmente.', type: 'warn' });
+      }
 
-      if (!isOnline) setShowToast({ message: 'Producto registrado localmente.', type: 'warn' });
-      else forceSync();
+      if (isOnline) forceSync();
     } catch (e) {
       setShowToast({ message: 'Error guardando producto offline', type: 'error' });
     }
@@ -227,23 +233,50 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       for (const sale of sales) {
         if (sale.failed && sale.retryCount >= 5) continue;
         try {
-          // Dynamic import to avoid cycles
-          const { createSale } = await import('../actions/sale');
-          await createSale(
-            sale.items, 
-            sale.total, 
-            sale.paymentMethod, 
-            sale.customerId, 
-            sale.sessionId, 
-            sale.notes, 
-            sale.cashValue, 
-            sale.cardValue, 
-            sale.billingData,
-            undefined,
-            undefined,
-            0,
-            sale.branchId
-          );
+          if (sale.type === 'QUOTE') {
+            const { createQuote } = await import('../actions/quote');
+            await createQuote(
+              sale.items.map(item => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                price: item.price
+              })),
+              sale.total,
+              sale.paymentMethod,
+              sale.customerId
+            );
+          } else if (sale.type === 'CONSIGNMENT') {
+            const { createConsignment } = await import('../actions/consignment');
+            await createConsignment(
+              sale.items.map(item => ({
+                productId: item.productId,
+                variantId: item.variantId || null,
+                quantity: item.quantity,
+                price: item.price
+              })),
+              sale.total,
+              sale.paymentMethod,
+              sale.customerId
+            );
+          } else {
+            // Dynamic import to avoid cycles
+            const { createSale } = await import('../actions/sale');
+            await createSale(
+              sale.items, 
+              sale.total, 
+              sale.paymentMethod, 
+              sale.customerId, 
+              sale.sessionId, 
+              sale.notes, 
+              sale.cashValue, 
+              sale.cardValue, 
+              sale.billingData,
+              undefined,
+              undefined,
+              0,
+              sale.branchId
+            );
+          }
           await db.pendingSales.delete(sale.id);
           syncedAny = true;
         } catch (e: any) { 
@@ -306,7 +339,6 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       for (const p of products) {
         if (p.failed && p.retryCount >= 5) continue;
         try {
-          const { createProduct } = await import('../actions/product');
           const formData = new FormData();
           formData.append('branchId', p.branchId);
           formData.append('name', p.name);
@@ -330,15 +362,22 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
           if (p.satUnit) formData.append('satUnit', p.satUnit);
           if (p.description) formData.append('description', p.description);
 
-          if (p.dynamicPrices) {
-             Object.entries(p.dynamicPrices).forEach(([listId, val]) => {
-                formData.append(`priceList_${listId}`, val.toString());
-             });
-          }
+          // Append any dynamic price fields from p (flat keys starting with priceList_)
+          Object.entries(p).forEach(([key, val]) => {
+            if (key.startsWith('priceList_') && val !== undefined && val !== null) {
+              formData.append(key, val.toString());
+            }
+          });
 
-          const result = await createProduct({} as any, formData);
-          if (result && result.error) {
-             throw new Error(result.error);
+          if (p.productId) {
+            const { updateProduct } = await import('../actions/product');
+            await updateProduct(p.productId, formData);
+          } else {
+            const { createProduct } = await import('../actions/product');
+            const result = await createProduct({} as any, formData);
+            if (result && result.error) {
+               throw new Error(result.error);
+            }
           }
           await db.pendingProducts.delete(p.id);
           syncedAny = true;

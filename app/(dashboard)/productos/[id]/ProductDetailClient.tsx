@@ -5,6 +5,7 @@ import { adjustInventory } from '@/app/actions/inventory';
 import { createVariant, deleteVariant } from '@/app/actions/variant';
 import { createBatch, deleteBatch } from '@/app/actions/batch';
 import { Truck, Image as ImageIcon, X } from 'lucide-react';
+import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 
 const getFormattedImageUrl = (url: string | null) => {
   if (!url) return '';
@@ -36,6 +37,38 @@ export function ProductDetailClient({
   const [isPending, startTransition] = useTransition();
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
   const [headerImageError, setHeaderImageError] = useState(false);
+  const { pushOfflineProduct } = useOfflineSync();
+
+  useEffect(() => {
+    const handleFormSubmit = async (e: SubmitEvent) => {
+      if (!navigator.onLine) {
+        const form = e.target as HTMLFormElement;
+        const skuInput = form.querySelector('input[name="sku"]');
+        if (skuInput) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const formData = new FormData(form);
+          const productParams: any = {};
+          formData.forEach((value, key) => {
+            productParams[key] = value;
+          });
+          
+          productParams.productId = product.id;
+          
+          productParams.allowProduction = formData.get('allowProduction') === 'true';
+          productParams.isProductionInput = formData.get('isProductionInput') === 'true';
+          productParams.isActive = formData.get('isActive') !== 'false';
+          
+          await pushOfflineProduct(productParams);
+          window.location.href = '/productos';
+        }
+      }
+    };
+
+    window.addEventListener('submit', handleFormSubmit, true);
+    return () => window.removeEventListener('submit', handleFormSubmit, true);
+  }, [product.id, pushOfflineProduct]);
 
   useEffect(() => {
     const checkImage = () => {

@@ -1144,9 +1144,45 @@ export default function POSClient({ products: initialProducts, customers, suppli
       let responseSale: any = null;
 
       if (mode === 'QUOTE') {
-        const quote = await createQuote(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null, loadedQuoteId || undefined);
+        if (!isOnline) {
+          await pushOfflineSale({
+             items,
+             total: finalTotalWithTip,
+             paymentMethod,
+             customerId: selectedCustomerId || null,
+             sessionId,
+             notes,
+             type: 'QUOTE',
+             branchId,
+             retryCount: 0,
+             failed: false
+          } as any);
+          saleId = `OFFLINE-QUOTE-${Date.now()}`;
+        } else {
+          const quote = await createQuote(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null, loadedQuoteId || undefined);
+          saleId = quote?.id;
+          responseSale = quote;
+        }
       } else if (mode === 'CONSIGNMENT') {
-        const consignment = await createConsignment(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null);
+        if (!isOnline) {
+          await pushOfflineSale({
+             items,
+             total: finalTotalWithTip,
+             paymentMethod,
+             customerId: selectedCustomerId || null,
+             sessionId,
+             notes,
+             type: 'CONSIGNMENT',
+             branchId,
+             retryCount: 0,
+             failed: false
+          } as any);
+          saleId = `OFFLINE-CONSIGNMENT-${Date.now()}`;
+        } else {
+          const consignment = await createConsignment(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null);
+          saleId = consignment?.id;
+          responseSale = consignment;
+        }
       } else {
         const cashValue = typeof amountReceived === 'number' ? amountReceived : undefined;
         const cardValue = typeof cardAmount === 'number' ? cardAmount : undefined;
@@ -1179,7 +1215,8 @@ export default function POSClient({ products: initialProducts, customers, suppli
                 cashValue,
                 cardValue,
                 billingData,
-                branchId
+                branchId,
+                type: 'SALE'
              },
              retryCount: 0,
              failed: false

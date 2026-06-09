@@ -7,6 +7,8 @@ import { createProcess, updateProcess, deleteProcess, createRecipe, deleteRecipe
 export default function FormulasClient({ initialProcesses, initialRecipes, products }: any) {
   const [processes, setProcesses] = useState(initialProcesses);
   const [recipes, setRecipes] = useState(initialRecipes);
+  const productionProducts = products.filter((p: any) => p.allowProduction === true);
+  const ingredientProducts = products.filter((p: any) => p.isProductionInput === true);
   
   // Procesos UI State
   const [isProcessModalOpen, setIsProcessModalOpen] = useState(false);
@@ -236,7 +238,7 @@ export default function FormulasClient({ initialProcesses, initialRecipes, produ
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'var(--pulpos-bg)', color: 'var(--pulpos-text)' }}
                 >
                   <option value="">-- Seleccionar Producto --</option>
-                  {products.map((p: any) => (
+                  {productionProducts.map((p: any) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
@@ -274,7 +276,7 @@ export default function FormulasClient({ initialProcesses, initialRecipes, produ
                     style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'var(--pulpos-bg)', color: 'var(--pulpos-text)' }}
                   >
                     <option value="">Seleccionar Insumo...</option>
-                    {products.map((p: any) => (
+                    {ingredientProducts.map((p: any) => (
                       <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
                   </select>

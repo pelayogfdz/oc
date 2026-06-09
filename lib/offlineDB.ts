@@ -20,6 +20,7 @@ export interface OfflineSale extends DLQMetadata {
   timestamp: string;
   synced: boolean;
   branchId?: string;
+  type?: 'SALE' | 'QUOTE' | 'CONSIGNMENT';
 }
 
 export interface OfflineTransfer extends DLQMetadata {
@@ -150,6 +151,7 @@ export interface OfflinePendingProduct extends DLQMetadata {
   timestamp: string;
   synced: boolean;
   dynamicPrices?: Record<string, number>; 
+  productId?: string;
 }
 
 export class CAANMAOfflineDB extends Dexie {

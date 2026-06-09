@@ -42,7 +42,7 @@ export default async function FormulasPage() {
   // Solo cargar insumos y productos finales (los que pueden tener receta o ser ingredientes)
   const products = await prisma.product.findMany({
     where: { branchId: { in: branchIds }, isActive: true },
-    select: { id: true, name: true, sku: true, stock: true }
+    select: { id: true, name: true, sku: true, stock: true, allowProduction: true, isProductionInput: true }
   });
 
   return (
