@@ -17,6 +17,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
   const [sales, setSales] = useState<any[]>(initialSales);
   const [customers, setCustomers] = useState<any[]>(initialCustomers);
   const [selectedSaleIds, setSelectedSaleIds] = useState<string[]>([]);
+  const [activeInvoicingSaleIds, setActiveInvoicingSaleIds] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
 
   // Modal states
@@ -118,24 +119,36 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
   };
 
   const handleGroupInvoiceSubmit = () => {
-    if (selectedSaleIds.length === 0) return;
+    if (activeInvoicingSaleIds.length === 0) return;
     
     startTransition(async () => {
-      const res = await stampMultipleSalesInvoice(selectedSaleIds, selectedCustomerId || null);
+      let res;
+      if (activeInvoicingSaleIds.length === 1) {
+        res = await stampInvoice(activeInvoicingSaleIds[0], selectedCustomerId || null);
+      } else {
+        res = await stampMultipleSalesInvoice(activeInvoicingSaleIds, selectedCustomerId || null);
+      }
+      
       if (res.success) {
-        alert('Factura agrupada emitida exitosamente. ID: ' + res.invoiceId);
+        alert('Factura emitida exitosamente. ID: ' + res.invoiceId);
         // Refresh local state
-        setSales(prev => prev.map(s => selectedSaleIds.includes(s.id) ? { ...s, invoiceId: res.invoiceId } : s));
-        setSelectedSaleIds([]);
+        setSales(prev => prev.map(s => activeInvoicingSaleIds.includes(s.id) ? { ...s, invoiceId: res.invoiceId } : s));
+        // Remove from selected list
+        setSelectedSaleIds(prev => prev.filter(id => !activeInvoicingSaleIds.includes(id)));
+        setActiveInvoicingSaleIds([]);
         setIsModalOpen(false);
       } else {
-        alert('Error al emitir factura agrupada: ' + res.error);
+        alert('Error al timbrar factura: ' + res.error);
       }
     });
   };
 
   const totalSelected = sales
     .filter(s => selectedSaleIds.includes(s.id))
+    .reduce((acc, s) => acc + s.total, 0);
+
+  const activeInvoicingTotal = sales
+    .filter(s => activeInvoicingSaleIds.includes(s.id))
     .reduce((acc, s) => acc + s.total, 0);
 
   return (
@@ -184,6 +197,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
             <button 
               onClick={() => {
                 setSelectedCustomerId('');
+                setActiveInvoicingSaleIds(selectedSaleIds);
                 setIsModalOpen(true);
               }}
               style={{
@@ -388,7 +402,11 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                       ) : (
                         <button 
                           disabled={isPending}
-                          onClick={() => handleStampSingle(sale.id)}
+                          onClick={() => {
+                            setSelectedCustomerId(sale.customerId || '');
+                            setActiveInvoicingSaleIds([sale.id]);
+                            setIsModalOpen(true);
+                          }}
                           style={{ 
                             padding: '0.5rem 1rem', 
                             backgroundColor: '#eff6ff', 
@@ -458,10 +476,10 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
               <div>
                 <h3 style={{ fontSize: '1.4rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Layers size={22} color="var(--pulpos-primary)" />
-                  Facturar {selectedSaleIds.length} Ventas Agrupadas
+                  {activeInvoicingSaleIds.length === 1 ? 'Facturar Venta' : `Facturar ${activeInvoicingSaleIds.length} Ventas Agrupadas`}
                 </h3>
                 <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-                  Monto consolidado: <strong style={{ color: '#0f172a' }}>${totalSelected.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</strong>
+                  {activeInvoicingSaleIds.length === 1 ? 'Monto de la venta:' : 'Monto consolidado:'} <strong style={{ color: '#0f172a' }}>${activeInvoicingTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</strong>
                 </p>
 
                 {/* Search Customer */}

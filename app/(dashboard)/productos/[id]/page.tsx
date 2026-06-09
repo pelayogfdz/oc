@@ -193,6 +193,17 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
                   </label>
                 </div>
               </div>
+              <div style={{ padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '4px', border: '1px dashed #22c55e', gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#166534' }}>Clave de Producto SAT (Product Key)</label>
+                  <input type="text" name="satKey" defaultValue={product.satKey || ''} placeholder="Ej. 01010101" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #bbf7d0' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#166534' }}>Clave de Unidad SAT (Unit Key)</label>
+                  <input type="text" name="satUnit" defaultValue={product.satUnit || ''} placeholder="Ej. H87" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #bbf7d0' }} />
+                </div>
+                <p style={{ gridColumn: '1 / -1', margin: 0, fontSize: '0.85rem', color: '#166534' }}>* Estos campos son requeridos para facturar ventas de este artículo.</p>
+              </div>
             </div>
             
             <div>

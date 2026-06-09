@@ -19,7 +19,7 @@ function getFacturapiApiKey(config: any): string | null {
   }
 }
 
-export async function stampInvoice(saleId: string) {
+export async function stampInvoice(saleId: string, customerId?: string | null) {
   try {
     const branch = await getActiveBranch();
     
@@ -67,22 +67,33 @@ export async function stampInvoice(saleId: string) {
     }
 
     // Determine Customer (Receiver)
+    let finalCustomer = sale.customer;
+    if (customerId !== undefined) {
+      if (customerId && customerId !== "") {
+        finalCustomer = await prisma.customer.findUnique({
+          where: { id: customerId }
+        });
+      } else {
+        finalCustomer = null;
+      }
+    }
+
     let customerData = {
       legal_name: "PUBLICO EN GENERAL",
       tax_id: "XAXX010101000",
       tax_system: "616", // Sin obligaciones fiscales
       address: {
-        zip: "01000" // General zip code, should Ideally be branch's zip code
+        zip: "01000"
       }
     };
 
-    if (sale.customer && sale.customer.taxId && sale.customer.taxId !== "") {
+    if (finalCustomer && finalCustomer.taxId && finalCustomer.taxId !== "") {
       customerData = {
-        legal_name: sale.customer.legalName || sale.customer.name,
-        tax_id: sale.customer.taxId,
-        tax_system: (sale.customer as any).taxSystem || "601",
+        legal_name: finalCustomer.legalName || finalCustomer.name,
+        tax_id: finalCustomer.taxId,
+        tax_system: (finalCustomer as any).taxSystem || "601",
         address: {
-          zip: sale.customer.zipCode || "01000"
+          zip: finalCustomer.zipCode || "01000"
         }
       };
     }
@@ -100,10 +111,10 @@ export async function stampInvoice(saleId: string) {
           tax_included: true,
           taxes: [
              { type: "IVA", rate: (item.product.taxRate || 16.0) / 100 } 
-          ]
+          ],
+          unit_key: item.product.satUnit
         },
-        quantity: Number(item.quantity),
-        unit_key: item.product.satUnit
+        quantity: Number(item.quantity)
       };
     });
 
@@ -116,8 +127,8 @@ export async function stampInvoice(saleId: string) {
       payment_method = "PPD"; // Pago en Parcialidades o Diferido
     }
 
-    if (sale.customer && sale.customer.cfdiUse) {
-      cfdiUse = sale.customer.cfdiUse;
+    if (finalCustomer && finalCustomer.cfdiUse) {
+      cfdiUse = finalCustomer.cfdiUse;
     } else if (customerData.tax_id !== "XAXX010101000") {
       cfdiUse = "G03"; // Gastos en general como default seguro para RFC conocidos
     }
@@ -131,10 +142,13 @@ export async function stampInvoice(saleId: string) {
       use: cfdiUse
     });
 
-    // Update the Sale record with the Invoice ID (requires a schema addition ideally, but for now we'll use a hack or just update status if we added it)
+    // Update the Sale record with the Invoice ID and link customer if provided
     await prisma.sale.update({
       where: { id: saleId },
-      data: { invoiceId: invoice.id } // Assume invoiceId field exists? Wait, let me check schema! If it doesn't, I will just update the status or append to notes.
+      data: { 
+        invoiceId: invoice.id,
+        ...(customerId ? { customerId } : {})
+      }
     });
 
     revalidatePath('/facturas/ventas');
@@ -217,10 +231,10 @@ export async function stampGlobalInvoice(startDateStr?: string, endDateStr?: str
               tax_included: true,
               taxes: [
                  { type: "IVA", rate: (item.product.taxRate || 16.0) / 100 } 
-              ]
+              ],
+              unit_key: item.product.satUnit
             },
-            quantity: Number(item.quantity),
-            unit_key: item.product.satUnit
+            quantity: Number(item.quantity)
           });
        }
     }
@@ -417,10 +431,12 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
 
     // Determine customer to use
     let finalCustomer: any = null;
-    if (customerId) {
-      finalCustomer = await prisma.customer.findUnique({
-        where: { id: customerId }
-      });
+    if (customerId !== undefined) {
+      if (customerId && customerId !== "") {
+        finalCustomer = await prisma.customer.findUnique({
+          where: { id: customerId }
+        });
+      }
     } else {
       // Try to use customer from first sale if not provided
       const firstCustomerSale = sales.find(s => s.customer?.taxId);
@@ -464,10 +480,10 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
             tax_included: true,
             taxes: [
                { type: "IVA", rate: (item.product.taxRate || 16.0) / 100 } 
-            ]
+            ],
+            unit_key: item.product.satUnit
           },
-          quantity: Number(item.quantity),
-          unit_key: item.product.satUnit
+          quantity: Number(item.quantity)
         });
       }
     }

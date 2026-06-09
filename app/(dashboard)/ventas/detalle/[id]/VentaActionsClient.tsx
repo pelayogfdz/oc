@@ -51,6 +51,10 @@ export default function VentaActionsClient({
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
+  // Invoicing States
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [selectedCustomerIdForInvoice, setSelectedCustomerIdForInvoice] = useState(currentCustomerId || '');
+
   const handleSaveEdit = async () => {
     setIsSavingEdit(true);
     setEditError(null);
@@ -190,12 +194,12 @@ export default function VentaActionsClient({
     });
   };
 
-  const handleStampInvoice = () => {
-    if (!confirm('¿Deseas emitir la factura para esta venta ante el SAT?')) return;
+  const handleInvoiceSubmit = () => {
+    setIsInvoiceModalOpen(false);
     
     startTransition(async () => {
       try {
-        const res = await stampInvoice(saleId);
+        const res = await stampInvoice(saleId, selectedCustomerIdForInvoice || null);
         if (res.success) {
           alert('Factura emitida exitosamente. ID: ' + res.invoiceId);
           router.refresh();
@@ -282,7 +286,10 @@ export default function VentaActionsClient({
       {/* Timbrar Factura */}
       {status === 'COMPLETED' && !invoiceId && (
         <button
-          onClick={handleStampInvoice}
+          onClick={() => {
+            setSelectedCustomerIdForInvoice(currentCustomerId || '');
+            setIsInvoiceModalOpen(true);
+          }}
           disabled={isPending}
           className="btn-primary"
           style={{
@@ -682,6 +689,156 @@ export default function VentaActionsClient({
                     </>
                   ) : (
                     'Guardar Cambios'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Invoicing Modal */}
+      {isInvoiceModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.45)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            color: '#1e293b'
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '520px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+              border: '1px solid #e2e8f0',
+              overflow: 'hidden',
+              textAlign: 'left'
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                padding: '1.25rem 1.5rem',
+                borderBottom: '1px solid #f1f5f9',
+                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                color: 'white',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '700' }}>
+                  📄 Timbrar Factura (SAT)
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsInvoiceModalOpen(false)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '28px',
+                  height: '28px',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: '#64748b' }}>
+                Selecciona a qué cliente deseas timbrar la factura de esta venta por un total de <strong>${saleTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</strong>:
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.875rem', fontWeight: 'bold', color: '#475569' }}>
+                  Cliente receptor fiscal:
+                </label>
+                <select
+                  value={selectedCustomerIdForInvoice}
+                  onChange={(e) => setSelectedCustomerIdForInvoice(e.target.value)}
+                  style={{
+                    padding: '0.6rem 0.75rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                    backgroundColor: 'white',
+                    color: 'black'
+                  }}
+                >
+                  <option value="">Público General (RFC: XAXX010101000)</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Footer Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button
+                  onClick={() => setIsInvoiceModalOpen(false)}
+                  disabled={isPending}
+                  style={{
+                    padding: '0.6rem 1.25rem',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    backgroundColor: '#f8fafc',
+                    color: '#64748b',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleInvoiceSubmit}
+                  disabled={isPending}
+                  style={{
+                    padding: '0.6rem 1.5rem',
+                    border: 'none',
+                    borderRadius: '8px',
+                    backgroundColor: '#2563eb',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  {isPending ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> Timbrando...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={16} /> Emitir Factura SAT
+                    </>
                   )}
                 </button>
               </div>
