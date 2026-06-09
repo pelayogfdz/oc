@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/session';
 import { sendTaskEmail } from '@/lib/mailer';
 import { revalidatePath } from 'next/cache';
+import { getActiveBranch, getActiveUser } from './auth';
 
 export async function createCollaboratorTask(data: {
   title: string;
@@ -13,16 +14,12 @@ export async function createCollaboratorTask(data: {
   recurrence: string;
   dueDate?: string;
 }) {
-  const sessionCookie = (await cookies()).get('session')?.value;
-  const session = await decrypt(sessionCookie);
-  if (!session?.userId) throw new Error('No autorizado');
-
-  const creator = await prisma.user.findUnique({
-    where: { id: session.userId as string },
-    select: { id: true, name: true, email: true, branchId: true }
-  });
-  if (!creator) throw new Error('Usuario creador no encontrado');
-  if (!creator.branchId) throw new Error('El usuario creador no tiene sucursal asignada');
+  const activeUser = await getActiveUser();
+  const activeBranch = await getActiveBranch();
+  if (!activeUser) throw new Error('No autorizado');
+  if (!activeBranch || activeBranch.id === 'GLOBAL') {
+    throw new Error('Debes seleccionar una sucursal específica para realizar esta acción.');
+  }
 
   const assignee = await prisma.user.findUnique({
     where: { id: data.assignedToId },
@@ -37,8 +34,8 @@ export async function createCollaboratorTask(data: {
       title: data.title,
       instructions: data.instructions,
       assignedToId: data.assignedToId,
-      createdById: creator.id,
-      branchId: creator.branchId,
+      createdById: activeUser.id,
+      branchId: activeBranch.id,
       status: 'PENDING',
       recurrence: data.recurrence || 'ONCE',
       dueDate: parsedDueDate,

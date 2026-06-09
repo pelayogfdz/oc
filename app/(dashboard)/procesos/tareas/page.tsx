@@ -1,27 +1,29 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
-import { decrypt } from '@/lib/session';
 import { redirect } from 'next/navigation';
+import { getActiveBranch, getActiveUser } from '@/app/actions/auth';
 import TareasClient from './TareasClient';
 
 export default async function TareasPage() {
-  const sessionCookie = (await cookies()).get('session')?.value;
-  const session = await decrypt(sessionCookie);
-  if (!session?.userId) redirect('/auth/login');
+  const activeUser = await getActiveUser();
+  const activeBranch = await getActiveBranch();
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.userId as string },
-    select: { tenantId: true, branchId: true }
-  });
+  if (!activeUser) redirect('/login');
+  if (!activeBranch) redirect('/');
 
-  if (!user?.tenantId || !user?.branchId) redirect('/');
+  if (activeBranch.id === 'GLOBAL') {
+    return (
+      <div style={{ padding: '3rem', textAlign: 'center', backgroundColor: '#fee2e2', borderRadius: '12px', color: '#991b1b', border: '1px solid #f87171', margin: '2rem auto', maxWidth: '600px' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>VISTA GLOBAL</h2>
+        <p>Selecciona una sucursal específica en la barra superior para ver y gestionar tareas.</p>
+      </div>
+    );
+  }
 
   // Fetch collaborators (users in the active branch)
   const collaborators = await prisma.user.findMany({
     where: { 
-      branchId: user.branchId,
-      isActive: true 
+      branchId: activeBranch.id
     },
     select: { 
       id: true, 
@@ -36,7 +38,7 @@ export default async function TareasPage() {
   // Fetch tasks in the active branch
   const tasks = await prisma.collaboratorTask.findMany({
     where: { 
-      branchId: user.branchId 
+      branchId: activeBranch.id
     },
     include: {
       assignedTo: {
