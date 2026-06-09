@@ -1,16 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Search, FileText, Download, UserCircle, Briefcase, ChevronRight, 
   CheckCircle2, Star, Award, TrendingUp, Calendar, CreditCard, 
-  ShoppingBag, ListFilter, Percent, Receipt, LogOut, ChevronDown, ChevronUp 
+  ShoppingBag, ListFilter, Percent, Receipt, LogOut, ChevronDown, ChevronUp, AlertTriangle, Check
 } from 'lucide-react';
-import { searchTicket, searchB2BInvoices, searchCustomerPortalData } from '@/app/actions/portal';
+import { searchTicket, searchB2BInvoices, searchCustomerPortalData, generateInvoice } from '@/app/actions/portal';
 import { formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 export default function PortalClient() {
+  const searchParams = useSearchParams();
+  const ticketIdParam = searchParams.get('ticketId') || searchParams.get('id') || '';
+
   const [tab, setTab] = useState<'b2c' | 'b2b' | 'loyalty'>('loyalty');
   const [ticketId, setTicketId] = useState('');
   const [rfc, setRfc] = useState('');
@@ -21,6 +25,18 @@ export default function PortalClient() {
   
   // B2C State
   const [sale, setSale] = useState<any>(null);
+  const [isEnteringTaxData, setIsEnteringTaxData] = useState(false);
+  
+  // Tax Data Form
+  const [taxData, setTaxData] = useState({
+    legalName: '',
+    rfc: '',
+    taxRegime: '601',
+    zipCode: '',
+    cfdiUse: 'G03',
+    email: '',
+    phone: ''
+  });
   
   // B2B State
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -30,6 +46,34 @@ export default function PortalClient() {
   const [portalData, setPortalData] = useState<any>(null);
   const [expandedSale, setExpandedSale] = useState<string | null>(null);
   const [portalSubTab, setPortalSubTab] = useState<'purchases' | 'payments' | 'quotes' | 'favorites' | 'promos'>('purchases');
+
+  useEffect(() => {
+    if (ticketIdParam) {
+      setTab('b2c');
+      setTicketId(ticketIdParam);
+      setError('');
+      setLoading(true);
+      searchTicket(ticketIdParam).then(result => {
+        setLoading(false);
+        if (result.error) {
+          setError(result.error);
+        } else if (result.sale) {
+          setSale(result.sale);
+          if (result.sale.customer) {
+            setTaxData({
+              legalName: result.sale.customer.legalName || result.sale.customer.name || '',
+              rfc: result.sale.customer.taxId || '',
+              taxRegime: result.sale.customer.taxRegime || '601',
+              zipCode: result.sale.customer.zipCode || '',
+              cfdiUse: result.sale.customer.cfdiUse || 'G03',
+              email: result.sale.customer.email || '',
+              phone: result.sale.customer.phone || ''
+            });
+          }
+        }
+      });
+    }
+  }, [ticketIdParam]);
 
   const handleSearchB2C = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,8 +85,21 @@ export default function PortalClient() {
 
     if (result.error) {
       setError(result.error);
+      setSale(null);
     } else if (result.sale) {
       setSale(result.sale);
+      setIsEnteringTaxData(false);
+      if (result.sale.customer) {
+        setTaxData({
+          legalName: result.sale.customer.legalName || result.sale.customer.name || '',
+          rfc: result.sale.customer.taxId || '',
+          taxRegime: result.sale.customer.taxRegime || '601',
+          zipCode: result.sale.customer.zipCode || '',
+          cfdiUse: result.sale.customer.cfdiUse || 'G03',
+          email: result.sale.customer.email || '',
+          phone: result.sale.customer.phone || ''
+        });
+      }
     }
   };
 
@@ -498,9 +555,9 @@ export default function PortalClient() {
 
           {/* TAB 2: B2C Ticket Invoicing */}
           {tab === 'b2c' && (
-             <div style={{ maxWidth: '500px', margin: '0 auto', textAlign: 'center' }}>
+             <div style={{ maxWidth: '600px', margin: '0 auto' }}>
                 {!sale ? (
-                  <>
+                  <div style={{ textAlign: 'center', maxWidth: '500px', margin: '0 auto' }}>
                     <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>Identifica tu compra</h2>
                     <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '2rem' }}>
                       Ingresa el folio de la venta que aparece en la parte inferior de tu ticket impreso.
@@ -517,18 +574,70 @@ export default function PortalClient() {
                       <button disabled={loading} type="submit" className="btn-primary" style={{ padding: '1rem', fontSize: '1.1rem', borderRadius: '8px', border: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
                         {loading ? 'Buscando...' : <><Search size={20} /> Buscar Ticket</>}
                       </button>
-                      {error && <div style={{ color: '#ef4444', fontWeight: 'bold' }}>{error}</div>}
+                      {error && <div style={{ color: '#ef4444', fontWeight: 'bold', marginTop: '0.5rem' }}>{error}</div>}
                     </form>
-                  </>
-                ) : (
+                  </div>
+                ) : sale.invoiceId ? (
+                  /* Already Invoiced View */
                   <div style={{ textAlign: 'left' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#16a34a', fontWeight: 'bold', fontSize: '1.25rem', marginBottom: '1rem', justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#16a34a', fontWeight: 'bold', fontSize: '1.25rem', marginBottom: '1.5rem', justifyContent: 'center' }}>
+                      <CheckCircle2 size={28} /> ¡Ticket Facturado Exitosamente!
+                    </div>
+                    <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)', marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--pulpos-text-muted)' }}>Folio:</span>
+                          <span style={{ fontWeight: 'bold' }}>#{sale.folio || sale.id.slice(-6).toUpperCase()}</span>
+                       </div>
+                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--pulpos-text-muted)' }}>Receptor Fiscal:</span>
+                          <span style={{ fontWeight: 'bold' }}>{sale.customer?.legalName || sale.customer?.name}</span>
+                       </div>
+                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--pulpos-text-muted)' }}>RFC:</span>
+                          <span style={{ fontWeight: 'bold' }}>{sale.customer?.taxId}</span>
+                       </div>
+                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--pulpos-text-muted)' }}>UUID Factura (SAT):</span>
+                          <span style={{ fontWeight: 'bold', fontSize: '0.85rem', fontFamily: 'monospace' }}>{sale.invoiceId}</span>
+                       </div>
+                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--pulpos-border)' }}>
+                          <span>Total:</span>
+                          <span style={{ fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>{formatCurrency(sale.total)}</span>
+                       </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+                      <a 
+                        href={`/api/facturacion/download?invoiceId=${sale.invoiceId}&format=pdf`}
+                        style={{ flex: 1, padding: '1rem', backgroundColor: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: '8px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '1.1rem' }}
+                      >
+                        <Download size={20} /> Descargar PDF
+                      </a>
+                      <a 
+                        href={`/api/facturacion/download?invoiceId=${sale.invoiceId}&format=xml`}
+                        style={{ flex: 1, padding: '1rem', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '1.1rem' }}
+                      >
+                        <Download size={20} /> Descargar XML
+                      </a>
+                    </div>
+
+                    <button 
+                      onClick={() => { setSale(null); setTicketId(''); }}
+                      style={{ width: '100%', padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: 'transparent', cursor: 'pointer', fontWeight: 'bold', color: '#64748b' }}
+                    >
+                      Facturar otro ticket
+                    </button>
+                  </div>
+                ) : !isEnteringTaxData ? (
+                  /* Ticket Found, Show Preview and prompt for tax data */
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#16a34a', fontWeight: 'bold', fontSize: '1.25rem', marginBottom: '1.5rem', justifyContent: 'center' }}>
                       <CheckCircle2 size={28} /> Ticket Encontrado
                     </div>
                     <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px dashed var(--pulpos-border)', marginBottom: '2rem' }}>
                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                           <span style={{ color: 'var(--pulpos-text-muted)' }}>Folio:</span>
-                          <span style={{ fontWeight: 'bold' }}>{sale.id.slice(-6).toUpperCase()}</span>
+                          <span style={{ fontWeight: 'bold' }}>#{sale.folio || sale.id.slice(-6).toUpperCase()}</span>
                        </div>
                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                           <span style={{ color: 'var(--pulpos-text-muted)' }}>Fecha:</span>
@@ -539,9 +648,188 @@ export default function PortalClient() {
                           <span style={{ fontWeight: 'bold', color: 'var(--pulpos-text)' }}>{formatCurrency(sale.total)}</span>
                        </div>
                     </div>
-                    <button className="btn-primary" style={{ width: '100%', padding: '1rem', borderRadius: '8px', fontSize: '1.1rem', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
-                      Ingresar Datos Fiscales <ChevronRight size={20} />
-                    </button>
+                    
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                      <button 
+                        onClick={() => { setSale(null); setTicketId(''); }}
+                        style={{ flex: 1, padding: '1rem', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: 'transparent', cursor: 'pointer', fontWeight: 'bold', color: '#64748b' }}
+                      >
+                        Atrás
+                      </button>
+                      <button 
+                        onClick={() => setIsEnteringTaxData(true)}
+                        className="btn-primary" 
+                        style={{ flex: 2, padding: '1rem', borderRadius: '8px', fontSize: '1.1rem', display: 'flex', justifyContent: 'center', gap: '0.5rem', border: 'none', cursor: 'pointer' }}
+                      >
+                        Ingresar Datos Fiscales <ChevronRight size={20} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Enter Tax Data Form */
+                  <div style={{ textAlign: 'left' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem', color: '#0f172a' }}>Datos de Facturación Fiscal</h3>
+                    
+                    <form onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (!taxData.legalName || !taxData.rfc || !taxData.zipCode || !taxData.email) {
+                        alert("Por favor completa los campos obligatorios: Razón Social, RFC, CP y Correo Electrónico.");
+                        return;
+                      }
+                      
+                      setLoading(true);
+                      setError('');
+                      try {
+                        const res = await generateInvoice(sale.id, taxData);
+                        if (res.error) {
+                          setError(res.error);
+                        } else if (res.success) {
+                          // Update sale state with the invoice ID and updated customer details
+                          setSale((prev: any) => ({
+                            ...prev,
+                            invoiceId: res.invoiceId,
+                            customer: {
+                              legalName: taxData.legalName,
+                              taxId: taxData.rfc
+                            }
+                          }));
+                        }
+                      } catch (err: any) {
+                        setError(err.message || "Error al emitir la factura.");
+                      } finally {
+                        setLoading(false);
+                      }
+                    }} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Razón Social / Nombre Completo *</label>
+                        <input 
+                          type="text" 
+                          placeholder="Ej. Distribuidora del Bajío S.A. de C.V."
+                          value={taxData.legalName}
+                          onChange={e => setTaxData(prev => ({ ...prev, legalName: e.target.value }))}
+                          required
+                          style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>RFC *</label>
+                          <input 
+                            type="text" 
+                            placeholder="RFC a 12 o 13 caracteres"
+                            value={taxData.rfc}
+                            onChange={e => setTaxData(prev => ({ ...prev, rfc: e.target.value.toUpperCase() }))}
+                            required
+                            style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Código Postal *</label>
+                          <input 
+                            type="text" 
+                            placeholder="Ej. 76000"
+                            value={taxData.zipCode}
+                            onChange={e => setTaxData(prev => ({ ...prev, zipCode: e.target.value }))}
+                            required
+                            style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Régimen Fiscal *</label>
+                          <select 
+                            value={taxData.taxRegime}
+                            onChange={e => setTaxData(prev => ({ ...prev, taxRegime: e.target.value }))}
+                            style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem', backgroundColor: 'white' }}
+                          >
+                            <option value="601">General de Ley Personas Morales (601)</option>
+                            <option value="603">Personas Morales con Fines no Lucrativos (603)</option>
+                            <option value="605">Sueldos y Salarios (605)</option>
+                            <option value="606">Arrendamiento (606)</option>
+                            <option value="612">Actividades Empresariales y Profesionales (612)</option>
+                            <option value="616">Sin obligaciones fiscales (616)</option>
+                            <option value="621">Incorporación Fiscal (621)</option>
+                            <option value="626">RESICO (626)</option>
+                          </select>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Uso de CFDI *</label>
+                          <select 
+                            value={taxData.cfdiUse}
+                            onChange={e => setTaxData(prev => ({ ...prev, cfdiUse: e.target.value }))}
+                            style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem', backgroundColor: 'white' }}
+                          >
+                            <option value="G01">Adquisición de mercancías (G01)</option>
+                            <option value="G03">Gastos en general (G03)</option>
+                            <option value="I01">Construcciones (I01)</option>
+                            <option value="I02">Mobiliario y equipo de oficina (I02)</option>
+                            <option value="I03">Equipo de transporte (I03)</option>
+                            <option value="I04">Equipo de cómputo y accesorios (I04)</option>
+                            <option value="I08">Otra maquinaria y equipo (I08)</option>
+                            <option value="D01">Honorarios médicos y dentales (D01)</option>
+                            <option value="D02">Gastos médicos por incapacidad (D02)</option>
+                            <option value="S01">Sin efectos fiscales (S01)</option>
+                            <option value="CP01">Pagos (CP01)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Correo Electrónico * (Para envío)</label>
+                          <input 
+                            type="email" 
+                            placeholder="cliente@correo.com"
+                            value={taxData.email}
+                            onChange={e => setTaxData(prev => ({ ...prev, email: e.target.value }))}
+                            required
+                            style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Teléfono</label>
+                          <input 
+                            type="tel" 
+                            placeholder="10 dígitos"
+                            value={taxData.phone}
+                            onChange={e => setTaxData(prev => ({ ...prev, phone: e.target.value }))}
+                            style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }}
+                          />
+                        </div>
+                      </div>
+
+                      {error && (
+                        <div style={{ padding: '0.75rem', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#b91c1c', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <AlertTriangle size={16} />
+                          <span>{error}</span>
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                        <button 
+                          type="button" 
+                          onClick={() => setIsEnteringTaxData(false)}
+                          disabled={loading}
+                          style={{ flex: 1, padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: 'transparent', cursor: 'pointer', fontWeight: 'bold', color: '#64748b' }}
+                        >
+                          Atrás
+                        </button>
+                        <button 
+                          type="submit"
+                          disabled={loading}
+                          className="btn-primary" 
+                          style={{ flex: 2, padding: '0.75rem', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', border: 'none', cursor: 'pointer' }}
+                        >
+                          {loading ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
+                          {loading ? 'Generando CFDI...' : 'Emitir Factura SAT'}
+                        </button>
+                      </div>
+
+                    </form>
                   </div>
                 )}
              </div>
@@ -585,12 +873,20 @@ export default function PortalClient() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                              <div style={{ fontWeight: 'bold', color: 'var(--pulpos-text)' }}>{formatCurrency(inv.total)}</div>
                              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                               <button style={{ padding: '0.5rem', backgroundColor: '#f0fdf4', color: '#16a34a', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }} title="Descargar PDF">
+                               <a 
+                                 href={`/api/facturacion/download?invoiceId=${inv.uuid}&format=pdf`} 
+                                 style={{ padding: '0.5rem', backgroundColor: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold' }} 
+                                 title="Descargar PDF"
+                               >
                                   <Download size={16} /> PDF
-                               </button>
-                               <button style={{ padding: '0.5rem', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }} title="Descargar XML">
+                               </a>
+                               <a 
+                                 href={`/api/facturacion/download?invoiceId=${inv.uuid}&format=xml`} 
+                                 style={{ padding: '0.5rem', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold' }} 
+                                 title="Descargar XML"
+                               >
                                   <Download size={16} /> XML
-                               </button>
+                               </a>
                              </div>
                           </div>
                         </div>

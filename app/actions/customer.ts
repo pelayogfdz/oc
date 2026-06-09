@@ -117,3 +117,37 @@ export async function createCustomerPOS(data: {
   revalidatePath('/ventas/nueva');
   return customer;
 }
+
+export async function createCustomerBilling(data: {
+  name: string;
+  legalName?: string;
+  taxId?: string;
+  taxRegime?: string;
+  zipCode?: string;
+  cfdiUse?: string;
+  email?: string;
+  phone?: string;
+}) {
+  const branch = await getActiveBranch();
+  if (!data.name) {
+    throw new Error('El nombre/Razón Social es obligatorio.');
+  }
+
+  const customer = await prisma.customer.create({
+    data: {
+      name: data.name,
+      legalName: data.legalName || data.name,
+      taxId: data.taxId || null,
+      taxRegime: data.taxRegime || null,
+      zipCode: data.zipCode || null,
+      cfdiUse: data.cfdiUse || null,
+      email: data.email || null,
+      phone: data.phone || null,
+      branchId: branch.id
+    }
+  });
+
+  revalidatePath('/facturas/ventas');
+  return customer;
+}
+

@@ -20,11 +20,11 @@ export default async function ComplementosPage() {
   });
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>
+    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         Complementos de Pago (REP)
       </h1>
-      <p style={{ color: '#64748b', marginBottom: '2rem' }}>
+      <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '2rem' }}>
         Emite Recibos Electrónicos de Pago para facturas que fueron emitidas como Pago en Parcialidades o Diferido (PPD).
       </p>
 

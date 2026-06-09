@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Share2, AlertTriangle, Send, Loader2, CheckCircle, Edit3 } from 'lucide-react';
+import { Share2, AlertTriangle, Send, Loader2, CheckCircle, Edit3, FileText } from 'lucide-react';
 import { cancelSale, updateSale } from '@/app/actions/sale';
-import { cancelInvoice } from '@/app/actions/facturacion';
+import { cancelInvoice, stampInvoice } from '@/app/actions/facturacion';
 
 interface VentaActionsClientProps {
   saleId: string;
@@ -190,6 +190,24 @@ export default function VentaActionsClient({
     });
   };
 
+  const handleStampInvoice = () => {
+    if (!confirm('¿Deseas emitir la factura para esta venta ante el SAT?')) return;
+    
+    startTransition(async () => {
+      try {
+        const res = await stampInvoice(saleId);
+        if (res.success) {
+          alert('Factura emitida exitosamente. ID: ' + res.invoiceId);
+          router.refresh();
+        } else {
+          alert(res.error || 'Error al timbrar la factura.');
+        }
+      } catch (err: any) {
+        alert(err.message || 'Error al timbrar la factura.');
+      }
+    });
+  };
+
   return (
     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
       {/* Share WhatsApp */}
@@ -258,6 +276,29 @@ export default function VentaActionsClient({
         >
           <AlertTriangle size={18} />
           {isPending ? 'Cancelando...' : 'Cancelar Venta'}
+        </button>
+      )}
+
+      {/* Timbrar Factura */}
+      {status === 'COMPLETED' && !invoiceId && (
+        <button
+          onClick={handleStampInvoice}
+          disabled={isPending}
+          className="btn-primary"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.75rem 1.25rem',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            border: 'none',
+            opacity: isPending ? 0.7 : 1
+          }}
+        >
+          <FileText size={18} />
+          {isPending ? 'Facturando...' : 'Timbrar Factura (SAT)'}
         </button>
       )}
 

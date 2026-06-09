@@ -34,19 +34,47 @@ export async function generateInvoice(ticketId: string, taxData: any) {
     if (!sale) return { error: "Ticket inválido." };
     if (sale.invoiceId) return { error: "El ticket ya fue facturado." };
 
-    // Update or create a basic customer on the fly to hold the tax data
-    const customer = await prisma.customer.create({
-      data: {
-         name: taxData.legalName,
-         legalName: taxData.legalName,
-         taxId: taxData.rfc,
-         email: taxData.email,
-         zipCode: taxData.zipCode,
-         taxRegime: taxData.taxRegime,
-         cfdiUse: taxData.cfdiUse,
-         branchId: sale.branchId
+    const branch = await prisma.branch.findUnique({
+      where: { id: sale.branchId || '' },
+      select: { tenantId: true }
+    });
+
+    // Find customer by taxId (RFC) in the same tenant (via branches belonging to that tenant)
+    let customer = await prisma.customer.findFirst({
+      where: {
+        taxId: { equals: taxData.rfc, mode: 'insensitive' },
+        branch: {
+          tenantId: branch?.tenantId || undefined
+        }
       }
     });
+
+    if (customer) {
+      customer = await prisma.customer.update({
+        where: { id: customer.id },
+        data: {
+          name: taxData.legalName,
+          legalName: taxData.legalName,
+          email: taxData.email || customer.email,
+          zipCode: taxData.zipCode || customer.zipCode,
+          taxRegime: taxData.taxRegime || customer.taxRegime,
+          cfdiUse: taxData.cfdiUse || customer.cfdiUse
+        }
+      });
+    } else {
+      customer = await prisma.customer.create({
+        data: {
+          name: taxData.legalName,
+          legalName: taxData.legalName,
+          taxId: taxData.rfc,
+          email: taxData.email,
+          zipCode: taxData.zipCode,
+          taxRegime: taxData.taxRegime,
+          cfdiUse: taxData.cfdiUse,
+          branchId: sale.branchId
+        }
+      });
+    }
 
     // Link customer to sale
     await prisma.sale.update({
