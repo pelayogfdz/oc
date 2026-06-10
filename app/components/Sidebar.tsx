@@ -24,6 +24,14 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const { isMobileMenuOpen, closeMenu } = useMobileMenu();
 
+  const renderMenuIcon = (icon: React.ReactNode) => {
+    if (!icon) return null;
+    if (React.isValidElement(icon)) {
+      return React.cloneElement(icon as React.ReactElement<any>, { size: 24 });
+    }
+    return icon;
+  };
+
   // Auto-expand group if currently on a sub-path
   useEffect(() => {
     const newOpenGroups = { ...openGroups };
@@ -73,27 +81,27 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
         boxShadow: '2px 0 10px rgba(0,0,0,0.1)',
 
       overflowY: 'auto',
-      fontSize: '0.82rem'
+      fontSize: '0.98rem'
     }}>
       {/* Brand Header */}
-      <div style={{ padding: '0.75rem 1rem', marginBottom: '0.25rem' }}>
-        <Link href="/" style={{ textDecoration: 'none', color: 'var(--pulpos-text)', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+      <div style={{ padding: '1.125rem 1.5rem', marginBottom: '0.375rem' }}>
+        <Link href="/" style={{ textDecoration: 'none', color: 'var(--pulpos-text)', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
           <div style={{
-            width: '28px',
-            height: '28px',
+            width: '42px',
+            height: '42px',
             backgroundColor: 'var(--pulpos-primary)',
-            borderRadius: '6px',
+            borderRadius: '9px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: 'white',
             fontWeight: 'bold',
-            fontSize: '16px',
+            fontSize: '24px',
           }}>
             C
           </div>
-          <span style={{ fontWeight: 'bold', fontSize: '1.5rem' }}>CAANMA</span>
-          <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: '#94a3b8', verticalAlign: 'top', marginLeft: '0.25rem' }}>PRO</span>
+          <span style={{ fontWeight: 'bold', fontSize: '2.25rem' }}>CAANMA</span>
+          <span style={{ fontSize: '1.125rem', fontWeight: 'normal', color: '#94a3b8', verticalAlign: 'top', marginLeft: '0.375rem' }}>PRO</span>
         </Link>
       </div>
 
@@ -121,23 +129,23 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
                 style={isNuevaVenta ? {
                   display: 'flex', 
                   alignItems: 'center', 
-                  gap: '0.75rem', 
-                  padding: '0.5rem 0.75rem', 
+                  gap: '0.9rem', 
+                  padding: '0.6rem 0.9rem', 
                   borderRadius: '8px', 
                   textDecoration: 'none', 
                   backgroundColor: 'var(--pulpos-primary)',
                   color: 'white',
                   fontWeight: 'bold',
-                  fontSize: '0.9rem',
+                  fontSize: '1.08rem',
                   transition: 'background 0.2s',
-                  marginBottom: '0.4rem',
-                  marginTop: '0.2rem'
+                  marginBottom: '0.48rem',
+                  marginTop: '0.24rem'
                 } : { 
                   display: 'flex', 
                   alignItems: 'center', 
-                  gap: '1rem', 
-                  padding: '0.4rem 0.75rem', 
-                  borderRadius: '6px', 
+                  gap: '1.2rem', 
+                  padding: '0.5rem 0.9rem', 
+                  borderRadius: '8px', 
                   textDecoration: 'none', 
                   backgroundColor: NodeActive ? 'var(--pulpos-sidebar-hover)' : 'transparent',
                   color: NodeActive ? 'var(--pulpos-primary)' : 'inherit',
@@ -146,13 +154,13 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
                 }}
               >
                 {isNuevaVenta ? (
-                  <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '50%', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px' }}>
-                    <span style={{ fontSize: '16px', lineHeight: 1, fontWeight: 'bold' }}>+</span>
+                  <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '50%', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px' }}>
+                    <span style={{ fontSize: '20px', lineHeight: 1, fontWeight: 'bold' }}>+</span>
                   </div>
-                ) : node.icon}
+                ) : renderMenuIcon(node.icon)}
                 <span style={{ flex: 1 }}>{node.title}</span>
                 {node.badge && (
-                  <span style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', fontSize: '0.7rem', padding: '0.1rem 0.5rem', borderRadius: '12px', fontWeight: 'bold' }}>
+                  <span style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', fontSize: '0.84rem', padding: '0.12rem 0.6rem', borderRadius: '12px', fontWeight: 'bold' }}>
                     {node.badge}
                   </span>
                 )}
@@ -169,9 +177,9 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
                   style={{ 
                     display: 'flex', 
                     alignItems: 'center', 
-                    gap: '1rem', 
-                    padding: '0.4rem 0.75rem', 
-                    borderRadius: '6px', 
+                    gap: '1.2rem', 
+                    padding: '0.5rem 0.9rem', 
+                    borderRadius: '8px', 
                     cursor: 'pointer',
                     color: NodeActive && !isOpen ? 'var(--pulpos-primary)' : 'inherit', // In pulpos, active parents look highlighted if closed
                     fontWeight: '500',
@@ -179,14 +187,14 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
                   }}
                 >
                   <div style={{ color: NodeActive && !isOpen ? 'var(--pulpos-primary)' : 'inherit' }}>
-                    {node.icon}
+                    {renderMenuIcon(node.icon)}
                   </div>
                   <span style={{ flex: 1 }}>{node.title}</span>
-                  {isOpen ? <ChevronUp size={16} color="#64748b" /> : <ChevronDown size={16} color="#64748b" />}
+                  {isOpen ? <ChevronUp size={20} color="#64748b" /> : <ChevronDown size={20} color="#64748b" />}
                 </div>
 
                 {isOpen && node.items && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', paddingLeft: '3rem', marginTop: '0.25rem', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingLeft: '3.6rem', marginTop: '0.3rem', marginBottom: '0.6rem' }}>
                     {node.items.map(item => {
                       const ItemActive = isItemActive(item.path);
                       return (
@@ -198,16 +206,16 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
                           style={{ 
                             display: 'flex',
                             alignItems: 'center',
-                            padding: '0.4rem 0', 
+                            padding: '0.5rem 0', 
                             textDecoration: 'none', 
                             color: ItemActive ? 'var(--pulpos-primary)' : 'inherit', // highlight style for inner links
                             fontWeight: ItemActive ? 'bold' : '500',
-                            fontSize: '0.85rem'
+                            fontSize: '1.02rem'
                           }}
                         >
                           <span style={{ flex: 1 }}>{item.name}</span>
                           {item.badge && (
-                            <span style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '12px', fontWeight: 'bold', marginRight: '0.5rem' }}>
+                            <span style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', fontSize: '0.78rem', padding: '0.12rem 0.5rem', borderRadius: '12px', fontWeight: 'bold', marginRight: '0.6rem' }}>
                               {item.badge}
                             </span>
                           )}
@@ -224,7 +232,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
             <div key={node.title} style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
               {content}
               {node.hasDividerAfter && (
-                <div style={{ height: '1px', backgroundColor: 'var(--pulpos-border)', margin: '0.5rem 0.25rem' }} />
+                <div style={{ height: '1px', backgroundColor: 'var(--pulpos-border)', margin: '0.6rem 0.3rem' }} />
               )}
             </div>
           );
@@ -248,15 +256,15 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
               style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                gap: '1rem', 
-                padding: '0.4rem 0.75rem', 
-                borderRadius: '6px', 
+                gap: '1.2rem', 
+                padding: '0.5rem 0.9rem', 
+                borderRadius: '8px', 
                 textDecoration: 'none', 
                 color: 'var(--pulpos-text-muted)',
                 fontWeight: '500'
               }}
             >
-              {node.icon}
+              {renderMenuIcon(node.icon)}
               {node.title}
             </Link>
           ))}
@@ -268,17 +276,17 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
               style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                gap: '1rem', 
-                padding: '0.4rem 0.75rem', 
-                marginTop: '0.5rem',
-                borderRadius: '6px', 
+                gap: '1.2rem', 
+                padding: '0.5rem 0.9rem', 
+                marginTop: '0.6rem',
+                borderRadius: '8px', 
                 textDecoration: 'none', 
                 backgroundColor: '#fee2e2',
                 color: '#dc2626',
                 fontWeight: 'bold'
               }}
             >
-              <ShieldAlert size={20} />
+              <ShieldAlert size={24} />
               Panel Global (Negocio)
             </Link>
           )}

@@ -477,7 +477,7 @@ button {
   }
 }
   
-.desktop-sidebar-wrapper { transition: width 0.3s ease; width: 280px; }  
+.desktop-sidebar-wrapper { transition: width 0.3s ease; width: 336px; }  
 .desktop-sidebar-wrapper.sidebar-collapsed { width: 0; overflow: hidden; } 
 
 /* ------------------------------------- */
