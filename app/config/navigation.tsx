@@ -96,8 +96,7 @@ export const navStructure: MenuNode[] = [
       { name: 'Apertura y Corte de Caja', path: '/caja/actual' },
       { name: 'Histórico de Cortes', path: '/caja/cortes' },
       { name: 'Cortes y Cajas Generales', path: '/preferencias/cajas' },
-    ],
-    hasDividerAfter: true
+    ]
   },
 
   // Grupo 2
@@ -155,7 +154,6 @@ export const navStructure: MenuNode[] = [
     requiredPermission: ['admin_reports_access'],
     items: [
       { name: 'Panel de Reportes', path: '/reportes' },
-      { name: 'Reporte de Producción', path: '/reportes/produccion' },
       { name: 'Facturación CFDI 4.0', path: '/reportes/facturacion', badge: 'Nuevo' },
       { name: 'Desempeño de Consignaciones', path: '/reportes/consignaciones', badge: 'Nuevo' },
     ],
