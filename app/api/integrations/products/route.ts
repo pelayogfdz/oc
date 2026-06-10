@@ -35,6 +35,11 @@ export async function GET(request: NextRequest) {
         category: true,
         brand: true,
         imageUrl: true,
+        allowProduction: true,
+        isProductionInput: true,
+        isService: true,
+        satKey: true,
+        satUnit: true,
         updatedAt: true
       },
       orderBy: {
