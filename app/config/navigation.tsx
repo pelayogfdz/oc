@@ -3,7 +3,7 @@ import {
   Home, Tag, Package, Calculator, ArrowRightLeft, 
   Settings, UserCircle, ShoppingCart, Banknote, FileText,
   Sparkles, MonitorSmartphone, Landmark, BarChart3, Inbox, Briefcase, Truck, ChefHat, ClipboardList,
-  PlusCircle, Users
+  PlusCircle, Users, Clock
 } from 'lucide-react';
 
 export type MenuItem = {
@@ -49,7 +49,6 @@ export const navStructure: MenuNode[] = [
     requiredPermission: ['admin_customers_view'],
     items: [
       { name: 'Directorio de Clientes', path: '/clientes' },
-      { name: 'Crédito y Cobranza (CxC)', path: '/clientes/cobranza', badge: 'Activos' },
       { name: 'Portal B2B', path: '/clientes/b2b' }
     ]
   },
@@ -116,7 +115,6 @@ export const navStructure: MenuNode[] = [
     items: [
       { name: 'Tareas', path: '/procesos/tareas' },
       { name: 'Órdenes de Producción', path: '/procesos', badge: 'Activas' },
-      { name: 'Reporte de Producción', path: '/reportes/produccion' },
       { name: 'Fórmulas e Insumos', path: '/procesos/formulas' },
     ]
   },
@@ -124,7 +122,6 @@ export const navStructure: MenuNode[] = [
     title: 'Recursos Humanos', icon: <Briefcase size={20} />, 
     requiredPermission: ['admin_reports_access'],
     items: [
-      { name: 'Modo Kiosko', path: '/rh/kiosko', badge: 'Asistencia' },
       { name: 'Monitoreo de Asistencia', path: '/rh/monitoreo' },
       { name: 'Calendario de Incidencias', path: '/rh/calendario' },
       { name: 'Reportes Históricos', path: '/rh/reportes' },
@@ -138,6 +135,7 @@ export const navStructure: MenuNode[] = [
     requiredPermission: ['admin_reports_access'],
     items: [
       { name: 'Conciliación Bancaria', path: '/finanzas/conciliacion' },
+      { name: 'Cuentas por Cobrar (CxC)', path: '/clientes/cobranza', badge: 'Activos' },
       { name: 'Cuentas por Pagar (CxP)', path: '/proveedores/cuentas', badge: 'Pasivos' },
     ]
   },
@@ -157,6 +155,7 @@ export const navStructure: MenuNode[] = [
     requiredPermission: ['admin_reports_access'],
     items: [
       { name: 'Panel de Reportes', path: '/reportes' },
+      { name: 'Reporte de Producción', path: '/reportes/produccion' },
       { name: 'Facturación CFDI 4.0', path: '/reportes/facturacion', badge: 'Nuevo' },
       { name: 'Desempeño de Consignaciones', path: '/reportes/consignaciones', badge: 'Nuevo' },
     ],
@@ -166,6 +165,10 @@ export const navStructure: MenuNode[] = [
   // Grupo 3
   { 
     title: 'Mi Portal', path: '/mi-portal', icon: <UserCircle size={20} /> 
+  },
+  { 
+    title: 'Asistencia', path: '/rh/kiosko', icon: <Clock size={20} />,
+    requiredPermission: ['admin_reports_access']
   },
   { 
     title: 'Preferencias', path: '/preferencias/general', icon: <Settings size={20} />, 
