@@ -21,8 +21,8 @@ export async function createSession(userId: string, tenantId: string | null, rol
   }
   
   activeSessions.push(sessionId);
-  if (activeSessions.length > 50) {
-    activeSessions = activeSessions.slice(-50);
+  if (activeSessions.length > 3) {
+    activeSessions = activeSessions.slice(-3);
   }
 
   await prisma.user.update({

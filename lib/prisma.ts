@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { decrypt } from './session';
 import { execSync } from 'child_process';
 import { URL } from 'url';
+import { cache } from 'react';
 
 const tenantDbNames: Record<string, string> = {
   '8b52cbcd-c956-4717-a1bd-02e57386aaa2': 'neondb_officecity',
@@ -38,12 +39,44 @@ function getClientForTenant(tenantId: string): PrismaClient {
   return client;
 }
 
+export const getTenantIdFromToken = cache(async (token: string): Promise<string | null> => {
+  const tenants = await masterClient.tenant.findMany({
+    where: { isActive: true },
+    select: { id: true }
+  });
+
+  for (const tenant of tenants) {
+    const tenantClient = getClientForTenant(tenant.id);
+    const settingsList = await tenantClient.branchSettings.findMany({
+      where: {
+        configJson: {
+          contains: token
+        }
+      }
+    });
+
+    for (const settings of settingsList) {
+      if (!settings.configJson) continue;
+      try {
+        const config = JSON.parse(settings.configJson);
+        const b2cConfig = config.catalogo_b2c || {};
+        if (b2cConfig.apiActive === true && b2cConfig.apiToken === token) {
+          return tenant.id;
+        }
+      } catch (e) {}
+    }
+  }
+  return null;
+});
+
 async function getClientForRequest(): Promise<PrismaClient> {
   if (process.env.TEST_TENANT_ID) {
     return getClientForTenant(process.env.TEST_TENANT_ID);
   }
   try {
-    const { cookies } = await import('next/headers');
+    const { cookies, headers } = await import('next/headers');
+    
+    // 1. Try to get tenantId from session cookie
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get('session')?.value;
     if (sessionCookie) {
@@ -52,8 +85,21 @@ async function getClientForRequest(): Promise<PrismaClient> {
         return getClientForTenant(payload.tenantId);
       }
     }
+
+    // 2. Try to get tenantId from Authorization header
+    const headerStore = await headers();
+    const authHeader = headerStore.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7).trim();
+      if (token) {
+        const tenantId = await getTenantIdFromToken(token);
+        if (tenantId) {
+          return getClientForTenant(tenantId);
+        }
+      }
+    }
   } catch (e) {
-    // cookies() throws error during static generation / pre-rendering,
+    // cookies() or headers() throws error during static generation / pre-rendering,
     // or we are not in a request context. Fallback to master client.
   }
   return masterClient;
