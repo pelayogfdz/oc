@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Filter, FileText, Download, TrendingUp } from 'lucide-react';
+import { Calendar, Filter, FileText, Download, TrendingUp, Printer } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export default function FacturacionReportClient({ initialSales, users, startDate, endDate }: any) {
@@ -106,7 +106,7 @@ export default function FacturacionReportClient({ initialSales, users, startDate
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
       {/* Filters Bar */}
-      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', backgroundColor: 'var(--pulpos-card-bg)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}>
+      <div className="no-print" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', backgroundColor: 'var(--pulpos-card-bg)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Calendar size={18} color="var(--pulpos-text-muted)" />
           <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }} />
@@ -120,20 +120,20 @@ export default function FacturacionReportClient({ initialSales, users, startDate
             <option key={u.id} value={u.id}>{u.name || u.email}</option>
           ))}
         </select>
-
+ 
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }}>
           <option value="ALL">Todo (Facturado y No Facturado)</option>
           <option value="FACTURADO">Solo Facturado</option>
           <option value="PENDIENTE">Pendiente / No Facturado</option>
         </select>
-
+ 
         <button onClick={handleApplyFilters} style={{ padding: '0.5rem 1rem', backgroundColor: 'var(--pulpos-primary)', color: 'white', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
           Aplicar Filtros
         </button>
-
+ 
         <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-          <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: 'var(--pulpos-bg)', border: '1px solid var(--pulpos-border)', color: 'var(--pulpos-text)', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
-            <FileText size={18} /> Imprimir / PDF
+          <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: '#6d28d9', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+            <Printer size={18} /> Imprimir / PDF
           </button>
           <button onClick={exportToCSV} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: 'var(--pulpos-bg)', border: '1px solid var(--pulpos-border)', color: 'var(--pulpos-text)', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
             <Download size={18} /> Exportar Excel

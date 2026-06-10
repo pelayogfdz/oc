@@ -173,6 +173,35 @@ export async function createProduct(prevState: any, formData: FormData) {
     }
   }
 
+  // Propagate common details to sibling products in other branches
+  const fieldsToPropagate = {
+    name,
+    barcode,
+    description,
+    price,
+    cost,
+    taxRate,
+    brand,
+    imageUrl,
+    youtubeUrl,
+    isActive,
+    allowProduction,
+    isProductionInput,
+    isService,
+    unit,
+    satKey,
+    satUnit,
+    expirationDate
+  };
+
+  await prisma.product.updateMany({
+    where: {
+      sku: sku,
+      id: { not: product.id }
+    },
+    data: fieldsToPropagate
+  });
+
   } catch (error: any) {
     console.error("Error creating product:", error);
     return { error: "Error al crear el producto. Verifique si el SKU ya existe." };
@@ -259,6 +288,12 @@ export async function updateProduct(productId: string, formData: FormData) {
       data.stock = 0;
     }
 
+    // Get current product details before update (to find siblings by old SKU)
+    const currentProduct = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { sku: true }
+    });
+
     if (Object.keys(data).length > 0) {
       await prisma.product.update({
         where: { id: productId },
@@ -274,6 +309,26 @@ export async function updateProduct(productId: string, formData: FormData) {
           where: { productId },
           data: { stock: 0 }
         });
+      }
+
+      // Propagate common details to sibling products in other branches
+      if (currentProduct && currentProduct.sku) {
+        // Exclude stock, minStock, branchId, supplierId, id from propagation
+        const fieldsToPropagate = { ...data };
+        delete fieldsToPropagate.stock;
+        delete fieldsToPropagate.minStock;
+        delete fieldsToPropagate.branchId;
+        delete fieldsToPropagate.supplierId;
+
+        if (Object.keys(fieldsToPropagate).length > 0) {
+          await prisma.product.updateMany({
+            where: {
+              sku: currentProduct.sku,
+              id: { not: productId }
+            },
+            data: fieldsToPropagate
+          });
+        }
       }
     }
 

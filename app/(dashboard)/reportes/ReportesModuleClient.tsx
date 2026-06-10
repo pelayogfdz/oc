@@ -16,6 +16,7 @@ export default function ReportesModuleClient({ initialMetrics }: { initialMetric
     { title: 'Ventas por Vendedor', icon: <Users size={24} color="#3b82f6" />, description: 'Rendimiento y comisiones por cajero/vendedor.', route: '/reportes/ventas-por-vendedor' },
     { title: 'Inventario Valorizado', icon: <Package size={24} color="#6366f1" />, description: 'Valor total de tu mercancía a costo y precio venta.', route: '/reportes/inventario-valorizado' },
     { title: 'Reporte de Resurtido', icon: <Package size={24} color="#10b981" />, description: 'Sugerencias de compra basadas en promedio de ventas y stock.', route: '/reportes/resurtido' },
+    { title: 'Reporte de Insumos', icon: <ChefHat size={24} color="#8b5cf6" />, description: 'Sugerencia de compra de materias primas basada en recetas de productos vendidos.', route: '/reportes/insumos' },
     { title: 'Reporte de Producción', icon: <ChefHat size={24} color="#f59e0b" />, description: 'Sugerencias de fabricación basadas en ritmo de ventas y stock.', route: '/reportes/produccion' },
     { title: 'Bitácora de Inventario', icon: <Clock size={24} color="#8b5cf6" />, description: 'Movimientos, ajustes, entradas y salidas.', route: '/reportes/bitacora-inventario' },
     { title: 'Consignaciones', icon: <Package size={24} color="#6366f1" />, description: 'Rendimiento y cobros de productos prestados a clientes.', route: '/reportes/consignaciones' },

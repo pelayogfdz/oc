@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Package, ArrowDownToLine, Loader2, Search, DollarSign, ArrowUpDown, ChevronLeft, ChevronRight, ChefHat } from 'lucide-react';
+import { Package, ArrowDownToLine, Loader2, Search, DollarSign, ArrowUpDown, ChevronLeft, ChevronRight, ChefHat, Printer } from 'lucide-react';
 import { getProductionReportData } from '@/app/actions/reportes';
 import { createProductionOrdersBulk } from '@/app/actions/manufacturing';
 
@@ -18,7 +18,7 @@ interface ProductionProduct {
   quantitySold: number;
   dailyAvg: number;
   imageUrl?: string | null;
-  recipeId: string;
+  recipeId: string | null;
 }
 
 export default function ProductionReportClient({ 
@@ -50,7 +50,7 @@ export default function ProductionReportClient({
     setIsSubmitting(true);
     try {
       const payload = itemsToProduce.map(p => ({
-        recipeId: p.recipeId,
+        recipeId: p.recipeId!,
         quantity: p.suggestedRestock
       }));
 
@@ -288,7 +288,28 @@ export default function ProductionReportClient({
             Sugerencia de fabricación de stock en base al ritmo de venta y stock actual de productos con receta.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div className="no-print" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <button 
+            onClick={() => window.print()}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              backgroundColor: '#6d28d9', 
+              color: 'white', 
+              border: 'none', 
+              padding: '0.65rem 1.25rem', 
+              borderRadius: '8px', 
+              fontWeight: 'bold', 
+              cursor: 'pointer', 
+              transition: 'background-color 0.2s',
+              boxShadow: '0 4px 6px -1px rgba(109, 40, 217, 0.2)'
+            }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor='#5b21b6'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor='#6d28d9'}
+          >
+            <Printer size={18} /> Imprimir / PDF
+          </button>
           <button 
             onClick={handleSendToProduction}
             disabled={isSubmitting}
@@ -322,7 +343,7 @@ export default function ProductionReportClient({
       </div>
 
       {/* Advanced Filter Bar */}
-      <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', marginBottom: '2rem' }}>
+      <div className="no-print" style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', marginBottom: '2rem' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.4rem' }}>Filtros Rápidos</label>
@@ -402,7 +423,7 @@ export default function ProductionReportClient({
       </div>
 
       {/* Coverage Days Section */}
-      <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+      <div className="no-print" style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h3 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>⏱️ Proyección de Días de Cobertura</h3>
@@ -499,7 +520,7 @@ export default function ProductionReportClient({
                 <span>Mostrar solo productos con falta de stock</span>
               </label>
             </div>
-            <div style={{ position: 'relative', width: '280px' }}>
+            <div className="no-print" style={{ position: 'relative', width: '280px' }}>
               <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
               <input 
                 type="text" 
@@ -605,7 +626,7 @@ export default function ProductionReportClient({
 
           {/* Pagination controls */}
           {filteredData.length > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', padding: '1rem 0 0 0', marginTop: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', padding: '1rem 0 0 0', marginTop: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#64748b' }}>
                 <span>Mostrar</span>
                 <select 

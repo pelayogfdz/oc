@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
-import { Search, PackageOpen, TrendingDown, DollarSign, Loader2 } from 'lucide-react';
+import { Search, PackageOpen, TrendingDown, DollarSign, Loader2, Printer } from 'lucide-react';
 import ReportFilterBar, { ReportFilterState } from '@/components/ui/ReportFilterBar';
 import { getInventoryValuationData } from '@/app/actions/reportes';
 
@@ -31,18 +31,32 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', fontFamily: 'var(--font-geist-sans)' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Reporte de Inventario Valorizado</h1>
-        <p style={{ color: 'var(--pulpos-text-muted)' }}>Conoce qué productos amarran tu capital y cuál es tu ganancia potencial.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Reporte de Inventario Valorizado</h1>
+          <p style={{ color: 'var(--pulpos-text-muted)' }}>Conoce qué productos amarran tu capital y cuál es tu ganancia potencial.</p>
+        </div>
+        <div className="no-print">
+          <button 
+            onClick={() => window.print()}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#6d28d9', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor='#5b21b6'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor='#6d28d9'}
+          >
+            <Printer size={18} /> Imprimir / PDF
+          </button>
+        </div>
       </div>
 
-      <ReportFilterBar 
-        onFilterChange={handleFilterChange} 
-        disabled={loading} 
-        showDateRange={false}
-        showUser={false}
-        initialBranchId={initialBranchId}
-      />
+      <div className="no-print">
+        <ReportFilterBar 
+          onFilterChange={handleFilterChange} 
+          disabled={loading} 
+          showDateRange={false}
+          showUser={false}
+          initialBranchId={initialBranchId}
+        />
+      </div>
 
       {loading && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--pulpos-primary)', fontWeight: 'bold' }}>
@@ -85,7 +99,7 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>Listado de Stock y Márgenes</h2>
             
-            <div style={{ position: 'relative', width: '350px' }}>
+             <div className="no-print" style={{ position: 'relative', width: '350px' }}>
               <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={16} />
               <input 
                 type="text" 

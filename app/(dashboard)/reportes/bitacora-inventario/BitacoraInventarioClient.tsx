@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Clock, ArrowDownToLine, Loader2, Search, PlusCircle, MinusCircle, Info } from 'lucide-react';
+import { Clock, ArrowDownToLine, Loader2, Search, PlusCircle, MinusCircle, Info, Printer } from 'lucide-react';
 import { getInventoryMovementReport } from '@/app/actions/reportes';
 
 export default function BitacoraInventarioClient({ initialData, initialBranchId, availableFilters }: { initialData: any, initialBranchId: string, availableFilters: any }) {
@@ -136,18 +136,28 @@ export default function BitacoraInventarioClient({ initialData, initialBranchId,
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>⏱️ Bitácora de Movimientos de Inventario</h1>
           <p style={{ color: 'var(--pulpos-text-muted)' }}>Historial Kardex completo de entradas, salidas, ajustes de almacén, ventas y compras.</p>
         </div>
-        <button 
-          onClick={downloadCSV}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0f172a', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor='#1e293b'}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor='#0f172a'}
-        >
-          <ArrowDownToLine size={18} /> Exportar CSV
-        </button>
+        <div className="no-print" style={{ display: 'flex', gap: '0.75rem' }}>
+          <button 
+            onClick={() => window.print()}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#6d28d9', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor='#5b21b6'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor='#6d28d9'}
+          >
+            <Printer size={18} /> Imprimir / PDF
+          </button>
+          <button 
+            onClick={downloadCSV}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0f172a', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor='#1e293b'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor='#0f172a'}
+          >
+            <ArrowDownToLine size={18} /> Exportar CSV
+          </button>
+        </div>
       </div>
 
       {/* Advanced Filter Bar */}
-      <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', marginBottom: '2rem' }}>
+      <div className="no-print" style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', marginBottom: '2rem' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.4rem' }}>Filtros Rápidos</label>
@@ -276,7 +286,7 @@ export default function BitacoraInventarioClient({ initialData, initialBranchId,
         <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden', padding: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Registro de Auditoría de Inventario (Kardex)</h2>
-            <div style={{ position: 'relative', width: '280px' }}>
+            <div className="no-print" style={{ position: 'relative', width: '280px' }}>
               <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
               <input 
                 type="text" 

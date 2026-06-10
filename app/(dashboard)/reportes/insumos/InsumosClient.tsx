@@ -3,9 +3,9 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { TrendingUp, Package, ArrowDownToLine, Loader2, Calendar, Search, DollarSign, ArrowUpDown, ChevronLeft, ChevronRight, Filter, ShoppingCart, Printer } from 'lucide-react';
-import { getRestockReportData } from '@/app/actions/reportes';
+import { getInsumosReportData } from '@/app/actions/reportes';
 
-interface RestockProduct {
+interface InsumoProduct {
   id: string;
   name: string;
   sku: string;
@@ -16,127 +16,23 @@ interface RestockProduct {
   stock: number;
   cost: number;
   price: number;
-  quantitySold: number;
+  quantitySold: number; // Represents cumulative quantity required based on sales of products containing it
   dailyAvg: number;
   imageUrl?: string | null;
 }
 
-export default function RestockClient({ 
+export default function InsumosClient({ 
   initialData, 
   initialBranchId, 
   availableFilters 
 }: { 
-  initialData: RestockProduct[]; 
+  initialData: InsumoProduct[]; 
   initialBranchId: string; 
   availableFilters: any; 
 }) {
   const router = useRouter();
-  const [data, setData] = useState<RestockProduct[]>(initialData);
+  const [data, setData] = useState<InsumoProduct[]>(initialData);
   const [branchId, setBranchId] = useState(initialBranchId);
-
-  const handleAddToOrder = () => {
-    // 1. Filter products that need restock from filteredData
-    const itemsToRestock = filteredData.filter(p => p.suggestedRestock > 0);
-    if (itemsToRestock.length === 0) {
-      alert("No hay productos con faltante en la consulta actual para agregar al pedido.");
-      return;
-    }
-
-    if (!confirm(`Se generarán borradores de pedidos para ${itemsToRestock.length} artículos con faltantes. ¿Deseas continuar?`)) {
-      return;
-    }
-
-    // 2. Group items by supplierId
-    const groups: Record<string, { supplierName: string, items: any[] }> = {};
-    itemsToRestock.forEach(p => {
-      const supplierId = p.lastSupplierId || ""; // "" represents Public/No Supplier
-      const supplierName = p.lastSupplier || "Público en General / Sin Proveedor";
-      
-      if (!groups[supplierId]) {
-        groups[supplierId] = { supplierName, items: [] };
-      }
-      
-      groups[supplierId].items.push({
-        productId: p.id,
-        name: p.name,
-        quantity: p.suggestedRestock,
-        cost: p.cost,
-        imageUrl: p.imageUrl
-      });
-    });
-
-    // 3. Load existing purchase tabs from localStorage
-    const activeBranchId = branchId === 'ALL' ? 'GLOBAL' : branchId;
-    const localStorageKey = `caanma_active_purchase_tabs_${activeBranchId}`;
-    const localStorageActiveIdKey = `caanma_active_purchase_tab_id_${activeBranchId}`;
-
-    let existingTabs: any[] = [];
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(localStorageKey);
-      if (stored) {
-        try {
-          existingTabs = JSON.parse(stored) || [];
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    }
-
-    // Ensure we don't keep an empty default tab
-    if (existingTabs.length === 1 && existingTabs[0].items.length === 0 && existingTabs[0].supplierId === '') {
-      existingTabs = [];
-    }
-
-    let lastActiveTabId = "";
-
-    // 4. Merge or create new tabs
-    Object.keys(groups).forEach(supplierId => {
-      const { supplierName, items: newItems } = groups[supplierId];
-      
-      // Look if tab for this supplier already exists
-      const existingTabIdx = existingTabs.findIndex(t => t.supplierId === supplierId);
-      
-      if (existingTabIdx !== -1) {
-        // Merge items into existing tab
-        const currentItems = [...existingTabs[existingTabIdx].items];
-        newItems.forEach(newItem => {
-          const matchIdx = currentItems.findIndex(ci => ci.productId === newItem.productId);
-          if (matchIdx !== -1) {
-            currentItems[matchIdx].quantity = Math.max(currentItems[matchIdx].quantity, newItem.quantity);
-          } else {
-            currentItems.push(newItem);
-          }
-        });
-        existingTabs[existingTabIdx].items = currentItems;
-        lastActiveTabId = existingTabs[existingTabIdx].id;
-      } else {
-        // Create new tab
-        const newTabId = Math.random().toString(36).substr(2, 9);
-        const newTab = {
-          id: newTabId,
-          name: `Pedido - ${supplierName.split(' / ')[0]}`,
-          supplierId: supplierId,
-          notes: `Generado automáticamente desde Reporte de Resurtido (${new Date().toLocaleDateString()})`,
-          items: newItems
-        };
-        existingTabs.push(newTab);
-        lastActiveTabId = newTabId;
-      }
-    });
-
-    // 5. Save back to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(localStorageKey, JSON.stringify(existingTabs));
-      if (lastActiveTabId) {
-        localStorage.setItem(localStorageActiveIdKey, lastActiveTabId);
-      }
-    }
-
-    alert(`¡Se agregaron los faltantes correctamente a los pedidos por proveedor! Redirigiendo a la pantalla de pedidos...`);
-    
-    // 6. Redirect to nuevo pedido page
-    router.push('/productos/pedidos/nuevo');
-  };
   const [category, setCategory] = useState('ALL');
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -160,7 +56,99 @@ export default function RestockClient({
   const [startDateStr, setStartDateStr] = useState(defaultStart.toISOString().split('T')[0]);
   const [endDateStr, setEndDateStr] = useState(defaultEnd.toISOString().split('T')[0]);
 
-  // Predefined Date Ranges
+  const handleAddToOrder = () => {
+    const itemsToRestock = filteredData.filter(p => p.suggestedRestock > 0);
+    if (itemsToRestock.length === 0) {
+      alert("No hay insumos con faltante en la consulta actual para agregar al pedido.");
+      return;
+    }
+
+    if (!confirm(`Se generarán borradores de pedidos para ${itemsToRestock.length} insumos con faltantes. ¿Deseas continuar?`)) {
+      return;
+    }
+
+    // Group items by supplierId
+    const groups: Record<string, { supplierName: string, items: any[] }> = {};
+    itemsToRestock.forEach(p => {
+      const supplierId = p.lastSupplierId || ""; // "" represents Public/No Supplier
+      const supplierName = p.lastSupplier || "Público en General / Sin Proveedor";
+      
+      if (!groups[supplierId]) {
+        groups[supplierId] = { supplierName, items: [] };
+      }
+      
+      groups[supplierId].items.push({
+        productId: p.id,
+        name: p.name,
+        quantity: p.suggestedRestock,
+        cost: p.cost,
+        imageUrl: p.imageUrl
+      });
+    });
+
+    const activeBranchId = branchId === 'ALL' ? 'GLOBAL' : branchId;
+    const localStorageKey = `caanma_active_purchase_tabs_${activeBranchId}`;
+    const localStorageActiveIdKey = `caanma_active_purchase_tab_id_${activeBranchId}`;
+
+    let existingTabs: any[] = [];
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(localStorageKey);
+      if (stored) {
+        try {
+          existingTabs = JSON.parse(stored) || [];
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+
+    if (existingTabs.length === 1 && existingTabs[0].items.length === 0 && existingTabs[0].supplierId === '') {
+      existingTabs = [];
+    }
+
+    let lastActiveTabId = "";
+
+    Object.keys(groups).forEach(supplierId => {
+      const { supplierName, items: newItems } = groups[supplierId];
+      const existingTabIdx = existingTabs.findIndex(t => t.supplierId === supplierId);
+      
+      if (existingTabIdx !== -1) {
+        const currentItems = [...existingTabs[existingTabIdx].items];
+        newItems.forEach(newItem => {
+          const matchIdx = currentItems.findIndex(ci => ci.productId === newItem.productId);
+          if (matchIdx !== -1) {
+            currentItems[matchIdx].quantity = Math.max(currentItems[matchIdx].quantity, newItem.quantity);
+          } else {
+            currentItems.push(newItem);
+          }
+        });
+        existingTabs[existingTabIdx].items = currentItems;
+        lastActiveTabId = existingTabs[existingTabIdx].id;
+      } else {
+        const newTabId = Math.random().toString(36).substr(2, 9);
+        const newTab = {
+          id: newTabId,
+          name: `Pedido Insumos - ${supplierName.split(' / ')[0]}`,
+          supplierId: supplierId,
+          notes: `Generado automáticamente desde Reporte de Insumos (${new Date().toLocaleDateString()})`,
+          items: newItems
+        };
+        existingTabs.push(newTab);
+        lastActiveTabId = newTabId;
+      }
+    });
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(localStorageKey, JSON.stringify(existingTabs));
+      if (lastActiveTabId) {
+        localStorage.setItem(localStorageActiveIdKey, lastActiveTabId);
+      }
+    }
+
+    alert(`¡Se agregaron los faltantes correctamente a los pedidos por proveedor! Redirigiendo a la pantalla de compras/pedidos...`);
+    router.push('/productos/pedidos/nuevo');
+  };
+
   const handlePresetChange = (preset: string) => {
     const today = new Date();
     let start = new Date();
@@ -201,11 +189,11 @@ export default function RestockClient({
   const triggerUpdate = async (start: Date, end: Date, bId: string, cat: string) => {
     setIsLoading(true);
     try {
-      const res = await getRestockReportData(start, end, bId, cat);
+      const res = await getInsumosReportData(start, end, bId, cat);
       setData(res || []);
       setCurrentPage(1);
     } catch (error) {
-      console.error("Error updating restock report:", error);
+      console.error("Error updating insumos report:", error);
     } finally {
       setIsLoading(false);
     }
@@ -217,10 +205,9 @@ export default function RestockClient({
     triggerUpdate(start, end, branchId, category);
   };
 
-  // Format currency
   const formatter = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 
-  // Calculate dynamic values for all data based on current coverageDays
+  // Calculate dynamic values based on coverageDays
   const processedData = useMemo(() => {
     return data.map(p => {
       const neededStock = Math.ceil(p.dailyAvg * coverageDays);
@@ -236,7 +223,6 @@ export default function RestockClient({
     });
   }, [data, coverageDays]);
 
-  // Handle column sorting
   const handleSort = (field: string) => {
     if (sortBy === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -247,10 +233,8 @@ export default function RestockClient({
     setCurrentPage(1);
   };
 
-  // Filter local search and onlyNeedsRestock inside the table
   const filteredData = useMemo(() => {
     let result = processedData.filter(p => {
-      // Filter by text search
       const term = searchTerm.toLowerCase();
       const matchesSearch = !searchTerm || 
         p.name.toLowerCase().includes(term) ||
@@ -258,18 +242,15 @@ export default function RestockClient({
         (p.barcode && p.barcode.toLowerCase().includes(term)) ||
         (p.lastSupplier && p.lastSupplier.toLowerCase().includes(term));
 
-      // Filter by restock constraint
       const matchesRestock = !onlyNeedsRestock || p.suggestedRestock > 0;
 
       return matchesSearch && matchesRestock;
     });
 
-    // Apply sorting
     result.sort((a: any, b: any) => {
       let aVal = a[sortBy];
       let bVal = b[sortBy];
 
-      // Handle string vs number sorting
       if (typeof aVal === 'string') {
         aVal = aVal.toLowerCase();
         bVal = bVal.toLowerCase();
@@ -283,7 +264,6 @@ export default function RestockClient({
     return result;
   }, [processedData, searchTerm, onlyNeedsRestock, sortBy, sortOrder]);
 
-  // Aggregate stats based on filtered data
   const stats = useMemo(() => {
     const totalSKUs = filteredData.length;
     const skusToRestock = filteredData.filter(p => p.suggestedRestock > 0).length;
@@ -298,39 +278,34 @@ export default function RestockClient({
     };
   }, [filteredData]);
 
-  // Pagination calculations
   const totalPages = Math.ceil(filteredData.length / pageSize) || 1;
   const paginatedData = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     return filteredData.slice(startIndex, startIndex + pageSize);
   }, [filteredData, currentPage, pageSize]);
 
-  // Download CSV report
   const downloadCSV = () => {
     const headers = [
       "SKU", 
       "Código de Barras",
-      "Nombre del Producto", 
+      "Materia Prima / Insumo", 
       "Último Proveedor",
       "Costo Unitario", 
-      "Precio Unitario", 
       "Existencias", 
-      "Uds Vendidas", 
+      "Consumido (venta prod.)", 
       `Días Cobertura (${coverageDays})`, 
-      "Requerido", 
       "Sugerido a Comprar", 
-      "Inversión Estimada"
+      "Costo de Resurtido"
     ];
+
     const rows = filteredData.map(p => [
       p.sku || "N/A",
       p.barcode || "N/A",
       p.name,
-      p.lastSupplier || "N/A",
+      p.lastSupplier || "Sin Proveedor",
       p.cost.toFixed(2),
-      p.price.toFixed(2),
       p.stock,
-      p.quantitySold,
-      coverageDays,
+      p.quantitySold.toFixed(2),
       p.neededStock,
       p.suggestedRestock,
       p.replenishmentCost.toFixed(2)
@@ -341,7 +316,7 @@ export default function RestockClient({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `Reporte_Resurtido_${startDateStr}_a_${endDateStr}_cobertura_${coverageDays}d.csv`);
+    link.setAttribute("download", `Reporte_Insumos_${startDateStr}_a_${endDateStr}_cobertura_${coverageDays}d.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -353,10 +328,10 @@ export default function RestockClient({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            📋 Reporte de Resurtido
+            🛠️ Reporte de Resurtido de Insumos
           </h1>
           <p style={{ color: 'var(--pulpos-text-muted)' }}>
-            Sugerencia de abastecimiento de stock en base al ritmo de venta y stock actual.
+            Sugerencia de compra de materias primas e insumos de fabricación basada en ventas de productos finales.
           </p>
         </div>
         <div className="no-print" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -468,7 +443,7 @@ export default function RestockClient({
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.4rem' }}>Categoría</label>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.4rem' }}>Categoría de Insumo</label>
             <select 
               value={category} 
               onChange={e => setCategory(e.target.value)}
@@ -484,158 +459,140 @@ export default function RestockClient({
           <button 
             onClick={handleApplyFilters}
             disabled={isLoading}
-            style={{ backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '0.55rem', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.875rem', cursor: 'pointer', transition: 'background-color 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+            style={{ backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '0.65rem', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.875rem', cursor: 'pointer', transition: 'background-color 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
             onMouseEnter={e => e.currentTarget.style.backgroundColor='#1d4ed8'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor='#2563eb'}
           >
-            {isLoading ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : 'Consultar ventas'}
+            {isLoading ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : 'Consultar'}
           </button>
         </div>
       </div>
 
-      {/* Coverage Days Section */}
-      <div className="no-print" style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <h3 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>⏱️ Proyección de Días de Cobertura</h3>
-            <p style={{ color: '#64748b', fontSize: '0.875rem', margin: '0.25rem 0 0 0' }}>
-              Define cuántos días de ventas deseas cubrir con tu stock disponible. Las sugerencias se recalcularán automáticamente en tiempo real.
-            </p>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <input 
-              type="number" 
-              min={1} 
-              max={365}
-              value={coverageDays} 
-              onChange={e => setCoverageDays(Math.max(1, parseInt(e.target.value) || 30))}
-              style={{ width: '80px', padding: '0.45rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', textAlign: 'center', fontWeight: 'bold' }} 
-            />
-            <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#475569' }}>días</span>
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <input 
-            type="range" 
-            min={1} 
-            max={120} 
-            value={coverageDays} 
-            onChange={e => setCoverageDays(parseInt(e.target.value))}
-            style={{ flex: 1, accentColor: '#2563eb', height: '6px', cursor: 'pointer' }}
-          />
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button onClick={() => setCoverageDays(7)} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer', backgroundColor: coverageDays === 7 ? '#2563eb' : 'white', color: coverageDays === 7 ? 'white' : '#475569', fontWeight: 'bold' }}>1 Sem (7d)</button>
-            <button onClick={() => setCoverageDays(15)} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer', backgroundColor: coverageDays === 15 ? '#2563eb' : 'white', color: coverageDays === 15 ? 'white' : '#475569', fontWeight: 'bold' }}>Quincena (15d)</button>
-            <button onClick={() => setCoverageDays(30)} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer', backgroundColor: coverageDays === 30 ? '#2563eb' : 'white', color: coverageDays === 30 ? 'white' : '#475569', fontWeight: 'bold' }}>1 Mes (30d)</button>
-            <button onClick={() => setCoverageDays(60)} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer', backgroundColor: coverageDays === 60 ? '#2563eb' : 'white', color: coverageDays === 60 ? 'white' : '#475569', fontWeight: 'bold' }}>2 Meses (60d)</button>
-          </div>
-        </div>
-      </div>
-
       {isLoading && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', color: '#2563eb', fontWeight: 'bold', fontSize: '0.9rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', color: '#2563eb', fontWeight: 'bold', fontSize: '0.9rem' }} className="no-print">
           <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
-          Actualizando catálogo y proyecciones de resurtido...
+          Calculando proyección de insumos...
         </div>
       )}
 
       <div style={{ opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
         {/* KPI Panel Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
           <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
               <div style={{ padding: '0.5rem', backgroundColor: '#eff6ff', borderRadius: '8px' }}><Package size={20} color="#3b82f6" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>SKUs Evaluados</h3>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Insumos Analizados</h3>
             </div>
             <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#1e293b' }}>{stats.totalSKUs}</div>
           </div>
 
           <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#fef2f2', borderRadius: '8px' }}><Package size={20} color="#ef4444" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>SKUs a Comprar</h3>
+              <div style={{ padding: '0.5rem', backgroundColor: '#fee2e2', borderRadius: '8px' }}><Package size={20} color="#ef4444" /></div>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Insumos con Faltante</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#ef4444' }}>{stats.skusToRestock} <span style={{ fontSize: '1rem', fontWeight: 'normal', color: '#64748b' }}>artículos</span></div>
+            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#ef4444' }}>{stats.skusToRestock}</div>
           </div>
 
           <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#fff7ed', borderRadius: '8px' }}><Package size={20} color="#ea580c" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Total Unidades a Comprar</h3>
+              <div style={{ padding: '0.5rem', backgroundColor: '#f0fdf4', borderRadius: '8px' }}><ShoppingCart size={20} color="#16a34a" /></div>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Sugerido a Comprar</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#ea580c' }}>{stats.totalUnitsToRestock} <span style={{ fontSize: '1rem', fontWeight: 'normal', color: '#64748b' }}>uds</span></div>
+            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#16a34a' }}>{stats.totalUnitsToRestock} uds</div>
           </div>
 
           <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#f0fdf4', borderRadius: '8px' }}><DollarSign size={20} color="#16a34a" /></div>
+              <div style={{ padding: '0.5rem', backgroundColor: '#f5f3ff', borderRadius: '8px' }}><DollarSign size={20} color="#7c3aed" /></div>
               <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Inversión Requerida</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#16a34a' }}>{formatter.format(stats.totalCostToRestock)}</div>
-            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.1rem' }}>Estimada a precio de costo</div>
+            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#7c3aed' }}>{formatter.format(stats.totalCostToRestock)}</div>
           </div>
         </div>
 
-        {/* Detailed Product Table */}
+        {/* Detailed Table Card */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden', padding: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Desglose de Sugerencias de Resurtido</h2>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.875rem', color: '#475569', cursor: 'pointer', userSelect: 'none' }}>
+            <div>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Sugerencias de Reabastecimiento de Insumos</h2>
+              <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0.2rem 0 0 0' }} className="no-print">
+                Define cuántos días de ventas deseas cubrir con tu stock disponible. Las sugerencias se recalcularán automáticamente en tiempo real.
+              </p>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }} className="no-print">
+              {/* Coverage Days Selector */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Días a cubrir:</span>
+                <input 
+                  type="number" 
+                  min="1" 
+                  max="365"
+                  value={coverageDays}
+                  onChange={e => setCoverageDays(Math.max(1, parseInt(e.target.value) || 0))}
+                  style={{ width: '70px', padding: '0.45rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', textAlign: 'center', fontWeight: 'bold' }}
+                />
+              </div>
+
+              {/* Only Needs Restock Filter */}
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: '#475569', cursor: 'pointer', userSelect: 'none' }}>
                 <input 
                   type="checkbox" 
                   checked={onlyNeedsRestock}
                   onChange={e => setOnlyNeedsRestock(e.target.checked)}
-                  style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                  style={{ width: '16px', height: '16px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                 />
-                <span>Mostrar solo productos con falta de stock</span>
+                <span>Solo insumos con faltantes</span>
               </label>
-            </div>
-            <div className="no-print" style={{ position: 'relative', width: '280px' }}>
-              <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
-              <input 
-                type="text" 
-                placeholder="Buscar por SKU, CB, nombre, proveedor..." 
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                style={{ width: '100%', padding: '0.45rem 0.75rem 0.45rem 2.2rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
-              />
+
+              {/* Search Bar */}
+              <div style={{ position: 'relative', width: '240px' }}>
+                <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
+                <input 
+                  type="text" 
+                  placeholder="Buscar insumo, SKU, proveedor..." 
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  style={{ width: '100%', padding: '0.45rem 0.75rem 0.45rem 2.2rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
+                />
+              </div>
             </div>
           </div>
 
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
-                <tr style={{ borderBottom: '2px solid #f1f5f9', color: '#475569', fontSize: '0.8rem', fontWeight: 'bold', userSelect: 'none' }}>
+                <tr style={{ borderBottom: '2px solid #f1f5f9', color: '#475569', fontSize: '0.8rem', fontWeight: 'bold' }}>
                   <th style={{ padding: '1rem 0.75rem', cursor: 'pointer' }} onClick={() => handleSort('sku')}>
                     SKU <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
                   </th>
                   <th style={{ padding: '1rem 0.75rem', cursor: 'pointer' }} onClick={() => handleSort('barcode')}>
-                    Código de Barras <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
+                    Cod. Barras <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
                   </th>
                   <th style={{ padding: '1rem 0.75rem', cursor: 'pointer' }} onClick={() => handleSort('name')}>
-                    Nombre del Producto <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
+                    Insumo / Materia Prima <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
                   </th>
                   <th style={{ padding: '1rem 0.75rem', cursor: 'pointer' }} onClick={() => handleSort('lastSupplier')}>
                     Último Proveedor <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
                   </th>
                   <th style={{ padding: '1rem 0.75rem', textAlign: 'right', cursor: 'pointer' }} onClick={() => handleSort('cost')}>
-                    Costo <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
+                    Costo U. <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
                   </th>
                   <th style={{ padding: '1rem 0.75rem', textAlign: 'right', cursor: 'pointer' }} onClick={() => handleSort('stock')}>
-                    Stock Act. <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
+                    Stock <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
                   </th>
                   <th style={{ padding: '1rem 0.75rem', textAlign: 'center', cursor: 'pointer' }} onClick={() => handleSort('quantitySold')}>
-                    Ventas <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
+                    Consumido <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
                   </th>
                   <th style={{ padding: '1rem 0.75rem', textAlign: 'right', cursor: 'pointer' }} onClick={() => handleSort('neededStock')}>
-                    Requerido ({coverageDays}d) <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
+                    Requerido <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
                   </th>
                   <th style={{ padding: '1rem 0.75rem', textAlign: 'right', cursor: 'pointer' }} onClick={() => handleSort('suggestedRestock')}>
                     Sugerido <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
                   </th>
                   <th style={{ padding: '1rem 0.75rem', textAlign: 'right', cursor: 'pointer' }} onClick={() => handleSort('replenishmentCost')}>
-                    Costo Inversión <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
+                    Costo Compra <ArrowUpDown size={12} style={{ display: 'inline', marginLeft: '2px' }} />
                   </th>
                 </tr>
               </thead>
@@ -674,10 +631,10 @@ export default function RestockClient({
                             <span>{p.name}</span>
                           </div>
                         </td>
-                        <td style={{ padding: '0.85rem 0.75rem', color: '#64748b' }}>{p.lastSupplier || "N/A"}</td>
+                        <td style={{ padding: '0.85rem 0.75rem', color: '#64748b' }}>{p.lastSupplier || "Sin Proveedor"}</td>
                         <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', color: '#64748b' }}>{formatter.format(p.cost)}</td>
                         <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', fontWeight: p.stock <= 0 ? 'bold' : 'normal', color: p.stock <= 0 ? '#ef4444' : '#334155' }}>{p.stock}</td>
-                        <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center', color: '#475569' }}>{p.quantitySold}</td>
+                        <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center', color: '#475569' }}>{p.quantitySold.toFixed(2)}</td>
                         <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', color: '#475569' }}>{p.neededStock}</td>
                         <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', fontWeight: 'bold', color: needsBuy ? '#ef4444' : '#16a34a' }}>
                           {needsBuy ? `+${p.suggestedRestock}` : '0'}
@@ -691,7 +648,7 @@ export default function RestockClient({
                 ) : (
                   <tr>
                     <td colSpan={10} style={{ padding: '3rem 0', textAlign: 'center', color: '#94a3b8' }}>
-                      No se encontraron sugerencias de resurtido para el filtro actual.
+                      No se encontraron sugerencias de insumos para el filtro actual.
                     </td>
                   </tr>
                 )}
@@ -699,40 +656,24 @@ export default function RestockClient({
             </table>
           </div>
 
-          {/* Pagination controls */}
-          {filteredData.length > 0 && (
-            <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', padding: '1rem 0 0 0', marginTop: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#64748b' }}>
-                <span>Mostrar</span>
-                <select 
-                  value={pageSize} 
-                  onChange={e => { setPageSize(parseInt(e.target.value)); setCurrentPage(1); }}
-                  style={{ padding: '0.25rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
-                >
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                  <option value={200}>200</option>
-                  <option value={500}>500</option>
-                </select>
-                <span>productos por página de un total de <strong>{filteredData.length}</strong></span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }} className="no-print">
+              <span style={{ fontSize: '0.875rem', color: '#64748b' }}>
+                Mostrando {Math.min(filteredData.length, (currentPage - 1) * pageSize + 1)} a {Math.min(filteredData.length, currentPage * pageSize)} de {filteredData.length} insumos
+              </span>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button 
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: 'white', border: '1px solid #cbd5e1', padding: '0.4rem 0.75rem', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', opacity: currentPage === 1 ? 0.5 : 1, transition: 'all 0.15s' }}
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.45rem 0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: currentPage === 1 ? '#f8fafc' : 'white', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: '500', color: currentPage === 1 ? '#94a3b8' : '#334155' }}
                 >
                   <ChevronLeft size={16} /> Anterior
                 </button>
-                <span style={{ fontSize: '0.85rem', padding: '0 0.75rem', color: '#475569', fontWeight: 'bold' }}>
-                  Página {currentPage} de {totalPages}
-                </span>
                 <button 
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: 'white', border: '1px solid #cbd5e1', padding: '0.4rem 0.75rem', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', opacity: currentPage === totalPages ? 0.5 : 1, transition: 'all 0.15s' }}
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.45rem 0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: currentPage === totalPages ? '#f8fafc' : 'white', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: '500', color: currentPage === totalPages ? '#94a3b8' : '#334155' }}
                 >
                   Siguiente <ChevronRight size={16} />
                 </button>
@@ -741,6 +682,7 @@ export default function RestockClient({
           )}
         </div>
       </div>
+
       {/* Lightbox Modal */}
       {lightboxImage && (
         <div 

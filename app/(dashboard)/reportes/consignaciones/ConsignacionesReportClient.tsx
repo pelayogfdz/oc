@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { Search, Loader2, PackageCheck, TrendingUp, DollarSign, Percent, ShieldCheck } from 'lucide-react';
+import { Search, Loader2, PackageCheck, TrendingUp, DollarSign, Percent, ShieldCheck, Printer } from 'lucide-react';
 import { getConsignmentReportData } from '@/app/actions/reportes';
 import ReportFilterBar, { ReportFilterState } from '@/components/ui/ReportFilterBar';
 
@@ -51,15 +51,27 @@ export default function ConsignacionesReportClient({ initialData, initialBranchI
           </h1>
           <p style={{ color: 'var(--pulpos-text-muted)' }}>Mide la rotación, cobros e inventario flotante en manos de tus clientes.</p>
         </div>
+        <div className="no-print">
+          <button 
+            onClick={() => window.print()}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#6d28d9', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor='#5b21b6'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor='#6d28d9'}
+          >
+            <Printer size={18} /> Imprimir / PDF
+          </button>
+        </div>
       </div>
       
       {/* Filter Bar */}
-      <ReportFilterBar 
-        onFilterChange={handleFilterChange} 
-        disabled={loading} 
-        showUser={true}
-        initialBranchId={initialBranchId}
-      />
+      <div className="no-print">
+        <ReportFilterBar 
+          onFilterChange={handleFilterChange} 
+          disabled={loading} 
+          showUser={true}
+          initialBranchId={initialBranchId}
+        />
+      </div>
 
       {loading && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: '#6366f1', fontWeight: 'bold' }}>
@@ -157,7 +169,7 @@ export default function ConsignacionesReportClient({ initialData, initialBranchI
                 <p style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>Lista detallada de folios registrados y su estado actual.</p>
               </div>
               
-              <div style={{ position: 'relative', width: '350px', maxWidth: '100%' }}>
+              <div className="no-print" style={{ position: 'relative', width: '350px', maxWidth: '100%' }}>
                 <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={16} />
                 <input 
                   type="text" 

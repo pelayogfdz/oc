@@ -1143,5 +1143,171 @@ export async function getProductionReportData(
   return data;
 }
 
+export async function getInsumosReportData(
+  startDate: Date,
+  endDate: Date,
+  branchIdFilter?: string,
+  categoryFilter?: string
+) {
+  const session = await getSession();
+  const branch = await getActiveBranch();
+  if (!branch) throw new Error('Unauthorized');
+  
+  const tenantId = session?.tenantId || branch.tenantId;
+  if (!tenantId) throw new Error('Unauthorized: Tenant context missing');
+  
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const tenantBranchIds = tenantBranches.map(b => b.id);
+  
+  let branchCondition: any = branch.id === 'GLOBAL' 
+    ? { branchId: { in: tenantBranchIds } } 
+    : { branchId: branch.id };
+    
+  if (branchIdFilter && branchIdFilter !== 'ALL') {
+    if (tenantBranchIds.includes(branchIdFilter)) {
+      branchCondition = { branchId: branchIdFilter };
+    } else {
+      branchCondition = { branchId: { in: tenantBranchIds } };
+    }
+  }
+
+  // 1. Get all sale items in this period and sucursal(es)
+  const saleItems = await prisma.saleItem.findMany({
+    where: {
+      sale: {
+        ...branchCondition,
+        createdAt: { gte: startDate, lte: endDate },
+        status: { not: 'CANCELLED' }
+      }
+    },
+    select: {
+      productId: true,
+      quantity: true,
+      product: {
+        select: {
+          Recipe: {
+            select: {
+              ingredients: {
+                select: {
+                  productId: true,
+                  quantity: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // 2. Map the requirement of each insumo product ID
+  const insumoRequirements = new Map<string, number>();
+  saleItems.forEach(item => {
+    const recipe = item.product?.Recipe;
+    if (recipe && recipe.ingredients) {
+      recipe.ingredients.forEach(ing => {
+        const requiredQty = item.quantity * ing.quantity;
+        const current = insumoRequirements.get(ing.productId) || 0;
+        insumoRequirements.set(ing.productId, current + requiredQty);
+      });
+    }
+  });
+
+  // 3. Find all active products with isProductionInput = true (raw materials)
+  const categoryCondition = (categoryFilter && categoryFilter !== 'ALL') 
+    ? { category: categoryFilter } 
+    : {};
+
+  const insumos = await prisma.product.findMany({
+    where: {
+      ...branchCondition,
+      ...categoryCondition,
+      isActive: true,
+      isProductionInput: true
+    },
+    include: {
+      supplier: {
+        select: {
+          id: true,
+          name: true
+        }
+      }
+    },
+    orderBy: { name: 'asc' }
+  });
+
+  // 4. Fetch last supplier data for raw materials to know where to purchase them
+  const purchaseItems = await prisma.purchaseItem.findMany({
+    where: {
+      product: {
+        ...branchCondition,
+        isProductionInput: true
+      }
+    },
+    select: {
+      productId: true,
+      purchase: {
+        select: {
+          createdAt: true,
+          supplier: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
+      }
+    },
+    orderBy: {
+      purchase: {
+        createdAt: 'desc'
+      }
+    }
+  });
+
+  const lastSupplierMap = new Map<string, { id: string; name: string }>();
+  purchaseItems.forEach(item => {
+    if (!lastSupplierMap.has(item.productId)) {
+      const supplierName = item.purchase?.supplier?.name;
+      const supplierId = item.purchase?.supplier?.id;
+      if (supplierName && supplierId) {
+        lastSupplierMap.set(item.productId, { id: supplierId, name: supplierName });
+      }
+    }
+  });
+
+  const msDiff = endDate.getTime() - startDate.getTime();
+  const daysDiff = Math.max(1, Math.ceil(msDiff / (1000 * 60 * 60 * 24)));
+
+  const data = insumos.map(p => {
+    const quantitySold = insumoRequirements.get(p.id) || 0;
+    const dailyAvg = quantitySold / daysDiff;
+    const lastSupplierData = lastSupplierMap.get(p.id) || (p.supplier ? { id: p.supplier.id, name: p.supplier.name } : null);
+    const lastSupplier = lastSupplierData?.name || 'Sin Proveedor';
+    const lastSupplierId = lastSupplierData?.id || null;
+    return {
+      id: p.id,
+      name: p.name,
+      sku: p.sku || 'N/A',
+      barcode: p.barcode || 'N/A',
+      imageUrl: p.imageUrl || null,
+      lastSupplier,
+      lastSupplierId,
+      category: p.category || 'Sin Categoría',
+      stock: p.stock || 0,
+      cost: p.cost || 0,
+      price: p.price || 0,
+      quantitySold,
+      dailyAvg
+    };
+  });
+
+  return data;
+}
+
+
 
 

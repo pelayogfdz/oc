@@ -441,22 +441,27 @@ button {
 /* Print Styles */
 /* ------------------------------------- */
 @media print {
-  /* Ocultar barra lateral en impresiÃ³n */
+  /* Ocultar barra lateral en impresión */
   .dashboard-sidebar, .sidebar-overlay, .mobile-menu-toggle {
     display: none !important;
   }
 
-  /* Ocultar header principal en impresiÃ³n */
+  /* Ocultar header principal en impresión */
   .dashboard-header {
     display: none !important;
   }
 
-  /* El contenido principal debe tomar toda la hoja, sin mÃ¡rgenes laterales extra */
+  /* El contenido principal debe tomar toda la hoja, sin márgenes laterales extra */
   .dashboard-main {
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .dashboard-content-wrapper {
+    height: auto !important;
     overflow: visible !important;
   }
 

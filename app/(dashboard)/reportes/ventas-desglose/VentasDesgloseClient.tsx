@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { PieChart, Pie, Tooltip as RechartsTooltip, Cell, ResponsiveContainer, Legend, AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { Search, Eye, Loader2 } from 'lucide-react';
+import { Search, Eye, Loader2, Printer } from 'lucide-react';
 import { getSalesDetailData } from '@/app/actions/reportes';
 import ReportFilterBar, { ReportFilterState } from '@/components/ui/ReportFilterBar';
 
@@ -45,14 +45,26 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Reporte de Ventas Detalladas</h1>
           <p style={{ color: 'var(--pulpos-text-muted)' }}>Analiza contribuciones, tickets individuales y métodos de pago.</p>
         </div>
+        <div className="no-print">
+          <button 
+            onClick={() => window.print()}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#6d28d9', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor='#5b21b6'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor='#6d28d9'}
+          >
+            <Printer size={18} /> Imprimir / PDF
+          </button>
+        </div>
       </div>
       
-      <ReportFilterBar 
-        onFilterChange={handleFilterChange} 
-        disabled={loading} 
-        showUser={true}
-        initialBranchId={initialBranchId}
-      />
+      <div className="no-print">
+        <ReportFilterBar 
+          onFilterChange={handleFilterChange} 
+          disabled={loading} 
+          showUser={true}
+          initialBranchId={initialBranchId}
+        />
+      </div>
 
       {loading && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--pulpos-primary)', fontWeight: 'bold' }}>
@@ -93,7 +105,7 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>Historial de Transacciones</h2>
               
-              <div style={{ position: 'relative', width: '350px' }}>
+              <div className="no-print" style={{ position: 'relative', width: '350px' }}>
                 <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={16} />
                 <input 
                   type="text" 

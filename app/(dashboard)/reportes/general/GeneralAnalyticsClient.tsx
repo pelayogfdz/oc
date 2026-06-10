@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
-import { TrendingUp, FileText, Percent, DollarSign, Loader2 } from 'lucide-react';
+import { TrendingUp, FileText, Percent, DollarSign, Loader2, Printer } from 'lucide-react';
 import ReportFilterBar, { ReportFilterState } from '@/components/ui/ReportFilterBar';
 import { getGeneralAnalyticsData } from '@/app/actions/reportes';
 
@@ -37,14 +37,26 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Analítica General</h1>
           <p style={{ color: 'var(--pulpos-text-muted)' }}>Desempeño global de tus ventas y márgenes.</p>
         </div>
+        <div className="no-print">
+          <button 
+            onClick={() => window.print()}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#6d28d9', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor='#5b21b6'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor='#6d28d9'}
+          >
+            <Printer size={18} /> Imprimir / PDF
+          </button>
+        </div>
       </div>
       
-      <ReportFilterBar 
-        onFilterChange={handleFilterChange} 
-        disabled={isLoading} 
-        showUser={true}
-        initialBranchId={initialBranchId}
-      />
+      <div className="no-print">
+        <ReportFilterBar 
+          onFilterChange={handleFilterChange} 
+          disabled={isLoading} 
+          showUser={true}
+          initialBranchId={initialBranchId}
+        />
+      </div>
 
       {isLoading && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--pulpos-primary)', fontWeight: 'bold' }}>
