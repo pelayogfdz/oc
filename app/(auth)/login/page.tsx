@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { loginAction } from '@/app/actions/auth';
 import {
@@ -139,6 +139,29 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Auto-open login if redirected with error or open query param
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const errorParam = params.get('error');
+      const openParam = params.get('open');
+      if (errorParam) {
+        setError(errorParam);
+        setIsLoginOpen(true);
+        
+        // Clean the URL parameters so they don't persist on page refreshes
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      } else if (openParam) {
+        setIsLoginOpen(true);
+        
+        // Clean the URL parameters
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    }
+  }, []);
 
   // Modals State
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);

@@ -13,14 +13,37 @@ import { getActiveUser } from '@/app/actions/auth';
 import { prisma } from '@/lib/prisma';
 import FloatingWhatsappWidget from '../components/FloatingWhatsappWidget';
 import CollaboratorTaskPopup from '../components/CollaboratorTaskPopup';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [tenantSettings, user] = await Promise.all([
-    getTenantSettings().catch(() => ({ decimals: 2 })),
-    getActiveUser().catch(() => null)
-  ]);
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get('session')?.value;
+
+  let user = null;
+  let activeUserError = null;
+  try {
+    user = await getActiveUser();
+  } catch (err: any) {
+    activeUserError = err.message || 'Session error';
+  }
+
+  // Si la cookie de sesión existe pero no pudimos obtener un usuario válido (ej. sesión cerrada o kick-out)
+  if (sessionCookie && !user) {
+    try {
+      cookieStore.delete('session');
+    } catch (cookieErr) {
+      console.error('Failed to delete session cookie on invalid layout session:', cookieErr);
+    }
+    let redirectUrl = '/login?open=true';
+    if (activeUserError) {
+      redirectUrl += `&error=${encodeURIComponent(activeUserError)}`;
+    }
+    redirect(redirectUrl);
+  }
+
+  const tenantSettings = await getTenantSettings().catch(() => ({ decimals: 2 }));
   
   let isSuperAdmin = false;
   let userRole = 'USER';
