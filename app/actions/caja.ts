@@ -97,7 +97,7 @@ export async function closeSession(formData: FormData) {
   const expectedAmount = sessionRecord.initialAmount + totalSales + totalIn - totalOut;
   const difference = actualAmount - expectedAmount;
 
-  await prisma.cashSession.update({
+  const updated = await prisma.cashSession.update({
     where: { id: sessionId },
     data: {
       status: 'CLOSED',
@@ -112,4 +112,6 @@ export async function closeSession(formData: FormData) {
 
   revalidatePath('/caja/actual');
   revalidatePath('/caja/cortes');
+
+  return { success: true, id: updated.id };
 }

@@ -17,6 +17,20 @@ import {
   Receipt 
 } from 'lucide-react';
 
+const denominations = [
+  { value: 1000, label: 'Billete $1000', isBill: true },
+  { value: 500, label: 'Billete $500', isBill: true },
+  { value: 200, label: 'Billete $200', isBill: true },
+  { value: 100, label: 'Billete $100', isBill: true },
+  { value: 50, label: 'Billete $50', isBill: true },
+  { value: 20, label: 'Billete/Moneda $20', isBill: true },
+  { value: 10, label: 'Moneda $10', isBill: false },
+  { value: 5, label: 'Moneda $5', isBill: false },
+  { value: 2, label: 'Moneda $2', isBill: false },
+  { value: 1, label: 'Moneda $1', isBill: false },
+  { value: 0.5, label: 'Moneda $0.50', isBill: false },
+];
+
 export default function CajaActualClient({ 
   initialSession, 
   branchName, 
@@ -44,7 +58,31 @@ export default function CajaActualClient({
   
   // Detailed closure states
   const [manualCounts, setManualCounts] = useState<Record<string, string>>({});
+  const [denomQuantities, setDenomQuantities] = useState<Record<number, string>>({});
+  const [showCalculations, setShowCalculations] = useState(false);
   const [notesText, setNotesText] = useState('');
+
+  const handleDenomChange = (val: number, qtyStr: string) => {
+    const newQty = qtyStr.replace(/[^0-9]/g, '');
+    const updatedQts = {
+      ...denomQuantities,
+      [val]: newQty
+    };
+    setDenomQuantities(updatedQts);
+
+    // Sum all denominations
+    let sum = 0;
+    denominations.forEach(d => {
+      const q = parseInt(updatedQts[d.value] || '0') || 0;
+      sum += q * d.value;
+    });
+
+    // Automatically update the manualCounts['CASH']
+    setManualCounts(prev => ({
+      ...prev,
+      CASH: sum > 0 ? sum.toFixed(2) : ''
+    }));
+  };
 
   // -------------------------------------------------------------
   // Mappings for standard IDs to clean Spanish display names
@@ -233,10 +271,17 @@ export default function CajaActualClient({
       fd.append('notes', notesText.trim());
       fd.append('detailsJson', JSON.stringify(details));
 
-      await closeSession(fd);
-      setIsCloseModalOpen(false);
-      setManualCounts({});
-      setNotesText('');
+      const res = await closeSession(fd) as any;
+      if (res && res.success) {
+        setIsCloseModalOpen(false);
+        setManualCounts({});
+        setDenomQuantities({});
+        setShowCalculations(false);
+        setNotesText('');
+        
+        // Open the print view in a new window/tab
+        window.open(`/imprimir-corte/${res.id}`, '_blank');
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -369,6 +414,68 @@ export default function CajaActualClient({
                </p>
 
                <form onSubmit={handleCloseSession}>
+                  {/* Denominations Calculator */}
+                  <div style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '1.25rem', marginBottom: '1.5rem' }}>
+                     <h4 style={{ fontWeight: 'bold', fontSize: '1rem', marginBottom: '0.75rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Banknote size={20} color="#16a34a" /> Desglose de Efectivo por Denominación
+                     </h4>
+                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                        {/* Billetes */}
+                        <div>
+                           <h5 style={{ fontWeight: 'bold', fontSize: '0.85rem', color: '#64748b', marginBottom: '0.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.25rem' }}>Billetes</h5>
+                           {denominations.filter(d => d.isBill).map(d => (
+                              <div key={d.value} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', gap: '0.5rem' }}>
+                                 <span style={{ fontSize: '0.85rem', fontWeight: '500', color: '#334155', width: '120px' }}>{d.label}</span>
+                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <input 
+                                       type="number"
+                                       min="0"
+                                       placeholder="0"
+                                       value={denomQuantities[d.value] || ''}
+                                       onChange={e => handleDenomChange(d.value, e.target.value)}
+                                       style={{ width: '60px', padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', textAlign: 'center', fontSize: '0.85rem' }}
+                                    />
+                                    <span style={{ fontSize: '0.85rem', color: '#94a3b8', width: '15px', textAlign: 'center' }}>=</span>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#334155', width: '70px', textAlign: 'right' }}>
+                                       {formatCurrency((parseInt(denomQuantities[d.value] || '0') || 0) * d.value)}
+                                    </span>
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+
+                        {/* Monedas */}
+                        <div>
+                           <h5 style={{ fontWeight: 'bold', fontSize: '0.85rem', color: '#64748b', marginBottom: '0.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.25rem' }}>Monedas</h5>
+                           {denominations.filter(d => !d.isBill).map(d => (
+                              <div key={d.value} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', gap: '0.5rem' }}>
+                                 <span style={{ fontSize: '0.85rem', fontWeight: '500', color: '#334155', width: '120px' }}>{d.label}</span>
+                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <input 
+                                       type="number"
+                                       min="0"
+                                       placeholder="0"
+                                       value={denomQuantities[d.value] || ''}
+                                       onChange={e => handleDenomChange(d.value, e.target.value)}
+                                       style={{ width: '60px', padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', textAlign: 'center', fontSize: '0.85rem' }}
+                                    />
+                                    <span style={{ fontSize: '0.85rem', color: '#94a3b8', width: '15px', textAlign: 'center' }}>=</span>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#334155', width: '70px', textAlign: 'right' }}>
+                                       {formatCurrency((parseInt(denomQuantities[d.value] || '0') || 0) * d.value)}
+                                    </span>
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+                     </div>
+
+                     <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0', textAlign: 'right', fontSize: '0.9rem', fontWeight: 'bold', color: '#0f172a' }}>
+                        Total Efectivo Desglosado: {formatCurrency(
+                           denominations.reduce((sum, d) => sum + (parseInt(denomQuantities[d.value] || '0') || 0) * d.value, 0)
+                        )}
+                     </div>
+                  </div>
+
                   <div style={{ overflowX: 'auto', marginBottom: '2rem' }}>
                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
                         <thead>
@@ -415,10 +522,10 @@ export default function CajaActualClient({
                                        </div>
                                     </td>
                                     <td style={{ padding: '1rem', textAlign: 'right', fontSize: '0.95rem', color: '#4a5568', fontWeight: '500' }}>
-                                       {formatCurrency(expected)}
+                                       {showCalculations ? formatCurrency(expected) : '---'}
                                     </td>
                                     <td style={{ padding: '1rem', textAlign: 'right' }}>
-                                       {renderDiffBadge(diff)}
+                                       {showCalculations ? renderDiffBadge(diff) : <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Pendiente</span>}
                                     </td>
                                  </tr>
                               );
@@ -434,18 +541,42 @@ export default function CajaActualClient({
                                  {formatCurrency(finalMethods.reduce((sum, m) => sum + parseFloat(manualCounts[m.id] || '0'), 0))}
                               </td>
                               <td style={{ padding: '1rem', textAlign: 'right', fontSize: '0.95rem', color: '#1e293b' }}>
-                                 {formatCurrency(finalMethods.reduce((sum, m) => sum + getExpectedForMethod(m.id), 0))}
+                                 {showCalculations ? formatCurrency(finalMethods.reduce((sum, m) => sum + getExpectedForMethod(m.id), 0)) : '---'}
                               </td>
                               <td style={{ padding: '1rem', textAlign: 'right' }}>
-                                 {renderDiffBadge(
+                                 {showCalculations ? renderDiffBadge(
                                     finalMethods.reduce((sum, m) => sum + parseFloat(manualCounts[m.id] || '0'), 0) -
                                     finalMethods.reduce((sum, m) => sum + getExpectedForMethod(m.id), 0)
-                                 )}
+                                 ) : '---'}
                               </td>
                            </tr>
                         </tbody>
                      </table>
                   </div>
+
+                  {!showCalculations && (
+                     <div style={{ textAlign: 'center', margin: '1.5rem 0', padding: '1.25rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                        <p style={{ fontSize: '0.9rem', color: '#475569', marginBottom: '0.75rem', fontWeight: '500' }}>
+                           Ingresa el arqueo de caja (efectivo por denominación y otros métodos de pago) para calcular diferencias.
+                        </p>
+                        <button 
+                           type="button" 
+                           onClick={() => setShowCalculations(true)}
+                           style={{ 
+                              backgroundColor: '#d946ef', 
+                              color: 'white', 
+                              padding: '0.6rem 2rem', 
+                              border: 'none', 
+                              borderRadius: '8px', 
+                              fontWeight: 'bold', 
+                              cursor: 'pointer',
+                              boxShadow: '0 2px 4px rgba(217, 70, 239, 0.2)'
+                           }}
+                        >
+                           Calcular y Comparar Diferencias
+                        </button>
+                     </div>
+                  )}
 
                   <div style={{ marginBottom: '2rem' }}>
                      <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#4a5568' }}>Comentarios (opcional)</label>
@@ -470,9 +601,11 @@ export default function CajaActualClient({
                      <button type="button" onClick={() => setIsCloseModalOpen(false)} style={{ padding: '0.75rem 2rem', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}>
                         Cancelar
                      </button>
-                     <button type="submit" disabled={loading} style={{ padding: '0.75rem 2.5rem', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: loading ? 'not-allowed' : 'pointer', fontSize: '1rem', boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.2)' }}>
-                        {loading ? 'Procesando Corte...' : 'Hecho, Cerrar Caja'}
-                     </button>
+                     {showCalculations && (
+                        <button type="submit" disabled={loading} style={{ padding: '0.75rem 2.5rem', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: loading ? 'not-allowed' : 'pointer', fontSize: '1rem', boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.2)' }}>
+                           {loading ? 'Procesando Corte...' : 'Hecho, Cerrar Caja'}
+                        </button>
+                     )}
                   </div>
                </form>
             </div>

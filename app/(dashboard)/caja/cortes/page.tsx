@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getActiveBranch } from "@/app/actions/auth";
 import { formatCurrency } from "@/lib/utils";
-import { Calculator } from "lucide-react";
+import { Calculator, Printer } from "lucide-react";
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -47,6 +47,7 @@ export default async function CortesCajaPage() {
               <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', fontSize: '0.85rem' }}>ESPERADO (SISTEMA)</th>
               <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', fontSize: '0.85rem' }}>FÍSICO (REAL)</th>
               <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', fontSize: '0.85rem' }}>SOBRANTE/FALTANTE</th>
+              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', fontSize: '0.85rem', textAlign: 'center' }}>ACCIONES</th>
             </tr>
           </thead>
           <tbody>
@@ -66,6 +67,28 @@ export default async function CortesCajaPage() {
                 <td data-label="Físico (Real)" style={{ padding: '1rem', fontSize: '0.9rem', fontWeight: 'bold', color: '#a21caf' }}>{formatCurrency(session.actualAmount || 0)}</td>
                 <td data-label="Sobrante/Faltante" style={{ padding: '1rem', fontSize: '1rem', fontWeight: 'bold', color: (session.difference || 0) < 0 ? '#ef4444' : (session.difference || 0) > 0 ? '#10b981' : '#64748b' }}>
                   {(session.difference || 0) > 0 ? '+' : ''}{formatCurrency(session.difference || 0)}
+                </td>
+                <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }}>
+                  <a 
+                    href={`/imprimir-corte/${session.id}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={{ 
+                      display: 'inline-flex', 
+                      alignItems: 'center', 
+                      gap: '0.25rem', 
+                      color: 'var(--pulpos-primary)', 
+                      textDecoration: 'none', 
+                      fontWeight: 'bold', 
+                      fontSize: '0.85rem',
+                      border: '1px solid var(--pulpos-primary)',
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: '6px',
+                      backgroundColor: 'transparent'
+                    }}
+                  >
+                    <Printer size={14} /> Imprimir
+                  </a>
                 </td>
               </tr>
             ))}
