@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { revalidateTag } from 'next/cache';
-import { prisma } from './prisma';
+import { prisma, masterClient, getClientForTenant } from './prisma';
 import { encrypt, decrypt, encodedKey, SessionPayload } from './session-crypto';
 
 export { encrypt, decrypt };
@@ -10,7 +10,7 @@ export type { SessionPayload };
 export async function createSession(userId: string, tenantId: string | null, role: string) {
   const sessionId = crypto.randomUUID();
   
-  const user = await prisma.user.findUnique({
+  const user = await masterClient.user.findUnique({
     where: { id: userId },
     select: { currentSessionId: true }
   });
@@ -25,10 +25,26 @@ export async function createSession(userId: string, tenantId: string | null, rol
     activeSessions = activeSessions.slice(-3);
   }
 
-  await prisma.user.update({
+  const updatedSessionIds = activeSessions.join(',');
+
+  await masterClient.user.update({
     where: { id: userId },
-    data: { currentSessionId: activeSessions.join(',') }
+    data: { currentSessionId: updatedSessionIds }
   });
+
+  if (tenantId) {
+    try {
+      const tenantClient = getClientForTenant(tenantId);
+      if (tenantClient !== masterClient) {
+        await tenantClient.user.update({
+          where: { id: userId },
+          data: { currentSessionId: updatedSessionIds }
+        });
+      }
+    } catch (err) {
+      console.error(`Failed to update currentSessionId in tenant database ${tenantId}:`, err);
+    }
+  }
   revalidateTag(`user-${userId}`, 'max');
 
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -71,16 +87,32 @@ export async function deleteSession() {
     const payload = await decrypt(session);
     if (payload && payload.userId && payload.sessionId) {
       try {
-        const user = await prisma.user.findUnique({
+        const user = await masterClient.user.findUnique({
           where: { id: payload.userId },
           select: { currentSessionId: true }
         });
         if (user?.currentSessionId) {
           const sessions = user.currentSessionId.split(',').filter(s => s !== payload.sessionId && s !== '');
-          await prisma.user.update({
+          const newSessionVal = sessions.length > 0 ? sessions.join(',') : null;
+          
+          await masterClient.user.update({
             where: { id: payload.userId },
-            data: { currentSessionId: sessions.length > 0 ? sessions.join(',') : null }
+            data: { currentSessionId: newSessionVal }
           });
+
+          if (payload.tenantId) {
+            try {
+              const tenantClient = getClientForTenant(payload.tenantId);
+              if (tenantClient !== masterClient) {
+                await tenantClient.user.update({
+                  where: { id: payload.userId },
+                  data: { currentSessionId: newSessionVal }
+                });
+              }
+            } catch (err) {
+              console.error(`Failed to remove sessionId in tenant database ${payload.tenantId} on logout:`, err);
+            }
+          }
         }
       } catch (err) {
         console.error('Failed to remove sessionId on logout:', err);

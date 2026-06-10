@@ -19,7 +19,7 @@ export const masterClient = new PrismaClient({
 // Cache for tenant Prisma clients
 const clientCache: Record<string, PrismaClient> = {};
 
-function getClientForTenant(tenantId: string): PrismaClient {
+export function getClientForTenant(tenantId: string): PrismaClient {
   if (clientCache[tenantId]) {
     return clientCache[tenantId];
   }
