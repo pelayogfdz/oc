@@ -194,6 +194,17 @@ export default function MonitoreoClient({
               const checkIn = logs.find((l: any) => l.type === 'CHECK_IN');
               const checkOut = logs.find((l: any) => l.type === 'CHECK_OUT');
 
+              const formatTime12h = (dateStr: string | Date) => {
+                const date = new Date(dateStr);
+                let hours = date.getHours();
+                const minutes = date.getMinutes();
+                const ampm = hours >= 12 ? 'p.m.' : 'a.m.';
+                hours = hours % 12;
+                hours = hours ? hours : 12;
+                const minutesStr = minutes < 10 ? `0${minutes}` : minutes;
+                return `${hours}:${minutesStr} ${ampm}`;
+              };
+
               let statusColor = '#94a3b8'; // default (no data)
               let statusText = 'Sin Registro';
 
@@ -238,90 +249,254 @@ export default function MonitoreoClient({
                   </div>
 
                   {/* Today Logs Details Block */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                    {/* CHECK IN DETAILS */}
-                    {checkIn ? (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#16a34a', fontWeight: 'bold' }}>
-                          <CheckCircle2 size={16} /> Entrada:
-                        </span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontWeight: '600', color: '#334155' }}>
-                            {new Date(checkIn.timestamp).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    backgroundColor: '#ffffff', 
+                    padding: '1.25rem 1rem', 
+                    borderRadius: '12px', 
+                    border: '1px solid #e2e8f0',
+                    gap: '1rem'
+                  }}>
+                    {/* CHECK IN BLOCK */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: '1 1 0%', minWidth: '120px' }}>
+                      {checkIn ? (
+                        <>
+                          {/* Circle Icon */}
+                          <div style={{ 
+                            width: '42px', 
+                            height: '42px', 
+                            backgroundColor: '#e6f9ee', 
+                            borderRadius: '50%', 
+                            display: 'flex', 
+                            justifyContent: 'center', 
+                            alignItems: 'center',
+                            flexShrink: 0
+                          }}>
+                            <CheckCircle2 size={22} color="#16a34a" />
+                          </div>
                           
-                          {/* Map icon */}
-                          {checkIn.lat !== null && checkIn.lng !== null && (
-                            <a 
-                              href={`https://www.google.com/maps/search/?api=1&query=${checkIn.lat},${checkIn.lng}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', backgroundColor: '#eff6ff', borderRadius: '50%', color: '#2563eb', border: '1px solid #bfdbfe', transition: 'all 0.2s' }}
-                              title="Ver ubicación de entrada en Google Maps"
-                            >
-                              <MapPin size={13} />
-                            </a>
-                          )}
-                          
-                          {/* Photo icon */}
-                          {checkIn.photoUrl && (
-                            <button 
-                              onClick={() => setLightboxImage(checkIn.photoUrl)}
-                              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', backgroundColor: '#f0fdf4', borderRadius: '50%', color: '#16a34a', border: '1px solid #bbf7d0', cursor: 'pointer' }}
-                              title="Ver selfie de entrada"
-                            >
-                              <ImageIcon size={13} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Clock size={15} /> No ha registrado entrada
-                      </div>
-                    )}
+                          {/* Texts */}
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '1rem' }}>Entrada</span>
+                              {checkIn.status === 'LATE' && (
+                                <span style={{ 
+                                  padding: '0.15rem 0.4rem', 
+                                  borderRadius: '4px', 
+                                  fontSize: '0.6rem', 
+                                  fontWeight: '700', 
+                                  backgroundColor: '#ffe4e6', 
+                                  color: '#ef4444',
+                                  letterSpacing: '0.025em'
+                                }}>
+                                  RETARDO
+                                </span>
+                              )}
+                              {checkIn.status === 'OUTSIDE_RADIUS' && (
+                                <span style={{ 
+                                  padding: '0.15rem 0.4rem', 
+                                  borderRadius: '4px', 
+                                  fontSize: '0.6rem', 
+                                  fontWeight: '700', 
+                                  backgroundColor: '#fff7ed', 
+                                  color: '#ea580c',
+                                  letterSpacing: '0.025em'
+                                }}>
+                                  GPS LEJOS
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.15rem' }}>
+                              <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>
+                                {formatTime12h(checkIn.timestamp)}
+                              </span>
+                              
+                              {/* Action buttons (Map & Photo) */}
+                              {checkIn.lat !== null && checkIn.lng !== null && (
+                                <a 
+                                  href={`https://www.google.com/maps/search/?api=1&query=${checkIn.lat},${checkIn.lng}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  style={{ 
+                                    display: 'inline-flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center', 
+                                    width: '22px', 
+                                    height: '22px', 
+                                    backgroundColor: '#eff6ff', 
+                                    borderRadius: '50%', 
+                                    color: '#2563eb', 
+                                    border: '1px solid #bfdbfe',
+                                    transition: 'all 0.2s' 
+                                  }}
+                                  title="Ver ubicación en Google Maps"
+                                >
+                                  <MapPin size={11} />
+                                </a>
+                              )}
+                              {checkIn.photoUrl && (
+                                <button 
+                                  onClick={() => setLightboxImage(checkIn.photoUrl)}
+                                  style={{ 
+                                    display: 'inline-flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center', 
+                                    width: '22px', 
+                                    height: '22px', 
+                                    backgroundColor: '#f0fdf4', 
+                                    borderRadius: '50%', 
+                                    color: '#16a34a', 
+                                    border: '1px solid #bbf7d0', 
+                                    cursor: 'pointer' 
+                                  }}
+                                  title="Ver selfie"
+                                >
+                                  <ImageIcon size={11} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {/* Empty/Pending Check In */}
+                          <div style={{ 
+                            width: '42px', 
+                            height: '42px', 
+                            backgroundColor: '#f1f5f9', 
+                            borderRadius: '50%', 
+                            display: 'flex', 
+                            justifyContent: 'center', 
+                            alignItems: 'center',
+                            flexShrink: 0
+                          }}>
+                            <Clock size={20} color="#94a3b8" />
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontWeight: 'bold', color: '#94a3b8', fontSize: '1rem' }}>Entrada</span>
+                            <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', marginTop: '0.15rem' }}>Pendiente</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
 
-                    {/* CHECK OUT DETAILS */}
-                    {checkOut ? (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ea580c', fontWeight: 'bold' }}>
-                          <AlertTriangle size={16} /> Salida:
-                        </span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontWeight: '600', color: '#334155' }}>
-                            {new Date(checkOut.timestamp).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                          
-                          {/* Map icon */}
-                          {checkOut.lat !== null && checkOut.lng !== null && (
-                            <a 
-                              href={`https://www.google.com/maps/search/?api=1&query=${checkOut.lat},${checkOut.lng}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', backgroundColor: '#fff7ed', borderRadius: '50%', color: '#ea580c', border: '1px solid #fed7aa', transition: 'all 0.2s' }}
-                              title="Ver ubicación de salida en Google Maps"
-                            >
-                              <MapPin size={13} />
-                            </a>
-                          )}
+                    {/* Divider Line */}
+                    <div style={{ width: '1px', alignSelf: 'stretch', backgroundColor: '#e2e8f0', display: 'block' }} />
 
-                          {/* Photo icon */}
-                          {checkOut.photoUrl && (
-                            <button 
-                              onClick={() => setLightboxImage(checkOut.photoUrl)}
-                              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', backgroundColor: '#f0fdf4', borderRadius: '50%', color: '#16a34a', border: '1px solid #bbf7d0', cursor: 'pointer' }}
-                              title="Ver selfie de salida"
-                            >
-                              <ImageIcon size={13} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ) : checkIn ? (
-                      <div style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                        <Clock size={15} /> No ha registrado salida
-                      </div>
-                    ) : null}
+                    {/* CHECK OUT BLOCK */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: '1 1 0%', minWidth: '120px' }}>
+                      {checkOut ? (
+                        <>
+                          {/* Circle Icon */}
+                          <div style={{ 
+                            width: '42px', 
+                            height: '42px', 
+                            backgroundColor: '#fff7ed', 
+                            borderRadius: '50%', 
+                            display: 'flex', 
+                            justifyContent: 'center', 
+                            alignItems: 'center',
+                            flexShrink: 0
+                          }}>
+                            <AlertTriangle size={20} color="#ea580c" />
+                          </div>
+                          
+                          {/* Texts */}
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '1rem' }}>Salida</span>
+                              {checkOut.status === 'OUTSIDE_RADIUS' && (
+                                <span style={{ 
+                                  padding: '0.15rem 0.4rem', 
+                                  borderRadius: '4px', 
+                                  fontSize: '0.6rem', 
+                                  fontWeight: '700', 
+                                  backgroundColor: '#fff7ed', 
+                                  color: '#ea580c',
+                                  letterSpacing: '0.025em'
+                                }}>
+                                  GPS LEJOS
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.15rem' }}>
+                              <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>
+                                {formatTime12h(checkOut.timestamp)}
+                              </span>
+                              
+                              {/* Action buttons (Map & Photo) */}
+                              {checkOut.lat !== null && checkOut.lng !== null && (
+                                <a 
+                                  href={`https://www.google.com/maps/search/?api=1&query=${checkOut.lat},${checkOut.lng}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  style={{ 
+                                    display: 'inline-flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center', 
+                                    width: '22px', 
+                                    height: '22px', 
+                                    backgroundColor: '#fff7ed', 
+                                    borderRadius: '50%', 
+                                    color: '#ea580c', 
+                                    border: '1px solid #fed7aa',
+                                    transition: 'all 0.2s' 
+                                  }}
+                                  title="Ver ubicación en Google Maps"
+                                >
+                                  <MapPin size={11} />
+                                </a>
+                              )}
+                              {checkOut.photoUrl && (
+                                <button 
+                                  onClick={() => setLightboxImage(checkOut.photoUrl)}
+                                  style={{ 
+                                    display: 'inline-flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center', 
+                                    width: '22px', 
+                                    height: '22px', 
+                                    backgroundColor: '#f0fdf4', 
+                                    borderRadius: '50%', 
+                                    color: '#16a34a', 
+                                    border: '1px solid #bbf7d0', 
+                                    cursor: 'pointer' 
+                                  }}
+                                  title="Ver selfie"
+                                >
+                                  <ImageIcon size={11} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {/* Empty/Pending Check Out */}
+                          <div style={{ 
+                            width: '42px', 
+                            height: '42px', 
+                            backgroundColor: '#fffaf5', 
+                            borderRadius: '50%', 
+                            display: 'flex', 
+                            justifyContent: 'center', 
+                            alignItems: 'center',
+                            flexShrink: 0,
+                            border: '1px solid #fed7aa'
+                          }}>
+                            <AlertTriangle size={20} color="#cbd5e1" />
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontWeight: 'bold', color: '#94a3b8', fontSize: '1rem' }}>Salida</span>
+                            <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', marginTop: '0.15rem' }}>
+                              {checkIn ? 'Trabajando...' : 'Pendiente'}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
