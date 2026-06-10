@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Save, ExternalLink, QrCode, ShoppingBag, Store, MessageCircle, 
   PaintBucket, CheckCircle2, Key, Copy, Code2, Check, AlertCircle 
@@ -8,6 +8,11 @@ import {
 import { updateAdvancedJSONConfig } from '@/app/actions/settings';
 
 export default function CatalogoClient({ initialConfig }: { initialConfig: any }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const [active, setActive] = useState(initialConfig?.active ?? true);
   const [whatsapp, setWhatsapp] = useState(initialConfig?.whatsapp || '');
   const [themeColor, setThemeColor] = useState(initialConfig?.themeColor || '#0ea5e9'); // default cyan CAANMA
@@ -26,7 +31,7 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
   const storeUrl = `https://caanma.com/tienda/mi-sucursal`;
   
   // Base URL for API endpoints
-  const apiBaseUrl = typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : 'https://caanma.com';
+  const apiBaseUrl = mounted ? `${window.location.protocol}//${window.location.host}` : 'https://caanma.com';
 
   async function handleSave() {
     setIsPending(true);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Save, Filter, Search, Percent, Zap } from 'lucide-react';
 import { bulkUpdatePrices } from '@/app/actions/bulkPrice';
 
@@ -70,6 +70,12 @@ export default function PreciosMasivosClient({
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
+  const [displayLimit, setDisplayLimit] = useState(100);
+
+  // Reset display limit when filter/search changes to avoid rendering a long list initially
+  useEffect(() => {
+    setDisplayLimit(100);
+  }, [brandFilter, categoryFilter, searchTerm]);
 
   // Active price list tab
   const [activePriceListKey, setActivePriceListKey] = useState<string>('price');
@@ -96,6 +102,10 @@ export default function PreciosMasivosClient({
       return true;
     });
   }, [products, brandFilter, categoryFilter, searchTerm]);
+
+  const visibleProducts = useMemo(() => {
+    return displayedProducts.slice(0, displayLimit);
+  }, [displayedProducts, displayLimit]);
 
   // Apply global margin (Margen de Utilidad sobre Venta)
   const applyGlobalMargin = () => {
@@ -312,7 +322,7 @@ export default function PreciosMasivosClient({
             </tr>
           </thead>
           <tbody>
-            {displayedProducts.map(p => {
+            {visibleProducts.map(p => {
               if (!activeList) return null;
               const activeNewKey = activeList.newKey;
               const activeVal = p[activeNewKey];
@@ -378,6 +388,20 @@ export default function PreciosMasivosClient({
           </tbody>
         </table>
       </div>
+
+      {displayedProducts.length > displayLimit && (
+        <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+          <button 
+            type="button"
+            onClick={() => setDisplayLimit(prev => prev + 200)} 
+            className="btn-secondary"
+            style={{ padding: '0.6rem 2rem', fontWeight: 'bold', cursor: 'pointer', border: '1px solid var(--pulpos-border)', borderRadius: '6px', backgroundColor: 'white' }}
+          >
+            Cargar más productos (Mostrando {displayLimit} de {displayedProducts.length})
+          </button>
+        </div>
+      )}
+
     </div>
   );
 }
