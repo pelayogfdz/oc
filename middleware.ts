@@ -16,6 +16,15 @@ export async function middleware(req: NextRequest) {
 
   // Si estamos en /login redirigimos al app si ya hay sesión
   if (req.nextUrl.pathname === '/login') {
+    const errorParam = req.nextUrl.searchParams.get('error');
+    const openParam = req.nextUrl.searchParams.get('open');
+    
+    if (errorParam || openParam) {
+      const response = NextResponse.next();
+      response.cookies.delete('session');
+      return response;
+    }
+
     const sessionCookie = req.cookies.get('session')?.value;
     const session = await decrypt(sessionCookie);
     if (session?.userId) {
