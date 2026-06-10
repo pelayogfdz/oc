@@ -2,11 +2,21 @@ import { prisma } from '@/lib/prisma';
 import { getActiveBranch } from '@/app/actions/auth';
 import { ShoppingCart, PackagePlus, DollarSign, WalletCards } from 'lucide-react';
 import Link from 'next/link';
-import { formatCurrency } from '@/lib/utils'; // wait, do we have this? Let's just use intl.
+import DashboardCharts from './DashboardCharts';
 
-export default async function DashboardPage() {
+interface Props {
+  searchParams: Promise<{
+    startDate?: string;
+    endDate?: string;
+  }>;
+}
+
+export default async function DashboardPage(props: Props) {
   const branch = await getActiveBranch();
   if (!branch) return <div>Cargando...</div>;
+
+  const resolvedParams = await props.searchParams;
+  const { startDate: paramStart, endDate: paramEnd } = resolvedParams;
 
   // Get start and end of today (aligned with Mexico standard GMT-6 timezone)
   const MEXICO_OFFSET_MS = 6 * 60 * 60 * 1000;
@@ -22,30 +32,46 @@ export default async function DashboardPage() {
   const startOfDay = new Date(startOfMexicoDay.getTime() + MEXICO_OFFSET_MS);
   const endOfDay = new Date(endOfMexicoDay.getTime() + MEXICO_OFFSET_MS);
 
-  // Start and end of current month in Mexico (GMT-6)
-  const startOfMexicoMonth = new Date(mexicoNow);
-  startOfMexicoMonth.setDate(1);
-  startOfMexicoMonth.setHours(0, 0, 0, 0);
+  // Default dates for the charts (Mexico local YYYY-MM-DD)
+  const formatDateString = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
-  const endOfMexicoMonth = new Date(mexicoNow);
-  endOfMexicoMonth.setMonth(endOfMexicoMonth.getMonth() + 1);
-  endOfMexicoMonth.setDate(0);
-  endOfMexicoMonth.setHours(23, 59, 59, 999);
+  const defaultEndStr = formatDateString(mexicoNow);
+  const defaultStartStr = formatDateString(new Date(mexicoNow.getTime() - 7 * 24 * 60 * 60 * 1000));
 
-  const startOfMonth = new Date(startOfMexicoMonth.getTime() + MEXICO_OFFSET_MS);
-  const endOfMonth = new Date(endOfMexicoMonth.getTime() + MEXICO_OFFSET_MS);
+  const initialStartDate = paramStart || defaultStartStr;
+  const initialEndDate = paramEnd || defaultEndStr;
+
+  // Helper to parse local date string YYYY-MM-DD to Mexico day range in UTC
+  const getStartAndEndOfDayUtc = (dateStr: string) => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const startLocal = new Date(y, m - 1, d, 0, 0, 0, 0);
+    const endLocal = new Date(y, m - 1, d, 23, 59, 59, 999);
+    return {
+      startUtc: new Date(startLocal.getTime() + MEXICO_OFFSET_MS),
+      endUtc: new Date(endLocal.getTime() + MEXICO_OFFSET_MS)
+    };
+  };
+
+  const { startUtc: filterStartUtc } = getStartAndEndOfDayUtc(initialStartDate);
+  const { endUtc: filterEndDayEndUtc } = getStartAndEndOfDayUtc(initialEndDate);
 
   const branchFilter = branch.id === 'GLOBAL'
     ? { branch: { tenantId: branch.tenantId } }
     : { branchId: branch.id };
 
-  // Phase 1: Parallel DB Aggregations and Counts
+  // Phase 1: Parallel DB Aggregations, Counts, and Chart Sales
   const [
     todayAggregate,
     recentSales,
     topCustomersGroup,
     topProductsGroup,
-    lowStockProducts
+    lowStockProducts,
+    chartSales
   ] = await Promise.all([
     prisma.sale.aggregate({
       _sum: { total: true },
@@ -67,7 +93,7 @@ export default async function DashboardPage() {
       by: ['customerId'],
       where: {
         ...branchFilter,
-        createdAt: { gte: startOfMonth, lte: endOfMonth },
+        createdAt: { gte: startOfDay, lte: endOfDay },
         status: { not: 'CANCELLED' },
         customerId: { not: null }
       },
@@ -76,14 +102,14 @@ export default async function DashboardPage() {
       orderBy: {
         _sum: { total: 'desc' }
       },
-      take: 5
+      take: 10
     }),
     prisma.saleItem.groupBy({
       by: ['productId'],
       where: {
         sale: {
           ...branchFilter,
-          createdAt: { gte: startOfMonth, lte: endOfMonth },
+          createdAt: { gte: startOfDay, lte: endOfDay },
           status: { not: 'CANCELLED' }
         }
       },
@@ -91,13 +117,24 @@ export default async function DashboardPage() {
       orderBy: {
         _sum: { quantity: 'desc' }
       },
-      take: 5
+      take: 10
     }),
     prisma.product.count({
       where: {
         ...branchFilter,
         isService: false,
-        stock: { lte: 5 } // Arbitrary threshold or we could use minStock
+        stock: { lte: 5 }
+      }
+    }),
+    prisma.sale.findMany({
+      where: {
+        ...branchFilter,
+        createdAt: { gte: filterStartUtc, lte: filterEndDayEndUtc },
+        status: { not: 'CANCELLED' }
+      },
+      select: {
+        total: true,
+        createdAt: true
       }
     })
   ]);
@@ -106,7 +143,46 @@ export default async function DashboardPage() {
   const totalOrders = todayAggregate._count.id || 0;
   const avgTicket = totalOrders > 0 ? totalSalesValue / totalOrders : 0;
 
-  // Phase 2: Parallel Fetching of metadata for Top 5 Clientes and Top 5 Productos
+  // Process and group chartSales by day in Mexico local time
+  const chartData: { date: string; dateStr: string; count: number; amount: number }[] = [];
+  const [sy, sm, sd] = initialStartDate.split('-').map(Number);
+  const [ey, em, ed] = initialEndDate.split('-').map(Number);
+  const sDateObj = new Date(sy, sm - 1, sd);
+  const eDateObj = new Date(ey, em - 1, ed);
+
+  const tempDate = new Date(sDateObj);
+  while (tempDate <= eDateObj) {
+    const yStr = tempDate.getFullYear();
+    const mStr = String(tempDate.getMonth() + 1).padStart(2, '0');
+    const dStr = String(tempDate.getDate()).padStart(2, '0');
+    const dateStr = `${yStr}-${mStr}-${dStr}`;
+    const label = tempDate.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
+    
+    chartData.push({
+      date: label,
+      dateStr,
+      count: 0,
+      amount: 0
+    });
+    
+    tempDate.setDate(tempDate.getDate() + 1);
+  }
+
+  chartSales.forEach(sale => {
+    const localTime = new Date(sale.createdAt.getTime() - MEXICO_OFFSET_MS);
+    const yStr = localTime.getFullYear();
+    const mStr = String(localTime.getMonth() + 1).padStart(2, '0');
+    const dStr = String(localTime.getDate()).padStart(2, '0');
+    const dateStr = `${yStr}-${mStr}-${dStr}`;
+    
+    const dp = chartData.find(d => d.dateStr === dateStr);
+    if (dp) {
+      dp.count += 1;
+      dp.amount += sale.total;
+    }
+  });
+
+  // Phase 2: Parallel Fetching of metadata for Top 10 Clientes and Top 10 Productos
   const customerIds = topCustomersGroup.map(g => g.customerId).filter(Boolean) as string[];
   const productIds = topProductsGroup.map(g => g.productId).filter(Boolean) as string[];
 
@@ -124,7 +200,7 @@ export default async function DashboardPage() {
         productId: { in: productIds },
         sale: {
           ...branchFilter,
-          createdAt: { gte: startOfMonth, lte: endOfMonth },
+          createdAt: { gte: startOfDay, lte: endOfDay },
           status: { not: 'CANCELLED' }
         }
       },
@@ -228,7 +304,14 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <div className="dashboard-main-grid">
+      {/* Gráficas interactivas con filtros de fecha */}
+      <DashboardCharts 
+        chartData={chartData} 
+        initialStartDate={initialStartDate} 
+        initialEndDate={initialEndDate} 
+      />
+
+      <div className="dashboard-main-grid" style={{ marginBottom: '2rem' }}>
         <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #f3f4f6' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Actividad Reciente</h2>
           {recentSales.length > 0 ? (
@@ -270,29 +353,21 @@ export default async function DashboardPage() {
                <p style={{ color: '#7f1d1d', fontSize: '0.875rem' }}>Detectamos {activeDebts} cliente(s) con deudas activas o vencidas.</p>
                <Link href="/clientes" style={{ display: 'inline-block', marginTop: '0.5rem', fontSize: '0.875rem', color: '#dc2626', fontWeight: 'bold', textDecoration: 'underline' }}>Revisar cartera</Link>
              </div>
-
-             {lowStockProducts > 0 && (
-               <div style={{ padding: '1rem', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px' }}>
-                 <h4 style={{ color: '#b45309', fontWeight: 'bold', marginBottom: '0.25rem' }}>Stock Crítico</h4>
-                 <p style={{ color: '#92400e', fontSize: '0.875rem' }}>{lowStockProducts.toLocaleString('es-MX')} SKUs están por agotarse o vacíos.</p>
-                 <Link href="/productos" style={{ display: 'inline-block', marginTop: '0.5rem', fontSize: '0.875rem', color: '#d97706', fontWeight: 'bold', textDecoration: 'underline' }}>Reponer inventario</Link>
-               </div>
-             )}
           </div>
         </div>
       </div>
 
-      {/* Sección Premium: Reportes del Mes Actual (MTD) */}
+      {/* Sección Premium: Reportes del Día (Top 10) */}
       <div className="dashboard-reports-grid">
         
-        {/* Card 1: 🏆 Mejores Clientes (Mes Actual) */}
+        {/* Card 1: 🏆 Mejores Clientes (Hoy) */}
         <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div>
               <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                🏆 Mejores Clientes <span style={{ fontSize: '0.8rem', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontWeight: 'bold' }}>Mes en Curso</span>
+                🏆 Mejores Clientes <span style={{ fontSize: '0.8rem', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontWeight: 'bold' }}>Hoy</span>
               </h2>
-              <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.25rem', marginBottom: 0 }}>Basado en compras acumuladas y volumen facturado</p>
+              <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.25rem', marginBottom: 0 }}>Basado en compras de hoy y volumen facturado</p>
             </div>
             <Link href="/reportes/top-clientes" style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#3b82f6', textDecoration: 'underline' }}>Ver detalle</Link>
           </div>
@@ -329,18 +404,18 @@ export default async function DashboardPage() {
               })
             ) : (
               <div style={{ padding: '2rem 0', textAlign: 'center', color: '#9ca3af', fontSize: '0.9rem' }}>
-                No hay compras registradas en este mes.
+                No hay compras registradas el día de hoy.
               </div>
             )}
           </div>
         </div>
 
-        {/* Card 2: 📦 Productos Más Vendidos (Mes Actual) */}
+        {/* Card 2: 📦 Productos Más Vendidos (Hoy) */}
         <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div>
               <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                📦 Productos Más Vendidos <span style={{ fontSize: '0.8rem', backgroundColor: '#fdf2f8', color: '#be185d', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontWeight: 'bold' }}>Mes en Curso</span>
+                📦 Productos Más Vendidos <span style={{ fontSize: '0.8rem', backgroundColor: '#fdf2f8', color: '#be185d', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontWeight: 'bold' }}>Hoy</span>
               </h2>
               <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.25rem', marginBottom: 0 }}>Artículos líderes por unidades desplazadas</p>
             </div>
@@ -380,7 +455,7 @@ export default async function DashboardPage() {
               })
             ) : (
               <div style={{ padding: '2rem 0', textAlign: 'center', color: '#9ca3af', fontSize: '0.9rem' }}>
-                No hay ventas registradas en este mes.
+                No hay ventas registradas el día de hoy.
               </div>
             )}
           </div>
@@ -390,4 +465,3 @@ export default async function DashboardPage() {
     </div>
   );
 }
-
