@@ -357,7 +357,7 @@ export default function TareasClient({
                       gap: '0.25rem'
                     }}>
                       <Calendar size={12} />
-                      {new Date(task.dueDate).toLocaleDateString()}
+                      {new Date(task.dueDate).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                     </span>
                   </div>
                 )}
@@ -563,9 +563,9 @@ export default function TareasClient({
                 </div>
                 
                 <div>
-                  <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '600', fontSize: '0.85rem', color: '#475569' }}>Fecha Límite</label>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '600', fontSize: '0.85rem', color: '#475569' }}>Fecha y Hora Límite</label>
                   <input 
-                    type="date" 
+                    type="datetime-local" 
                     value={dueDate}
                     onChange={e => setDueDate(e.target.value)}
                     style={{

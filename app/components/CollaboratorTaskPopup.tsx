@@ -32,6 +32,117 @@ export default function CollaboratorTaskPopup({ userId }: { userId: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Dragging logic
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const positionRef = React.useRef({ x: 0, y: 0 });
+  const dragRef = React.useRef({
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    startOffsetX: 0,
+    startOffsetY: 0,
+    hasMoved: false
+  });
+  const justDraggedRef = React.useRef(false);
+
+  useEffect(() => {
+    // Load from localStorage on mount
+    try {
+      const saved = localStorage.getItem("task_widget_position");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed.x === "number" && typeof parsed.y === "number") {
+          setPosition(parsed);
+          positionRef.current = parsed;
+        }
+      }
+    } catch (e) {}
+
+    const handleGlobalMove = (clientX: number, clientY: number) => {
+      if (!dragRef.current.isDragging) return;
+      
+      const dx = clientX - dragRef.current.startX;
+      const dy = clientY - dragRef.current.startY;
+      
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        dragRef.current.hasMoved = true;
+      }
+      
+      const newX = dragRef.current.startOffsetX + dx;
+      const newY = dragRef.current.startOffsetY + dy;
+      
+      const minX = -14;
+      const maxX = Math.max(10, window.innerWidth - 80);
+      const minY = 10 - (window.innerHeight - 80);
+      const maxY = 14;
+      
+      const clampedX = Math.min(Math.max(newX, minX), maxX);
+      const clampedY = Math.min(Math.max(newY, minY), maxY);
+      
+      const newPos = { x: clampedX, y: clampedY };
+      setPosition(newPos);
+      positionRef.current = newPos;
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      handleGlobalMove(e.clientX, e.clientY);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!dragRef.current.isDragging) return;
+      if (e.touches.length === 1) {
+        e.preventDefault();
+        handleGlobalMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    const handleGlobalEnd = () => {
+      if (!dragRef.current.isDragging) return;
+      
+      if (dragRef.current.hasMoved) {
+        justDraggedRef.current = true;
+        try {
+          localStorage.setItem("task_widget_position", JSON.stringify(positionRef.current));
+        } catch (e) {}
+      }
+      
+      dragRef.current.isDragging = false;
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleGlobalEnd);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleGlobalEnd);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleGlobalEnd);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleGlobalEnd);
+    };
+  }, []);
+
+  const startDrag = (clientX: number, clientY: number) => {
+    dragRef.current = {
+      isDragging: true,
+      startX: clientX,
+      startY: clientY,
+      startOffsetX: positionRef.current.x,
+      startOffsetY: positionRef.current.y,
+      hasMoved: false
+    };
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    startDrag(e.clientX, e.clientY);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    startDrag(e.touches[0].clientX, e.touches[0].clientY);
+  };
+
   // Fetch pending tasks on mount
   useEffect(() => {
     async function loadTasks() {
@@ -114,7 +225,15 @@ export default function CollaboratorTaskPopup({ userId }: { userId: string }) {
       {/* Floating Clock Button */}
       {!isOpen && (
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={() => {
+            if (justDraggedRef.current) {
+              justDraggedRef.current = false;
+              return;
+            }
+            setIsOpen(true);
+          }}
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
           className="task-floating-btn"
           style={{
             position: 'fixed',
@@ -131,7 +250,23 @@ export default function CollaboratorTaskPopup({ userId }: { userId: string }) {
             border: 'none',
             cursor: 'pointer',
             zIndex: 9998,
-            boxShadow: '0 4px 15px rgba(79, 70, 229, 0.4)'
+            boxShadow: '0 4px 15px rgba(79, 70, 229, 0.4)',
+            transform: `translate(${position.x}px, ${position.y}px)`,
+            transition: dragRef.current.isDragging ? 'none' : 'transform 0.15s ease-out',
+            touchAction: 'none',
+            userSelect: 'none',
+            outline: 'none',
+            animation: dragRef.current.isDragging ? 'none' : 'taskFloatPulse 2.5s infinite ease-in-out'
+          }}
+          onMouseEnter={e => {
+            if (!dragRef.current.isDragging) {
+              e.currentTarget.style.transform = `translate(${positionRef.current.x}px, ${positionRef.current.y}px) scale(1.08)`;
+            }
+          }}
+          onMouseLeave={e => {
+            if (!dragRef.current.isDragging) {
+              e.currentTarget.style.transform = `translate(${positionRef.current.x}px, ${positionRef.current.y}px) scale(1)`;
+            }
           }}
           title="Tienes tareas pendientes"
         >
@@ -163,17 +298,12 @@ export default function CollaboratorTaskPopup({ userId }: { userId: string }) {
       {/* Global CSS for floating button animations */}
       <style>{`
         @keyframes taskFloatPulse {
-          0% { transform: scale(1); box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4); }
-          50% { transform: scale(1.08); box-shadow: 0 4px 25px rgba(79, 70, 229, 0.7); }
-          100% { transform: scale(1); box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4); }
+          0% { box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4); }
+          50% { box-shadow: 0 4px 25px rgba(79, 70, 229, 0.7); }
+          100% { box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4); }
         }
         .task-floating-btn {
-          animation: taskFloatPulse 2s infinite ease-in-out;
-          transition: all 0.2s ease-in-out;
-        }
-        .task-floating-btn:hover {
-          transform: scale(1.1) translateY(-2px);
-          background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%) !important;
+          transition: transform 0.15s ease-out, box-shadow 0.2s ease;
         }
       `}</style>
 
