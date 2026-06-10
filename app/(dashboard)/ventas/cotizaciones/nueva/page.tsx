@@ -27,12 +27,10 @@ export default async function NuevaCotizacionPage({
   });
 
   const customers = await prisma.customer.findMany({
-    where: { branchId: branch.id },
     orderBy: { name: 'asc' }
   });
 
   const suppliers = await prisma.supplier.findMany({
-    where: { branchId: branch.id },
     orderBy: { name: 'asc' }
   });
 

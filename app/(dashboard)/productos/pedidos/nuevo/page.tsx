@@ -17,7 +17,7 @@ export default async function NuevoPedidoPage() {
   });
   
   const suppliers = await prisma.supplier.findMany({
-    where: query
+    orderBy: { name: 'asc' }
   });
 
   const pendingRequests = await prisma.purchaseRequest.findMany({

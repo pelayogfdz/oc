@@ -6,8 +6,9 @@ import Link from 'next/link';
 import { deleteEntity } from '@/app/actions/crud';
 
 export default async function Page() {
-  const branch = await getActiveBranch();
-  const data = await prisma.customer.findMany({ where: { branchId: branch.id } });
+  const data = await prisma.customer.findMany({
+    orderBy: { name: 'asc' }
+  });
   const SpecificIcon = (Icons as any)['Users'] || Icons.Box;
 
   return (

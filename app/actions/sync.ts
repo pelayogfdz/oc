@@ -8,8 +8,8 @@ export async function syncBasicCatalogs() {
   const branchId = branch?.id || '';
   const tenantId = branch?.tenantId || '';
 
-  const customers = await prisma.customer.findMany({ where: { branchId } });
-  const suppliers = await prisma.supplier.findMany({ where: { branchId } });
+  const customers = await prisma.customer.findMany();
+  const suppliers = await prisma.supplier.findMany();
   const branches = await prisma.branch.findMany({ where: { tenantId, isActive: true } });
   const settingsDb = await prisma.branchSettings.findUnique({ where: { branchId } });
   
@@ -83,14 +83,10 @@ export async function syncAllCatalogs() {
   });
 
   // 2. Clientes
-  const customers = await prisma.customer.findMany({
-    where: { branchId }
-  });
+  const customers = await prisma.customer.findMany();
 
   // 3. Proveedores
-  const suppliers = await prisma.supplier.findMany({
-    where: { branchId }
-  });
+  const suppliers = await prisma.supplier.findMany();
 
   // 4. Sucursales
   const branches = await prisma.branch.findMany({

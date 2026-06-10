@@ -40,11 +40,9 @@ export default async function NuevaVentaPage() {
       take: 50
     }),
     prisma.customer.findMany({
-      where: { branchId },
       orderBy: { name: 'asc' }
     }),
     prisma.supplier.findMany({
-      where: { branchId },
       orderBy: { name: 'asc' }
     }),
     prisma.promotion.findMany({

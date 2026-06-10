@@ -55,7 +55,6 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
   }
 
   const suppliers = await prisma.supplier.findMany({
-    where: { branchId: product.branchId },
     orderBy: { name: 'asc' }
   });
 

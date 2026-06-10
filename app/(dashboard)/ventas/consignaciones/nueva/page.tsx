@@ -20,12 +20,10 @@ export default async function NuevaConsignacionPage({ searchParams }: { searchPa
   });
 
   const customers = await prisma.customer.findMany({
-    where: { branchId: branch.id },
     orderBy: { name: 'asc' }
   });
 
   const suppliers = await prisma.supplier.findMany({
-    where: { branchId: branch.id },
     orderBy: { name: 'asc' }
   });
 
