@@ -96,6 +96,7 @@ export default async function DashboardPage() {
     prisma.product.count({
       where: {
         ...branchFilter,
+        isService: false,
         stock: { lte: 5 } // Arbitrary threshold or we could use minStock
       }
     })
@@ -194,10 +195,10 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Panel de Control ({branch.name})</h1>
+      <div className="page-header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <h1 className="page-header-title" style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Panel de Control ({branch.name})</h1>
         
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div className="page-header-actions" style={{ display: 'flex', gap: '1rem' }}>
           <Link href="/ventas/nueva" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#ec4899', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: 'bold', textDecoration: 'none' }}>
             <ShoppingCart size={20} /> Nueva Venta
           </Link>
@@ -210,7 +211,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2rem' }}>
+      <div className="dashboard-stats-grid" style={{ marginBottom: '2rem' }}>
         {[
           { title: 'Ingresos de Hoy', value: formatter.format(totalSalesValue), icon: <DollarSign size={24} color="#10b981" /> },
           { title: 'Ventas de Hoy', value: totalOrders.toLocaleString('es-MX'), icon: <ShoppingCart size={24} color="#3b82f6" /> },
@@ -227,7 +228,7 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+      <div className="dashboard-main-grid">
         <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #f3f4f6' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Actividad Reciente</h2>
           {recentSales.length > 0 ? (
@@ -282,7 +283,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Sección Premium: Reportes del Mes Actual (MTD) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '1.5rem', marginTop: '2rem' }}>
+      <div className="dashboard-reports-grid">
         
         {/* Card 1: 🏆 Mejores Clientes (Mes Actual) */}
         <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)' }}>

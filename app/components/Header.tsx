@@ -71,7 +71,7 @@ export default async function Header() {
         <DesktopMenuToggle />
         <HeaderTitle />
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div className="header-right-section" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <HeaderNetworkStatus />
         <div className="desktop-only-header-item">
           <GlobalSearch />
@@ -86,9 +86,9 @@ export default async function Header() {
           <span>IA</span>
         </Link>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div className="header-user-controls" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {currentUser?.email?.toLowerCase() !== 'pelayogfdz@gmail.com' && (
-            <div>
+            <div className="header-branch-selector-wrapper">
               <BranchSelector branches={finalOptions} currentBranchId={currentBranch?.id || ''} />
             </div>
           )}
@@ -105,7 +105,7 @@ export default async function Header() {
             </div>
           </div>
           
-          <div style={{ 
+          <div className="header-user-avatar" style={{ 
             width: '32px', 
             height: '32px', 
             borderRadius: '50%', 

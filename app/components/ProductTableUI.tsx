@@ -323,17 +323,31 @@ const ProductTableUI = memo(function ProductTableUI({
                     </div>
                   </td>
                   <td data-label="Stock" style={{ padding: '0.5rem 0.3rem', textAlign: 'center' }}>
-                    <span style={{ 
-                      backgroundColor: prod.stock > 0 ? '#dcfce7' : '#fee2e2', 
-                      color: prod.stock > 0 ? '#16a34a' : '#dc2626',
-                      padding: '0.15rem 0.4rem',
-                      borderRadius: '999px',
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {prod.stock}
-                    </span>
+                    {prod.isService ? (
+                      <span style={{ 
+                        backgroundColor: '#dbeafe', 
+                        color: '#2563eb',
+                        padding: '0.15rem 0.4rem',
+                        borderRadius: '999px',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        Servicio
+                      </span>
+                    ) : (
+                      <span style={{ 
+                        backgroundColor: prod.stock > 0 ? '#dcfce7' : '#fee2e2', 
+                        color: prod.stock > 0 ? '#16a34a' : '#dc2626',
+                        padding: '0.15rem 0.4rem',
+                        borderRadius: '999px',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {prod.stock}
+                      </span>
+                    )}
                   </td>
                   <td data-label="Precio" style={{ padding: '0.5rem 0.4rem', color: '#0f172a', textAlign: 'right', fontWeight: 'bold', fontSize: '0.85rem' }}>
                     ${parseFloat((priceExtractor ? priceExtractor(prod) : prod.price) || 0).toFixed(2)}

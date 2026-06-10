@@ -12,16 +12,18 @@ export default async function Page() {
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+      <div className="page-header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <h1 className="page-header-title" style={{ fontSize: '1.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <SpecificIcon size={28} color="#0ea5e9" />
             Directorio de Clientes B2B
           </h1>
         </div>
-        <Link href="/clientes/nuevo" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0ea5e9', borderColor: '#0ea5e9', textDecoration: 'none' }}>
-          <Plus size={18} /> Nuevo Registro
-        </Link>
+        <div className="page-header-actions">
+          <Link href="/clientes/nuevo" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0ea5e9', borderColor: '#0ea5e9', textDecoration: 'none' }}>
+            <Plus size={18} /> Nuevo Registro
+          </Link>
+        </div>
       </div>
 
       <div className="card" style={{ padding: 0 }}>

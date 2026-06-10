@@ -1,7 +1,7 @@
 import { jwtVerify, SignJWT } from 'jose';
 import { cookies } from 'next/headers';
 import { revalidateTag } from 'next/cache';
-import { prisma } from '@/lib/prisma';
+import { prisma } from './prisma';
 
 const secretKey = process.env.SESSION_SECRET || 'pulpos-elite-saas-super-secret-key-12345';
 const encodedKey = new TextEncoder().encode(secretKey);

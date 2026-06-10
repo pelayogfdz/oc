@@ -11,8 +11,8 @@ export default function HeaderNetworkStatus() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginRight: '0.5rem' }}>
       {syncMessage && (
-        <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 'bold', color: '#b45309', backgroundColor: '#fcd34d', padding: '6px 12px', borderRadius: '16px', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
-          <DownloadCloud size={16} /> {syncMessage}
+        <span className="sync-badge" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 'bold', color: '#b45309', backgroundColor: '#fcd34d', padding: '6px 12px', borderRadius: '16px', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
+          <DownloadCloud size={16} /> <span className="sync-badge-text">{syncMessage}</span>
         </span>
       )}
 

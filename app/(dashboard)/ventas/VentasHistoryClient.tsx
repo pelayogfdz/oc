@@ -89,14 +89,16 @@ export default function VentasHistoryClient({
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className="page-header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Historial de Ventas</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Módulo de ventas y cortes de caja</p>
+          <h1 className="page-header-title" style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Historial de Ventas</h1>
+          <p className="page-header-subtitle" style={{ color: 'var(--pulpos-text-muted)', margin: 0 }}>Módulo de ventas y cortes de caja</p>
         </div>
-        <Link href="/ventas/nueva" className="btn-primary" style={{ padding: '0.75rem 1.5rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-          + Nueva Venta / TPV
-        </Link>
+        <div className="page-header-actions">
+          <Link href="/ventas/nueva" className="btn-primary" style={{ padding: '0.75rem 1.5rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+            + Nueva Venta / TPV
+          </Link>
+        </div>
       </div>
 
       {/* Filters Section */}

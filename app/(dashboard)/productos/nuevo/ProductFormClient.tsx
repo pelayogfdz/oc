@@ -24,6 +24,7 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
   const [variants, setVariants] = useState<{ attribute: string, stock: number, sku: string }[]>([]);
   const [hasBatches, setHasBatches] = useState(false);
   const [batches, setBatches] = useState<{ batchNumber: string, expirationDate: string, stock: number }[]>([]);
+  const [isService, setIsService] = useState(cloneProduct?.isService || false);
   
 
 
@@ -114,7 +115,7 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Código de Barras</label>
             <input type="text" name="barcode" defaultValue="" placeholder="(Opcional)" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
           </div>
-          <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '2rem', marginTop: '0.5rem', marginBottom: '0.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }}>
+          <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '2rem', flexWrap: 'wrap', marginTop: '0.5rem', marginBottom: '0.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <input type="hidden" name="allowProduction" value="false" />
               <input 
@@ -141,6 +142,21 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
               />
               <label htmlFor="isProductionInput" style={{ fontWeight: '500', cursor: 'pointer', fontSize: '0.95rem' }}>
                 🧪 Insumo para Producción (Se puede usar como ingrediente)
+              </label>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input type="hidden" name="isService" value="false" />
+              <input 
+                type="checkbox" 
+                id="isService"
+                name="isService" 
+                value="true"
+                checked={isService} 
+                onChange={(e) => setIsService(e.target.checked)}
+                style={{ width: '20px', height: '20px', cursor: 'pointer' }} 
+              />
+              <label htmlFor="isService" style={{ fontWeight: '500', cursor: 'pointer', fontSize: '0.95rem' }}>
+                🛠️ Es un Servicio (No lleva stock y siempre disponible)
               </label>
             </div>
           </div>
@@ -178,119 +194,117 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
       </div>
 
       {/* Variantes Selector */}
-      <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>
-          <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Variantes Dinámicas</h2>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-            <input type="checkbox" checked={hasVariants} onChange={(e) => { setHasVariants(e.target.checked); if(e.target.checked && variants.length === 0) handleAddVariant(); }} style={{ width: '20px', height: '20px' }} />
-            <span style={{ fontWeight: '500' }}>El producto tiene colores, tallas, etc.</span>
-          </label>
-        </div>
-
-        {hasVariants && (
-          <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-            <table className="responsive-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', marginBottom: '1rem' }}>
-              <thead>
-                <tr>
-                  <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>Atributo (Ej. Talla 27, Rojo)</th>
-                  <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>SKU Variante</th>
-                  <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>Stock Inicial</th>
-                  <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1', width: '50px' }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {variants.map((v, index) => (
-                  <tr key={index}>
-                    <td style={{ padding: '0.5rem' }}>
-                      <input type="text" value={v.attribute} onChange={e => handleVariantChange(index, 'attribute', e.target.value)} required placeholder="Rojo XL" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-                    </td>
-                    <td style={{ padding: '0.5rem' }}>
-                      <input type="text" value={v.sku} onChange={e => handleVariantChange(index, 'sku', e.target.value)} required placeholder="SKU-ROJO-XL" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-                    </td>
-                    <td style={{ padding: '0.5rem' }}>
-                      <input type="number" value={v.stock} onChange={e => handleVariantChange(index, 'stock', Number(e.target.value))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-                    </td>
-                    <td style={{ padding: '0.5rem', textAlign: 'center' }}>
-                      <button type="button" onClick={() => handleRemoveVariant(index)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={20}/></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <button type="button" onClick={handleAddVariant} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: 'white', border: '1px dashed #94a3b8', borderRadius: '4px', fontWeight: '500', cursor: 'pointer', color: '#475569' }}>
-               <Plus size={16} /> Añadir Variante
-            </button>
+      {!isService && (
+        <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>
+            <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Variantes Dinámicas</h2>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+              <input type="checkbox" checked={hasVariants} onChange={(e) => { setHasVariants(e.target.checked); if(e.target.checked && variants.length === 0) handleAddVariant(); }} style={{ width: '20px', height: '20px' }} />
+              <span style={{ fontWeight: '500' }}>El producto tiene colores, tallas, etc.</span>
+            </label>
           </div>
-        )}
-      </div>
+
+          {hasVariants && (
+            <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+              <table className="responsive-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', marginBottom: '1rem' }}>
+                <thead>
+                  <tr>
+                    <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>Atributo (Ej. Talla 27, Rojo)</th>
+                    <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>SKU Variante</th>
+                    <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>Stock Inicial</th>
+                    <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1', width: '50px' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {variants.map((v, index) => (
+                    <tr key={index}>
+                      <td style={{ padding: '0.5rem' }}>
+                        <input type="text" value={v.attribute} onChange={e => handleVariantChange(index, 'attribute', e.target.value)} required placeholder="Rojo XL" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                      </td>
+                      <td style={{ padding: '0.5rem' }}>
+                        <input type="text" value={v.sku} onChange={e => handleVariantChange(index, 'sku', e.target.value)} required placeholder="SKU-ROJO-XL" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                      </td>
+                      <td style={{ padding: '0.5rem' }}>
+                        <input type="number" value={v.stock} onChange={e => handleVariantChange(index, 'stock', Number(e.target.value))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                      </td>
+                      <td style={{ padding: '0.5rem', textAlign: 'center' }}>
+                        <button type="button" onClick={() => handleRemoveVariant(index)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={20}/></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <button type="button" onClick={handleAddVariant} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: 'white', border: '1px dashed #94a3b8', borderRadius: '4px', fontWeight: '500', cursor: 'pointer', color: '#475569' }}>
+                 <Plus size={16} /> Añadir Variante
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Lotes Selector */}
-      <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>
-          <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Gestión de Lotes (Opcional)</h2>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-            <input type="checkbox" checked={hasBatches} onChange={(e) => { setHasBatches(e.target.checked); if(e.target.checked && batches.length === 0) handleAddBatch(); }} style={{ width: '20px', height: '20px' }} />
-            <span style={{ fontWeight: '500' }}>El producto usa lotes y caducidad</span>
-          </label>
-        </div>
-
-        {hasBatches && (
-          <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-            <table className="responsive-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', marginBottom: '1rem' }}>
-              <thead>
-                <tr>
-                  <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>Número de Lote</th>
-                  <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>Fecha de Caducidad</th>
-                  <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>Stock Inicial del Lote</th>
-                  <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1', width: '50px' }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {batches.map((b, index) => (
-                  <tr key={index}>
-                    <td style={{ padding: '0.5rem' }}>
-                      <input type="text" value={b.batchNumber} onChange={e => handleBatchChange(index, 'batchNumber', e.target.value)} placeholder="Ej. LOTE-001" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-                    </td>
-                    <td style={{ padding: '0.5rem' }}>
-                      <input type="date" value={b.expirationDate} onChange={e => handleBatchChange(index, 'expirationDate', e.target.value)} required style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-                    </td>
-                    <td style={{ padding: '0.5rem' }}>
-                      <input type="number" value={b.stock} onChange={e => handleBatchChange(index, 'stock', Number(e.target.value))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-                    </td>
-                    <td style={{ padding: '0.5rem', textAlign: 'center' }}>
-                      <button type="button" onClick={() => handleRemoveBatch(index)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={20}/></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <button type="button" onClick={handleAddBatch} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: 'white', border: '1px dashed #94a3b8', borderRadius: '4px', fontWeight: '500', cursor: 'pointer', color: '#475569' }}>
-               <Plus size={16} /> Añadir Lote
-            </button>
+      {!isService && (
+        <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>
+            <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Gestión de Lotes (Opcional)</h2>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+              <input type="checkbox" checked={hasBatches} onChange={(e) => { setHasBatches(e.target.checked); if(e.target.checked && batches.length === 0) handleAddBatch(); }} style={{ width: '20px', height: '20px' }} />
+              <span style={{ fontWeight: '500' }}>El producto usa lotes y caducidad</span>
+            </label>
           </div>
-        )}
-      </div>
 
-      {/* Inventario Físico (Solo si NO hay variantes, ya que las variantes tienen su propio stock) */}
-      {(!hasVariants && !hasBatches) && (
+          {hasBatches && (
+            <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+              <table className="responsive-table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', marginBottom: '1rem' }}>
+                <thead>
+                  <tr>
+                    <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>Número de Lote</th>
+                    <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>Fecha de Caducidad</th>
+                    <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>Stock Inicial del Lote</th>
+                    <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1', width: '50px' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {batches.map((b, index) => (
+                    <tr key={index}>
+                      <td style={{ padding: '0.5rem' }}>
+                        <input type="text" value={b.batchNumber} onChange={e => handleBatchChange(index, 'batchNumber', e.target.value)} placeholder="Ej. LOTE-001" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                      </td>
+                      <td style={{ padding: '0.5rem' }}>
+                        <input type="date" value={b.expirationDate} onChange={e => handleBatchChange(index, 'expirationDate', e.target.value)} required style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                      </td>
+                      <td style={{ padding: '0.5rem' }}>
+                        <input type="number" value={b.stock} onChange={e => handleBatchChange(index, 'stock', Number(e.target.value))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                      </td>
+                      <td style={{ padding: '0.5rem', textAlign: 'center' }}>
+                        <button type="button" onClick={() => handleRemoveBatch(index)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={20}/></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <button type="button" onClick={handleAddBatch} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: 'white', border: '1px dashed #94a3b8', borderRadius: '4px', fontWeight: '500', cursor: 'pointer', color: '#475569' }}>
+                 <Plus size={16} /> Añadir Lote
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Inventario Físico / Configuración de Servicio */}
+      {isService ? (
         <div className="card" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>Inventario Físico Global</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1.5rem' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Stock Inicial</label>
-              <input type="number" name="stock" defaultValue={cloneProduct?.stock || "0"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Stock Mínimo</label>
-              <input type="number" name="minStock" defaultValue={cloneProduct?.minStock || "0"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-            </div>
+          <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>Configuración del Servicio</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
+            <input type="hidden" name="stock" value="0" />
+            <input type="hidden" name="minStock" value="0" />
+            <input type="hidden" name="expirationDate" value="" />
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Unidad de Medida</label>
-              <select name="unit" defaultValue={cloneProduct?.unit || "Pza"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}>
+              <select name="unit" defaultValue={cloneProduct?.unit || "Servicio"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}>
+                <option value="Servicio">Servicio</option>
                 <option value="Pza">Pieza (Pza)</option>
-                <option value="Kg">Kilogramos (Kg)</option>
-                <option value="Lt">Litros (Lt)</option>
-                <option value="Caja">Caja</option>
+                <option value="Horas">Horas</option>
               </select>
             </div>
             <div>
@@ -309,24 +323,65 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
                 <option value="false">🔴 Inactivo</option>
               </select>
             </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Fecha de Caducidad</label>
-              <input type="date" name="expirationDate" defaultValue={cloneProduct?.expirationDate ? new Date(cloneProduct.expirationDate).toISOString().slice(0, 10) : ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-            </div>
           </div>
         </div>
+      ) : (
+        (!hasVariants && !hasBatches) && (
+          <div className="card" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
+            <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>Inventario Físico Global</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1.5rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Stock Inicial</label>
+                <input type="number" name="stock" defaultValue={cloneProduct?.stock || "0"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Stock Mínimo</label>
+                <input type="number" name="minStock" defaultValue={cloneProduct?.minStock || "0"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Unidad de Medida</label>
+                <select name="unit" defaultValue={cloneProduct?.unit || "Pza"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}>
+                  <option value="Pza">Pieza (Pza)</option>
+                  <option value="Kg">Kilogramos (Kg)</option>
+                  <option value="Lt">Litros (Lt)</option>
+                  <option value="Caja">Caja</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Proveedor Sugerido</label>
+                <select name="supplierId" defaultValue={cloneProduct?.supplierId || ""} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}>
+                  <option value="">-- PÚBLICO / NINGUNO --</option>
+                  {suppliers.map((s: any) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Estado</label>
+                <select name="isActive" defaultValue={cloneProduct ? (cloneProduct.isActive ? "true" : "false") : "true"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}>
+                  <option value="true">🟢 Activo</option>
+                  <option value="false">🔴 Inactivo</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Fecha de Caducidad</label>
+                <input type="date" name="expirationDate" defaultValue={cloneProduct?.expirationDate ? new Date(cloneProduct.expirationDate).toISOString().slice(0, 10) : ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+              </div>
+            </div>
+          </div>
+        )
       )}
 
-      {hasVariants && (
+      {hasVariants && !isService && (
         <input type="hidden" name="minStock" value={cloneProduct?.minStock || "0"} />
       )}
-      {hasVariants && (
+      {hasVariants && !isService && (
         <input type="hidden" name="unit" value={cloneProduct?.unit || "Pza"} />
       )}
-      {hasVariants && (
+      {hasVariants && !isService && (
         <input type="hidden" name="supplierId" value={cloneProduct?.supplierId || ""} />
       )}
-      {hasVariants && (
+      {hasVariants && !isService && (
         <input type="hidden" name="isActive" value="true" />
       )}
 

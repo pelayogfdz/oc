@@ -937,7 +937,8 @@ export async function getRestockReportData(
     where: {
       ...branchCondition,
       ...categoryCondition,
-      isActive: true
+      isActive: true,
+      isService: false
     },
     include: {
       supplier: {

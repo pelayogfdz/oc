@@ -23,11 +23,12 @@ export async function createProduct(prevState: any, formData: FormData) {
   const isActive = formData.get('isActive') !== 'false';
   const allowProduction = formData.get('allowProduction') === 'true';
   const isProductionInput = formData.get('isProductionInput') === 'true';
+  const isService = formData.get('isService') === 'true';
   const unit = formData.get('unit') as string || 'Pza';
   const satKey = (formData.get('satKey') as string) || null;
   const satUnit = (formData.get('satUnit') as string) || null;
   const expirationDateStr = formData.get('expirationDate') as string;
-  const expirationDate = expirationDateStr ? new Date(expirationDateStr) : null;
+  const expirationDate = isService ? null : (expirationDateStr ? new Date(expirationDateStr) : null);
   
   const hasVariants = formData.get('hasVariants') === '1';
   let variants: any[] = [];
@@ -50,7 +51,9 @@ export async function createProduct(prevState: any, formData: FormData) {
   }
 
   let stock = 0;
-  if (hasVariants) {
+  if (isService) {
+    stock = 0;
+  } else if (hasVariants) {
     stock = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
   } else if (hasBatches) {
     stock = batches.reduce((sum, b) => sum + (Number(b.stock) || 0), 0);
@@ -58,7 +61,7 @@ export async function createProduct(prevState: any, formData: FormData) {
     stock = parseInt(formData.get('stock') as string, 10) || 0;
   }
   
-  const minStock = parseInt(formData.get('minStock') as string, 10) || 0;
+  const minStock = isService ? 0 : (parseInt(formData.get('minStock') as string, 10) || 0);
   const supplierId = (formData.get('supplierId') as string) || null;
   
   if (!sku || !name || !branchId) {
@@ -81,6 +84,7 @@ export async function createProduct(prevState: any, formData: FormData) {
       isActive,
       allowProduction,
       isProductionInput,
+      isService,
       unit,
       stock,
       minStock,
@@ -226,11 +230,16 @@ export async function updateProduct(productId: string, formData: FormData) {
     const isProductionInput = formData.get('isProductionInput');
     if (isProductionInput !== null) data.isProductionInput = isProductionInput === 'true';
 
+    const isService = formData.get('isService');
+    if (isService !== null) data.isService = isService === 'true';
+
     const unit = formData.get('unit');
     if (unit !== null) data.unit = (unit as string) || 'Pza';
 
     const minStock = formData.get('minStock');
-    if (minStock !== null) data.minStock = parseInt(minStock as string, 10) || 0;
+    if (minStock !== null) {
+      data.minStock = data.isService ? 0 : (parseInt(minStock as string, 10) || 0);
+    }
 
     const supplierId = formData.get('supplierId');
     if (supplierId !== null) data.supplierId = (supplierId as string) || null;
@@ -243,7 +252,11 @@ export async function updateProduct(productId: string, formData: FormData) {
 
     const expirationDateStr = formData.get('expirationDate');
     if (expirationDateStr !== null) {
-      data.expirationDate = (expirationDateStr as string) ? new Date(expirationDateStr as string) : null;
+      data.expirationDate = data.isService ? null : ((expirationDateStr as string) ? new Date(expirationDateStr as string) : null);
+    }
+
+    if (data.isService) {
+      data.stock = 0;
     }
 
     if (Object.keys(data).length > 0) {
@@ -251,6 +264,17 @@ export async function updateProduct(productId: string, formData: FormData) {
         where: { id: productId },
         data
       });
+
+      if (data.isService) {
+        await prisma.productVariant.updateMany({
+          where: { productId },
+          data: { stock: 0 }
+        });
+        await prisma.productBatch.updateMany({
+          where: { productId },
+          data: { stock: 0 }
+        });
+      }
     }
 
     // Upsert dynamic prices

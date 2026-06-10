@@ -195,6 +195,20 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
                     🧪 Insumo para Producción (Se puede usar como ingrediente)
                   </label>
                 </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input type="hidden" name="isService" value="false" />
+                  <input 
+                    type="checkbox" 
+                    id="isService"
+                    name="isService" 
+                    value="true"
+                    defaultChecked={product.isService || false} 
+                    style={{ width: '20px', height: '20px', cursor: 'pointer' }} 
+                  />
+                  <label htmlFor="isService" style={{ fontWeight: '500', cursor: 'pointer', fontSize: '0.95rem' }}>
+                    🛠️ Es un Servicio (No lleva stock y siempre disponible)
+                  </label>
+                </div>
               </div>
               <div style={{ padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '4px', border: '1px dashed #22c55e', gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                 <div>

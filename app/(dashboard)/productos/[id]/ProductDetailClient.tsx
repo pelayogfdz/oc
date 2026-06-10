@@ -110,6 +110,42 @@ export function ProductDetailClient({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [zoomImageUrl]);
 
+  useEffect(() => {
+    const serviceCheckbox = document.getElementById('isService') as HTMLInputElement | null;
+    const toggleFields = () => {
+      if (!serviceCheckbox) return;
+      const isService = serviceCheckbox.checked;
+      const minStockInput = document.querySelector('input[name="minStock"]') as HTMLInputElement | null;
+      const expirationDateInput = document.querySelector('input[name="expirationDate"]') as HTMLInputElement | null;
+      
+      if (isService) {
+        if (minStockInput) {
+          minStockInput.value = '0';
+          minStockInput.disabled = true;
+        }
+        if (expirationDateInput) {
+          expirationDateInput.value = '';
+          expirationDateInput.disabled = true;
+        }
+      } else {
+        if (minStockInput) minStockInput.disabled = false;
+        if (expirationDateInput) expirationDateInput.disabled = false;
+      }
+    };
+
+    if (serviceCheckbox) {
+      serviceCheckbox.addEventListener('change', toggleFields);
+      // Run initially
+      toggleFields();
+    }
+
+    return () => {
+      if (serviceCheckbox) {
+        serviceCheckbox.removeEventListener('change', toggleFields);
+      }
+    };
+  }, [activeTab]);
+
   const handleAdjustmentSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -323,7 +359,11 @@ export function ProductDetailClient({
           <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', fontSize: '0.9rem', color: '#64748b', marginTop: '0.25rem' }}>
             <span><strong>SKU:</strong> {product.sku}</span>
             {product.barcode && <span><strong>Código de Barras:</strong> {product.barcode}</span>}
-            <span><strong>Existencia:</strong> <span style={{ color: product.stock > 0 ? '#16a34a' : '#dc2626', fontWeight: '600' }}>{product.stock} {product.unit || 'pzas'}</span></span>
+            <span><strong>Existencia:</strong> {product.isService ? (
+              <span style={{ color: '#2563eb', fontWeight: '600', backgroundColor: '#dbeafe', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>Servicio</span>
+            ) : (
+              <span style={{ color: product.stock > 0 ? '#16a34a' : '#dc2626', fontWeight: '600' }}>{product.stock} {product.unit || 'pzas'}</span>
+            )}</span>
             <span><strong>Precio Normal:</strong> <span style={{ color: '#0f172a', fontWeight: 'bold' }}>${parseFloat(product.price || 0).toFixed(2)}</span></span>
           </div>
         </div>
@@ -345,21 +385,23 @@ export function ProductDetailClient({
         >
           Editar Detalles
         </button>
-        <button 
-          onClick={() => setActiveTab('kardex')}
-          style={{ 
-            padding: '0.75rem 0', 
-            background: 'none', 
-            border: 'none', 
-            borderBottom: activeTab === 'kardex' ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
-            color: activeTab === 'kardex' ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
-            fontWeight: activeTab === 'kardex' ? 'bold' : 'normal',
-            cursor: 'pointer',
-            fontSize: '1rem'
-          }}
-        >
-          Movimientos (Kardex)
-        </button>
+        {!product.isService && (
+          <button 
+            onClick={() => setActiveTab('kardex')}
+            style={{ 
+              padding: '0.75rem 0', 
+              background: 'none', 
+              border: 'none', 
+              borderBottom: activeTab === 'kardex' ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
+              color: activeTab === 'kardex' ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
+              fontWeight: activeTab === 'kardex' ? 'bold' : 'normal',
+              cursor: 'pointer',
+              fontSize: '1rem'
+            }}
+          >
+            Movimientos (Kardex)
+          </button>
+        )}
         <button 
           onClick={() => setActiveTab('media')}
           style={{ 
@@ -390,51 +432,57 @@ export function ProductDetailClient({
         >
           Historial de Ventas
         </button>
-        <button 
-          onClick={() => setActiveTab('variants')}
-          style={{ 
-            padding: '0.75rem 0', 
-            background: 'none', 
-            border: 'none', 
-            borderBottom: activeTab === 'variants' ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
-            color: activeTab === 'variants' ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
-            fontWeight: activeTab === 'variants' ? 'bold' : 'normal',
-            cursor: 'pointer',
-            fontSize: '1rem'
-          }}
-        >
-          Variantes (Tallas)
-        </button>
-        <button 
-          onClick={() => setActiveTab('omnichannel')}
-          style={{ 
-            padding: '0.75rem 0', 
-            background: 'none', 
-            border: 'none', 
-            borderBottom: activeTab === 'omnichannel' ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
-            color: activeTab === 'omnichannel' ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
-            fontWeight: activeTab === 'omnichannel' ? 'bold' : 'normal',
-            cursor: 'pointer',
-            fontSize: '1rem'
-          }}
-        >
-          Existencias por Sucursal
-        </button>
-        <button 
-          onClick={() => setActiveTab('batches')}
-          style={{ 
-            padding: '0.75rem 0', 
-            background: 'none', 
-            border: 'none', 
-            borderBottom: activeTab === 'batches' ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
-            color: activeTab === 'batches' ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
-            fontWeight: activeTab === 'batches' ? 'bold' : 'normal',
-            cursor: 'pointer',
-            fontSize: '1rem'
-          }}
-        >
-          Lotes y Caducidades
-        </button>
+        {!product.isService && (
+          <button 
+            onClick={() => setActiveTab('variants')}
+            style={{ 
+              padding: '0.75rem 0', 
+              background: 'none', 
+              border: 'none', 
+              borderBottom: activeTab === 'variants' ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
+              color: activeTab === 'variants' ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
+              fontWeight: activeTab === 'variants' ? 'bold' : 'normal',
+              cursor: 'pointer',
+              fontSize: '1rem'
+            }}
+          >
+            Variantes (Tallas)
+          </button>
+        )}
+        {!product.isService && (
+          <button 
+            onClick={() => setActiveTab('omnichannel')}
+            style={{ 
+              padding: '0.75rem 0', 
+              background: 'none', 
+              border: 'none', 
+              borderBottom: activeTab === 'omnichannel' ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
+              color: activeTab === 'omnichannel' ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
+              fontWeight: activeTab === 'omnichannel' ? 'bold' : 'normal',
+              cursor: 'pointer',
+              fontSize: '1rem'
+            }}
+          >
+            Existencias por Sucursal
+          </button>
+        )}
+        {!product.isService && (
+          <button 
+            onClick={() => setActiveTab('batches')}
+            style={{ 
+              padding: '0.75rem 0', 
+              background: 'none', 
+              border: 'none', 
+              borderBottom: activeTab === 'batches' ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
+              color: activeTab === 'batches' ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
+              fontWeight: activeTab === 'batches' ? 'bold' : 'normal',
+              cursor: 'pointer',
+              fontSize: '1rem'
+            }}
+          >
+            Lotes y Caducidades
+          </button>
+        )}
       </div>
 
       {activeTab === 'details' && (

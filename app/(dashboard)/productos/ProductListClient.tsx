@@ -99,6 +99,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     if (filterStatus === 'INACTIVE' && p.status !== 'INACTIVE') return false;
 
     // Stock Filter
+    if (filterStock !== 'ALL' && p.isService) return false;
     if (filterStock === 'IN_STOCK' && p.stock <= 0) return false;
     if (filterStock === 'OUT_OF_STOCK' && p.stock > 0) return false;
     if (filterStock === 'LOW_STOCK' && p.stock > (p.minStock || 0)) return false;
@@ -185,9 +186,9 @@ export default function ProductListClient({ initialProducts, branchId, categorie
   return (
     <div style={{ fontFamily: 'var(--font-geist-sans)' }}>
       {/* Header section identical to Pulpos */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>Productos e Inventario</h1>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+      <div className="page-header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <h1 className="page-header-title" style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>Productos e Inventario</h1>
+        <div className="page-header-actions" style={{ display: 'flex', gap: '0.75rem' }}>
           <ImportButton />
           <ExportButton selectedIds={selectedIds} />
           <Link href="/productos/nuevo" className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.5rem 1.5rem' }}>

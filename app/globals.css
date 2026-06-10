@@ -586,3 +586,91 @@ img[data-header-img="true"]::after {
   background-color: #dbeafe;
   color: #1e40af;
 }
+
+/* ==========================================================================
+   Mobile Responsiveness Enhancements (<= 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* Header Adjustments */
+  .header-user-controls {
+    gap: 0.5rem !important;
+  }
+  
+  .header-branch-selector-wrapper select {
+    max-width: 120px !important;
+    font-size: 0.75rem !important;
+    padding-left: 0.5rem !important;
+    padding-right: 1.5rem !important;
+    background-position: right 0.4rem center !important;
+    background-size: 0.8rem !important;
+  }
+
+  .sync-badge-text {
+    display: none !important;
+  }
+
+  .sync-badge {
+    padding: 6px !important;
+    border-radius: 50% !important;
+    margin-right: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Page Headers and Action Toolbars */
+  .page-header-container {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem !important;
+  }
+
+  .page-header-actions {
+    width: 100% !important;
+    display: flex !important;
+    gap: 0.75rem !important;
+    overflow-x: auto !important;
+    padding-bottom: 0.5rem !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .page-header-actions::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .page-header-actions a,
+  .page-header-actions button,
+  .page-header-actions > div {
+    flex-shrink: 0 !important;
+  }
+
+  /* Dashboard Grid Adjustments */
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1rem !important;
+  }
+
+  .dashboard-main-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  .dashboard-reports-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .header-module-title {
+    font-size: 1rem !important;
+    max-width: 120px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+}
+

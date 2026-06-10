@@ -678,7 +678,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
       const incomingReq = exists ? exists.quantity + 1 : 1;
 
       // Vender Sin Stock validation
-      if (ventasConfig.venderSinStock === false && mode === 'SALE') {
+      if (ventasConfig.venderSinStock === false && mode === 'SALE' && product.isService !== true) {
          if (checkStock < incomingReq) {
             alert('STOCK INSUFICIENTE. Habilite "Vender en Negativo" en Preferencias para saltar esta restricción.');
             return prevCart;
@@ -708,7 +708,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
     setCart(prevCart => {
       const item = prevCart.find(c => c.cartItemId === cartItemId);
       if (!item) return prevCart;
-      if (ventasConfig.venderSinStock === false && mode === 'SALE') {
+      if (ventasConfig.venderSinStock === false && mode === 'SALE' && item.isService !== true) {
          if (item.stock < newQ) {
            alert('STOCK INSUFICIENTE.');
            return prevCart;
@@ -3116,7 +3116,11 @@ export default function POSClient({ products: initialProducts, customers, suppli
                       <div>
                         <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b' }}>{p.name}</div>
                         <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
-                          SKU: {p.sku || 'N/A'} | Stock: <span style={{ color: p.stock > 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>{p.stock}</span>
+                          SKU: {p.sku || 'N/A'} | {p.isService ? (
+                            <span style={{ color: '#2563eb', fontWeight: 'bold', backgroundColor: '#dbeafe', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>Servicio</span>
+                          ) : (
+                            <>Stock: <span style={{ color: p.stock > 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>{p.stock}</span></>
+                          )}
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

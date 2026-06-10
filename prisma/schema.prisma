@@ -271,6 +271,7 @@ model Product {
   isActive            Boolean              @default(true)
   allowProduction     Boolean              @default(false)
   isProductionInput   Boolean              @default(false)
+  isService           Boolean              @default(false)
   unit                String               @default("Pza")
   stock               Int                  @default(0)
   minStock            Int                  @default(0)

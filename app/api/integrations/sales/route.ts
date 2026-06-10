@@ -213,30 +213,32 @@ export async function POST(request: NextRequest) {
           throw new Error(`Producto con SKU/Barcode "${itemSku}" no encontrado en esta sucursal.`);
         }
 
-        if (!permitirVenderSinStock && (product.stock - quantity < 0)) {
+        if (!permitirVenderSinStock && product.isService !== true && (product.stock - quantity < 0)) {
           throw new Error(`Inventario insuficiente en sucursal para: ${product.name} (Stock: ${product.stock}, Solicitado: ${quantity})`);
         }
 
-        // Decrement product stock
-        await tx.product.update({
-          where: { id: product.id },
-          data: {
-            stock: {
-              decrement: quantity
+        if (product.isService !== true) {
+          // Decrement product stock
+          await tx.product.update({
+            where: { id: product.id },
+            data: {
+              stock: {
+                decrement: quantity
+              }
             }
-          }
-        });
+          });
 
-        // Create inventory movement
-        await tx.inventoryMovement.create({
-          data: {
-            productId: product.id,
-            type: 'OUT',
-            quantity: -quantity,
-            reason: `Venta Online API - SKU: ${itemSku} | Obs: ${notes || ''}`.substring(0, 100),
-            userId: firstUser.id
-          }
-        });
+          // Create inventory movement
+          await tx.inventoryMovement.create({
+            data: {
+              productId: product.id,
+              type: 'OUT',
+              quantity: -quantity,
+              reason: `Venta Online API - SKU: ${itemSku} | Obs: ${notes || ''}`.substring(0, 100),
+              userId: firstUser.id
+            }
+          });
+        }
 
         saleItemsData.push({
           productId: product.id,

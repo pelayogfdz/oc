@@ -90,13 +90,14 @@ export async function createSale(
         });
       }
 
+      let isService = product.isService === true;
       let currentStock = product.stock;
       if (item.variantId) {
         const variant = await prisma.productVariant.findUnique({ where: { id: item.variantId } });
         if (variant) currentStock = variant.stock;
       }
 
-      if (!permitirVenderSinStock && currentStock - item.quantity < 0) {
+      if (!isService && !permitirVenderSinStock && currentStock - item.quantity < 0) {
         throw new Error(`Inventario insuficiente para: ${product.name}`);
       }
 
@@ -191,6 +192,9 @@ export async function createSale(
     // Deduct stock & Register Kardex Movement (only if NOT converting from a consignment)
     if (!consignmentIdToConvert) {
       for (const item of items) {
+        const product = await prisma.product.findUnique({ where: { id: item.productId } });
+        if (product?.isService) continue;
+
         await prisma.product.update({
           where: { id: item.productId },
           data: { stock: { decrement: item.quantity } }
@@ -386,6 +390,9 @@ export async function refundSale(formData: FormData) {
 
   // Re-stock items
   for (const item of sale.items) {
+    const product = await prisma.product.findUnique({ where: { id: item.productId } });
+    if (product?.isService) continue;
+
     await prisma.product.update({
       where: { id: item.productId },
       data: { stock: { increment: item.quantity } }
@@ -451,6 +458,9 @@ export async function cancelSale(formData: FormData) {
 
   // Re-stock items
   for (const item of sale.items) {
+    const product = await prisma.product.findUnique({ where: { id: item.productId } });
+    if (product?.isService) continue;
+
     await prisma.product.update({
       where: { id: item.productId },
       data: { stock: { increment: item.quantity } }
