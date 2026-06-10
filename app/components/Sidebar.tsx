@@ -111,13 +111,28 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
           
           let content;
           if (node.path) {
+            const isNuevaVenta = node.title === 'Nueva Venta';
             // Direct Link
             content = (
               <Link 
                 href={node.path} 
                 onClick={() => { if (isMobileMenuOpen) closeMenu(); }}
                 className={node.desktopOnly ? 'desktop-only-menu-item' : ''}
-                style={{ 
+                style={isNuevaVenta ? {
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.75rem', 
+                  padding: '0.5rem 0.75rem', 
+                  borderRadius: '8px', 
+                  textDecoration: 'none', 
+                  backgroundColor: 'var(--pulpos-primary)',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '0.9rem',
+                  transition: 'background 0.2s',
+                  marginBottom: '0.4rem',
+                  marginTop: '0.2rem'
+                } : { 
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: '1rem', 
@@ -130,7 +145,11 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
                   transition: 'background 0.2s'
                 }}
               >
-                {node.icon}
+                {isNuevaVenta ? (
+                  <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '50%', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px' }}>
+                    <span style={{ fontSize: '16px', lineHeight: 1, fontWeight: 'bold' }}>+</span>
+                  </div>
+                ) : node.icon}
                 <span style={{ flex: 1 }}>{node.title}</span>
                 {node.badge && (
                   <span style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', fontSize: '0.7rem', padding: '0.1rem 0.5rem', borderRadius: '12px', fontWeight: 'bold' }}>

@@ -61,11 +61,20 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
             
             let content;
             if (node.path) {
+              const isNuevaVenta = node.title === 'Nueva Venta';
               content = (
                 <Link 
                   href={node.path} 
                   onClick={closeMenu}
-                  style={{ 
+                  style={isNuevaVenta ? {
+                    display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', 
+                    borderRadius: '8px', textDecoration: 'none', 
+                    backgroundColor: 'var(--pulpos-primary)',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    border: '1px solid var(--pulpos-primary)',
+                    marginBottom: '0.25rem'
+                  } : { 
                     display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', 
                     borderRadius: '8px', textDecoration: 'none', 
                     backgroundColor: NodeActive ? 'rgba(139, 92, 246, 0.1)' : 'white',
@@ -74,7 +83,11 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
                     border: '1px solid var(--pulpos-border)'
                   }}
                 >
-                  {node.icon}
+                  {isNuevaVenta ? (
+                    <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '50%', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px' }}>
+                      <span style={{ fontSize: '18px', lineHeight: 1, fontWeight: 'bold' }}>+</span>
+                    </div>
+                  ) : node.icon}
                   <span style={{ flex: 1 }}>{node.title}</span>
                 </Link>
               );
