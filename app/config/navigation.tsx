@@ -42,6 +42,7 @@ export const navStructure: MenuNode[] = [
       { name: 'Traspasos entre Sucursales', path: '/productos/traspasos' },
       { name: 'Ajustes de Inventario', path: '/productos/ajustes' },
       { name: 'Toma Física de Inventario', path: '/productos/auditorias' },
+      { name: 'Creador de Catálogos', path: '/ventas/catalogos' },
     ]
   },
   { 
@@ -64,7 +65,6 @@ export const navStructure: MenuNode[] = [
       { name: 'Devoluciones', path: '/ventas/devoluciones' },
       { name: 'Cotizaciones', path: '/ventas/cotizaciones' },
       { name: 'Consignaciones', path: '/ventas/consignaciones' },
-      { name: 'Catálogos de Artículos', path: '/ventas/catalogos' },
       { name: 'Citas y Calendario', path: '/ventas/citas', badge: 'CRM' },
     ]
   },

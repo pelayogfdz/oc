@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 const officeCityLocations = [
@@ -135,6 +135,81 @@ export default function FloatingWhatsappWidget() {
   });
   const justDraggedRef = useRef(false);
 
+  const handleGlobalMove = useCallback((clientX: number, clientY: number) => {
+    if (!dragRef.current.isDragging) return;
+    
+    const dx = clientX - dragRef.current.startX;
+    const dy = clientY - dragRef.current.startY;
+    
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+      dragRef.current.hasMoved = true;
+    }
+    
+    const newX = dragRef.current.startOffsetX + dx;
+    const newY = dragRef.current.startOffsetY + dy;
+    
+    const minX = 10 - (window.innerWidth - 80);
+    const maxX = 14;
+    const minY = 10 - (window.innerHeight - 80);
+    const maxY = 14;
+    
+    const clampedX = Math.min(Math.max(newX, minX), maxX);
+    const clampedY = Math.min(Math.max(newY, minY), maxY);
+    
+    const newPos = { x: clampedX, y: clampedY };
+    setPosition(newPos);
+    positionRef.current = newPos;
+    
+    const buttonTop = window.innerHeight - 80 + clampedY;
+    setIsTopHalf(buttonTop < window.innerHeight / 2);
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    handleGlobalMove(e.clientX, e.clientY);
+  }, [handleGlobalMove]);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (!dragRef.current.isDragging) return;
+    if (e.touches.length === 1) {
+      e.preventDefault();
+      handleGlobalMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, [handleGlobalMove]);
+
+  const handleGlobalEnd = useCallback(() => {
+    if (!dragRef.current.isDragging) return;
+    
+    if (dragRef.current.hasMoved) {
+      justDraggedRef.current = true;
+      try {
+        localStorage.setItem("whatsapp_widget_position", JSON.stringify(positionRef.current));
+      } catch (e) {}
+    }
+    
+    dragRef.current.isDragging = false;
+    
+    window.removeEventListener("mousemove", handleMouseMove);
+    window.removeEventListener("mouseup", handleGlobalEnd);
+    window.removeEventListener("touchmove", handleTouchMove);
+    window.removeEventListener("touchend", handleGlobalEnd);
+  }, [handleMouseMove, handleTouchMove]);
+
+  const startDrag = useCallback((clientX: number, clientY: number) => {
+    dragRef.current = {
+      isDragging: true,
+      startX: clientX,
+      startY: clientY,
+      startOffsetX: positionRef.current.x,
+      startOffsetY: positionRef.current.y,
+      hasMoved: false
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleGlobalEnd);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleGlobalEnd);
+  }, [handleMouseMove, handleTouchMove, handleGlobalEnd]);
+
   useEffect(() => {
     // Load from localStorage on mount
     try {
@@ -150,83 +225,13 @@ export default function FloatingWhatsappWidget() {
       }
     } catch (e) {}
 
-    const handleGlobalMove = (clientX: number, clientY: number) => {
-      if (!dragRef.current.isDragging) return;
-      
-      const dx = clientX - dragRef.current.startX;
-      const dy = clientY - dragRef.current.startY;
-      
-      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-        dragRef.current.hasMoved = true;
-      }
-      
-      const newX = dragRef.current.startOffsetX + dx;
-      const newY = dragRef.current.startOffsetY + dy;
-      
-      const minX = 10 - (window.innerWidth - 80);
-      const maxX = 14;
-      const minY = 10 - (window.innerHeight - 80);
-      const maxY = 14;
-      
-      const clampedX = Math.min(Math.max(newX, minX), maxX);
-      const clampedY = Math.min(Math.max(newY, minY), maxY);
-      
-      const newPos = { x: clampedX, y: clampedY };
-      setPosition(newPos);
-      positionRef.current = newPos;
-      
-      const buttonTop = window.innerHeight - 80 + clampedY;
-      setIsTopHalf(buttonTop < window.innerHeight / 2);
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      handleGlobalMove(e.clientX, e.clientY);
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!dragRef.current.isDragging) return;
-      if (e.touches.length === 1) {
-        e.preventDefault();
-        handleGlobalMove(e.touches[0].clientX, e.touches[0].clientY);
-      }
-    };
-
-    const handleGlobalEnd = () => {
-      if (!dragRef.current.isDragging) return;
-      
-      if (dragRef.current.hasMoved) {
-        justDraggedRef.current = true;
-        try {
-          localStorage.setItem("whatsapp_widget_position", JSON.stringify(positionRef.current));
-        } catch (e) {}
-      }
-      
-      dragRef.current.isDragging = false;
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleGlobalEnd);
-    window.addEventListener("touchmove", handleTouchMove, { passive: false });
-    window.addEventListener("touchend", handleGlobalEnd);
-
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleGlobalEnd);
       window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("touchend", handleGlobalEnd);
     };
-  }, []);
-
-  const startDrag = (clientX: number, clientY: number) => {
-    dragRef.current = {
-      isDragging: true,
-      startX: clientX,
-      startY: clientY,
-      startOffsetX: positionRef.current.x,
-      startOffsetY: positionRef.current.y,
-      hasMoved: false
-    };
-  };
+  }, [handleMouseMove, handleGlobalEnd, handleTouchMove]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
@@ -255,13 +260,16 @@ export default function FloatingWhatsappWidget() {
   const [downloadedMedia, setDownloadedMedia] = useState<Record<string, { data: string; mimetype: string; filename: string }>>({});
   const [loadingMedia, setLoadingMedia] = useState<Record<string, boolean>>({});
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Auto-scroll to the bottom of the active chat
   const scrollToBottom = () => {
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      }
     }, 50);
   };
 
@@ -861,21 +869,28 @@ export default function FloatingWhatsappWidget() {
                 const activeMessages = activeChat?.messages || [];
                 
                 return (
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%', overflow: 'hidden' }}>
                     {/* Scrollable Messages Stream */}
-                    <div className="floating-scrollbar" style={{ 
-                      flex: 1, 
-                      padding: '12px 14px', 
-                      overflowY: 'auto', 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      gap: '8px', 
-                      backgroundColor: '#e5e7eb',
-                      backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
-                      backgroundRepeat: 'repeat',
-                      backgroundBlendMode: 'overlay',
-                      backgroundSize: '200px'
-                    }}>
+                    <div 
+                      ref={scrollContainerRef}
+                      className="floating-scrollbar" 
+                      style={{ 
+                        flex: 1, 
+                        minHeight: 0,
+                        padding: '12px 14px', 
+                        overflowY: 'auto', 
+                        overflowX: 'hidden',
+                        overscrollBehavior: 'contain',
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        gap: '8px', 
+                        backgroundColor: '#e5e7eb',
+                        backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
+                        backgroundRepeat: 'repeat',
+                        backgroundBlendMode: 'overlay',
+                        backgroundSize: '200px'
+                      }}
+                    >
                       {activeMessages.length === 0 ? (
                         <div style={{ margin: 'auto', textAlign: 'center', color: '#64748b', fontSize: '0.8rem', padding: '16px', backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: '8px' }}>
                           No hay mensajes aún en este chat flotante.
@@ -898,7 +913,9 @@ export default function FloatingWhatsappWidget() {
                                 boxShadow: '0 1px 1px rgba(0,0,0,0.1)',
                                 fontSize: '0.825rem',
                                 lineHeight: 1.35,
-                                position: 'relative'
+                                position: 'relative',
+                                wordBreak: 'break-word',
+                                whiteSpace: 'pre-wrap'
                               }}
                             >
                               {msg.body && msg.body.includes("📍 *Ubicación Compartida") ? (
@@ -1462,7 +1479,17 @@ export default function FloatingWhatsappWidget() {
               })()
             ) : (
               // Chat List
-              <div className="floating-scrollbar" style={{ flex: 1, overflowY: 'auto', backgroundColor: '#f8fafc' }}>
+              <div 
+                className="floating-scrollbar" 
+                style={{ 
+                  flex: 1, 
+                  minHeight: 0,
+                  overflowY: 'auto', 
+                  overflowX: 'hidden',
+                  overscrollBehavior: 'contain',
+                  backgroundColor: '#f8fafc' 
+                }}
+              >
                 {prospects.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '32px', color: '#64748b', fontSize: '0.85rem' }}>
                     No hay conversaciones disponibles.
