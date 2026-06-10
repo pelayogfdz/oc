@@ -87,7 +87,6 @@ export const navStructure: MenuNode[] = [
       { name: 'Pedidos a Proveedores', path: '/productos/pedidos' },
       { name: 'Registro de Gastos', path: '/productos/gastos' },
       { name: 'Directorio de Proveedores', path: '/proveedores' },
-      { name: 'Cuentas por Pagar (CxP)', path: '/proveedores/cuentas', badge: 'Pasivos' },
       { name: 'Control de Caducidades', path: '/productos/caducidades', badge: 'Alertas' },
     ]
   },
@@ -139,7 +138,7 @@ export const navStructure: MenuNode[] = [
     requiredPermission: ['admin_reports_access'],
     items: [
       { name: 'Conciliación Bancaria', path: '/finanzas/conciliacion' },
-      { name: 'Cuentas por Pagar (CxP)', path: '/proveedores/cuentas', badge: 'Egresos' },
+      { name: 'Cuentas por Pagar (CxP)', path: '/proveedores/cuentas', badge: 'Pasivos' },
     ]
   },
   { 
