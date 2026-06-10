@@ -21,6 +21,7 @@ export function ProductDetailClient({
   batches,
   siblingProducts,
   mediaContent,
+  tenantId,
   children
 }: { 
   product: any, 
@@ -30,6 +31,7 @@ export function ProductDetailClient({
   batches?: any[],
   siblingProducts?: any[],
   mediaContent?: React.ReactNode,
+  tenantId?: string,
   children: React.ReactNode
 }) {
   const [activeTab, setActiveTab] = useState('details');
@@ -112,6 +114,9 @@ export function ProductDetailClient({
 
   useEffect(() => {
     const serviceCheckbox = document.getElementById('isService') as HTMLInputElement | null;
+    const showInWebCheckbox = document.getElementById('showInWeb') as HTMLInputElement | null;
+    const isTargetTenant = tenantId === '8b52cbcd-c956-4717-a1bd-02e57386aaa2' || tenantId === 'db5d3949-f8dd-41f6-9627-90374d55d044';
+
     const toggleFields = () => {
       if (!serviceCheckbox) return;
       const isService = serviceCheckbox.checked;
@@ -127,9 +132,15 @@ export function ProductDetailClient({
           expirationDateInput.value = '';
           expirationDateInput.disabled = true;
         }
+        if (isTargetTenant && showInWebCheckbox) {
+          showInWebCheckbox.checked = false;
+        }
       } else {
         if (minStockInput) minStockInput.disabled = false;
         if (expirationDateInput) expirationDateInput.disabled = false;
+        if (isTargetTenant && showInWebCheckbox) {
+          showInWebCheckbox.checked = true;
+        }
       }
     };
 
@@ -144,7 +155,7 @@ export function ProductDetailClient({
         serviceCheckbox.removeEventListener('change', toggleFields);
       }
     };
-  }, [activeTab]);
+  }, [activeTab, tenantId]);
 
   const handleAdjustmentSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

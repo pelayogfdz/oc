@@ -68,6 +68,23 @@ export async function createProduct(prevState: any, formData: FormData) {
      return { error: "Faltan campos obligatorios (SKU, Nombre o Sucursal)." };
   }
 
+  // Find tenantId for branchId
+  const branch = await prisma.branch.findUnique({
+    where: { id: branchId },
+    select: { tenantId: true }
+  });
+  const tenantId = branch?.tenantId;
+  const isTargetTenant = tenantId === '8b52cbcd-c956-4717-a1bd-02e57386aaa2' || tenantId === 'db5d3949-f8dd-41f6-9627-90374d55d044';
+  
+  let showInWeb = true;
+  const showInWebVal = formData.get('showInWeb');
+  if (showInWebVal !== null) {
+    showInWeb = showInWebVal === 'true';
+  } else {
+    // Default fallback
+    showInWeb = !(isService && isTargetTenant);
+  }
+
   const product = await prisma.product.create({
     data: { 
       branchId,
@@ -91,7 +108,9 @@ export async function createProduct(prevState: any, formData: FormData) {
       supplierId,
       satKey,
       satUnit,
-      expirationDate
+      expirationDate,
+      // @ts-ignore
+      showInWeb
     }
   });
 
@@ -191,7 +210,8 @@ export async function createProduct(prevState: any, formData: FormData) {
     unit,
     satKey,
     satUnit,
-    expirationDate
+    expirationDate,
+    showInWeb
   };
 
   await prisma.product.updateMany({
@@ -199,6 +219,7 @@ export async function createProduct(prevState: any, formData: FormData) {
       sku: sku,
       id: { not: product.id }
     },
+    // @ts-ignore
     data: fieldsToPropagate
   });
 
@@ -288,6 +309,11 @@ export async function updateProduct(productId: string, formData: FormData) {
       data.stock = 0;
     }
 
+    const showInWeb = formData.get('showInWeb');
+    if (showInWeb !== null) {
+      data.showInWeb = showInWeb === 'true';
+    }
+
     // Get current product details before update (to find siblings by old SKU)
     const currentProduct = await prisma.product.findUnique({
       where: { id: productId },
@@ -297,6 +323,7 @@ export async function updateProduct(productId: string, formData: FormData) {
     if (Object.keys(data).length > 0) {
       await prisma.product.update({
         where: { id: productId },
+        // @ts-ignore
         data
       });
 
@@ -326,6 +353,7 @@ export async function updateProduct(productId: string, formData: FormData) {
               sku: currentProduct.sku,
               id: { not: productId }
             },
+            // @ts-ignore
             data: fieldsToPropagate
           });
         }

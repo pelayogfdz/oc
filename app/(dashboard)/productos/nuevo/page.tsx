@@ -38,6 +38,7 @@ export default async function NuevoProductoPage({ searchParams }: { searchParams
         suppliers={suppliers} 
         priceLists={priceLists} 
         branchId={branch?.id} 
+        tenantId={branch?.tenantId}
       />
     </div>
   );

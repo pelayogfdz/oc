@@ -17,7 +17,7 @@ const initialState = {
   success: false
 };
 
-export default function ProductFormClient({ cloneProduct, suppliers, priceLists, branchId }: any) {
+export default function ProductFormClient({ cloneProduct, suppliers, priceLists, branchId, tenantId }: any) {
   const { isOnline, pushOfflineProduct } = useOfflineSync();
   const [state, formAction] = useFormState(createProduct, initialState);
   const [hasVariants, setHasVariants] = useState(false);
@@ -25,6 +25,12 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
   const [hasBatches, setHasBatches] = useState(false);
   const [batches, setBatches] = useState<{ batchNumber: string, expirationDate: string, stock: number }[]>([]);
   const [isService, setIsService] = useState(cloneProduct?.isService || false);
+
+  const isTargetTenant = tenantId === '8b52cbcd-c956-4717-a1bd-02e57386aaa2' || tenantId === 'db5d3949-f8dd-41f6-9627-90374d55d044';
+  const initialShowInWeb = cloneProduct 
+    ? (cloneProduct.showInWeb !== undefined ? cloneProduct.showInWeb : true)
+    : (isService && isTargetTenant ? false : true);
+  const [showInWeb, setShowInWeb] = useState(initialShowInWeb);
   
 
 
@@ -152,11 +158,32 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
                 name="isService" 
                 value="true"
                 checked={isService} 
-                onChange={(e) => setIsService(e.target.checked)}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setIsService(checked);
+                  if (isTargetTenant) {
+                    setShowInWeb(!checked);
+                  }
+                }}
                 style={{ width: '20px', height: '20px', cursor: 'pointer' }} 
               />
               <label htmlFor="isService" style={{ fontWeight: '500', cursor: 'pointer', fontSize: '0.95rem' }}>
                 🛠️ Es un Servicio (No lleva stock y siempre disponible)
+              </label>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input type="hidden" name="showInWeb" value="false" />
+              <input 
+                type="checkbox" 
+                id="showInWeb"
+                name="showInWeb" 
+                value="true"
+                checked={showInWeb} 
+                onChange={(e) => setShowInWeb(e.target.checked)}
+                style={{ width: '20px', height: '20px', cursor: 'pointer' }} 
+              />
+              <label htmlFor="showInWeb" style={{ fontWeight: '500', cursor: 'pointer', fontSize: '0.95rem' }}>
+                🌐 Mostrar en Web (Sincronizar vía Token)
               </label>
             </div>
           </div>

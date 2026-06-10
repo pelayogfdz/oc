@@ -107,6 +107,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
         variants={product.variants}
         batches={product.batches}
         siblingProducts={siblingProducts}
+        tenantId={branch?.tenantId}
         mediaContent={
           <form action={updateProductWithId}>
             <input type="hidden" name="branchId" value={product.branchId} />
@@ -207,6 +208,20 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
                   />
                   <label htmlFor="isService" style={{ fontWeight: '500', cursor: 'pointer', fontSize: '0.95rem' }}>
                     🛠️ Es un Servicio (No lleva stock y siempre disponible)
+                  </label>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input type="hidden" name="showInWeb" value="false" />
+                  <input 
+                    type="checkbox" 
+                    id="showInWeb"
+                    name="showInWeb" 
+                    value="true"
+                    defaultChecked={(product as any).showInWeb} 
+                    style={{ width: '20px', height: '20px', cursor: 'pointer' }} 
+                  />
+                  <label htmlFor="showInWeb" style={{ fontWeight: '500', cursor: 'pointer', fontSize: '0.95rem' }}>
+                    🌐 Mostrar en Web (Sincronizar vía Token)
                   </label>
                 </div>
               </div>

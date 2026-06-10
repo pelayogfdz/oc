@@ -17,7 +17,9 @@ export async function GET(request: NextRequest) {
     const products = await prisma.product.findMany({
       where: {
         branchId: branch.id,
-        isActive: true
+        isActive: true,
+        // @ts-ignore
+        showInWeb: true
       },
       select: {
         id: true,
@@ -40,7 +42,9 @@ export async function GET(request: NextRequest) {
         isService: true,
         satKey: true,
         satUnit: true,
-        updatedAt: true
+        updatedAt: true,
+        // @ts-ignore
+        showInWeb: true
       },
       orderBy: {
         name: 'asc'

@@ -283,6 +283,7 @@ model Product {
   satKey              String?
   satUnit             String?
   averageCost         Float                @default(0)
+  showInWeb           Boolean              @default(true)
   externalMaps        ExternalProductMap[]
   inventoryAuditItems InventoryAuditItem[]
   inventoryMovements  InventoryMovement[]
