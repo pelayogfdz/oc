@@ -59,10 +59,10 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
             }
             const NodeActive = isNodeActive(node);
             
+            let content;
             if (node.path) {
-              return (
+              content = (
                 <Link 
-                  key={node.title}
                   href={node.path} 
                   onClick={closeMenu}
                   style={{ 
@@ -78,49 +78,58 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
                   <span style={{ flex: 1 }}>{node.title}</span>
                 </Link>
               );
+            } else {
+              const isOpen = openGroups[node.title];
+              
+              content = (
+                <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: 'white', borderRadius: '8px', border: '1px solid var(--pulpos-border)', overflow: 'hidden' }}>
+                  <div 
+                    onClick={(e) => toggleGroup(node.title, e)}
+                    style={{ 
+                      display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', 
+                      cursor: 'pointer',
+                      color: NodeActive && !isOpen ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
+                      fontWeight: '600'
+                    }}
+                  >
+                    <div style={{ color: NodeActive && !isOpen ? 'var(--pulpos-primary)' : 'var(--pulpos-text-muted)' }}>
+                      {node.icon}
+                    </div>
+                    <span style={{ flex: 1 }}>{node.title}</span>
+                    {isOpen ? <ChevronUp size={20} color="#94a3b8" /> : <ChevronDown size={20} color="#94a3b8" />}
+                  </div>
+
+                  {isOpen && node.items && (
+                    <div style={{ display: 'flex', flexDirection: 'column', padding: '0.5rem 1rem 1rem 3.5rem', gap: '0.75rem', backgroundColor: '#f8fafc', borderTop: '1px solid var(--pulpos-border)' }}>
+                      {node.items.map((item: any) => {
+                        const ItemActive = isItemActive(item.path);
+                        return (
+                          <Link 
+                            key={item.name}
+                            href={item.path} 
+                            onClick={closeMenu}
+                            style={{ 
+                              display: 'flex', alignItems: 'center', textDecoration: 'none', 
+                              color: ItemActive ? 'var(--pulpos-primary)' : '#475569',
+                              fontWeight: ItemActive ? 'bold' : '500',
+                              fontSize: '0.95rem'
+                            }}
+                          >
+                            {item.name}
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
             }
 
-            const isOpen = openGroups[node.title];
-            
             return (
-              <div key={node.title} style={{ display: 'flex', flexDirection: 'column', backgroundColor: 'white', borderRadius: '8px', border: '1px solid var(--pulpos-border)', overflow: 'hidden' }}>
-                <div 
-                  onClick={(e) => toggleGroup(node.title, e)}
-                  style={{ 
-                    display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', 
-                    cursor: 'pointer',
-                    color: NodeActive && !isOpen ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
-                    fontWeight: '600'
-                  }}
-                >
-                  <div style={{ color: NodeActive && !isOpen ? 'var(--pulpos-primary)' : 'var(--pulpos-text-muted)' }}>
-                    {node.icon}
-                  </div>
-                  <span style={{ flex: 1 }}>{node.title}</span>
-                  {isOpen ? <ChevronUp size={20} color="#94a3b8" /> : <ChevronDown size={20} color="#94a3b8" />}
-                </div>
-
-                {isOpen && node.items && (
-                  <div style={{ display: 'flex', flexDirection: 'column', padding: '0.5rem 1rem 1rem 3.5rem', gap: '0.75rem', backgroundColor: '#f8fafc', borderTop: '1px solid var(--pulpos-border)' }}>
-                    {node.items.map((item: any) => {
-                      const ItemActive = isItemActive(item.path);
-                      return (
-                        <Link 
-                          key={item.name}
-                          href={item.path} 
-                          onClick={closeMenu}
-                          style={{ 
-                            display: 'flex', alignItems: 'center', textDecoration: 'none', 
-                            color: ItemActive ? 'var(--pulpos-primary)' : '#475569',
-                            fontWeight: ItemActive ? 'bold' : '500',
-                            fontSize: '0.95rem'
-                          }}
-                        >
-                          {item.name}
-                        </Link>
-                      )
-                    })}
-                  </div>
+              <div key={node.title} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {content}
+                {node.hasDividerAfter && (
+                  <div style={{ height: '1px', backgroundColor: 'var(--pulpos-border)', margin: '1rem 0' }} />
                 )}
               </div>
             );

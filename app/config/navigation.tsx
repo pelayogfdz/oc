@@ -2,7 +2,8 @@ import React from 'react';
 import { 
   Home, Tag, Package, Calculator, ArrowRightLeft, 
   Settings, UserCircle, ShoppingCart, Banknote, FileText,
-  Sparkles, MonitorSmartphone, Landmark, BarChart3, Inbox, Briefcase, Truck, ChefHat, ClipboardList
+  Sparkles, MonitorSmartphone, Landmark, BarChart3, Inbox, Briefcase, Truck, ChefHat, ClipboardList,
+  PlusCircle, Users
 } from 'lucide-react';
 
 export type MenuItem = {
@@ -20,10 +21,38 @@ export type MenuNode = {
   items?: MenuItem[]; // If it's a dropdown
   desktopOnly?: boolean;
   requiredPermission?: string | string[]; // Permission ID(s) needed to show
+  hasDividerAfter?: boolean; // If a divider should be rendered after this node
 };
 
 export const navStructure: MenuNode[] = [
-  { title: 'Mi Portal', path: '/mi-portal', icon: <UserCircle size={20} /> },
+  // Grupo 1
+  { 
+    title: 'Nueva Venta', 
+    path: '/ventas/nueva', 
+    icon: <PlusCircle size={20} />,
+    requiredPermission: ['pos_access']
+  },
+  { 
+    title: 'Productos', icon: <Tag size={20} />, 
+    requiredPermission: ['inv_view', 'inv_edit', 'inv_adjust', 'inv_transfer'],
+    items: [
+      { name: 'Catálogo de Productos', path: '/productos' },
+      { name: 'Actualización Masiva de Precios', path: '/productos/precios-masivos', badge: 'Precios' },
+      { name: 'Costos y Proveedores', path: '/productos/costos-proveedor', badge: 'Costos' },
+      { name: 'Traspasos entre Sucursales', path: '/productos/traspasos' },
+      { name: 'Ajustes de Inventario', path: '/productos/ajustes' },
+      { name: 'Toma Física de Inventario', path: '/productos/auditorias' },
+    ]
+  },
+  { 
+    title: 'Clientes', icon: <Users size={20} />,
+    requiredPermission: ['admin_customers_view'],
+    items: [
+      { name: 'Directorio de Clientes', path: '/clientes' },
+      { name: 'Crédito y Cobranza (CxC)', path: '/clientes/cobranza', badge: 'Activos' },
+      { name: 'Portal B2B', path: '/clientes/b2b' }
+    ]
+  },
   { 
     title: 'Ventas', icon: <Banknote size={20} />, 
     requiredPermission: ['pos_access', 'pos_discount', 'pos_cancel', 'pos_returns'],
@@ -41,15 +70,6 @@ export const navStructure: MenuNode[] = [
     ]
   },
   { 
-    title: 'Caja', icon: <Calculator size={20} />, 
-    requiredPermission: ['cash_open_close', 'cash_movements', 'cash_audit'],
-    items: [
-      { name: 'Apertura y Corte de Caja', path: '/caja/actual' },
-      { name: 'Histórico de Cortes', path: '/caja/cortes' },
-      { name: 'Cortes y Cajas Generales', path: '/preferencias/cajas' },
-    ]
-  },
-  { 
     title: 'Facturas', icon: <FileText size={20} />, 
     requiredPermission: ['pos_access', 'admin_reports_access'],
     items: [
@@ -59,28 +79,7 @@ export const navStructure: MenuNode[] = [
     ]
   },
   { 
-    title: 'Clientes', icon: <UserCircle size={20} />,
-    requiredPermission: ['admin_customers_view'],
-    items: [
-      { name: 'Directorio de Clientes', path: '/clientes' },
-      { name: 'Crédito y Cobranza (CxC)', path: '/clientes/cobranza', badge: 'Activos' },
-      { name: 'Portal B2B', path: '/clientes/b2b' }
-    ]
-  },
-  { 
-    title: 'Productos', icon: <Tag size={20} />, 
-    requiredPermission: ['inv_view', 'inv_edit', 'inv_adjust', 'inv_transfer'],
-    items: [
-      { name: 'Catálogo de Productos', path: '/productos' },
-      { name: 'Actualización Masiva de Precios', path: '/productos/precios-masivos', badge: 'Precios' },
-      { name: 'Costos y Proveedores', path: '/productos/costos-proveedor', badge: 'Costos' },
-      { name: 'Traspasos entre Sucursales', path: '/productos/traspasos' },
-      { name: 'Ajustes de Inventario', path: '/productos/ajustes' },
-      { name: 'Toma Física de Inventario', path: '/productos/auditorias' },
-    ]
-  },
-  { 
-    title: 'Compras y Gastos', icon: <ShoppingCart size={20} />, 
+    title: 'Compras y gastos', icon: <ShoppingCart size={20} />, 
     requiredPermission: ['admin_purchases_access'],
     items: [
       { name: 'Compras', path: '/productos/compras' },
@@ -92,6 +91,18 @@ export const navStructure: MenuNode[] = [
       { name: 'Control de Caducidades', path: '/productos/caducidades', badge: 'Alertas' },
     ]
   },
+  { 
+    title: 'Caja', icon: <Calculator size={20} />, 
+    requiredPermission: ['cash_open_close', 'cash_movements', 'cash_audit'],
+    items: [
+      { name: 'Apertura y Corte de Caja', path: '/caja/actual' },
+      { name: 'Histórico de Cortes', path: '/caja/cortes' },
+      { name: 'Cortes y Cajas Generales', path: '/preferencias/cajas' },
+    ],
+    hasDividerAfter: true
+  },
+
+  // Grupo 2
   { 
     title: 'Logística', icon: <Truck size={20} />, 
     requiredPermission: ['logistica_access'],
@@ -108,17 +119,6 @@ export const navStructure: MenuNode[] = [
       { name: 'Órdenes de Producción', path: '/procesos', badge: 'Activas' },
       { name: 'Reporte de Producción', path: '/reportes/produccion' },
       { name: 'Fórmulas e Insumos', path: '/procesos/formulas' },
-    ]
-  },
-  { 
-    title: 'Ventas Online', icon: <MonitorSmartphone size={20} />, 
-    requiredPermission: ['sys_integrations'],
-    items: [
-      { name: 'Tu Catálogo en Línea B2C', path: '/catalogo', badge: 'Nuevo' },
-      { name: 'Portal de Clientes B2B', path: '/clientes/b2b' },
-      { name: 'Portal de Autofacturación', path: '/clientes/portal' },
-      { name: 'Integraciones (Mercado Libre/Amazon)', path: '/integraciones' },
-      { name: 'Órdenes Web', path: '/catalogo/ordenes' },
     ]
   },
   { 
@@ -143,16 +143,35 @@ export const navStructure: MenuNode[] = [
     ]
   },
   { 
+    title: 'Ventas Online', icon: <MonitorSmartphone size={20} />, 
+    requiredPermission: ['sys_integrations'],
+    items: [
+      { name: 'Tu Catálogo en Línea B2C', path: '/catalogo', badge: 'Nuevo' },
+      { name: 'Portal de Clientes B2B', path: '/clientes/b2b' },
+      { name: 'Portal de Autofacturación', path: '/clientes/portal' },
+      { name: 'Integraciones (Mercado Libre/Amazon)', path: '/integraciones' },
+      { name: 'Órdenes Web', path: '/catalogo/ordenes' },
+    ]
+  },
+  { 
     title: 'Reportes', icon: <BarChart3 size={20} />, 
     requiredPermission: ['admin_reports_access'],
     items: [
       { name: 'Panel de Reportes', path: '/reportes' },
       { name: 'Facturación CFDI 4.0', path: '/reportes/facturacion', badge: 'Nuevo' },
       { name: 'Desempeño de Consignaciones', path: '/reportes/consignaciones', badge: 'Nuevo' },
-    ]
+    ],
+    hasDividerAfter: true
+  },
+
+  // Grupo 3
+  { 
+    title: 'Mi Portal', path: '/mi-portal', icon: <UserCircle size={20} /> 
+  },
+  { 
+    title: 'Preferencias', path: '/preferencias/general', icon: <Settings size={20} />, 
+    requiredPermission: ['sys_settings_access', 'sys_users'] 
   }
 ];
 
-export const footerNodes: MenuNode[] = [
-  { title: 'Preferencias', path: '/preferencias/general', icon: <Settings size={20} />, requiredPermission: ['sys_settings_access', 'sys_users'] },
-];
+export const footerNodes: MenuNode[] = [];
