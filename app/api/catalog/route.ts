@@ -34,37 +34,11 @@ export async function GET(request: NextRequest) {
     filteredRaw.forEach(item => {
       const sku = item.sku;
       if (!aggregated[sku]) {
-        let category = 'premios';
-        const nameLower = (item.name || '').toLowerCase();
-        const catLower = (item.category || '').toLowerCase();
-        
-        if (nameLower.includes('alimento') || nameLower.includes('croquetas') || nameLower.includes('receta')) {
-          if (nameLower.includes('perro') || nameLower.includes('dog')) {
-            category = 'perros';
-          } else if (nameLower.includes('gato') || nameLower.includes('cat') || nameLower.includes('kitten')) {
-            category = 'gatos';
-          } else {
-            category = 'perros';
-          }
-        } else if (nameLower.includes('premio') || nameLower.includes('snack') || nameLower.includes('stick') || nameLower.includes('galleta') || nameLower.includes('hueso') || nameLower.includes('premios')) {
-          category = 'premios';
-        } else if (nameLower.includes('juguete') || nameLower.includes('pelota') || nameLower.includes('mordedera') || nameLower.includes('kong')) {
-          category = 'juguetes';
-        } else if (nameLower.includes('shampoo') || nameLower.includes('jabon') || nameLower.includes('talco') || nameLower.includes('cepillo') || nameLower.includes('higiene') || nameLower.includes('jabón')) {
-          category = 'higiene';
-        } else if (catLower.includes('farmacia') || nameLower.includes('ampolleta') || nameLower.includes('pastilla') || nameLower.includes('tableta') || nameLower.includes('desparasitante') || nameLower.includes('vitamina') || nameLower.includes('medicamento')) {
-          category = 'farmacia';
-        } else {
-          if (catLower.includes('juguetes') || catLower.includes('regalos')) {
-            category = 'juguetes';
-          } else if (catLower.includes('farmacia')) {
-            category = 'farmacia';
-          } else if (nameLower.includes('gato') || nameLower.includes('cat')) {
-            category = 'gatos';
-          } else {
-            category = 'perros';
-          }
+        let category = item.category ? item.category.trim() : 'General';
+        if (category === '') {
+          category = 'General';
         }
+        const nameLower = (item.name || '').toLowerCase();
 
         let brand = item.brand || 'PETQRO';
         if (brand === 'null' || !brand) {
