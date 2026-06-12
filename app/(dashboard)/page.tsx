@@ -2,8 +2,17 @@ import { prisma } from '@/lib/prisma';
 import { getActiveBranch } from '@/app/actions/auth';
 import { ShoppingCart, PackagePlus, DollarSign, WalletCards } from 'lucide-react';
 import Link from 'next/link';
-import DashboardCharts from './DashboardCharts';
+import dynamic from 'next/dynamic';
 import { getLocalTodayRange, getUtcDateFromLocal } from '@/app/lib/timezone';
+
+const DashboardCharts = dynamic(() => import('./DashboardCharts'), {
+  ssr: false,
+  loading: () => (
+    <div style={{ height: '350px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Cargando gráficas de rendimiento...</span>
+    </div>
+  )
+});
 
 interface Props {
   searchParams: Promise<{

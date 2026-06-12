@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
@@ -26,11 +26,6 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
   const [endDate, setEndDate] = useState(initialEndDate);
   const [isUpdating, setIsUpdating] = useState(false);
   const [groupBy, setGroupBy] = useState<'day' | 'week' | 'month' | 'year'>('day');
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const handleFilter = () => {
     setIsUpdating(true);
@@ -129,29 +124,27 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
         
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           {/* Selector de Agrupamiento */}
-          {mounted && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#475569' }}>Agrupar:</span>
-              <select
-                value={groupBy}
-                onChange={(e) => setGroupBy(e.target.value as any)}
-                style={{
-                  border: '1px solid #cbd5e1',
-                  padding: '0.4rem 0.75rem',
-                  borderRadius: '6px',
-                  fontSize: '0.875rem',
-                  outline: 'none',
-                  color: '#1e293b',
-                  backgroundColor: 'white'
-                }}
-              >
-                <option value="day">Por Día</option>
-                <option value="week">Por Semana</option>
-                <option value="month">Por Mes</option>
-                <option value="year">Por Año</option>
-              </select>
-            </div>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#475569' }}>Agrupar:</span>
+            <select
+              value={groupBy}
+              onChange={(e) => setGroupBy(e.target.value as any)}
+              style={{
+                border: '1px solid #cbd5e1',
+                padding: '0.4rem 0.75rem',
+                borderRadius: '6px',
+                fontSize: '0.875rem',
+                outline: 'none',
+                color: '#1e293b',
+                backgroundColor: 'white'
+              }}
+            >
+              <option value="day">Por Día</option>
+              <option value="week">Por Semana</option>
+              <option value="month">Por Mes</option>
+              <option value="year">Por Año</option>
+            </select>
+          </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#475569' }}>Desde:</span>
