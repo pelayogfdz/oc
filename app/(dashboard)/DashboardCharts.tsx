@@ -108,14 +108,6 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
     return Object.values(groups).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
   })();
 
-  if (!mounted) {
-    return (
-      <div style={{ height: '350px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Cargando gráficas de rendimiento...</span>
-      </div>
-    );
-  }
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
       {/* Filtros Bar */}
@@ -137,27 +129,29 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
         
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           {/* Selector de Agrupamiento */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#475569' }}>Agrupar:</span>
-            <select
-              value={groupBy}
-              onChange={(e) => setGroupBy(e.target.value as any)}
-              style={{
-                border: '1px solid #cbd5e1',
-                padding: '0.4rem 0.75rem',
-                borderRadius: '6px',
-                fontSize: '0.875rem',
-                outline: 'none',
-                color: '#1e293b',
-                backgroundColor: 'white'
-              }}
-            >
-              <option value="day">Por Día</option>
-              <option value="week">Por Semana</option>
-              <option value="month">Por Mes</option>
-              <option value="year">Por Año</option>
-            </select>
-          </div>
+          {mounted && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#475569' }}>Agrupar:</span>
+              <select
+                value={groupBy}
+                onChange={(e) => setGroupBy(e.target.value as any)}
+                style={{
+                  border: '1px solid #cbd5e1',
+                  padding: '0.4rem 0.75rem',
+                  borderRadius: '6px',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                  color: '#1e293b',
+                  backgroundColor: 'white'
+                }}
+              >
+                <option value="day">Por Día</option>
+                <option value="week">Por Semana</option>
+                <option value="month">Por Mes</option>
+                <option value="year">Por Año</option>
+              </select>
+            </div>
+          )}
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#475569' }}>Desde:</span>
