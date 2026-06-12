@@ -13,7 +13,26 @@ export default function CrearCompraForm({ suppliers, products, branchId }: { sup
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [freightCost, setFreightCost] = useState(0);
   const [notes, setNotes] = useState('');
-  const [items, setItems] = useState<{ productId: string, name: string, quantity: number, cost: number, imageUrl?: string, batchNumber?: string, expirationDate?: string }[]>([]);
+  const [items, setItems] = useState<{ 
+    productId: string, 
+    name: string, 
+    quantity: number, 
+    cost: number, 
+    imageUrl?: string, 
+    batchNumber?: string, 
+    expirationDate?: string,
+    sku?: string,
+    hasTraceability?: boolean,
+    pedimento?: string,
+    pedimentoDate?: string,
+    crePermitSupplier?: string,
+    crePermitCarrier?: string,
+    density?: number,
+    temperature?: number,
+    octane?: number,
+    volume20c?: number,
+    certNumber?: string
+  }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [isMounted, setIsMounted] = useState(false);
@@ -120,7 +139,24 @@ export default function CrearCompraForm({ suppliers, products, branchId }: { sup
   const handleAddItem = (product: any) => {
     if (!product || !product.id) return;
     if (items.some(i => i.productId === product.id)) return;
-    setItems([...items, { productId: product.id, name: product.name, quantity: 1, cost: product.cost, imageUrl: product.imageUrl }]);
+    setItems([...items, { 
+      productId: product.id, 
+      name: product.name, 
+      quantity: 1, 
+      cost: product.cost, 
+      imageUrl: product.imageUrl,
+      hasTraceability: product.hasTraceability || false,
+      sku: product.sku || '',
+      pedimento: '',
+      pedimentoDate: '',
+      crePermitSupplier: '',
+      crePermitCarrier: '',
+      density: undefined,
+      temperature: undefined,
+      octane: undefined,
+      volume20c: undefined,
+      certNumber: ''
+    }]);
   };
 
   const handleUpdateItem = (index: number, field: string, value: any) => {
@@ -371,125 +407,246 @@ export default function CrearCompraForm({ suppliers, products, branchId }: { sup
                 <div 
                   key={`${item.productId}-${idx}`} 
                   style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: '52px 1.5fr 70px 100px 90px 120px 90px 40px', 
-                    alignItems: 'center', 
-                    padding: '0.85rem 1rem', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '0.75rem', 
                     backgroundColor: 'white', 
                     borderRadius: '12px', 
                     border: '1px solid #cbd5e1',
-                    gap: '0.75rem'
+                    padding: '1rem'
                   }}
                 >
-                  {/* Image or Initials */}
+                  {/* Main Product Row */}
                   <div style={{
-                    width: '52px',
-                    height: '52px',
-                    borderRadius: '10px',
-                    backgroundColor: '#f1f5f9',
-                    color: '#64748b',
-                    fontWeight: 'bold',
-                    fontSize: '0.95rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    overflow: 'hidden'
+                    display: 'grid', 
+                    gridTemplateColumns: '52px 1.5fr 70px 100px 90px 120px 90px 40px', 
+                    alignItems: 'center', 
+                    gap: '0.75rem'
                   }}>
-                    {item.imageUrl ? (
-                      <img 
-                        src={item.imageUrl} 
-                        alt={item.name} 
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const parent = e.currentTarget.parentElement;
-                          if (parent) {
-                            parent.innerHTML = `<span>${item.name.substring(0, 2).toUpperCase()}</span>`;
-                          }
-                        }}
-                      />
-                    ) : (
-                      <span>{item.name.substring(0, 2).toUpperCase()}</span>
-                    )}
-                  </div>
+                    {/* Image or Initials */}
+                    <div style={{
+                      width: '52px',
+                      height: '52px',
+                      borderRadius: '10px',
+                      backgroundColor: '#f1f5f9',
+                      color: '#64748b',
+                      fontWeight: 'bold',
+                      fontSize: '0.95rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden'
+                    }}>
+                      {item.imageUrl ? (
+                        <img 
+                          src={item.imageUrl} 
+                          alt={item.name} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `<span>${item.name.substring(0, 2).toUpperCase()}</span>`;
+                            }
+                          }}
+                        />
+                      ) : (
+                        <span>{item.name.substring(0, 2).toUpperCase()}</span>
+                      )}
+                    </div>
 
-                  {/* Name and SKU */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '0.9rem', lineHeight: '1.2' }}>{item.name}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>SKU: {item.sku || 'S/N'}</div>
-                  </div>
+                    {/* Name and SKU */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '0.9rem', lineHeight: '1.2' }}>{item.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>SKU: {item.sku || 'S/N'}</div>
+                    </div>
 
-                  {/* Quantity field */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Cant.</span>
-                    <input 
-                      type="number" 
-                      min="1" 
-                      value={item.quantity} 
-                      onChange={(e) => handleUpdateItem(idx, 'quantity', parseInt(e.target.value) || 1)} 
-                      style={{ width: '100%', height: '36px', textAlign: 'center', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem', outline: 'none', backgroundColor: 'white' }} 
-                    />
-                  </div>
-                  
-                  {/* Cost field */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Costo Unit.</span>
-                    <div style={{ position: 'relative', width: '100%' }}>
-                      <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem', color: '#64748b' }}>$</span>
+                    {/* Quantity field */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Cant.</span>
                       <input 
                         type="number" 
-                        step="0.01" 
-                        min="0"
-                        value={item.cost} 
-                        onChange={(e) => handleUpdateItem(idx, 'cost', parseFloat(e.target.value) || 0)} 
-                        style={{ width: '100%', height: '36px', padding: '0 0.5rem 0 1.15rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.85rem', outline: 'none', textAlign: 'right', backgroundColor: 'white' }} 
+                        min="1" 
+                        value={item.quantity} 
+                        onChange={(e) => handleUpdateItem(idx, 'quantity', parseInt(e.target.value) || 1)} 
+                        style={{ width: '100%', height: '36px', textAlign: 'center', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem', outline: 'none', backgroundColor: 'white' }} 
                       />
+                    </div>
+                    
+                    {/* Cost field */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Costo Unit.</span>
+                      <div style={{ position: 'relative', width: '100%' }}>
+                        <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem', color: '#64748b' }}>$</span>
+                        <input 
+                          type="number" 
+                          step="0.01" 
+                          min="0"
+                          value={item.cost} 
+                          onChange={(e) => handleUpdateItem(idx, 'cost', parseFloat(e.target.value) || 0)} 
+                          style={{ width: '100%', height: '36px', padding: '0 0.5rem 0 1.15rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.85rem', outline: 'none', textAlign: 'right', backgroundColor: 'white' }} 
+                        />
+                      </div>
+                    </div>
+
+                    {/* Batch field */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Lote</span>
+                      <input 
+                        type="text" 
+                        placeholder="Lote" 
+                        value={item.batchNumber || ''} 
+                        onChange={(e) => handleUpdateItem(idx, 'batchNumber', e.target.value)} 
+                        style={{ width: '100%', height: '36px', padding: '0 0.5rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', outline: 'none', backgroundColor: 'white' }} 
+                      />
+                    </div>
+
+                    {/* Expiration date */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Caducidad</span>
+                      <input 
+                        type="date" 
+                        value={item.expirationDate || ''} 
+                        onChange={(e) => handleUpdateItem(idx, 'expirationDate', e.target.value)} 
+                        style={{ width: '100%', height: '36px', padding: '0 0.25rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', outline: 'none', backgroundColor: 'white' }} 
+                      />
+                    </div>
+
+                    {/* Subtotal */}
+                    <div style={{ textAlign: 'right', paddingRight: '0.5rem' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', textTransform: 'uppercase', fontWeight: 'bold' }}>Subtotal</span>
+                      <span style={{ fontWeight: '800', color: '#1e293b', fontSize: '0.95rem' }}>
+                        ${(item.quantity * item.cost).toFixed(2)}
+                      </span>
+                    </div>
+
+                    {/* Delete button */}
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      <button 
+                        type="button"
+                        onClick={() => setItems(items.filter((_, i) => i !== idx))} 
+                        style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        title="Eliminar artículo"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   </div>
 
-                  {/* Batch field */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Lote</span>
-                    <input 
-                      type="text" 
-                      placeholder="Lote" 
-                      value={item.batchNumber || ''} 
-                      onChange={(e) => handleUpdateItem(idx, 'batchNumber', e.target.value)} 
-                      style={{ width: '100%', height: '36px', padding: '0 0.5rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', outline: 'none', backgroundColor: 'white' }} 
-                    />
-                  </div>
-
-                  {/* Expiration date */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Caducidad</span>
-                    <input 
-                      type="date" 
-                      value={item.expirationDate || ''} 
-                      onChange={(e) => handleUpdateItem(idx, 'expirationDate', e.target.value)} 
-                      style={{ width: '100%', height: '36px', padding: '0 0.25rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', outline: 'none', backgroundColor: 'white' }} 
-                    />
-                  </div>
-
-                  {/* Subtotal */}
-                  <div style={{ textAlign: 'right', paddingRight: '0.5rem' }}>
-                    <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', textTransform: 'uppercase', fontWeight: 'bold' }}>Subtotal</span>
-                    <span style={{ fontWeight: '800', color: '#1e293b', fontSize: '0.95rem' }}>
-                      ${(item.quantity * item.cost).toFixed(2)}
-                    </span>
-                  </div>
-
-                  {/* Delete button */}
-                  <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <button 
-                      type="button"
-                      onClick={() => setItems(items.filter((_, i) => i !== idx))} 
-                      style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      title="Eliminar artículo"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-
+                  {/* Traceability Fields (Show only if fuel traceability is active) */}
+                  {item.hasTraceability && (
+                    <div style={{ 
+                      marginTop: '0.5rem', 
+                      paddingTop: '0.75rem', 
+                      borderTop: '1px dashed #e2e8f0', 
+                      backgroundColor: '#f8fafc', 
+                      borderRadius: '8px', 
+                      padding: '0.75rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.75rem'
+                    }}>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        ⛽ Datos de Trazabilidad de Combustible
+                      </div>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.2rem' }}>No. Pedimento</label>
+                          <input 
+                            type="text" 
+                            placeholder="Ej. 26-..." 
+                            value={item.pedimento || ''} 
+                            onChange={(e) => handleUpdateItem(idx, 'pedimento', e.target.value)} 
+                            style={{ width: '100%', height: '32px', padding: '0 0.5rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem', outline: 'none' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.2rem' }}>Fecha Pedimento</label>
+                          <input 
+                            type="date" 
+                            value={item.pedimentoDate || ''} 
+                            onChange={(e) => handleUpdateItem(idx, 'pedimentoDate', e.target.value)} 
+                            style={{ width: '100%', height: '32px', padding: '0 0.25rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem', outline: 'none' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.2rem' }}>Permiso CRE Proveedor</label>
+                          <input 
+                            type="text" 
+                            placeholder="PL/..." 
+                            value={item.crePermitSupplier || ''} 
+                            onChange={(e) => handleUpdateItem(idx, 'crePermitSupplier', e.target.value)} 
+                            style={{ width: '100%', height: '32px', padding: '0 0.5rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem', outline: 'none' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.2rem' }}>Permiso CRE Transportista</label>
+                          <input 
+                            type="text" 
+                            placeholder="PL/..." 
+                            value={item.crePermitCarrier || ''} 
+                            onChange={(e) => handleUpdateItem(idx, 'crePermitCarrier', e.target.value)} 
+                            style={{ width: '100%', height: '32px', padding: '0 0.5rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem', outline: 'none' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.2rem' }}>Densidad (kg/m³)</label>
+                          <input 
+                            type="number" 
+                            step="0.01" 
+                            placeholder="Ej. 745.2" 
+                            value={item.density !== undefined ? item.density : ''} 
+                            onChange={(e) => handleUpdateItem(idx, 'density', e.target.value ? parseFloat(e.target.value) : undefined)} 
+                            style={{ width: '100%', height: '32px', padding: '0 0.5rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem', outline: 'none' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.2rem' }}>Temperatura (°C)</label>
+                          <input 
+                            type="number" 
+                            step="0.1" 
+                            placeholder="Ej. 15.5" 
+                            value={item.temperature !== undefined ? item.temperature : ''} 
+                            onChange={(e) => handleUpdateItem(idx, 'temperature', e.target.value ? parseFloat(e.target.value) : undefined)} 
+                            style={{ width: '100%', height: '32px', padding: '0 0.5rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem', outline: 'none' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.2rem' }}>Octanaje</label>
+                          <input 
+                            type="number" 
+                            step="0.1" 
+                            placeholder="Ej. 87 / 91" 
+                            value={item.octane !== undefined ? item.octane : ''} 
+                            onChange={(e) => handleUpdateItem(idx, 'octane', e.target.value ? parseFloat(e.target.value) : undefined)} 
+                            style={{ width: '100%', height: '32px', padding: '0 0.5rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem', outline: 'none' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.2rem' }}>Volumen 20°C (Lts)</label>
+                          <input 
+                            type="number" 
+                            step="0.1" 
+                            placeholder="Volumen" 
+                            value={item.volume20c !== undefined ? item.volume20c : ''} 
+                            onChange={(e) => handleUpdateItem(idx, 'volume20c', e.target.value ? parseFloat(e.target.value) : undefined)} 
+                            style={{ width: '100%', height: '32px', padding: '0 0.5rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem', outline: 'none' }}
+                          />
+                        </div>
+                        <div style={{ gridColumn: 'span 2' }}>
+                          <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.2rem' }}>No. Certificado de Calidad</label>
+                          <input 
+                            type="text" 
+                            placeholder="No. Certificado" 
+                            value={item.certNumber || ''} 
+                            onChange={(e) => handleUpdateItem(idx, 'certNumber', e.target.value)} 
+                            style={{ width: '100%', height: '32px', padding: '0 0.5rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem', outline: 'none' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))
             )}

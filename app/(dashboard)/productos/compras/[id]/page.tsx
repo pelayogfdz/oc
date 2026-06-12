@@ -18,8 +18,12 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
       supplier: true,
       branch: true,
       items: {
-        include: { product: true }
-      }
+        include: { 
+          product: true,
+          fuelTraceability: true
+        }
+      },
+      fuelTransaction: true
     }
   });
 
@@ -29,7 +33,7 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
   if (branch.id !== 'GLOBAL' && branch.id !== purchase.branchId) {
     return (
       <div style={{ padding: '3rem', textAlign: 'center', backgroundColor: '#fee2e2', borderRadius: '12px', color: '#991b1b', border: '1px solid #f87171', margin: '2rem auto', maxWidth: '600px' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>NO AUTORIZADO</h2>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>NO AUTORIZADO</h2>
         <p>No tienes permisos para visualizar esta compra en esta sucursal.</p>
       </div>
     );
@@ -89,6 +93,71 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
           </div>
         </div>
 
+        {/* Documentación y Evidencia de Combustible */}
+        {purchase.fuelTransaction && (
+          <div style={{ padding: '1.25rem', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #cbd5e1', marginBottom: '2rem' }}>
+            <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '0.95rem', fontWeight: 'bold', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              📁 Documentación y Evidencias de Combustible (Embarque: {purchase.fuelTransaction.folio || 'Asociado'})
+            </h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+              {purchase.fuelTransaction.purchaseReceipt ? (
+                <a href={purchase.fuelTransaction.purchaseReceipt} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.85rem', textDecoration: 'none', color: '#1e293b', fontWeight: 'bold' }}>
+                  📄 Recibo de Compra (Abrir)
+                </a>
+              ) : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.85rem', color: '#94a3b8' }}>
+                  📄 Recibo de Compra (No cargado)
+                </span>
+              )}
+
+              {purchase.fuelTransaction.supplierInvoice ? (
+                <a href={purchase.fuelTransaction.supplierInvoice} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.85rem', textDecoration: 'none', color: '#1e293b', fontWeight: 'bold' }}>
+                  🧾 Factura Proveedor (Abrir)
+                </a>
+              ) : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.85rem', color: '#94a3b8' }}>
+                  🧾 Factura Proveedor (No cargado)
+                </span>
+              )}
+
+              {purchase.fuelTransaction.shippingDoc ? (
+                <a href={purchase.fuelTransaction.shippingDoc} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: '#e0f2fe', border: '1px solid #bae6fd', borderRadius: '6px', fontSize: '0.85rem', textDecoration: 'none', color: '#0369a1', fontWeight: 'bold' }}>
+                  🚚 Carta Porte / Embarque
+                </a>
+              ) : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.85rem', color: '#94a3b8' }}>
+                  🚚 Carta Porte (No cargado)
+                </span>
+              )}
+
+              {purchase.fuelTransaction.customerInvoice ? (
+                <a href={purchase.fuelTransaction.customerInvoice} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.85rem', textDecoration: 'none', color: '#1e293b', fontWeight: 'bold' }}>
+                  💰 Factura Cliente (Abrir)
+                </a>
+              ) : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.85rem', color: '#94a3b8' }}>
+                  💰 Factura Cliente (No cargado)
+                </span>
+              )}
+
+              {purchase.fuelTransaction.evidencePhoto ? (
+                <a href={purchase.fuelTransaction.evidencePhoto} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: '#dcfce7', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '0.85rem', textDecoration: 'none', color: '#166534', fontWeight: 'bold' }}>
+                  📷 Evidencia Fotográfica (Ver)
+                </a>
+              ) : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.85rem', color: '#94a3b8' }}>
+                  📷 Evidencia Fotográfica (Pendiente)
+                </span>
+              )}
+            </div>
+            {purchase.fuelTransaction.evidenceNotes && (
+              <div style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: '#475569', backgroundColor: 'white', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                <strong>Notas de Entrega:</strong> {purchase.fuelTransaction.evidenceNotes}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Items Table */}
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', marginBottom: '2rem' }}>
           <thead>
@@ -105,6 +174,25 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
                 <td data-label="Artículo" style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: 'bold', color: '#0f172a' }}>{item.product?.name || 'Desconocido'}</div>
                   <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>SKU: {item.product?.sku || '--'}</div>
+                  
+                  {item.fuelTraceability && (
+                    <div style={{ marginTop: '0.5rem', padding: '0.75rem', backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '8px', fontSize: '0.8rem', color: '#0369a1', maxWidth: '600px' }}>
+                      <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '0.35rem' }}>
+                        ⛽ Trazabilidad de Combustible
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.4rem' }}>
+                        {item.fuelTraceability.pedimento && <div><strong>Pedimento:</strong> {item.fuelTraceability.pedimento}</div>}
+                        {item.fuelTraceability.pedimentoDate && <div><strong>Fecha Ped.:</strong> {new Date(item.fuelTraceability.pedimentoDate).toLocaleDateString('es-MX')}</div>}
+                        {item.fuelTraceability.density && <div><strong>Densidad:</strong> {item.fuelTraceability.density} kg/m³</div>}
+                        {item.fuelTraceability.temperature && <div><strong>Temp:</strong> {item.fuelTraceability.temperature} °C</div>}
+                        {item.fuelTraceability.octane && <div><strong>Octanaje:</strong> {item.fuelTraceability.octane}</div>}
+                        {item.fuelTraceability.volume20c && <div><strong>Vol. @ 20°C:</strong> {item.fuelTraceability.volume20c} Lts</div>}
+                        {item.fuelTraceability.crePermitSupplier && <div><strong>CRE Prov:</strong> {item.fuelTraceability.crePermitSupplier}</div>}
+                        {item.fuelTraceability.crePermitCarrier && <div><strong>CRE Transp:</strong> {item.fuelTraceability.crePermitCarrier}</div>}
+                        {item.fuelTraceability.certNumber && <div style={{ gridColumn: 'span 2' }}><strong>Cert. Calidad:</strong> {item.fuelTraceability.certNumber}</div>}
+                      </div>
+                    </div>
+                  )}
                 </td>
                 <td data-label="Cant." style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'center', color: '#0f172a' }}>{item.quantity}</td>
                 <td data-label="Costo Unit." style={{ padding: '1rem', textAlign: 'right', color: '#0f172a' }}>${item.cost.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>

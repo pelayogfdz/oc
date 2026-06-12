@@ -12,7 +12,7 @@ export default async function NuevaCompraPage() {
   const query = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
   const products = await prisma.product.findMany({
     where: query,
-    select: { id: true, name: true, stock: true, cost: true }
+    select: { id: true, name: true, stock: true, cost: true, hasTraceability: true, sku: true }
   });
   
   const suppliers = await prisma.supplier.findMany({

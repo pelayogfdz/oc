@@ -5,7 +5,22 @@ import { revalidatePath } from 'next/cache';
 import { getActiveBranch, getActiveUser } from './auth';
 
 export async function createPurchase(
-  items: { productId: string; quantity: number; cost: number; batchNumber?: string; expirationDate?: string }[], 
+  items: { 
+    productId: string; 
+    quantity: number; 
+    cost: number; 
+    batchNumber?: string; 
+    expirationDate?: string;
+    pedimento?: string;
+    pedimentoDate?: string;
+    crePermitSupplier?: string;
+    crePermitCarrier?: string;
+    density?: number;
+    temperature?: number;
+    octane?: number;
+    volume20c?: number;
+    certNumber?: string;
+  }[], 
   total: number,
   paymentMethod: string = 'CASH',
   supplierId: string | null = null,
@@ -117,7 +132,7 @@ export async function createPurchase(
         }
 
         // Create PurchaseItem
-        await tx.purchaseItem.create({
+        const purchaseItem = await tx.purchaseItem.create({
           data: {
             purchaseId: purchase.id,
             productId: item.productId,
@@ -126,6 +141,32 @@ export async function createPurchase(
             batchId: batchId
           }
         });
+
+        // Register FuelTraceability if fields are provided
+        if (item.pedimento || item.density !== undefined || item.crePermitSupplier || item.certNumber) {
+          let pedDate = null;
+          if (item.pedimentoDate) {
+            pedDate = new Date(item.pedimentoDate);
+            if (isNaN(pedDate.getTime())) {
+              pedDate = null;
+            }
+          }
+          await tx.fuelTraceability.create({
+            data: {
+              productId: item.productId,
+              purchaseItemId: purchaseItem.id,
+              pedimento: item.pedimento || null,
+              pedimentoDate: pedDate,
+              crePermitSupplier: item.crePermitSupplier || null,
+              crePermitCarrier: item.crePermitCarrier || null,
+              density: item.density ? Number(item.density) : null,
+              temperature: item.temperature ? Number(item.temperature) : null,
+              octane: item.octane ? Number(item.octane) : null,
+              volume20c: item.volume20c ? Number(item.volume20c) : null,
+              certNumber: item.certNumber || null
+            }
+          });
+        }
 
         const currentStock = product.stock > 0 ? product.stock : 0;
         const currentAverage = product.averageCost || 0;

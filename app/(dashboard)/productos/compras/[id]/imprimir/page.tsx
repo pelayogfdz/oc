@@ -15,7 +15,10 @@ export default async function PrintPurchasePage({ params }: { params: Promise<{ 
       supplier: true,
       user: true,
       items: {
-        include: { product: true }
+        include: { 
+          product: true,
+          fuelTraceability: true
+        }
       }
     }
   });
@@ -148,7 +151,25 @@ export default async function PrintPurchasePage({ params }: { params: Promise<{ 
               <tr key={item.id}>
                 <td style={{ fontWeight: 'bold', textAlign: 'center', fontSize: '1.1rem' }}>{item.quantity}</td>
                 <td style={{ fontFamily: 'monospace', color: '#475569' }}>{item.product?.sku || '--'}</td>
-                <td style={{ fontWeight: '500', color: '#1e293b' }}>{item.product?.name || 'Desconocido'}</td>
+                <td style={{ fontWeight: '500', color: '#1e293b' }}>
+                  <div>{item.product?.name || 'Desconocido'}</div>
+                  {item.fuelTraceability && (
+                    <div style={{ marginTop: '0.4rem', padding: '0.4rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem', color: '#475569', backgroundColor: '#f8fafc' }}>
+                      <span style={{ fontWeight: 'bold', display: 'block', color: '#1e293b', marginBottom: '0.2rem' }}>Trazabilidad de Combustible:</span>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.25rem' }}>
+                        {item.fuelTraceability.pedimento && <div><strong>Pedimento:</strong> {item.fuelTraceability.pedimento}</div>}
+                        {item.fuelTraceability.pedimentoDate && <div><strong>Fecha Ped.:</strong> {new Date(item.fuelTraceability.pedimentoDate).toLocaleDateString('es-MX')}</div>}
+                        {item.fuelTraceability.density && <div><strong>Densidad:</strong> {item.fuelTraceability.density} kg/m³</div>}
+                        {item.fuelTraceability.temperature && <div><strong>Temp:</strong> {item.fuelTraceability.temperature} °C</div>}
+                        {item.fuelTraceability.octane && <div><strong>Octanaje:</strong> {item.fuelTraceability.octane}</div>}
+                        {item.fuelTraceability.volume20c && <div><strong>Vol. 20°C:</strong> {item.fuelTraceability.volume20c} Lts</div>}
+                        {item.fuelTraceability.crePermitSupplier && <div><strong>CRE Prov:</strong> {item.fuelTraceability.crePermitSupplier}</div>}
+                        {item.fuelTraceability.crePermitCarrier && <div><strong>CRE Transp:</strong> {item.fuelTraceability.crePermitCarrier}</div>}
+                        {item.fuelTraceability.certNumber && <div style={{ gridColumn: 'span 2' }}><strong>Cert. Calidad:</strong> {item.fuelTraceability.certNumber}</div>}
+                      </div>
+                    </div>
+                  )}
+                </td>
                 <td style={{ textAlign: 'right' }}>${item.cost.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
                 <td style={{ textAlign: 'right', fontWeight: '600' }}>${(item.cost * item.quantity).toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
               </tr>
