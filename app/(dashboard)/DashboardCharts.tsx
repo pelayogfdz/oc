@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
@@ -26,6 +26,11 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
   const [endDate, setEndDate] = useState(initialEndDate);
   const [isUpdating, setIsUpdating] = useState(false);
   const [groupBy, setGroupBy] = useState<'day' | 'week' | 'month' | 'year'>('day');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleFilter = () => {
     setIsUpdating(true);
@@ -102,6 +107,14 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
 
     return Object.values(groups).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
   })();
+
+  if (!mounted) {
+    return (
+      <div style={{ height: '350px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Cargando gráficas de rendimiento...</span>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
