@@ -9,13 +9,16 @@ import {
 import { registerAttendanceAdmin, getFilteredAttendanceLogs } from '@/app/actions/hr';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { formatTime12h as formatTime12hUtil, formatDateLocal } from '@/app/lib/timezone';
 
 export default function MonitoreoClient({ 
   users, 
-  branches 
+  branches,
+  timezone
 }: { 
   users: any[]; 
-  branches: any[]; 
+  branches: any[];
+  timezone: string;
 }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'today' | 'history'>('today');
@@ -195,18 +198,7 @@ export default function MonitoreoClient({
               const checkOut = logs.find((l: any) => l.type === 'CHECK_OUT');
 
               const formatTime12h = (dateStr: string | Date) => {
-                const date = new Date(dateStr);
-                const timeString = date.toLocaleTimeString('es-MX', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: true
-                });
-                return timeString
-                  .toLowerCase()
-                  .replace(/\s+/g, '')
-                  .replace(/([ap]\.?m\.?)/g, ' $1')
-                  .replace(/am/g, 'a.m.')
-                  .replace(/pm/g, 'p.m.');
+                return formatTime12hUtil(dateStr, timezone);
               };
 
               let statusColor = '#94a3b8'; // default (no data)
@@ -704,10 +696,10 @@ export default function MonitoreoClient({
                           {/* Date and time */}
                           <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.85rem', color: '#334155' }}>
                             <span style={{ display: 'block', fontWeight: '600' }}>
-                              {logDate.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                              {formatDateLocal(log.timestamp, timezone)}
                             </span>
                             <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                              🕒 {logDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                              🕒 {formatTime12hUtil(log.timestamp, timezone)}
                             </span>
                           </td>
 

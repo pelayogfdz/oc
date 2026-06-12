@@ -13,7 +13,7 @@ const typeLabels: Record<string, string> = {
   PATERNITY_LEAVE: 'Paternidad',
 };
 
-export default function TramitesClient({ requests }: { requests: any[] }) {
+export default function TramitesClient({ requests, timezone }: { requests: any[], timezone: string }) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingReq, setEditingReq] = useState<any>(null);
 
@@ -79,7 +79,7 @@ export default function TramitesClient({ requests }: { requests: any[] }) {
                     <td data-label="Empleado" style={{ padding: '1rem', fontWeight: '500' }}>{req.user?.name}</td>
                     <td data-label="Tipo" style={{ padding: '1rem' }}>{typeLabels[req.type] || req.type}</td>
                     <td data-label="Fechas" style={{ padding: '1rem', fontSize: '0.9rem', color: '#64748b' }}>
-                      {new Date(req.startDate).toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City' })} - {new Date(req.endDate).toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City' })}
+                      {new Date(req.startDate).toLocaleDateString('es-MX', { timeZone: timezone })} - {new Date(req.endDate).toLocaleDateString('es-MX', { timeZone: timezone })}
                     </td>
                     <td data-label="Estado" style={{ padding: '1rem' }}>
                       {req.status === 'PENDING' && <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Clock size={16} /> Pendiente</span>}

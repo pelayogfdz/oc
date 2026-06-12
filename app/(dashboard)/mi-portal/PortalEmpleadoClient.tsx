@@ -4,14 +4,17 @@ import { useState, useEffect, useRef } from 'react';
 import { Clock, MapPin, CalendarDays, CheckCircle2, AlertTriangle, FileText, User, Camera, Fingerprint } from 'lucide-react';
 import { registerAttendance, createLeaveRequest, registerFaceDescriptor, registerFingerprintCredential } from '@/app/actions/hr';
 import FaceRecognitionClient from './FaceRecognitionClient';
+import { formatTime12h } from '@/app/lib/timezone';
 
 export default function PortalEmpleadoClient({ 
   user,
+  timezone,
   totalVacationDays = 0,
   usedVacationDays = 0,
   availableVacationDays = 0
 }: { 
   user: any;
+  timezone: string;
   totalVacationDays?: number;
   usedVacationDays?: number;
   availableVacationDays?: number;
@@ -280,8 +283,44 @@ export default function PortalEmpleadoClient({
     }
   };
 
-  const todayStart = new Date();
-  todayStart.setHours(0,0,0,0);
+  const getUtcDateFromLocal = (y: number, m: number, d: number, h: number, min: number, s: number, ms: number) => {
+    const approxUtc = new Date(Date.UTC(y, m - 1, d, h, min, s, ms));
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    const parts = formatter.formatToParts(approxUtc);
+    const lYear = parseInt(parts.find(p => p.type === 'year')!.value, 10);
+    const lMonth = parseInt(parts.find(p => p.type === 'month')!.value, 10);
+    const lDay = parseInt(parts.find(p => p.type === 'day')!.value, 10);
+    let lHour = parseInt(parts.find(p => p.type === 'hour')!.value, 10);
+    if (lHour === 24) lHour = 0;
+    const lMinute = parseInt(parts.find(p => p.type === 'minute')!.value, 10);
+    const lSecond = parseInt(parts.find(p => p.type === 'second')!.value, 10);
+
+    const localUtc = Date.UTC(lYear, lMonth - 1, lDay, lHour, lMinute, lSecond, ms);
+    const offset = approxUtc.getTime() - localUtc;
+    return new Date(approxUtc.getTime() + offset);
+  };
+
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const parts = formatter.formatToParts(new Date());
+  const year = parseInt(parts.find(p => p.type === 'year')!.value, 10);
+  const month = parseInt(parts.find(p => p.type === 'month')!.value, 10);
+  const day = parseInt(parts.find(p => p.type === 'day')!.value, 10);
+
+  const todayStart = getUtcDateFromLocal(year, month, day, 0, 0, 0, 0);
   
   const allLogs = user.attendanceLogs || [];
   const todayLogs = allLogs.filter((l: any) => new Date(l.timestamp) >= todayStart);
@@ -558,7 +597,7 @@ export default function PortalEmpleadoClient({
                           {log.type === 'CHECK_IN' ? 'Entrada' : 'Salida'}
                         </div>
                         <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                          {new Date(log.timestamp).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                          {formatTime12h(log.timestamp, timezone)}
                         </div>
                       </div>
                     </div>
@@ -594,7 +633,7 @@ export default function PortalEmpleadoClient({
                           {log.type === 'CHECK_IN' ? 'Entrada' : 'Salida'}
                         </div>
                         <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                          {new Date(log.timestamp).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })} - {new Date(log.timestamp).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(log.timestamp).toLocaleDateString('es-MX', { timeZone: timezone, weekday: 'short', day: 'numeric', month: 'short' })} - {formatTime12h(log.timestamp, timezone)}
                         </div>
                       </div>
                     </div>

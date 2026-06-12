@@ -26,5 +26,11 @@ export default async function TramitesPage() {
     }
   });
 
-  return <TramitesClient requests={requests} />;
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: session.tenantId },
+    select: { timezone: true }
+  });
+  const timezone = tenant?.timezone || 'America/Mexico_City';
+
+  return <TramitesClient requests={requests} timezone={timezone} />;
 }

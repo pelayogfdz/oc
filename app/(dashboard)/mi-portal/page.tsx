@@ -67,10 +67,17 @@ export default async function MiPortalPage() {
       return acc + diffDays;
     }, 0);
 
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: user.tenantId },
+    select: { timezone: true }
+  });
+  const timezone = tenant?.timezone || 'America/Mexico_City';
+
   const availableVacationDays = Math.max(0, totalVacationDays - usedVacationDays);
 
   return <PortalEmpleadoClient 
     user={user} 
+    timezone={timezone}
     totalVacationDays={totalVacationDays}
     usedVacationDays={usedVacationDays}
     availableVacationDays={availableVacationDays}

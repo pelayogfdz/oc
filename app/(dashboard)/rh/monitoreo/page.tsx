@@ -3,6 +3,7 @@ import { decrypt } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import MonitoreoClient from "./MonitoreoClient";
+import { getLocalTodayRange } from "@/app/lib/timezone";
 
 export default async function MonitoreoPage() {
   const sessionCookie = (await cookies()).get('session')?.value;
@@ -17,8 +18,13 @@ export default async function MonitoreoPage() {
     return <div>No tienes permisos para ver esta sección.</div>;
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: session.tenantId },
+    select: { timezone: true }
+  });
+  const timezone = tenant?.timezone || 'America/Mexico_City';
+
+  const { startUtc: today } = getLocalTodayRange(timezone);
 
   const users = await prisma.user.findMany({
     where: {
@@ -51,5 +57,5 @@ export default async function MonitoreoPage() {
     orderBy: { name: 'asc' }
   });
 
-  return <MonitoreoClient users={users} branches={branches} />;
+  return <MonitoreoClient users={users} branches={branches} timezone={timezone} />;
 }

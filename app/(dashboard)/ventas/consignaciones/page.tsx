@@ -16,6 +16,12 @@ export default async function ConsignacionesPage() {
     );
   }
 
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: branch.tenantId },
+    select: { timezone: true }
+  });
+  const timezone = tenant?.timezone || 'America/Mexico_City';
+
   const consignments = await prisma.consignment.findMany({
     where: { branchId: branch.id },
     orderBy: { createdAt: 'desc' },
@@ -61,7 +67,7 @@ export default async function ConsignacionesPage() {
                   #{consignment.folio || consignment.id.slice(0, 8).toUpperCase()}
                 </td>
                 <td data-label="Fecha" style={{ padding: '1.25rem 1rem', color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>
-                  {new Date(consignment.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}
+                  {new Date(consignment.createdAt).toLocaleString('es-MX', { timeZone: timezone })}
                 </td>
                 <td data-label="Cliente" style={{ padding: '1.25rem 1rem', fontSize: '0.9rem', fontWeight: '500' }}>
                   {consignment.customer?.name || 'Público en General'}

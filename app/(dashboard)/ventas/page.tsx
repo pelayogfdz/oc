@@ -75,12 +75,19 @@ export default async function VentasPage() {
     name: branch.name
   };
 
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: branch.tenantId },
+    select: { timezone: true }
+  });
+  const timezone = tenant?.timezone || 'America/Mexico_City';
+
   return (
     <VentasHistoryClient 
       initialSales={serializedSales} 
       branches={serializedBranches} 
       users={serializedUsers} 
       currentBranch={serializedBranch} 
+      timezone={timezone}
     />
   );
 }

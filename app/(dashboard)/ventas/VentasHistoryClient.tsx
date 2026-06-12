@@ -9,12 +9,14 @@ export default function VentasHistoryClient({
   initialSales,
   branches,
   users,
-  currentBranch
+  currentBranch,
+  timezone
 }: {
   initialSales: any[];
   branches: any[];
   users: any[];
   currentBranch: any;
+  timezone: string;
 }) {
   const [filterDate, setFilterDate] = useState('');
   const [filterUser, setFilterUser] = useState('');
@@ -37,7 +39,7 @@ export default function VentasHistoryClient({
     return initialSales.filter(sale => {
       // Date filter
       if (filterDate) {
-        const saleDateStr = new Date(sale.createdAt).toLocaleDateString('sv-SE', { timeZone: 'America/Mexico_City' });
+        const saleDateStr = new Date(sale.createdAt).toLocaleDateString('sv-SE', { timeZone: timezone });
         if (saleDateStr !== filterDate) return false;
       }
       
@@ -252,7 +254,7 @@ export default function VentasHistoryClient({
                     {sale.folio || sale.id.slice(0, 8).toUpperCase()}
                   </td>
                   <td data-label="Fecha / Hora" style={{ padding: '1rem' }}>
-                    {new Date(sale.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}
+                    {new Date(sale.createdAt).toLocaleString('es-MX', { timeZone: timezone })}
                   </td>
                   <td data-label="Cliente" style={{ padding: '1rem' }}>
                     {sale.customer ? (

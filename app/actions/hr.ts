@@ -47,6 +47,9 @@ export async function registerAttendance(data: {
 
     const now = data.timestamp ? new Date(data.timestamp) : new Date();
 
+    const tenant = user.tenantId ? await prisma.tenant.findUnique({ where: { id: user.tenantId }, select: { timezone: true } }) : null;
+    const tenantTimezone = tenant?.timezone || 'America/Mexico_City';
+
     if (lastLog) {
       const diffMinutes = (now.getTime() - lastLog.timestamp.getTime()) / (1000 * 60);
       if (diffMinutes < 10) {
@@ -54,7 +57,7 @@ export async function registerAttendance(data: {
       }
 
       const mxFormatter = new Intl.DateTimeFormat('es-MX', { 
-        timeZone: 'America/Mexico_City', 
+        timeZone: tenantTimezone, 
         year: 'numeric', 
         month: '2-digit', 
         day: '2-digit' 
@@ -192,7 +195,7 @@ export async function registerAttendance(data: {
       let expectedMinute = 0;
       let hasSchedule = false;
 
-      const mxDateStr = now.toLocaleString("en-US", { timeZone: "America/Mexico_City" });
+      const mxDateStr = now.toLocaleString("en-US", { timeZone: tenantTimezone });
       const mxDate = new Date(mxDateStr);
 
       if (user.workScheduleMatrix) {
@@ -554,13 +557,19 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
     }
   });
 
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: session.tenantId },
+    select: { timezone: true }
+  });
+  const tenantTimezone = tenant?.timezone || 'America/Mexico_City';
+
   const payrollData = users.map(u => {
     // 1. Calculate days worked (requiring BOTH CHECK_IN and CHECK_OUT on the same day)
     const checkInDays = new Set<string>();
     const checkOutDays = new Set<string>();
     let lates = 0;
 
-    const mxFormatter = new Intl.DateTimeFormat('es-MX', { timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit' });
+    const mxFormatter = new Intl.DateTimeFormat('es-MX', { timeZone: tenantTimezone, year: 'numeric', month: '2-digit', day: '2-digit' });
 
     u.attendanceLogs.forEach(log => {
       const dateStr = mxFormatter.format(log.timestamp);
@@ -664,12 +673,18 @@ export async function getGlobalAttendanceLogs(startDateStr: string, endDateStr: 
     orderBy: { timestamp: 'asc' }
   });
 
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: session.tenantId },
+    select: { timezone: true }
+  });
+  const tenantTimezone = tenant?.timezone || 'America/Mexico_City';
+
   const data = logs.map(l => ({
     Empleado: l.user?.name || 'Desconocido',
     Sucursal: l.user?.branch?.name || 'Sin Sucursal',
     Tipo: l.type === 'CHECK_IN' ? 'Entrada' : 'Salida',
-    Fecha: new Date(l.timestamp).toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City' }),
-    Hora: new Date(l.timestamp).toLocaleTimeString('es-MX', { timeZone: 'America/Mexico_City' }),
+    Fecha: new Date(l.timestamp).toLocaleDateString('es-MX', { timeZone: tenantTimezone }),
+    Hora: new Date(l.timestamp).toLocaleTimeString('es-MX', { timeZone: tenantTimezone }),
     Estado: l.status,
     Notas: l.deviceInfo || ''
   }));

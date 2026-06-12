@@ -3,6 +3,7 @@ import { getActiveBranch } from '@/app/actions/auth';
 import { ShoppingCart, PackagePlus, DollarSign, WalletCards } from 'lucide-react';
 import Link from 'next/link';
 import DashboardCharts from './DashboardCharts';
+import { getLocalTodayRange, getUtcDateFromLocal } from '@/app/lib/timezone';
 
 interface Props {
   searchParams: Promise<{
@@ -18,43 +19,43 @@ export default async function DashboardPage(props: Props) {
   const resolvedParams = await props.searchParams;
   const { startDate: paramStart, endDate: paramEnd } = resolvedParams;
 
-  // Get start and end of today (aligned with Mexico standard GMT-6 timezone)
-  const MEXICO_OFFSET_MS = 6 * 60 * 60 * 1000;
-  const now = new Date();
-  const utcNow = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
-  const mexicoNow = new Date(utcNow.getTime() - MEXICO_OFFSET_MS);
+  // Find tenant timezone
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: branch.tenantId },
+    select: { timezone: true }
+  });
+  const timezone = tenant?.timezone || 'America/Mexico_City';
 
-  const startOfMexicoDay = new Date(mexicoNow);
-  startOfMexicoDay.setHours(0, 0, 0, 0);
-  const endOfMexicoDay = new Date(mexicoNow);
-  endOfMexicoDay.setHours(23, 59, 59, 999);
+  // Get start and end of today (aligned with tenant's configured timezone)
+  const { startUtc: startOfDay, endUtc: endOfDay } = getLocalTodayRange(timezone);
 
-  const startOfDay = new Date(startOfMexicoDay.getTime() + MEXICO_OFFSET_MS);
-  const endOfDay = new Date(endOfMexicoDay.getTime() + MEXICO_OFFSET_MS);
-
-  // Default dates for the charts (Mexico local YYYY-MM-DD)
+  // Default dates for the charts (Tenant local YYYY-MM-DD)
   const formatDateString = (d: Date) => {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const parts = formatter.formatToParts(d);
+    const year = parts.find(p => p.type === 'year')!.value;
+    const month = parts.find(p => p.type === 'month')!.value;
+    const day = parts.find(p => p.type === 'day')!.value;
     return `${year}-${month}-${day}`;
   };
 
-  const defaultEndStr = formatDateString(mexicoNow);
-  const defaultStartStr = formatDateString(new Date(mexicoNow.getTime() - 7 * 24 * 60 * 60 * 1000));
+  const defaultEndStr = formatDateString(new Date());
+  const defaultStartStr = formatDateString(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
 
   const initialStartDate = paramStart || defaultStartStr;
   const initialEndDate = paramEnd || defaultEndStr;
 
-  // Helper to parse local date string YYYY-MM-DD to Mexico day range in UTC
+  // Helper to parse local date string YYYY-MM-DD to timezone day range in UTC
   const getStartAndEndOfDayUtc = (dateStr: string) => {
     const [y, m, d] = dateStr.split('-').map(Number);
-    const startLocal = new Date(y, m - 1, d, 0, 0, 0, 0);
-    const endLocal = new Date(y, m - 1, d, 23, 59, 59, 999);
-    return {
-      startUtc: new Date(startLocal.getTime() + MEXICO_OFFSET_MS),
-      endUtc: new Date(endLocal.getTime() + MEXICO_OFFSET_MS)
-    };
+    const startUtc = getUtcDateFromLocal(y, m, d, 0, 0, 0, 0, timezone);
+    const endUtc = getUtcDateFromLocal(y, m, d, 23, 59, 59, 999, timezone);
+    return { startUtc, endUtc };
   };
 
   const { startUtc: filterStartUtc } = getStartAndEndOfDayUtc(initialStartDate);
@@ -156,7 +157,7 @@ export default async function DashboardPage(props: Props) {
     const mStr = String(tempDate.getMonth() + 1).padStart(2, '0');
     const dStr = String(tempDate.getDate()).padStart(2, '0');
     const dateStr = `${yStr}-${mStr}-${dStr}`;
-    const label = tempDate.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
+    const label = tempDate.toLocaleDateString('es-MX', { timeZone: timezone, day: '2-digit', month: 'short' });
     
     chartData.push({
       date: label,
@@ -169,10 +170,16 @@ export default async function DashboardPage(props: Props) {
   }
 
   chartSales.forEach(sale => {
-    const localTime = new Date(sale.createdAt.getTime() - MEXICO_OFFSET_MS);
-    const yStr = localTime.getFullYear();
-    const mStr = String(localTime.getMonth() + 1).padStart(2, '0');
-    const dStr = String(localTime.getDate()).padStart(2, '0');
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const parts = formatter.formatToParts(sale.createdAt);
+    const yStr = parts.find(p => p.type === 'year')!.value;
+    const mStr = parts.find(p => p.type === 'month')!.value;
+    const dStr = parts.find(p => p.type === 'day')!.value;
     const dateStr = `${yStr}-${mStr}-${dStr}`;
     
     const dp = chartData.find(d => d.dateStr === dateStr);
@@ -328,7 +335,7 @@ export default async function DashboardPage(props: Props) {
                    <tr key={sale.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                      <td data-label="Ticket" style={{ padding: '1rem 0', fontSize: '0.9rem', fontWeight: '500' }}>#{sale.id.slice(-6).toUpperCase()}</td>
                      <td data-label="Hora" style={{ padding: '1rem 0', fontSize: '0.9rem', color: '#6b7280' }}>
-                       {sale.createdAt.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                       {sale.createdAt.toLocaleTimeString('es-MX', { timeZone: timezone, hour: '2-digit', minute: '2-digit' })}
                      </td>
                      <td data-label="Total" style={{ padding: '1rem 0', fontSize: '0.9rem', fontWeight: 'bold', color: '#10b981' }}>
                        {formatter.format(sale.total)}
