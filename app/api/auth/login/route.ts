@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, masterClient, getClientForTenant } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { createSession } from '@/lib/session';
 
@@ -13,7 +13,7 @@ export async function POST(req: Request) {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    const user = await prisma.user.findUnique({
+    const user = await masterClient.user.findUnique({
       where: { email: cleanEmail },
       include: { tenant: true }
     });
@@ -22,11 +22,47 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
     }
 
-    if (user.password !== password) {
-      const isMatch = await bcrypt.compare(password, user.password || '');
-      if (!isMatch) {
-        return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
+    let isPasswordValid = false;
+    if (user.password === password) {
+      isPasswordValid = true;
+    } else {
+      isPasswordValid = await bcrypt.compare(password, user.password || '');
+    }
+
+    // Si no coincide con la maestra, verificar contra la del inquilino (auto-saneamiento)
+    if (!isPasswordValid && user.tenantId) {
+      try {
+        const tenantClient = getClientForTenant(user.tenantId);
+        if (tenantClient !== masterClient) {
+          const tenantUser = await tenantClient.user.findUnique({
+            where: { id: user.id }
+          });
+          if (tenantUser) {
+            let isTenantPasswordValid = false;
+            if (tenantUser.password === password) {
+              isTenantPasswordValid = true;
+            } else {
+              isTenantPasswordValid = await bcrypt.compare(password, tenantUser.password || '');
+            }
+
+            if (isTenantPasswordValid) {
+              isPasswordValid = true;
+              console.log(`[Self-Healing API] Sincronizando contraseña del usuario ${cleanEmail} de base inquilino a base maestra.`);
+              await masterClient.user.update({
+                where: { id: user.id },
+                data: { password: tenantUser.password }
+              });
+              user.password = tenantUser.password;
+            }
+          }
+        }
+      } catch (err) {
+        console.error("[Self-Healing API] Error verificando contraseña en base inquilino:", err);
       }
+    }
+
+    if (!isPasswordValid) {
+      return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
     }
 
     if (!user.isSuperAdmin && (!user.tenantId || !user.tenant?.isActive)) {
