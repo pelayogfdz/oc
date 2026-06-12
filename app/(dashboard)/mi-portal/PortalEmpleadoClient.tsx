@@ -329,6 +329,9 @@ export default function PortalEmpleadoClient({
   const hasCheckedIn = todayLogs.some((l: any) => l.type === 'CHECK_IN');
   const hasCheckedOut = todayLogs.some((l: any) => l.type === 'CHECK_OUT');
 
+  const checkIn = todayLogs.find((l: any) => l.type === 'CHECK_IN');
+  const checkOut = todayLogs.find((l: any) => l.type === 'CHECK_OUT');
+
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '1rem' }}>
       <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#1e293b' }}>
@@ -585,29 +588,165 @@ export default function PortalEmpleadoClient({
                 <p>No tienes registros hoy.</p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {todayLogs.map((log: any) => (
-                  <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '8px', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <div style={{ padding: '0.5rem', backgroundColor: log.type === 'CHECK_IN' ? '#dcfce7' : '#ffedd5', borderRadius: '50%' }}>
-                        {log.type === 'CHECK_IN' ? <CheckCircle2 size={24} color="#16a34a" /> : <AlertTriangle size={24} color="#ea580c" />}
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between', 
+                backgroundColor: '#ffffff', 
+                padding: '1.25rem 1rem', 
+                borderRadius: '12px', 
+                border: '1px solid #e2e8f0',
+                gap: '1rem'
+              }}>
+                {/* CHECK IN BLOCK */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: '1 1 0%', minWidth: '120px' }}>
+                  {checkIn ? (
+                    <>
+                      {/* Circle Icon */}
+                      <div style={{ 
+                        width: '42px', 
+                        height: '42px', 
+                        backgroundColor: '#e6f9ee', 
+                        borderRadius: '50%', 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        alignItems: 'center',
+                        flexShrink: 0
+                      }}>
+                        <CheckCircle2 size={22} color="#16a34a" />
                       </div>
-                      <div>
-                        <div style={{ fontWeight: 'bold', color: '#1e293b' }}>
-                          {log.type === 'CHECK_IN' ? 'Entrada' : 'Salida'}
+                      
+                      {/* Texts */}
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '1rem' }}>Entrada</span>
+                          {checkIn.status === 'LATE' && (
+                            <span style={{ 
+                              padding: '0.15rem 0.4rem', 
+                              borderRadius: '4px', 
+                              fontSize: '0.6rem', 
+                              fontWeight: '700', 
+                              backgroundColor: '#ffe4e6', 
+                              color: '#ef4444',
+                              letterSpacing: '0.025em'
+                            }}>
+                              RETARDO
+                            </span>
+                          )}
+                          {checkIn.status === 'OUTSIDE_RADIUS' && (
+                            <span style={{ 
+                              padding: '0.15rem 0.4rem', 
+                              borderRadius: '4px', 
+                              fontSize: '0.6rem', 
+                              fontWeight: '700', 
+                              backgroundColor: '#fff7ed', 
+                              color: '#ea580c',
+                              letterSpacing: '0.025em'
+                            }}>
+                              GPS LEJOS
+                            </span>
+                          )}
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                          {formatTime12h(log.timestamp, timezone)}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.15rem' }}>
+                          <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>
+                            {formatTime12h(checkIn.timestamp, timezone)}
+                          </span>
                         </div>
                       </div>
-                    </div>
-                    {log.status === 'LATE' && (
-                      <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#fef2f2', color: '#ef4444', borderRadius: '4px' }}>
-                        RETARDO
-                      </span>
-                    )}
-                  </div>
-                ))}
+                    </>
+                  ) : (
+                    <>
+                      {/* Empty/Pending Check In */}
+                      <div style={{ 
+                        width: '42px', 
+                        height: '42px', 
+                        backgroundColor: '#f1f5f9', 
+                        borderRadius: '50%', 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        alignItems: 'center',
+                        flexShrink: 0
+                      }}>
+                        <Clock size={20} color="#94a3b8" />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontWeight: 'bold', color: '#94a3b8', fontSize: '1rem' }}>Entrada</span>
+                        <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', marginTop: '0.15rem' }}>Pendiente</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Divider Line */}
+                <div style={{ width: '1px', alignSelf: 'stretch', backgroundColor: '#e2e8f0', display: 'block' }} />
+
+                {/* CHECK OUT BLOCK */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: '1 1 0%', minWidth: '120px' }}>
+                  {checkOut ? (
+                    <>
+                      {/* Circle Icon */}
+                      <div style={{ 
+                        width: '42px', 
+                        height: '42px', 
+                        backgroundColor: '#fff7ed', 
+                        borderRadius: '50%', 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        alignItems: 'center',
+                        flexShrink: 0
+                      }}>
+                        <AlertTriangle size={20} color="#ea580c" />
+                      </div>
+                      
+                      {/* Texts */}
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '1rem' }}>Salida</span>
+                          {checkOut.status === 'OUTSIDE_RADIUS' && (
+                            <span style={{ 
+                              padding: '0.15rem 0.4rem', 
+                              borderRadius: '4px', 
+                              fontSize: '0.6rem', 
+                              fontWeight: '700', 
+                              backgroundColor: '#fff7ed', 
+                              color: '#ea580c',
+                              letterSpacing: '0.025em'
+                            }}>
+                              GPS LEJOS
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.15rem' }}>
+                          <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>
+                            {formatTime12h(checkOut.timestamp, timezone)}
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Empty/Pending Check Out */}
+                      <div style={{ 
+                        width: '42px', 
+                        height: '42px', 
+                        backgroundColor: '#f1f5f9', 
+                        borderRadius: '50%', 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        alignItems: 'center',
+                        flexShrink: 0
+                      }}>
+                        <Clock size={20} color="#94a3b8" />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontWeight: 'bold', color: '#94a3b8', fontSize: '1rem' }}>Salida</span>
+                        <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', marginTop: '0.15rem' }}>
+                          {checkIn ? 'Trabajando...' : 'Pendiente'}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>
