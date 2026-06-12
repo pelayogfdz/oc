@@ -50,17 +50,61 @@ export default async function GeneralPreferencesPage() {
             </label>
             <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '-0.2rem', marginBottom: '0.5rem' }}>Define la zona horaria en la que operan tu aplicación y tus registros de asistencia.</p>
             <select name="timezone" defaultValue={(tenantSettings as any).timezone || 'America/Mexico_City'} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', outline: 'none', backgroundColor: 'white' }}>
-              <option value="America/Mexico_City">Hora del Centro - México (CDMX, Monterrey, Guadalajara)</option>
-              <option value="America/Cancun">Hora del Sureste - México (Cancún, Q. Roo)</option>
-              <option value="America/Hermosillo">Hora del Pacífico - México (Sonora, sin DST)</option>
-              <option value="America/Tijuana">Hora del Noroeste - México (Tijuana, B. California)</option>
-              <option value="America/Mazatlan">Hora del Pacífico - México (Sinaloa, Nayarit, BCS)</option>
-              <option value="America/Ciudad_Juarez">Hora de la Frontera - México (Cd. Juárez)</option>
-              <option value="America/Bogota">Hora de Colombia / Ecuador / Perú (Bogotá)</option>
-              <option value="America/New_York">Hora del Este - EE.UU. &amp; Canadá (New York)</option>
-              <option value="America/Chicago">Hora del Centro - EE.UU. &amp; Canadá (Chicago)</option>
-              <option value="America/Denver">Hora de la Montaña - EE.UU. &amp; Canadá (Denver)</option>
-              <option value="America/Los_Angeles">Hora del Pacífico - EE.UU. &amp; Canadá (Los Angeles)</option>
+              <optgroup label="América del Norte y México">
+                <option value="America/Mexico_City">México - Centro (CDMX, Monterrey, Guadalajara)</option>
+                <option value="America/Cancun">México - Sureste (Cancún, Q. Roo)</option>
+                <option value="America/Hermosillo">México - Pacífico (Sonora, sin DST)</option>
+                <option value="America/Tijuana">México - Noroeste (Tijuana, B. California)</option>
+                <option value="America/Mazatlan">México - Pacífico (Sinaloa, Nayarit, BCS)</option>
+                <option value="America/Ciudad_Juarez">México - Frontera (Cd. Juárez)</option>
+                <option value="America/New_York">EE.UU. &amp; Canadá - Este (New York, Toronto)</option>
+                <option value="America/Chicago">EE.UU. &amp; Canadá - Centro (Chicago, Winnipeg)</option>
+                <option value="America/Denver">EE.UU. &amp; Canadá - Montaña (Denver, Calgary)</option>
+                <option value="America/Los_Angeles">EE.UU. &amp; Canadá - Pacífico (Los Angeles, Vancouver)</option>
+                <option value="America/Anchorage">EE.UU. - Alaska</option>
+                <option value="Pacific/Honolulu">EE.UU. - Hawaii</option>
+              </optgroup>
+              <optgroup label="América del Centro y del Sur">
+                <option value="America/Bogota">Colombia / Ecuador / Perú (Bogotá, Lima, Quito)</option>
+                <option value="America/Caracas">Venezuela (Caracas)</option>
+                <option value="America/Santiago">Chile (Santiago)</option>
+                <option value="America/Buenos_Aires">Argentina (Buenos Aires)</option>
+                <option value="America/Sao_Paulo">Brasil (São Paulo, Río de Janeiro)</option>
+                <option value="America/Guatemala">Guatemala / El Salvador / Costa Rica</option>
+                <option value="America/Panama">Panamá</option>
+                <option value="America/La_Paz">Bolivia (La Paz)</option>
+              </optgroup>
+              <optgroup label="Europa">
+                <option value="Europe/London">Reino Unido / Irlanda (Londres, Dublín - GMT/BST)</option>
+                <option value="Europe/Madrid">España / Francia / Italia / Alemania (Madrid, París, Berlín - CET)</option>
+                <option value="Europe/Athens">Grecia / Ucrania / Finlandia (Atenas, Kiev, Helsinki - EET)</option>
+                <option value="Europe/Moscow">Rusia (Moscú)</option>
+              </optgroup>
+              <optgroup label="Asia">
+                <option value="Asia/Dubai">Emiratos Árabes / Omán (Dubái)</option>
+                <option value="Asia/Kolkata">India / Sri Lanka (Nueva Delhi)</option>
+                <option value="Asia/Bangkok">Tailandia / Vietnam / Indonesia (Bangkok, Yakarta)</option>
+                <option value="Asia/Singapore">Singapur / Malasia / Hong Kong / Pekín</option>
+                <option value="Asia/Tokyo">Japón / Corea del Sur (Tokio, Seúl)</option>
+                <option value="Asia/Shanghai">China (Shanghai)</option>
+                <option value="Asia/Jakarta">Indonesia (Yakarta)</option>
+                <option value="Asia/Manila">Filipinas (Manila)</option>
+              </optgroup>
+              <optgroup label="África">
+                <option value="Africa/Cairo">Egipto (El Cairo)</option>
+                <option value="Africa/Johannesburg">Sudáfrica (Johannesburgo)</option>
+                <option value="Africa/Lagos">Nigeria (Lagos)</option>
+                <option value="Africa/Nairobi">Kenia / Etiopía (Nairobi)</option>
+              </optgroup>
+              <optgroup label="Oceanía">
+                <option value="Australia/Sydney">Australia - Este (Sídney, Melbourne)</option>
+                <option value="Australia/Perth">Australia - Oeste (Perth)</option>
+                <option value="Pacific/Auckland">Nueva Zelanda (Auckland)</option>
+                <option value="Pacific/Fiji">Fiyi</option>
+              </optgroup>
+              <optgroup label="Estándar">
+                <option value="UTC">Tiempo Universal Coordinado (UTC)</option>
+              </optgroup>
             </select>
           </div>
           <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'flex-end' }}>
