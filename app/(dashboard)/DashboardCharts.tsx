@@ -25,6 +25,7 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
   const [startDate, setStartDate] = useState(initialStartDate);
   const [endDate, setEndDate] = useState(initialEndDate);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [groupBy, setGroupBy] = useState<'day' | 'week' | 'month' | 'year'>('day');
 
   const handleFilter = () => {
     setIsUpdating(true);
@@ -41,6 +42,66 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
     }
     return `$${tickItem}`;
   };
+
+  // Dynamic client-side grouping based on selected period
+  const groupedData = (() => {
+    if (groupBy === 'day') {
+      return chartData.map(d => ({ ...d, label: d.date }));
+    }
+
+    const groups: { [key: string]: { label: string; count: number; amount: number; sortKey: string } } = {};
+
+    chartData.forEach(d => {
+      if (!d.dateStr) return;
+      const [year, month, day] = d.dateStr.split('-').map(Number);
+      if (isNaN(year) || isNaN(month) || isNaN(day)) return;
+      const date = new Date(year, month - 1, day);
+
+      let key = '';
+      let label = '';
+      let sortKey = '';
+
+      if (groupBy === 'week') {
+        const dayOfWeek = date.getDay();
+        const diff = date.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+        const monday = new Date(date.setDate(diff));
+        
+        const y = monday.getFullYear();
+        const m = String(monday.getMonth() + 1).padStart(2, '0');
+        const dayStr = String(monday.getDate()).padStart(2, '0');
+        
+        // Find week number
+        const dateCopy = new Date(Date.UTC(monday.getFullYear(), monday.getMonth(), monday.getDate()));
+        const dayNum = dateCopy.getUTCDay() || 7;
+        dateCopy.setUTCDate(dateCopy.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(dateCopy.getUTCFullYear(),0,1));
+        const weekNum = Math.ceil((((dateCopy.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
+
+        key = `${y}-W${weekNum}`;
+        label = `Sem ${dayStr}/${m}`;
+        sortKey = `${y}-${m}-${dayStr}`;
+      } else if (groupBy === 'month') {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        key = `${y}-${m}`;
+        label = date.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' });
+        sortKey = `${y}-${m}`;
+      } else if (groupBy === 'year') {
+        const y = date.getFullYear();
+        key = `${y}`;
+        label = `${y}`;
+        sortKey = `${y}`;
+      }
+
+      if (!groups[key]) {
+        groups[key] = { label, count: 0, amount: 0, sortKey };
+      }
+      groups[key].count += d.count;
+      groups[key].amount += d.amount;
+    });
+
+    return Object.values(groups).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+  })();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
@@ -62,6 +123,29 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          {/* Selector de Agrupamiento */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#475569' }}>Agrupar:</span>
+            <select
+              value={groupBy}
+              onChange={(e) => setGroupBy(e.target.value as any)}
+              style={{
+                border: '1px solid #cbd5e1',
+                padding: '0.4rem 0.75rem',
+                borderRadius: '6px',
+                fontSize: '0.875rem',
+                outline: 'none',
+                color: '#1e293b',
+                backgroundColor: 'white'
+              }}
+            >
+              <option value="day">Por Día</option>
+              <option value="week">Por Semana</option>
+              <option value="month">Por Mes</option>
+              <option value="year">Por Año</option>
+            </select>
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#475569' }}>Desde:</span>
             <input 
@@ -137,8 +221,8 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
           </h3>
           <div style={{ flex: 1, minHeight: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <XAxis dataKey="date" tick={{fontSize: 11, fill: '#64748b'}} tickLine={false} axisLine={false} dy={5} />
+              <BarChart data={groupedData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <XAxis dataKey="label" tick={{fontSize: 11, fill: '#64748b'}} tickLine={false} axisLine={false} dy={5} />
                 <YAxis tick={{fontSize: 11, fill: '#64748b'}} tickLine={false} axisLine={false} />
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <Tooltip 
@@ -167,14 +251,14 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
           </h3>
           <div style={{ flex: 1, minHeight: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={groupedData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
                     <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="date" tick={{fontSize: 11, fill: '#64748b'}} tickLine={false} axisLine={false} dy={5} />
+                <XAxis dataKey="label" tick={{fontSize: 11, fill: '#64748b'}} tickLine={false} axisLine={false} dy={5} />
                 <YAxis tickFormatter={formatYAxisAmount} tick={{fontSize: 11, fill: '#64748b'}} tickLine={false} axisLine={false} />
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <Tooltip 

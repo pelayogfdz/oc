@@ -333,12 +333,30 @@ export default async function DashboardPage(props: Props) {
                <tbody>
                  {recentSales.map(sale => (
                    <tr key={sale.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                     <td data-label="Ticket" style={{ padding: '1rem 0', fontSize: '0.9rem', fontWeight: '500' }}>#{sale.id.slice(-6).toUpperCase()}</td>
+                     <td data-label="Ticket" style={{ padding: '1rem 0', fontSize: '0.9rem', fontWeight: '500' }}>
+                       <Link 
+                         href={`/ventas/detalle/${sale.id}`} 
+                         style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 'bold' }}
+                         className="hover:underline"
+                       >
+                         #{sale.id.slice(-6).toUpperCase()}
+                       </Link>
+                     </td>
                      <td data-label="Hora" style={{ padding: '1rem 0', fontSize: '0.9rem', color: '#6b7280' }}>
-                       {sale.createdAt.toLocaleTimeString('es-MX', { timeZone: timezone, hour: '2-digit', minute: '2-digit' })}
+                       <Link 
+                         href={`/ventas/detalle/${sale.id}`} 
+                         style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}
+                       >
+                         {sale.createdAt.toLocaleTimeString('es-MX', { timeZone: timezone, hour: '2-digit', minute: '2-digit' })}
+                       </Link>
                      </td>
                      <td data-label="Total" style={{ padding: '1rem 0', fontSize: '0.9rem', fontWeight: 'bold', color: '#10b981' }}>
-                       {formatter.format(sale.total)}
+                       <Link 
+                         href={`/ventas/detalle/${sale.id}`} 
+                         style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}
+                       >
+                         {formatter.format(sale.total)}
+                       </Link>
                      </td>
                    </tr>
                  ))}
