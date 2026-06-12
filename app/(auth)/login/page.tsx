@@ -247,7 +247,26 @@ export default function LoginPage() {
         errMsg.includes('failed to find') ||
         errMsg.includes('digest')
       ) {
-        window.location.reload();
+        console.warn('Server Action mismatch detected. Wiping cache and reloading...');
+        const forceReload = () => {
+          window.location.reload();
+        };
+
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then((registrations) => {
+            for (const reg of registrations) {
+              reg.unregister();
+            }
+          }).catch(() => {});
+        }
+
+        if (typeof caches !== 'undefined') {
+          caches.keys().then((keys) => {
+            Promise.all(keys.map(key => caches.delete(key))).finally(forceReload);
+          }).catch(forceReload);
+        } else {
+          forceReload();
+        }
         return;
       }
       setError(errMsg);
