@@ -1,6 +1,6 @@
 'use server';
 
-import { prisma } from '@/lib/prisma';
+import { prisma, masterClient } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { revalidatePath, unstable_cache } from 'next/cache';
 import { cache } from 'react';
@@ -14,7 +14,7 @@ export async function loginAction(formData: FormData) {
 
   if (!email || !password) throw new Error('Credenciales incompletas');
 
-  const user = await prisma.user.findUnique({
+  const user = await masterClient.user.findUnique({
     where: { email },
     include: { tenant: true }
   });
@@ -56,7 +56,7 @@ export const getActiveUser = cache(async () => {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
 
-  const user = await prisma.user.findUnique({
+  const user = await masterClient.user.findUnique({
     where: { id: session.userId },
     include: { tenant: true }
   });
