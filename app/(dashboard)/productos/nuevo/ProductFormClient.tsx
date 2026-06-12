@@ -186,6 +186,20 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
                 🌐 Mostrar en Web (Sincronizar vía Token)
               </label>
             </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input type="hidden" name="hasTraceability" value="false" />
+              <input 
+                type="checkbox" 
+                id="hasTraceability"
+                name="hasTraceability" 
+                value="true"
+                defaultChecked={cloneProduct?.hasTraceability || false} 
+                style={{ width: '20px', height: '20px', cursor: 'pointer' }} 
+              />
+              <label htmlFor="hasTraceability" style={{ fontWeight: '500', cursor: 'pointer', fontSize: '0.95rem' }}>
+                ⛽ Trazabilidad de Combustible
+              </label>
+            </div>
           </div>
            <div style={{ padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '4px', border: '1px dashed #22c55e', gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
             <div>

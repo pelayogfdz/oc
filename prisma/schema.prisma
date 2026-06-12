@@ -163,6 +163,7 @@ model Branch {
   users                   User[]
   whatsappSessions        WhatsAppSession?
   collaboratorTasks       CollaboratorTask[]
+  fuelTransactions        FuelTransaction[]
 }
 
 model BranchSettings {
@@ -215,6 +216,7 @@ model Customer {
   sales            Sale[]
   loyaltyTransactions LoyaltyTransaction[]
   appointments     Appointment[]
+  fuelTransactions FuelTransaction[]
 }
 
 model CustomerPayment {
@@ -302,6 +304,8 @@ model Product {
   RecipeIngredient    RecipeIngredient[]
   saleItems           SaleItem[]
   transferItems       TransferItem[]
+  hasTraceability     Boolean              @default(false)
+  fuelTraceabilities  FuelTraceability[]
 
   @@unique([sku, branchId])
   @@index([branchId, stock])
@@ -370,6 +374,8 @@ model Sale {
   user          User              @relation(fields: [userId], references: [id])
   items         SaleItem[]
   returns       SaleReturn[]
+  fuelTransaction FuelTransaction?
+  cartaPortes   CartaPorte[]
 
   @@index([branchId, createdAt(sort: Desc)])
 }
@@ -387,6 +393,7 @@ model SaleItem {
   sale      Sale             @relation(fields: [saleId], references: [id])
   variant   ProductVariant?  @relation(fields: [variantId], references: [id])
   returns   SaleReturnItem[]
+  fuelTraceability FuelTraceability?
 }
 
 model SaleReturn {
@@ -555,6 +562,7 @@ model Supplier {
   purchaseOrders   PurchaseOrder[]
   branch           Branch?           @relation(fields: [branchId], references: [id])
   payments         SupplierPayment[]
+  fuelTransactions FuelTransaction[]
 }
 
 model Purchase {
@@ -575,6 +583,8 @@ model Purchase {
   user          User              @relation(fields: [userId], references: [id])
   items         PurchaseItem[]
   payments      SupplierPayment[]
+  fuelTransaction FuelTransaction?
+  cartaPortes   CartaPorte[]
 }
 
 model PurchaseItem {
@@ -587,6 +597,7 @@ model PurchaseItem {
   batch      ProductBatch? @relation(fields: [batchId], references: [id])
   product    Product       @relation(fields: [productId], references: [id])
   purchase   Purchase      @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  fuelTraceability FuelTraceability?
 }
 
 model PriceList {
@@ -849,6 +860,7 @@ model ProductBatch {
   product        Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
   purchaseItems  PurchaseItem[]
   saleItems      SaleItem[]
+  fuelTraceability FuelTraceability?
 
   @@index([productId, expirationDate])
 }
@@ -1034,4 +1046,120 @@ model CollaboratorTask {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }
+
+model FuelTraceability {
+  id                  String        @id @default(uuid())
+  productId           String
+  purchaseItemId      String?       @unique
+  saleItemId          String?       @unique
+  batchId             String?       @unique
+  pedimento           String?       // Número de pedimento
+  pedimentoDate       DateTime?
+  crePermitSupplier   String?       // Permiso CRE del Proveedor
+  crePermitCarrier    String?       // Permiso CRE del Transportista
+  density             Float?        // Densidad (kg/m3)
+  temperature         Float?        // Temperatura (°C)
+  octane              Float?        // Octanaje / Calidad
+  volume20c           Float?        // Volumen corregido a 20°C
+  certNumber          String?       // Certificado de calidad
+  createdAt           DateTime      @default(now())
+  product             Product       @relation(fields: [productId], references: [id])
+  purchaseItem        PurchaseItem? @relation(fields: [purchaseItemId], references: [id], onDelete: Cascade)
+  saleItem            SaleItem?     @relation(fields: [saleItemId], references: [id], onDelete: Cascade)
+  batch               ProductBatch? @relation(fields: [batchId], references: [id], onDelete: Cascade)
+}
+
+model FuelImport {
+  id                String            @id @default(uuid())
+  pedimentoNumber   String            @unique
+  pedimentoDate     DateTime
+  customsOffice     String?           // Aduana
+  brokerName        String?           // Agente Aduanal
+  countryOfOrigin   String            @default("USA")
+  currency          String            @default("USD")
+  exchangeRate      Float             @default(1.0)
+  fobValue          Float             @default(0.0)
+  freightCost       Float             @default(0.0)
+  dtaAmount         Float             @default(0.0)
+  prevAmount        Float             @default(0.0)
+  ivaImport         Float             @default(0.0)
+  totalCustomsTaxes Float             @default(0.0)
+  status            String            @default("IN_TRANSIT") // IN_TRANSIT, CUSTOMS, RELEASED
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  transactions      FuelTransaction[]
+}
+
+model FuelTransaction {
+  id                   String          @id @default(uuid())
+  folio                String?         @unique
+  branchId             String
+  saleId               String?         @unique
+  customerId           String?
+  customerOrderDate    DateTime?
+  deliveryDate         DateTime?
+  actualDeliveryDate   DateTime?
+  deliveryStatus       String          @default("PENDING") // PENDING, IN_TRANSIT, DELIVERED, CANCELLED
+  purchaseId           String?         @unique
+  supplierId           String?
+  purchaseDate         DateTime?
+  importId             String?
+  
+  // Documentos adjuntos
+  purchaseReceipt      String?         // URL recibo compra
+  supplierInvoice      String?         // URL factura proveedor
+  shippingDoc          String?         // URL doc de embarque
+  customerInvoice      String?         // URL factura venta
+  evidencePhoto        String?         // Foto de entrega
+  evidenceNotes        String?         
+  
+  // Costos logísticos y utilidad
+  distanceKm           Float           @default(0)
+  fuelPricePerLiter    Float           @default(0)
+  vehicleKmPerLiter    Float           @default(1.0)
+  wearCostPerKm        Float           @default(0)
+  driverCostPerKm      Float           @default(0)
+  extraLogisticsCost   Float           @default(0)
+  calculatedLogisticsCost Float        @default(0)
+  calculatedNetProfit  Float           @default(0)
+
+  branch               Branch          @relation(fields: [branchId], references: [id])
+  sale                 Sale?           @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  purchase             Purchase?       @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  customer             Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  supplier             Supplier?       @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  import               FuelImport?     @relation(fields: [importId], references: [id], onDelete: SetNull)
+  cartaPortes          CartaPorte[]
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+}
+
+model CartaPorte {
+  id                 String           @id @default(uuid())
+  folio              String           @unique
+  transactionId      String?
+  saleId             String?
+  purchaseId         String?
+  uuidSat            String?
+  xmlUrl             String?
+  pdfUrl             String?
+  status             String           @default("DRAFT") // DRAFT, TIMBRADO, CANCELADO
+  carrierName        String?
+  carrierRfc         String?
+  vehiclePlate       String?
+  trailerPlate       String?
+  driverName         String?
+  driverRfc          String?
+  driverLicense      String?
+  originAddress      String?
+  destinationAddress String?
+  distanceKm         Float?
+  stampDate          DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  transaction        FuelTransaction? @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  sale               Sale?            @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  purchase           Purchase?        @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+}
+
 

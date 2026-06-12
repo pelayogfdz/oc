@@ -24,6 +24,7 @@ export async function createProduct(prevState: any, formData: FormData) {
   const allowProduction = formData.get('allowProduction') === 'true';
   const isProductionInput = formData.get('isProductionInput') === 'true';
   const isService = formData.get('isService') === 'true';
+  const hasTraceability = formData.get('hasTraceability') === 'true';
   const unit = formData.get('unit') as string || 'Pza';
   const satKey = (formData.get('satKey') as string) || null;
   const satUnit = (formData.get('satUnit') as string) || null;
@@ -109,6 +110,7 @@ export async function createProduct(prevState: any, formData: FormData) {
       satKey,
       satUnit,
       expirationDate,
+      hasTraceability,
       // @ts-ignore
       showInWeb
     }
@@ -211,6 +213,7 @@ export async function createProduct(prevState: any, formData: FormData) {
     satKey,
     satUnit,
     expirationDate,
+    hasTraceability,
     showInWeb
   };
 
@@ -312,6 +315,11 @@ export async function updateProduct(productId: string, formData: FormData) {
     const showInWeb = formData.get('showInWeb');
     if (showInWeb !== null) {
       data.showInWeb = showInWeb === 'true';
+    }
+
+    const hasTraceability = formData.get('hasTraceability');
+    if (hasTraceability !== null) {
+      data.hasTraceability = hasTraceability === 'true';
     }
 
     // Get current product details before update (to find siblings by old SKU)

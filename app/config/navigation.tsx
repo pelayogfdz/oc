@@ -106,6 +106,7 @@ export const navStructure: MenuNode[] = [
     items: [
       { name: 'Entregas y Rutas', path: '/logistica', badge: 'Nuevo' },
       { name: 'Mi Ruta (Chofer)', path: '/logistica/chofer' },
+      { name: 'Logística de Combustibles', path: '/logistica/combustibles', badge: 'Fletes' },
     ]
   },
   { 
