@@ -44,6 +44,25 @@ export default async function GeneralPreferencesPage() {
               <option value="4">4 Decimales ($1,000.0000)</option>
             </select>
           </div>
+          <div style={{ display: 'flex', flexDirection: 'column', borderBottom: '1px solid #f3f4f6', paddingBottom: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>
+              Uso Horario (Configurador de Reloj)
+            </label>
+            <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '-0.2rem', marginBottom: '0.5rem' }}>Define la zona horaria en la que operan tu aplicación y tus registros de asistencia.</p>
+            <select name="timezone" defaultValue={(tenantSettings as any).timezone || 'America/Mexico_City'} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', outline: 'none', backgroundColor: 'white' }}>
+              <option value="America/Mexico_City">Hora del Centro - México (CDMX, Monterrey, Guadalajara)</option>
+              <option value="America/Cancun">Hora del Sureste - México (Cancún, Q. Roo)</option>
+              <option value="America/Hermosillo">Hora del Pacífico - México (Sonora, sin DST)</option>
+              <option value="America/Tijuana">Hora del Noroeste - México (Tijuana, B. California)</option>
+              <option value="America/Mazatlan">Hora del Pacífico - México (Sinaloa, Nayarit, BCS)</option>
+              <option value="America/Ciudad_Juarez">Hora de la Frontera - México (Cd. Juárez)</option>
+              <option value="America/Bogota">Hora de Colombia / Ecuador / Perú (Bogotá)</option>
+              <option value="America/New_York">Hora del Este - EE.UU. &amp; Canadá (New York)</option>
+              <option value="America/Chicago">Hora del Centro - EE.UU. &amp; Canadá (Chicago)</option>
+              <option value="America/Denver">Hora de la Montaña - EE.UU. &amp; Canadá (Denver)</option>
+              <option value="America/Los_Angeles">Hora del Pacífico - EE.UU. &amp; Canadá (Los Angeles)</option>
+            </select>
+          </div>
           <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'flex-end' }}>
             <button className="btn-primary" type="submit" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#4f46e5' }}>
               <Save size={18} /> Guardar Ajustes Globales

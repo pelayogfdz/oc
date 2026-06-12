@@ -16,6 +16,7 @@ model Tenant {
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
   decimals             Int                    @default(2)
+  timezone             String                 @default("America/Mexico_City")
   trialEndsAt          DateTime?
   giftCredits          Float                  @default(0)
   mpCardId             String?

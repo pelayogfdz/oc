@@ -93,10 +93,11 @@ export async function updateTenantSettings(formData: FormData) {
   if (!branch || !branch.tenantId) throw new Error("No tenant active");
 
   const decimals = parseInt(formData.get('decimals') as string) || 2;
+  const timezone = (formData.get('timezone') as string) || "America/Mexico_City";
 
   await prisma.tenant.update({
     where: { id: branch.tenantId },
-    data: { decimals }
+    data: { decimals, timezone }
   });
 
   revalidateTag('tenant-settings-' + branch.tenantId, 'max');

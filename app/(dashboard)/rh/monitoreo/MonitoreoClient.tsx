@@ -196,13 +196,17 @@ export default function MonitoreoClient({
 
               const formatTime12h = (dateStr: string | Date) => {
                 const date = new Date(dateStr);
-                let hours = date.getHours();
-                const minutes = date.getMinutes();
-                const ampm = hours >= 12 ? 'p.m.' : 'a.m.';
-                hours = hours % 12;
-                hours = hours ? hours : 12;
-                const minutesStr = minutes < 10 ? `0${minutes}` : minutes;
-                return `${hours}:${minutesStr} ${ampm}`;
+                const timeString = date.toLocaleTimeString('es-MX', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                });
+                return timeString
+                  .toLowerCase()
+                  .replace(/\s+/g, '')
+                  .replace(/([ap]\.?m\.?)/g, ' $1')
+                  .replace(/am/g, 'a.m.')
+                  .replace(/pm/g, 'p.m.');
               };
 
               let statusColor = '#94a3b8'; // default (no data)

@@ -2,6 +2,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SWCleaner from "./components/SWCleaner";
+import { getTenantSettings } from "./actions/settings";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,11 +40,21 @@ export const viewport: Viewport = {
   userScalable: false
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let timezone = 'America/Mexico_City';
+  try {
+    const tenantSettings = await getTenantSettings();
+    if (tenantSettings && (tenantSettings as any).timezone) {
+      timezone = (tenantSettings as any).timezone;
+    }
+  } catch (e) {
+    // Fail-safe default timezone when not authenticated (e.g. login page)
+  }
+
   return (
     <html
       lang="en"
@@ -53,26 +64,26 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // Force Mexico City Timezone globally in client rendering
+              // Force configured timezone globally in client rendering
               (function() {
                 const originalToLocaleDateString = Date.prototype.toLocaleDateString;
                 Date.prototype.toLocaleDateString = function(locale, options) {
                   const opts = options || {};
-                  if (!opts.timeZone) opts.timeZone = 'America/Mexico_City';
+                  if (!opts.timeZone) opts.timeZone = '${timezone}';
                   return originalToLocaleDateString.call(this, locale || 'es-MX', opts);
                 };
 
                 const originalToLocaleString = Date.prototype.toLocaleString;
                 Date.prototype.toLocaleString = function(locale, options) {
                   const opts = options || {};
-                  if (!opts.timeZone) opts.timeZone = 'America/Mexico_City';
+                  if (!opts.timeZone) opts.timeZone = '${timezone}';
                   return originalToLocaleString.call(this, locale || 'es-MX', opts);
                 };
 
                 const originalToLocaleTimeString = Date.prototype.toLocaleTimeString;
                 Date.prototype.toLocaleTimeString = function(locale, options) {
                   const opts = options || {};
-                  if (!opts.timeZone) opts.timeZone = 'America/Mexico_City';
+                  if (!opts.timeZone) opts.timeZone = '${timezone}';
                   return originalToLocaleTimeString.call(this, locale || 'es-MX', opts);
                 };
               })();
