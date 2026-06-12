@@ -278,6 +278,14 @@ export const prisma = new Proxy({} as PrismaClient, {
             // Write to tenant database (only if it is different from master database)
             if (client !== masterClient) {
               try {
+                if (method === 'create' && masterResult && masterResult.id) {
+                  if (args && args[0]) {
+                    if (!args[0].data) {
+                      args[0].data = {};
+                    }
+                    args[0].data.id = masterResult.id;
+                  }
+                }
                 await (client as any)[prop][method](...args);
               } catch (err) {
                 console.error(`[Multi-Tenant] Tenant database write failed for ${String(prop)}.${method}:`, err);
