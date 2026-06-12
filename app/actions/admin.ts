@@ -1,6 +1,6 @@
 'use server';
 
-import { prisma } from '@/lib/prisma';
+import { prisma, masterClient } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/session';
 
@@ -15,7 +15,7 @@ async function requireSuperAdmin() {
     throw new Error('No autorizado');
   }
 
-  const user = await prisma.user.findUnique({
+  const user = await masterClient.user.findUnique({
     where: { id: session.userId as string },
     select: { email: true, isSuperAdmin: true }
   });
@@ -30,7 +30,7 @@ async function requireSuperAdmin() {
 export async function getAdminDashboardData() {
   await requireSuperAdmin();
 
-  const tenants = await prisma.tenant.findMany({
+  const tenants = await masterClient.tenant.findMany({
     include: {
       users: {
         select: {
@@ -47,9 +47,9 @@ export async function getAdminDashboardData() {
     orderBy: { createdAt: 'desc' }
   });
 
-  let settings = await prisma.systemSettings.findFirst();
+  let settings = await masterClient.systemSettings.findFirst();
   if (!settings) {
-    settings = await prisma.systemSettings.create({
+    settings = await masterClient.systemSettings.create({
       data: {}
     });
   }
@@ -66,9 +66,9 @@ export async function updateSystemMPCredentials(data: {
 }) {
   await requireSuperAdmin();
 
-  let settings = await prisma.systemSettings.findFirst();
+  let settings = await masterClient.systemSettings.findFirst();
   if (settings) {
-    await prisma.systemSettings.update({
+    await masterClient.systemSettings.update({
       where: { id: settings.id },
       data: {
         mpAccessToken: data.mpAccessToken,
@@ -76,7 +76,7 @@ export async function updateSystemMPCredentials(data: {
       }
     });
   } else {
-    await prisma.systemSettings.create({
+    await masterClient.systemSettings.create({
       data: {
         mpAccessToken: data.mpAccessToken,
         mpPublicKey: data.mpPublicKey
@@ -90,7 +90,7 @@ export async function updateSystemMPCredentials(data: {
 export async function addTenantGiftCredits(tenantId: string, amount: number) {
   await requireSuperAdmin();
 
-  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+  const tenant = await masterClient.tenant.findUnique({ where: { id: tenantId } });
   if (!tenant) throw new Error('Tenant not found');
 
   await prisma.tenant.update({
@@ -107,9 +107,9 @@ export async function addTenantGiftCredits(tenantId: string, amount: number) {
 export async function updateSystemPricing(data: { basePrice: number; userPrice: number; mpAccessToken?: string }) {
   await requireSuperAdmin();
 
-  let settings = await prisma.systemSettings.findFirst();
+  let settings = await masterClient.systemSettings.findFirst();
   if (settings) {
-    await prisma.systemSettings.update({
+    await masterClient.systemSettings.update({
       where: { id: settings.id },
       data: {
         basePrice: data.basePrice,
@@ -118,7 +118,7 @@ export async function updateSystemPricing(data: { basePrice: number; userPrice: 
       }
     });
   } else {
-    await prisma.systemSettings.create({
+    await masterClient.systemSettings.create({
       data: {
         basePrice: data.basePrice,
         userPrice: data.userPrice,
@@ -133,7 +133,7 @@ export async function updateSystemPricing(data: { basePrice: number; userPrice: 
 export async function updateTenantCustomPricing(tenantId: string, data: { customBasePrice: number | null; customUserPrice: number | null }) {
   await requireSuperAdmin();
 
-  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+  const tenant = await masterClient.tenant.findUnique({ where: { id: tenantId } });
   if (!tenant) throw new Error('Tenant not found');
 
   await prisma.tenant.update({

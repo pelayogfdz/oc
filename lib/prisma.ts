@@ -276,7 +276,44 @@ export const prisma = new Proxy({} as PrismaClient, {
             }
 
             // Write to tenant database (only if it is different from master database)
-            if (client !== masterClient) {
+            let tenantClient = client;
+            if (isUserOrTenant) {
+              let targetTenantId = null;
+              if (args && args[0]) {
+                const data = args[0].data || args[0];
+                if (data) {
+                  if (prop === 'tenant') {
+                    targetTenantId = data.id || (args[0].where && args[0].where.id);
+                  } else if (prop === 'user') {
+                    targetTenantId = data.tenantId || (args[0].where && args[0].where.tenantId);
+                  }
+                }
+              }
+
+              if (!targetTenantId && args && args[0] && args[0].where && args[0].where.id) {
+                try {
+                  if (prop === 'tenant') {
+                    targetTenantId = args[0].where.id;
+                  } else if (prop === 'user') {
+                    const dbUser = await masterClient.user.findUnique({
+                      where: { id: args[0].where.id },
+                      select: { tenantId: true }
+                    });
+                    if (dbUser) {
+                      targetTenantId = dbUser.tenantId;
+                    }
+                  }
+                } catch (e) {
+                  console.error("[Multi-Tenant] Failed to look up tenantId for write routing:", e);
+                }
+              }
+
+              if (targetTenantId) {
+                tenantClient = getClientForTenant(targetTenantId);
+              }
+            }
+
+            if (tenantClient !== masterClient) {
               try {
                 if (method === 'create' && masterResult && masterResult.id) {
                   if (args && args[0]) {
@@ -286,7 +323,7 @@ export const prisma = new Proxy({} as PrismaClient, {
                     args[0].data.id = masterResult.id;
                   }
                 }
-                await (client as any)[prop][method](...args);
+                await (tenantClient as any)[prop][method](...args);
               } catch (err) {
                 console.error(`[Multi-Tenant] Tenant database write failed for ${String(prop)}.${method}:`, err);
                 throw err;
