@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,7 +8,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { items, mpAccessToken, successUrl, failureUrl, pendingUrl } = body;
 
-    if (!mpAccessToken) {
+    let activeToken = mpAccessToken;
+    if (!activeToken) {
+      const settings = await prisma.systemSettings.findFirst();
+      if (settings?.mpAccessToken) {
+        activeToken = settings.mpAccessToken;
+      }
+    }
+
+    if (!activeToken) {
       return NextResponse.json({ error: 'Mercado Pago Access Token is required' }, {
         status: 400,
         headers: {
@@ -28,7 +37,7 @@ export async function POST(request: NextRequest) {
     const mpResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${mpAccessToken}`,
+        'Authorization': `Bearer ${activeToken}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
