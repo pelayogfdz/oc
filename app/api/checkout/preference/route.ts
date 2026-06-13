@@ -8,11 +8,21 @@ export async function POST(request: NextRequest) {
     const { items, mpAccessToken, successUrl, failureUrl, pendingUrl } = body;
 
     if (!mpAccessToken) {
-      return NextResponse.json({ error: 'Mercado Pago Access Token is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Mercado Pago Access Token is required' }, {
+        status: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
     }
 
     if (!items || !items.length) {
-      return NextResponse.json({ error: 'Items are required' }, { status: 400 });
+      return NextResponse.json({ error: 'Items are required' }, {
+        status: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
     }
 
     const mpResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { authenticateToken } from '../auth';
-import { getNextFolio } from '@/app/actions/folios';
 
 export const dynamic = 'force-dynamic';
 
@@ -249,13 +248,11 @@ export async function POST(request: NextRequest) {
         calculatedTotal += (quantity * price);
       }
 
-      // Get next folio
-      const folio = await getNextFolio(branch.id, 'sale', tx);
+
 
       // Create the Sale
       const sale = await tx.sale.create({
         data: {
-          folio,
           total: calculatedTotal,
           status: 'COMPLETED',
           paymentMethod: paymentMethod || 'CARD',
