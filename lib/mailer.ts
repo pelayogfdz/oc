@@ -89,3 +89,95 @@ export const sendTaskEmail = async (to: string, taskTitle: string, instructions:
     return { success: false, error };
   }
 };
+
+export const sendSaleNotificationEmail = async (
+  to: string,
+  sale: any,
+  isPickup: boolean,
+  pickupCode?: string | null
+) => {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn('⚠️ SMTP credentials not set. Simulating sale email sending.');
+    console.log(`[EMAIL SIMULADO VENTA] Destino: ${to} | Código Recolección: ${pickupCode || 'N/A'}`);
+    return { success: true, simulated: true };
+  }
+
+  try {
+    const itemsListHtml = sale.items.map((item: any) => `
+      <tr>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea;">${item.product.name} (SKU: ${item.product.sku})</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: center;">${item.quantity}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: right;">$${item.price.toFixed(2)} MXN</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: right;">$${(item.quantity * item.price).toFixed(2)} MXN</td>
+      </tr>
+    `).join('');
+
+    const deliveryDetailsHtml = isPickup 
+      ? `
+        <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="color: #166534; margin-top: 0;">📍 Listo para Recolección en Tienda</h3>
+          <p>Tu pedido estará listo en 30 minutos (Click & Collect) en la sucursal seleccionada.</p>
+          <p style="font-size: 16px; margin-bottom: 5px;"><strong>Código de Recolección:</strong></p>
+          <div style="background-color: #ffffff; border: 2px dashed #166534; padding: 10px; font-size: 20px; font-weight: bold; letter-spacing: 2px; text-align: center; margin: 10px 0; color: #166534;">
+            ${pickupCode}
+          </div>
+          <p style="font-size: 12px; color: #666; margin-bottom: 0;">Muestra este código al personal en tienda para retirar tus productos.</p>
+        </div>
+      `
+      : `
+        <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="color: #1e3a8a; margin-top: 0;">🚚 Envío a Domicilio Confirmado</h3>
+          <p>Hemos registrado tu dirección y estamos preparando tu entrega express.</p>
+          <p>Tu pedido se entregará en la dirección proporcionada.</p>
+        </div>
+      `;
+
+    const info = await transporter.sendMail({
+      from: `"PETQRO Showroom" <${process.env.SMTP_USER}>`,
+      to,
+      subject: `Confirmación de Pedido PETQRO - Folio #${sale.id.slice(0, 8)}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px;">
+          <div style="text-align: center; border-bottom: 2px solid #0ea5e9; padding-bottom: 20px;">
+            <h1 style="color: #0ea5e9; margin: 0; font-size: 28px;">¡Gracias por tu compra!</h1>
+            <p style="color: #666; margin: 5px 0 0 0;">Pedido de Showroom PETQRO</p>
+          </div>
+          
+          ${deliveryDetailsHtml}
+
+          <h3 style="color: #333; border-bottom: 1px solid #eaeaea; padding-bottom: 8px;">Resumen del Pedido</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+            <thead>
+              <tr style="background-color: #f8fafc;">
+                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: left;">Producto</th>
+                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: center;">Cant.</th>
+                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: right;">Precio Unit.</th>
+                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: right;">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsListHtml}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" style="padding: 10px 8px; text-align: right; font-weight: bold; font-size: 16px;">Total:</td>
+                <td style="padding: 10px 8px; text-align: right; font-weight: bold; font-size: 16px; color: #0ea5e9;">$${sale.total.toFixed(2)} MXN</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; text-align: center; font-size: 12px; color: #888;">
+            <p>Este es un correo automático, por favor no respondas a esta dirección.</p>
+            <p><strong>PETQRO Showroom & CAANMA ERP</strong></p>
+          </div>
+        </div>
+      `,
+    });
+
+    console.log('Correo de venta enviado: %s', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error al enviar el correo de venta:', error);
+    return { success: false, error };
+  }
+};

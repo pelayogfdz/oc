@@ -1,14 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { authenticateToken } from '../auth';
+import { sendSaleNotificationEmail } from '@/lib/mailer';
 
 export const dynamic = 'force-dynamic';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders
+  });
+}
 
 // GET: Download / retrieve recent sales for the authenticated branch
 export async function GET(request: NextRequest) {
   const auth = await authenticateToken(request);
   if (!auth) {
-    return NextResponse.json({ error: 'No autorizado. Token API inválido o inactivo.' }, { status: 401 });
+    return NextResponse.json({ error: 'No autorizado. Token API inválido o inactivo.' }, { status: 401, headers: corsHeaders });
   }
 
   const { branch } = auth;
@@ -22,7 +36,7 @@ export async function GET(request: NextRequest) {
     try {
       sinceDate = new Date(sinceStr);
     } catch (e) {
-      return NextResponse.json({ error: 'Parámetro "since" inválido. Formato esperado: ISO Date String.' }, { status: 400 });
+      return NextResponse.json({ error: 'Parámetro "since" inválido. Formato esperado: ISO Date String.' }, { status: 400, headers: corsHeaders });
     }
   }
 
@@ -75,10 +89,10 @@ export async function GET(request: NextRequest) {
       },
       count: sales.length,
       sales
-    });
+    }, { headers: corsHeaders });
   } catch (error: any) {
     console.error('Error fetching sales for integration API:', error);
-    return NextResponse.json({ error: 'Error del servidor: ' + error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Error del servidor: ' + error.message }, { status: 500, headers: corsHeaders });
   }
 }
 
@@ -86,17 +100,29 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await authenticateToken(request);
   if (!auth) {
-    return NextResponse.json({ error: 'No autorizado. Token API inválido o inactivo.' }, { status: 401 });
+    return NextResponse.json({ error: 'No autorizado. Token API inválido o inactivo.' }, { status: 401, headers: corsHeaders });
   }
 
   const { branch } = auth;
 
   try {
     const body = await request.json();
-    const { items, customer: customerData, paymentMethod, notes } = body;
+    const { items, customer: customerData, paymentMethod, notes, deliveryType, shippingAddress, pickupBranch } = body;
+
+    let pickupCode: string | null = null;
+    let finalNotes = notes || 'Venta importada automáticamente vía API externa.';
+    if (deliveryType === 'collect' || pickupBranch) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let code = 'PQ-';
+      for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      pickupCode = code;
+      finalNotes = `${finalNotes} | Código de Recolección en Tienda: ${pickupCode}`;
+    }
 
     if (!items || !Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ error: 'La venta debe contener al menos un producto en "items".' }, { status: 400 });
+      return NextResponse.json({ error: 'La venta debe contener al menos un producto en "items".' }, { status: 400, headers: corsHeaders });
     }
 
     // Resolve an user to associate the sale
@@ -110,7 +136,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!firstUser) {
-      return NextResponse.json({ error: 'No se encontró ningún usuario configurado en esta sucursal para asociar la venta.' }, { status: 400 });
+      return NextResponse.json({ error: 'No se encontró ningún usuario configurado en esta sucursal para asociar la venta.' }, { status: 400, headers: corsHeaders });
     }
 
     // Resolve branch settings for stock configuration
@@ -259,7 +285,7 @@ export async function POST(request: NextRequest) {
           customerId: customerId,
           branchId: branch.id,
           userId: firstUser.id,
-          notes: notes || 'Venta importada automáticamente vía API externa.',
+          notes: finalNotes,
           items: {
             create: saleItemsData
           }
@@ -284,17 +310,43 @@ export async function POST(request: NextRequest) {
         }
       });
 
+      // If shippingAddress is provided, create a DeliveryOrder
+      if (deliveryType === 'home' && shippingAddress) {
+        await tx.deliveryOrder.create({
+          data: {
+            saleId: sale.id,
+            street: shippingAddress.street || null,
+            exteriorNumber: shippingAddress.exteriorNumber || null,
+            interiorNumber: shippingAddress.interiorNumber || null,
+            neighborhood: shippingAddress.neighborhood || null,
+            city: shippingAddress.city || 'Querétaro',
+            state: shippingAddress.state || 'Querétaro',
+            zipCode: shippingAddress.zipCode || null,
+            notes: shippingAddress.notes || null,
+            branchId: branch.id,
+            status: 'PENDING'
+          }
+        });
+      }
+
       return sale;
     });
+
+    // Send email notification to client asynchronously if email is provided
+    if (customerData?.email) {
+      sendSaleNotificationEmail(customerData.email, result, deliveryType === 'collect' || !!pickupBranch, pickupCode)
+        .catch(err => console.error("Error sending sale email:", err));
+    }
 
     return NextResponse.json({
       success: true,
       message: 'Venta importada exitosamente.',
-      sale: result
-    });
+      sale: result,
+      pickupCode: pickupCode
+    }, { headers: corsHeaders });
 
   } catch (error: any) {
     console.error('Error importing sale via integration API:', error);
-    return NextResponse.json({ error: error.message || 'Error al procesar la venta.' }, { status: 400 });
+    return NextResponse.json({ error: error.message || 'Error al procesar la venta.' }, { status: 400, headers: corsHeaders });
   }
 }
