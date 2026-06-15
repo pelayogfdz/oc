@@ -433,15 +433,31 @@ export async function deleteProduct(productId: string) {
   try {
     // Para forzar la eliminación, primero borramos el historial de movimientos y dependencias 
     // que puedan causar errores de Foreign Key (Restrict o falta de Cascade).
-    await prisma.$transaction([
-      prisma.inventoryMovement.deleteMany({ where: { productId } }),
-      prisma.saleItem.deleteMany({ where: { productId } }),
-      prisma.quoteItem.deleteMany({ where: { productId } }),
-      prisma.transferItem.deleteMany({ where: { productId } }),
-      prisma.purchaseItem.deleteMany({ where: { productId } }),
-      // Dependencias con Cascade se borrarán solas, pero el producto base sí se borrará
-      prisma.product.delete({ where: { id: productId } })
-    ]);
+    await prisma.$transaction(async (tx) => {
+      // 1. Eliminar dependencias directas e indirectas que impiden borrar el producto
+      await tx.inventoryMovement.deleteMany({ where: { productId } });
+      await tx.saleItem.deleteMany({ where: { productId } });
+      await tx.quoteItem.deleteMany({ where: { productId } });
+      await tx.transferItem.deleteMany({ where: { productId } });
+      await tx.purchaseItem.deleteMany({ where: { productId } });
+      
+      // Borrar de otras recetas donde este producto se use como ingrediente
+      await tx.recipeIngredient.deleteMany({ where: { productId } });
+      
+      // Borrar la receta propia del producto y sus órdenes de producción (si tiene)
+      const recipe = await tx.recipe.findUnique({ where: { productId } });
+      if (recipe) {
+        await tx.productionOrder.deleteMany({ where: { recipeId: recipe.id } });
+        await tx.recipe.delete({ where: { id: recipe.id } });
+      }
+
+      await tx.fuelTraceability.deleteMany({ where: { productId } });
+      await tx.purchaseOrderItem.deleteMany({ where: { productId } });
+      await tx.consignmentItem.deleteMany({ where: { productId } });
+
+      // 2. Finalmente borrar el producto
+      await tx.product.delete({ where: { id: productId } });
+    });
   } catch(e) {
     console.error("Error eliminando producto:", e);
     throw e;

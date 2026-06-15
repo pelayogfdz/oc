@@ -1,4 +1,3 @@
-import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import Link from 'next/link';
 import EditarProveedorForm from "./EditarProveedorForm";
@@ -11,8 +10,6 @@ interface PageProps {
 
 export default async function EditarProveedorPage({ params }: PageProps) {
   const { id } = await params;
-  const branch = await getActiveBranch();
-  if (!branch) return null;
 
   const supplier = await prisma.supplier.findUnique({
     where: { id }
@@ -25,15 +22,6 @@ export default async function EditarProveedorPage({ params }: PageProps) {
         <Link href="/proveedores" style={{ color: '#3b82f6', textDecoration: 'underline', marginTop: '1rem', display: 'inline-block' }}>
           Volver a la lista de proveedores
         </Link>
-      </div>
-    );
-  }
-
-  // Branch check
-  if (branch.id !== 'GLOBAL' && supplier.branchId !== branch.id) {
-    return (
-      <div style={{ padding: '2rem', color: '#ef4444', fontWeight: 'bold', textAlign: 'center' }}>
-        Acceso denegado: este proveedor no pertenece a tu sucursal.
       </div>
     );
   }

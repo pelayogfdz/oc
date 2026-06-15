@@ -52,12 +52,14 @@ export async function updateRouteSequence(orders: { id: string; routeOrder: numb
     const user = await getActiveUser();
     if (!user) throw new Error("No autenticado");
 
-    await prisma.$transaction(
-      orders.map(o => prisma.deliveryOrder.update({
-        where: { id: o.id },
-        data: { routeOrder: o.routeOrder }
-      }))
-    );
+    await prisma.$transaction(async (tx) => {
+      for (const o of orders) {
+        await tx.deliveryOrder.update({
+          where: { id: o.id },
+          data: { routeOrder: o.routeOrder }
+        });
+      }
+    });
 
     revalidatePath('/logistica');
     revalidatePath('/logistica/chofer');

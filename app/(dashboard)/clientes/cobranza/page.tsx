@@ -1,15 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import CobranzaGlobalClient from "./CobranzaGlobalClient";
-import { getActiveBranch } from "@/app/actions/auth";
-
-export const dynamic = 'force-dynamic';
-
 export default async function CobranzaGlobalPage() {
-  const branch = await getActiveBranch();
-  
   const pendingSales = await prisma.sale.findMany({
     where: { 
-      ...(branch?.id !== 'GLOBAL' ? { branchId: branch?.id } : {}),
       paymentMethod: 'CREDIT',
       balanceDue: { gt: 0 }
     },

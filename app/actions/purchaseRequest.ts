@@ -14,9 +14,9 @@ export async function createPurchaseRequests(items: { productId?: string; prePro
     throw new Error('Debes incluir al menos un artículo en la solicitud.');
   }
 
-  await prisma.$transaction(
-    items.map(item => 
-      prisma.purchaseRequest.create({
+  await prisma.$transaction(async (tx) => {
+    for (const item of items) {
+      await tx.purchaseRequest.create({
         data: {
           branchId: branch.id,
           requestedById: user.id,
@@ -25,9 +25,9 @@ export async function createPurchaseRequests(items: { productId?: string; prePro
           quantity: item.quantity,
           status: 'PENDING'
         }
-      })
-    )
-  );
+      });
+    }
+  });
 
   revalidatePath('/productos/solicitudes');
 }

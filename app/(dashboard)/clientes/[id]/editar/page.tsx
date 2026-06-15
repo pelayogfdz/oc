@@ -20,10 +20,6 @@ export default async function EditarClientePage({ params }: { params: Promise<{ 
     return <div>Cliente no encontrado.</div>;
   }
 
-  if (branch.id !== 'GLOBAL' && customer.branchId !== branch.id) {
-    return <div style={{ padding: '2rem', color: '#ef4444', fontWeight: 'bold' }}>Acceso denegado: este cliente no pertenece a tu sucursal.</div>;
-  }
-
   const saveAction = async (formData: FormData) => {
     'use server';
     await updateCustomer(id, formData);

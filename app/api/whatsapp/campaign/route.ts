@@ -180,20 +180,19 @@ export async function POST(request: Request) {
     // Parse scheduled date
     const targetTime = scheduledAt ? new Date(scheduledAt) : new Date();
 
-    // Create a message in DB for each prospect
-    const creations = targetProspects.map(prospect => {
-      return prisma.whatsAppMessage.create({
-        data: {
-          prospectId: prospect.id,
-          body: message,
-          isFromMe: true,
-          messageId: null, // pending to be sent by microservice
-          timestamp: targetTime
-        }
-      });
+    await prisma.$transaction(async (tx) => {
+      for (const prospect of targetProspects) {
+        await tx.whatsAppMessage.create({
+          data: {
+            prospectId: prospect.id,
+            body: message,
+            isFromMe: true,
+            messageId: null,
+            timestamp: targetTime
+          }
+        });
+      }
     });
-
-    await prisma.$transaction(creations);
 
     return NextResponse.json({
       success: true,
