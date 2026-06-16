@@ -7,7 +7,7 @@ import {
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
-import { createIncidentAdmin } from '@/app/actions/hr';
+import { createIncidentAdmin, updateIncidentAdmin, deleteIncidentAdmin } from '@/app/actions/hr';
 
 const INCIDENT_TYPES: Record<string, { label: string, color: string, bg: string }> = {
   FALTA: { label: 'Falta', color: '#ef4444', bg: '#fef2f2' },
@@ -24,6 +24,7 @@ export default function CalendarClient({ employees, initialIncidents }: { employ
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingIncidentId, setEditingIncidentId] = useState<string | null>(null);
   
   // Form State
   const [formData, setFormData] = useState({
@@ -47,13 +48,56 @@ export default function CalendarClient({ employees, initialIncidents }: { employ
   const days = eachDayOfInterval({ start: startDate, end: endDate });
 
   const handleDayClick = (day: Date) => {
+    setEditingIncidentId(null);
     setSelectedDate(day);
-    setFormData(prev => ({
-      ...prev,
+    setFormData({
+      userId: '',
+      type: 'FALTA',
       startDate: format(day, 'yyyy-MM-dd'),
-      endDate: format(day, 'yyyy-MM-dd')
-    }));
+      endDate: format(day, 'yyyy-MM-dd'),
+      reason: ''
+    });
     setIsModalOpen(true);
+  };
+
+  const handleIncidentClick = (inc: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingIncidentId(inc.id);
+    setSelectedDate(new Date(inc.startDate));
+    
+    // safe date string extraction (offset-agnostic)
+    const formatDateObj = (d: any) => {
+      const date = new Date(d);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    setFormData({
+      userId: inc.userId,
+      type: inc.type,
+      startDate: formatDateObj(inc.startDate),
+      endDate: formatDateObj(inc.endDate),
+      reason: inc.notes || ''
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteIncident = async () => {
+    if (!editingIncidentId) return;
+    if (!confirm("¿Estás seguro de que deseas eliminar esta incidencia?")) return;
+    
+    setIsSubmitting(true);
+    try {
+      await deleteIncidentAdmin(editingIncidentId);
+      setIsModalOpen(false);
+      setEditingIncidentId(null);
+    } catch (error: any) {
+      alert(error.message || "Error al eliminar la incidencia");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSaveIncident = async (e: React.FormEvent) => {
@@ -65,16 +109,26 @@ export default function CalendarClient({ employees, initialIncidents }: { employ
     
     setIsSubmitting(true);
     try {
-      await createIncidentAdmin({
-        userId: formData.userId,
-        type: formData.type,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        reason: formData.reason
-      });
+      if (editingIncidentId) {
+        await updateIncidentAdmin(editingIncidentId, {
+          userId: formData.userId,
+          type: formData.type,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          reason: formData.reason
+        });
+      } else {
+        await createIncidentAdmin({
+          userId: formData.userId,
+          type: formData.type,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          reason: formData.reason
+        });
+      }
       setIsModalOpen(false);
+      setEditingIncidentId(null);
       setFormData({ userId: '', type: 'FALTA', startDate: '', endDate: '', reason: '' });
-      // The page will automatically refresh due to revalidatePath in the action
     } catch (error: any) {
       alert(error.message || "Error al guardar la incidencia");
     } finally {
@@ -104,12 +158,15 @@ export default function CalendarClient({ employees, initialIncidents }: { employ
         </div>
         <button 
           onClick={() => {
+            setEditingIncidentId(null);
             setSelectedDate(new Date());
-            setFormData(prev => ({
-              ...prev,
+            setFormData({
+              userId: '',
+              type: 'FALTA',
               startDate: format(new Date(), 'yyyy-MM-dd'),
-              endDate: format(new Date(), 'yyyy-MM-dd')
-            }));
+              endDate: format(new Date(), 'yyyy-MM-dd'),
+              reason: ''
+            });
             setIsModalOpen(true);
           }}
           style={{
@@ -208,7 +265,8 @@ export default function CalendarClient({ employees, initialIncidents }: { employ
                     return (
                       <div 
                         key={inc.id}
-                        title={`${inc.user?.name} - ${typeInfo.label} ${isPending ? '(Pendiente)' : ''}`}
+                        onClick={(e) => handleIncidentClick(inc, e)}
+                        title={`${inc.user?.name} - ${typeInfo.label} ${isPending ? '(Pendiente)' : ''} (Haz clic para editar/eliminar)`}
                         style={{
                           fontSize: '0.7rem',
                           padding: '0.125rem 0.25rem',
@@ -219,8 +277,12 @@ export default function CalendarClient({ employees, initialIncidents }: { employ
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
-                          fontWeight: '500'
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          transition: 'filter 0.2s'
                         }}
+                        onMouseEnter={e => e.currentTarget.style.filter = 'brightness(0.9)'}
+                        onMouseLeave={e => e.currentTarget.style.filter = 'none'}
                       >
                         {inc.user?.name?.split(' ')[0]} - {typeInfo.label}
                       </div>
@@ -242,7 +304,9 @@ export default function CalendarClient({ employees, initialIncidents }: { employ
         }}>
           <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '100%', maxWidth: '500px', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: 0 }}>Registrar Incidencia</h3>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: 0 }}>
+                {editingIncidentId ? 'Editar Incidencia' : 'Registrar Incidencia'}
+              </h3>
               <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} color="#64748b" /></button>
             </div>
             
@@ -309,21 +373,34 @@ export default function CalendarClient({ employees, initialIncidents }: { employ
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
-                <button 
-                  type="button" 
-                  onClick={() => setIsModalOpen(false)}
-                  style={{ padding: '0.5rem 1rem', backgroundColor: 'transparent', color: '#64748b', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={isSubmitting}
-                  style={{ padding: '0.5rem 1.5rem', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', opacity: isSubmitting ? 0.7 : 1 }}
-                >
-                  {isSubmitting ? 'Guardando...' : 'Guardar Incidencia'}
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginTop: '0.5rem' }}>
+                {editingIncidentId ? (
+                  <button 
+                    type="button" 
+                    onClick={handleDeleteIncident}
+                    disabled={isSubmitting}
+                    style={{ padding: '0.5rem 1rem', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', marginRight: 'auto' }}
+                  >
+                    Eliminar
+                  </button>
+                ) : <div />}
+                
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button 
+                    type="button" 
+                    onClick={() => setIsModalOpen(false)}
+                    style={{ padding: '0.5rem 1rem', backgroundColor: 'transparent', color: '#64748b', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    style={{ padding: '0.5rem 1.5rem', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', opacity: isSubmitting ? 0.7 : 1 }}
+                  >
+                    {isSubmitting ? 'Guardando...' : 'Guardar Incidencia'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

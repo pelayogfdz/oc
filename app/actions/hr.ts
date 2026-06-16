@@ -405,8 +405,8 @@ export async function createLeaveRequest(data: {
       return { success: false, error: "No autorizado" };
     }
 
-    const start = new Date(data.startDate);
-    const end = new Date(data.endDate);
+    const start = typeof data.startDate === 'string' ? new Date(data.startDate + 'T12:00:00') : new Date(data.startDate);
+    const end = typeof data.endDate === 'string' ? new Date(data.endDate + 'T12:00:00') : new Date(data.endDate);
 
     if (start > end) {
       return { success: false, error: "La fecha de inicio no puede ser posterior a la fecha de fin." };
@@ -458,8 +458,8 @@ export async function createIncidentAdmin(data: {
     throw new Error("No autorizado. Se requieren permisos de administrador o recursos humanos.");
   }
 
-  const start = new Date(data.startDate);
-  const end = new Date(data.endDate);
+  const start = typeof data.startDate === 'string' ? new Date(data.startDate + 'T12:00:00') : new Date(data.startDate);
+  const end = typeof data.endDate === 'string' ? new Date(data.endDate + 'T12:00:00') : new Date(data.endDate);
 
   if (start > end) {
     throw new Error("La fecha de inicio no puede ser posterior a la fecha de fin.");
@@ -492,6 +492,60 @@ export async function createIncidentAdmin(data: {
       updatedAt: request.updatedAt.toISOString()
     } 
   };
+}
+
+export async function updateIncidentAdmin(id: string, data: {
+  userId: string;
+  type: string;
+  startDate: Date | string;
+  endDate: Date | string;
+  reason?: string;
+}) {
+  const sessionCookie = (await cookies()).get('session')?.value;
+  const session = await decrypt(sessionCookie);
+  
+  if (!session?.userId || (session.role !== 'ADMIN' && session.role !== 'MANAGER')) {
+    throw new Error("No autorizado. Se requieren permisos de administrador o recursos humanos.");
+  }
+
+  const start = typeof data.startDate === 'string' ? new Date(data.startDate + 'T12:00:00') : new Date(data.startDate);
+  const end = typeof data.endDate === 'string' ? new Date(data.endDate + 'T12:00:00') : new Date(data.endDate);
+
+  if (start > end) {
+    throw new Error("La fecha de inicio no puede ser posterior a la fecha de fin.");
+  }
+
+  const request = await prisma.leaveRequest.update({
+    where: { id },
+    data: {
+      userId: data.userId,
+      type: data.type,
+      startDate: start,
+      endDate: end,
+      notes: data.reason
+    }
+  });
+
+  revalidatePath('/rh/calendario');
+  revalidatePath('/rh/tramites');
+  return { success: true, request };
+}
+
+export async function deleteIncidentAdmin(id: string) {
+  const sessionCookie = (await cookies()).get('session')?.value;
+  const session = await decrypt(sessionCookie);
+  
+  if (!session?.userId || (session.role !== 'ADMIN' && session.role !== 'MANAGER')) {
+    throw new Error("No autorizado. Se requieren permisos de administrador o recursos humanos.");
+  }
+
+  await prisma.leaveRequest.delete({
+    where: { id }
+  });
+
+  revalidatePath('/rh/calendario');
+  revalidatePath('/rh/tramites');
+  return { success: true };
 }
 
 export async function updateLeaveRequestStatus(id: string, status: 'APPROVED' | 'REJECTED') {
