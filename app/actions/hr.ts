@@ -405,8 +405,8 @@ export async function createLeaveRequest(data: {
       return { success: false, error: "No autorizado" };
     }
 
-    const start = typeof data.startDate === 'string' ? new Date(data.startDate + 'T12:00:00') : new Date(data.startDate);
-    const end = typeof data.endDate === 'string' ? new Date(data.endDate + 'T12:00:00') : new Date(data.endDate);
+    const start = typeof data.startDate === 'string' ? new Date(data.startDate + 'T12:00:00Z') : new Date(data.startDate);
+    const end = typeof data.endDate === 'string' ? new Date(data.endDate + 'T12:00:00Z') : new Date(data.endDate);
 
     if (start > end) {
       return { success: false, error: "La fecha de inicio no puede ser posterior a la fecha de fin." };
@@ -458,8 +458,8 @@ export async function createIncidentAdmin(data: {
     throw new Error("No autorizado. Se requieren permisos de administrador o recursos humanos.");
   }
 
-  const start = typeof data.startDate === 'string' ? new Date(data.startDate + 'T12:00:00') : new Date(data.startDate);
-  const end = typeof data.endDate === 'string' ? new Date(data.endDate + 'T12:00:00') : new Date(data.endDate);
+  const start = typeof data.startDate === 'string' ? new Date(data.startDate + 'T12:00:00Z') : new Date(data.startDate);
+  const end = typeof data.endDate === 'string' ? new Date(data.endDate + 'T12:00:00Z') : new Date(data.endDate);
 
   if (start > end) {
     throw new Error("La fecha de inicio no puede ser posterior a la fecha de fin.");
@@ -508,8 +508,8 @@ export async function updateIncidentAdmin(id: string, data: {
     throw new Error("No autorizado. Se requieren permisos de administrador o recursos humanos.");
   }
 
-  const start = typeof data.startDate === 'string' ? new Date(data.startDate + 'T12:00:00') : new Date(data.startDate);
-  const end = typeof data.endDate === 'string' ? new Date(data.endDate + 'T12:00:00') : new Date(data.endDate);
+  const start = typeof data.startDate === 'string' ? new Date(data.startDate + 'T12:00:00Z') : new Date(data.startDate);
+  const end = typeof data.endDate === 'string' ? new Date(data.endDate + 'T12:00:00Z') : new Date(data.endDate);
 
   if (start > end) {
     throw new Error("La fecha de inicio no puede ser posterior a la fecha de fin.");
