@@ -22,7 +22,9 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
         filters.dateRange.endDate, 
         filters.branchId, 
         filters.userId,
-        filters.brandId
+        filters.brandId,
+        filters.paymentMethod,
+        filters.invoiced
       );
       setData(newData);
     } catch (e) {
@@ -68,6 +70,8 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
           onFilterChange={handleFilterChange} 
           disabled={loading} 
           showUser={true}
+          showPaymentMethod={true}
+          showInvoiced={true}
           initialBranchId={initialBranchId}
         />
       </div>
@@ -140,6 +144,7 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
                     <th style={{ padding: '0.75rem 0.5rem' }}>Cliente</th>
                     <th style={{ padding: '0.75rem 0.5rem' }}>Cajero</th>
                     <th style={{ padding: '0.75rem 0.5rem' }}>Método</th>
+                    <th style={{ padding: '0.75rem 0.5rem' }}>Factura</th>
                     <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Total</th>
                     <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Ganancia</th>
                     <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}></th>
@@ -164,6 +169,35 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
                           {s.method}
                         </span>
                       </td>
+                      <td data-label="Factura" style={{ padding: '1rem 0.5rem' }}>
+                        {s.invoiceId ? (
+                          <span 
+                            title={`ID Factura: ${s.invoiceId}`}
+                            style={{ 
+                              padding: '0.25rem 0.5rem', 
+                              borderRadius: '9999px', 
+                              fontSize: '0.8rem', 
+                              fontWeight: 'bold',
+                              backgroundColor: '#eff6ff',
+                              color: '#2563eb',
+                              border: '1px solid #bfdbfe'
+                            }}
+                          >
+                            Facturado
+                          </span>
+                        ) : (
+                          <span style={{ 
+                            padding: '0.25rem 0.5rem', 
+                            borderRadius: '9999px', 
+                            fontSize: '0.8rem', 
+                            fontWeight: 'bold',
+                            backgroundColor: '#f1f5f9',
+                            color: '#64748b'
+                          }}>
+                            No facturado
+                          </span>
+                        )}
+                      </td>
                       <td data-label="Total" style={{ padding: '1rem 0.5rem', textAlign: 'right', fontWeight: 'bold' }}>{formatCurrency(s.total)}</td>
                       <td data-label="Ganancia" style={{ padding: '1rem 0.5rem', textAlign: 'right', color: '#16a34a' }}>{formatCurrency(s.profit)}</td>
                       <td data-label="Acciones" style={{ padding: '1rem 0.5rem', textAlign: 'center' }}>
@@ -175,7 +209,7 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
                   ))}
                   {filteredSales.length === 0 && (
                     <tr>
-                      <td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                      <td colSpan={9} style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
                         No se encontraron ventas para estos filtros.
                       </td>
                     </tr>

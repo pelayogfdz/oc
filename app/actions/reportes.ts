@@ -135,7 +135,15 @@ export async function getGeneralAnalyticsData(startDate: Date, endDate: Date, br
   };
 }
 
-export async function getSalesDetailData(startDate: Date, endDate: Date, branchIdFilter?: string, userIdFilter?: string, brandFilter?: string) {
+export async function getSalesDetailData(
+  startDate: Date, 
+  endDate: Date, 
+  branchIdFilter?: string, 
+  userIdFilter?: string, 
+  brandFilter?: string,
+  paymentMethodFilter?: string,
+  invoicedFilter?: string
+) {
   const session = await getSession();
   const branch = await getActiveBranch();
   if (!branch) throw new Error('Unauthorized');
@@ -191,7 +199,17 @@ export async function getSalesDetailData(startDate: Date, endDate: Date, branchI
             }
           }
         }
-      } : {})
+      } : {}),
+      ...(paymentMethodFilter && paymentMethodFilter !== 'ALL' ? {
+        paymentMethod: paymentMethodFilter
+      } : {}),
+      ...(invoicedFilter && invoicedFilter !== 'ALL' ? (
+        invoicedFilter === 'INVOICED' ? {
+          invoiceId: { not: null }
+        } : {
+          invoiceId: null
+        }
+      ) : {})
     },
     include: {
       user: true,
@@ -238,7 +256,8 @@ export async function getSalesDetailData(startDate: Date, endDate: Date, branchI
       method: sale.paymentMethod,
       total: sale.total,
       profit: profit,
-      itemsCount: sale.items.reduce((acc, item) => acc + item.quantity, 0)
+      itemsCount: sale.items.reduce((acc, item) => acc + item.quantity, 0),
+      invoiceId: sale.invoiceId
     };
   });
 
@@ -412,7 +431,19 @@ export async function getAvailableFilters() {
     orderBy: { name: 'asc' }
   });
 
-  return { branches, users, categories, customers, brands };
+  // Fetch unique payment methods
+  const salesWithPaymentMethods = await prisma.sale.findMany({
+    where: {
+      branchId: { in: branchIds }
+    },
+    select: { paymentMethod: true },
+    distinct: ['paymentMethod']
+  });
+  const paymentMethods = salesWithPaymentMethods
+    .map(s => s.paymentMethod)
+    .filter((pm): pm is string => !!pm && pm.trim() !== '');
+
+  return { branches, users, categories, customers, brands, paymentMethods };
 }
 
 

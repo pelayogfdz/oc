@@ -14,6 +14,7 @@ export default function ReportesModuleClient({ initialMetrics }: { initialMetric
     { title: 'Top Clientes', icon: <Users size={24} color="#ef4444" />, description: 'Mejores compradores y su historial.', route: '/reportes/top-clientes' },
     { title: 'Top Categorías', icon: <Package size={24} color="#10b981" />, description: 'Categorías que más ingresos generan.', route: '/reportes/top-categorias' },
     { title: 'Ventas por Vendedor', icon: <Users size={24} color="#3b82f6" />, description: 'Rendimiento y comisiones por cajero/vendedor.', route: '/reportes/ventas-por-vendedor' },
+    { title: 'Comisiones de Vendedores', icon: <Calculator size={24} color="#10b981" />, description: 'Liquidaciones de bonos y comisiones ganadas por tu equipo.', route: '/reportes/comisiones' },
     { title: 'Inventario Valorizado', icon: <Package size={24} color="#6366f1" />, description: 'Valor total de tu mercancía a costo y precio venta.', route: '/reportes/inventario-valorizado' },
     { title: 'Reporte de Resurtido', icon: <Package size={24} color="#10b981" />, description: 'Sugerencias de compra basadas en promedio de ventas y stock.', route: '/reportes/resurtido' },
     { title: 'Reporte de Insumos', icon: <ChefHat size={24} color="#8b5cf6" />, description: 'Sugerencia de compra de materias primas basada en recetas de productos vendidos.', route: '/reportes/insumos' },

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import DateRangeFilter, { DateRange } from './DateRangeFilter';
 import { getAvailableFilters } from '@/app/actions/reportes';
-import { Store, User, Filter, Tag } from 'lucide-react';
+import { Store, User, Filter, Tag, DollarSign, FileText } from 'lucide-react';
 import { startOfDay, subDays, endOfDay } from 'date-fns';
 
 export interface ReportFilterState {
@@ -11,6 +11,8 @@ export interface ReportFilterState {
   branchId: string;
   userId: string;
   brandId: string;
+  paymentMethod?: string;
+  invoiced?: string;
 }
 
 interface ReportFilterBarProps {
@@ -20,6 +22,8 @@ interface ReportFilterBarProps {
   showBranch?: boolean;
   showUser?: boolean;
   showBrand?: boolean;
+  showPaymentMethod?: boolean;
+  showInvoiced?: boolean;
   initialBranchId?: string;
 }
 
@@ -30,16 +34,21 @@ export default function ReportFilterBar({
   showBranch = true,
   showUser = true,
   showBrand = true,
+  showPaymentMethod = false,
+  showInvoiced = false,
   initialBranchId = 'ALL'
 }: ReportFilterBarProps) {
   
   const [branches, setBranches] = useState<{id: string, name: string}[]>([]);
   const [users, setUsers] = useState<{id: string, name: string}[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<string[]>([]);
   
   const [branchId, setBranchId] = useState(initialBranchId);
   const [userId, setUserId] = useState('ALL');
   const [brandId, setBrandId] = useState('ALL');
+  const [paymentMethod, setPaymentMethod] = useState('ALL');
+  const [invoiced, setInvoiced] = useState('ALL');
   
   // Default date range is last 30 days
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -53,10 +62,11 @@ export default function ReportFilterBar({
   useEffect(() => {
     async function loadFilters() {
       try {
-        const { branches, users, brands } = await getAvailableFilters();
+        const { branches, users, brands, paymentMethods } = await getAvailableFilters() as any;
         setBranches(branches);
         setUsers(users);
         setBrands(brands || []);
+        setPaymentMethods(paymentMethods || []);
       } catch (e) {
         console.error("Error loading filters", e);
       } finally {
@@ -66,41 +76,64 @@ export default function ReportFilterBar({
     loadFilters();
   }, []);
 
-  const handleApply = (newDateRange?: DateRange, newBranchId?: string, newUserId?: string, newBrandId?: string) => {
+  const handleApply = (
+    newDateRange?: DateRange, 
+    newBranchId?: string, 
+    newUserId?: string, 
+    newBrandId?: string,
+    newPaymentMethod?: string,
+    newInvoiced?: string
+  ) => {
     const dr = newDateRange || dateRange;
     const bid = newBranchId !== undefined ? newBranchId : branchId;
     const uid = newUserId !== undefined ? newUserId : userId;
     const brid = newBrandId !== undefined ? newBrandId : brandId;
+    const pmet = newPaymentMethod !== undefined ? newPaymentMethod : paymentMethod;
+    const inv = newInvoiced !== undefined ? newInvoiced : invoiced;
 
     onFilterChange({
       dateRange: dr,
       branchId: bid,
       userId: uid,
-      brandId: brid
+      brandId: brid,
+      paymentMethod: pmet,
+      invoiced: inv
     });
   };
 
   const handleDateChange = (range: DateRange) => {
     setDateRange(range);
-    handleApply(range, branchId, userId, brandId);
+    handleApply(range, branchId, userId, brandId, paymentMethod, invoiced);
   };
 
   const handleBranchChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     setBranchId(val);
-    handleApply(dateRange, val, userId, brandId);
+    handleApply(dateRange, val, userId, brandId, paymentMethod, invoiced);
   };
 
   const handleUserChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     setUserId(val);
-    handleApply(dateRange, branchId, val, brandId);
+    handleApply(dateRange, branchId, val, brandId, paymentMethod, invoiced);
   };
 
   const handleBrandChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     setBrandId(val);
-    handleApply(dateRange, branchId, userId, val);
+    handleApply(dateRange, branchId, userId, val, paymentMethod, invoiced);
+  };
+
+  const handlePaymentMethodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setPaymentMethod(val);
+    handleApply(dateRange, branchId, userId, brandId, val, invoiced);
+  };
+
+  const handleInvoicedChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setInvoiced(val);
+    handleApply(dateRange, branchId, userId, brandId, paymentMethod, val);
   };
 
   return (
@@ -192,6 +225,63 @@ export default function ReportFilterBar({
           >
             <option value="ALL">Todas las Marcas</option>
             {brands.map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
+        </div>
+      )}
+
+      {showPaymentMethod && paymentMethods.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--pulpos-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
+          <DollarSign size={16} color="var(--pulpos-text-muted)" style={{ marginLeft: '0.5rem' }} />
+          <select 
+            value={paymentMethod}
+            onChange={handlePaymentMethodChange}
+            disabled={disabled || loadingFilters}
+            style={{ 
+              border: 'none', 
+              padding: '0.6rem 0.5rem', 
+              backgroundColor: 'transparent',
+              outline: 'none',
+              fontWeight: '500',
+              color: 'var(--pulpos-text)',
+              cursor: 'pointer',
+              minWidth: '150px'
+            }}
+          >
+            <option value="ALL">Todos los Métodos</option>
+            {paymentMethods.map(pm => {
+              let label = pm;
+              if (pm === 'CASH') label = 'Efectivo';
+              if (pm === 'CARD') label = 'Tarjeta';
+              if (pm === 'TRANSFER') label = 'Transferencia';
+              if (pm === 'CREDIT') label = 'Crédito';
+              if (pm === 'MIXTO') label = 'Mixto';
+              return <option key={pm} value={pm}>{label}</option>;
+            })}
+          </select>
+        </div>
+      )}
+
+      {showInvoiced && (
+        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--pulpos-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
+          <FileText size={16} color="var(--pulpos-text-muted)" style={{ marginLeft: '0.5rem' }} />
+          <select 
+            value={invoiced}
+            onChange={handleInvoicedChange}
+            disabled={disabled || loadingFilters}
+            style={{ 
+              border: 'none', 
+              padding: '0.6rem 0.5rem', 
+              backgroundColor: 'transparent',
+              outline: 'none',
+              fontWeight: '500',
+              color: 'var(--pulpos-text)',
+              cursor: 'pointer',
+              minWidth: '150px'
+            }}
+          >
+            <option value="ALL">Facturación: Todos</option>
+            <option value="INVOICED">Facturado</option>
+            <option value="NOT_INVOICED">No facturado</option>
           </select>
         </div>
       )}

@@ -248,3 +248,210 @@ export async function getCommissionReport(month: number, year: number) {
 
   return rawStats;
 }
+
+export async function getCustomCommissionsReport(
+  startDate: Date,
+  endDate: Date,
+  branchIdFilter?: string,
+  userIdFilter?: string
+) {
+  const session = await getSession();
+  const branch = await getActiveBranch();
+  if (!branch) throw new Error('Unauthorized');
+
+  const tenantId = session?.tenantId || branch.tenantId;
+  if (!tenantId) throw new Error('Unauthorized: Tenant context missing');
+  
+  const tenantIdClause = { tenantId };
+  
+  // Resolve branches list
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const tenantBranchIds = tenantBranches.map(b => b.id);
+  
+  let branchCondition: any = branch.id === 'GLOBAL' 
+    ? { branchId: { in: tenantBranchIds } } 
+    : { branchId: branch.id };
+    
+  if (branchIdFilter && branchIdFilter !== 'ALL') {
+    if (tenantBranchIds.includes(branchIdFilter)) {
+      branchCondition = { branchId: branchIdFilter };
+    }
+  }
+
+  // Resolve users list
+  const userCondition = (userIdFilter && userIdFilter !== 'ALL') ? { id: userIdFilter } : {};
+
+  const users = await prisma.user.findMany({
+    where: {
+      ...tenantIdClause,
+      ...userCondition,
+      NOT: {
+        email: {
+          startsWith: 'inactivo_'
+        }
+      }
+    },
+    select: {
+      id: true,
+      name: true,
+      commissionRole: true,
+      commissionPct: true,
+      monthlyGoal: true,
+      bonusAmount: true,
+      teamBonusAmount: true,
+      managerId: true,
+      sales: {
+        where: {
+          ...branchCondition,
+          createdAt: { gte: startDate, lte: endDate },
+          status: 'COMPLETED'
+        },
+        select: {
+          id: true,
+          total: true,
+          createdAt: true,
+          paymentMethod: true,
+          invoiceId: true,
+          customer: {
+            select: {
+              name: true
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Calculate Base Stats
+  const rawStats = users.map(u => {
+    const totalSales = u.sales.reduce((acc, sale) => acc + sale.total, 0);
+    const mappedSales = u.sales.map(sale => ({
+      id: sale.id,
+      total: sale.total,
+      date: sale.createdAt.toISOString(),
+      method: sale.paymentMethod,
+      invoiceId: sale.invoiceId,
+      customer: sale.customer?.name || 'Público en General',
+      commissionPct: u.commissionPct,
+      commissionEarned: sale.total * (u.commissionPct / 100)
+    }));
+
+    return {
+      id: u.id,
+      name: u.name,
+      role: u.commissionRole || 'VENDEDOR',
+      monthlyGoal: u.monthlyGoal,
+      commissionPct: u.commissionPct,
+      bonusAmount: u.bonusAmount,
+      teamBonusAmount: u.teamBonusAmount,
+      managerId: u.managerId,
+      personalSales: totalSales,
+      teamSales: 0, 
+      totalSalesBase: totalSales, // Personal + Subordinates (if applicable)
+      
+      commissionsEarned: 0,
+      bonusEarned: 0,
+      teamBonusEarned: 0,
+      totalEarned: 0,
+      unlockedBonus: false,
+      salesList: mappedSales
+    };
+  });
+
+  const statsMap = new Map(rawStats.map(s => [s.id, s]));
+
+  // Roll-up logic (Assuming 3-tier: VENDEDOR -> LIDER -> COORDINADOR)
+  
+  // A) Ventas de Equipo para Líderes
+  for (const stat of rawStats) {
+    if (stat.managerId && statsMap.has(stat.managerId)) {
+      const manager = statsMap.get(stat.managerId)!;
+      if (manager.role === 'LIDER' || manager.role === 'COORDINADOR') {
+        manager.teamSales += stat.personalSales;
+        manager.totalSalesBase += stat.personalSales; // Includes their team
+      }
+    }
+  }
+
+  // B) Ventas de Organización para Coordinadores (Rollup from leaders)
+  for (const stat of rawStats) {
+    if (stat.role === 'LIDER' && stat.managerId && statsMap.has(stat.managerId)) {
+       const director = statsMap.get(stat.managerId)!;
+       if (director.role === 'COORDINADOR') {
+          director.teamSales += stat.totalSalesBase;
+          director.totalSalesBase += stat.totalSalesBase;
+       }
+    }
+  }
+
+  // C) Calcular Comisiones y Bonos
+  for (const stat of rawStats) {
+    if (stat.role === 'VENDEDOR') {
+      stat.commissionsEarned = stat.personalSales * (stat.commissionPct / 100);
+      if (stat.monthlyGoal > 0 && stat.personalSales >= stat.monthlyGoal) {
+        stat.bonusEarned = stat.bonusAmount;
+        stat.unlockedBonus = true;
+      }
+    } 
+    else if (stat.role === 'LIDER_SECUNDARIO') {
+      stat.commissionsEarned = stat.personalSales * (stat.commissionPct / 100);
+      if (stat.monthlyGoal > 0 && stat.personalSales >= stat.monthlyGoal) {
+        stat.bonusEarned = stat.bonusAmount;
+        stat.unlockedBonus = true;
+      }
+    }
+    else if (stat.role === 'LIDER') {
+      stat.commissionsEarned = stat.personalSales * (stat.commissionPct / 100);
+      if (stat.monthlyGoal > 0 && stat.totalSalesBase >= stat.monthlyGoal) {
+        stat.bonusEarned = stat.bonusAmount;
+        stat.unlockedBonus = true;
+        
+        // Repartir bono de equipo a subordinados
+        for (const sub of rawStats) {
+          if (sub.managerId === stat.id && (sub.role === 'VENDEDOR' || sub.role === 'LIDER_SECUNDARIO')) {
+            sub.teamBonusEarned += stat.teamBonusAmount;
+          }
+        }
+      }
+    }
+    else if (stat.role === 'COORDINADOR') {
+      stat.commissionsEarned = stat.totalSalesBase * (stat.commissionPct / 100);
+      if (stat.monthlyGoal > 0 && stat.totalSalesBase >= stat.monthlyGoal) {
+        stat.bonusEarned = stat.bonusAmount;
+        stat.unlockedBonus = true;
+      }
+    }
+
+    stat.totalEarned = stat.commissionsEarned + stat.bonusEarned + stat.teamBonusEarned;
+  }
+
+  // D) Split Lider Secundario Commissions (Se lleva la mitad de la comisión del líder)
+  const secondaryLeadersByManager = new Map<string, any[]>();
+  for (const stat of rawStats) {
+    if (stat.role === 'LIDER_SECUNDARIO' && stat.managerId) {
+      if (!secondaryLeadersByManager.has(stat.managerId)) {
+        secondaryLeadersByManager.set(stat.managerId, []);
+      }
+      secondaryLeadersByManager.get(stat.managerId)!.push(stat);
+    }
+  }
+
+  for (const [managerId, secLeaders] of secondaryLeadersByManager.entries()) {
+    const leader = statsMap.get(managerId);
+    if (leader && (leader.role === 'LIDER' || leader.role === 'COORDINADOR')) {
+      const splitAmount = (leader.commissionsEarned / 2) / secLeaders.length;
+      leader.commissionsEarned -= (leader.commissionsEarned / 2);
+      
+      for (const secLeader of secLeaders) {
+        secLeader.commissionsEarned += splitAmount;
+        secLeader.totalEarned = secLeader.commissionsEarned + secLeader.bonusEarned + secLeader.teamBonusEarned;
+      }
+      leader.totalEarned = leader.commissionsEarned + leader.bonusEarned + leader.teamBonusEarned;
+    }
+  }
+
+  return rawStats;
+}
