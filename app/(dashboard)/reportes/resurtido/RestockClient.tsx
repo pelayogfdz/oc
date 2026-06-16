@@ -138,6 +138,7 @@ export default function RestockClient({
     router.push('/productos/pedidos/nuevo');
   };
   const [category, setCategory] = useState('ALL');
+  const [brand, setBrand] = useState('ALL');
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [coverageDays, setCoverageDays] = useState(30);
@@ -195,13 +196,13 @@ export default function RestockClient({
 
     setStartDateStr(start.toISOString().split('T')[0]);
     setEndDateStr(end.toISOString().split('T')[0]);
-    triggerUpdate(start, end, branchId, category);
+    triggerUpdate(start, end, branchId, category, brand);
   };
 
-  const triggerUpdate = async (start: Date, end: Date, bId: string, cat: string) => {
+  const triggerUpdate = async (start: Date, end: Date, bId: string, cat: string, brnd: string) => {
     setIsLoading(true);
     try {
-      const res = await getRestockReportData(start, end, bId, cat);
+      const res = await getRestockReportData(start, end, bId, cat, brnd);
       setData(res || []);
       setCurrentPage(1);
     } catch (error) {
@@ -214,7 +215,7 @@ export default function RestockClient({
   const handleApplyFilters = () => {
     const start = new Date(startDateStr + 'T00:00:00');
     const end = new Date(endDateStr + 'T23:59:59');
-    triggerUpdate(start, end, branchId, category);
+    triggerUpdate(start, end, branchId, category, brand);
   };
 
   // Format currency
@@ -477,6 +478,20 @@ export default function RestockClient({
               <option value="ALL">Todas las Categorías</option>
               {availableFilters.categories.map((c: string) => (
                 <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.4rem' }}>Marca</label>
+            <select 
+              value={brand} 
+              onChange={e => setBrand(e.target.value)}
+              style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem', outline: 'none' }}
+            >
+              <option value="ALL">Todas las Marcas</option>
+              {availableFilters.brands?.map((b: string) => (
+                <option key={b} value={b}>{b}</option>
               ))}
             </select>
           </div>

@@ -21,7 +21,13 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
   const handleFilterChange = async (filters: ReportFilterState) => {
     setIsLoading(true);
     try {
-      const newData = await getGeneralAnalyticsData(filters.dateRange.startDate, filters.dateRange.endDate, filters.branchId, filters.userId);
+      const newData = await getGeneralAnalyticsData(
+        filters.dateRange.startDate, 
+        filters.dateRange.endDate, 
+        filters.branchId, 
+        filters.userId,
+        filters.brandId
+      );
       setData(newData);
     } catch (error) {
       console.error("Error fetching data:", error);

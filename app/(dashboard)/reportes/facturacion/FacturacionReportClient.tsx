@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Calendar, Filter, FileText, Download, TrendingUp, Printer } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
-export default function FacturacionReportClient({ initialSales, users, startDate, endDate }: any) {
+export default function FacturacionReportClient({ initialSales, users, brands = [], startDate, endDate }: any) {
   const router = useRouter();
   
   // Filters
@@ -14,6 +14,7 @@ export default function FacturacionReportClient({ initialSales, users, startDate
   const [filterUserId, setFilterUserId] = useState('ALL');
   const [filterPayment, setFilterPayment] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ALL'); // ALL, FACTURADO, PENDIENTE
+  const [filterBrand, setFilterBrand] = useState('ALL');
 
   const handleApplyFilters = () => {
     const query = new URLSearchParams();
@@ -35,14 +36,27 @@ export default function FacturacionReportClient({ initialSales, users, startDate
 
   // Apply Client-Side Filters
   const filteredSales = useMemo(() => {
-    return salesData.filter((sale: any) => {
+    let filtered = salesData;
+    if (filterBrand !== 'ALL') {
+      filtered = filtered.map((sale: any) => {
+        const filteredItems = sale.items?.filter((item: any) => item.product?.brand === filterBrand) || [];
+        if (filteredItems.length === 0) return null;
+        return {
+          ...sale,
+          items: filteredItems,
+          total: filteredItems.reduce((sum: number, item: any) => sum + (item.quantity * item.price), 0)
+        };
+      }).filter(Boolean);
+    }
+
+    return filtered.filter((sale: any) => {
       if (filterUserId !== 'ALL' && sale.userId !== filterUserId) return false;
       if (filterPayment !== 'ALL' && sale.paymentMethod !== filterPayment) return false;
       if (filterStatus === 'FACTURADO' && !sale.isFacturado) return false;
       if (filterStatus === 'PENDIENTE' && sale.isFacturado) return false;
       return true;
     });
-  }, [salesData, filterUserId, filterPayment, filterStatus]);
+  }, [salesData, filterUserId, filterPayment, filterStatus, filterBrand]);
 
   // KPIs
   const totalVentas = filteredSales.reduce((sum: number, sale: any) => sum + sale.total, 0);
@@ -125,6 +139,13 @@ export default function FacturacionReportClient({ initialSales, users, startDate
           <option value="ALL">Todo (Facturado y No Facturado)</option>
           <option value="FACTURADO">Solo Facturado</option>
           <option value="PENDIENTE">Pendiente / No Facturado</option>
+        </select>
+
+        <select value={filterBrand} onChange={e => setFilterBrand(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }}>
+          <option value="ALL">Todas las Marcas</option>
+          {brands.map((b: string) => (
+            <option key={b} value={b}>{b}</option>
+          ))}
         </select>
  
         <button onClick={handleApplyFilters} style={{ padding: '0.5rem 1rem', backgroundColor: 'var(--pulpos-primary)', color: 'white', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>

@@ -8,6 +8,7 @@ import { getTopCategoriesReport } from '@/app/actions/reportes';
 export default function TopCategoriasClient({ initialData, initialBranchId, availableFilters }: { initialData: any[], initialBranchId: string, availableFilters: any }) {
   const [data, setData] = useState<any[]>(initialData);
   const [branchId, setBranchId] = useState(initialBranchId);
+  const [brand, setBrand] = useState('ALL');
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -51,13 +52,13 @@ export default function TopCategoriasClient({ initialData, initialBranchId, avai
 
     setStartDateStr(start.toISOString().split('T')[0]);
     setEndDateStr(end.toISOString().split('T')[0]);
-    triggerUpdate(start, end, branchId);
+    triggerUpdate(start, end, branchId, brand);
   };
 
-  const triggerUpdate = async (start: Date, end: Date, bId: string) => {
+  const triggerUpdate = async (start: Date, end: Date, bId: string, brnd: string) => {
     setIsLoading(true);
     try {
-      const res = await getTopCategoriesReport(start, end, bId);
+      const res = await getTopCategoriesReport(start, end, bId, brnd);
       setData(res || []);
     } catch (error) {
       console.error("Error updating categories report:", error);
@@ -69,7 +70,7 @@ export default function TopCategoriasClient({ initialData, initialBranchId, avai
   const handleApplyFilters = () => {
     const start = new Date(startDateStr + 'T00:00:00');
     const end = new Date(endDateStr + 'T23:59:59');
-    triggerUpdate(start, end, branchId);
+    triggerUpdate(start, end, branchId, brand);
   };
 
   const formatter = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
@@ -211,6 +212,20 @@ export default function TopCategoriasClient({ initialData, initialBranchId, avai
               <option value="ALL">Todas las Sucursales</option>
               {availableFilters.branches.map((b: any) => (
                 <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.4rem' }}>Marca</label>
+            <select 
+              value={brand} 
+              onChange={e => setBrand(e.target.value)}
+              style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem', outline: 'none' }}
+            >
+              <option value="ALL">Todas las Marcas</option>
+              {availableFilters.brands?.map((b: string) => (
+                <option key={b} value={b}>{b}</option>
               ))}
             </select>
           </div>

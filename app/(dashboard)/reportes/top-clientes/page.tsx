@@ -14,7 +14,7 @@ export default async function TopClientesPage() {
   const initialBranchId = branch.id === 'GLOBAL' ? 'ALL' : branch.id;
 
   // Get report data
-  const data = await getTopCustomersReport(startDate, endDate, initialBranchId, 'ALL');
+  const data = await getTopCustomersReport(startDate, endDate, initialBranchId, 'ALL', 'ALL');
   
   // Get filter values
   const filters = await getAvailableFilters();

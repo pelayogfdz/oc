@@ -16,7 +16,7 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
   const handleFilterChange = async (filters: ReportFilterState) => {
     setLoading(true);
     try {
-      const newData = await getInventoryValuationData(filters.branchId);
+      const newData = await getInventoryValuationData(filters.branchId, filters.brandId);
       setData(newData);
     } catch (e) {
       console.error(e);

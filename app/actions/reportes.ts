@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { getActiveBranch, getSession } from './auth';
 
-export async function getGeneralAnalyticsData(startDate: Date, endDate: Date, branchIdFilter?: string, userIdFilter?: string) {
+export async function getGeneralAnalyticsData(startDate: Date, endDate: Date, branchIdFilter?: string, userIdFilter?: string, brandFilter?: string) {
   const session = await getSession();
   const branch = await getActiveBranch();
   if (!branch) throw new Error('Unauthorized');
@@ -50,7 +50,16 @@ export async function getGeneralAnalyticsData(startDate: Date, endDate: Date, br
     where: {
       ...branchCondition,
       ...userCondition,
-      createdAt: { gte: startDate, lte: endDate }
+      createdAt: { gte: startDate, lte: endDate },
+      ...(brandFilter && brandFilter !== 'ALL' ? {
+        items: {
+          some: {
+            product: {
+              brand: brandFilter
+            }
+          }
+        }
+      } : {})
     },
     include: {
       items: {
@@ -61,6 +70,18 @@ export async function getGeneralAnalyticsData(startDate: Date, endDate: Date, br
     },
     orderBy: { createdAt: 'asc' }
   });
+
+  let processedSales = sales;
+  if (brandFilter && brandFilter !== 'ALL') {
+    processedSales = sales.map(sale => {
+      const filteredItems = sale.items.filter(item => item.product.brand === brandFilter);
+      return {
+        ...sale,
+        items: filteredItems,
+        total: filteredItems.reduce((sum, item) => sum + (item.quantity * item.price), 0)
+      };
+    }).filter(sale => sale.items.length > 0);
+  }
 
   // Aggregate by day
   const dailyData: Record<string, { date: string, Ventas: number, Ganancia: number, Tickets: number }> = {};
@@ -80,7 +101,7 @@ export async function getGeneralAnalyticsData(startDate: Date, endDate: Date, br
   let totalRevenue = 0;
   let totalCost = 0;
 
-  sales.forEach(sale => {
+  processedSales.forEach(sale => {
     const dStr = sale.createdAt.toISOString().split('T')[0];
     if (!dailyData[dStr]) dailyData[dStr] = { date: dStr, Ventas: 0, Ganancia: 0, Tickets: 0 };
     
@@ -102,7 +123,7 @@ export async function getGeneralAnalyticsData(startDate: Date, endDate: Date, br
   const chartData = Object.values(dailyData);
   const totalProfit = totalRevenue - totalCost;
   const margin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
-  const avgTicket = sales.length > 0 ? totalRevenue / sales.length : 0;
+  const avgTicket = processedSales.length > 0 ? totalRevenue / processedSales.length : 0;
 
   return {
     chartData,
@@ -110,11 +131,11 @@ export async function getGeneralAnalyticsData(startDate: Date, endDate: Date, br
     totalProfit,
     margin,
     avgTicket,
-    totalTickets: sales.length
+    totalTickets: processedSales.length
   };
 }
 
-export async function getSalesDetailData(startDate: Date, endDate: Date, branchIdFilter?: string, userIdFilter?: string) {
+export async function getSalesDetailData(startDate: Date, endDate: Date, branchIdFilter?: string, userIdFilter?: string, brandFilter?: string) {
   const session = await getSession();
   const branch = await getActiveBranch();
   if (!branch) throw new Error('Unauthorized');
@@ -161,7 +182,16 @@ export async function getSalesDetailData(startDate: Date, endDate: Date, branchI
     where: {
       ...branchCondition,
       ...userCondition,
-      createdAt: { gte: startDate, lte: endDate }
+      createdAt: { gte: startDate, lte: endDate },
+      ...(brandFilter && brandFilter !== 'ALL' ? {
+        items: {
+          some: {
+            product: {
+              brand: brandFilter
+            }
+          }
+        }
+      } : {})
     },
     include: {
       user: true,
@@ -175,10 +205,22 @@ export async function getSalesDetailData(startDate: Date, endDate: Date, branchI
     orderBy: { createdAt: 'desc' }
   });
 
+  let processedSales = sales;
+  if (brandFilter && brandFilter !== 'ALL') {
+    processedSales = sales.map(sale => {
+      const filteredItems = sale.items.filter(item => item.product.brand === brandFilter);
+      return {
+        ...sale,
+        items: filteredItems,
+        total: filteredItems.reduce((sum, item) => sum + (item.quantity * item.price), 0)
+      };
+    }).filter(sale => sale.items.length > 0);
+  }
+
   // Calculate gross profits per sale and aggregate by User
   const salesByUser: Record<string, number> = {};
   
-  const mappedSales = sales.map(sale => {
+  const mappedSales = processedSales.map(sale => {
     let cost = 0;
     sale.items.forEach(item => cost += (item.product.cost * item.quantity));
     
@@ -218,7 +260,7 @@ export async function getSalesDetailData(startDate: Date, endDate: Date, branchI
     currentDate.setDate(currentDate.getDate() + 1);
   }
 
-  sales.forEach(sale => {
+  processedSales.forEach(sale => {
     const dStr = sale.createdAt.toISOString().split('T')[0];
     if (dailyData[dStr]) {
       dailyData[dStr].Ventas += sale.total;
@@ -230,7 +272,7 @@ export async function getSalesDetailData(startDate: Date, endDate: Date, branchI
   return { sales: mappedSales, pieData, chartData };
 }
 
-export async function getInventoryValuationData(branchIdFilter?: string) {
+export async function getInventoryValuationData(branchIdFilter?: string, brandFilter?: string) {
   const session = await getSession();
   const branch = await getActiveBranch();
   if (!branch) throw new Error('Unauthorized');
@@ -259,7 +301,8 @@ export async function getInventoryValuationData(branchIdFilter?: string) {
   const products = await prisma.product.findMany({
     where: {
       ...branchCondition,
-      stock: { gt: 0 }
+      stock: { gt: 0 },
+      ...(brandFilter && brandFilter !== 'ALL' ? { brand: brandFilter } : {})
     },
     orderBy: { stock: 'desc' }
   });
@@ -348,6 +391,18 @@ export async function getAvailableFilters() {
     .map(p => p.category)
     .filter((cat): cat is string => !!cat && cat.trim() !== '');
 
+  // Fetch unique brands of products
+  const productsWithBrands = await prisma.product.findMany({
+    where: {
+      branchId: { in: branchIds }
+    },
+    select: { brand: true },
+    distinct: ['brand']
+  });
+  const brands = productsWithBrands
+    .map(p => p.brand)
+    .filter((b): b is string => !!b && b.trim() !== '');
+
   // Fetch customers
   const customers = await prisma.customer.findMany({
     where: {
@@ -357,7 +412,7 @@ export async function getAvailableFilters() {
     orderBy: { name: 'asc' }
   });
 
-  return { branches, users, categories, customers };
+  return { branches, users, categories, customers, brands };
 }
 
 
@@ -366,7 +421,8 @@ export async function getConsignmentReportData(
   endDate: Date, 
   branchIdFilter?: string, 
   userIdFilter?: string,
-  customerIdFilter?: string
+  customerIdFilter?: string,
+  brandFilter?: string
 ) {
   const session = await getSession();
   const branch = await getActiveBranch();
@@ -416,7 +472,16 @@ export async function getConsignmentReportData(
       ...branchCondition,
       ...userCondition,
       ...customerCondition,
-      createdAt: { gte: startDate, lte: endDate }
+      createdAt: { gte: startDate, lte: endDate },
+      ...(brandFilter && brandFilter !== 'ALL' ? {
+        items: {
+          some: {
+            product: {
+              brand: brandFilter
+            }
+          }
+        }
+      } : {})
     },
     include: {
       user: true,
@@ -431,6 +496,18 @@ export async function getConsignmentReportData(
     orderBy: { createdAt: 'desc' }
   });
 
+  let processedConsignments = consignments;
+  if (brandFilter && brandFilter !== 'ALL') {
+    processedConsignments = consignments.map(c => {
+      const filteredItems = c.items.filter(item => item.product.brand === brandFilter);
+      return {
+        ...c,
+        items: filteredItems,
+        total: filteredItems.reduce((sum, item) => sum + (item.quantity * item.price), 0)
+      };
+    }).filter(c => c.items.length > 0);
+  }
+
   let totalConsigned = 0;
   let activeConsigned = 0;
   let convertedConsigned = 0;
@@ -442,7 +519,7 @@ export async function getConsignmentReportData(
   // Track customer performance
   const customerSummary: Record<string, { name: string; consignedAmt: number; activeAmt: number; billedAmt: number; count: number }> = {};
 
-  consignments.forEach(c => {
+  processedConsignments.forEach(c => {
     const isConverted = c.status === 'CONVERTED';
     totalConsigned += c.total;
     
@@ -500,7 +577,7 @@ export async function getConsignmentReportData(
     currentDate.setDate(currentDate.getDate() + 1);
   }
 
-  consignments.forEach(c => {
+  processedConsignments.forEach(c => {
     const dStr = c.createdAt.toISOString().split('T')[0];
     if (dailyData[dStr]) {
       dailyData[dStr].Consignado += c.total;
@@ -513,7 +590,7 @@ export async function getConsignmentReportData(
   const chartData = Object.values(dailyData);
 
   return {
-    consignments: consignments.map(c => ({
+    consignments: processedConsignments.map(c => ({
       id: c.id,
       date: c.createdAt.toISOString(),
       user: c.user?.name || 'Vendedor',
@@ -526,10 +603,10 @@ export async function getConsignmentReportData(
       totalConsigned,
       activeConsigned,
       convertedConsigned,
-      totalCount: consignments.length,
+      totalCount: processedConsignments.length,
       activeCount,
       convertedCount,
-      conversionRate: consignments.length > 0 ? (convertedCount / consignments.length) * 100 : 0
+      conversionRate: processedConsignments.length > 0 ? (convertedCount / processedConsignments.length) * 100 : 0
     },
     topCustomers,
     topProducts,
@@ -541,7 +618,8 @@ export async function getTopCustomersReport(
   startDate: Date,
   endDate: Date,
   branchIdFilter?: string,
-  customerIdFilter?: string
+  customerIdFilter?: string,
+  brandFilter?: string
 ) {
   const session = await getSession();
   const branch = await getActiveBranch();
@@ -570,15 +648,41 @@ export async function getTopCustomersReport(
       ...branchCondition,
       ...customerCondition,
       createdAt: { gte: startDate, lte: endDate },
-      status: { not: 'CANCELLED' }
+      status: { not: 'CANCELLED' },
+      ...(brandFilter && brandFilter !== 'ALL' ? {
+        items: {
+          some: {
+            product: {
+              brand: brandFilter
+            }
+          }
+        }
+      } : {})
     },
     include: {
-      customer: true
+      customer: true,
+      items: {
+        include: {
+          product: true
+        }
+      }
     }
   });
 
+  let processedSales = sales;
+  if (brandFilter && brandFilter !== 'ALL') {
+    processedSales = sales.map(sale => {
+      const filteredItems = sale.items.filter(item => item.product.brand === brandFilter);
+      return {
+        ...sale,
+        items: filteredItems,
+        total: filteredItems.reduce((sum, item) => sum + (item.quantity * item.price), 0)
+      };
+    }).filter(sale => sale.items.length > 0);
+  }
+
   const customerMap = new Map();
-  sales.forEach(sale => {
+  processedSales.forEach(sale => {
     if (!sale.customerId) return;
     const name = sale.customer?.name || "Sin Nombre";
     const phone = sale.customer?.phone || "Sin Teléfono";
@@ -611,7 +715,8 @@ export async function getTopProductsReport(
   startDate: Date,
   endDate: Date,
   branchIdFilter?: string,
-  categoryFilter?: string
+  categoryFilter?: string,
+  brandFilter?: string
 ) {
   const session = await getSession();
   const branch = await getActiveBranch();
@@ -637,6 +742,10 @@ export async function getTopProductsReport(
     ? { product: { category: categoryFilter } } 
     : {};
 
+  const brandCondition = (brandFilter && brandFilter !== 'ALL')
+    ? { product: { brand: brandFilter } }
+    : {};
+
   const saleItems = await prisma.saleItem.findMany({
     where: {
       sale: {
@@ -644,7 +753,8 @@ export async function getTopProductsReport(
         createdAt: { gte: startDate, lte: endDate },
         status: { not: 'CANCELLED' }
       },
-      ...categoryCondition
+      ...categoryCondition,
+      ...brandCondition
     },
     include: {
       product: true
@@ -695,7 +805,8 @@ export async function getTopProductsReport(
 export async function getTopCategoriesReport(
   startDate: Date,
   endDate: Date,
-  branchIdFilter?: string
+  branchIdFilter?: string,
+  brandFilter?: string
 ) {
   const session = await getSession();
   const branch = await getActiveBranch();
@@ -717,13 +828,18 @@ export async function getTopCategoriesReport(
     }
   }
 
+  const brandCondition = (brandFilter && brandFilter !== 'ALL')
+    ? { product: { brand: brandFilter } }
+    : {};
+
   const saleItems = await prisma.saleItem.findMany({
     where: {
       sale: {
         ...branchCondition,
         createdAt: { gte: startDate, lte: endDate },
         status: { not: 'CANCELLED' }
-      }
+      },
+      ...brandCondition
     },
     include: {
       satItem: true, // safe optional
@@ -764,12 +880,13 @@ export async function getTopCategoriesReport(
 export async function getSalesBySellerReport(
   startDate: Date,
   endDate: Date,
-  branchIdFilter?: string
+  branchIdFilter?: string,
+  brandFilter?: string
 ) {
   const session = await getSession();
   const branch = await getActiveBranch();
   if (!branch) return [];
- 
+  
   const tenantId = session?.tenantId || branch.tenantId;
   if (!tenantId) return [];
   
@@ -790,15 +907,41 @@ export async function getSalesBySellerReport(
     where: {
       ...branchCondition,
       createdAt: { gte: startDate, lte: endDate },
-      status: { not: 'CANCELLED' }
+      status: { not: 'CANCELLED' },
+      ...(brandFilter && brandFilter !== 'ALL' ? {
+        items: {
+          some: {
+            product: {
+              brand: brandFilter
+            }
+          }
+        }
+      } : {})
     },
     include: {
-      user: true
+      user: true,
+      items: {
+        include: {
+          product: true
+        }
+      }
     }
   });
 
+  let processedSales = sales;
+  if (brandFilter && brandFilter !== 'ALL') {
+    processedSales = sales.map(sale => {
+      const filteredItems = sale.items.filter(item => item.product.brand === brandFilter);
+      return {
+        ...sale,
+        items: filteredItems,
+        total: filteredItems.reduce((sum, item) => sum + (item.quantity * item.price), 0)
+      };
+    }).filter(sale => sale.items.length > 0);
+  }
+
   const sellerMap = new Map();
-  sales.forEach(sale => {
+  processedSales.forEach(sale => {
     const userId = sale.userId;
     const name = sale.user?.name || sale.user?.email || "Vendedor Desconocido";
     const commissionPct = sale.user?.commissionPct || 0;
@@ -835,7 +978,8 @@ export async function getInventoryMovementReport(
   startDate: Date,
   endDate: Date,
   branchIdFilter?: string,
-  typeFilter?: string
+  typeFilter?: string,
+  brandFilter?: string
 ) {
   const session = await getSession();
   const branch = await getActiveBranch();
@@ -866,7 +1010,10 @@ export async function getInventoryMovementReport(
 
   const movements = await prisma.inventoryMovement.findMany({
     where: {
-      product: branchCondition,
+      product: {
+        ...branchCondition,
+        ...(brandFilter && brandFilter !== 'ALL' ? { brand: brandFilter } : {})
+      },
       createdAt: { gte: startDate, lte: endDate },
       ...typeCondition
     },
@@ -902,7 +1049,8 @@ export async function getRestockReportData(
   startDate: Date,
   endDate: Date,
   branchIdFilter?: string,
-  categoryFilter?: string
+  categoryFilter?: string,
+  brandFilter?: string
 ) {
   const session = await getSession();
   const branch = await getActiveBranch();
@@ -933,10 +1081,15 @@ export async function getRestockReportData(
     ? { category: categoryFilter } 
     : {};
 
+  const brandCondition = (brandFilter && brandFilter !== 'ALL') 
+    ? { brand: brandFilter } 
+    : {};
+
   const products = await prisma.product.findMany({
     where: {
       ...branchCondition,
       ...categoryCondition,
+      ...brandCondition,
       isActive: true,
       isService: false
     },
@@ -995,7 +1148,10 @@ export async function getRestockReportData(
         createdAt: { gte: startDate, lte: endDate },
         status: { not: 'CANCELLED' }
       },
-      product: categoryCondition
+      product: {
+        ...categoryCondition,
+        ...brandCondition
+      }
     },
     select: {
       productId: true,
@@ -1042,7 +1198,8 @@ export async function getProductionReportData(
   startDate: Date,
   endDate: Date,
   branchIdFilter?: string,
-  categoryFilter?: string
+  categoryFilter?: string,
+  brandFilter?: string
 ) {
   const session = await getSession();
   const branch = await getActiveBranch();
@@ -1073,11 +1230,16 @@ export async function getProductionReportData(
     ? { category: categoryFilter } 
     : {};
 
+  const brandCondition = (brandFilter && brandFilter !== 'ALL') 
+    ? { brand: brandFilter } 
+    : {};
+
   // Find products that have a recipe
   const products = await prisma.product.findMany({
     where: {
       ...branchCondition,
       ...categoryCondition,
+      ...brandCondition,
       isActive: true,
       Recipe: { isNot: null }
     },
@@ -1104,7 +1266,10 @@ export async function getProductionReportData(
         createdAt: { gte: startDate, lte: endDate },
         status: { not: 'CANCELLED' }
       },
-      product: categoryCondition
+      product: {
+        ...categoryCondition,
+        ...brandCondition
+      }
     },
     select: {
       productId: true,
@@ -1147,7 +1312,8 @@ export async function getInsumosReportData(
   startDate: Date,
   endDate: Date,
   branchIdFilter?: string,
-  categoryFilter?: string
+  categoryFilter?: string,
+  brandFilter?: string
 ) {
   const session = await getSession();
   const branch = await getActiveBranch();
@@ -1181,7 +1347,12 @@ export async function getInsumosReportData(
         ...branchCondition,
         createdAt: { gte: startDate, lte: endDate },
         status: { not: 'CANCELLED' }
-      }
+      },
+      ...(brandFilter && brandFilter !== 'ALL' ? {
+        product: {
+          brand: brandFilter
+        }
+      } : {})
     },
     select: {
       productId: true,
@@ -1221,10 +1392,15 @@ export async function getInsumosReportData(
     ? { category: categoryFilter } 
     : {};
 
+  const brandCondition = (brandFilter && brandFilter !== 'ALL') 
+    ? { brand: brandFilter } 
+    : {};
+
   const insumos = await prisma.product.findMany({
     where: {
       ...branchCondition,
       ...categoryCondition,
+      ...brandCondition,
       isActive: true,
       isProductionInput: true
     },

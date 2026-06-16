@@ -8,6 +8,7 @@ export default function BitacoraInventarioClient({ initialData, initialBranchId,
   const [data, setData] = useState<any>(initialData);
   const [branchId, setBranchId] = useState(initialBranchId);
   const [movementType, setMovementType] = useState('ALL');
+  const [brand, setBrand] = useState('ALL');
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -51,13 +52,13 @@ export default function BitacoraInventarioClient({ initialData, initialBranchId,
 
     setStartDateStr(start.toISOString().split('T')[0]);
     setEndDateStr(end.toISOString().split('T')[0]);
-    triggerUpdate(start, end, branchId, movementType);
+    triggerUpdate(start, end, branchId, movementType, brand);
   };
 
-  const triggerUpdate = async (start: Date, end: Date, bId: string, type: string) => {
+  const triggerUpdate = async (start: Date, end: Date, bId: string, type: string, brnd: string) => {
     setIsLoading(true);
     try {
-      const res = await getInventoryMovementReport(start, end, bId, type);
+      const res = await getInventoryMovementReport(start, end, bId, type, brnd);
       setData(res || { movements: [], metrics: { totalCount: 0, itemsAdded: 0, itemsRemoved: 0 } });
     } catch (error) {
       console.error("Error updating inventory logs:", error);
@@ -69,7 +70,7 @@ export default function BitacoraInventarioClient({ initialData, initialBranchId,
   const handleApplyFilters = () => {
     const start = new Date(startDateStr + 'T00:00:00');
     const end = new Date(endDateStr + 'T23:59:59');
-    triggerUpdate(start, end, branchId, movementType);
+    triggerUpdate(start, end, branchId, movementType, brand);
   };
 
   // Filter local search inside the table
@@ -222,6 +223,20 @@ export default function BitacoraInventarioClient({ initialData, initialBranchId,
               <option value="SALE">Ventas</option>
               <option value="PURCHASE">Compras</option>
               <option value="RETURN">Devoluciones</option>
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.4rem' }}>Marca</label>
+            <select 
+              value={brand} 
+              onChange={e => setBrand(e.target.value)}
+              style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem', outline: 'none' }}
+            >
+              <option value="ALL">Todas las Marcas</option>
+              {availableFilters.brands?.map((b: string) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
             </select>
           </div>
 

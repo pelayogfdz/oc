@@ -19,7 +19,9 @@ export default function ConsignacionesReportClient({ initialData, initialBranchI
         filters.dateRange.startDate, 
         filters.dateRange.endDate, 
         filters.branchId, 
-        filters.userId
+        filters.userId,
+        undefined,
+        filters.brandId
       );
       setData(newData);
     } catch (e) {

@@ -17,7 +17,13 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
   const handleFilterChange = async (filters: ReportFilterState) => {
     setLoading(true);
     try {
-      const newData = await getSalesDetailData(filters.dateRange.startDate, filters.dateRange.endDate, filters.branchId, filters.userId);
+      const newData = await getSalesDetailData(
+        filters.dateRange.startDate, 
+        filters.dateRange.endDate, 
+        filters.branchId, 
+        filters.userId,
+        filters.brandId
+      );
       setData(newData);
     } catch (e) {
       console.error(e);

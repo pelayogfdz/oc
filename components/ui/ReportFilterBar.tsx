@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import DateRangeFilter, { DateRange } from './DateRangeFilter';
 import { getAvailableFilters } from '@/app/actions/reportes';
-import { Store, User, Filter } from 'lucide-react';
+import { Store, User, Filter, Tag } from 'lucide-react';
 import { startOfDay, subDays, endOfDay } from 'date-fns';
 
 export interface ReportFilterState {
   dateRange: DateRange;
   branchId: string;
   userId: string;
+  brandId: string;
 }
 
 interface ReportFilterBarProps {
@@ -18,6 +19,7 @@ interface ReportFilterBarProps {
   showDateRange?: boolean;
   showBranch?: boolean;
   showUser?: boolean;
+  showBrand?: boolean;
   initialBranchId?: string;
 }
 
@@ -27,14 +29,17 @@ export default function ReportFilterBar({
   showDateRange = true,
   showBranch = true,
   showUser = true,
+  showBrand = true,
   initialBranchId = 'ALL'
 }: ReportFilterBarProps) {
   
   const [branches, setBranches] = useState<{id: string, name: string}[]>([]);
   const [users, setUsers] = useState<{id: string, name: string}[]>([]);
+  const [brands, setBrands] = useState<string[]>([]);
   
   const [branchId, setBranchId] = useState(initialBranchId);
   const [userId, setUserId] = useState('ALL');
+  const [brandId, setBrandId] = useState('ALL');
   
   // Default date range is last 30 days
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -48,9 +53,10 @@ export default function ReportFilterBar({
   useEffect(() => {
     async function loadFilters() {
       try {
-        const { branches, users } = await getAvailableFilters();
+        const { branches, users, brands } = await getAvailableFilters();
         setBranches(branches);
         setUsers(users);
+        setBrands(brands || []);
       } catch (e) {
         console.error("Error loading filters", e);
       } finally {
@@ -60,33 +66,41 @@ export default function ReportFilterBar({
     loadFilters();
   }, []);
 
-  const handleApply = (newDateRange?: DateRange, newBranchId?: string, newUserId?: string) => {
+  const handleApply = (newDateRange?: DateRange, newBranchId?: string, newUserId?: string, newBrandId?: string) => {
     const dr = newDateRange || dateRange;
     const bid = newBranchId !== undefined ? newBranchId : branchId;
     const uid = newUserId !== undefined ? newUserId : userId;
+    const brid = newBrandId !== undefined ? newBrandId : brandId;
 
     onFilterChange({
       dateRange: dr,
       branchId: bid,
-      userId: uid
+      userId: uid,
+      brandId: brid
     });
   };
 
   const handleDateChange = (range: DateRange) => {
     setDateRange(range);
-    handleApply(range, branchId, userId);
+    handleApply(range, branchId, userId, brandId);
   };
 
   const handleBranchChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     setBranchId(val);
-    handleApply(dateRange, val, userId);
+    handleApply(dateRange, val, userId, brandId);
   };
 
   const handleUserChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     setUserId(val);
-    handleApply(dateRange, branchId, val);
+    handleApply(dateRange, branchId, val, brandId);
+  };
+
+  const handleBrandChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setBrandId(val);
+    handleApply(dateRange, branchId, userId, val);
   };
 
   return (
@@ -154,6 +168,30 @@ export default function ReportFilterBar({
           >
             <option value="ALL">Todos los Vendedores</option>
             {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+          </select>
+        </div>
+      )}
+
+      {showBrand && brands.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--pulpos-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
+          <Tag size={16} color="var(--pulpos-text-muted)" style={{ marginLeft: '0.5rem' }} />
+          <select 
+            value={brandId}
+            onChange={handleBrandChange}
+            disabled={disabled || loadingFilters}
+            style={{ 
+              border: 'none', 
+              padding: '0.6rem 0.5rem', 
+              backgroundColor: 'transparent',
+              outline: 'none',
+              fontWeight: '500',
+              color: 'var(--pulpos-text)',
+              cursor: 'pointer',
+              minWidth: '150px'
+            }}
+          >
+            <option value="ALL">Todas las Marcas</option>
+            {brands.map(b => <option key={b} value={b}>{b}</option>)}
           </select>
         </div>
       )}
