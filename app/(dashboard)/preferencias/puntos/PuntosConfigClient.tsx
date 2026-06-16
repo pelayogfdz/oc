@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Star, Settings, Award, CheckCircle2, History, AlertCircle, Save } from 'lucide-react';
-import { saveLoyaltySettings } from '@/app/actions/loyalty';
+import { useState, useEffect } from 'react';
+import { Star, Settings, Award, CheckCircle2, History, AlertCircle, Save, Wallet } from 'lucide-react';
+import { saveLoyaltySettings, getGoogleWalletSettings, saveGoogleWalletSettings } from '@/app/actions/loyalty';
 import { formatCurrency } from '@/lib/utils';
 
 export default function PuntosConfigClient({ 
@@ -14,14 +14,62 @@ export default function PuntosConfigClient({
   initialSettings: any; 
   recentTransactions: any[] 
 }) {
-  const [activeTab, setActiveTab] = useState<'config' | 'history'>('config');
+  const [activeTab, setActiveTab] = useState<'config' | 'history' | 'wallet'>('config');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
+  // Google Wallet Settings states
+  const [walletSettings, setWalletSettings] = useState({
+    enabled: false,
+    issuerId: '',
+    classId: '',
+    clientEmail: '',
+    privateKey: ''
+  });
+  const [walletLoading, setWalletLoading] = useState(false);
+  const [walletSuccess, setWalletSuccess] = useState(false);
+  const [walletError, setWalletError] = useState('');
+
+  // Load Google Wallet settings
+  useEffect(() => {
+    async function loadSettings() {
+      const res = await getGoogleWalletSettings(branch.id);
+      if (res.success && res.settings) {
+        setWalletSettings(res.settings);
+      }
+    }
+    loadSettings();
+  }, [branch.id]);
+
+  const handleWalletChange = (field: string, value: any) => {
+    setWalletSettings(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  async function onSaveWallet(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setWalletLoading(true);
+    setWalletSuccess(false);
+    setWalletError('');
+
+    const res = await saveGoogleWalletSettings(branch.id, walletSettings);
+    setWalletLoading(false);
+
+    if (res.success) {
+      setWalletSuccess(true);
+      setTimeout(() => setWalletSuccess(false), 3000);
+    } else {
+      setWalletError(res.error || 'Ocurrió un error al guardar los ajustes.');
+    }
+  }
+
   // Local state for interactive preview
   const [pts, setPts] = useState(initialSettings?.pointsPerAmount || 1);
   const [amount, setAmount] = useState(initialSettings?.amountStep || 100);
+
 
   const paymentMethodsList = initialSettings?.paymentMethods?.split(',') || ['CASH', 'CARD', 'TRANSFER'];
 
@@ -93,7 +141,25 @@ export default function PuntosConfigClient({
         >
           <History size={18} /> Log de Puntos Recientes
         </button>
+        <button
+          onClick={() => setActiveTab('wallet')}
+          style={{
+            padding: '0.75rem 1rem',
+            background: 'transparent',
+            border: 'none',
+            borderBottom: activeTab === 'wallet' ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
+            color: activeTab === 'wallet' ? 'var(--pulpos-primary)' : 'var(--pulpos-text-muted)',
+            fontWeight: activeTab === 'wallet' ? 'bold' : 'normal',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}
+        >
+          <Wallet size={18} /> Google Wallet
+        </button>
       </div>
+
 
       {/* TAB 1: CONFIGURATION */}
       {activeTab === 'config' && (
@@ -320,6 +386,109 @@ export default function PuntosConfigClient({
         </div>
       )}
 
+      {/* TAB 3: GOOGLE WALLET */}
+      {activeTab === 'wallet' && (
+        <form onSubmit={onSaveWallet} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <div style={{ backgroundColor: 'white', border: '1px solid var(--pulpos-border)', borderRadius: '12px', padding: '2rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+            
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '1.5rem', marginBottom: '1.5rem' }}>
+              <div>
+                <h4 style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>Sincronización con Google Wallet</h4>
+                <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.85rem' }}>Permite a tus clientes guardar su tarjeta de puntos y saldo en la app Google Wallet.</p>
+              </div>
+              <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', gap: '0.5rem' }}>
+                <input 
+                  type="checkbox" 
+                  checked={walletSettings.enabled}
+                  onChange={e => handleWalletChange('enabled', e.target.checked)}
+                  style={{ width: '1.5rem', height: '1.5rem', cursor: 'pointer', accentColor: 'var(--pulpos-primary)' }}
+                />
+                <span style={{ fontWeight: 'bold' }}>Integración Activa</span>
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Issuer ID (ID de Emisor)</label>
+                  <input 
+                    type="text" 
+                    value={walletSettings.issuerId} 
+                    onChange={e => handleWalletChange('issuerId', e.target.value)}
+                    placeholder="Ej. 3388000000022288888"
+                    required={walletSettings.enabled}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', backgroundColor: '#f8fafc' }} 
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', display: 'block', marginTop: '0.25rem' }}>ID numérico provisto en tu consola de Google Pay & Wallet.</span>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Class ID (ID de Clase de Lealtad)</label>
+                  <input 
+                    type="text" 
+                    value={walletSettings.classId} 
+                    onChange={e => handleWalletChange('classId', e.target.value)}
+                    placeholder="Ej. loyalty_points_class"
+                    required={walletSettings.enabled}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', backgroundColor: '#f8fafc' }} 
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', display: 'block', marginTop: '0.25rem' }}>Identificador único de la clase creada en la consola.</span>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Service Account Email (Email de Cuenta de Servicio)</label>
+                <input 
+                  type="email" 
+                  value={walletSettings.clientEmail} 
+                  onChange={e => handleWalletChange('clientEmail', e.target.value)}
+                  placeholder="Ej. wallet-service@mi-proyecto.iam.gserviceaccount.com"
+                  required={walletSettings.enabled}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', backgroundColor: '#f8fafc' }} 
+                />
+                <span style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', display: 'block', marginTop: '0.25rem' }}>Correo electrónico de la cuenta de servicio autorizada para firmar los pases.</span>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Private Key (Llave Privada en formato PEM)</label>
+                <textarea 
+                  value={walletSettings.privateKey} 
+                  onChange={e => handleWalletChange('privateKey', e.target.value)}
+                  placeholder="-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQ...\n-----END PRIVATE KEY-----"
+                  required={walletSettings.enabled}
+                  rows={6}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', backgroundColor: '#f8fafc', fontFamily: 'monospace', fontSize: '0.8rem' }} 
+                />
+                <span style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', display: 'block', marginTop: '0.25rem' }}>El bloque completo de tu llave privada RSA. Se aceptan saltos de línea literales y escapados (\n).</span>
+              </div>
+            </div>
+
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', alignItems: 'center' }}>
+            {walletError && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#ef4444', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                <AlertCircle size={18} /> {walletError}
+              </div>
+            )}
+            {walletSuccess && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#16a34a', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                <CheckCircle2 size={18} /> ¡Ajustes de Google Wallet guardados!
+              </div>
+            )}
+            <button 
+              type="submit" 
+              disabled={walletLoading} 
+              className="btn-primary" 
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 2rem', fontSize: '1rem' }}
+            >
+              <Save size={18} /> {walletLoading ? 'Guardando...' : 'Guardar Google Wallet'}
+            </button>
+          </div>
+        </form>
+      )}
+
     </div>
   );
 }
+

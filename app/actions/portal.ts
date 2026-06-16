@@ -261,6 +261,22 @@ export async function searchCustomerPortalData(emailOrPhone: string) {
         })
       : [];
 
+    // Check if Google Wallet is enabled for this branch
+    let googleWalletEnabled = false;
+    if (customer.branchId) {
+      const branchSettings = await prisma.branchSettings.findUnique({
+        where: { branchId: customer.branchId }
+      });
+      if (branchSettings?.configJson) {
+        try {
+          const config = JSON.parse(branchSettings.configJson);
+          if (config?.googleWallet?.enabled) {
+            googleWalletEnabled = true;
+          }
+        } catch (e) {}
+      }
+    }
+
     return {
       success: true,
       customer,
@@ -270,9 +286,11 @@ export async function searchCustomerPortalData(emailOrPhone: string) {
       quotes,
       consignments,
       favoriteProducts,
-      promotions
+      promotions,
+      googleWalletEnabled
     };
   } catch (error: any) {
     return { error: error.message || "Error de servidor al cargar datos del cliente." };
   }
 }
+

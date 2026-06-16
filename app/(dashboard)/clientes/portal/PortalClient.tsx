@@ -10,6 +10,8 @@ import { searchTicket, searchB2BInvoices, searchCustomerPortalData, generateInvo
 import { formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { generateGoogleWalletPassUrl } from '@/app/actions/loyalty';
+
 
 export default function PortalClient() {
   const searchParams = useSearchParams();
@@ -46,6 +48,20 @@ export default function PortalClient() {
   const [portalData, setPortalData] = useState<any>(null);
   const [expandedSale, setExpandedSale] = useState<string | null>(null);
   const [portalSubTab, setPortalSubTab] = useState<'purchases' | 'payments' | 'quotes' | 'favorites' | 'promos'>('purchases');
+  const [generatingWallet, setGeneratingWallet] = useState(false);
+
+  const handleGenerateWalletPass = async () => {
+    if (!portalData?.customer?.id) return;
+    setGeneratingWallet(true);
+    const res = await generateGoogleWalletPassUrl(portalData.customer.id);
+    setGeneratingWallet(false);
+    if (res.success && res.url) {
+      window.open(res.url, '_blank');
+    } else {
+      alert(res.error || 'Ocurrió un error al generar tu tarjeta de Google Wallet');
+    }
+  };
+
 
   useEffect(() => {
     if (ticketIdParam) {
@@ -242,8 +258,44 @@ export default function PortalClient() {
                             ? `Vence: ${new Date(portalData.customer.pointsExpiryDate).toLocaleDateString()}` 
                             : 'Puntos sin vencimiento'}
                         </div>
+                        {portalData.googleWalletEnabled && (
+                          <div style={{ marginTop: '0.75rem' }}>
+                            <button 
+                              onClick={handleGenerateWalletPass}
+                              disabled={generatingWallet}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                backgroundColor: '#000000',
+                                color: '#ffffff',
+                                border: '1px solid #5f6368',
+                                borderRadius: '8px',
+                                padding: '0.4rem 0.8rem',
+                                cursor: 'pointer',
+                                fontSize: '0.8rem',
+                                fontWeight: '500',
+                                height: '36px',
+                                boxShadow: '0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06)',
+                                transition: 'background-color 0.2s'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1f1f1f'}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#000000'}
+                            >
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M19.5 4H4.5A2.5 2.5 0 002 6.5v11A2.5 2.5 0 004.5 20h15a2.5 2.5 0 002.5-2.5v-11A2.5 2.5 0 0019.5 4z" fill="#4285F4"/>
+                                <path d="M22 6.5v11c0 .4-.1.8-.3 1.1L16 12l5.7-5.7c.2.3.3.7.3 1.1z" fill="#34A853"/>
+                                <path d="M19.5 20H4.5c-.4 0-.8-.1-1.1-.3L9 14h6l5.6 5.7c-.3.2-.7.3-1.1.3z" fill="#EA4335"/>
+                                <path d="M2 17.5v-11c0-.4.1-.8.3-1.1L8 11l-5.7 5.7c-.2-.3-.3-.7-.3-1.1z" fill="#FBBC05"/>
+                                <path d="M10 9h4v2h-4V9z" fill="#FFF"/>
+                              </svg>
+                              <span>{generatingWallet ? 'Generando...' : 'Añadir a Google Wallet'}</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
+
 
                     {/* Store Credit (Saldo a Favor) */}
                     <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
