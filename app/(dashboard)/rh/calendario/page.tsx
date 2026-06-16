@@ -11,13 +11,15 @@ export default async function RHCalendarPage() {
     redirect('/'); // Only HR/Admins
   }
 
-  // Handle "GLOBAL" branch gracefully
-  const branchFilter = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
+  const tenantId = user.tenantId || branch?.tenantId;
+  if (!tenantId) {
+    redirect('/');
+  }
 
-  // Get active users for the branch to assign incidents
+  // Get active users for the tenant to assign incidents
   const employees = await prisma.user.findMany({
     where: {
-      ...branchFilter,
+      tenantId,
       NOT: {
         email: {
           startsWith: 'inactivo_'
@@ -35,7 +37,9 @@ export default async function RHCalendarPage() {
   // Get all LeaveRequests (Incidents, Vacations, Absences) for these employees
   const incidents = await prisma.leaveRequest.findMany({
     where: {
-      user: branchFilter
+      user: {
+        tenantId
+      }
     },
     include: {
       user: {
