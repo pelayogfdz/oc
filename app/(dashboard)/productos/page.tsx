@@ -23,7 +23,7 @@ export default async function ProductosPage() {
   const [products, categoriesData] = await Promise.all([
     prisma.product.findMany({
       where: { branchId: branchCondition, isActive: true },
-      include: { variants: true, prices: true },
+      include: { variants: true, prices: true, branch: { select: { id: true, name: true } } },
       orderBy: { name: 'asc' }
     }),
     prisma.product.findMany({
@@ -47,6 +47,20 @@ export default async function ProductosPage() {
         const existing = mergedMap.get(key);
         existing.stock += prod.stock;
         
+        if (prod.stock > 0) {
+          if (!existing.branchStocks) existing.branchStocks = [];
+          const existingBranchStock = existing.branchStocks.find((bs: any) => bs.branchId === prod.branchId);
+          if (existingBranchStock) {
+            existingBranchStock.stock += prod.stock;
+          } else {
+            existing.branchStocks.push({
+              branchId: prod.branchId,
+              branchName: prod.branch?.name || 'Desconocida',
+              stock: prod.stock
+            });
+          }
+        }
+        
         if (prod.variants && prod.variants.length > 0) {
           if (!existing.variants) existing.variants = [];
           prod.variants.forEach((v: any) => {
@@ -61,14 +75,26 @@ export default async function ProductosPage() {
       } else {
         mergedMap.set(key, {
           ...prod,
-          variants: prod.variants ? prod.variants.map((v: any) => ({ ...v })) : []
+          variants: prod.variants ? prod.variants.map((v: any) => ({ ...v })) : [],
+          branchStocks: prod.stock > 0 ? [{
+            branchId: prod.branchId,
+            branchName: prod.branch?.name || 'Desconocida',
+            stock: prod.stock
+          }] : []
         });
       }
     });
 
     displayedProducts = Array.from(mergedMap.values()).slice(0, 100);
   } else {
-    displayedProducts = products.slice(0, 100);
+    displayedProducts = products.map(prod => ({
+      ...prod,
+      branchStocks: prod.stock > 0 ? [{
+        branchId: prod.branchId,
+        branchName: prod.branch?.name || 'Desconocida',
+        stock: prod.stock
+      }] : []
+    })).slice(0, 100);
   }
 
   const safeProducts = JSON.parse(JSON.stringify(displayedProducts));

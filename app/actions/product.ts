@@ -421,7 +421,7 @@ export async function searchProducts(query: string, branchId: string) {
   if (!query || query.trim() === '') {
     products = await prisma.product.findMany({
       where: { branchId: branchCondition, isActive: true },
-      include: { variants: true, prices: true },
+      include: { variants: true, prices: true, branch: { select: { id: true, name: true } } },
       orderBy: { name: 'asc' },
       ...(!isGlobal ? { take: 100 } : {})
     });
@@ -442,7 +442,7 @@ export async function searchProducts(query: string, branchId: string) {
         isActive: true,
         AND: searchConditions
       },
-      include: { variants: true, prices: true },
+      include: { variants: true, prices: true, branch: { select: { id: true, name: true } } },
       orderBy: { name: 'asc' },
       ...(!isGlobal ? { take: 100 } : {})
     });
@@ -461,6 +461,20 @@ export async function searchProducts(query: string, branchId: string) {
         const existing = mergedMap.get(key);
         existing.stock += prod.stock;
         
+        if (prod.stock > 0) {
+          if (!existing.branchStocks) existing.branchStocks = [];
+          const existingBranchStock = existing.branchStocks.find((bs: any) => bs.branchId === prod.branchId);
+          if (existingBranchStock) {
+            existingBranchStock.stock += prod.stock;
+          } else {
+            existing.branchStocks.push({
+              branchId: prod.branchId,
+              branchName: prod.branch?.name || 'Desconocida',
+              stock: prod.stock
+            });
+          }
+        }
+        
         if (prod.variants && prod.variants.length > 0) {
           if (!existing.variants) existing.variants = [];
           prod.variants.forEach((v: any) => {
@@ -475,7 +489,12 @@ export async function searchProducts(query: string, branchId: string) {
       } else {
         mergedMap.set(key, {
           ...prod,
-          variants: prod.variants ? prod.variants.map((v: any) => ({ ...v })) : []
+          variants: prod.variants ? prod.variants.map((v: any) => ({ ...v })) : [],
+          branchStocks: prod.stock > 0 ? [{
+            branchId: prod.branchId,
+            branchName: prod.branch?.name || 'Desconocida',
+            stock: prod.stock
+          }] : []
         });
       }
     });
@@ -483,7 +502,14 @@ export async function searchProducts(query: string, branchId: string) {
     return Array.from(mergedMap.values()).slice(0, 100);
   }
 
-  return products;
+  return products.map(prod => ({
+    ...prod,
+    branchStocks: prod.stock > 0 ? [{
+      branchId: prod.branchId,
+      branchName: prod.branch?.name || 'Desconocida',
+      stock: prod.stock
+    }] : []
+  }));
 }
 
 export async function deleteProduct(productId: string) {

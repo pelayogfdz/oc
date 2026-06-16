@@ -34,6 +34,7 @@ const ProductTableUI = memo(function ProductTableUI({
   const allSelected = products.length > 0 && products.every(p => selectedIds.includes(p.id));
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [hoveredProductId, setHoveredProductId] = useState<string | null>(null);
 
   React.useEffect(() => {
     const checkImages = () => {
@@ -322,7 +323,16 @@ const ProductTableUI = memo(function ProductTableUI({
                       </div>
                     </div>
                   </td>
-                  <td data-label="Stock" style={{ padding: '0.5rem 0.3rem', textAlign: 'center' }}>
+                  <td 
+                    data-label="Stock" 
+                    style={{ 
+                      padding: '0.5rem 0.3rem', 
+                      textAlign: 'center',
+                      position: 'relative'
+                    }}
+                    onMouseEnter={() => setHoveredProductId(prod.id)}
+                    onMouseLeave={() => setHoveredProductId(null)}
+                  >
                     {prod.isService ? (
                       <span style={{ 
                         backgroundColor: '#dbeafe', 
@@ -347,6 +357,53 @@ const ProductTableUI = memo(function ProductTableUI({
                       }}>
                         {prod.stock}
                       </span>
+                    )}
+
+                    {/* Premium branch stock breakdown tooltip */}
+                    {!prod.isService && hoveredProductId === prod.id && prod.branchStocks && prod.branchStocks.length > 0 && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '100%',
+                        left: '50%',
+                        transform: 'translateX(-50%) translateY(-8px)',
+                        backgroundColor: '#1e293b',
+                        color: 'white',
+                        padding: '0.75rem 1rem',
+                        borderRadius: '8px',
+                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.15)',
+                        zIndex: 1000,
+                        minWidth: '200px',
+                        fontSize: '0.75rem',
+                        textAlign: 'left',
+                        pointerEvents: 'none',
+                        border: '1px solid #475569',
+                        animation: 'fadeIn 0.15s ease-out'
+                      }}>
+                        <div style={{ fontWeight: 'bold', borderBottom: '1px solid #475569', paddingBottom: '0.25rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Sucursal</span>
+                          <span>Existencia</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          {prod.branchStocks.map((bs: any) => (
+                            <div key={bs.branchId} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
+                              <span style={{ color: '#cbd5e1' }}>{bs.branchName}</span>
+                              <span style={{ fontWeight: 'bold', color: '#34d399' }}>{bs.stock}</span>
+                            </div>
+                          ))}
+                        </div>
+                        {/* Little triangle arrow at the bottom */}
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          width: 0,
+                          height: 0,
+                          borderLeft: '6px solid transparent',
+                          borderRight: '6px solid transparent',
+                          borderTop: '6px solid #1e293b'
+                        }} />
+                      </div>
                     )}
                   </td>
                   <td data-label="Precio" style={{ padding: '0.5rem 0.4rem', color: '#0f172a', textAlign: 'right', fontWeight: 'bold', fontSize: '0.85rem' }}>
