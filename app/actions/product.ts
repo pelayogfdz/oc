@@ -420,10 +420,9 @@ export async function searchProducts(query: string, branchId: string) {
   let products = [];
   if (!query || query.trim() === '') {
     products = await prisma.product.findMany({
-      where: { branchId: branchCondition, isActive: true },
+      where: { branchId: { in: tenantBranchIds }, isActive: true },
       include: { variants: true, prices: true, branch: { select: { id: true, name: true } } },
-      orderBy: { name: 'asc' },
-      ...(!isGlobal ? { take: 100 } : {})
+      orderBy: { name: 'asc' }
     });
   } else {
     const words = query.trim().split(/\s+/).filter(w => w.length > 0);
@@ -438,15 +437,41 @@ export async function searchProducts(query: string, branchId: string) {
 
     products = await prisma.product.findMany({
       where: {
-        branchId: branchCondition,
+        branchId: { in: tenantBranchIds },
         isActive: true,
         AND: searchConditions
       },
       include: { variants: true, prices: true, branch: { select: { id: true, name: true } } },
-      orderBy: { name: 'asc' },
-      ...(!isGlobal ? { take: 100 } : {})
+      orderBy: { name: 'asc' }
     });
   }
+
+  // Build a map of key to branch stocks across the entire tenant
+  const branchStocksMap = new Map<string, any[]>();
+  products.forEach(prod => {
+    const key = ((prod.sku && prod.sku.trim() !== "")
+      ? prod.sku.trim()
+      : (prod.barcode && prod.barcode.trim() !== "")
+        ? prod.barcode.trim()
+        : prod.name.trim()).toUpperCase();
+
+    if (prod.stock > 0) {
+      if (!branchStocksMap.has(key)) {
+        branchStocksMap.set(key, []);
+      }
+      const list = branchStocksMap.get(key)!;
+      const existing = list.find(bs => bs.branchId === prod.branchId);
+      if (existing) {
+        existing.stock += prod.stock;
+      } else {
+        list.push({
+          branchId: prod.branchId,
+          branchName: prod.branch?.name || 'Desconocida',
+          stock: prod.stock
+        });
+      }
+    }
+  });
 
   if (isGlobal) {
     const mergedMap = new Map<string, any>();
@@ -460,20 +485,6 @@ export async function searchProducts(query: string, branchId: string) {
       if (mergedMap.has(key)) {
         const existing = mergedMap.get(key);
         existing.stock += prod.stock;
-        
-        if (prod.stock > 0) {
-          if (!existing.branchStocks) existing.branchStocks = [];
-          const existingBranchStock = existing.branchStocks.find((bs: any) => bs.branchId === prod.branchId);
-          if (existingBranchStock) {
-            existingBranchStock.stock += prod.stock;
-          } else {
-            existing.branchStocks.push({
-              branchId: prod.branchId,
-              branchName: prod.branch?.name || 'Desconocida',
-              stock: prod.stock
-            });
-          }
-        }
         
         if (prod.variants && prod.variants.length > 0) {
           if (!existing.variants) existing.variants = [];
@@ -489,27 +500,37 @@ export async function searchProducts(query: string, branchId: string) {
       } else {
         mergedMap.set(key, {
           ...prod,
-          variants: prod.variants ? prod.variants.map((v: any) => ({ ...v })) : [],
-          branchStocks: prod.stock > 0 ? [{
-            branchId: prod.branchId,
-            branchName: prod.branch?.name || 'Desconocida',
-            stock: prod.stock
-          }] : []
+          variants: prod.variants ? prod.variants.map((v: any) => ({ ...v })) : []
         });
       }
     });
 
-    return Array.from(mergedMap.values()).slice(0, 100);
+    return Array.from(mergedMap.values()).map(prod => {
+      const key = ((prod.sku && prod.sku.trim() !== "")
+        ? prod.sku.trim()
+        : (prod.barcode && prod.barcode.trim() !== "")
+          ? prod.barcode.trim()
+          : prod.name.trim()).toUpperCase();
+      return {
+        ...prod,
+        branchStocks: branchStocksMap.get(key) || []
+      };
+    }).slice(0, 100);
   }
 
-  return products.map(prod => ({
-    ...prod,
-    branchStocks: prod.stock > 0 ? [{
-      branchId: prod.branchId,
-      branchName: prod.branch?.name || 'Desconocida',
-      stock: prod.stock
-    }] : []
-  }));
+  // If specific branch is selected, filter matching tenant products to only display those belonging to this branch
+  const localProducts = products.filter(p => p.branchId === branchId);
+  return localProducts.map(prod => {
+    const key = ((prod.sku && prod.sku.trim() !== "")
+      ? prod.sku.trim()
+      : (prod.barcode && prod.barcode.trim() !== "")
+        ? prod.barcode.trim()
+        : prod.name.trim()).toUpperCase();
+    return {
+      ...prod,
+      branchStocks: branchStocksMap.get(key) || []
+    };
+  }).slice(0, 100);
 }
 
 export async function deleteProduct(productId: string) {
