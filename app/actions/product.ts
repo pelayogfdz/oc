@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { getSession, getActiveBranch } from '@/app/actions/auth';
 
 export async function createProduct(prevState: any, formData: FormData) {
   try {
@@ -396,37 +397,93 @@ export async function updateProduct(productId: string, formData: FormData) {
 }
 
 export async function searchProducts(query: string, branchId: string) {
+  const isGlobal = branchId === 'GLOBAL';
+  let branchCondition: any;
+
+  if (isGlobal) {
+    const session = await getSession();
+    const activeBranch = await getActiveBranch();
+    if (!activeBranch) return [];
+    const tenantId = session?.tenantId || activeBranch.tenantId;
+    if (!tenantId) return [];
+
+    const tenantBranches = await prisma.branch.findMany({
+      where: { tenantId, isActive: true },
+      select: { id: true }
+    });
+    const tenantBranchIds = tenantBranches.map(b => b.id);
+    branchCondition = { in: tenantBranchIds };
+  } else {
+    branchCondition = branchId;
+  }
+
+  let products = [];
   if (!query || query.trim() === '') {
-    return await prisma.product.findMany({
-      where: { branchId, isActive: true },
+    products = await prisma.product.findMany({
+      where: { branchId: branchCondition, isActive: true },
       include: { variants: true, prices: true },
       orderBy: { name: 'asc' },
-      take: 100
+      ...(!isGlobal ? { take: 100 } : {})
+    });
+  } else {
+    const words = query.trim().split(/\s+/).filter(w => w.length > 0);
+    const searchConditions = words.map(word => ({
+      OR: [
+        { name: { contains: word, mode: 'insensitive' as const } },
+        { description: { contains: word, mode: 'insensitive' as const } },
+        { sku: { contains: word, mode: 'insensitive' as const } },
+        { barcode: { contains: word, mode: 'insensitive' as const } }
+      ]
+    }));
+
+    products = await prisma.product.findMany({
+      where: {
+        branchId: branchCondition,
+        isActive: true,
+        AND: searchConditions
+      },
+      include: { variants: true, prices: true },
+      orderBy: { name: 'asc' },
+      ...(!isGlobal ? { take: 100 } : {})
     });
   }
 
-  // Búsqueda desordenada: dividir por espacios y requerir que todas las palabras coincidan en algún campo
-  const words = query.trim().split(/\s+/).filter(w => w.length > 0);
-  
-  const searchConditions = words.map(word => ({
-    OR: [
-      { name: { contains: word, mode: 'insensitive' as const } },
-      { description: { contains: word, mode: 'insensitive' as const } },
-      { sku: { contains: word, mode: 'insensitive' as const } },
-      { barcode: { contains: word, mode: 'insensitive' as const } }
-    ]
-  }));
+  if (isGlobal) {
+    const mergedMap = new Map<string, any>();
+    products.forEach(prod => {
+      const key = ((prod.sku && prod.sku.trim() !== "")
+        ? prod.sku.trim()
+        : (prod.barcode && prod.barcode.trim() !== "")
+          ? prod.barcode.trim()
+          : prod.name.trim()).toUpperCase();
 
-  return await prisma.product.findMany({
-    where: {
-      branchId,
-      isActive: true,
-      AND: searchConditions
-    },
-    include: { variants: true, prices: true },
-    orderBy: { name: 'asc' },
-    take: 100
-  });
+      if (mergedMap.has(key)) {
+        const existing = mergedMap.get(key);
+        existing.stock += prod.stock;
+        
+        if (prod.variants && prod.variants.length > 0) {
+          if (!existing.variants) existing.variants = [];
+          prod.variants.forEach((v: any) => {
+            const extVar = existing.variants.find((ev: any) => ev.attribute === v.attribute);
+            if (extVar) {
+              extVar.stock += v.stock;
+            } else {
+              existing.variants.push({ ...v });
+            }
+          });
+        }
+      } else {
+        mergedMap.set(key, {
+          ...prod,
+          variants: prod.variants ? prod.variants.map((v: any) => ({ ...v })) : []
+        });
+      }
+    });
+
+    return Array.from(mergedMap.values()).slice(0, 100);
+  }
+
+  return products;
 }
 
 export async function deleteProduct(productId: string) {
