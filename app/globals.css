@@ -441,13 +441,23 @@ button {
 /* Print Styles */
 /* ------------------------------------- */
 @media print {
-  /* Ocultar barra lateral en impresión */
-  .dashboard-sidebar, .sidebar-overlay, .mobile-menu-toggle {
-    display: none !important;
+  /* Asegurar que se conserven los colores de fondo e imágenes (badges, cabeceras, etc.) */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  /* Ocultar header principal en impresión */
-  .dashboard-header {
+  /* Ocultar barra lateral, cabeceras, botones y elementos innecesarios en la impresión */
+  .dashboard-sidebar, 
+  .sidebar-overlay, 
+  .mobile-menu-toggle,
+  .dashboard-header,
+  .no-print, 
+  .btn-primary, 
+  .btn-secondary, 
+  button,
+  input[type="button"],
+  input[type="submit"] {
     display: none !important;
   }
 
@@ -465,15 +475,36 @@ button {
     overflow: visible !important;
   }
 
-  /* Utilidad para forzar que ciertos botones o cajas no salgan en papel */
-  .no-print, .btn-primary, .btn-secondary, button {
-    display: none !important;
+  /* Evitar recortes (scrolls) de tablas y contenedores de reportes, expandiendo su altura completa */
+  .dashboard-main * {
+    max-height: none !important;
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
   }
 
-  /* Asegurarse que el fondo del documento aparezca blanco puro */
+  /* Repetir cabecera de tablas en cada página impresa */
+  thead {
+    display: table-header-group !important;
+  }
+
+  /* Evitar romper filas de tabla a la mitad en saltos de página */
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Asegurar que el fondo del documento aparezca blanco puro y usar márgenes por defecto */
   body, html {
     background-color: white !important;
     margin: 0 !important;
+    color: #000000 !important;
+  }
+
+  /* Eliminar sombras para una impresión más limpia */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
   }
 }
   
