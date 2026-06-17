@@ -3,6 +3,20 @@
 import { prisma } from '@/lib/prisma';
 import { getActiveBranch, getSession } from './auth';
 
+function formatDateString(d: Date, timezone: string): string {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const parts = formatter.formatToParts(d);
+  const year = parts.find(p => p.type === 'year')!.value;
+  const month = parts.find(p => p.type === 'month')!.value;
+  const day = parts.find(p => p.type === 'day')!.value;
+  return `${year}-${month}-${day}`;
+}
+
 export async function getGeneralAnalyticsData(startDate: Date, endDate: Date, branchIdFilter?: string, userIdFilter?: string, brandFilter?: string) {
   const session = await getSession();
   const branch = await getActiveBranch();
@@ -10,6 +24,12 @@ export async function getGeneralAnalyticsData(startDate: Date, endDate: Date, br
   
   const tenantId = session?.tenantId || branch.tenantId;
   if (!tenantId) throw new Error('Unauthorized: Tenant context missing');
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { timezone: true }
+  });
+  const timezone = tenant?.timezone || 'America/Mexico_City';
   
   const tenantBranches = await prisma.branch.findMany({
     where: { tenantId, isActive: true },
@@ -86,23 +106,30 @@ export async function getGeneralAnalyticsData(startDate: Date, endDate: Date, br
   // Aggregate by day
   const dailyData: Record<string, { date: string, Ventas: number, Ganancia: number, Tickets: number }> = {};
   
-  // Fill all dates in range
-  let currentDate = new Date(startDate);
-  currentDate.setHours(0,0,0,0);
-  const end = new Date(endDate);
-  end.setHours(23,59,59,999);
-  
-  while (currentDate <= end) {
-    const dStr = currentDate.toISOString().split('T')[0];
-    dailyData[dStr] = { date: dStr, Ventas: 0, Ganancia: 0, Tickets: 0 };
-    currentDate.setDate(currentDate.getDate() + 1);
+  // Fill all dates in range using local timezone days
+  const startLocalStr = formatDateString(startDate, timezone);
+  const endLocalStr = formatDateString(endDate, timezone);
+
+  const [sy, sm, sd] = startLocalStr.split('-').map(Number);
+  const [ey, em, ed] = endLocalStr.split('-').map(Number);
+
+  const current = new Date(Date.UTC(sy, sm - 1, sd, 12, 0, 0));
+  const endLimit = new Date(Date.UTC(ey, em - 1, ed, 12, 0, 0));
+
+  while (current <= endLimit) {
+    const yStr = current.getUTCFullYear();
+    const mStr = String(current.getUTCMonth() + 1).padStart(2, '0');
+    const dStr = String(current.getUTCDate()).padStart(2, '0');
+    const dateStr = `${yStr}-${mStr}-${dStr}`;
+    dailyData[dateStr] = { date: dateStr, Ventas: 0, Ganancia: 0, Tickets: 0 };
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 
   let totalRevenue = 0;
   let totalCost = 0;
 
   processedSales.forEach(sale => {
-    const dStr = sale.createdAt.toISOString().split('T')[0];
+    const dStr = formatDateString(sale.createdAt, timezone);
     if (!dailyData[dStr]) dailyData[dStr] = { date: dStr, Ventas: 0, Ganancia: 0, Tickets: 0 };
     
     let saleCost = 0;
@@ -150,6 +177,12 @@ export async function getSalesDetailData(
   
   const tenantId = session?.tenantId || branch.tenantId;
   if (!tenantId) throw new Error('Unauthorized: Tenant context missing');
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { timezone: true }
+  });
+  const timezone = tenant?.timezone || 'America/Mexico_City';
   
   const tenantBranches = await prisma.branch.findMany({
     where: { tenantId, isActive: true },
@@ -266,21 +299,28 @@ export async function getSalesDetailData(
     value: salesByUser[name]
   })).sort((a,b) => b.value - a.value);
 
-  // Aggregate for chart data
+  // Aggregate for chart data using local timezone days
   const dailyData: Record<string, { date: string, Ventas: number }> = {};
-  let currentDate = new Date(startDate);
-  currentDate.setHours(0,0,0,0);
-  const end = new Date(endDate);
-  end.setHours(23,59,59,999);
-  
-  while (currentDate <= end) {
-    const dStr = currentDate.toISOString().split('T')[0];
-    dailyData[dStr] = { date: dStr, Ventas: 0 };
-    currentDate.setDate(currentDate.getDate() + 1);
+  const startLocalStr = formatDateString(startDate, timezone);
+  const endLocalStr = formatDateString(endDate, timezone);
+
+  const [sy, sm, sd] = startLocalStr.split('-').map(Number);
+  const [ey, em, ed] = endLocalStr.split('-').map(Number);
+
+  const current = new Date(Date.UTC(sy, sm - 1, sd, 12, 0, 0));
+  const endLimit = new Date(Date.UTC(ey, em - 1, ed, 12, 0, 0));
+
+  while (current <= endLimit) {
+    const yStr = current.getUTCFullYear();
+    const mStr = String(current.getUTCMonth() + 1).padStart(2, '0');
+    const dStr = String(current.getUTCDate()).padStart(2, '0');
+    const dateStr = `${yStr}-${mStr}-${dStr}`;
+    dailyData[dateStr] = { date: dateStr, Ventas: 0 };
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 
   processedSales.forEach(sale => {
-    const dStr = sale.createdAt.toISOString().split('T')[0];
+    const dStr = formatDateString(sale.createdAt, timezone);
     if (dailyData[dStr]) {
       dailyData[dStr].Ventas += sale.total;
     }
@@ -461,6 +501,12 @@ export async function getConsignmentReportData(
   
   const tenantId = session?.tenantId || branch.tenantId;
   if (!tenantId) throw new Error('Unauthorized: Tenant context missing');
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { timezone: true }
+  });
+  const timezone = tenant?.timezone || 'America/Mexico_City';
   
   const tenantBranches = await prisma.branch.findMany({
     where: { tenantId, isActive: true },
@@ -595,21 +641,28 @@ export async function getConsignmentReportData(
   const topCustomers = Object.values(customerSummary).sort((a, b) => b.consignedAmt - a.consignedAmt).slice(0, 10);
   const topProducts = Object.values(productSummary).sort((a, b) => b.consignedQty - a.consignedQty).slice(0, 10);
 
-  // Daily timeline aggregation
+  // Daily timeline aggregation using local timezone days
   const dailyData: Record<string, { date: string, Consignado: number, Facturado: number }> = {};
-  let currentDate = new Date(startDate);
-  currentDate.setHours(0,0,0,0);
-  const end = new Date(endDate);
-  end.setHours(23,59,59,999);
-  
-  while (currentDate <= end) {
-    const dStr = currentDate.toISOString().split('T')[0];
-    dailyData[dStr] = { date: dStr, Consignado: 0, Facturado: 0 };
-    currentDate.setDate(currentDate.getDate() + 1);
+  const startLocalStr = formatDateString(startDate, timezone);
+  const endLocalStr = formatDateString(endDate, timezone);
+
+  const [sy, sm, sd] = startLocalStr.split('-').map(Number);
+  const [ey, em, ed] = endLocalStr.split('-').map(Number);
+
+  const current = new Date(Date.UTC(sy, sm - 1, sd, 12, 0, 0));
+  const endLimit = new Date(Date.UTC(ey, em - 1, ed, 12, 0, 0));
+
+  while (current <= endLimit) {
+    const yStr = current.getUTCFullYear();
+    const mStr = String(current.getUTCMonth() + 1).padStart(2, '0');
+    const dStr = String(current.getUTCDate()).padStart(2, '0');
+    const dateStr = `${yStr}-${mStr}-${dStr}`;
+    dailyData[dateStr] = { date: dateStr, Consignado: 0, Facturado: 0 };
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 
   processedConsignments.forEach(c => {
-    const dStr = c.createdAt.toISOString().split('T')[0];
+    const dStr = formatDateString(c.createdAt, timezone);
     if (dailyData[dStr]) {
       dailyData[dStr].Consignado += c.total;
       if (c.status === 'CONVERTED') {

@@ -148,16 +148,16 @@ export default async function DashboardPage(props: Props) {
   const chartData: { date: string; dateStr: string; count: number; amount: number }[] = [];
   const [sy, sm, sd] = initialStartDate.split('-').map(Number);
   const [ey, em, ed] = initialEndDate.split('-').map(Number);
-  const sDateObj = new Date(sy, sm - 1, sd);
-  const eDateObj = new Date(ey, em - 1, ed);
+  
+  const current = new Date(Date.UTC(sy, sm - 1, sd, 12, 0, 0));
+  const end = new Date(Date.UTC(ey, em - 1, ed, 12, 0, 0));
 
-  const tempDate = new Date(sDateObj);
-  while (tempDate <= eDateObj) {
-    const yStr = tempDate.getFullYear();
-    const mStr = String(tempDate.getMonth() + 1).padStart(2, '0');
-    const dStr = String(tempDate.getDate()).padStart(2, '0');
+  while (current <= end) {
+    const yStr = current.getUTCFullYear();
+    const mStr = String(current.getUTCMonth() + 1).padStart(2, '0');
+    const dStr = String(current.getUTCDate()).padStart(2, '0');
     const dateStr = `${yStr}-${mStr}-${dStr}`;
-    const label = tempDate.toLocaleDateString('es-MX', { timeZone: timezone, day: '2-digit', month: 'short' });
+    const label = current.toLocaleDateString('es-MX', { timeZone: 'UTC', day: '2-digit', month: 'short' });
     
     chartData.push({
       date: label,
@@ -166,7 +166,7 @@ export default async function DashboardPage(props: Props) {
       amount: 0
     });
     
-    tempDate.setDate(tempDate.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 
   chartSales.forEach(sale => {
