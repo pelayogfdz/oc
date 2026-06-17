@@ -229,7 +229,7 @@ export default function ReportFilterBar({
         </div>
       )}
 
-      {showPaymentMethod && paymentMethods.length > 0 && (
+      {showPaymentMethod && (
         <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--pulpos-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
           <DollarSign size={16} color="var(--pulpos-text-muted)" style={{ marginLeft: '0.5rem' }} />
           <select 
@@ -248,18 +248,21 @@ export default function ReportFilterBar({
             }}
           >
             <option value="ALL">Todos los Métodos</option>
-            {paymentMethods.map(pm => {
-              let label = pm;
-              if (pm === 'CASH') label = 'Efectivo';
-              if (pm === 'CARD') label = 'Tarjeta';
-              if (pm === 'TRANSFER') label = 'Transferencia';
-              if (pm === 'CREDIT') label = 'Crédito';
-              if (pm === 'MIXTO') label = 'Mixto';
-              return <option key={pm} value={pm}>{label}</option>;
-            })}
+            <option value="CASH">Efectivo</option>
+            <option value="CARD">Tarjeta</option>
+            <option value="TRANSFER">Transferencia</option>
+            <option value="CREDIT">Crédito</option>
+            <option value="MIXTO">Mixto</option>
+            {paymentMethods
+              .filter(pm => !['CASH', 'CARD', 'TRANSFER', 'CREDIT', 'MIXTO'].includes(pm))
+              .map(pm => (
+                <option key={pm} value={pm}>{pm}</option>
+              ))
+            }
           </select>
         </div>
       )}
+
 
       {showInvoiced && (
         <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--pulpos-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
