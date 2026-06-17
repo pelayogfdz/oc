@@ -10,6 +10,7 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
   const [branchId, setBranchId] = useState(initialBranchId);
   const [category, setCategory] = useState('ALL');
   const [brand, setBrand] = useState('ALL');
+  const [sellerId, setSellerId] = useState('ALL');
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
@@ -55,13 +56,13 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
 
     setStartDateStr(start.toISOString().split('T')[0]);
     setEndDateStr(end.toISOString().split('T')[0]);
-    triggerUpdate(start, end, branchId, category, brand);
+    triggerUpdate(start, end, branchId, category, brand, sellerId);
   };
 
-  const triggerUpdate = async (start: Date, end: Date, bId: string, cat: string, brnd: string) => {
+  const triggerUpdate = async (start: Date, end: Date, bId: string, cat: string, brnd: string, sId: string) => {
     setIsLoading(true);
     try {
-      const res = await getTopProductsReport(start, end, bId, cat, brnd);
+      const res = await getTopProductsReport(start, end, bId, cat, brnd, sId);
       setData(res || []);
     } catch (error) {
       console.error("Error updating products report:", error);
@@ -73,7 +74,7 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
   const handleApplyFilters = () => {
     const start = new Date(startDateStr + 'T00:00:00');
     const end = new Date(endDateStr + 'T23:59:59');
-    triggerUpdate(start, end, branchId, category, brand);
+    triggerUpdate(start, end, branchId, category, brand, sellerId);
   };
 
   // Format currency
@@ -256,6 +257,20 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
               <option value="ALL">Todas las Marcas</option>
               {availableFilters.brands?.map((b: string) => (
                 <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.4rem' }}>Vendedor</label>
+            <select 
+              value={sellerId} 
+              onChange={e => setSellerId(e.target.value)}
+              style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem', outline: 'none' }}
+            >
+              <option value="ALL">Todos los Vendedores</option>
+              {availableFilters.users?.map((u: any) => (
+                <option key={u.id} value={u.id}>{u.name}</option>
               ))}
             </select>
           </div>

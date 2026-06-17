@@ -237,8 +237,6 @@ export default function CollaboratorTaskPopup({ userId }: { userId: string }) {
           className="task-floating-btn"
           style={{
             position: 'fixed',
-            bottom: '24px',
-            left: '24px',
             width: '56px',
             height: '56px',
             borderRadius: '50%',
@@ -304,6 +302,14 @@ export default function CollaboratorTaskPopup({ userId }: { userId: string }) {
         }
         .task-floating-btn {
           transition: transform 0.15s ease-out, box-shadow 0.2s ease;
+          left: 24px;
+          bottom: 90px;
+        }
+        @media (min-width: 768px) {
+          .task-floating-btn {
+            left: 274px;
+            bottom: 24px;
+          }
         }
       `}</style>
 

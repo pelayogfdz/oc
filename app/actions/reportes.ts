@@ -747,7 +747,8 @@ export async function getTopProductsReport(
   endDate: Date,
   branchIdFilter?: string,
   categoryFilter?: string,
-  brandFilter?: string
+  brandFilter?: string,
+  userIdFilter?: string
 ) {
   const session = await getSession();
   const branch = await getActiveBranch();
@@ -777,10 +778,15 @@ export async function getTopProductsReport(
     ? { product: { brand: brandFilter } }
     : {};
 
+  const userCondition = (userIdFilter && userIdFilter !== 'ALL')
+    ? { userId: userIdFilter }
+    : {};
+
   const saleItems = await prisma.saleItem.findMany({
     where: {
       sale: {
         ...branchCondition,
+        ...userCondition,
         createdAt: { gte: startDate, lte: endDate },
         status: { not: 'CANCELLED' }
       },
