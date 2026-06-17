@@ -300,10 +300,10 @@ export default function VentasHistoryClient({
                       borderRadius: '12px', 
                       fontSize: '0.75rem',
                       fontWeight: 'bold',
-                      backgroundColor: sale.status === 'COMPLETED' ? '#dcfce7' : '#f1f5f9',
-                      color: sale.status === 'COMPLETED' ? '#166534' : '#334155'
+                      backgroundColor: sale.status === 'COMPLETED' ? '#dcfce7' : sale.status === 'CANCELLED' ? '#fee2e2' : '#f1f5f9',
+                      color: sale.status === 'COMPLETED' ? '#166534' : sale.status === 'CANCELLED' ? '#991b1b' : '#334155'
                     }}>
-                      {sale.status === 'COMPLETED' ? 'Completado' : sale.status}
+                      {sale.status === 'COMPLETED' ? 'Completado' : sale.status === 'CANCELLED' ? 'Cancelado' : sale.status}
                     </span>
                   </td>
                   <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }}>
