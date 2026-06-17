@@ -204,6 +204,24 @@ export default async function CotizacionesPage() {
                             </tbody>
                           </table>
                         </div>
+                        {(() => {
+                          const totalPurchaseCost = quote.items.reduce((sum, i) => sum + ((i.product?.averageCost || i.product?.cost || 0) * i.quantity), 0);
+                          const totalMarginPercent = quote.total > 0 ? ((quote.total - totalPurchaseCost) / quote.total) * 100 : 0;
+                          return (
+                            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span>Compra total (prom.):</span>
+                                <strong style={{ color: '#475569' }}>${totalPurchaseCost.toFixed(2)}</strong>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span>Margen total:</span>
+                                <span style={{ color: totalMarginPercent >= 0 ? '#15803d' : '#b91c1c', fontWeight: 'bold' }}>
+                                  {totalMarginPercent.toFixed(1)}%
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })()}
                         <div className="quote-tooltip-footer">
                           <span className="quote-tooltip-total-label">TOTAL</span>
                           <span className="quote-tooltip-total-val">${quote.total.toFixed(2)}</span>

@@ -1921,7 +1921,32 @@ export default function POSClient({ products: initialProducts, customers, suppli
                     <div className="pos-cart-item-info">
                       <div className="pos-cart-item-title">{item.name}</div>
                       <div className="pos-cart-item-price">${itemPrice.toFixed(2)}</div>
+                      {mode === 'QUOTE' && (() => {
+                        const purchasePrice = item.averageCost || item.cost || 0;
+                        const marginPercent = itemPrice > 0 ? ((itemPrice - purchasePrice) / itemPrice) * 100 : 0;
+                        return (
+                          <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', marginTop: '0.25rem', color: '#64748b', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <span style={{ backgroundColor: '#f1f5f9', padding: '0.15rem 0.35rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
+                              Compra (prom.): <strong>${purchasePrice.toFixed(2)}</strong>
+                            </span>
+                            <span style={{ 
+                              backgroundColor: marginPercent >= 0 ? '#dcfce7' : '#fee2e2', 
+                              color: marginPercent >= 0 ? '#15803d' : '#b91c1c', 
+                              padding: '0.15rem 0.35rem', 
+                              borderRadius: '4px',
+                              border: marginPercent >= 0 ? '1px solid #bbf7d0' : '1px solid #fca5a5',
+                              fontWeight: 'bold'
+                            }}>
+                              Margen: <strong>{marginPercent.toFixed(1)}%</strong>
+                            </span>
+                            <span style={{ backgroundColor: '#f1f5f9', padding: '0.15rem 0.35rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
+                              Venta: <strong>${itemPrice.toFixed(2)}</strong>
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
+
 
                     {/* Quantity input box */}
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -1996,6 +2021,35 @@ export default function POSClient({ products: initialProducts, customers, suppli
               <span>Subtotal ({cart.reduce((s, i) => s + i.quantity, 0)} artículos)</span>
               <span className="pos-subtotal-value">${subTotal.toFixed(2)}</span>
             </div>
+
+            {mode === 'QUOTE' && cart.length > 0 && (() => {
+              const totalPurchaseCost = cart.reduce((sum, item) => sum + ((item.averageCost || item.cost || 0) * item.quantity), 0);
+              const totalMarginPercent = total > 0 ? ((total - totalPurchaseCost) / total) * 100 : 0;
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9', padding: '0.75rem 0', margin: '0.5rem 0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#475569' }}>
+                    <span>Costo de Compra Total (prom.):</span>
+                    <strong>${totalPurchaseCost.toFixed(2)}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#475569' }}>
+                    <span>Margen Total:</span>
+                    <span style={{ 
+                      color: totalMarginPercent >= 0 ? '#16a34a' : '#dc2626', 
+                      fontWeight: 'bold',
+                      backgroundColor: totalMarginPercent >= 0 ? '#dcfce7' : '#fee2e2',
+                      padding: '0.1rem 0.35rem',
+                      borderRadius: '4px'
+                    }}>
+                      {totalMarginPercent.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#475569' }}>
+                    <span>Venta Total:</span>
+                    <strong>${total.toFixed(2)}</strong>
+                  </div>
+                </div>
+              );
+            })()}
 
             {manualDiscountValue && (
               <div className="pos-subtotal-row" style={{ color: '#16a34a', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
@@ -3131,6 +3185,30 @@ export default function POSClient({ products: initialProducts, customers, suppli
                             <>Stock: <span style={{ color: p.stock > 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>{p.stock}</span></>
                           )}
                         </div>
+                        {mode === 'QUOTE' && (() => {
+                          const purchasePrice = p.averageCost || p.cost || 0;
+                          const marginPercent = pPrice > 0 ? ((pPrice - purchasePrice) / pPrice) * 100 : 0;
+                          return (
+                            <div style={{ display: 'flex', gap: '0.35rem', fontSize: '0.7rem', marginTop: '0.25rem', color: '#64748b', flexWrap: 'wrap', alignItems: 'center' }}>
+                              <span style={{ backgroundColor: '#f1f5f9', padding: '0.1rem 0.25rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
+                                Compra: <strong>${purchasePrice.toFixed(2)}</strong>
+                              </span>
+                              <span style={{ 
+                                backgroundColor: marginPercent >= 0 ? '#dcfce7' : '#fee2e2', 
+                                color: marginPercent >= 0 ? '#15803d' : '#b91c1c', 
+                                padding: '0.1rem 0.25rem', 
+                                borderRadius: '4px',
+                                border: marginPercent >= 0 ? '1px solid #bbf7d0' : '1px solid #fca5a5',
+                                fontWeight: 'bold'
+                              }}>
+                                Margen: <strong>{marginPercent.toFixed(1)}%</strong>
+                              </span>
+                              <span style={{ backgroundColor: '#f1f5f9', padding: '0.1rem 0.25rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
+                                Venta: <strong>${pPrice.toFixed(2)}</strong>
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <div style={{ fontWeight: 'bold', color: '#8b5cf6', fontSize: '1rem' }}>
