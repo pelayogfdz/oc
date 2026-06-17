@@ -2,6 +2,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SWCleaner from "./components/SWCleaner";
+import PWAUpdater from "./components/PWAUpdater";
 import { getTenantSettings } from "./actions/settings";
 
 const geistSans = Geist({
@@ -134,6 +135,7 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <SWCleaner />
+        <PWAUpdater />
         {children}
       </body>
     </html>

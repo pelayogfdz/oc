@@ -14,7 +14,7 @@ interface OfflineContextType {
   pushOfflineProduct: (productParams: any) => Promise<void>;
   pushOfflineAttendance: (attendanceParams: Omit<OfflinePendingAttendance, 'id' | 'timestamp' | 'synced' | 'retryCount' | 'failed' | 'errorMessage'>) => Promise<void>;
   forceSync: () => Promise<void>;
-  refreshCatalogs: () => Promise<void>;
+  refreshCatalogs: (isBackground?: boolean) => Promise<void>;
 }
 
 const OfflineContext = createContext<OfflineContextType>({
@@ -27,7 +27,7 @@ const OfflineContext = createContext<OfflineContextType>({
   pushOfflineProduct: async () => {},
   pushOfflineAttendance: async () => {},
   forceSync: async () => {},
-  refreshCatalogs: async () => {},
+  refreshCatalogs: async (isBackground?: boolean) => {},
 });
 
 
@@ -40,6 +40,14 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   const [pendingAttendance, setPendingAttendance] = useState<OfflinePendingAttendance[]>([]);
   const [showToast, setShowToast] = useState<{message: string, type: 'success' | 'warn' | 'error'} | null>(null);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+
+  // Auto-clear toasts
+  useEffect(() => {
+    if (showToast) {
+      const timer = setTimeout(() => setShowToast(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showToast]);
 
   // Initialize Network status
   useEffect(() => {
@@ -61,23 +69,51 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
     
     loadPendingQueues();
     
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+    
     const shouldRefreshOnStart = async () => {
       if (!navigator.onLine) return;
-      const lastSync = localStorage.getItem('last_catalog_sync_timestamp');
-      const now = Date.now();
-      const THRESHOLD = 30 * 60 * 1000; // 30 minutes
-      
-      const productCount = await db.products.count();
-      if (productCount === 0 || !lastSync || (now - parseInt(lastSync, 10)) > THRESHOLD) {
-        await refreshCatalogs();
+      if (isStandalone) {
+        // En modo standalone, sincronizar catálogos silenciosamente de inmediato al iniciar
+        await refreshCatalogs(true);
+      } else {
+        const lastSync = localStorage.getItem('last_catalog_sync_timestamp');
+        const now = Date.now();
+        const THRESHOLD = 30 * 60 * 1000; // 30 minutes
+        
+        const productCount = await db.products.count();
+        if (productCount === 0 || !lastSync || (now - parseInt(lastSync, 10)) > THRESHOLD) {
+          await refreshCatalogs();
+        }
       }
     };
     
     shouldRefreshOnStart();
 
+    // Configurar intervalos de sincronización continua en segundo plano solo para la versión descargable (standalone)
+    let syncInterval: NodeJS.Timeout | null = null;
+    let catalogInterval: NodeJS.Timeout | null = null;
+
+    if (isStandalone) {
+      console.log('[PWA] Inicializando sincronización en segundo plano...');
+      // Cada 30 segundos: sincronizar transacciones offline pendientes
+      syncInterval = setInterval(() => {
+        console.log('[PWA] Sincronización automática de transacciones iniciada...');
+        forceSync();
+      }, 30 * 1000);
+
+      // Cada 3 minutos: sincronizar silenciosamente los catálogos desde el servidor
+      catalogInterval = setInterval(() => {
+        console.log('[PWA] Sincronización automática de catálogos en segundo plano iniciada...');
+        refreshCatalogs(true);
+      }, 3 * 60 * 1000);
+    }
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      if (syncInterval) clearInterval(syncInterval);
+      if (catalogInterval) clearInterval(catalogInterval);
     };
   }, []);
 
@@ -424,11 +460,13 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
     }
   };
 
-  const refreshCatalogs = async () => {
+  const refreshCatalogs = async (isBackground?: boolean) => {
     if (!navigator.onLine) return;
     try {
       const { syncBasicCatalogs, syncProductsPage } = await import('../actions/sync');
-      setShowToast({ message: 'Preparando sincronización de catálogos...', type: 'warn' });
+      if (!isBackground) {
+        setShowToast({ message: 'Preparando sincronización de catálogos...', type: 'warn' });
+      }
       
       const basicData = await syncBasicCatalogs();
       
@@ -438,7 +476,9 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       
       const allNewProducts: any[] = [];
       for (let i = 1; i <= totalPages; i++) {
-        setSyncMessage(`Sincronizando Catálogo... (${i}/${totalPages})`);
+        if (!isBackground) {
+          setSyncMessage(`Sincronizando Catálogo... (${i}/${totalPages})`);
+        }
         const productsChunk = await syncProductsPage(i, pageSize);
         if (productsChunk && productsChunk.length > 0) {
           allNewProducts.push(...productsChunk);
@@ -474,18 +514,50 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       });
 
       localStorage.setItem('last_catalog_sync_timestamp', Date.now().toString());
-      setSyncMessage(null);
-      setShowToast({ message: 'Catálogos actualizados y guardados en local.', type: 'success' });
+      if (!isBackground) {
+        setSyncMessage(null);
+        setShowToast({ message: 'Catálogos actualizados y guardados en local.', type: 'success' });
+      }
     } catch (e) {
       console.error('Failed to sync catalogs', e);
-      setSyncMessage(null);
-      setShowToast({ message: 'Error al actualizar catálogos. Se mantiene la versión local anterior.', type: 'error' });
+      if (!isBackground) {
+        setSyncMessage(null);
+        setShowToast({ message: 'Error al actualizar catálogos. Se mantiene la versión local anterior.', type: 'error' });
+      }
     }
   };
 
   return (
     <OfflineContext.Provider value={{ isOnline, pendingSales, syncMessage, pushOfflineSale, forceSync, pushOfflineTransfer, pushOfflinePurchase, pushOfflineProduct, pushOfflineAttendance, refreshCatalogs }}>
       {children}
+      {showToast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          zIndex: 99999,
+          padding: '12px 18px',
+          borderRadius: '8px',
+          color: '#fff',
+          fontWeight: 500,
+          fontSize: '0.9rem',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          backgroundColor: showToast.type === 'success' ? '#10b981' : showToast.type === 'warn' ? '#f59e0b' : '#ef4444',
+          animation: 'slideIn 0.2s ease-out'
+        }}>
+          {showToast.message}
+          <button onClick={() => setShowToast(null)} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', fontWeight: 'bold', marginLeft: '8px' }}>×</button>
+          <style dangerouslySetInnerHTML={{__html: `
+            @keyframes slideIn {
+              from { transform: translateY(20px); opacity: 0; }
+              to { transform: translateY(0); opacity: 1; }
+            }
+          `}} />
+        </div>
+      )}
     </OfflineContext.Provider>
   );
 }

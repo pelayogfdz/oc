@@ -5,6 +5,12 @@ import { useEffect } from 'react';
 export default function SWCleaner() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+      if (isStandalone) {
+        console.log('[PWA] Standalone mode: skipping SWCleaner.');
+        return;
+      }
+
       // 1. Desregistrar TODOS los service workers de forma inmediata
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then((registrations) => {
