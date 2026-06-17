@@ -398,20 +398,20 @@ export async function updateProduct(productId: string, formData: FormData) {
 
 export async function searchProducts(query: string, branchId: string) {
   const isGlobal = branchId === 'GLOBAL';
+  const session = await getSession();
+  const activeBranch = await getActiveBranch();
+  if (!activeBranch) return [];
+  const tenantId = session?.tenantId || activeBranch.tenantId;
+  if (!tenantId) return [];
+
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const tenantBranchIds = tenantBranches.map(b => b.id);
+
   let branchCondition: any;
-
   if (isGlobal) {
-    const session = await getSession();
-    const activeBranch = await getActiveBranch();
-    if (!activeBranch) return [];
-    const tenantId = session?.tenantId || activeBranch.tenantId;
-    if (!tenantId) return [];
-
-    const tenantBranches = await prisma.branch.findMany({
-      where: { tenantId, isActive: true },
-      select: { id: true }
-    });
-    const tenantBranchIds = tenantBranches.map(b => b.id);
     branchCondition = { in: tenantBranchIds };
   } else {
     branchCondition = branchId;
