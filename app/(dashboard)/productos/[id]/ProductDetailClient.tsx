@@ -6,6 +6,7 @@ import { createVariant, deleteVariant } from '@/app/actions/variant';
 import { createBatch, deleteBatch } from '@/app/actions/batch';
 import { Truck, Image as ImageIcon, X } from 'lucide-react';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
+import { useRouter } from 'next/navigation';
 
 const getFormattedImageUrl = (url: string | null) => {
   if (!url) return '';
@@ -34,12 +35,22 @@ export function ProductDetailClient({
   tenantId?: string,
   children: React.ReactNode
 }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('details');
   const [showAdjustForm, setShowAdjustForm] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
   const [headerImageError, setHeaderImageError] = useState(false);
+  const [selectedMovement, setSelectedMovement] = useState<any | null>(null);
   const { pushOfflineProduct } = useOfflineSync();
+
+  const handleMovementClick = (mov: any) => {
+    if (mov.detailUrl) {
+      router.push(mov.detailUrl);
+    } else {
+      setSelectedMovement(mov);
+    }
+  };
 
   useEffect(() => {
     const handleFormSubmit = async (e: SubmitEvent) => {
@@ -182,6 +193,9 @@ export function ProductDetailClient({
         @keyframes scaleIn {
           from { transform: scale(0.95); opacity: 0; }
           to { transform: scale(1); opacity: 1; }
+        }
+        .kardex-row:hover {
+          background-color: #f8fafc;
         }
       `}</style>
 
@@ -552,7 +566,17 @@ export function ProductDetailClient({
             </thead>
             <tbody>
               {movements.map(mov => (
-                <tr key={mov.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                <tr 
+                  key={mov.id} 
+                  onClick={() => handleMovementClick(mov)}
+                  className="kardex-row"
+                  style={{ 
+                    borderBottom: '1px solid var(--pulpos-border)',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  title={mov.detailUrl ? "Click para ver detalle en una nueva página" : "Click para ver detalle en ventana emergente"}
+                >
                   <td data-label="Fecha" style={{ padding: '1rem' }}>{new Date(mov.createdAt).toLocaleString()}</td>
                   <td data-label="Tipo" style={{ padding: '1rem' }}>
                     <span style={{ 
@@ -750,6 +774,143 @@ export function ProductDetailClient({
             <p style={{ fontSize: '0.9rem', color: 'var(--pulpos-text-muted)' }}>
               Para nivelar inventarios, visita el módulo de <a href={`/productos/traspasos`} style={{ color: 'var(--pulpos-primary)', fontWeight: 'bold' }}>Traspasos</a> e ingresa el SKU {product.sku}.
             </p>
+          </div>
+        </div>
+      )}
+
+      {selectedMovement && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999,
+          animation: 'fadeIn 0.25s ease-out'
+        }} onClick={() => setSelectedMovement(null)}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '500px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            overflow: 'hidden',
+            animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+            border: '1px solid #e2e8f0'
+          }} onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '1.25rem 1.5rem',
+              borderBottom: '1px solid #f1f5f9',
+              background: 'linear-gradient(to right, #f8fafc, #ffffff)'
+            }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                Detalle del Movimiento
+              </h3>
+              <button onClick={() => setSelectedMovement(null)} style={{
+                background: 'none',
+                border: 'none',
+                color: '#64748b',
+                cursor: 'pointer',
+                padding: '4px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background-color 0.2s'
+              }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Producto</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>{product.name}</span>
+                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>SKU: {product.sku}</span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tipo de Movimiento</span>
+                  <div>
+                    <span style={{ 
+                      padding: '0.25rem 0.6rem', 
+                      borderRadius: '12px', 
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold',
+                      backgroundColor: selectedMovement.type === 'IN' ? '#dcfce7' : selectedMovement.type === 'OUT' ? '#fee2e2' : '#f1f5f9',
+                      color: selectedMovement.type === 'IN' ? '#166534' : selectedMovement.type === 'OUT' ? '#991b1b' : '#334155',
+                      display: 'inline-block'
+                    }}>
+                      {selectedMovement.type === 'IN' ? 'Entrada (+)' : selectedMovement.type === 'OUT' ? 'Salida (-)' : 'Ajuste / Merma'}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cantidad</span>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 800, color: selectedMovement.quantity > 0 ? '#16a34a' : '#dc2626' }}>
+                    {selectedMovement.quantity > 0 ? '+' : ''}{selectedMovement.quantity} Pzas
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fecha y Hora</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>
+                    {new Date(selectedMovement.createdAt).toLocaleString()}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Registrado Por</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>
+                    {selectedMovement.userName}
+                  </span>
+                  {selectedMovement.userEmail && (
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      {selectedMovement.userEmail}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Motivo / Detalles</span>
+                <span style={{ fontSize: '0.9rem', color: '#334155', lineHeight: '1.4', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                  {selectedMovement.reason}
+                </span>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              padding: '1rem 1.5rem',
+              borderTop: '1px solid #f1f5f9',
+              backgroundColor: '#f8fafc'
+            }}>
+              <button onClick={() => setSelectedMovement(null)} className="btn-secondary" style={{
+                padding: '0.5rem 1.25rem',
+                backgroundColor: 'white',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}>
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}

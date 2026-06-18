@@ -24,7 +24,8 @@ export async function createPurchase(
   total: number,
   paymentMethod: string = 'CASH',
   supplierId: string | null = null,
-  freightCost: number = 0
+  freightCost: number = 0,
+  purchaseId?: string
 ) {
   try {
     const branch = await getActiveBranch();
@@ -65,6 +66,7 @@ export async function createPurchase(
 
       const purchase = await tx.purchase.create({
         data: {
+          id: purchaseId,
           folio,
           total,
           paymentMethod,

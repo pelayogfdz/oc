@@ -18,7 +18,10 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
     where: { id },
     include: {
       inventoryMovements: {
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: true
+        }
       },
       saleItems: {
         orderBy: { sale: { createdAt: 'desc' } },
@@ -78,6 +81,95 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
     redirect('/productos');
   };
 
+  const enrichedMovements = await Promise.all(
+    product.inventoryMovements.map(async (mov) => {
+      let detailUrl = null;
+      let detailLabel = null;
+      
+      // 1. Purchase Check (starts with 'Compra #')
+      if (mov.reason.startsWith('Compra #')) {
+        const prefix = mov.reason.replace('Compra #', '').split(' ')[0];
+        if (prefix && prefix.length >= 8) {
+          const purchase = await prisma.purchase.findFirst({
+            where: { id: { startsWith: prefix } },
+            select: { id: true }
+          });
+          if (purchase) {
+            detailUrl = `/productos/compras/${purchase.id}`;
+            detailLabel = 'Ver Compra';
+          }
+        }
+      } 
+      // 2. Cancellation of purchase check (starts with 'Cancelación Compra #')
+      else if (mov.reason.startsWith('Cancelación Compra #')) {
+        const prefix = mov.reason.replace('Cancelación Compra #', '').split(' ')[0];
+        if (prefix && prefix.length >= 8) {
+          const purchase = await prisma.purchase.findFirst({
+            where: { id: { startsWith: prefix } },
+            select: { id: true }
+          });
+          if (purchase) {
+            detailUrl = `/productos/compras/${purchase.id}`;
+            detailLabel = 'Ver Compra';
+          }
+        }
+      }
+      // 3. Sale check (starts with 'Venta #')
+      else if (mov.reason.startsWith('Venta #')) {
+        const prefix = mov.reason.replace('Venta #', '').split(' ')[0];
+        if (prefix && prefix.length >= 8) {
+          const sale = await prisma.sale.findFirst({
+            where: { id: { startsWith: prefix } },
+            select: { id: true }
+          });
+          if (sale) {
+            detailUrl = `/ventas/detalle/${sale.id}`;
+            detailLabel = 'Ver Venta';
+          }
+        }
+      }
+      // 4. Cancellation of sale check (starts with 'Cancelación Venta #')
+      else if (mov.reason.startsWith('Cancelación Venta #')) {
+        const prefix = mov.reason.replace('Cancelación Venta #', '').split(' ')[0];
+        if (prefix && prefix.length >= 8) {
+          const sale = await prisma.sale.findFirst({
+            where: { id: { startsWith: prefix } },
+            select: { id: true }
+          });
+          if (sale) {
+            detailUrl = `/ventas/detalle/${sale.id}`;
+            detailLabel = 'Ver Venta';
+          }
+        }
+      }
+      // 5. Transfer check
+      else if (mov.reason.includes('Traspaso') || mov.reason.includes('traspaso')) {
+        const uuidMatch = mov.reason.match(/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i);
+        if (uuidMatch) {
+          detailUrl = `/productos/traspasos/${uuidMatch[0]}`;
+          detailLabel = 'Ver Traspaso';
+        }
+      }
+
+      return {
+        id: mov.id,
+        productId: mov.productId,
+        type: mov.type,
+        quantity: mov.quantity,
+        reason: mov.reason,
+        createdAt: mov.createdAt.toISOString(),
+        userId: mov.userId,
+        variantId: mov.variantId,
+        adjustmentDocId: mov.adjustmentDocId,
+        batchId: mov.batchId,
+        userName: (mov as any).user?.name || 'Sistema',
+        userEmail: (mov as any).user?.email || '',
+        detailUrl,
+        detailLabel
+      };
+    })
+  );
+
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
@@ -101,7 +193,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
 
       <ProductDetailClient 
         product={product} 
-        movements={product.inventoryMovements} 
+        movements={enrichedMovements} 
         sales={product.saleItems}
         variants={product.variants}
         batches={product.batches}

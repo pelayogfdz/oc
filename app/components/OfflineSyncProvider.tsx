@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { db, OfflineSale, OfflinePendingAttendance, OfflineUser } from '@/lib/offlineDB';
 import { createSale } from '../actions/sale';
 
@@ -40,6 +40,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   const [pendingAttendance, setPendingAttendance] = useState<OfflinePendingAttendance[]>([]);
   const [showToast, setShowToast] = useState<{message: string, type: 'success' | 'warn' | 'error'} | null>(null);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const isSyncingRef = useRef(false);
 
   // Auto-clear toasts
   useEffect(() => {
@@ -261,6 +262,11 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
 
   const forceSync = async () => {
     if (!navigator.onLine) return;
+    if (isSyncingRef.current) {
+      console.log('[PWA] Sincronización en curso, omitiendo ejecución paralela.');
+      return;
+    }
+    isSyncingRef.current = true;
     try {
       let syncedAny = false;
       
@@ -353,9 +359,13 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
         try {
           if (p.isDirectPurchase) {
             const { createPurchase } = await import('../actions/purchase');
-            const res = await createPurchase(p.items, p.total || 0, p.paymentMethod || 'CASH', p.supplierId || '', p.freightCost || 0);
+            const res = await createPurchase(p.items, p.total || 0, p.paymentMethod || 'CASH', p.supplierId || '', p.freightCost || 0, p.id);
             if (res && !res.success) {
-              throw new Error(res.error);
+              if (res.error && (res.error.includes('Unique constraint') || res.error.includes('already exists') || res.error.includes('duplicate key'))) {
+                console.log('[PWA] Compra ya sincronizada previamente (duplicada en BD), eliminando de la cola:', p.id);
+              } else {
+                throw new Error(res.error);
+              }
             }
           } else {
             const { createPurchaseOrder } = await import('../actions/pedidos');
@@ -457,6 +467,8 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       }
     } catch (e) {
       console.error('Sync process failed', e);
+    } finally {
+      isSyncingRef.current = false;
     }
   };
 
