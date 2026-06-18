@@ -2,17 +2,25 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { getActiveBranch } from './auth';
+import { getActiveBranch, getActiveUser } from './auth';
 
 export async function importProducts(records: any[]) {
   const branch = await getActiveBranch();
   if (!branch) {
     throw new Error('No se encontró una sucursal activa.');
   }
+  const user = await getActiveUser();
   
   if (!records || records.length === 0) {
     throw new Error('El archivo CSV está vacío o es inválido');
   }
+
+  // Fetch sister branches of the same tenant to propagate updates
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId: branch.tenantId, id: { not: branch.id } },
+    select: { id: true }
+  });
+  const sisterBranchIds = tenantBranches.map(b => b.id);
 
   let importedCount = 0;
   let updatedCount = 0;
@@ -120,6 +128,31 @@ export async function importProducts(records: any[]) {
         }
       });
 
+      // Propagate update to sister branches
+      if (sisterBranchIds.length > 0) {
+        await prisma.product.updateMany({
+          where: { sku, branchId: { in: sisterBranchIds } },
+          data: {
+            name,
+            price,
+            cost,
+            barcode,
+            wholesalePrice,
+            specialPrice,
+            description,
+            taxRate,
+            category,
+            brand,
+            imageUrl,
+            youtubeUrl,
+            unit,
+            satKey,
+            satUnit,
+            isActive
+          }
+        });
+      }
+
       // Handle main stock movement if no batches are being imported
       if (!batchNumber && stock !== existing.stock) {
         await prisma.product.update({
@@ -132,13 +165,14 @@ export async function importProducts(records: any[]) {
             productId: existing.id,
             type: diff > 0 ? 'IN' : 'OUT',
             quantity: Math.abs(diff),
-            reason: 'Actualización por Importación CSV'
+            reason: 'Actualización por Importación CSV',
+            userId: user.id
           }
         });
       }
       updatedCount++;
     } else {
-      // Create new product
+      // Create new product in current branch
       productObj = await prisma.product.create({
         data: {
           branchId: branch.id,
@@ -165,6 +199,61 @@ export async function importProducts(records: any[]) {
           expirationDate
         }
       });
+
+      // Create or update product in sister branches to keep catalogs aligned
+      for (const sisterId of sisterBranchIds) {
+        const sisterExisting = await prisma.product.findFirst({
+          where: { sku, branchId: sisterId }
+        });
+        if (!sisterExisting) {
+          await prisma.product.create({
+            data: {
+              branchId: sisterId,
+              sku,
+              barcode,
+              name,
+              price,
+              cost,
+              stock: 0, // Stock is branch-specific, default to 0 for sister branches
+              wholesalePrice,
+              specialPrice,
+              description,
+              taxRate,
+              category,
+              brand,
+              imageUrl,
+              youtubeUrl,
+              unit,
+              minStock: 0,
+              satKey,
+              satUnit,
+              isActive
+            }
+          });
+        } else {
+          await prisma.product.update({
+            where: { id: sisterExisting.id },
+            data: {
+              name,
+              price,
+              cost,
+              barcode,
+              wholesalePrice,
+              specialPrice,
+              description,
+              taxRate,
+              category,
+              brand,
+              imageUrl,
+              youtubeUrl,
+              unit,
+              satKey,
+              satUnit,
+              isActive
+            }
+          });
+        }
+      }
       
       if (!batchNumber && stock > 0) {
         await prisma.inventoryMovement.create({
@@ -172,7 +261,8 @@ export async function importProducts(records: any[]) {
             productId: productObj.id,
             type: 'IN',
             quantity: stock,
-            reason: 'Importación CSV Inicial'
+            reason: 'Importación CSV Inicial',
+            userId: user.id
           }
         });
       }
@@ -204,7 +294,8 @@ export async function importProducts(records: any[]) {
               batchId: existingBatch.id,
               type: diff > 0 ? 'IN' : 'OUT',
               quantity: Math.abs(diff),
-              reason: 'Actualización de Stock Lote por Importación CSV'
+              reason: 'Actualización de Stock Lote por Importación CSV',
+              userId: user.id
             }
           });
         }
@@ -225,7 +316,8 @@ export async function importProducts(records: any[]) {
             batchId: createdBatch.id,
             type: 'IN',
             quantity: stock,
-            reason: 'Importación CSV Inicial (Lote)'
+            reason: 'Importación CSV Inicial (Lote)',
+            userId: user.id
           }
         });
       }
