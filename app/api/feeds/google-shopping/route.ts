@@ -30,9 +30,18 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Sort rawProducts so that the main branch (La Pradera) is processed first
+    const sortedRaw = [...rawProducts].sort((a, b) => {
+      const aIsPradera = a.branchId === '2e215b8c-b9e3-444f-adc3-c4387a684e05' || a.branchId === 'Pradera_ID' || a.branchId === 'PRADERA_ID';
+      const bIsPradera = b.branchId === '2e215b8c-b9e3-444f-adc3-c4387a684e05' || b.branchId === 'Pradera_ID' || b.branchId === 'PRADERA_ID';
+      if (aIsPradera && !bIsPradera) return -1;
+      if (!aIsPradera && bIsPradera) return 1;
+      return 0;
+    });
+
     const aggregated: Record<string, any> = {};
 
-    rawProducts.forEach((item) => {
+    sortedRaw.forEach((item) => {
       const sku = item.sku;
       if (!aggregated[sku]) {
         let category = item.category ? item.category.trim() : 'General';
@@ -59,6 +68,13 @@ export async function GET(request: NextRequest) {
           imageUrl: item.imageUrl,
           stock: 0,
         };
+      } else {
+        // If it already exists, and the current item has a valid image path (not base64), while the existing one is empty/base64, update it.
+        const existingImg = aggregated[sku].imageUrl;
+        const isPlaceholder = !existingImg || existingImg.startsWith('data:');
+        if (isPlaceholder && item.imageUrl && !item.imageUrl.startsWith('data:')) {
+          aggregated[sku].imageUrl = item.imageUrl;
+        }
       }
 
       // Sum stock across branches
