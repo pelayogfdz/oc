@@ -115,7 +115,21 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
             {sale.items.map((item) => (
               <tr key={item.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                 <td data-label="Descripción del Artículo" style={{ padding: '1rem' }}>
-                  <div style={{ fontWeight: 'bold', color: '#0f172a' }}>{item.product?.name || 'Desconocido'}</div>
+                  {item.product ? (
+                    <Link 
+                      href={`/productos/${item.productId}`} 
+                      style={{ 
+                        fontWeight: 'bold', 
+                        color: 'var(--pulpos-primary, #8b5cf6)', 
+                        textDecoration: 'none' 
+                      }}
+                      className="hover:underline"
+                    >
+                      {item.product.name}
+                    </Link>
+                  ) : (
+                    <div style={{ fontWeight: 'bold', color: '#0f172a' }}>Desconocido</div>
+                  )}
                   {item.variant && <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Var: {item.variant.attribute}</div>}
                   <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>SKU: {item.product?.sku || '--'}</div>
                 </td>
