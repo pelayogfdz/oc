@@ -59,13 +59,7 @@ export default function FaceRecognitionAutoClient({
     };
   }, []);
 
-  // Automatically detect mobile devices to default to optimized Native System Camera capture
-  useEffect(() => {
-    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    if (isMobileDevice) {
-      setCaptureMode('native');
-    }
-  }, []);
+
 
   // Stop video stream helper
   const stopStream = useCallback(() => {
@@ -108,6 +102,17 @@ export default function FaceRecognitionAutoClient({
         handleCameraFailure();
       });
   };
+
+  // Automatically detect mobile devices and auto-start camera on desktop/stream mode
+  useEffect(() => {
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobileDevice) {
+      setCaptureMode('native');
+    } else {
+      startVideo();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Gracefully switch to native system camera if mediaDevices fails
   const handleCameraFailure = () => {
@@ -277,6 +282,7 @@ export default function FaceRecognitionAutoClient({
   };
 
   const handleRetry = () => {
+    stopStream();
     setHasPhoto(false);
     setCapturedPhoto(null);
     setSimilarity(null);
@@ -549,7 +555,7 @@ export default function FaceRecognitionAutoClient({
         )}
 
         {/* Stream mode capture photo */}
-        {captureMode === 'stream' && isCameraReady && !isProcessing && (
+        {captureMode === 'stream' && isCameraReady && !isProcessing && !errorMsg && (
           <button 
             onClick={takePhoto}
             style={{ 
@@ -573,7 +579,7 @@ export default function FaceRecognitionAutoClient({
         )}
 
         {/* Native camera trigger button */}
-        {!isProcessing && (
+        {!isProcessing && !errorMsg && (
           <button 
             onClick={triggerNativeCamera}
             style={{ 
@@ -595,8 +601,32 @@ export default function FaceRecognitionAutoClient({
           </button>
         )}
 
+        {/* Retry button if face recognition failed */}
+        {!isProcessing && errorMsg && (
+          <button 
+            onClick={handleRetry}
+            style={{ 
+              padding: '0.75rem 1.75rem', 
+              backgroundColor: '#3b82f6', 
+              color: 'white', 
+              borderRadius: '10px', 
+              fontWeight: 'bold', 
+              fontSize: '0.9rem',
+              border: 'none', 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem',
+              boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <RefreshCw size={16} /> Reintentar
+          </button>
+        )}
+
         {/* Quick fallback toggle if stream mode gets stuck */}
-        {captureMode === 'stream' && isCameraReady && !isProcessing && (
+        {captureMode === 'stream' && isCameraReady && !isProcessing && !errorMsg && (
           <button
             onClick={() => { stopStream(); setCaptureMode('native'); }}
             style={{

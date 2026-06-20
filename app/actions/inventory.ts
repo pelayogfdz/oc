@@ -54,7 +54,8 @@ export async function adjustInventory(formData: FormData) {
         productId,
         type,
         quantity: stockModifier, // Save as positive/negative correctly based on flow
-        reason: `${reason} (por ${user.name})`
+        reason: `${reason} (por ${user.name})`,
+        userId: user.id
       }
     });
   });

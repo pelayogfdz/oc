@@ -192,7 +192,8 @@ export async function createPurchase(
             type: 'IN',
             quantity: item.quantity,
             reason: `Compra #${purchase.id.slice(0, 8)}${freightProRata > 0 ? ' (+Flete P.)' : ''}`,
-            batchId: batchId
+            batchId: batchId,
+            userId: user.id
           }
         });
       }
@@ -210,6 +211,7 @@ export async function createPurchase(
 export async function cancelPurchase(purchaseId: string) {
   const branch = await getActiveBranch();
   if (!branch || branch.id === 'GLOBAL') throw new Error('Debes seleccionar una sucursal específica para realizar esta acción.');
+  const user = await getActiveUser();
 
   const purchase = await prisma.purchase.findUnique({
     where: { id: purchaseId },
@@ -269,7 +271,8 @@ export async function cancelPurchase(purchaseId: string) {
           type: 'OUT',
           quantity: -item.quantity,
           reason: `Cancelación Compra #${purchase.id.slice(0, 8)}`,
-          batchId: item.batchId
+          batchId: item.batchId,
+          userId: user.id
         }
       });
     }

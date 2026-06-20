@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { createMultiplePaymentReceipt } from '@/app/actions/facturacion';
-import { FileText, Send, Calendar, CreditCard, Layers, X, Check, Loader2 } from 'lucide-react';
+import { FileText, Send, Calendar, CreditCard, Layers, X, Check, Loader2, AlertTriangle } from 'lucide-react';
 
 export default function REPClient({ sales }: { sales: any[] }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);

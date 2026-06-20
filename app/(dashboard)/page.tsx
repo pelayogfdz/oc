@@ -21,7 +21,7 @@ export default async function DashboardPage(props: Props) {
 
   // Find tenant timezone
   const tenant = await prisma.tenant.findUnique({
-    where: { id: branch.tenantId },
+    where: { id: branch.tenantId || undefined },
     select: { timezone: true }
   });
   const timezone = tenant?.timezone || 'America/Mexico_City';

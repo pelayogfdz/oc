@@ -149,7 +149,7 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
                </div>
 
                <div style={{ borderTop: '1px solid var(--pulpos-border)', paddingTop: '1.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyBranch: 'space-between', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                      <div>
                         <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                            <Store size={18} /> Recoger en Tienda (Pickup)
@@ -158,7 +158,7 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
                      </div>
                      <input type="checkbox" checked={allowPickup} onChange={e => setAllowPickup(e.target.checked)} style={{ width: '20px', height: '20px' }} />
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyBranch: 'space-between', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                      <div>
                         <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                            <ShoppingBag size={18} /> Envío a Domicilio
@@ -365,7 +365,7 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
             </div>
 
             <div style={{ marginTop: '2.5rem', borderTop: '1px solid var(--pulpos-border)', paddingTop: '1.5rem' }}>
-                <button onClick={handleSave} disabled={isPending} className="btn-primary" style={{ width: '100%', padding: '1rem', display: 'flex', alignItems: 'center', justifyBranch: 'space-between', justifyContent: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
+                <button onClick={handleSave} disabled={isPending} className="btn-primary" style={{ width: '100%', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
                    <Save size={20} /> {isPending ? 'Guardando Ajustes...' : 'Guardar Configuración B2C'}
                 </button>
             </div>

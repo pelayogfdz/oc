@@ -217,11 +217,11 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
     localStorage.setItem(`caanma_on_hold_orders_${branchId}`, JSON.stringify(updated));
   };
 
-  const total = items.reduce((sum, item) => sum + (item.quantity * item.cost), 0);
+  const total = items.reduce((sum: number, item: any) => sum + (item.quantity * item.cost), 0);
 
   const handleAddItem = (product: any) => {
     if (!product || !product.id) return;
-    if (items.some(i => i.productId === product.id)) return;
+    if (items.some((i: any) => i.productId === product.id)) return;
     setItems([...items, { productId: product.id, name: product.name, quantity: 1, cost: product.cost, imageUrl: product.imageUrl }]);
   };
 
@@ -246,7 +246,7 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
       }
     });
 
-    const toAdd = suggested.filter(s => !items.some(i => i.productId === s.productId));
+    const toAdd = suggested.filter(s => !items.some((i: any) => i.productId === s.productId));
     if (toAdd.length === 0) {
       alert('No se encontraron productos con stock menor o igual al mínimo para sugerir.');
       return;
@@ -582,7 +582,7 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem' }}>
                 {pendingRequests.map((req: any) => {
-                  const isAdded = items.some(i => i.requestId === req.id);
+                  const isAdded = items.some((i: any) => i.requestId === req.id);
                   return (
                     <div key={req.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #fde68a' }}>
                       <div style={{ minWidth: 0, paddingRight: '0.5rem' }}>
@@ -636,7 +636,7 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {items.map((item, idx) => (
+                {items.map((item: any, idx: number) => (
                   <div key={item.productId} style={{ display: 'grid', gridTemplateColumns: '40px 1fr auto auto auto', gap: '1.25rem', alignItems: 'center', padding: '1rem', border: '1px solid #f1f5f9', borderRadius: '10px', backgroundColor: '#f8fafc' }}>
                     
                     {/* Initials avatar badge */}
@@ -718,7 +718,7 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
                       </div>
                       <button 
                         type="button"
-                        onClick={() => setItems(items.filter((_, i) => i !== idx))} 
+                        onClick={() => setItems(items.filter((_: any, i: number) => i !== idx))} 
                         style={{ color: '#ef4444', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background-color 0.2s' }}
                         onMouseEnter={e => e.currentTarget.style.backgroundColor = '#fee2e2'}
                         onMouseLeave={e => e.currentTarget.style.backgroundColor = '#fef2f2'}
@@ -937,7 +937,7 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
                 <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No se encontraron productos coincidentes</div>
               ) : (
                 filteredProducts.slice(0, 30).map((p: any) => {
-                  const inCart = items.some(i => i.productId === p.id);
+                  const inCart = items.some((i: any) => i.productId === p.id);
                   return (
                     <div 
                       key={p.id}

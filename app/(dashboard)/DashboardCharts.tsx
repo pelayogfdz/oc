@@ -44,7 +44,7 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
   };
 
   // Dynamic client-side grouping based on selected period
-  const groupedData = (() => {
+  const groupedData: any[] = (() => {
     if (groupBy === 'day') {
       return chartData.map(d => ({ ...d, label: d.date }));
     }

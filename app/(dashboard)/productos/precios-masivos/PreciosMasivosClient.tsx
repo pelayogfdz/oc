@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { Save, Filter, Search, Percent, Zap } from 'lucide-react';
+import { Save, Filter, Search, Percent, Zap, Store, AlertCircle } from 'lucide-react';
 import { bulkUpdatePrices } from '@/app/actions/bulkPrice';
 
 // Utility: round to nearest whole peso (no cents)
@@ -210,6 +210,79 @@ export default function PreciosMasivosClient({
   };
 
   const modifiedCount = products.filter(p => p._modified).length;
+
+  if (branchId === 'GLOBAL') {
+    return (
+      <div style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '3rem' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Actualización Masiva de Precios</h1>
+            <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>Selecciona la lista, aplica un margen global y ajusta individualmente.</p>
+          </div>
+        </div>
+
+        {/* Premium Alert/Block State */}
+        <div className="card" style={{ 
+          padding: '3rem 2rem', 
+          textAlign: 'center', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, #ffffff 0%, #fcfaff 100%)',
+          border: '1px solid #e9d5ff',
+          borderRadius: '12px',
+          boxShadow: '0 10px 15px -3px rgba(112, 26, 117, 0.05), 0 4px 6px -2px rgba(112, 26, 117, 0.02)',
+          marginTop: '2rem'
+        }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            backgroundColor: '#f3e8ff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '1.5rem',
+            color: 'var(--pulpos-primary)'
+          }}>
+            <Store size={32} />
+          </div>
+          
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.75rem', color: '#1f2937' }}>
+            Selecciona una Sucursal Específica
+          </h2>
+          
+          <p style={{ 
+            color: 'var(--pulpos-text-muted)', 
+            fontSize: '0.95rem', 
+            maxWidth: '500px', 
+            lineHeight: '1.6',
+            marginBottom: '1.5rem' 
+          }}>
+            La modificación masiva de precios se realiza a nivel de inventario individual. Por favor, selecciona una sucursal específica en el selector de la barra superior para continuar.
+          </p>
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.75rem 1.25rem',
+            backgroundColor: '#faf5ff',
+            border: '1px dashed #d8b4fe',
+            borderRadius: '8px',
+            fontSize: '0.875rem',
+            color: '#6b21a8',
+            fontWeight: '500'
+          }}>
+            <AlertCircle size={16} />
+            <span>Usa el menú <strong>"Todas las Sucursales"</strong> arriba a la derecha.</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '3rem' }}>

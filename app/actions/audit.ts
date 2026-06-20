@@ -1,7 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { getActiveBranch } from './auth';
+import { getActiveBranch, getActiveUser } from './auth';
 import { revalidatePath } from 'next/cache';
 
 export async function createAudit(name: string) {
@@ -91,6 +91,7 @@ export async function finalizeAudit(auditId: string) {
   const branch = await getActiveBranch();
   if (!branch) throw new Error("Branch not found");
   if (branch.id === 'GLOBAL') throw new Error("Debes seleccionar una sucursal específica para realizar esta acción.");
+  const user = await getActiveUser();
 
   const audit = await prisma.inventoryAudit.findUnique({
     where: { id: auditId },
@@ -122,7 +123,8 @@ export async function finalizeAudit(auditId: string) {
         productId: item.productId,
         type: "ADJUSTMENT",
         quantity: Math.abs(diff),
-        reason: diff > 0 ? `Auditoría (Ajuste Positivo) - ${audit.name}` : `Auditoría (Merma Quirúrgica) - ${audit.name}`
+        reason: diff > 0 ? `Auditoría (Ajuste Positivo) - ${audit.name}` : `Auditoría (Merma Quirúrgica) - ${audit.name}`,
+        userId: user.id
       }
     });
     

@@ -11,7 +11,10 @@ export async function searchTicket(ticketId: string) {
           { id: { endsWith: ticketId } }
         ]
       },
-      include: { items: { include: { product: true } } }
+      include: {
+        customer: true,
+        items: { include: { product: true } }
+      }
     });
 
     if (!sale) return { error: "Ticket no encontrado. Verifica el folio." };

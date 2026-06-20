@@ -230,7 +230,8 @@ export async function createSale(
               batchId: batch.id,
               type: 'OUT',
               quantity: -deductAmount,
-              reason: `Venta #${sale.id.slice(0, 8)} (FEFO Lote)`
+              reason: `Venta #${sale.id.slice(0, 8)} (FEFO Lote)`,
+              userId: user.id
             }
           });
           
@@ -245,7 +246,8 @@ export async function createSale(
               variantId: item.variantId || null,
               type: 'OUT',
               quantity: -remainingToDeduct,
-              reason: `Venta #${sale.id.slice(0, 8)} (Sin Lote)`
+              reason: `Venta #${sale.id.slice(0, 8)} (Sin Lote)`,
+              userId: user.id
             }
           });
         }
@@ -380,6 +382,7 @@ export async function createSale(
 
 export async function refundSale(formData: FormData) {
   const saleId = formData.get('saleId') as string;
+  const user = await getActiveUser();
   
   const sale = await prisma.sale.findUnique({
     where: { id: saleId },
@@ -403,7 +406,8 @@ export async function refundSale(formData: FormData) {
         productId: item.productId,
         type: 'IN',
         quantity: item.quantity,
-        reason: `Devolución de Venta #${sale.id.slice(0, 8)}`
+        reason: `Devolución de Venta #${sale.id.slice(0, 8)}`,
+        userId: user.id
       }
     });
   }
@@ -448,6 +452,7 @@ export async function refundSale(formData: FormData) {
 
 export async function cancelSale(formData: FormData) {
   const saleId = formData.get('saleId') as string;
+  const user = await getActiveUser();
   
   const sale = await prisma.sale.findUnique({
     where: { id: saleId },
@@ -498,7 +503,8 @@ export async function cancelSale(formData: FormData) {
         variantId: item.variantId || null,
         type: 'IN',
         quantity: item.quantity,
-        reason: `Cancelación de Venta #${sale.id.slice(0, 8)}`
+        reason: `Cancelación de Venta #${sale.id.slice(0, 8)}`,
+        userId: user.id
       }
     });
   }

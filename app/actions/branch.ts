@@ -1,7 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { revalidatePath, revalidateTag } from 'next/cache';
+import { revalidatePath, updateTag } from 'next/cache';
 import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/session';
 
@@ -29,7 +29,7 @@ export async function createBranch(formData: FormData) {
   });
   
   if (tenantId) {
-    revalidateTag(`tenant-branches-${tenantId}`);
+    updateTag(`tenant-branches-${tenantId}`);
   }
   revalidatePath('/preferencias/sucursales');
   revalidatePath('/preferencias/usuarios');
@@ -91,8 +91,8 @@ export async function updateBranch(id: string, name: string, location: string, f
     });
   }
 
-  revalidateTag(`tenant-branches-${session.tenantId}`);
-  revalidateTag(`branch-${id}`);
+  updateTag(`tenant-branches-${session.tenantId}`);
+  updateTag(`branch-${id}`);
   revalidatePath('/preferencias/sucursales');
 }
 
@@ -116,7 +116,7 @@ export async function deleteBranch(id: string) {
     data: { isActive: false }
   });
   
-  revalidateTag(`tenant-branches-${session.tenantId}`);
-  revalidateTag(`branch-${id}`);
+  updateTag(`tenant-branches-${session.tenantId}`);
+  updateTag(`branch-${id}`);
   revalidatePath('/preferencias/sucursales');
 }

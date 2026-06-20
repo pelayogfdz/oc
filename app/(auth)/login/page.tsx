@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { loginAction } from '@/app/actions/auth';
+import { loginAction } from '@/app/actions/auth-actions';
 import {
   Building2, Image as ImageIcon, Tag, Users,
   MessageCircle, FileCheck, Receipt, Coins,

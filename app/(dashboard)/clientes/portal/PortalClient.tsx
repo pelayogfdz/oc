@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { 
   Search, FileText, Download, UserCircle, Briefcase, ChevronRight, 
   CheckCircle2, Star, Award, TrendingUp, Calendar, CreditCard, 
-  ShoppingBag, ListFilter, Percent, Receipt, LogOut, ChevronDown, ChevronUp, AlertTriangle, Check
+  ShoppingBag, ListFilter, Percent, Receipt, LogOut, ChevronDown, ChevronUp, AlertTriangle, Check, Loader2
 } from 'lucide-react';
 import { searchTicket, searchB2BInvoices, searchCustomerPortalData, generateInvoice } from '@/app/actions/portal';
 import { formatCurrency } from '@/lib/utils';
@@ -387,7 +387,7 @@ export default function PortalClient() {
                             const isMixto = sale.paymentMethod === 'MIXTO';
                             return (
                               <>
-                                <tr key={sale.id} style={{ borderBottom: '1px solid var(--pulpos-border)', hover: { backgroundColor: '#f8fafc' } }}>
+                                <tr key={sale.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
                                   <td style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>#{shortId}</td>
                                   <td style={{ padding: '1rem' }}>{new Date(sale.createdAt).toLocaleDateString()}</td>
                                   <td style={{ padding: '1rem', fontWeight: 'bold', fontSize: '0.85rem', color: '#475569' }}>

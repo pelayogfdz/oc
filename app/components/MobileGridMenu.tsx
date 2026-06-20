@@ -193,7 +193,7 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
           )}
 
           <form action={async () => {
-            const { logout } = await import('@/app/actions/auth');
+            const { logout } = await import('@/app/actions/auth-actions');
             await logout();
           }} style={{ marginTop: '0.5rem' }}>
             <button type="submit" style={{ 

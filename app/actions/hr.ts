@@ -612,7 +612,7 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
   });
 
   const tenant = await prisma.tenant.findUnique({
-    where: { id: session.tenantId },
+    where: { id: session?.tenantId || undefined },
     select: { timezone: true }
   });
   const tenantTimezone = tenant?.timezone || 'America/Mexico_City';
@@ -728,7 +728,7 @@ export async function getGlobalAttendanceLogs(startDateStr: string, endDateStr: 
   });
 
   const tenant = await prisma.tenant.findUnique({
-    where: { id: session.tenantId },
+    where: { id: session?.tenantId || undefined },
     select: { timezone: true }
   });
   const tenantTimezone = tenant?.timezone || 'America/Mexico_City';

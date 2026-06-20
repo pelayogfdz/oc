@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { setActiveBranch } from '@/app/actions/auth';
+import { setActiveBranch } from '@/app/actions/auth-actions';
 
 export default function BranchSelector({ branches, currentBranchId }: { branches: any[], currentBranchId: string }) {
   const [isLoading, setIsLoading] = useState(false);

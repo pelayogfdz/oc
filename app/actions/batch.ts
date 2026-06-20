@@ -2,8 +2,14 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { getActiveUser } from './auth';
 
 export async function createBatch(formData: FormData) {
+  let activeUser = null;
+  try {
+    activeUser = await getActiveUser();
+  } catch (e) {}
+
   const productId = formData.get('productId') as string;
   const batchNumber = formData.get('batchNumber') as string;
   const expirationDateStr = formData.get('expirationDate') as string;
@@ -33,6 +39,7 @@ export async function createBatch(formData: FormData) {
         type: 'IN',
         quantity: stock,
         reason: 'Stock Inicial (Lote)',
+        userId: activeUser?.id || null
       }
     });
   }

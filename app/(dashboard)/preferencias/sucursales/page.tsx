@@ -41,7 +41,7 @@ export default async function SucursalesPage() {
       <BranchClient branches={branches} currentBranchId={currentBranch?.id || ''} />
 
       <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Aperturar Nueva Sucursal</h3>
-      <form action={createBranch} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '8px', border: '1px dashed var(--pulpos-border)' }}>
+      <form action={async (formData) => { 'use server'; await createBranch(formData); }} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '8px', border: '1px dashed var(--pulpos-border)' }}>
         <div style={{ flex: 1 }}>
           <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Nombre de la Sucursal (Ej. SUC Norte 1)</label>
           <input type="text" name="name" required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }} />

@@ -87,7 +87,8 @@ export async function createConsignment(
           batchId: batch.id,
           type: 'OUT',
           quantity: -deductAmount,
-          reason: `Consignación #${consignment.id.slice(0, 8)} (FEFO Lote)`
+          reason: `Consignación #${consignment.id.slice(0, 8)} (FEFO Lote)`,
+          userId: user.id
         }
       });
       
@@ -102,7 +103,8 @@ export async function createConsignment(
           variantId: item.variantId || null,
           type: 'OUT',
           quantity: -remainingToDeduct,
-          reason: `Consignación #${consignment.id.slice(0, 8)} (Sin Lote)`
+          reason: `Consignación #${consignment.id.slice(0, 8)} (Sin Lote)`,
+          userId: user.id
         }
       });
     }

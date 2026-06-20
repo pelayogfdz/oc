@@ -3,9 +3,9 @@
 import React, { useState } from 'react';
 import { 
   Plus, ClipboardList, CheckCircle2, AlertCircle, 
-  Trash2, Search, Calendar, RefreshCw, FileText, X, Eye 
+  Trash2, Search, Calendar, RefreshCw, FileText, X, Eye, Pencil 
 } from 'lucide-react';
-import { createCollaboratorTask, deleteCollaboratorTask } from '@/app/actions/task';
+import { createCollaboratorTask, deleteCollaboratorTask, updateCollaboratorTask, getTaskEvidence } from '@/app/actions/task';
 
 type Collaborator = {
   id: string;
@@ -23,7 +23,7 @@ type Task = {
   status: string;
   recurrence: string;
   dueDate: Date | null;
-  evidenceFile: string | null;
+  evidenceFile?: string | null;
   completedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -50,8 +50,10 @@ export default function TareasClient({
   
   // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedEvidence, setSelectedEvidence] = useState<string | null>(null);
   const [selectedEvidenceTitle, setSelectedEvidenceTitle] = useState('');
+  const [selectedEvidenceLoading, setSelectedEvidenceLoading] = useState<string | null>(null);
 
   // Create Form State
   const [title, setTitle] = useState('');
@@ -61,7 +63,40 @@ export default function TareasClient({
   const [dueDate, setDueDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleCreateTask = async (e: React.FormEvent) => {
+  const formatToDatetimeLocal = (date: Date | string | null | undefined): string => {
+    if (!date) return '';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '';
+    const pad = (num: number) => String(num).padStart(2, '0');
+    const year = d.getFullYear();
+    const month = pad(d.getMonth() + 1);
+    const day = pad(d.getDate());
+    const hours = pad(d.getHours());
+    const minutes = pad(d.getMinutes());
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  const handleEditClick = (task: Task) => {
+    setEditingTask(task);
+    setTitle(task.title);
+    setInstructions(task.instructions);
+    setAssignedToId(task.assignedToId);
+    setRecurrence(task.recurrence);
+    setDueDate(formatToDatetimeLocal(task.dueDate));
+    setIsCreateModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsCreateModalOpen(false);
+    setEditingTask(null);
+    setTitle('');
+    setInstructions('');
+    setAssignedToId('');
+    setRecurrence('ONCE');
+    setDueDate('');
+  };
+
+  const handleSubmitTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !instructions || !assignedToId) {
       alert('Por favor completa los campos obligatorios.');
@@ -70,44 +105,79 @@ export default function TareasClient({
 
     setIsSubmitting(true);
     try {
-      const res = await createCollaboratorTask({
-        title,
-        instructions,
-        assignedToId,
-        recurrence,
-        dueDate: dueDate || undefined
-      });
+      if (editingTask) {
+        const res = await updateCollaboratorTask(editingTask.id, {
+          title,
+          instructions,
+          assignedToId,
+          recurrence,
+          dueDate: dueDate || undefined
+        });
 
-      if (res.success && res.task) {
-        // Find assigned user and creator user info to append locally
-        const assignedUser = collaborators.find(c => c.id === assignedToId);
-        const newTask: Task = {
-          ...res.task,
-          assignedTo: {
-            name: assignedUser?.name || null,
-            email: assignedUser?.email || null
-          },
-          createdBy: {
-            name: 'Tú',
-            email: ''
-          }
-        } as Task;
+        if (res.success && res.task) {
+          const assignedUser = collaborators.find(c => c.id === assignedToId);
+          const updatedTask: Task = {
+            ...res.task,
+            assignedTo: {
+              name: assignedUser?.name || null,
+              email: assignedUser?.email || null
+            },
+            createdBy: editingTask.createdBy
+          } as Task;
 
-        setTasks([newTask, ...tasks]);
-        setIsCreateModalOpen(false);
-        // Reset form
-        setTitle('');
-        setInstructions('');
-        setAssignedToId('');
-        setRecurrence('ONCE');
-        setDueDate('');
+          setTasks(tasks.map(t => t.id === editingTask.id ? updatedTask : t));
+          handleCloseModal();
+        }
+      } else {
+        const res = await createCollaboratorTask({
+          title,
+          instructions,
+          assignedToId,
+          recurrence,
+          dueDate: dueDate || undefined
+        });
+
+        if (res.success && res.task) {
+          const assignedUser = collaborators.find(c => c.id === assignedToId);
+          const newTask: Task = {
+            ...res.task,
+            assignedTo: {
+              name: assignedUser?.name || null,
+              email: assignedUser?.email || null
+            },
+            createdBy: {
+              name: 'Tú',
+              email: ''
+            }
+          } as Task;
+
+          setTasks([newTask, ...tasks]);
+          handleCloseModal();
+        }
       }
     } catch (err: any) {
-      alert(err.message || 'Error al crear la tarea');
+      alert(err.message || `Error al ${editingTask ? 'editar' : 'crear'} la tarea`);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const handleViewEvidence = async (taskId: string, taskTitle: string) => {
+    setSelectedEvidenceLoading(taskId);
+    try {
+      const res = await getTaskEvidence(taskId);
+      if (res.success && res.evidence) {
+        setSelectedEvidence(res.evidence);
+        setSelectedEvidenceTitle(taskTitle);
+      } else {
+        alert('No se encontró evidencia para esta tarea.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error al obtener la evidencia.');
+    } finally {
+      setSelectedEvidenceLoading(null);
+    }
+  };;
 
   const handleDeleteTask = async (taskId: string) => {
     if (!confirm('¿Estás seguro de que deseas eliminar esta tarea?')) return;
@@ -290,6 +360,26 @@ export default function TareasClient({
                 </h3>
                 <div style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
                   <button 
+                    onClick={() => handleEditClick(task)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#6366f1',
+                      cursor: 'pointer',
+                      padding: '0.25rem',
+                      borderRadius: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'background-color 0.2s'
+                    }}
+                    title="Editar tarea"
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f5f3ff'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <Pencil size={16} />
+                  </button>
+                  <button 
                     onClick={() => handleDeleteTask(task.id)}
                     style={{
                       background: 'none',
@@ -391,13 +481,11 @@ export default function TareasClient({
               </div>
 
               {/* Evidence Row */}
-              {isCompleted && task.evidenceFile && (
+              {isCompleted && (
                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem' }}>
                   <button
-                    onClick={() => {
-                      setSelectedEvidence(task.evidenceFile);
-                      setSelectedEvidenceTitle(task.title);
-                    }}
+                    onClick={() => handleViewEvidence(task.id, task.title)}
+                    disabled={selectedEvidenceLoading === task.id}
                     style={{
                       width: '100%',
                       display: 'flex',
@@ -408,16 +496,17 @@ export default function TareasClient({
                       border: '1px solid var(--pulpos-border)',
                       padding: '0.5rem',
                       borderRadius: '6px',
-                      cursor: 'pointer',
+                      cursor: selectedEvidenceLoading === task.id ? 'not-allowed' : 'pointer',
                       fontSize: '0.8rem',
                       fontWeight: 'bold',
                       color: 'var(--pulpos-primary)',
-                      transition: 'background-color 0.2s'
+                      transition: 'background-color 0.2s',
+                      opacity: selectedEvidenceLoading === task.id ? 0.7 : 1
                     }}
                     onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f1f5f9'}
                     onMouseLeave={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
                   >
-                    <Eye size={14} /> Ver Evidencia Cargada
+                    <Eye size={14} /> {selectedEvidenceLoading === task.id ? 'Cargando...' : 'Ver Evidencia Cargada'}
                   </button>
                 </div>
               )}
@@ -475,10 +564,10 @@ export default function TareasClient({
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--pulpos-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ClipboardList size={22} color="var(--pulpos-primary)" /> Asignar Nueva Tarea
+                <ClipboardList size={22} color="var(--pulpos-primary)" /> {editingTask ? 'Editar Tarea' : 'Asignar Nueva Tarea'}
               </h3>
               <button 
-                onClick={() => setIsCreateModalOpen(false)} 
+                onClick={handleCloseModal} 
                 style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', padding: '0.25rem', borderRadius: '50%' }}
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f1f5f9'}
                 onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -487,7 +576,7 @@ export default function TareasClient({
               </button>
             </div>
             
-            <form onSubmit={handleCreateTask} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <form onSubmit={handleSubmitTask} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               
               <div>
                 <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '600', fontSize: '0.85rem', color: '#475569' }}>Título de la Tarea *</label>
@@ -608,7 +697,7 @@ export default function TareasClient({
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
                 <button 
                   type="button"
-                  onClick={() => setIsCreateModalOpen(false)} 
+                  onClick={handleCloseModal} 
                   style={{ 
                     padding: '0.6rem 1.25rem', 
                     border: '1px solid var(--pulpos-border)', 
@@ -637,7 +726,7 @@ export default function TareasClient({
                     opacity: isSubmitting ? 0.7 : 1
                   }}
                 >
-                  {isSubmitting ? 'Asignando...' : 'Asignar Tarea'}
+                  {isSubmitting ? (editingTask ? 'Guardando...' : 'Asignando...') : (editingTask ? 'Guardar Cambios' : 'Asignar Tarea')}
                 </button>
               </div>
             </form>

@@ -3,9 +3,13 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { getSession, getActiveBranch } from '@/app/actions/auth';
+import { getSession, getActiveBranch, getActiveUser } from '@/app/actions/auth';
 
 export async function createProduct(prevState: any, formData: FormData) {
+  let activeUser = null;
+  try {
+    activeUser = await getActiveUser();
+  } catch (e) {}
   try {
     const branchId = formData.get('branchId') as string;
     const sku = formData.get('sku') as string;
@@ -153,6 +157,7 @@ export async function createProduct(prevState: any, formData: FormData) {
               type: 'IN',
               quantity: batch.stock,
               reason: 'Stock Inicial (Lote)',
+              userId: activeUser?.id || null
             }
           });
         }
@@ -167,6 +172,7 @@ export async function createProduct(prevState: any, formData: FormData) {
         type: 'IN',
         quantity: stock,
         reason: hasVariants ? 'Stock Inicial Variantes' : 'Stock Inicial',
+        userId: activeUser?.id || null
       }
     });
   }

@@ -357,7 +357,7 @@ export async function cancelInvoice(saleId: string) {
     }
 
     // Cancel invoice in Facturapi with motive "02" (Comprobante emitido con errores sin relación)
-    await facturapi.invoices.cancel(sale.invoiceId, { motive: "02" });
+    await facturapi.invoices.cancel(sale.invoiceId, { motive: "02" as any });
 
     // Clear invoice ID in database to allow re-stamping if needed
     await prisma.sale.update({

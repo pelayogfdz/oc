@@ -17,7 +17,7 @@ export default async function ConsignacionesPage() {
   }
 
   const tenant = await prisma.tenant.findUnique({
-    where: { id: branch.tenantId },
+    where: { id: branch.tenantId || undefined },
     select: { timezone: true }
   });
   const timezone = tenant?.timezone || 'America/Mexico_City';

@@ -31,6 +31,8 @@ export default function CollaboratorTaskPopup({ userId }: { userId: string }) {
   const [evidenceBase64, setEvidenceBase64] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [timeLeftStr, setTimeLeftStr] = useState('');
+  const [isExpired, setIsExpired] = useState(false);
 
   // Dragging logic
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -164,6 +166,44 @@ export default function CollaboratorTaskPopup({ userId }: { userId: string }) {
 
   // Current task is the first in the list
   const currentTask = pendingTasks[0];
+
+  useEffect(() => {
+    if (!currentTask || !currentTask.dueDate) {
+      setTimeLeftStr('');
+      setIsExpired(false);
+      return;
+    }
+
+    const targetDate = new Date(currentTask.dueDate);
+
+    const updateTimer = () => {
+      const now = new Date();
+      const diffMs = targetDate.getTime() - now.getTime();
+      
+      if (diffMs <= 0) {
+        setIsExpired(true);
+        const absDiff = Math.abs(diffMs);
+        const secs = Math.floor((absDiff / 1000) % 60);
+        const mins = Math.floor((absDiff / (1000 * 60)) % 60);
+        const hours = Math.floor(absDiff / (1000 * 60 * 60));
+        
+        const pad = (n: number) => String(n).padStart(2, '0');
+        setTimeLeftStr(`-${pad(hours)}:${pad(mins)}:${pad(secs)}`);
+      } else {
+        setIsExpired(false);
+        const secs = Math.floor((diffMs / 1000) % 60);
+        const mins = Math.floor((diffMs / (1000 * 60)) % 60);
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        
+        const pad = (n: number) => String(n).padStart(2, '0');
+        setTimeLeftStr(`-${pad(hours)}:${pad(mins)}:${pad(secs)}`);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [currentTask]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -415,6 +455,29 @@ export default function CollaboratorTaskPopup({ userId }: { userId: string }) {
                   {currentTask.instructions}
                 </div>
               </div>
+
+              {currentTask.dueDate && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  backgroundColor: isExpired ? '#fef2f2' : '#f5f3ff',
+                  border: isExpired ? '1px solid #fee2e2' : '1px solid #ddd6fe',
+                  padding: '0.75rem 1rem',
+                  borderRadius: '10px',
+                  color: isExpired ? '#dc2626' : '#5b21b6',
+                  fontSize: '0.9rem',
+                  fontWeight: 'bold'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Clock size={18} style={{ animation: isExpired ? 'none' : 'pulse 2s infinite' }} />
+                    <span>{isExpired ? 'Tarea no realizada (Expirada):' : 'Tiempo disponible:'}</span>
+                  </div>
+                  <span style={{ fontSize: '1.1rem', fontFamily: 'monospace', letterSpacing: '0.05em' }}>
+                    {timeLeftStr}
+                  </span>
+                </div>
+              )}
 
               {/* Form to submit evidence */}
               <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem' }}>

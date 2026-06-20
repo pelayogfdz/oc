@@ -19,7 +19,7 @@ export default function ImportButton() {
       Papa.parse(text, {
         header: true,
         skipEmptyLines: true,
-        complete: async (results) => {
+        complete: async (results: any) => {
           try {
             if (results.data.length === 0) {
               throw new Error("El archivo CSV está vacío o no contiene filas de datos.");
@@ -32,7 +32,7 @@ export default function ImportButton() {
             setIsProcessing(false);
           }
         },
-        error: (error) => {
+        error: (error: any) => {
           alert("Error analizando el archivo CSV: " + error.message);
           setIsProcessing(false);
         }

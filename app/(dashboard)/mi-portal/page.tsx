@@ -68,7 +68,7 @@ export default async function MiPortalPage() {
     }, 0);
 
   const tenant = await prisma.tenant.findUnique({
-    where: { id: user.tenantId },
+    where: { id: user.tenantId || undefined },
     select: { timezone: true }
   });
   const timezone = tenant?.timezone || 'America/Mexico_City';

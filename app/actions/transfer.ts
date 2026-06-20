@@ -146,7 +146,8 @@ export async function dispatchDirectTransfer(
             variantId: originVariantId,
             type: 'OUT',
             quantity: -dispatchedQty,
-            reason: payload.reason || `Traspaso enviado directo a sucursal ID: ${payload.toBranchId}`
+            reason: payload.reason || `Traspaso enviado directo a sucursal ID: ${payload.toBranchId}`,
+            userId: authUser.id
           }
         });
           
@@ -266,7 +267,8 @@ export async function dispatchTransfer(transferId: string, itemQuantities: Recor
               variantId: originVariantId,
               type: 'OUT',
               quantity: -dispatchedQty,
-              reason: `Traspaso surtido hacia sucursal ID: ${transfer.toBranchId}`
+              reason: `Traspaso surtido hacia sucursal ID: ${transfer.toBranchId}`,
+              userId: authUser.id
             }
           });
             
@@ -365,7 +367,8 @@ export async function receiveTransfer(transferId: string) {
             variantId: variantTo?.id || null,
             type: 'IN',
             quantity: item.quantity,
-            reason: `Recepción de traspaso ID: ${transfer.id}`
+            reason: `Recepción de traspaso ID: ${transfer.id}`,
+            userId: authUser.id
           }
         });
       }
@@ -460,7 +463,8 @@ export async function cancelTransfer(transferId: string) {
               variantId: originVariantId,
               type: 'IN',
               quantity: item.quantity,
-              reason: `Devolución por Cancelación de Traspaso ID: ${transfer.id}`
+              reason: `Devolución por Cancelación de Traspaso ID: ${transfer.id}`,
+              userId: authUser.id
             }
           });
         }

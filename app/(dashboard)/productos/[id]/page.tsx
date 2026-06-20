@@ -198,7 +198,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
         variants={product.variants}
         batches={product.batches}
         siblingProducts={siblingProducts}
-        tenantId={branch?.tenantId}
+        tenantId={branch?.tenantId || undefined}
         mediaContent={
           <form action={updateProductWithId}>
             <input type="hidden" name="branchId" value={product.branchId} />

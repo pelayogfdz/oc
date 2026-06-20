@@ -89,6 +89,9 @@ export async function createProductionOrder(recipeId: string, targetQuantity: nu
 }
 
 export async function advanceProductionOrder(orderId: string) {
+  const sessionCookie = (await cookies()).get('session')?.value;
+  const session = await decrypt(sessionCookie);
+  const userId = session?.userId as string | undefined;
   const order = await prisma.productionOrder.findUnique({ 
     where: { id: orderId },
     include: { 
@@ -132,7 +135,8 @@ export async function advanceProductionOrder(orderId: string) {
               productId: ing.productId,
               type: 'OUT',
               quantity: -discount,
-              reason: `Consumo de insumos para orden de producción ID: ${order.id}`
+              reason: `Consumo de insumos para orden de producción ID: ${order.id}`,
+              userId: userId || null
             }
           });
         }
@@ -157,7 +161,8 @@ export async function advanceProductionOrder(orderId: string) {
               productId: order.recipe.productId,
               type: 'IN',
               quantity: order.targetQuantity,
-              reason: `Producción completada para orden ID: ${order.id}`
+              reason: `Producción completada para orden ID: ${order.id}`,
+              userId: userId || null
             }
           });
 
@@ -186,7 +191,8 @@ export async function advanceProductionOrder(orderId: string) {
               productId: order.recipe.productId,
               type: 'IN',
               quantity: order.targetQuantity,
-              reason: `Producción completada para orden ID: ${order.id}`
+              reason: `Producción completada para orden ID: ${order.id}`,
+              userId: userId || null
             }
           });
 

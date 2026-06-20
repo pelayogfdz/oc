@@ -1,4 +1,5 @@
-import { getActiveBranch, getActiveUser, logout, getTenantBranches } from '@/app/actions/auth';
+import { getActiveBranch, getActiveUser, getTenantBranches } from '@/app/actions/auth';
+import { logout } from '@/app/actions/auth-actions';
 import { prisma } from '@/lib/prisma';
 import BranchSelector from './BranchSelector';
 import MobileMenuToggle from './MobileMenuToggle';

@@ -41,12 +41,23 @@ export default async function TareasPage() {
     email: user.email
   }));
 
-  // Fetch tasks in the active branch or all tenant tasks if global
   const tasks = await prisma.collaboratorTask.findMany({
     where: isGlobal
       ? { branch: { tenantId: activeUser.tenantId } }
       : { branchId: activeBranch.id },
-    include: {
+    select: {
+      id: true,
+      title: true,
+      instructions: true,
+      assignedToId: true,
+      createdById: true,
+      branchId: true,
+      status: true,
+      recurrence: true,
+      dueDate: true,
+      completedAt: true,
+      createdAt: true,
+      updatedAt: true,
       assignedTo: {
         select: { name: true, email: true }
       },

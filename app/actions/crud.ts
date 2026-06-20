@@ -3,10 +3,11 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { getActiveBranch } from './auth';
+import { getActiveBranch, getActiveUser } from './auth';
 
 export async function crudAction(entity: string, formData: FormData) {
   const branch = await getActiveBranch();
+  const user = await getActiveUser();
   const data: any = { branchId: branch.id };
   
   formData.forEach((value, key) => {
@@ -33,7 +34,7 @@ export async function crudAction(entity: string, formData: FormData) {
      } else if (entity === 'inventoryMovement') {
         // Find existing product first
         const p = await prisma.product.findFirst({ where: { branchId: branch.id }});
-        if (p) await prisma.inventoryMovement.create({ data: { productId: p.id, type: 'ADJUSTMENT', quantity: data.quantity || 1, reason: data.reason || 'Ajuste manual' }});
+        if (p) await prisma.inventoryMovement.create({ data: { productId: p.id, type: 'ADJUSTMENT', quantity: data.quantity || 1, reason: data.reason || 'Ajuste manual', userId: user.id }});
      } else if (entity === 'saleRefund') {
         await prisma.sale.updateMany({ where: { id: data.id }, data: { status: 'REFUNDED' }});
      } else if (entity === 'storeIntegration') {

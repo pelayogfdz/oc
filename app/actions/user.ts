@@ -1,7 +1,7 @@
 'use server';
 
 import { prisma } from "@/lib/prisma";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { getActiveBranch } from "./auth";
 
 export async function createUser(formData: FormData) {
@@ -203,7 +203,7 @@ export async function updateUser(id: string, formData: FormData) {
       }
     });
     
-    revalidateTag(`user-${id}`);
+    updateTag(`user-${id}`);
     revalidatePath('/preferencias/usuarios');
     return { success: true };
   } catch (err: any) {
@@ -237,7 +237,7 @@ export async function deleteUser(id: string) {
     // Try physical delete first
     try {
       await prisma.user.delete({ where: { id } });
-      revalidateTag(`user-${id}`);
+      updateTag(`user-${id}`);
       revalidatePath('/preferencias/usuarios');
       return { success: true };
     } catch (deleteError: any) {
@@ -257,7 +257,7 @@ export async function deleteUser(id: string) {
             managerId: null,
           }
         });
-        revalidateTag(`user-${id}`);
+        updateTag(`user-${id}`);
         revalidatePath('/preferencias/usuarios');
         return { success: true };
       }

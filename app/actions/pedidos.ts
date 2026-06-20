@@ -50,6 +50,10 @@ export async function createPurchaseOrder(
 
 export async function receivePurchaseOrder(orderId: string, freightCost: number = 0) {
   const branch = await getActiveBranch();
+  let activeUser = null;
+  try {
+    activeUser = await getActiveUser();
+  } catch (e) {}
   
   // Get PO
   const order = await prisma.purchaseOrder.findUnique({
@@ -119,7 +123,8 @@ export async function receivePurchaseOrder(orderId: string, freightCost: number 
           productId: item.productId,
           type: 'IN',
           quantity: item.quantity,
-          reason: `Ingreso - Pedido #${order.id.slice(0, 8)}${freightProRata > 0 ? ' (+Flete P.)' : ''}`
+          reason: `Ingreso - Pedido #${order.id.slice(0, 8)}${freightProRata > 0 ? ' (+Flete P.)' : ''}`,
+          userId: activeUser?.id || order.userId
         }
       });
     }
