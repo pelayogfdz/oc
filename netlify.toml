@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "node run_build_safely.js"
 
 [functions]
   # Configures all functions to include the Prisma engine
