@@ -27,23 +27,32 @@ function runCommand(command, args) {
 }
 
 async function main() {
-  // 1. Run the normal build: prisma generate && next build
-  const buildResult = await runCommand('npm', ['run', 'build']);
-  
-  if (buildResult.code === 0) {
-    console.log("Build completed successfully!");
-    process.exit(0);
+  // 1. Run prisma generate
+  const prismaResult = await runCommand('npx', ['prisma', 'generate']);
+  if (prismaResult.code !== 0) {
+    console.error(`\nPrisma generate failed with exit code ${prismaResult.code}. Capturing error logs...`);
+    await handleFailure(prismaResult);
   }
 
-  console.error(`\nBuild failed with exit code ${buildResult.code}. Capturing error logs...`);
+  // 2. Run next build
+  const nextResult = await runCommand('npx', ['next', 'build']);
+  if (nextResult.code !== 0) {
+    console.error(`\nNext build failed with exit code ${nextResult.code}. Capturing error logs...`);
+    await handleFailure(nextResult);
+  }
 
-  // 2. Create the public directory if it doesn't exist
+  console.log("Build completed successfully!");
+  process.exit(0);
+}
+
+async function handleFailure(result) {
+  // Create the public directory if it doesn't exist
   const publicDir = path.join(__dirname, 'public');
   if (!fs.existsSync(publicDir)) {
     fs.mkdirSync(publicDir, { recursive: true });
   }
 
-  // 3. Write the log to public/index.html so it's visible on the root page
+  // Write the log to public/index.html so it's visible on the root page
   const htmlContent = `<!DOCTYPE html>
 <html>
 <head>
@@ -56,15 +65,15 @@ async function main() {
 </head>
 <body>
   <h1>Netlify Build Error Log</h1>
-  <p>The build failed with exit code ${buildResult.code}. Here is the complete build output:</p>
-  <pre>${escapeHtml(buildResult.output)}</pre>
+  <p>The build step failed. Here is the output:</p>
+  <pre>${escapeHtml(result.output)}</pre>
 </body>
 </html>`;
 
   fs.writeFileSync(path.join(publicDir, 'index.html'), htmlContent);
   fs.writeFileSync(path.join(publicDir, 'build-error.html'), htmlContent);
 
-  // 4. Mock the minimum .next directory structure so Netlify Next.js plugin doesn't crash
+  // Mock the minimum .next directory structure so Netlify Next.js plugin doesn't crash
   const nextDir = path.join(__dirname, '.next');
   if (!fs.existsSync(nextDir)) {
     fs.mkdirSync(nextDir, { recursive: true });
