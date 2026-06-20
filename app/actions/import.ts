@@ -59,6 +59,14 @@ export async function importProducts(records: any[]) {
       }
     }
 
+    // Parse showInWeb
+    let showInWeb: boolean | undefined = undefined;
+    const showInWebVal = row.showInWeb !== undefined ? row.showInWeb : (row.mostrarEnWeb !== undefined ? row.mostrarEnWeb : row.mostrar_en_web);
+    if (showInWebVal !== undefined && showInWebVal !== null) {
+      const showStr = String(showInWebVal).trim().toLowerCase();
+      showInWeb = !(showStr === 'false' || showStr === 'no' || showStr === '0' || showStr === 'ocultar' || showStr === 'inactivo');
+    }
+
     // Parse Supplier by Name or ID
     let supplierId = row.supplierId?.trim() || null;
     if (!supplierId && row.supplierName?.trim()) {
@@ -124,7 +132,9 @@ export async function importProducts(records: any[]) {
           satUnit,
           isActive,
           supplierId,
-          expirationDate: expirationDate || undefined
+          expirationDate: expirationDate || undefined,
+          // @ts-ignore
+          showInWeb: showInWeb !== undefined ? showInWeb : undefined
         }
       });
 
@@ -148,7 +158,9 @@ export async function importProducts(records: any[]) {
             unit,
             satKey,
             satUnit,
-            isActive
+            isActive,
+            // @ts-ignore
+            showInWeb: showInWeb !== undefined ? showInWeb : undefined
           }
         });
       }
@@ -196,7 +208,9 @@ export async function importProducts(records: any[]) {
           satUnit,
           isActive,
           supplierId,
-          expirationDate
+          expirationDate,
+          // @ts-ignore
+          showInWeb: showInWeb !== undefined ? showInWeb : true
         }
       });
 
@@ -227,7 +241,9 @@ export async function importProducts(records: any[]) {
               minStock: 0,
               satKey,
               satUnit,
-              isActive
+              isActive,
+              // @ts-ignore
+              showInWeb: showInWeb !== undefined ? showInWeb : true
             }
           });
         } else {
@@ -249,7 +265,9 @@ export async function importProducts(records: any[]) {
               unit,
               satKey,
               satUnit,
-              isActive
+              isActive,
+              // @ts-ignore
+              showInWeb: showInWeb !== undefined ? showInWeb : undefined
             }
           });
         }

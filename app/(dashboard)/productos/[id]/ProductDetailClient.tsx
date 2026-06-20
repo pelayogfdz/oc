@@ -128,7 +128,7 @@ export function ProductDetailClient({
     const showInWebCheckbox = document.getElementById('showInWeb') as HTMLInputElement | null;
     const isTargetTenant = tenantId === '8b52cbcd-c956-4717-a1bd-02e57386aaa2' || tenantId === 'db5d3949-f8dd-41f6-9627-90374d55d044';
 
-    const toggleFields = () => {
+    const toggleFields = (isInitial = false) => {
       if (!serviceCheckbox) return;
       const isService = serviceCheckbox.checked;
       const minStockInput = document.querySelector('input[name="minStock"]') as HTMLInputElement | null;
@@ -143,27 +143,29 @@ export function ProductDetailClient({
           expirationDateInput.value = '';
           expirationDateInput.disabled = true;
         }
-        if (isTargetTenant && showInWebCheckbox) {
+        if (!isInitial && isTargetTenant && showInWebCheckbox) {
           showInWebCheckbox.checked = false;
         }
       } else {
         if (minStockInput) minStockInput.disabled = false;
         if (expirationDateInput) expirationDateInput.disabled = false;
-        if (isTargetTenant && showInWebCheckbox) {
+        if (!isInitial && isTargetTenant && showInWebCheckbox) {
           showInWebCheckbox.checked = true;
         }
       }
     };
 
+    const handleServiceChange = () => toggleFields(false);
+
     if (serviceCheckbox) {
-      serviceCheckbox.addEventListener('change', toggleFields);
-      // Run initially
-      toggleFields();
+      serviceCheckbox.addEventListener('change', handleServiceChange);
+      // Run initially without overriding the saved showInWeb database value
+      toggleFields(true);
     }
 
     return () => {
       if (serviceCheckbox) {
-        serviceCheckbox.removeEventListener('change', toggleFields);
+        serviceCheckbox.removeEventListener('change', handleServiceChange);
       }
     };
   }, [activeTab, tenantId]);
