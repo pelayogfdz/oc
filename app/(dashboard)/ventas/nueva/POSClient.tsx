@@ -2060,7 +2060,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
               );
             })()}
 
-            {manualDiscountValue && (
+            {discount > 0 && (
               <div className="pos-subtotal-row" style={{ color: '#16a34a', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
                 <span>Descuento aplicado</span>
                 <span>-${discount.toFixed(2)}</span>

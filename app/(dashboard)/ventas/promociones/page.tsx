@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import * as Icons from 'lucide-react';
 import { FileText, Plus, Trash2, Edit } from 'lucide-react';
 import Link from 'next/link';
-import { deleteEntity } from '@/app/actions/crud';
+import { deletePromotion } from '@/app/actions/promotion';
 
 export default async function Page() {
   const branch = await getActiveBranch();
@@ -86,7 +86,7 @@ export default async function Page() {
                     <Link href={`/ventas/promociones/${item.id}`} style={{ color: '#ec4899', textDecoration: 'none', display: 'flex', alignItems: 'center' }} title="Editar">
                       <Edit size={16} />
                     </Link>
-                    <form action={async () => { 'use server'; await deleteEntity('promotion', item.id); }}>
+                    <form action={deletePromotion.bind(null, item.id)}>
                        <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }} title="Eliminar"><Trash2 size={16}/></button>
                     </form>
                   </div>
