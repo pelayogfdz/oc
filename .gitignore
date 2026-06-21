@@ -43,3 +43,6 @@ next-env.d.ts
 /app/generated/prisma
 
 .wwebjs_auth
+
+# Local Netlify folder
+.netlify
