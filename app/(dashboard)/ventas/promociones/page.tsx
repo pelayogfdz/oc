@@ -8,7 +8,28 @@ import { deleteEntity } from '@/app/actions/crud';
 export default async function Page() {
   const branch = await getActiveBranch();
   if (!branch) return null;
-  const data = await prisma.promotion.findMany({ where: { branchId: branch.id } });
+
+  const isGlobal = branch.id === 'GLOBAL';
+  let data;
+  if (isGlobal) {
+    const activeBranches = await prisma.branch.findMany({
+      where: { tenantId: branch.tenantId, isActive: true },
+      select: { id: true }
+    });
+    const branchIds = activeBranches.map(b => b.id);
+    data = await prisma.promotion.findMany({
+      where: { branchId: { in: branchIds } },
+      include: { branch: true },
+      orderBy: { createdAt: 'desc' }
+    });
+  } else {
+    data = await prisma.promotion.findMany({
+      where: { branchId: branch.id },
+      include: { branch: true },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
   const SpecificIcon = (Icons as any)['Tag'] || Icons.Box;
 
   return (
@@ -17,7 +38,7 @@ export default async function Page() {
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <SpecificIcon size={28} color="#ec4899" />
-            Promociones y Reglas
+            Promociones y Reglas {isGlobal && <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'var(--pulpos-text-muted)' }}>(Todas las Sucursales)</span>}
           </h1>
         </div>
         <Link href="/ventas/promociones/nuevo" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#ec4899', borderColor: '#ec4899', textDecoration: 'none' }}>
@@ -30,6 +51,7 @@ export default async function Page() {
           <thead style={{ backgroundColor: '#f8fafc' }}>
             <tr>
               <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Promoción</th>
+              {isGlobal && <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Sucursal</th>}
               <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Valor</th>
               <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Estado</th>
               <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Acciones</th>
@@ -46,6 +68,11 @@ export default async function Page() {
                     Tipo: {item.type === 'PERCENTAGE' ? 'Porcentaje' : item.type === 'FIXED_AMOUNT' ? 'Monto Fijo' : item.type === 'BOGO' ? 'Paga/Lleva (3x2, 2x1, etc.)' : item.type}
                   </div>
                 </td>
+                {isGlobal && (
+                  <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#475569' }}>
+                    {item.branch?.name || 'Desconocida'}
+                  </td>
+                )}
                 <td style={{ padding: '1rem', fontWeight: 'bold' }}>
                   {item.type === 'PERCENTAGE' ? `${item.value}%` : item.type === 'BOGO' ? 'N/A' : `$${item.value.toFixed(2)}`}
                 </td>

@@ -46,15 +46,27 @@ export default async function EditarPromocionPage({ params }: { params: Promise<
     orderBy: { name: 'asc' }
   });
 
+  const isGlobal = branch.id === 'GLOBAL';
+  let branchCondition: any;
+  if (isGlobal) {
+    const activeBranches = await prisma.branch.findMany({
+      where: { tenantId: branch.tenantId, isActive: true },
+      select: { id: true }
+    });
+    branchCondition = { in: activeBranches.map(b => b.id) };
+  } else {
+    branchCondition = branch.id;
+  }
+
   // Fetch unique categories and brands
   const categoriesRaw = await prisma.product.findMany({
-    where: { branchId: branch.id, category: { not: null, notIn: [""] } },
+    where: { branchId: branchCondition, category: { not: null, notIn: [""] } },
     select: { category: true },
     distinct: ['category']
   });
 
   const brandsRaw = await prisma.product.findMany({
-    where: { branchId: branch.id, brand: { not: null, notIn: [""] } },
+    where: { branchId: branchCondition, brand: { not: null, notIn: [""] } },
     select: { brand: true },
     distinct: ['brand']
   });
