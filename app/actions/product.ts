@@ -201,6 +201,79 @@ export async function createProduct(prevState: any, formData: FormData) {
     }
   }
 
+
+
+  if (tenantId) {
+    const siblingBranches = await prisma.branch.findMany({
+      where: {
+        tenantId,
+        id: { not: branchId },
+        isActive: true
+      },
+      select: { id: true }
+    });
+
+    if (siblingBranches.length > 0) {
+      const existingSiblings = await prisma.product.findMany({
+        where: {
+          sku: sku,
+          branchId: { in: siblingBranches.map(b => b.id) }
+        },
+        select: { branchId: true }
+      });
+      const existingBranchIds = new Set(existingSiblings.map(s => s.branchId));
+
+      for (const sibBranch of siblingBranches) {
+        if (!existingBranchIds.has(sibBranch.id)) {
+          const sibProduct = await prisma.product.create({
+            data: {
+              branchId: sibBranch.id,
+              sku,
+              barcode,
+              name,
+              description,
+              price,
+              cost,
+              taxRate,
+              brand,
+              imageUrl,
+              youtubeUrl,
+              isActive,
+              allowProduction,
+              isProductionInput,
+              isService,
+              unit,
+              stock: 0,
+              minStock: 0,
+              supplierId: null,
+              satKey,
+              satUnit,
+              expirationDate,
+              hasTraceability,
+              // @ts-ignore
+              showInWeb
+            }
+          });
+
+          if (hasVariants && variants.length > 0) {
+            for (const v of variants) {
+              if (v.attribute && v.sku) {
+                await prisma.productVariant.create({
+                  data: {
+                    productId: sibProduct.id,
+                    attribute: v.attribute,
+                    sku: v.sku,
+                    stock: 0
+                  }
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   // Propagate common details to sibling products in other branches
   const fieldsToPropagate = {
     name,
