@@ -35,6 +35,16 @@ export default async function NuevoPromocion() {
   const categories = categoriesRaw.map(c => c.category as string).filter(Boolean);
   const brands = brandsRaw.map(b => b.brand as string).filter(Boolean);
 
+  const activeBranches = await prisma.branch.findMany({
+    where: { tenantId: branch.tenantId, isActive: true },
+    select: { id: true, name: true }
+  });
+
+  const priceLists = await prisma.priceList.findMany({
+    where: { branchId: { in: activeBranches.map(b => b.id) } },
+    select: { id: true, name: true, branchId: true }
+  });
+
   return (
     <div style={{ maxWidth: '850px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
@@ -47,6 +57,8 @@ export default async function NuevoPromocion() {
         branchId={branch.id}
         categories={categories}
         brands={brands}
+        activeBranches={activeBranches}
+        priceLists={priceLists}
       />
     </div>
   );

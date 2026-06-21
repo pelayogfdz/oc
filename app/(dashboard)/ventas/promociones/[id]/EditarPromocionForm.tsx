@@ -23,15 +23,28 @@ interface Promotion {
   metadata: string | null;
 }
 
+interface BranchOption {
+  id: string;
+  name: string;
+}
+
+interface PriceListOption {
+  id: string;
+  name: string;
+  branchId: string;
+}
+
 interface EditarPromocionFormProps {
   promotion: Promotion;
   products: Product[];
   branchId: string;
   categories: string[];
   brands: string[];
+  activeBranches: BranchOption[];
+  priceLists: PriceListOption[];
 }
 
-export default function EditarPromocionForm({ promotion, products, branchId, categories, brands }: EditarPromocionFormProps) {
+export default function EditarPromocionForm({ promotion, products, branchId, categories, brands, activeBranches, priceLists }: EditarPromocionFormProps) {
   const router = useRouter();
 
   // Parse metadata
@@ -61,6 +74,33 @@ export default function EditarPromocionForm({ promotion, products, branchId, cat
   const [selectedProducts, setSelectedProducts] = useState<string[]>(parsedMeta.targetProducts || []);
   const [selectedCategories, setSelectedCategories] = useState<string[]>(parsedMeta.targetCategories || []);
   const [selectedBrands, setSelectedBrands] = useState<string[]>(parsedMeta.targetBrands || []);
+
+  const [selectedBranches, setSelectedBranches] = useState<string[]>(
+    parsedMeta.targetBranches || [branchId]
+  );
+
+  // Map dynamicPriceList stored IDs back to dynamicName:Name representation for checkboxes
+  const initialPriceLists: string[] = [];
+  if (parsedMeta.targetPriceLists) {
+    for (const plVal of parsedMeta.targetPriceLists) {
+      if (['price', 'wholesalePrice', 'specialPrice'].includes(plVal)) {
+        initialPriceLists.push(plVal);
+      } else if (plVal.startsWith('priceList_')) {
+        const plId = plVal.replace('priceList_', '');
+        const plObj = priceLists.find(p => p.id === plId);
+        if (plObj) {
+          initialPriceLists.push(`dynamicName:${plObj.name}`);
+        }
+      }
+    }
+  } else {
+    // Default fallback for legacy promotions
+    initialPriceLists.push('price');
+  }
+
+  const [selectedPriceLists, setSelectedPriceLists] = useState<string[]>(initialPriceLists);
+
+  const uniquePriceListNames = Array.from(new Set(priceLists.map(pl => pl.name)));
 
   // Search filter for products
   const [productSearch, setProductSearch] = useState('');
@@ -130,6 +170,16 @@ export default function EditarPromocionForm({ promotion, products, branchId, cat
       return;
     }
 
+    if (selectedBranches.length === 0) {
+      alert('Por favor, selecciona al menos una sucursal.');
+      return;
+    }
+
+    if (selectedPriceLists.length === 0) {
+      alert('Por favor, selecciona al menos una lista de precios.');
+      return;
+    }
+
     setLoading(true);
     try {
       const metadata = {
@@ -138,6 +188,9 @@ export default function EditarPromocionForm({ promotion, products, branchId, cat
         targetProducts: selectedProducts,
         targetCategories: selectedCategories,
         targetBrands: selectedBrands,
+        targetBranches: selectedBranches,
+        targetPriceLists: selectedPriceLists,
+        groupId: parsedMeta.groupId, // Preserve group ID
         payQty: type === 'BOGO' ? Number(payQty) : null,
         receiveQty: type === 'BOGO' ? Number(receiveQty) : null,
       };
@@ -246,6 +299,93 @@ export default function EditarPromocionForm({ promotion, products, branchId, cat
                 />
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Branch Selection Section */}
+        <div style={{ borderTop: '1px solid var(--pulpos-border)', paddingTop: '1.5rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 'bold', color: '#334155' }}>Sucursales que Aplica *</label>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', border: '1px solid var(--pulpos-border)', padding: '1rem', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+            {activeBranches.map(b => (
+              <label key={b.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
+                <input
+                  type="checkbox"
+                  checked={selectedBranches.includes(b.id)}
+                  onChange={() => {
+                    setSelectedBranches(prev =>
+                      prev.includes(b.id) ? prev.filter(id => id !== b.id) : [...prev, b.id]
+                    );
+                  }}
+                  style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                />
+                <span style={{ fontSize: '0.95rem', color: '#1e293b', fontWeight: selectedBranches.includes(b.id) ? '600' : 'normal' }}>{b.name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Price List Selection Section */}
+        <div style={{ borderTop: '1px solid var(--pulpos-border)', paddingTop: '1.5rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 'bold', color: '#334155' }}>Lista de Precios a la que Aplica *</label>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', border: '1px solid var(--pulpos-border)', padding: '1rem', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
+              <input
+                type="checkbox"
+                checked={selectedPriceLists.includes('price')}
+                onChange={() => {
+                  setSelectedPriceLists(prev =>
+                    prev.includes('price') ? prev.filter(x => x !== 'price') : [...prev, 'price']
+                  );
+                }}
+                style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+              />
+              <span style={{ fontSize: '0.95rem', color: '#1e293b', fontWeight: selectedPriceLists.includes('price') ? '600' : 'normal' }}>Precio Público</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
+              <input
+                type="checkbox"
+                checked={selectedPriceLists.includes('wholesalePrice')}
+                onChange={() => {
+                  setSelectedPriceLists(prev =>
+                    prev.includes('wholesalePrice') ? prev.filter(x => x !== 'wholesalePrice') : [...prev, 'wholesalePrice']
+                  );
+                }}
+                style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+              />
+              <span style={{ fontSize: '0.95rem', color: '#1e293b', fontWeight: selectedPriceLists.includes('wholesalePrice') ? '600' : 'normal' }}>Precio Mayoreo</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
+              <input
+                type="checkbox"
+                checked={selectedPriceLists.includes('specialPrice')}
+                onChange={() => {
+                  setSelectedPriceLists(prev =>
+                    prev.includes('specialPrice') ? prev.filter(x => x !== 'specialPrice') : [...prev, 'specialPrice']
+                  );
+                }}
+                style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+              />
+              <span style={{ fontSize: '0.95rem', color: '#1e293b', fontWeight: selectedPriceLists.includes('specialPrice') ? '600' : 'normal' }}>Precio Especial</span>
+            </label>
+            {uniquePriceListNames.map(name => {
+              const val = `dynamicName:${name}`;
+              const isChecked = selectedPriceLists.includes(val);
+              return (
+                <label key={name} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => {
+                      setSelectedPriceLists(prev =>
+                        prev.includes(val) ? prev.filter(x => x !== val) : [...prev, val]
+                      );
+                    }}
+                    style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                  />
+                  <span style={{ fontSize: '0.95rem', color: '#1e293b', fontWeight: isChecked ? '600' : 'normal' }}>{name}</span>
+                </label>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -742,71 +742,76 @@ export default function POSClient({ products: initialProducts, customers, suppli
   const discount = useMemo(() => {
     let d = 0;
     
-    // Solo aplicar reglas de promoción automáticas si la lista de precios seleccionada es 'price' (Precio Público)
-    if (priceList === 'price') {
-      promotions.forEach(promo => {
-        if (!promo.active) return;
-        
-        let meta: any = {};
-        try {
-          meta = promo.metadata ? JSON.parse(promo.metadata) : {};
-        } catch (e) {
-          meta = { targetType: 'ALL' };
+    // Solo aplicar reglas de promoción automáticas si la lista de precios seleccionada está permitida para la promoción
+    promotions.forEach(promo => {
+      if (!promo.active) return;
+      
+      let meta: any = {};
+      try {
+        meta = promo.metadata ? JSON.parse(promo.metadata) : {};
+      } catch (e) {
+        meta = { targetType: 'ALL' };
+      }
+      
+      // Check if this promotion applies to the current priceList
+      // Default to ['price'] for legacy promotions
+      const allowedPriceLists = meta.targetPriceLists && meta.targetPriceLists.length > 0
+        ? meta.targetPriceLists
+        : ['price'];
+      if (!allowedPriceLists.includes(priceList)) return;
+      
+      // Date validity check
+      const now = new Date();
+      if (meta.startDate) {
+        const sDate = new Date(meta.startDate);
+        if (now < sDate) return;
+      }
+      if (meta.endDate) {
+        const eDate = new Date(meta.endDate);
+        if (now > eDate) return;
+      }
+      
+      // Target segments check
+      const hasNewTargets = (meta.targetProducts?.length > 0) || (meta.targetCategories?.length > 0) || (meta.targetBrands?.length > 0);
+      
+      let applicableCartItems = cart;
+      if (hasNewTargets) {
+        applicableCartItems = cart.filter(item => {
+          const matchProduct = meta.targetProducts?.includes(item.id);
+          const matchCategory = item.category && meta.targetCategories?.includes(item.category);
+          const matchBrand = item.brand && meta.targetBrands?.includes(item.brand);
+          return matchProduct || matchCategory || matchBrand;
+        });
+      } else {
+        // Fallback to legacy structure
+        if (meta.targetType === 'CATEGORY') {
+          applicableCartItems = cart.filter(item => meta.applyToCategories?.includes(item.category));
+        } else if (meta.targetType === 'BRAND') {
+          applicableCartItems = cart.filter(item => meta.applyToBrands?.includes(item.brand));
+        } else if (meta.targetType === 'PRODUCTS') {
+          applicableCartItems = cart.filter(item => meta.applyToProducts?.includes(item.id));
         }
-        
-        // Date validity check
-        const now = new Date();
-        if (meta.startDate) {
-          const sDate = new Date(meta.startDate);
-          if (now < sDate) return;
-        }
-        if (meta.endDate) {
-          const eDate = new Date(meta.endDate);
-          if (now > eDate) return;
-        }
-        
-        // Target segments check
-        const hasNewTargets = (meta.targetProducts?.length > 0) || (meta.targetCategories?.length > 0) || (meta.targetBrands?.length > 0);
-        
-        let applicableCartItems = cart;
-        if (hasNewTargets) {
-          applicableCartItems = cart.filter(item => {
-            const matchProduct = meta.targetProducts?.includes(item.id);
-            const matchCategory = item.category && meta.targetCategories?.includes(item.category);
-            const matchBrand = item.brand && meta.targetBrands?.includes(item.brand);
-            return matchProduct || matchCategory || matchBrand;
-          });
-        } else {
-          // Fallback to legacy structure
-          if (meta.targetType === 'CATEGORY') {
-            applicableCartItems = cart.filter(item => meta.applyToCategories?.includes(item.category));
-          } else if (meta.targetType === 'BRAND') {
-            applicableCartItems = cart.filter(item => meta.applyToBrands?.includes(item.brand));
-          } else if (meta.targetType === 'PRODUCTS') {
-            applicableCartItems = cart.filter(item => meta.applyToProducts?.includes(item.id));
-          }
-        }
-        
-        const applicableSubTotal = applicableCartItems.reduce((sum, item) => sum + (getProductPrice(item) * item.quantity), 0);
+      }
+      
+      const applicableSubTotal = applicableCartItems.reduce((sum, item) => sum + (getProductPrice(item) * item.quantity), 0);
 
-        if (applicableSubTotal > 0) {
-          if (promo.type === 'PERCENTAGE') {
-            d += applicableSubTotal * (promo.value / 100);
-          } else if (promo.type === 'FIXED_AMOUNT') {
-            d += promo.value;
-          } else if (promo.type === 'BOGO') {
-            applicableCartItems.forEach(item => {
-               const pay = meta.payQty || 1;
-               const rec = meta.receiveQty || 2;
-               const freeQty = Math.floor(item.quantity / rec) * (rec - pay);
-               if (freeQty > 0) {
-                 d += freeQty * getProductPrice(item);
-               }
-            });
-          }
+      if (applicableSubTotal > 0) {
+        if (promo.type === 'PERCENTAGE') {
+          d += applicableSubTotal * (promo.value / 100);
+        } else if (promo.type === 'FIXED_AMOUNT') {
+          d += promo.value;
+        } else if (promo.type === 'BOGO') {
+          applicableCartItems.forEach(item => {
+             const pay = meta.payQty || 1;
+             const rec = meta.receiveQty || 2;
+             const freeQty = Math.floor(item.quantity / rec) * (rec - pay);
+             if (freeQty > 0) {
+               d += freeQty * getProductPrice(item);
+             }
+          });
         }
-      });
-    }
+      }
+    });
     
     if (typeof manualDiscountValue === 'number' && manualDiscountValue > 0) {
       if (manualDiscountType === '$') {

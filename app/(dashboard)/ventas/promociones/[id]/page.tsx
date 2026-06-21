@@ -77,6 +77,16 @@ export default async function EditarPromocionPage({ params }: { params: Promise<
   const safePromotion = JSON.parse(JSON.stringify(promotion));
   const safeProducts = JSON.parse(JSON.stringify(products));
 
+  const activeBranches = await prisma.branch.findMany({
+    where: { tenantId: branch.tenantId, isActive: true },
+    select: { id: true, name: true }
+  });
+
+  const priceLists = await prisma.priceList.findMany({
+    where: { branchId: { in: activeBranches.map(b => b.id) } },
+    select: { id: true, name: true, branchId: true }
+  });
+
   return (
     <div style={{ maxWidth: '850px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
@@ -90,6 +100,8 @@ export default async function EditarPromocionPage({ params }: { params: Promise<
         branchId={branch.id}
         categories={categories}
         brands={brands}
+        activeBranches={activeBranches}
+        priceLists={priceLists}
       />
     </div>
   );
