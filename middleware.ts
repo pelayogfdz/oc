@@ -14,8 +14,12 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // Si estamos en /login redirigimos al app si ya hay sesión
+  // Si estamos en /login redirigimos al app si ya hay sesión (solo para GET)
   if (req.nextUrl.pathname === '/login') {
+    if (req.method !== 'GET') {
+      return NextResponse.next();
+    }
+    
     const errorParam = req.nextUrl.searchParams.get('error');
     const openParam = req.nextUrl.searchParams.get('open');
     

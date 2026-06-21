@@ -69,7 +69,7 @@ export const getTenantIdFromToken = cache(async (token: string): Promise<string 
   return null;
 });
 
-async function getClientForRequest(): Promise<PrismaClient> {
+const getClientForRequest = cache(async (): Promise<PrismaClient> => {
   if (process.env.TEST_TENANT_ID) {
     return getClientForTenant(process.env.TEST_TENANT_ID);
   }
@@ -103,7 +103,7 @@ async function getClientForRequest(): Promise<PrismaClient> {
     // or we are not in a request context. Fallback to master client.
   }
   return masterClient;
-}
+});
 
 // Dynamically create a database for a new tenant and push Prisma schema
 export async function createDatabaseForTenant(tenantId: string, slug: string, name: string) {
