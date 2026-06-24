@@ -272,6 +272,107 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
         </div>
 
       </div>
+
+      {/* Resumen del Período Seleccionado */}
+      {(() => {
+        const periodTotalSales = chartData.reduce((sum, d) => sum + d.count, 0);
+        const periodTotalAmount = chartData.reduce((sum, d) => sum + d.amount, 0);
+        const periodAvgTicket = periodTotalSales > 0 ? periodTotalAmount / periodTotalSales : 0;
+
+        const formatPeriodDate = (dateStr: string) => {
+          if (!dateStr) return '';
+          const parts = dateStr.split('-');
+          if (parts.length !== 3) return dateStr;
+          return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        };
+
+        return (
+          <div style={{
+            marginTop: '0.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Calendar size={18} color="#64748b" />
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#475569', margin: 0 }}>
+                Resumen del Período: {formatPeriodDate(startDate)} al {formatPeriodDate(endDate)}
+              </h4>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+              {/* Card 1: Ventas en el Período */}
+              <div style={{
+                backgroundColor: 'white',
+                padding: '1.25rem 1.5rem',
+                borderRadius: '12px',
+                border: '1px solid #cbd5e1',
+                borderLeft: '4px solid #3b82f6',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>Ventas del Período</span>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#1e293b', marginTop: '0.25rem' }}>
+                    {periodTotalSales.toLocaleString('es-MX')}
+                  </div>
+                </div>
+                <div style={{ backgroundColor: '#eff6ff', padding: '0.75rem', borderRadius: '50%' }}>
+                  <ShoppingCart size={20} color="#3b82f6" />
+                </div>
+              </div>
+
+              {/* Card 2: Monto Total */}
+              <div style={{
+                backgroundColor: 'white',
+                padding: '1.25rem 1.5rem',
+                borderRadius: '12px',
+                border: '1px solid #cbd5e1',
+                borderLeft: '4px solid #10b981',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>Monto del Período</span>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#1e293b', marginTop: '0.25rem' }}>
+                    {formatCurrency(periodTotalAmount)}
+                  </div>
+                </div>
+                <div style={{ backgroundColor: '#ecfdf5', padding: '0.75rem', borderRadius: '50%' }}>
+                  <DollarSign size={20} color="#10b981" />
+                </div>
+              </div>
+
+              {/* Card 3: Ticket Promedio */}
+              <div style={{
+                backgroundColor: 'white',
+                padding: '1.25rem 1.5rem',
+                borderRadius: '12px',
+                border: '1px solid #cbd5e1',
+                borderLeft: '4px solid #f59e0b',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>Ticket Medio del Período</span>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#1e293b', marginTop: '0.25rem' }}>
+                    {formatCurrency(periodAvgTicket)}
+                  </div>
+                </div>
+                <div style={{ backgroundColor: '#fffbeb', padding: '0.75rem', borderRadius: '50%' }}>
+                  <DollarSign size={20} color="#f59e0b" />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
