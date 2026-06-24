@@ -229,11 +229,11 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
       <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
         <thead style={{ backgroundColor: '#f8fafc' }}>
           <tr>
-            <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Proveedor</th>
-            <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'right' }}>Deuda Total / Cuenta por Pagar</th>
-            <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'center' }}>Estado</th>
-            <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'right' }}>Límite Disp. con Prov.</th>
-            <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'center' }}>Acciones</th>
+            <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Proveedor</th>
+            <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'right' }}>Deuda Total / Cuenta por Pagar</th>
+            <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'center' }}>Estado</th>
+            <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'right' }}>Límite Disp. con Prov.</th>
+            <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'center' }}>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -241,13 +241,13 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
             const overduePurchases = s.purchases?.filter((p:any) => p.paymentMethod === 'CREDIT' && p.balanceDue > 0 && isOverdue(p.dueDate)) || [];
             
             return (
-              <tr key={s.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+              <tr key={s.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                 <td data-label="Proveedor" style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Truck size={18} color="var(--pulpos-text-muted)" />
+                    <Truck size={18} color="var(--caanma-text-muted)" />
                     {s.name}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', marginTop: '0.25rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', marginTop: '0.25rem' }}>
                      Plazo Acordado: {s.creditDays} días
                   </div>
                 </td>
@@ -269,7 +269,7 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
                       </span>
                    )}
                 </td>
-                <td data-label="Límite Disponible" style={{ padding: '1rem', textAlign: 'right', color: 'var(--pulpos-text-muted)' }}>
+                <td data-label="Límite Disponible" style={{ padding: '1rem', textAlign: 'right', color: 'var(--caanma-text-muted)' }}>
                   <div style={{ fontWeight: '500' }}>
                     ${(s.creditLimit - (s.creditBalance || 0)).toFixed(2)}
                   </div>
@@ -288,7 +288,7 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
           })}
           {suppliers.length === 0 && (
             <tr>
-              <td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+              <td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                 <HandCoins size={40} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
                 Ningún proveedor tiene historial de crédito documentado.
               </td>

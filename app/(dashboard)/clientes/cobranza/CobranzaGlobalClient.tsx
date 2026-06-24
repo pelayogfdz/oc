@@ -38,19 +38,19 @@ export default function CobranzaGlobalClient({ initialData }: { initialData: any
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ backgroundColor: '#f8fafc' }}>
                 <tr>
-                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Cliente</th>
-                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Folio / Ticket</th>
-                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Fecha de Creación</th>
-                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Vencimiento</th>
-                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Deuda Actual</th>
-                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Acción</th>
+                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Cliente</th>
+                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Folio / Ticket</th>
+                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Fecha de Creación</th>
+                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Vencimiento</th>
+                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Deuda Actual</th>
+                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Acción</th>
                 </tr>
             </thead>
             <tbody>
                 {filteredSales.map((sale: any) => {
                     const overdue = sale.dueDate ? new Date(sale.dueDate) < new Date() : false;
                     return (
-                        <tr key={sale.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                        <tr key={sale.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                             <td data-label="Cliente" style={{ padding: '1rem', fontWeight: 'bold' }}>
                                 {sale.customer?.name || 'Venta de Mostrador'}
                             </td>

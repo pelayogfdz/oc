@@ -19,7 +19,7 @@ export default function FacturasLayout({ children }: { children: React.ReactNode
       <div style={{ 
         display: 'flex', 
         gap: '0.25rem', 
-        borderBottom: '1px solid var(--pulpos-border)', 
+        borderBottom: '1px solid var(--caanma-border)', 
         marginBottom: '2rem',
         paddingBottom: '0.1rem',
         overflowX: 'auto',
@@ -38,9 +38,9 @@ export default function FacturasLayout({ children }: { children: React.ReactNode
                 padding: '0.75rem 1.25rem',
                 borderRadius: '8px 8px 0 0',
                 textDecoration: 'none',
-                color: isActive ? 'var(--pulpos-primary)' : 'var(--pulpos-text-muted)',
+                color: isActive ? 'var(--caanma-primary)' : 'var(--caanma-text-muted)',
                 backgroundColor: isActive ? 'rgba(59, 130, 246, 0.04)' : 'transparent',
-                borderBottom: isActive ? '3px solid var(--pulpos-primary)' : '3px solid transparent',
+                borderBottom: isActive ? '3px solid var(--caanma-primary)' : '3px solid transparent',
                 fontWeight: isActive ? 'bold' : '500',
                 fontSize: '0.95rem',
                 transition: 'all 0.2s'

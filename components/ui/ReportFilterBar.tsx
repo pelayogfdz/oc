@@ -145,11 +145,11 @@ export default function ReportFilterBar({
       backgroundColor: 'white', 
       padding: '1rem', 
       borderRadius: '12px', 
-      border: '1px solid var(--pulpos-border)',
+      border: '1px solid var(--caanma-border)',
       marginBottom: '1.5rem',
       fontFamily: 'var(--font-geist-sans)'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', marginRight: '0.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', marginRight: '0.5rem' }}>
         <Filter size={18} /> Filtros:
       </div>
 
@@ -158,8 +158,8 @@ export default function ReportFilterBar({
       )}
 
       {showBranch && branches.length > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--pulpos-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
-          <Store size={16} color="var(--pulpos-text-muted)" style={{ marginLeft: '0.5rem' }} />
+        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--caanma-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
+          <Store size={16} color="var(--caanma-text-muted)" style={{ marginLeft: '0.5rem' }} />
           <select 
             value={branchId}
             onChange={handleBranchChange}
@@ -170,7 +170,7 @@ export default function ReportFilterBar({
               backgroundColor: 'transparent',
               outline: 'none',
               fontWeight: '500',
-              color: 'var(--pulpos-text)',
+              color: 'var(--caanma-text)',
               cursor: 'pointer',
               minWidth: '150px'
             }}
@@ -182,8 +182,8 @@ export default function ReportFilterBar({
       )}
 
       {showUser && users.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--pulpos-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
-          <User size={16} color="var(--pulpos-text-muted)" style={{ marginLeft: '0.5rem' }} />
+        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--caanma-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
+          <User size={16} color="var(--caanma-text-muted)" style={{ marginLeft: '0.5rem' }} />
           <select 
             value={userId}
             onChange={handleUserChange}
@@ -194,7 +194,7 @@ export default function ReportFilterBar({
               backgroundColor: 'transparent',
               outline: 'none',
               fontWeight: '500',
-              color: 'var(--pulpos-text)',
+              color: 'var(--caanma-text)',
               cursor: 'pointer',
               minWidth: '150px'
             }}
@@ -206,8 +206,8 @@ export default function ReportFilterBar({
       )}
 
       {showBrand && brands.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--pulpos-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
-          <Tag size={16} color="var(--pulpos-text-muted)" style={{ marginLeft: '0.5rem' }} />
+        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--caanma-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
+          <Tag size={16} color="var(--caanma-text-muted)" style={{ marginLeft: '0.5rem' }} />
           <select 
             value={brandId}
             onChange={handleBrandChange}
@@ -218,7 +218,7 @@ export default function ReportFilterBar({
               backgroundColor: 'transparent',
               outline: 'none',
               fontWeight: '500',
-              color: 'var(--pulpos-text)',
+              color: 'var(--caanma-text)',
               cursor: 'pointer',
               minWidth: '150px'
             }}
@@ -230,8 +230,8 @@ export default function ReportFilterBar({
       )}
 
       {showPaymentMethod && (
-        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--pulpos-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
-          <DollarSign size={16} color="var(--pulpos-text-muted)" style={{ marginLeft: '0.5rem' }} />
+        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--caanma-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
+          <DollarSign size={16} color="var(--caanma-text-muted)" style={{ marginLeft: '0.5rem' }} />
           <select 
             value={paymentMethod}
             onChange={handlePaymentMethodChange}
@@ -242,7 +242,7 @@ export default function ReportFilterBar({
               backgroundColor: 'transparent',
               outline: 'none',
               fontWeight: '500',
-              color: 'var(--pulpos-text)',
+              color: 'var(--caanma-text)',
               cursor: 'pointer',
               minWidth: '150px'
             }}
@@ -265,8 +265,8 @@ export default function ReportFilterBar({
 
 
       {showInvoiced && (
-        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--pulpos-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
-          <FileText size={16} color="var(--pulpos-text-muted)" style={{ marginLeft: '0.5rem' }} />
+        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--caanma-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
+          <FileText size={16} color="var(--caanma-text-muted)" style={{ marginLeft: '0.5rem' }} />
           <select 
             value={invoiced}
             onChange={handleInvoicedChange}
@@ -277,7 +277,7 @@ export default function ReportFilterBar({
               backgroundColor: 'transparent',
               outline: 'none',
               fontWeight: '500',
-              color: 'var(--pulpos-text)',
+              color: 'var(--caanma-text)',
               cursor: 'pointer',
               minWidth: '150px'
             }}

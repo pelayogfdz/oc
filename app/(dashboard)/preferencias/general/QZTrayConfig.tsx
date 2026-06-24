@@ -193,7 +193,7 @@ export default function QZTrayConfig({ qzConfig = {} }: { qzConfig?: { certifica
         </head>
         <body>
           <div class="header">
-            <div class="title">PULPOS ERP</div>
+            <div class="title">CAANMA ERP</div>
             <div class="subtitle">PRUEBA DE IMPRESIÓN</div>
             <div class="subtitle">Sucursal Principal</div>
           </div>
@@ -231,7 +231,7 @@ export default function QZTrayConfig({ qzConfig = {} }: { qzConfig?: { certifica
           <div class="divider"></div>
           <div class="footer">
             ¡Tu sistema de impresión local está configurado correctamente!<br/>
-            www.pulpos.mx
+            www.caanma.mx
           </div>
         </body>
       </html>
@@ -300,7 +300,7 @@ export default function QZTrayConfig({ qzConfig = {} }: { qzConfig?: { certifica
       backgroundColor: 'white', 
       borderRadius: '16px', 
       padding: '2.5rem', 
-      border: '1px solid var(--pulpos-border)', 
+      border: '1px solid var(--caanma-border)', 
       marginTop: '2rem',
       boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
       fontFamily: 'system-ui, -apple-system, sans-serif'

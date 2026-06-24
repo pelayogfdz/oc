@@ -52,7 +52,7 @@ export default async function WhatsAppConfigPage() {
     <div>
       <div style={{ marginBottom: '2rem' }}>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Configuracion de WhatsApp</h1>
-        <p style={{ color: 'var(--pulpos-text-muted)' }}>Conecta tu numero global de WhatsApp escaneando el codigo QR</p>
+        <p style={{ color: 'var(--caanma-text-muted)' }}>Conecta tu numero global de WhatsApp escaneando el codigo QR</p>
       </div>
 
       <div className="card" style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center', padding: '3rem 2rem' }}>

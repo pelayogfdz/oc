@@ -121,7 +121,7 @@ export default function NuevaSolicitudClient({ branchId }: { branchId: string })
       {/* Columna Izquierda: Buscador */}
       <div className="card" style={{ padding: '1.5rem' }}>
         <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Search size={20} color="var(--pulpos-primary)" />
+          <Search size={20} color="var(--caanma-primary)" />
           Buscar o Crear Producto
         </h2>
         
@@ -131,11 +131,11 @@ export default function NuevaSolicitudClient({ branchId }: { branchId: string })
             placeholder="Escribe el nombre o SKU del producto..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: '100%', padding: '0.75rem 1rem', fontSize: '1rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}
+            style={{ width: '100%', padding: '0.75rem 1rem', fontSize: '1rem', borderRadius: '8px', border: '1px solid var(--caanma-border)' }}
           />
           
           {searchTerm.trim().length > 1 && (
-            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid var(--pulpos-border)', borderRadius: '8px', marginTop: '0.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 10, overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid var(--caanma-border)', borderRadius: '8px', marginTop: '0.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 10, overflow: 'hidden' }}>
               
               {/* Resultados del catálogo */}
               {filteredProducts.map(p => (
@@ -150,14 +150,14 @@ export default function NuevaSolicitudClient({ branchId }: { branchId: string })
                     <div style={{ fontWeight: 'bold' }}>{p.name}</div>
                     <div style={{ fontSize: '0.8rem', color: '#64748b' }}>SKU: {p.sku || 'N/A'} | Stock: {p.stock}</div>
                   </div>
-                  <Plus size={18} color="var(--pulpos-primary)" />
+                  <Plus size={18} color="var(--caanma-primary)" />
                 </div>
               ))}
 
               {/* Opción para añadir como Pre-producto */}
               <div 
                 onClick={handleAddPreProduct}
-                style={{ padding: '0.75rem 1rem', backgroundColor: '#eff6ff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--pulpos-primary)', fontWeight: 'bold' }}
+                style={{ padding: '0.75rem 1rem', backgroundColor: '#eff6ff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--caanma-primary)', fontWeight: 'bold' }}
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#dbeafe'}
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#eff6ff'}
               >
@@ -182,7 +182,7 @@ export default function NuevaSolicitudClient({ branchId }: { branchId: string })
       <div className="card" style={{ padding: '1.5rem', position: 'sticky', top: '2rem' }}>
         <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <ShoppingCart size={20} color="var(--pulpos-primary)" />
+            <ShoppingCart size={20} color="var(--caanma-primary)" />
             Lista de Solicitud
           </div>
           <span style={{ fontSize: '0.85rem', backgroundColor: '#f1f5f9', padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
@@ -198,7 +198,7 @@ export default function NuevaSolicitudClient({ branchId }: { branchId: string })
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '50vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
             {items.map(item => (
-              <div key={item.tempId} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '1rem', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)', borderRadius: '8px' }}>
+              <div key={item.tempId} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '1rem', backgroundColor: '#f8fafc', border: '1px solid var(--caanma-border)', borderRadius: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>
                     {item.name}
@@ -216,7 +216,7 @@ export default function NuevaSolicitudClient({ branchId }: { branchId: string })
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem' }}>
                   <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Cantidad:</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'white', border: '1px solid var(--pulpos-border)', borderRadius: '6px', padding: '0.2rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'white', border: '1px solid var(--caanma-border)', borderRadius: '6px', padding: '0.2rem' }}>
                     <button 
                       onClick={() => updateQuantity(item.tempId, -1)}
                       style={{ border: 'none', background: '#f1f5f9', borderRadius: '4px', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}

@@ -78,26 +78,26 @@ export default function TraspasosClient({
       {/* Toolbar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', gap: '1rem', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', maxWidth: '600px', position: 'relative' }}>
-          <Search size={18} style={{ position: 'absolute', left: '1rem', color: 'var(--pulpos-text-muted)' }} />
+          <Search size={18} style={{ position: 'absolute', left: '1rem', color: 'var(--caanma-text-muted)' }} />
           <input 
             type="text" 
             placeholder="🔍 Buscar traspaso por ID o sucursal..." 
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            style={{ padding: '0.8rem 1.5rem 0.8rem 2.5rem', width: '100%', borderRadius: '999px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white', fontSize: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+            style={{ padding: '0.8rem 1.5rem 0.8rem 2.5rem', width: '100%', borderRadius: '999px', border: '1px solid var(--caanma-border)', backgroundColor: 'white', fontSize: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
           />
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', backgroundColor: '#f1f5f9', padding: '0.25rem', borderRadius: '8px' }}>
           <button 
             onClick={() => setViewMode('grid')}
-            style={{ padding: '0.5rem', borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: viewMode === 'grid' ? 'white' : 'transparent', color: viewMode === 'grid' ? 'var(--pulpos-primary)' : 'var(--pulpos-text-muted)', boxShadow: viewMode === 'grid' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+            style={{ padding: '0.5rem', borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: viewMode === 'grid' ? 'white' : 'transparent', color: viewMode === 'grid' ? 'var(--caanma-primary)' : 'var(--caanma-text-muted)', boxShadow: viewMode === 'grid' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
           >
             <LayoutGrid size={20} />
           </button>
           <button 
             onClick={() => setViewMode('list')}
-            style={{ padding: '0.5rem', borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: viewMode === 'list' ? 'white' : 'transparent', color: viewMode === 'list' ? 'var(--pulpos-primary)' : 'var(--pulpos-text-muted)', boxShadow: viewMode === 'list' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+            style={{ padding: '0.5rem', borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: viewMode === 'list' ? 'white' : 'transparent', color: viewMode === 'list' ? 'var(--caanma-primary)' : 'var(--caanma-text-muted)', boxShadow: viewMode === 'list' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
           >
             <List size={20} />
           </button>
@@ -107,15 +107,15 @@ export default function TraspasosClient({
       {/* Advanced Filters */}
       <div style={{ 
         backgroundColor: 'white', 
-        border: '1px solid var(--pulpos-border)', 
+        border: '1px solid var(--caanma-border)', 
         borderRadius: '12px', 
         padding: '1.25rem', 
         marginBottom: '2rem', 
         boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, fontSize: '0.9rem', color: 'var(--pulpos-text)' }}>
-            <SlidersHorizontal size={16} color="var(--pulpos-primary)" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, fontSize: '0.9rem', color: 'var(--caanma-text)' }}>
+            <SlidersHorizontal size={16} color="var(--caanma-primary)" />
             <span>Filtros detallados</span>
           </div>
           {hasActiveFilters && (
@@ -124,7 +124,7 @@ export default function TraspasosClient({
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--pulpos-primary)',
+                color: 'var(--caanma-primary)',
                 fontSize: '0.8rem',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -160,7 +160,7 @@ export default function TraspasosClient({
                   width: '100%',
                   padding: '0.5rem 0.75rem 0.5rem 2rem',
                   borderRadius: '6px',
-                  border: '1px solid var(--pulpos-border)',
+                  border: '1px solid var(--caanma-border)',
                   fontSize: '0.85rem',
                   outline: 'none',
                   backgroundColor: '#f8fafc'
@@ -179,7 +179,7 @@ export default function TraspasosClient({
                 width: '100%',
                 padding: '0.5rem 0.75rem',
                 borderRadius: '6px',
-                border: '1px solid var(--pulpos-border)',
+                border: '1px solid var(--caanma-border)',
                 fontSize: '0.85rem',
                 outline: 'none',
                 backgroundColor: '#f8fafc',
@@ -203,7 +203,7 @@ export default function TraspasosClient({
                 width: '100%',
                 padding: '0.5rem 0.75rem',
                 borderRadius: '6px',
-                border: '1px solid var(--pulpos-border)',
+                border: '1px solid var(--caanma-border)',
                 fontSize: '0.85rem',
                 outline: 'none',
                 backgroundColor: '#f8fafc',
@@ -228,7 +228,7 @@ export default function TraspasosClient({
                 width: '100%',
                 padding: '0.4rem 0.75rem',
                 borderRadius: '6px',
-                border: '1px solid var(--pulpos-border)',
+                border: '1px solid var(--caanma-border)',
                 fontSize: '0.85rem',
                 outline: 'none',
                 backgroundColor: '#f8fafc',
@@ -247,7 +247,7 @@ export default function TraspasosClient({
                 width: '100%',
                 padding: '0.5rem 0.75rem',
                 borderRadius: '6px',
-                border: '1px solid var(--pulpos-border)',
+                border: '1px solid var(--caanma-border)',
                 fontSize: '0.85rem',
                 outline: 'none',
                 backgroundColor: '#f8fafc',
@@ -264,7 +264,7 @@ export default function TraspasosClient({
       </div>
 
       {filteredTransfers.length === 0 ? (
-        <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--pulpos-text-muted)', backgroundColor: 'white', borderRadius: '12px', border: '1px dashed var(--pulpos-border)' }}>
+        <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--caanma-text-muted)', backgroundColor: 'white', borderRadius: '12px', border: '1px dashed var(--caanma-border)' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
             <FileText size={64} color="#e2e8f0" />
             <p style={{ fontSize: '1.2rem', fontWeight: '500' }}>No se encontraron traspasos de inventario.</p>
@@ -279,7 +279,7 @@ export default function TraspasosClient({
               <div key={item.id} style={{ 
                 backgroundColor: 'white', 
                 borderRadius: '16px', 
-                border: '1px solid var(--pulpos-border)', 
+                border: '1px solid var(--caanma-border)', 
                 overflow: 'hidden',
                 boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
                 transition: 'transform 0.2s, box-shadow 0.2s',
@@ -290,9 +290,9 @@ export default function TraspasosClient({
               onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)'; }}
               onMouseOut={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.05)'; }}
               >
-                <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--pulpos-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--caanma-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                     <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                     <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
                        <Truck size={14} /> #{item.id.substring(0,8).toUpperCase()}
                      </div>
                      <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -314,14 +314,14 @@ export default function TraspasosClient({
                   <div style={{ position: 'relative' }}>
                     <button 
                       onClick={() => setOpenDropdownId(openDropdownId === item.id ? null : item.id)}
-                      style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--pulpos-text-muted)' }}
+                      style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--caanma-text-muted)' }}
                     >
                       <MoreVertical size={20} />
                     </button>
                     {openDropdownId === item.id && (
-                      <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '0.5rem', backgroundColor: 'white', border: '1px solid var(--pulpos-border)', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 20, width: '150px', overflow: 'hidden' }}>
-                        <Link href={`/productos/traspasos/${item.id}`} style={{ display: 'block', padding: '0.75rem 1rem', textDecoration: 'none', color: 'var(--pulpos-text)', fontSize: '0.9rem', borderBottom: '1px solid var(--pulpos-border)' }}>Ver Detalle</Link>
-                        <Link href={`/productos/traspasos/${item.id}/imprimir`} target="_blank" style={{ display: 'block', padding: '0.75rem 1rem', textDecoration: 'none', color: 'var(--pulpos-primary)', fontSize: '0.9rem' }}>Imprimir</Link>
+                      <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '0.5rem', backgroundColor: 'white', border: '1px solid var(--caanma-border)', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 20, width: '150px', overflow: 'hidden' }}>
+                        <Link href={`/productos/traspasos/${item.id}`} style={{ display: 'block', padding: '0.75rem 1rem', textDecoration: 'none', color: 'var(--caanma-text)', fontSize: '0.9rem', borderBottom: '1px solid var(--caanma-border)' }}>Ver Detalle</Link>
+                        <Link href={`/productos/traspasos/${item.id}/imprimir`} target="_blank" style={{ display: 'block', padding: '0.75rem 1rem', textDecoration: 'none', color: 'var(--caanma-primary)', fontSize: '0.9rem' }}>Imprimir</Link>
                       </div>
                     )}
                   </div>
@@ -330,25 +330,25 @@ export default function TraspasosClient({
                 <div style={{ padding: '1.25rem', flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                      <div style={{ textAlign: 'center', flex: 1 }}>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--pulpos-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Origen</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--caanma-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Origen</div>
                         <div style={{ fontWeight: 'bold', color: '#0f172a', fontSize: '0.9rem' }}>{item.branch?.name || 'Central'}</div>
                      </div>
-                     <ArrowRight size={16} color="var(--pulpos-text-muted)" style={{ margin: '0 0.5rem' }} />
+                     <ArrowRight size={16} color="var(--caanma-text-muted)" style={{ margin: '0 0.5rem' }} />
                      <div style={{ textAlign: 'center', flex: 1 }}>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--pulpos-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Destino</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--caanma-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Destino</div>
                         <div style={{ fontWeight: 'bold', color: '#0f172a', fontSize: '0.9rem' }}>{item.toBranch?.name || 'N/A'}</div>
                      </div>
                   </div>
 
-                  <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>
                     <div style={{ marginBottom: '0.2rem' }}>Creado: {new Date(item.createdAt).toLocaleString()}</div>
                     {item.createdBy && <div>Enviado por: <strong>{item.createdBy.name}</strong></div>}
                     {item.receivedBy && <div>Recibido por: <strong>{item.receivedBy.name}</strong></div>}
                   </div>
                 </div>
                 
-                <div style={{ padding: '1rem 1.25rem', backgroundColor: '#f8fafc', borderTop: '1px solid var(--pulpos-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Link href={`/productos/traspasos/${item.id}`} style={{ color: 'var(--pulpos-primary)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                <div style={{ padding: '1rem 1.25rem', backgroundColor: '#f8fafc', borderTop: '1px solid var(--caanma-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Link href={`/productos/traspasos/${item.id}`} style={{ color: 'var(--caanma-primary)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold' }}>
                     Ver Detalle &rarr;
                   </Link>
                   {isIncoming && item.status === 'IN_TRANSIT' && (
@@ -374,11 +374,11 @@ export default function TraspasosClient({
           <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ backgroundColor: '#f8fafc' }}>
               <tr>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Traspaso ID</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Ruta (Origen → Destino)</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Información</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Estado</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'right' }}>Acciones</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Traspaso ID</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Ruta (Origen → Destino)</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Información</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Estado</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'right' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -386,7 +386,7 @@ export default function TraspasosClient({
                 const isIncoming = item.toBranchId === currentBranchId;
                 
                 return (
-                <tr key={item.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                <tr key={item.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                   <td data-label="Traspaso ID" style={{ padding: '1rem', fontWeight: '500' }}>
                     <div style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>#{item.id.substring(0,8).toUpperCase()}</div>
                     <span style={{ fontSize: '10px', padding: '2px 4px', borderRadius: '4px', display: 'inline-block', backgroundColor: isIncoming ? '#e0e7ff' : '#f1f5f9', color: isIncoming ? '#4338ca' : '#475569', marginTop: '4px' }}>
@@ -399,7 +399,7 @@ export default function TraspasosClient({
                       <ArrowRight size={12} /> {item.toBranch?.name || 'N/A'}
                     </div>
                   </td>
-                  <td data-label="Información" style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>
+                  <td data-label="Información" style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>
                     <div style={{ marginBottom: '0.2rem' }}>{new Date(item.createdAt).toLocaleString()}</div>
                     {item.createdBy && <div><span style={{fontWeight: 500}}>Enviado por:</span> {item.createdBy.name}</div>}
                     {item.receivedBy && <div><span style={{fontWeight: 500}}>Recibido por:</span> {item.receivedBy.name}</div>}
@@ -417,7 +417,7 @@ export default function TraspasosClient({
                     </span>
                   </td>
                     <td data-label="Acciones" style={{ padding: '1rem', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                      <Link href={`/productos/traspasos/${item.id}/imprimir`} target="_blank" style={{ backgroundColor: 'white', color: 'var(--pulpos-primary)', border: '1px solid var(--pulpos-primary)', padding: '0.4rem 0.75rem', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
+                      <Link href={`/productos/traspasos/${item.id}/imprimir`} target="_blank" style={{ backgroundColor: 'white', color: 'var(--caanma-primary)', border: '1px solid var(--caanma-primary)', padding: '0.4rem 0.75rem', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
                          Imprimir
                       </Link>
                       <Link href={`/productos/traspasos/${item.id}`} style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '0.4rem 0.75rem', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>

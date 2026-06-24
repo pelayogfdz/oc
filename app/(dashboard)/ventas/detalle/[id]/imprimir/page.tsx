@@ -178,11 +178,11 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
         {/* Footer & QR */}
         <div style={{ position: 'absolute', bottom: '2cm', left: '2cm', right: '2cm' }}>
           <div className="qr-section">
-            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://clientes.pulpos.com?ticketId=${sale.id.slice(0, 8)}`} alt="QR Code" style={{ width: '80px', height: '80px' }} />
+            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://clientes.caanma.com?ticketId=${sale.id.slice(0, 8)}`} alt="QR Code" style={{ width: '80px', height: '80px' }} />
             <div>
               <h4 style={{ margin: '0 0 0.25rem 0', color: '#0f172a', fontSize: '1rem' }}>¿Requieres Factura Electrónica?</h4>
               <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>
-                Escanea el código QR o ingresa a <strong>clientes.pulpos.com</strong> con tu folio:<br/>
+                Escanea el código QR o ingresa a <strong>clientes.caanma.com</strong> con tu folio:<br/>
                 <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: primaryColor, letterSpacing: '1px' }}>{sale.folio || sale.id.slice(0, 8).toUpperCase()}</span>
               </p>
             </div>

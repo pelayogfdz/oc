@@ -58,7 +58,7 @@ export default async function ProspeccionPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Prospección (CRM)</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Embudo de ventas y seguimiento de WhatsApp</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Embudo de ventas y seguimiento de WhatsApp</p>
         </div>
       </div>
       

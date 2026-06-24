@@ -107,13 +107,13 @@ export default function CostosProveedorClient({ initProducts, brands, branchId }
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Listas de Precios de Proveedor</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>Actualiza rápidamente el costo de reposición. Exporta, edita en Excel e importa.</p>
+          <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>Actualiza rápidamente el costo de reposición. Exporta, edita en Excel e importa.</p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <button onClick={handleExport} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.6rem 1rem', border: '1px solid var(--pulpos-border)', borderRadius: '6px', background: 'white', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.875rem' }}>
+          <button onClick={handleExport} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.6rem 1rem', border: '1px solid var(--caanma-border)', borderRadius: '6px', background: 'white', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.875rem' }}>
             <Download size={16} /> Exportar CSV
           </button>
-          <button onClick={() => fileInputRef.current?.click()} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.6rem 1rem', border: '1px solid var(--pulpos-border)', borderRadius: '6px', background: 'white', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.875rem' }}>
+          <button onClick={() => fileInputRef.current?.click()} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.6rem 1rem', border: '1px solid var(--caanma-border)', borderRadius: '6px', background: 'white', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.875rem' }}>
             <Upload size={16} /> Importar CSV
           </button>
           <button onClick={handleSave} disabled={isSaving || modifiedCount === 0} className="btn-primary" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', opacity: (isSaving || modifiedCount === 0) ? 0.5 : 1 }}>
@@ -131,17 +131,17 @@ export default function CostosProveedorClient({ initProducts, brands, branchId }
       <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'end', flexWrap: 'wrap' }}>
         <div style={{ flex: 2, minWidth: '180px' }}>
           <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: 'bold' }}><Search size={14} style={{ display: 'inline', marginRight: '4px' }}/> Buscar Producto</label>
-          <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="SKU o Nombre..." style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+          <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="SKU o Nombre..." style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
         </div>
         <div style={{ flex: 1, minWidth: '140px' }}>
           <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: 'bold' }}><Filter size={14} style={{ display: 'inline', marginRight: '4px' }}/> Filtrar por Marca</label>
-          <select value={brandFilter} onChange={e => setBrandFilter(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}>
+          <select value={brandFilter} onChange={e => setBrandFilter(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}>
             <option value="">(Todas las marcas)</option>
             {brands.map(b => <option key={b} value={b}>{b}</option>)}
           </select>
         </div>
         <div style={{ flex: 1, minWidth: '180px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', cursor: 'pointer', padding: '0.6rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', backgroundColor: forceAverageCost ? '#eff6ff' : 'transparent' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', cursor: 'pointer', padding: '0.6rem', border: '1px solid var(--caanma-border)', borderRadius: '4px', backgroundColor: forceAverageCost ? '#eff6ff' : 'transparent' }}>
             <input type="checkbox" checked={forceAverageCost} onChange={e => setForceAverageCost(e.target.checked)} />
             Forzar también Costo Promedio
           </label>
@@ -152,23 +152,23 @@ export default function CostosProveedorClient({ initProducts, brands, branchId }
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
           <thead style={{ backgroundColor: '#f8fafc' }}>
             <tr>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>SKU</th>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Producto</th>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Marca</th>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Costo Prom. Actual</th>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Nuevo Costo (Reposición)</th>
+              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>SKU</th>
+              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Producto</th>
+              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Marca</th>
+              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Costo Prom. Actual</th>
+              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Nuevo Costo (Reposición)</th>
             </tr>
           </thead>
           <tbody>
             {displayedProducts.map(p => (
-              <tr key={p.id} style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: p._modified ? '#fefce8' : 'transparent' }}>
-                <td style={{ padding: '0.75rem 1rem', color: 'var(--pulpos-text-muted)' }}>{p.sku || '--'}</td>
+              <tr key={p.id} style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: p._modified ? '#fefce8' : 'transparent' }}>
+                <td style={{ padding: '0.75rem 1rem', color: 'var(--caanma-text-muted)' }}>{p.sku || '--'}</td>
                 <td style={{ padding: '0.75rem 1rem', fontWeight: '500' }}>{p.name}</td>
-                <td style={{ padding: '0.75rem 1rem', color: 'var(--pulpos-text-muted)' }}>{p.brand || '--'}</td>
+                <td style={{ padding: '0.75rem 1rem', color: 'var(--caanma-text-muted)' }}>{p.brand || '--'}</td>
                 <td style={{ padding: '0.75rem 1rem' }}>${(p.averageCost || 0).toFixed(2)}</td>
                 <td style={{ padding: '0.75rem 1rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ color: 'var(--pulpos-text-muted)' }}>$</span>
+                    <span style={{ color: 'var(--caanma-text-muted)' }}>$</span>
                     <input
                       type="number"
                       step="0.01"
@@ -178,7 +178,7 @@ export default function CostosProveedorClient({ initProducts, brands, branchId }
                         width: '100px',
                         padding: '0.25rem',
                         borderRadius: '4px',
-                        border: p._modified ? '1px solid #eab308' : '1px solid var(--pulpos-border)',
+                        border: p._modified ? '1px solid #eab308' : '1px solid var(--caanma-border)',
                         backgroundColor: p._modified ? '#fefce8' : 'white',
                         fontWeight: p._modified ? 'bold' : 'normal'
                       }}
@@ -189,7 +189,7 @@ export default function CostosProveedorClient({ initProducts, brands, branchId }
               </tr>
             ))}
             {displayedProducts.length === 0 && (
-              <tr><td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>No hay productos que coincidan con los filtros.</td></tr>
+              <tr><td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>No hay productos que coincidan con los filtros.</td></tr>
             )}
           </tbody>
         </table>

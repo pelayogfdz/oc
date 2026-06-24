@@ -12,19 +12,19 @@ export default function Nuevo() {
   return (
     <div style={{ maxWidth: '600px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
-        <Link href="/integraciones" style={{ textDecoration: 'none', color: 'var(--pulpos-text-muted)', fontSize: '1.25rem' }}>← Volver</Link>
+        <Link href="/integraciones" style={{ textDecoration: 'none', color: 'var(--caanma-text-muted)', fontSize: '1.25rem' }}>← Volver</Link>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Ingresar Registro / Integraciones (API)</h1>
       </div>
       <form action={saveAction} className="card" style={{ padding: '2rem' }}>
         
         <div style={{ marginBottom: '1.5rem' }}>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Plataforma (Ej. MercadoLibre)</label>
-          <input type="text" name="name" required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+          <input type="text" name="name" required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
         </div>
      
         <div style={{ marginBottom: '1.5rem' }}>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>API Key</label>
-          <input type="text" name="key" required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+          <input type="text" name="key" required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
         </div>
      
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>

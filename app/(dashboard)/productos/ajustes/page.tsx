@@ -32,7 +32,7 @@ export default async function Page() {
             <FileText size={28} color="#2563eb" />
             Bitácora de Ajustes Manuales
           </h1>
-          <p style={{ color: 'var(--pulpos-text-muted)', margin: 0 }}>
+          <p style={{ color: 'var(--caanma-text-muted)', margin: 0 }}>
             Historial de alteraciones de stock hechas directamente o mediante conteos.
           </p>
         </div>
@@ -46,9 +46,9 @@ export default async function Page() {
         </div>
       </div>
 
-      <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--pulpos-border)', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--caanma-border)', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--pulpos-border)' }}>
+          <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
             <tr>
               <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem' }}>Fecha</th>
               <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem' }}>Producto</th>
@@ -61,7 +61,7 @@ export default async function Page() {
             {data.map((item: any) => {
               const isPositive = item.quantity > 0;
               return (
-                <tr key={item.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                <tr key={item.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                   <td style={{ padding: '1rem', fontSize: '0.9rem', color: '#475569' }}>
                     {new Date(item.createdAt).toLocaleString()}
                   </td>
@@ -72,7 +72,7 @@ export default async function Page() {
                       </div>
                       <div>
                         <div style={{ fontWeight: 'bold', color: '#0f172a' }}>{item.product?.name || 'Stock'}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)' }}>SKU: {item.product?.sku}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)' }}>SKU: {item.product?.sku}</div>
                       </div>
                     </div>
                   </td>
@@ -98,7 +98,7 @@ export default async function Page() {
                      <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#0f172a' }}>
                         {item.user?.name || 'Sistema'}
                      </div>
-                     <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)' }}>
+                     <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)' }}>
                         {item.user?.email || 'N/A'}
                      </div>
                   </td>
@@ -108,7 +108,7 @@ export default async function Page() {
             
             {data.length === 0 && (
               <tr>
-                <td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                <td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                   <FileText size={40} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
                   La bitácora de ajustes manuales está vacía.
                 </td>

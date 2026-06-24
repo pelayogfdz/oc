@@ -33,7 +33,7 @@ export async function POST(req: Request) {
             data: { stock: { decrement: qtySold } }
           });
 
-          // Registrar en Kardex de Pulpos
+          // Registrar en Kardex de Caanma
           await prisma.inventoryMovement.create({
             data: {
               productId: mappedItem.product.id,
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
             }
           });
 
-          // Opcional: Registrar una "Sale" en Pulpos para reflejar en el balance contable
+          // Opcional: Registrar una "Sale" en Caanma para reflejar en el balance contable
           // ... 
        }
     }

@@ -14,7 +14,7 @@ export default async function Nuevo() {
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
-        <Link href="/productos/ajustes" style={{ textDecoration: 'none', color: 'var(--pulpos-text-muted)', fontSize: '1.25rem' }}>← Volver</Link>
+        <Link href="/productos/ajustes" style={{ textDecoration: 'none', color: 'var(--caanma-text-muted)', fontSize: '1.25rem' }}>← Volver</Link>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Ingresar Registro / Ajustes Manuales</h1>
       </div>
       

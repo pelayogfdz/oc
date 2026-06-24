@@ -42,7 +42,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
     <div style={{ maxWidth: '900px', margin: '0 auto', fontFamily: 'sans-serif', color: 'black' }}>
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-         <Link href="/ventas" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--pulpos-text-muted)', textDecoration: 'none', fontWeight: 'bold' }}>
+         <Link href="/ventas" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--caanma-text-muted)', textDecoration: 'none', fontWeight: 'bold' }}>
             <ArrowLeft size={20} /> Volver a Ventas
          </Link>
          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -120,7 +120,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
                       href={`/productos/${item.productId}`} 
                       style={{ 
                         fontWeight: 'bold', 
-                        color: 'var(--pulpos-primary, #8b5cf6)', 
+                        color: 'var(--caanma-primary, #8b5cf6)', 
                         textDecoration: 'none' 
                       }}
                       className="hover:underline"

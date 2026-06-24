@@ -113,8 +113,8 @@ function Footer() {
           </div>
           <div className="flex flex-col md:items-end justify-center">
              <h4 className="text-lg font-bold mb-4 text-gray-900">Contáctanos</h4>
-             <a href="mailto:hola@caanma.com" className="text-gray-600 hover:text-[var(--pulpos-primary)] mb-3 flex items-center gap-2 transition-colors"><Mail size={16}/> hola@caanma.com</a>
-             <a href="tel:+521234567890" className="text-gray-600 hover:text-[var(--pulpos-primary)] flex items-center gap-2 transition-colors"><Phone size={16}/> +52 (123) 456-7890</a>
+             <a href="mailto:hola@caanma.com" className="text-gray-600 hover:text-[var(--caanma-primary)] mb-3 flex items-center gap-2 transition-colors"><Mail size={16}/> hola@caanma.com</a>
+             <a href="tel:+521234567890" className="text-gray-600 hover:text-[var(--caanma-primary)] flex items-center gap-2 transition-colors"><Phone size={16}/> +52 (123) 456-7890</a>
           </div>
         </div>
         <div className="pt-8 border-t border-gray-100 text-center text-gray-500 text-sm flex flex-col md:flex-row justify-between items-center">
@@ -404,8 +404,8 @@ export default function LoginPage() {
                   <ChevronRight size={20} />
                 </button>
                 <div className="flex items-center gap-6 text-gray-500 font-medium text-sm">
-                  <div className="flex items-center gap-1.5"><ShieldCheck className="text-[var(--pulpos-primary)] w-5 h-5" /> Seguro</div>
-                  <div className="flex items-center gap-1.5"><Zap className="text-[var(--pulpos-primary)] w-5 h-5" /> Rápido</div>
+                  <div className="flex items-center gap-1.5"><ShieldCheck className="text-[var(--caanma-primary)] w-5 h-5" /> Seguro</div>
+                  <div className="flex items-center gap-1.5"><Zap className="text-[var(--caanma-primary)] w-5 h-5" /> Rápido</div>
                 </div>
               </div>
             </div>
@@ -436,9 +436,9 @@ export default function LoginPage() {
         title="Vende tan fácil que lo vas a amar"
         imageSrc="/img/ventas_module.png"
         features={[
-          { icon: <Receipt className="w-6 h-6 text-[var(--pulpos-primary)]" />, title: "Tickets y Notas Rápidas", description: "Procesa múltiples ventas con un solo clic. Imprímelos o compártelos por WhatsApp fácilmente." },
-          { icon: <Coins className="w-6 h-6 text-[var(--pulpos-primary)]" />, title: "Ventas a Crédito", description: "Otorga líneas de crédito, lleva estados de cuenta de tus clientes y gestiona abonos sin perder el control." },
-          { icon: <DollarSign className="w-6 h-6 text-[var(--pulpos-primary)]" />, title: "Cortes de Caja a Prueba de Errores", description: "Detecta diferencias, entradas y salidas de efectivo, y cuadra las finanzas de tu equipo al instante." },
+          { icon: <Receipt className="w-6 h-6 text-[var(--caanma-primary)]" />, title: "Tickets y Notas Rápidas", description: "Procesa múltiples ventas con un solo clic. Imprímelos o compártelos por WhatsApp fácilmente." },
+          { icon: <Coins className="w-6 h-6 text-[var(--caanma-primary)]" />, title: "Ventas a Crédito", description: "Otorga líneas de crédito, lleva estados de cuenta de tus clientes y gestiona abonos sin perder el control." },
+          { icon: <DollarSign className="w-6 h-6 text-[var(--caanma-primary)]" />, title: "Cortes de Caja a Prueba de Errores", description: "Detecta diferencias, entradas y salidas de efectivo, y cuadra las finanzas de tu equipo al instante." },
         ]}
       />
 
@@ -448,8 +448,8 @@ export default function LoginPage() {
         reverse
         imageSrc="/img/inventario_module.png"
         features={[
-          { icon: <Warehouse className="w-6 h-6 text-[var(--pulpos-primary)]" />, title: "Almacenes y Multi-Sucursal", description: "Control en tiempo real exacto y escalable. Traspasa mercancía entre sucursales y aprueba los movimientos." },
-          { icon: <Truck className="w-6 h-6 text-[var(--pulpos-primary)]" />, title: "Proveedores y Capital", description: "Lleva tus pedidos a proveedores siempre organizados y conoce al instante cuánto capital tienes amarrado en bodega." },
+          { icon: <Warehouse className="w-6 h-6 text-[var(--caanma-primary)]" />, title: "Almacenes y Multi-Sucursal", description: "Control en tiempo real exacto y escalable. Traspasa mercancía entre sucursales y aprueba los movimientos." },
+          { icon: <Truck className="w-6 h-6 text-[var(--caanma-primary)]" />, title: "Proveedores y Capital", description: "Lleva tus pedidos a proveedores siempre organizados y conoce al instante cuánto capital tienes amarrado en bodega." },
         ]}
       />
 
@@ -458,15 +458,15 @@ export default function LoginPage() {
         title="Facturación Electrónica en Automático"
         imageSrc="/img/facturacion_module.png"
         features={[
-          { icon: <FileCheck className="w-6 h-6 text-[var(--pulpos-primary)]" />, title: "Comprobantes (1,000 folios incluidos por mes)", description: "Emisión de facturas CFDI 4.0 y complementos de pago al instante. Después $1 MXN por folio adicional." },
-          { icon: <Users className="w-6 h-6 text-[var(--pulpos-primary)]" />, title: "Portal de Autofacturación", description: "Tus clientes pueden descargar y generar sus facturas ellos mismos utilizando su número de ticket o RFC." },
+          { icon: <FileCheck className="w-6 h-6 text-[var(--caanma-primary)]" />, title: "Comprobantes (1,000 folios incluidos por mes)", description: "Emisión de facturas CFDI 4.0 y complementos de pago al instante. Después $1 MXN por folio adicional." },
+          { icon: <Users className="w-6 h-6 text-[var(--caanma-primary)]" />, title: "Portal de Autofacturación", description: "Tus clientes pueden descargar y generar sus facturas ellos mismos utilizando su número de ticket o RFC." },
         ]}
       />
 
       <section className="py-24 lg:py-40 bg-white border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center gap-2 px-5 py-2 bg-purple-50 border border-purple-100 rounded-full mb-8 shadow-sm">
-            <Tag size={16} className="text-[var(--pulpos-primary)]" />
+            <Tag size={16} className="text-[var(--caanma-primary)]" />
             <span className="text-purple-700 font-bold text-sm tracking-wide uppercase">Precios</span>
           </div>
           <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 mb-6 tracking-tight">Precios Simples y Transparentes</h2>
@@ -481,7 +481,7 @@ export default function LoginPage() {
               </div>
               <p className="text-gray-500 mt-3 font-medium text-lg">por empresa (incluye 1 usuario)</p>
             </div>
-            <div className="flex items-center justify-center gap-3 text-[var(--pulpos-primary)] mb-10 bg-purple-50/50 border border-purple-100 py-4 rounded-2xl">
+            <div className="flex items-center justify-center gap-3 text-[var(--caanma-primary)] mb-10 bg-purple-50/50 border border-purple-100 py-4 rounded-2xl">
               <Plus size={20} className="font-bold" />
               <span className="text-3xl font-black">$10</span>
               <span className="text-lg font-medium text-purple-800">USD / usuario adicional al mes</span>
@@ -506,16 +506,16 @@ export default function LoginPage() {
           
           <div>
             <label className="block text-[15px] font-semibold text-[#1e293b] mb-2 font-sans text-left">Email</label>
-            <input type="email" name="email" required value={email} onChange={e => setEmail(e.target.value)} className="block w-full rounded-xl border border-gray-300 bg-gray-50 py-3.5 px-4 text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[var(--pulpos-primary)] focus:ring-4 focus:ring-[var(--pulpos-primary)]/10 outline-none transition-all hover:border-gray-400 font-medium font-sans text-[15px]" placeholder="Ingresa tu email" />
+            <input type="email" name="email" required value={email} onChange={e => setEmail(e.target.value)} className="block w-full rounded-xl border border-gray-300 bg-gray-50 py-3.5 px-4 text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[var(--caanma-primary)] focus:ring-4 focus:ring-[var(--caanma-primary)]/10 outline-none transition-all hover:border-gray-400 font-medium font-sans text-[15px]" placeholder="Ingresa tu email" />
           </div>
           <div>
             <label className="block text-[15px] font-semibold text-[#1e293b] mb-2 font-sans text-left">Contraseña</label>
-            <input type="password" name="password" required value={password} onChange={e => setPassword(e.target.value)} className="block w-full rounded-xl border border-gray-300 bg-gray-50 py-3.5 px-4 text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[var(--pulpos-primary)] focus:ring-4 focus:ring-[var(--pulpos-primary)]/10 outline-none transition-all hover:border-gray-400 font-medium font-sans text-[15px]" placeholder="Ingresa tu contraseña" />
+            <input type="password" name="password" required value={password} onChange={e => setPassword(e.target.value)} className="block w-full rounded-xl border border-gray-300 bg-gray-50 py-3.5 px-4 text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[var(--caanma-primary)] focus:ring-4 focus:ring-[var(--caanma-primary)]/10 outline-none transition-all hover:border-gray-400 font-medium font-sans text-[15px]" placeholder="Ingresa tu contraseña" />
           </div>
           
           <div className="flex items-center justify-between pt-2 pb-6">
              <label className="flex items-center gap-3 cursor-pointer group">
-               <input type="checkbox" className="w-[18px] h-[18px] rounded border-gray-300 text-[var(--pulpos-primary)] focus:ring-[var(--pulpos-primary)] accent-[var(--pulpos-primary)] cursor-pointer" />
+               <input type="checkbox" className="w-[18px] h-[18px] rounded border-gray-300 text-[var(--caanma-primary)] focus:ring-[var(--caanma-primary)] accent-[var(--caanma-primary)] cursor-pointer" />
                <span className="text-[15px] text-[#475569] group-hover:text-gray-900 font-sans">Recordarme</span>
              </label>
              <button type="button" onClick={openForgot} className="text-[15px] font-medium text-[#0ea5e9] hover:underline transition-all font-sans">

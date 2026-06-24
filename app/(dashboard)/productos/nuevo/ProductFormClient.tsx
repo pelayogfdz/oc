@@ -87,7 +87,7 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
       
       {/* Imagen */}
       <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>Multimedia del Producto</h2>
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Multimedia del Producto</h2>
         <ProductImageSection 
           initialImageUrl={cloneProduct?.imageUrl || ''}
           initialYoutubeUrl={cloneProduct?.youtubeUrl || ''}
@@ -98,30 +98,30 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
 
       {/* Identificación */}
       <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>Identificación</h2>
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Identificación</h2>
         
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Nombre del Producto *</label>
-            <input type="text" name="name" defaultValue={cloneProduct ? `${cloneProduct.name} (Copia)` : ''} required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+            <input type="text" name="name" defaultValue={cloneProduct ? `${cloneProduct.name} (Copia)` : ''} required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Categoría / Departamento</label>
-            <input type="text" name="category" defaultValue={cloneProduct?.category || ''} placeholder="Ej. Abarrotes, Papelería..." style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+            <input type="text" name="category" defaultValue={cloneProduct?.category || ''} placeholder="Ej. Abarrotes, Papelería..." style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Marca</label>
-            <input type="text" name="brand" defaultValue={cloneProduct?.brand || ''} placeholder="Ej. Coca Cola, BIC..." style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+            <input type="text" name="brand" defaultValue={cloneProduct?.brand || ''} placeholder="Ej. Coca Cola, BIC..." style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>SKU Base (Código Interno) *</label>
-            <input type="text" name="sku" defaultValue="" required placeholder="Nuevo SKU" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+            <input type="text" name="sku" defaultValue="" required placeholder="Nuevo SKU" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Código de Barras</label>
-            <input type="text" name="barcode" defaultValue="" placeholder="(Opcional)" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+            <input type="text" name="barcode" defaultValue="" placeholder="(Opcional)" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
           </div>
-          <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '2rem', flexWrap: 'wrap', marginTop: '0.5rem', marginBottom: '0.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }}>
+          <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '2rem', flexWrap: 'wrap', marginTop: '0.5rem', marginBottom: '0.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '6px', border: '1px solid var(--caanma-border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <input type="hidden" name="allowProduction" value="false" />
               <input 
@@ -216,13 +216,13 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
         
         <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Descripción</label>
-          <textarea name="description" defaultValue={cloneProduct?.description || ''} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', fontFamily: 'inherit' }}></textarea>
+          <textarea name="description" defaultValue={cloneProduct?.description || ''} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', fontFamily: 'inherit' }}></textarea>
         </div>
       </div>
 
       {/* Finanzas y Precios */}
       <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>Finanzas y Precios</h2>
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Finanzas y Precios</h2>
         <ProductFinanceSection 
           initialCost={parseFloat(cloneProduct?.cost || "0")}
           initialPrice={parseFloat(cloneProduct?.price || "0")}
@@ -237,7 +237,7 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
       {/* Variantes Selector */}
       {!isService && (
         <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>
             <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Variantes Dinámicas</h2>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
               <input type="checkbox" checked={hasVariants} onChange={(e) => { setHasVariants(e.target.checked); if(e.target.checked && variants.length === 0) handleAddVariant(); }} style={{ width: '20px', height: '20px' }} />
@@ -260,13 +260,13 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
                   {variants.map((v, index) => (
                     <tr key={index}>
                       <td style={{ padding: '0.5rem' }}>
-                        <input type="text" value={v.attribute} onChange={e => handleVariantChange(index, 'attribute', e.target.value)} required placeholder="Rojo XL" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                        <input type="text" value={v.attribute} onChange={e => handleVariantChange(index, 'attribute', e.target.value)} required placeholder="Rojo XL" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
                       </td>
                       <td style={{ padding: '0.5rem' }}>
-                        <input type="text" value={v.sku} onChange={e => handleVariantChange(index, 'sku', e.target.value)} required placeholder="SKU-ROJO-XL" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                        <input type="text" value={v.sku} onChange={e => handleVariantChange(index, 'sku', e.target.value)} required placeholder="SKU-ROJO-XL" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
                       </td>
                       <td style={{ padding: '0.5rem' }}>
-                        <input type="number" value={v.stock} onChange={e => handleVariantChange(index, 'stock', Number(e.target.value))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                        <input type="number" value={v.stock} onChange={e => handleVariantChange(index, 'stock', Number(e.target.value))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
                       </td>
                       <td style={{ padding: '0.5rem', textAlign: 'center' }}>
                         <button type="button" onClick={() => handleRemoveVariant(index)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={20}/></button>
@@ -286,7 +286,7 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
       {/* Lotes Selector */}
       {!isService && (
         <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>
             <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Gestión de Lotes (Opcional)</h2>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
               <input type="checkbox" checked={hasBatches} onChange={(e) => { setHasBatches(e.target.checked); if(e.target.checked && batches.length === 0) handleAddBatch(); }} style={{ width: '20px', height: '20px' }} />
@@ -309,13 +309,13 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
                   {batches.map((b, index) => (
                     <tr key={index}>
                       <td style={{ padding: '0.5rem' }}>
-                        <input type="text" value={b.batchNumber} onChange={e => handleBatchChange(index, 'batchNumber', e.target.value)} placeholder="Ej. LOTE-001" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                        <input type="text" value={b.batchNumber} onChange={e => handleBatchChange(index, 'batchNumber', e.target.value)} placeholder="Ej. LOTE-001" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
                       </td>
                       <td style={{ padding: '0.5rem' }}>
-                        <input type="date" value={b.expirationDate} onChange={e => handleBatchChange(index, 'expirationDate', e.target.value)} required style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                        <input type="date" value={b.expirationDate} onChange={e => handleBatchChange(index, 'expirationDate', e.target.value)} required style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
                       </td>
                       <td style={{ padding: '0.5rem' }}>
-                        <input type="number" value={b.stock} onChange={e => handleBatchChange(index, 'stock', Number(e.target.value))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                        <input type="number" value={b.stock} onChange={e => handleBatchChange(index, 'stock', Number(e.target.value))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
                       </td>
                       <td style={{ padding: '0.5rem', textAlign: 'center' }}>
                         <button type="button" onClick={() => handleRemoveBatch(index)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={20}/></button>
@@ -335,14 +335,14 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
       {/* Inventario Físico / Configuración de Servicio */}
       {isService ? (
         <div className="card" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>Configuración del Servicio</h2>
+          <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Configuración del Servicio</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
             <input type="hidden" name="stock" value="0" />
             <input type="hidden" name="minStock" value="0" />
             <input type="hidden" name="expirationDate" value="" />
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Unidad de Medida</label>
-              <select name="unit" defaultValue={cloneProduct?.unit || "Servicio"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}>
+              <select name="unit" defaultValue={cloneProduct?.unit || "Servicio"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }}>
                 <option value="Servicio">Servicio</option>
                 <option value="Pza">Pieza (Pza)</option>
                 <option value="Horas">Horas</option>
@@ -350,7 +350,7 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Proveedor Sugerido</label>
-              <select name="supplierId" defaultValue={cloneProduct?.supplierId || ""} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}>
+              <select name="supplierId" defaultValue={cloneProduct?.supplierId || ""} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }}>
                 <option value="">-- PÚBLICO / NINGUNO --</option>
                 {suppliers.map((s: any) => (
                   <option key={s.id} value={s.id}>{s.name}</option>
@@ -359,7 +359,7 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Estado</label>
-              <select name="isActive" defaultValue={cloneProduct ? (cloneProduct.isActive ? "true" : "false") : "true"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}>
+              <select name="isActive" defaultValue={cloneProduct ? (cloneProduct.isActive ? "true" : "false") : "true"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }}>
                 <option value="true">🟢 Activo</option>
                 <option value="false">🔴 Inactivo</option>
               </select>
@@ -369,19 +369,19 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
       ) : (
         (!hasVariants && !hasBatches) && (
           <div className="card" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>Inventario Físico Global</h2>
+            <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Inventario Físico Global</h2>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1.5rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Stock Inicial</label>
-                <input type="number" name="stock" defaultValue={cloneProduct?.stock || "0"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                <input type="number" name="stock" defaultValue={cloneProduct?.stock || "0"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Stock Mínimo</label>
-                <input type="number" name="minStock" defaultValue={cloneProduct?.minStock || "0"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                <input type="number" name="minStock" defaultValue={cloneProduct?.minStock || "0"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Unidad de Medida</label>
-                <select name="unit" defaultValue={cloneProduct?.unit || "Pza"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}>
+                <select name="unit" defaultValue={cloneProduct?.unit || "Pza"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }}>
                   <option value="Pza">Pieza (Pza)</option>
                   <option value="Kg">Kilogramos (Kg)</option>
                   <option value="Lt">Litros (Lt)</option>
@@ -390,7 +390,7 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Proveedor Sugerido</label>
-                <select name="supplierId" defaultValue={cloneProduct?.supplierId || ""} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}>
+                <select name="supplierId" defaultValue={cloneProduct?.supplierId || ""} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }}>
                   <option value="">-- PÚBLICO / NINGUNO --</option>
                   {suppliers.map((s: any) => (
                     <option key={s.id} value={s.id}>{s.name}</option>
@@ -399,14 +399,14 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Estado</label>
-                <select name="isActive" defaultValue={cloneProduct ? (cloneProduct.isActive ? "true" : "false") : "true"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}>
+                <select name="isActive" defaultValue={cloneProduct ? (cloneProduct.isActive ? "true" : "false") : "true"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }}>
                   <option value="true">🟢 Activo</option>
                   <option value="false">🔴 Inactivo</option>
                 </select>
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Fecha de Caducidad</label>
-                <input type="date" name="expirationDate" defaultValue={cloneProduct?.expirationDate ? new Date(cloneProduct.expirationDate).toISOString().slice(0, 10) : ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                <input type="date" name="expirationDate" defaultValue={cloneProduct?.expirationDate ? new Date(cloneProduct.expirationDate).toISOString().slice(0, 10) : ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
               </div>
             </div>
           </div>
@@ -427,7 +427,7 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
       )}
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-        <Link href="/productos" style={{ padding: '0.75rem 1.5rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', textDecoration: 'none', color: 'var(--pulpos-text)', fontWeight: 'bold' }}>
+        <Link href="/productos" style={{ padding: '0.75rem 1.5rem', border: '1px solid var(--caanma-border)', borderRadius: '4px', textDecoration: 'none', color: 'var(--caanma-text)', fontWeight: 'bold' }}>
           Cancelar
         </Link>
         <button type="submit" className="btn-primary" style={{ padding: '0.75rem 2.5rem', fontSize: '1.1rem' }}>

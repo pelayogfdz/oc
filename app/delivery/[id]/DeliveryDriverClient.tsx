@@ -214,7 +214,7 @@ export default function DeliveryDriverClient({ initialOrder }: { initialOrder: a
       </button>
 
       <div style={{ textAlign: 'center', marginTop: '1rem', color: '#94a3b8', fontSize: '0.75rem' }}>
-        Pulpos CRM © {new Date().getFullYear()}
+        Caanma CRM © {new Date().getFullYear()}
       </div>
     </div>
   );

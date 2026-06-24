@@ -72,7 +72,7 @@ export default function ReportesClient() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#1e293b' }}>Reportes de Recursos Humanos</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Generación y descarga de reportes de asistencia y nómina.</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Generación y descarga de reportes de asistencia y nómina.</p>
         </div>
       </div>
 
@@ -83,7 +83,7 @@ export default function ReportesClient() {
             type="date" 
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="pulpos-input"
+            className="caanma-input"
           />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: '1 1 200px' }}>
@@ -92,7 +92,7 @@ export default function ReportesClient() {
             type="date" 
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="pulpos-input"
+            className="caanma-input"
           />
         </div>
       </div>

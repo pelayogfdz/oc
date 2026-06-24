@@ -47,7 +47,7 @@ export default async function FormulasPage() {
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', color: 'var(--pulpos-text)' }}>
+      <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', color: 'var(--caanma-text)' }}>
         Fórmulas e Insumos
       </h1>
       <FormulasClient 

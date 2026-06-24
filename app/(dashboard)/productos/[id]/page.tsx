@@ -173,13 +173,13 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
-        <Link href="/productos" style={{ textDecoration: 'none', color: 'var(--pulpos-text-muted)', fontSize: '1.25rem' }}>← Volver</Link>
+        <Link href="/productos" style={{ textDecoration: 'none', color: 'var(--caanma-text-muted)', fontSize: '1.25rem' }}>← Volver</Link>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>
-          {product.name} <span style={{ color: 'var(--pulpos-text-muted)', fontSize: '1rem', fontWeight: 'normal' }}>({product.sku})</span>
+          {product.name} <span style={{ color: 'var(--caanma-text-muted)', fontSize: '1rem', fontWeight: 'normal' }}>({product.sku})</span>
         </h1>
         
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.75rem' }}>
-           <Link href={`/productos/nuevo?cloneId=${product.id}`} style={{ padding: '0.5rem 1rem', backgroundColor: 'white', border: '1px solid var(--pulpos-border)', borderRadius: '6px', fontWeight: 'bold', textDecoration: 'none', color: 'var(--pulpos-text)' }}>
+           <Link href={`/productos/nuevo?cloneId=${product.id}`} style={{ padding: '0.5rem 1rem', backgroundColor: 'white', border: '1px solid var(--caanma-border)', borderRadius: '6px', fontWeight: 'bold', textDecoration: 'none', color: 'var(--caanma-text)' }}>
              Clonar
            </Link>
            {/* Note: since this is a server component, we pass the server action to a form. */}
@@ -206,7 +206,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
             <input type="hidden" name="sku" value={product.sku} />
             
             <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>Multimedia</h2>
+              <h2 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Multimedia</h2>
               <ProductImageSection 
                 initialImageUrl={product.imageUrl || ''}
                 initialYoutubeUrl={product.youtubeUrl || ''}
@@ -226,39 +226,39 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
           
           {/* Identificación */}
           <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>Identificación</h2>
+            <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Identificación</h2>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Nombre del Producto *</label>
-                <input type="text" name="name" defaultValue={product.name} required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                <input type="text" name="name" defaultValue={product.name} required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Categoría / Departamento</label>
-                <input type="text" name="category" defaultValue={product.category || ''} placeholder="Ej. Abarrotes, Papelería..." style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                <input type="text" name="category" defaultValue={product.category || ''} placeholder="Ej. Abarrotes, Papelería..." style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Marca</label>
-                <input type="text" name="brand" defaultValue={product.brand || ''} placeholder="Ej. Coca Cola, BIC..." style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                <input type="text" name="brand" defaultValue={product.brand || ''} placeholder="Ej. Coca Cola, BIC..." style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>SKU (Código Interno) *</label>
-                <input type="text" name="sku" defaultValue={product.sku} required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                <input type="text" name="sku" defaultValue={product.sku} required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Código de Barras</label>
-                <input type="text" name="barcode" defaultValue={product.barcode || ''} placeholder="(Opcional)" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                <input type="text" name="barcode" defaultValue={product.barcode || ''} placeholder="(Opcional)" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Proveedor Sugerido</label>
-                <select name="supplierId" defaultValue={product.supplierId || ""} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}>
+                <select name="supplierId" defaultValue={product.supplierId || ""} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }}>
                   <option value="">-- PÚBLICO / NINGUNO --</option>
                   {suppliers.map((s: any) => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
               </div>
-              <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '2rem', marginTop: '0.5rem', marginBottom: '0.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }}>
+              <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '2rem', marginTop: '0.5rem', marginBottom: '0.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '6px', border: '1px solid var(--caanma-border)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <input type="hidden" name="allowProduction" value="false" />
                   <input 
@@ -345,13 +345,13 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
             
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Descripción</label>
-              <textarea name="description" defaultValue={product.description || ''} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', fontFamily: 'inherit' }}></textarea>
+              <textarea name="description" defaultValue={product.description || ''} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', fontFamily: 'inherit' }}></textarea>
             </div>
           </div>
 
           {/* Finanzas y Precios */}
           <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>Finanzas y Precios</h2>
+            <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Finanzas y Precios</h2>
             <ProductFinanceSection 
               initialCost={product.cost}
               initialPrice={product.price}
@@ -365,15 +365,15 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
 
           {/* Inventario Fijo */}
           <div className="card" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>Configuración de Inventario</h2>
+            <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Configuración de Inventario</h2>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1.5rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Alarma Stock Mínimo</label>
-                <input type="number" name="minStock" defaultValue={product.minStock} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                <input type="number" name="minStock" defaultValue={product.minStock} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Unidad de Medida</label>
-                <select name="unit" defaultValue={product.unit} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}>
+                <select name="unit" defaultValue={product.unit} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }}>
                   <option value="Pza">Pieza (Pza)</option>
                   <option value="Kg">Kilogramos (Kg)</option>
                   <option value="Lt">Litros (Lt)</option>
@@ -382,23 +382,23 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Estado</label>
-                <select name="isActive" defaultValue={product.isActive ? "true" : "false"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}>
+                <select name="isActive" defaultValue={product.isActive ? "true" : "false"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }}>
                   <option value="true">🟢 Activo</option>
                   <option value="false">🔴 Inactivo</option>
                 </select>
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Fecha de Caducidad</label>
-                <input type="date" name="expirationDate" defaultValue={product.expirationDate ? new Date(product.expirationDate).toISOString().slice(0, 10) : ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                <input type="date" name="expirationDate" defaultValue={product.expirationDate ? new Date(product.expirationDate).toISOString().slice(0, 10) : ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
               </div>
             </div>
-            <p style={{ marginTop: '1rem', color: 'var(--pulpos-text-muted)', fontSize: '0.875rem' }}>
+            <p style={{ marginTop: '1rem', color: 'var(--caanma-text-muted)', fontSize: '0.875rem' }}>
               Nota: El stock físico general ({product.stock} {product.unit}) ya no se puede alterar directamente aquí. Para agregar o quitar unidades, utiliza la pestaña de Movimientos (Kardex).
             </p>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-            <Link href="/productos" style={{ padding: '0.75rem 1.5rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', textDecoration: 'none', color: 'var(--pulpos-text)', fontWeight: 'bold' }}>
+            <Link href="/productos" style={{ padding: '0.75rem 1.5rem', border: '1px solid var(--caanma-border)', borderRadius: '4px', textDecoration: 'none', color: 'var(--caanma-text)', fontWeight: 'bold' }}>
               Cancelar
             </Link>
             <button type="submit" className="btn-primary" style={{ padding: '0.75rem 2.5rem', fontSize: '1.1rem' }}>

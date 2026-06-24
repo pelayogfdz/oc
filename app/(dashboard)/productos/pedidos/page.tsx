@@ -27,14 +27,14 @@ export default async function PurchaseOrdersPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <ShoppingCart size={28} color="var(--pulpos-primary)" />
+            <ShoppingCart size={28} color="var(--caanma-primary)" />
             Pedidos a Proveedores
           </h1>
-          <p style={{ color: 'var(--pulpos-text-muted)', marginTop: '0.25rem' }}>
+          <p style={{ color: 'var(--caanma-text-muted)', marginTop: '0.25rem' }}>
             Gestiona compras proyectadas, sugeridos de abastecimiento y recepciones de mercancía.
           </p>
         </div>
-        <Link href="/productos/pedidos/nuevo" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--pulpos-primary)', borderColor: 'var(--pulpos-primary)', color: 'white', textDecoration: 'none' }}>
+        <Link href="/productos/pedidos/nuevo" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--caanma-primary)', borderColor: 'var(--caanma-primary)', color: 'white', textDecoration: 'none' }}>
           <Plus size={18} /> Crear / Sugerido
         </Link>
       </div>
@@ -42,28 +42,28 @@ export default async function PurchaseOrdersPage() {
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="table-responsive">
           <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
-            <thead style={{ backgroundColor: 'var(--pulpos-bg)' }}>
+            <thead style={{ backgroundColor: 'var(--caanma-bg)' }}>
               <tr>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Folio / Fecha</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Proveedor</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Sucursal Solicitante</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Artículos</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'right' }}>Total Estimado</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'center' }}>Estado</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'right' }}>Acciones</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Folio / Fecha</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Proveedor</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Sucursal Solicitante</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Artículos</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'right' }}>Total Estimado</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'center' }}>Estado</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'right' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {orders.map((order: any) => (
-                <tr key={order.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                <tr key={order.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                   <td data-label="Folio / Fecha" style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: '500' }}>#{order.id.substring(0,8).toUpperCase()}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--pulpos-text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</div>
                   </td>
                   <td data-label="Proveedor" style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: 'bold' }}>{order.supplier?.name || 'Por Definir'}</div>
                   </td>
-                  <td data-label="Sucursal Solicitante" style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>
+                  <td data-label="Sucursal Solicitante" style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>
                     {order.branch?.name || 'Central'}
                   </td>
                   <td data-label="Artículos" style={{ padding: '1rem' }}>
@@ -96,14 +96,14 @@ export default async function PurchaseOrdersPage() {
                         </form>
                      )}
                      {order.status === 'RECEIVED' && (
-                       <span style={{ fontSize: '0.8rem', color: 'var(--pulpos-text-muted)' }}>Consolidado</span>
+                       <span style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>Consolidado</span>
                      )}
                   </td>
                 </tr>
               ))}
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ padding: '4rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                  <td colSpan={7} style={{ padding: '4rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                     <ShoppingCart size={40} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
                     No hay pedidos registrados en esta sucursal.
                   </td>

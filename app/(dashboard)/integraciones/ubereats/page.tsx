@@ -18,17 +18,17 @@ export default async function UberEatsConfigPage() {
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-        <Link href="/integraciones" style={{ color: 'var(--pulpos-text-muted)', textDecoration: 'none' }}>
+        <Link href="/integraciones" style={{ color: 'var(--caanma-text-muted)', textDecoration: 'none' }}>
           <ArrowLeft size={24} />
         </Link>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Configuración de Uber Eats</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Asocia una cuenta mediante credenciales API para sincronizar inventario de tu menú y pedidos.</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Asocia una cuenta mediante credenciales API para sincronizar inventario de tu menú y pedidos.</p>
         </div>
       </div>
 
       <div className="card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>
           Credenciales de la API
         </h2>
         <form action={saveIntegrationTokens} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -41,7 +41,7 @@ export default async function UberEatsConfigPage() {
               required
               defaultValue={integration?.appId || ''}
               placeholder="Ej. client_id_uber_12345"
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
             />
           </div>
           <div>
@@ -52,7 +52,7 @@ export default async function UberEatsConfigPage() {
               required
               defaultValue={integration?.clientSecret || ''}
               placeholder="********************************"
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
             />
           </div>
           <div>
@@ -62,7 +62,7 @@ export default async function UberEatsConfigPage() {
               name="accessToken"
               defaultValue={integration?.accessToken || ''}
               placeholder="Ej. store_uuid_uber_eats"
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
             />
           </div>
           <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
@@ -80,15 +80,15 @@ export default async function UberEatsConfigPage() {
 
       {integration && (
         <div className="card" style={{ padding: '2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Sincronización de Catálogo e Inventario</h2>
             <div style={{ fontWeight: 'bold', color: '#06C167', backgroundColor: '#e6fcf0', padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.875rem' }}>
               {externalMaps} productos empatados
             </div>
           </div>
           
-          <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '1.5rem' }}>
-            Pulpos sincronizará tus existencias con Uber Eats. Si el SKU de tu producto local coincide con el ID de artículo externo o el SKU en la plataforma, los niveles de inventario se actualizarán en tiempo real.
+          <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '1.5rem' }}>
+            Caanma sincronizará tus existencias con Uber Eats. Si el SKU de tu producto local coincide con el ID de artículo externo o el SKU en la plataforma, los niveles de inventario se actualizarán en tiempo real.
           </p>
 
           <form action="/api/ubereats/sync" method="POST">
@@ -103,7 +103,7 @@ export default async function UberEatsConfigPage() {
                Para recibir notificaciones automáticas e instantáneas de ventas de Uber Eats y descontar del inventario al momento, registra la siguiente URL de Webhook en el portal de desarrolladores de Uber Eats:
             </p>
             <code style={{ display: 'block', backgroundColor: 'black', color: '#a7f3d0', padding: '0.75rem', borderRadius: '4px', marginTop: '0.5rem', fontSize: '0.875rem' }}>
-               https://tu-dominio-pulpos.com/api/ubereats/webhook
+               https://tu-dominio-caanma.com/api/ubereats/webhook
             </code>
           </div>
         </div>

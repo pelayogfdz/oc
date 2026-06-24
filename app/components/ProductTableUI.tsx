@@ -192,7 +192,7 @@ const ProductTableUI = memo(function ProductTableUI({
                     type="checkbox" 
                     checked={allSelected}
                     onChange={onToggleSelectAll}
-                    style={{ width: '14px', height: '14px', cursor: 'pointer', accentColor: 'var(--pulpos-primary)' }}
+                    style={{ width: '14px', height: '14px', cursor: 'pointer', accentColor: 'var(--caanma-primary)' }}
                   />
                 </th>
               )}
@@ -224,7 +224,7 @@ const ProductTableUI = memo(function ProductTableUI({
                         type="checkbox" 
                         checked={isSelected}
                         onChange={() => onToggleSelect && onToggleSelect(prod.id)}
-                        style={{ width: '14px', height: '14px', cursor: 'pointer', accentColor: 'var(--pulpos-primary)' }}
+                        style={{ width: '14px', height: '14px', cursor: 'pointer', accentColor: 'var(--caanma-primary)' }}
                       />
                     </td>
                   )}

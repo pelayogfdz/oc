@@ -39,7 +39,7 @@ export default function PreferenciasLayout({ children }: { children: React.React
       
       {/* Mobile Select Navigation */}
       <div className="mobile-only-preferences-nav" style={{ display: 'none', marginBottom: '1rem' }}>
-        <label htmlFor="pref-nav" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>
+        <label htmlFor="pref-nav" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>
           MÓDULO DE PREFERENCIAS
         </label>
         <select 
@@ -50,10 +50,10 @@ export default function PreferenciasLayout({ children }: { children: React.React
             width: '100%',
             padding: '0.75rem',
             borderRadius: '8px',
-            border: '1px solid var(--pulpos-border)',
+            border: '1px solid var(--caanma-border)',
             backgroundColor: 'white',
             fontSize: '1rem',
-            color: 'var(--pulpos-text)',
+            color: 'var(--caanma-text)',
             outline: 'none'
           }}
         >
@@ -65,7 +65,7 @@ export default function PreferenciasLayout({ children }: { children: React.React
 
       {/* 18-tab Sidebar */}
       <aside className="preferences-sidebar">
-        <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '1rem', paddingLeft: '1rem' }}>PREFERENCIAS</h3>
+        <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', marginBottom: '1rem', paddingLeft: '1rem' }}>PREFERENCIAS</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0 1rem' }}>
           {prefTabs.map(tab => {
             const isActive = pathname === tab.path || (pathname === '/preferencias' && tab.path === '/preferencias/general');
@@ -80,8 +80,8 @@ export default function PreferenciasLayout({ children }: { children: React.React
                   padding: '0.75rem 1rem',
                   borderRadius: '6px',
                   textDecoration: 'none',
-                  color: isActive ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
-                  backgroundColor: isActive ? 'var(--pulpos-sidebar-hover)' : 'transparent',
+                  color: isActive ? 'var(--caanma-primary)' : 'var(--caanma-text)',
+                  backgroundColor: isActive ? 'var(--caanma-sidebar-hover)' : 'transparent',
                   fontWeight: isActive ? 'bold' : '500',
                   fontSize: '0.9rem',
                   transition: 'background 0.2s'

@@ -64,8 +64,8 @@ export default function MeliCalculator() {
   const sim = calculateVariables(suggestedPrice);
 
   return (
-    <div className="card" style={{ padding: '2rem', marginTop: '2rem', border: '2px solid var(--pulpos-primary)', backgroundColor: '#f0fdf4' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', color: 'var(--pulpos-primary)' }}>
+    <div className="card" style={{ padding: '2rem', marginTop: '2rem', border: '2px solid var(--caanma-primary)', backgroundColor: '#f0fdf4' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', color: 'var(--caanma-primary)' }}>
          <CalcIcon size={24} />
          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Simulador de Utilidad: Mercado Libre</h2>
       </div>

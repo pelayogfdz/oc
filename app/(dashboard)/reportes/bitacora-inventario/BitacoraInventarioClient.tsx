@@ -135,7 +135,7 @@ export default function BitacoraInventarioClient({ initialData, initialBranchId,
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>⏱️ Bitácora de Movimientos de Inventario</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Historial Kardex completo de entradas, salidas, ajustes de almacén, ventas y compras.</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Historial Kardex completo de entradas, salidas, ajustes de almacén, ventas y compras.</p>
         </div>
         <div className="no-print" style={{ display: 'flex', gap: '0.75rem' }}>
           <button 

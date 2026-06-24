@@ -28,7 +28,7 @@ export default async function NuevoProductoPage({ searchParams }: { searchParams
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
-        <Link href="/productos" style={{ textDecoration: 'none', color: 'var(--pulpos-text-muted)', fontSize: '1.25rem' }}>← Volver</Link>
+        <Link href="/productos" style={{ textDecoration: 'none', color: 'var(--caanma-text-muted)', fontSize: '1.25rem' }}>← Volver</Link>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{cloneProduct ? `Clonar: ${cloneProduct.name}` : 'Crear Nuevo Producto'}</h1>
       </div>
 

@@ -55,21 +55,21 @@ export default function SubscriptionClient({ initialData }: { initialData: any }
   return (
     <div>
       <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <CreditCard size={28} color="var(--pulpos-primary)" />
+        <CreditCard size={28} color="var(--caanma-primary)" />
         Mi Suscripción
       </h1>
-      <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '2rem' }}>
+      <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '2rem' }}>
         Gestiona el método de pago automático para el uso del sistema CAANMA PRO.
       </p>
 
       {/* Stats Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
-          <h3 style={{ fontSize: '0.9rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Usuarios Activos</h3>
-          <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--pulpos-text)' }}>{userCount}</p>
+        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
+          <h3 style={{ fontSize: '0.9rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>Usuarios Activos</h3>
+          <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--caanma-text)' }}>{userCount}</p>
         </div>
-        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
-          <h3 style={{ fontSize: '0.9rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Créditos de Regalo</h3>
+        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
+          <h3 style={{ fontSize: '0.9rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>Créditos de Regalo</h3>
           <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#16a34a' }}>${tenant.giftCredits?.toFixed(2) || '0.00'}</p>
         </div>
         <div style={{ backgroundColor: '#f0f9ff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #bae6fd' }}>
@@ -79,13 +79,13 @@ export default function SubscriptionClient({ initialData }: { initialData: any }
       </div>
 
       {/* Payment Method Section */}
-      <section style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)', position: 'relative' }}>
+      <section style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', position: 'relative' }}>
         
         {!mpPublicKey ? (
           <div style={{ textAlign: 'center', padding: '2rem 0' }}>
             <AlertTriangle size={48} color="#f59e0b" style={{ margin: '0 auto 1rem auto' }} />
             <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Sistema No Disponible</h2>
-            <p style={{ color: 'var(--pulpos-text-muted)' }}>El administrador del sistema aún no ha configurado el procesador de pagos.</p>
+            <p style={{ color: 'var(--caanma-text-muted)' }}>El administrador del sistema aún no ha configurado el procesador de pagos.</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
@@ -96,7 +96,7 @@ export default function SubscriptionClient({ initialData }: { initialData: any }
                 <h2 style={{ fontSize: '1.8rem', fontWeight: 'bold', marginBottom: '0.5rem', color: amountToPay > 0 ? '#b91c1c' : '#16a34a' }}>
                   {amountToPay > 0 ? 'Pago Pendiente' : 'Suscripción al Día'}
                 </h2>
-                <p style={{ color: 'var(--pulpos-text-muted)' }}>
+                <p style={{ color: 'var(--caanma-text-muted)' }}>
                   {amountToPay > 0 
                     ? `Tienes un saldo pendiente de $${amountToPay.toFixed(2)} MXN.`
                     : 'No tienes pagos pendientes por el momento. ¡Gracias por usar CAANMA PRO!'}
@@ -128,7 +128,7 @@ export default function SubscriptionClient({ initialData }: { initialData: any }
                   disabled={isPaying || amountToPay <= 0}
                   style={{
                     padding: '1rem 2.5rem',
-                    backgroundColor: (isPaying || amountToPay <= 0) ? '#e2e8f0' : 'var(--pulpos-primary)',
+                    backgroundColor: (isPaying || amountToPay <= 0) ? '#e2e8f0' : 'var(--caanma-primary)',
                     color: (isPaying || amountToPay <= 0) ? '#94a3b8' : 'white',
                     border: 'none',
                     borderRadius: '12px',
@@ -148,7 +148,7 @@ export default function SubscriptionClient({ initialData }: { initialData: any }
               </div>
             </div>
 
-            <hr style={{ border: 'none', borderTop: '1px dashed var(--pulpos-border)' }} />
+            <hr style={{ border: 'none', borderTop: '1px dashed var(--caanma-border)' }} />
 
             {/* Card Management Section */}
             <div>
@@ -183,14 +183,14 @@ export default function SubscriptionClient({ initialData }: { initialData: any }
               )}
 
               {showCardForm && (
-                <div style={{ marginTop: '2rem', padding: '2rem', border: '1px solid var(--pulpos-border)', borderRadius: '12px', backgroundColor: '#f8fafc' }}>
+                <div style={{ marginTop: '2rem', padding: '2rem', border: '1px solid var(--caanma-border)', borderRadius: '12px', backgroundColor: '#f8fafc' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <ShieldCheck size={24} color="#0284c7" /> 
                       Guardar datos en Mercado Pago
                     </h2>
                   </div>
-                  <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.95rem', marginBottom: '2rem' }}>
+                  <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.95rem', marginBottom: '2rem' }}>
                     Registra tu tarjeta para activar los pagos automáticos y facilitar tus pagos manuales. <br/>
                     Se realizará un cargo de validación de $0.10 MXN que será reembolsado inmediatamente.
                   </p>
@@ -203,7 +203,7 @@ export default function SubscriptionClient({ initialData }: { initialData: any }
                   ) : (
                     <div style={{ position: 'relative', backgroundColor: 'white', padding: '1rem', borderRadius: '8px' }}>
                       {isSaving && (
-                        <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(255,255,255,0.8)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--pulpos-primary)' }}>
+                        <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(255,255,255,0.8)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--caanma-primary)' }}>
                           <RefreshCw className="animate-spin" size={24} style={{ marginRight: '0.5rem' }} /> Procesando seguridad...
                         </div>
                       )}

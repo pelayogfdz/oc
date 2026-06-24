@@ -72,7 +72,7 @@ export default async function TareasPage() {
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem' }}>
-      <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', color: 'var(--pulpos-text)' }}>
+      <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', color: 'var(--caanma-text)' }}>
         Gestión de Tareas de Colaboradores
       </h1>
       <TareasClient collaborators={collaborators} initialTasks={tasks} />

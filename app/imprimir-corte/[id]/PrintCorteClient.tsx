@@ -87,7 +87,7 @@ export default function PrintCorteClient({ session, branchName }: { session: any
             display: 'flex', 
             alignItems: 'center', 
             gap: '0.5rem', 
-            backgroundColor: 'var(--pulpos-primary)', 
+            backgroundColor: 'var(--caanma-primary)', 
             color: 'white', 
             border: 'none', 
             padding: '0.6rem 1.25rem', 

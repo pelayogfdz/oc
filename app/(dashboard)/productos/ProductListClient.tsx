@@ -185,7 +185,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
 
   return (
     <div style={{ fontFamily: 'var(--font-geist-sans)' }}>
-      {/* Header section identical to Pulpos */}
+      {/* Header section identical to Caanma */}
       <div className="page-header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h1 className="page-header-title" style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>Productos e Inventario</h1>
         <div className="page-header-actions" style={{ display: 'flex', gap: '0.75rem' }}>
@@ -238,7 +238,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: 'var(--pulpos-primary)',
+                color: 'var(--caanma-primary)',
                 display: 'flex',
                 alignItems: 'center',
                 padding: '4px'

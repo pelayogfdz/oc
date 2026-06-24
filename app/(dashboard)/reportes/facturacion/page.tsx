@@ -66,7 +66,7 @@ export default async function FacturacionReportPage({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--pulpos-text)' }}>
+      <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--caanma-text)' }}>
         Reporte de Facturación (CFDI 4.0)
       </h1>
       <FacturacionReportClient 

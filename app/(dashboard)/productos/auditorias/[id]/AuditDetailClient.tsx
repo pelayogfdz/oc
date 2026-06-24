@@ -169,13 +169,13 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
             {audit.name}
             {isCompleted && <CheckCircle color="#10b981" size={24} />}
           </h1>
-          <p style={{ color: 'var(--pulpos-text-muted)', margin: 0 }}>
+          <p style={{ color: 'var(--caanma-text-muted)', margin: 0 }}>
              Id de Auditoría: {audit.id}
           </p>
         </div>
 
         {/* Phase Timeline indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'white', padding: '1rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'white', padding: '1rem', borderRadius: '8px', border: '1px solid var(--caanma-border)' }}>
           <div style={{ fontWeight: isPhase1 ? 'bold' : 'normal', color: isPhase1 ? '#2563eb' : (isPhase2 || isPhase3 || isCompleted) ? '#10b981' : '#94a3b8' }}>1. Conteo Ciego</div>
           <ArrowRight size={16} color="#cbd5e1" />
           <div style={{ fontWeight: isPhase2 ? 'bold' : 'normal', color: isPhase2 ? '#2563eb' : (isPhase3 || isCompleted) ? '#10b981' : '#94a3b8' }}>2. Diferencias</div>
@@ -223,40 +223,40 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
       )}
 
       {/* Main Table Layer */}
-      <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--pulpos-border)', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--caanma-border)', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
         
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f8fafc', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', zIndex: 10 }}>
             <tr>
-              <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--pulpos-border)' }}>Producto</th>
-              <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--pulpos-border)' }}>SKU</th>
+              <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--caanma-border)' }}>Producto</th>
+              <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--caanma-border)' }}>SKU</th>
               
               {!isPhase1 && !isCompleted && (
-                 <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'center' }}>
+                 <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'center' }}>
                    Stock Sistema
                  </th>
               )}
 
               {isPhase2 && (
-                 <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'center' }}>
+                 <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'center' }}>
                    Cuenta 1
                  </th>
               )}
 
               {(isPhase3) && (
                  <>
-                   <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'center' }}>Cuenta 1</th>
-                   <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'center' }}>Cuenta 2</th>
+                   <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'center' }}>Cuenta 1</th>
+                   <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'center' }}>Cuenta 2</th>
                  </>
               )}
 
               {isCompleted ? (
                  <>
-                  <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'center' }}>Ajuste Ejecutado</th>
-                  <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'center' }}>Impacto</th>
+                  <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'center' }}>Ajuste Ejecutado</th>
+                  <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'center' }}>Impacto</th>
                  </>
               ) : (
-                <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'center', width: '200px' }}>
+                <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'center', width: '200px' }}>
                   Total Escaneado
                 </th>
               )}
@@ -278,9 +278,9 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
               const auditRef = audit.items.find((i: any) => i.productId === p.id) || {};
 
               return (
-                <tr key={p.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                <tr key={p.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                   <td style={{ padding: '1rem', fontWeight: 'bold', color: '#0f172a' }}>{p.name}</td>
-                  <td style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>{p.sku}</td>
+                  <td style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>{p.sku}</td>
                   
                   {!isPhase1 && !isCompleted && (
                      <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', color: '#cbd5e1' }}>
@@ -352,7 +352,7 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
             })()}
             {currentProducts.length === 0 && (
                <tr>
-                 <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                 <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                     No hay productos requeridos en esta fase. Puedes proceder al siguiente paso o finalizar.
                  </td>
                </tr>
@@ -362,7 +362,7 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
         </table>
 
         {!isCompleted && (
-          <div style={{ padding: '1.5rem', borderTop: '1px solid var(--pulpos-border)', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ padding: '1.5rem', borderTop: '1px solid var(--caanma-border)', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'flex-end' }}>
              <button 
                onClick={() => handleSaveAndNext(isPhase3)}
                disabled={isPending}

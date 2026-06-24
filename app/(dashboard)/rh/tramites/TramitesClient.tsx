@@ -51,7 +51,7 @@ export default function TramitesClient({ requests, timezone }: { requests: any[]
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#1e293b' }}>Trámites y Solicitudes</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Gestión de vacaciones, permisos y justificantes.</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Gestión de vacaciones, permisos y justificantes.</p>
         </div>
       </div>
 
@@ -130,7 +130,7 @@ export default function TramitesClient({ requests, timezone }: { requests: any[]
                 <select 
                   value={editingReq.type}
                   onChange={(e) => setEditingReq({ ...editingReq, type: e.target.value })}
-                  className="pulpos-input"
+                  className="caanma-input"
                   required
                 >
                   {Object.entries(typeLabels).map(([val, label]) => (
@@ -145,7 +145,7 @@ export default function TramitesClient({ requests, timezone }: { requests: any[]
                   type="date"
                   value={editingReq.startDate}
                   onChange={(e) => setEditingReq({ ...editingReq, startDate: e.target.value })}
-                  className="pulpos-input"
+                  className="caanma-input"
                   required
                 />
               </div>
@@ -156,7 +156,7 @@ export default function TramitesClient({ requests, timezone }: { requests: any[]
                   type="date"
                   value={editingReq.endDate}
                   onChange={(e) => setEditingReq({ ...editingReq, endDate: e.target.value })}
-                  className="pulpos-input"
+                  className="caanma-input"
                   required
                 />
               </div>

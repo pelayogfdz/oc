@@ -73,8 +73,8 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
         onClick={closeMenu} 
       />
       <aside className={`dashboard-sidebar ${isMobileMenuOpen ? 'open' : ''}`} style={{ 
-        backgroundColor: 'var(--pulpos-sidebar-bg)',
-        color: 'var(--pulpos-sidebar-text)', 
+        backgroundColor: 'var(--caanma-sidebar-bg)',
+        color: 'var(--caanma-sidebar-text)', 
         display: 'flex', 
         flexDirection: 'column', 
         height: '100vh',
@@ -85,11 +85,11 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
     }}>
       {/* Brand Header */}
       <div style={{ padding: '1.125rem 1.5rem', marginBottom: '0.375rem' }}>
-        <Link href="/" style={{ textDecoration: 'none', color: 'var(--pulpos-text)', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+        <Link href="/" style={{ textDecoration: 'none', color: 'var(--caanma-text)', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
           <div style={{
             width: '42px',
             height: '42px',
-            backgroundColor: 'var(--pulpos-primary)',
+            backgroundColor: 'var(--caanma-primary)',
             borderRadius: '9px',
             display: 'flex',
             alignItems: 'center',
@@ -133,7 +133,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
                   padding: '0.6rem 0.9rem', 
                   borderRadius: '8px', 
                   textDecoration: 'none', 
-                  backgroundColor: 'var(--pulpos-primary)',
+                  backgroundColor: 'var(--caanma-primary)',
                   color: 'white',
                   fontWeight: 'bold',
                   fontSize: '1.08rem',
@@ -147,8 +147,8 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
                   padding: '0.5rem 0.9rem', 
                   borderRadius: '8px', 
                   textDecoration: 'none', 
-                  backgroundColor: NodeActive ? 'var(--pulpos-sidebar-hover)' : 'transparent',
-                  color: NodeActive ? 'var(--pulpos-primary)' : 'inherit',
+                  backgroundColor: NodeActive ? 'var(--caanma-sidebar-hover)' : 'transparent',
+                  color: NodeActive ? 'var(--caanma-primary)' : 'inherit',
                   fontWeight: NodeActive ? 'bold' : '500',
                   transition: 'background 0.2s'
                 }}
@@ -181,12 +181,12 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
                     padding: '0.5rem 0.9rem', 
                     borderRadius: '8px', 
                     cursor: 'pointer',
-                    color: NodeActive && !isOpen ? 'var(--pulpos-primary)' : 'inherit', // In pulpos, active parents look highlighted if closed
+                    color: NodeActive && !isOpen ? 'var(--caanma-primary)' : 'inherit', // In caanma, active parents look highlighted if closed
                     fontWeight: '500',
                     transition: 'background 0.2s'
                   }}
                 >
-                  <div style={{ color: NodeActive && !isOpen ? 'var(--pulpos-primary)' : 'inherit' }}>
+                  <div style={{ color: NodeActive && !isOpen ? 'var(--caanma-primary)' : 'inherit' }}>
                     {renderMenuIcon(node.icon)}
                   </div>
                   <span style={{ flex: 1 }}>{node.title}</span>
@@ -208,7 +208,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
                             alignItems: 'center',
                             padding: '0.5rem 0', 
                             textDecoration: 'none', 
-                            color: ItemActive ? 'var(--pulpos-primary)' : 'inherit', // highlight style for inner links
+                            color: ItemActive ? 'var(--caanma-primary)' : 'inherit', // highlight style for inner links
                             fontWeight: ItemActive ? 'bold' : '500',
                             fontSize: '1.02rem'
                           }}
@@ -232,7 +232,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
             <div key={node.title} style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
               {content}
               {node.hasDividerAfter && (
-                <div style={{ height: '1px', backgroundColor: 'var(--pulpos-border)', margin: '0.6rem 0.3rem' }} />
+                <div style={{ height: '1px', backgroundColor: 'var(--caanma-border)', margin: '0.6rem 0.3rem' }} />
               )}
             </div>
           );
@@ -260,7 +260,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
                 padding: '0.5rem 0.9rem', 
                 borderRadius: '8px', 
                 textDecoration: 'none', 
-                color: 'var(--pulpos-text-muted)',
+                color: 'var(--caanma-text-muted)',
                 fontWeight: '500'
               }}
             >

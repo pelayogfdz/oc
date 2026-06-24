@@ -75,10 +75,10 @@ export default function DateRangeFilter({ onFilterChange, disabled }: DateRangeF
           gap: '0.5rem',
           padding: '0.6rem 1rem',
           backgroundColor: 'white',
-          border: '1px solid var(--pulpos-border)',
+          border: '1px solid var(--caanma-border)',
           borderRadius: '8px',
           fontWeight: '500',
-          color: 'var(--pulpos-text)',
+          color: 'var(--caanma-text)',
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.7 : 1,
           minWidth: '220px',
@@ -86,10 +86,10 @@ export default function DateRangeFilter({ onFilterChange, disabled }: DateRangeF
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Calendar size={18} color="var(--pulpos-primary)" />
+          <Calendar size={18} color="var(--caanma-primary)" />
           {activeLabel}
         </div>
-        <ChevronDown size={18} color="var(--pulpos-text-muted)" />
+        <ChevronDown size={18} color="var(--caanma-text-muted)" />
       </button>
 
       {isOpen && (
@@ -99,7 +99,7 @@ export default function DateRangeFilter({ onFilterChange, disabled }: DateRangeF
           right: 0,
           marginTop: '0.5rem',
           backgroundColor: 'white',
-          border: '1px solid var(--pulpos-border)',
+          border: '1px solid var(--caanma-border)',
           borderRadius: '12px',
           boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
           zIndex: 50,
@@ -109,7 +109,7 @@ export default function DateRangeFilter({ onFilterChange, disabled }: DateRangeF
           overflow: 'hidden'
         }}>
           {/* Presets */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', backgroundColor: 'var(--pulpos-border)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', backgroundColor: 'var(--caanma-border)' }}>
             {['Hoy', 'Ayer', 'Últimos 7 días', 'Últimos 30 días', 'Este Mes', 'Mes Pasado', 'Histórico'].map(preset => (
               <button
                 key={preset}
@@ -119,7 +119,7 @@ export default function DateRangeFilter({ onFilterChange, disabled }: DateRangeF
                   padding: '0.75rem',
                   textAlign: 'left',
                   fontSize: '0.9rem',
-                  color: 'var(--pulpos-text)',
+                  color: 'var(--caanma-text)',
                   border: 'none',
                   cursor: 'pointer',
                   fontWeight: activeLabel === preset ? 'bold' : 'normal'
@@ -133,20 +133,20 @@ export default function DateRangeFilter({ onFilterChange, disabled }: DateRangeF
           </div>
 
           {/* Custom */}
-          <div style={{ padding: '1rem', borderTop: '1px solid var(--pulpos-border)', backgroundColor: '#f8fafc' }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Rango Personalizado</div>
+          <div style={{ padding: '1rem', borderTop: '1px solid var(--caanma-border)', backgroundColor: '#f8fafc' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>Rango Personalizado</div>
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
               <input 
                 type="date" 
                 value={customStart}
                 onChange={(e) => setCustomStart(e.target.value)}
-                style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', fontSize: '0.85rem' }} 
+                style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', fontSize: '0.85rem' }} 
               />
               <input 
                 type="date" 
                 value={customEnd}
                 onChange={(e) => setCustomEnd(e.target.value)}
-                style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', fontSize: '0.85rem' }} 
+                style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', fontSize: '0.85rem' }} 
               />
             </div>
             <button 
@@ -155,7 +155,7 @@ export default function DateRangeFilter({ onFilterChange, disabled }: DateRangeF
               style={{
                 width: '100%',
                 padding: '0.5rem',
-                backgroundColor: (!customStart || !customEnd) ? '#cbd5e1' : 'var(--pulpos-primary)',
+                backgroundColor: (!customStart || !customEnd) ? '#cbd5e1' : 'var(--caanma-primary)',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',

@@ -157,36 +157,36 @@ export default function PortalClient() {
       
       {/* Header Premium */}
       <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-         <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '80px', height: '80px', borderRadius: '20px', backgroundColor: 'var(--pulpos-primary)', marginBottom: '1.5rem', boxShadow: '0 10px 25px -5px rgba(22, 163, 74, 0.4)' }}>
+         <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '80px', height: '80px', borderRadius: '20px', backgroundColor: 'var(--caanma-primary)', marginBottom: '1.5rem', boxShadow: '0 10px 25px -5px rgba(22, 163, 74, 0.4)' }}>
            <FileText color="white" size={40} />
          </div>
-         <h1 style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--pulpos-text)', letterSpacing: '-1px' }}>
+         <h1 style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--caanma-text)', letterSpacing: '-1px' }}>
            Portal de Clientes CAANMA
          </h1>
-         <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '1.1rem', maxWidth: '600px', margin: '0.5rem auto' }}>
+         <p style={{ color: 'var(--caanma-text-muted)', fontSize: '1.1rem', maxWidth: '600px', margin: '0.5rem auto' }}>
            Tu espacio para consultar puntos de fidelidad, historial de compras, cotizaciones y comprobantes fiscales.
          </p>
       </div>
 
-      <div style={{ backgroundColor: 'white', borderRadius: '16px', border: '1px solid var(--pulpos-border)', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '16px', border: '1px solid var(--caanma-border)', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
         
         {/* Tabs */}
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--pulpos-border)' }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--caanma-border)' }}>
           <button 
             onClick={() => { setTab('loyalty'); setError(''); setPortalData(null); }}
-            style={{ flex: 1, padding: '1.25rem', backgroundColor: tab === 'loyalty' ? 'white' : '#f8fafc', border: 'none', borderBottom: tab === 'loyalty' ? '3px solid var(--pulpos-primary)' : '3px solid transparent', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', gap: '0.5rem', alignItems: 'center', color: tab === 'loyalty' ? 'var(--pulpos-primary)' : 'var(--pulpos-text-muted)', transition: 'all 0.2s' }}
+            style={{ flex: 1, padding: '1.25rem', backgroundColor: tab === 'loyalty' ? 'white' : '#f8fafc', border: 'none', borderBottom: tab === 'loyalty' ? '3px solid var(--caanma-primary)' : '3px solid transparent', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', gap: '0.5rem', alignItems: 'center', color: tab === 'loyalty' ? 'var(--caanma-primary)' : 'var(--caanma-text-muted)', transition: 'all 0.2s' }}
           >
-            <Star size={20} fill={tab === 'loyalty' ? 'var(--pulpos-primary)' : 'transparent'} /> Mi Espacio Cliente (Puntos)
+            <Star size={20} fill={tab === 'loyalty' ? 'var(--caanma-primary)' : 'transparent'} /> Mi Espacio Cliente (Puntos)
           </button>
           <button 
             onClick={() => { setTab('b2c'); setError(''); setSale(null); }}
-            style={{ flex: 1, padding: '1.25rem', backgroundColor: tab === 'b2c' ? 'white' : '#f8fafc', border: 'none', borderBottom: tab === 'b2c' ? '3px solid var(--pulpos-primary)' : '3px solid transparent', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', gap: '0.5rem', alignItems: 'center', color: tab === 'b2c' ? 'var(--pulpos-primary)' : 'var(--pulpos-text-muted)', transition: 'all 0.2s' }}
+            style={{ flex: 1, padding: '1.25rem', backgroundColor: tab === 'b2c' ? 'white' : '#f8fafc', border: 'none', borderBottom: tab === 'b2c' ? '3px solid var(--caanma-primary)' : '3px solid transparent', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', gap: '0.5rem', alignItems: 'center', color: tab === 'b2c' ? 'var(--caanma-primary)' : 'var(--caanma-text-muted)', transition: 'all 0.2s' }}
           >
             <UserCircle size={20} /> Facturar un Ticket
           </button>
           <button 
              onClick={() => { setTab('b2b'); setError(''); setB2bSearched(false); }}
-             style={{ flex: 1, padding: '1.25rem', backgroundColor: tab === 'b2b' ? 'white' : '#f8fafc', border: 'none', borderBottom: tab === 'b2b' ? '3px solid var(--pulpos-primary)' : '3px solid transparent', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', gap: '0.5rem', alignItems: 'center', color: tab === 'b2b' ? 'var(--pulpos-primary)' : 'var(--pulpos-text-muted)', transition: 'all 0.2s' }}
+             style={{ flex: 1, padding: '1.25rem', backgroundColor: tab === 'b2b' ? 'white' : '#f8fafc', border: 'none', borderBottom: tab === 'b2b' ? '3px solid var(--caanma-primary)' : '3px solid transparent', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', gap: '0.5rem', alignItems: 'center', color: tab === 'b2b' ? 'var(--caanma-primary)' : 'var(--caanma-text-muted)', transition: 'all 0.2s' }}
           >
             <Briefcase size={20} /> Soy Cliente Mayorista (B2B)
           </button>
@@ -200,7 +200,7 @@ export default function PortalClient() {
               {!portalData ? (
                 <div style={{ maxWidth: '500px', margin: '0 auto', textAlign: 'center' }}>
                   <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>Ingresa a tu Espacio Cliente</h2>
-                  <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '2rem' }}>
+                  <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '2rem' }}>
                     Introduce el correo electrónico o teléfono registrado en tu cuenta para ver tus puntos, vigencia y compras.
                   </p>
                   <form onSubmit={handleSearchLoyalty} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -210,7 +210,7 @@ export default function PortalClient() {
                       onChange={e => setEmailOrPhone(e.target.value)}
                       placeholder="Correo o Teléfono registrado" 
                       required
-                      style={{ padding: '1rem', borderRadius: '8px', border: '2px solid var(--pulpos-border)', fontSize: '1.25rem', textAlign: 'center', fontWeight: 'bold' }} 
+                      style={{ padding: '1rem', borderRadius: '8px', border: '2px solid var(--caanma-border)', fontSize: '1.25rem', textAlign: 'center', fontWeight: 'bold' }} 
                     />
                     <button disabled={loading} type="submit" className="btn-primary" style={{ padding: '1rem', fontSize: '1.1rem', borderRadius: '8px', border: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
                       {loading ? 'Cargando datos...' : 'Ingresar al Portal'}
@@ -221,13 +221,13 @@ export default function PortalClient() {
               ) : (
                 <div>
                   {/* Logged in Header Banner */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
                     <div>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--pulpos-primary)', textTransform: 'uppercase', letterSpacing: '1px' }}>Portal del Cliente</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--caanma-primary)', textTransform: 'uppercase', letterSpacing: '1px' }}>Portal del Cliente</span>
                       <h2 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#0f172a', marginTop: '0.25rem' }}>
                         ¡Hola, {portalData.customer.name}! 👋
                       </h2>
-                      <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+                      <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
                         Sucursal asignada: <strong>{portalData.customer.branch?.name || 'Central'}</strong>
                       </p>
                     </div>
@@ -347,8 +347,8 @@ export default function PortalClient() {
                           padding: '0.5rem 1rem',
                           background: 'transparent',
                           border: 'none',
-                          borderBottom: portalSubTab === subTab.id ? '3px solid var(--pulpos-primary)' : '3px solid transparent',
-                          color: portalSubTab === subTab.id ? 'var(--pulpos-primary)' : '#64748b',
+                          borderBottom: portalSubTab === subTab.id ? '3px solid var(--caanma-primary)' : '3px solid transparent',
+                          color: portalSubTab === subTab.id ? 'var(--caanma-primary)' : '#64748b',
                           fontWeight: portalSubTab === subTab.id ? 'bold' : '500',
                           cursor: 'pointer',
                           display: 'flex',
@@ -367,10 +367,10 @@ export default function PortalClient() {
 
                   {/* SUBTAB 1: PURCHASES */}
                   {portalSubTab === 'purchases' && (
-                    <div style={{ border: '1px solid var(--pulpos-border)', borderRadius: '10px', overflow: 'hidden' }}>
+                    <div style={{ border: '1px solid var(--caanma-border)', borderRadius: '10px', overflow: 'hidden' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
-                          <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--pulpos-border)' }}>
+                          <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
                             <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 'bold' }}>Folio</th>
                             <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 'bold' }}>Fecha</th>
                             <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 'bold' }}>Método de Pago</th>
@@ -387,8 +387,8 @@ export default function PortalClient() {
                             const isMixto = sale.paymentMethod === 'MIXTO';
                             return (
                               <>
-                                <tr key={sale.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                                  <td style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>#{shortId}</td>
+                                <tr key={sale.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid var(--caanma-border)' }}>
+                                  <td style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>#{shortId}</td>
                                   <td style={{ padding: '1rem' }}>{new Date(sale.createdAt).toLocaleDateString()}</td>
                                   <td style={{ padding: '1rem', fontWeight: 'bold', fontSize: '0.85rem', color: '#475569' }}>
                                     {isCredit ? '💳 A Crédito' : (isMixto ? '⚡ Mixto' : '💵 Contado')}
@@ -418,7 +418,7 @@ export default function PortalClient() {
                                 {isExpanded && (
                                   <tr style={{ backgroundColor: '#f8fafc' }}>
                                     <td colSpan={6} style={{ padding: '1rem 2rem' }}>
-                                      <div style={{ borderLeft: '3px solid var(--pulpos-primary)', paddingLeft: '1rem' }}>
+                                      <div style={{ borderLeft: '3px solid var(--caanma-primary)', paddingLeft: '1rem' }}>
                                         <h5 style={{ fontWeight: 'bold', fontSize: '0.85rem', color: '#334155', marginBottom: '0.5rem' }}>Artículos Adquiridos:</h5>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                           {sale.items.map((item: any) => (
@@ -449,10 +449,10 @@ export default function PortalClient() {
 
                   {/* SUBTAB 2: PAYMENTS */}
                   {portalSubTab === 'payments' && (
-                    <div style={{ border: '1px solid var(--pulpos-border)', borderRadius: '10px', overflow: 'hidden' }}>
+                    <div style={{ border: '1px solid var(--caanma-border)', borderRadius: '10px', overflow: 'hidden' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
-                          <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--pulpos-border)' }}>
+                          <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
                             <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 'bold' }}>Fecha</th>
                             <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 'bold' }}>Concepto / Razón</th>
                             <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'right' }}>Monto</th>
@@ -461,7 +461,7 @@ export default function PortalClient() {
                         </thead>
                         <tbody>
                           {portalData.payments.map((p: any) => (
-                            <tr key={p.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                            <tr key={p.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                               <td style={{ padding: '1rem', fontSize: '0.85rem' }}>{new Date(p.createdAt).toLocaleDateString()}</td>
                               <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#475569' }}>{p.reason || 'Abono / Pago de Cuenta'}</td>
                               <td style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right', color: '#16a34a' }}>{formatCurrency(p.amount)}</td>
@@ -490,10 +490,10 @@ export default function PortalClient() {
 
                   {/* SUBTAB 3: QUOTES */}
                   {portalSubTab === 'quotes' && (
-                    <div style={{ border: '1px solid var(--pulpos-border)', borderRadius: '10px', overflow: 'hidden' }}>
+                    <div style={{ border: '1px solid var(--caanma-border)', borderRadius: '10px', overflow: 'hidden' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
-                          <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--pulpos-border)' }}>
+                          <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
                             <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 'bold' }}>Folio</th>
                             <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 'bold' }}>Fecha</th>
                             <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 'bold' }}>Artículos</th>
@@ -503,7 +503,7 @@ export default function PortalClient() {
                         </thead>
                         <tbody>
                           {portalData.quotes.map((q: any) => (
-                            <tr key={q.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                            <tr key={q.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                               <td style={{ padding: '1rem', fontWeight: 'bold' }}>#{q.id.slice(-6).toUpperCase()}</td>
                               <td style={{ padding: '1rem' }}>{new Date(q.createdAt).toLocaleDateString()}</td>
                               <td style={{ padding: '1rem', fontSize: '0.85rem', color: '#475569', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -538,15 +538,15 @@ export default function PortalClient() {
 
                   {/* SUBTAB 4: FAVORITES */}
                   {portalSubTab === 'favorites' && (
-                    <div style={{ border: '1px solid var(--pulpos-border)', borderRadius: '10px', overflow: 'hidden' }}>
-                      <div style={{ padding: '1.5rem', backgroundColor: '#f8fafc', borderBottom: '1px solid var(--pulpos-border)' }}>
+                    <div style={{ border: '1px solid var(--caanma-border)', borderRadius: '10px', overflow: 'hidden' }}>
+                      <div style={{ padding: '1.5rem', backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
                         <h4 style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#334155' }}>Tus Favoritos (Más Comprados)</h4>
-                        <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.8rem', marginTop: '0.2rem' }}>Estos son los artículos que compras con mayor regularidad en nuestras sucursales.</p>
+                        <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.8rem', marginTop: '0.2rem' }}>Estos son los artículos que compras con mayor regularidad en nuestras sucursales.</p>
                       </div>
                       
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
-                          <tr style={{ backgroundColor: '#ffffff', borderBottom: '1px solid var(--pulpos-border)' }}>
+                          <tr style={{ backgroundColor: '#ffffff', borderBottom: '1px solid var(--caanma-border)' }}>
                             <th style={{ padding: '0.75rem 1.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 'bold' }}>SKU</th>
                             <th style={{ padding: '0.75rem 1.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 'bold' }}>Producto</th>
                             <th style={{ padding: '0.75rem 1.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'center' }}>Unidades Compradas</th>
@@ -555,10 +555,10 @@ export default function PortalClient() {
                         </thead>
                         <tbody>
                           {portalData.favoriteProducts.map((p: any, idx: number) => (
-                            <tr key={idx} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                            <tr key={idx} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                               <td style={{ padding: '1rem 1.5rem', fontWeight: 'bold', fontSize: '0.85rem', color: '#64748b' }}>{p.sku}</td>
                               <td style={{ padding: '1rem 1.5rem', fontWeight: 'bold', color: '#0f172a' }}>{p.name}</td>
-                              <td style={{ padding: '1rem 1.5rem', textAlign: 'center', fontWeight: 'bold', color: 'var(--pulpos-primary)', fontSize: '1.1rem' }}>{p.quantity}</td>
+                              <td style={{ padding: '1rem 1.5rem', textAlign: 'center', fontWeight: 'bold', color: 'var(--caanma-primary)', fontSize: '1.1rem' }}>{p.quantity}</td>
                               <td style={{ padding: '1rem 1.5rem', fontWeight: 'bold', textAlign: 'right' }}>{formatCurrency(p.totalSpent)}</td>
                             </tr>
                           ))}
@@ -592,7 +592,7 @@ export default function PortalClient() {
                           </div>
                         ))}
                         {portalData.promotions.length === 0 && (
-                          <div style={{ gridColumn: '1 / -1', padding: '3rem', textAlign: 'center', border: '1px dashed var(--pulpos-border)', borderRadius: '12px', color: '#94a3b8', fontStyle: 'italic', backgroundColor: '#f8fafc' }}>
+                          <div style={{ gridColumn: '1 / -1', padding: '3rem', textAlign: 'center', border: '1px dashed var(--caanma-border)', borderRadius: '12px', color: '#94a3b8', fontStyle: 'italic', backgroundColor: '#f8fafc' }}>
                             No hay promociones especiales disponibles para tu sucursal en este momento. ¡Vuelve pronto!
                           </div>
                         )}
@@ -611,7 +611,7 @@ export default function PortalClient() {
                 {!sale ? (
                   <div style={{ textAlign: 'center', maxWidth: '500px', margin: '0 auto' }}>
                     <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>Identifica tu compra</h2>
-                    <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '2rem' }}>
+                    <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '2rem' }}>
                       Ingresa el folio de la venta que aparece en la parte inferior de tu ticket impreso.
                     </p>
                     <form onSubmit={handleSearchB2C} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -621,7 +621,7 @@ export default function PortalClient() {
                         onChange={e => setTicketId(e.target.value)}
                         placeholder="Ej. A4F2C9" 
                         required
-                        style={{ padding: '1.25rem', borderRadius: '8px', border: '2px solid var(--pulpos-border)', fontSize: '1.5rem', textAlign: 'center', fontWeight: 'bold', letterSpacing: '2px', textTransform: 'uppercase' }} 
+                        style={{ padding: '1.25rem', borderRadius: '8px', border: '2px solid var(--caanma-border)', fontSize: '1.5rem', textAlign: 'center', fontWeight: 'bold', letterSpacing: '2px', textTransform: 'uppercase' }} 
                       />
                       <button disabled={loading} type="submit" className="btn-primary" style={{ padding: '1rem', fontSize: '1.1rem', borderRadius: '8px', border: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
                         {loading ? 'Buscando...' : <><Search size={20} /> Buscar Ticket</>}
@@ -635,26 +635,26 @@ export default function PortalClient() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#16a34a', fontWeight: 'bold', fontSize: '1.25rem', marginBottom: '1.5rem', justifyContent: 'center' }}>
                       <CheckCircle2 size={28} /> ¡Ticket Facturado Exitosamente!
                     </div>
-                    <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)', marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ color: 'var(--pulpos-text-muted)' }}>Folio:</span>
+                          <span style={{ color: 'var(--caanma-text-muted)' }}>Folio:</span>
                           <span style={{ fontWeight: 'bold' }}>#{sale.folio || sale.id.slice(-6).toUpperCase()}</span>
                        </div>
                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ color: 'var(--pulpos-text-muted)' }}>Receptor Fiscal:</span>
+                          <span style={{ color: 'var(--caanma-text-muted)' }}>Receptor Fiscal:</span>
                           <span style={{ fontWeight: 'bold' }}>{sale.customer?.legalName || sale.customer?.name}</span>
                        </div>
                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ color: 'var(--pulpos-text-muted)' }}>RFC:</span>
+                          <span style={{ color: 'var(--caanma-text-muted)' }}>RFC:</span>
                           <span style={{ fontWeight: 'bold' }}>{sale.customer?.taxId}</span>
                        </div>
                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ color: 'var(--pulpos-text-muted)' }}>UUID Factura (SAT):</span>
+                          <span style={{ color: 'var(--caanma-text-muted)' }}>UUID Factura (SAT):</span>
                           <span style={{ fontWeight: 'bold', fontSize: '0.85rem', fontFamily: 'monospace' }}>{sale.invoiceId}</span>
                        </div>
-                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--pulpos-border)' }}>
+                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--caanma-border)' }}>
                           <span>Total:</span>
-                          <span style={{ fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>{formatCurrency(sale.total)}</span>
+                          <span style={{ fontWeight: 'bold', color: 'var(--caanma-primary)' }}>{formatCurrency(sale.total)}</span>
                        </div>
                     </div>
 
@@ -686,18 +686,18 @@ export default function PortalClient() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#16a34a', fontWeight: 'bold', fontSize: '1.25rem', marginBottom: '1.5rem', justifyContent: 'center' }}>
                       <CheckCircle2 size={28} /> Ticket Encontrado
                     </div>
-                    <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px dashed var(--pulpos-border)', marginBottom: '2rem' }}>
+                    <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px dashed var(--caanma-border)', marginBottom: '2rem' }}>
                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                          <span style={{ color: 'var(--pulpos-text-muted)' }}>Folio:</span>
+                          <span style={{ color: 'var(--caanma-text-muted)' }}>Folio:</span>
                           <span style={{ fontWeight: 'bold' }}>#{sale.folio || sale.id.slice(-6).toUpperCase()}</span>
                        </div>
                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                          <span style={{ color: 'var(--pulpos-text-muted)' }}>Fecha:</span>
+                          <span style={{ color: 'var(--caanma-text-muted)' }}>Fecha:</span>
                           <span style={{ fontWeight: 'bold' }}>{new Date(sale.createdAt).toLocaleDateString()}</span>
                        </div>
-                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.5rem', marginTop: '1rem', paddingTop: '1rem', borderTop: '2px solid var(--pulpos-border)' }}>
+                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.5rem', marginTop: '1rem', paddingTop: '1rem', borderTop: '2px solid var(--caanma-border)' }}>
                           <span>Total:</span>
-                          <span style={{ fontWeight: 'bold', color: 'var(--pulpos-text)' }}>{formatCurrency(sale.total)}</span>
+                          <span style={{ fontWeight: 'bold', color: 'var(--caanma-text)' }}>{formatCurrency(sale.total)}</span>
                        </div>
                     </div>
                     
@@ -893,7 +893,7 @@ export default function PortalClient() {
                 {!b2bSearched ? (
                   <div style={{ textAlign: 'center' }}>
                     <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>Accede a tus Facturas</h2>
-                    <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '2rem' }}>
+                    <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '2rem' }}>
                       Ingresa tu RFC asociado a tu cuenta de cliente mayorista para ver tu historial de CFDI.
                     </p>
                     <form onSubmit={handleSearchB2B} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -903,7 +903,7 @@ export default function PortalClient() {
                         onChange={e => setRfc(e.target.value.toUpperCase())}
                         placeholder="RFC (Ej. XAXX010101000)" 
                         required
-                        style={{ padding: '1.25rem', borderRadius: '8px', border: '2px solid var(--pulpos-border)', fontSize: '1.5rem', textAlign: 'center', fontWeight: 'bold', letterSpacing: '2px' }} 
+                        style={{ padding: '1.25rem', borderRadius: '8px', border: '2px solid var(--caanma-border)', fontSize: '1.5rem', textAlign: 'center', fontWeight: 'bold', letterSpacing: '2px' }} 
                       />
                       <button disabled={loading} type="submit" className="btn-primary" style={{ padding: '1rem', fontSize: '1.1rem', borderRadius: '8px', border: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
                         {loading ? 'Cargando portal...' : 'Ingresar al Portal'}
@@ -913,17 +913,17 @@ export default function PortalClient() {
                 ) : (
                   <div>
                     <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Historial Fiscal</h2>
-                    <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '2rem' }}>RFC: <strong>{rfc}</strong></p>
+                    <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '2rem' }}>RFC: <strong>{rfc}</strong></p>
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                       {invoices.map((inv) => (
-                        <div key={inv.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', border: '1px solid var(--pulpos-border)', borderRadius: '8px' }}>
+                        <div key={inv.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', border: '1px solid var(--caanma-border)', borderRadius: '8px' }}>
                           <div>
                             <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>Factura {inv.id}</div>
-                            <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.85rem' }}>{new Date(inv.date).toLocaleDateString()} • UUID: {inv.uuid}</div>
+                            <div style={{ color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>{new Date(inv.date).toLocaleDateString()} • UUID: {inv.uuid}</div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                             <div style={{ fontWeight: 'bold', color: 'var(--pulpos-text)' }}>{formatCurrency(inv.total)}</div>
+                             <div style={{ fontWeight: 'bold', color: 'var(--caanma-text)' }}>{formatCurrency(inv.total)}</div>
                              <div style={{ display: 'flex', gap: '0.5rem' }}>
                                <a 
                                  href={`/api/facturacion/download?invoiceId=${inv.uuid}&format=pdf`} 
@@ -945,7 +945,7 @@ export default function PortalClient() {
                       ))}
                     </div>
 
-                    <button onClick={() => setB2bSearched(false)} style={{ background: 'none', border: 'none', color: 'var(--pulpos-primary)', fontWeight: 'bold', textDecoration: 'underline', marginTop: '2rem', cursor: 'pointer' }}>
+                    <button onClick={() => setB2bSearched(false)} style={{ background: 'none', border: 'none', color: 'var(--caanma-primary)', fontWeight: 'bold', textDecoration: 'underline', marginTop: '2rem', cursor: 'pointer' }}>
                       Salir del portal
                     </button>
                   </div>
@@ -957,7 +957,7 @@ export default function PortalClient() {
       </div>
       
       <div style={{ textAlign: 'center', marginTop: '3rem' }}>
-         <Link href="/login" style={{ color: 'var(--pulpos-text-muted)', textDecoration: 'none', fontSize: '0.9rem' }}>
+         <Link href="/login" style={{ color: 'var(--caanma-text-muted)', textDecoration: 'none', fontSize: '0.9rem' }}>
            ← Volver al login para empleados
          </Link>
       </div>

@@ -130,14 +130,14 @@ export default function REPClient({ sales }: { sales: any[] }) {
 
       {/* Invoices List Card */}
       <div className="card" style={{ marginBottom: '2rem', padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--pulpos-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--caanma-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0f172a' }}>Facturas PPD (A Crédito) Emitidas</h2>
           {selectedIds.length > 0 && (
             <button 
               onClick={handleOpenModal}
               disabled={!isSameCustomer}
               style={{
-                backgroundColor: isSameCustomer ? 'var(--pulpos-primary)' : '#cbd5e1',
+                backgroundColor: isSameCustomer ? 'var(--caanma-primary)' : '#cbd5e1',
                 color: 'white',
                 border: 'none',
                 padding: '0.6rem 1.25rem',
@@ -162,7 +162,7 @@ export default function REPClient({ sales }: { sales: any[] }) {
           </div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--pulpos-border)' }}>
+            <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
               <tr>
                 <th style={{ padding: '1rem', width: '40px', textAlign: 'center' }}>
                   <input 
@@ -186,7 +186,7 @@ export default function REPClient({ sales }: { sales: any[] }) {
                   <tr 
                     key={sale.id} 
                     style={{ 
-                      borderBottom: '1px solid var(--pulpos-border)',
+                      borderBottom: '1px solid var(--caanma-border)',
                       backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.03)' : 'transparent'
                     }}
                   >
@@ -266,7 +266,7 @@ export default function REPClient({ sales }: { sales: any[] }) {
             borderRadius: '16px' 
           }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <CreditCard size={22} color="var(--pulpos-primary)" />
+              <CreditCard size={22} color="var(--caanma-primary)" />
               Emitir Complemento de Pago
             </h3>
             
@@ -305,7 +305,7 @@ export default function REPClient({ sales }: { sales: any[] }) {
               {/* Total display */}
               <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #e2e8f0', paddingTop: '0.75rem', fontSize: '1.1rem' }}>
                 <span style={{ color: '#475569', fontWeight: 'bold' }}>Total a Registrar:</span>
-                <span style={{ fontWeight: '900', color: 'var(--pulpos-primary)' }}>
+                <span style={{ fontWeight: '900', color: 'var(--caanma-primary)' }}>
                   ${totalPaymentSum.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -347,7 +347,7 @@ export default function REPClient({ sales }: { sales: any[] }) {
                 <button 
                   type="submit" 
                   disabled={isProcessing}
-                  style={{ flex: 1.5, padding: '0.75rem', backgroundColor: 'var(--pulpos-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: isProcessing ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                  style={{ flex: 1.5, padding: '0.75rem', backgroundColor: 'var(--caanma-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: isProcessing ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                 >
                   {isProcessing ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
                   {isProcessing ? 'Timbrando REP...' : 'Timbrar REP'}

@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 // Secret key to authorize cron invocation externally (e.g. Vercel Cron)
-const CRON_SECRET = process.env.CRON_SECRET || 'pulpos-cron-auth-token-123';
+const CRON_SECRET = process.env.CRON_SECRET || 'caanma-cron-auth-token-123';
 
 export async function GET(req: Request) {
   try {

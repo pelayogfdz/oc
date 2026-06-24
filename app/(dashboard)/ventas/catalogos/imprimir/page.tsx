@@ -174,7 +174,7 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
     );
   }
 
-  const branchCookie = cookieStore.get('pulpos_active_branch')?.value;
+  const branchCookie = cookieStore.get('caanma_active_branch')?.value;
   
   // Obtener la sucursal activa
   let activeBranch: any = null;

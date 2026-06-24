@@ -29,18 +29,18 @@ export default async function Page() {
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead style={{ backgroundColor: '#f8fafc' }}>
             <tr>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Proveedor</th>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Contacto</th>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Límite de Crédito</th>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Acciones</th>
+              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Proveedor</th>
+              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Contacto</th>
+              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Límite de Crédito</th>
+              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {data.map((item: any) => (
-              <tr key={item.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+              <tr key={item.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                 <td data-label="Proveedor" style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: 'bold', fontSize: '1rem', color: '#0f172a' }}>{item.name}</div>
-                  {item.taxId && <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', marginTop: '0.25rem' }}>RFC: {item.taxId}</div>}
+                  {item.taxId && <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', marginTop: '0.25rem' }}>RFC: {item.taxId}</div>}
                 </td>
                 <td data-label="Contacto" style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>
                   <div>{item.email || '- Sin Correo -'}</div>
@@ -65,7 +65,7 @@ export default async function Page() {
             ))}
             {data.length === 0 && (
               <tr>
-                <td colSpan={4} style={{ padding: '4rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                <td colSpan={4} style={{ padding: '4rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                   <FileText size={40} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
                   No tienes proveedores registrados aún.
                 </td>

@@ -337,7 +337,7 @@ export default function PortalEmpleadoClient({
       <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#1e293b' }}>
         Mi Portal
       </h1>
-      <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '2rem' }}>
+      <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '2rem' }}>
         Bienvenido, {user.name}
       </p>
 
@@ -380,9 +380,9 @@ export default function PortalEmpleadoClient({
           
           {/* Action Card */}
           <div className="card" style={{ padding: '1.75rem', textAlign: 'center', backgroundColor: '#ffffff', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
-            <Clock size={48} color="var(--pulpos-primary)" style={{ margin: '0 auto 1.25rem auto', filter: 'drop-shadow(0 4px 6px rgba(59, 130, 246, 0.15))' }} />
+            <Clock size={48} color="var(--caanma-primary)" style={{ margin: '0 auto 1.25rem auto', filter: 'drop-shadow(0 4px 6px rgba(59, 130, 246, 0.15))' }} />
             <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#1e293b' }}>Control de Asistencia</h2>
-            <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '1.75rem', fontSize: '0.9rem' }}>
+            <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '1.75rem', fontSize: '0.9rem' }}>
               Registra tu entrada y salida del turno laboral. 
             </p>
 
@@ -580,7 +580,7 @@ export default function PortalEmpleadoClient({
           {/* Today's Log */}
           <div className="card">
             <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <CalendarDays size={20} color="var(--pulpos-primary)" /> Registros de Hoy
+              <CalendarDays size={20} color="var(--caanma-primary)" /> Registros de Hoy
             </h3>
             
             {todayLogs.length === 0 ? (
@@ -753,7 +753,7 @@ export default function PortalEmpleadoClient({
           {/* Weekly Logs */}
           <div className="card">
             <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <CalendarDays size={20} color="var(--pulpos-primary)" /> Últimos 7 Días
+              <CalendarDays size={20} color="var(--caanma-primary)" /> Últimos 7 Días
             </h3>
             {weeklyLogs.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
@@ -789,9 +789,9 @@ export default function PortalEmpleadoClient({
           {/* Allowed Check-in Locations Card */}
           <div className="card" style={{ padding: '1.5rem', backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1' }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e293b' }}>
-              <MapPin size={20} color="var(--pulpos-primary)" /> Zonas Autorizadas
+              <MapPin size={20} color="var(--caanma-primary)" /> Zonas Autorizadas
             </h3>
-            <p style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', marginBottom: '1.25rem', lineHeight: '1.4' }}>
+            <p style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', marginBottom: '1.25rem', lineHeight: '1.4' }}>
               Ubicaciones geográficas permitidas para registrar tu asistencia (Check-in / Check-out).
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>

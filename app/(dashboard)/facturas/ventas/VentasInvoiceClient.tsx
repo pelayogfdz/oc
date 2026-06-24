@@ -158,10 +158,10 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <div>
           <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#0f172a' }}>
-            <FileText size={28} color="var(--pulpos-primary)" />
+            <FileText size={28} color="var(--caanma-primary)" />
             Facturación de Ventas
           </h1>
-          <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+          <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
             Timbra comprobantes individuales o selecciona múltiples ventas para consolidarlas en una sola factura.
           </p>
         </div>
@@ -201,7 +201,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                 setIsModalOpen(true);
               }}
               style={{
-                backgroundColor: 'var(--pulpos-primary)',
+                backgroundColor: 'var(--caanma-primary)',
                 color: 'white',
                 border: 'none',
                 padding: '0.75rem 1.5rem',
@@ -241,10 +241,10 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
       )}
 
       {/* Sales list Table Card */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--pulpos-border)' }}>
+      <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--caanma-border)' }}>
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead style={{ backgroundColor: '#f8fafc' }}>
-            <tr style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+            <tr style={{ borderBottom: '1px solid var(--caanma-border)' }}>
               <th style={{ padding: '1rem', width: '40px', textAlign: 'center' }}>
                 <input 
                   type="checkbox" 
@@ -269,7 +269,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                 <tr 
                   key={sale.id} 
                   style={{ 
-                    borderBottom: '1px solid var(--pulpos-border)',
+                    borderBottom: '1px solid var(--caanma-border)',
                     backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.03)' : 'transparent',
                     transition: 'all 0.15s'
                   }}
@@ -290,7 +290,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                   </td>
                   <td style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: 'bold', color: '#0f172a' }}>#{sale.folio || sale.id.substring(0,8).toUpperCase()}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', marginTop: '0.2rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', marginTop: '0.2rem' }}>
                       {new Date(sale.createdAt).toLocaleDateString()} {new Date(sale.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </div>
                   </td>
@@ -298,7 +298,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                     <div style={{ fontWeight: '500', color: '#1e293b' }}>
                       {sale.customer?.legalName || sale.customer?.name || 'Público en General'}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', display: 'flex', gap: '0.5rem', marginTop: '0.2rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', display: 'flex', gap: '0.5rem', marginTop: '0.2rem' }}>
                       <span>RFC: {sale.customer?.taxId || 'XAXX010101000'}</span>
                       <span>•</span>
                       <span style={{ fontWeight: '500', color: '#2563eb' }}>
@@ -431,7 +431,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
             })}
             {sales.length === 0 && (
               <tr>
-                <td colSpan={6} style={{ padding: '4rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                <td colSpan={6} style={{ padding: '4rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                   <FileText size={40} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
                   No hay ventas registradas para facturar.
                 </td>
@@ -475,7 +475,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
             {!isCreatingCustomer ? (
               <div>
                 <h3 style={{ fontSize: '1.4rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Layers size={22} color="var(--pulpos-primary)" />
+                  <Layers size={22} color="var(--caanma-primary)" />
                   {activeInvoicingSaleIds.length === 1 ? 'Facturar Venta' : `Facturar ${activeInvoicingSaleIds.length} Ventas Agrupadas`}
                 </h3>
                 <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
@@ -488,7 +488,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                     <span>Selecciona el receptor fiscal:</span>
                     <button 
                       onClick={() => setIsCreatingCustomer(true)}
-                      style={{ border: 'none', background: 'none', color: 'var(--pulpos-primary)', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem' }}
+                      style={{ border: 'none', background: 'none', color: 'var(--caanma-primary)', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem' }}
                     >
                       <Plus size={16} /> Registrar Cliente Nuevo
                     </button>
@@ -529,7 +529,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                         <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Público en General</div>
                         <div style={{ fontSize: '0.75rem', color: '#64748b' }}>RFC: XAXX010101000</div>
                       </div>
-                      {selectedCustomerId === '' && <Check size={18} color="var(--pulpos-primary)" />}
+                      {selectedCustomerId === '' && <Check size={18} color="var(--caanma-primary)" />}
                     </div>
 
                     {filteredCustomers.map((c) => (
@@ -550,7 +550,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                           <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{c.legalName || c.name}</div>
                           <div style={{ fontSize: '0.75rem', color: '#64748b' }}>RFC: {c.taxId || 'Sin RFC'}</div>
                         </div>
-                        {selectedCustomerId === c.id && <Check size={18} color="var(--pulpos-primary)" />}
+                        {selectedCustomerId === c.id && <Check size={18} color="var(--caanma-primary)" />}
                       </div>
                     ))}
                     {filteredCustomers.length === 0 && customerSearch !== '' && (
@@ -571,7 +571,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                   <button 
                     onClick={handleGroupInvoiceSubmit}
                     disabled={isPending}
-                    style={{ flex: 2, padding: '0.75rem', backgroundColor: 'var(--pulpos-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                    style={{ flex: 2, padding: '0.75rem', backgroundColor: 'var(--caanma-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                   >
                     {isPending ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
                     {isPending ? 'Timbrando CFDI...' : 'Emitir Factura SAT'}
@@ -581,7 +581,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
             ) : (
               <div>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Sparkles size={20} color="var(--pulpos-primary)" />
+                  <Sparkles size={20} color="var(--caanma-primary)" />
                   Dar de alta Cliente Fiscal
                 </h3>
                 
@@ -696,7 +696,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                     </button>
                     <button 
                       type="submit"
-                      style={{ flex: 1, padding: '0.75rem', backgroundColor: 'var(--pulpos-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                      style={{ flex: 1, padding: '0.75rem', backgroundColor: 'var(--caanma-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
                     >
                       Registrar y Usar
                     </button>

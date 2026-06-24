@@ -15,7 +15,7 @@ export default function MobileMenuToggle() {
         border: 'none',
         padding: '0.5rem',
         cursor: 'pointer',
-        color: 'var(--pulpos-text)',
+        color: 'var(--caanma-text)',
       }}
     >
       {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}

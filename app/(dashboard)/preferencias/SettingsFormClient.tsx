@@ -49,9 +49,9 @@ export default function SettingsFormClient({
   }
 
   return (
-    <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '2rem', border: '1px solid var(--pulpos-border)' }}>
+    <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '2rem', border: '1px solid var(--caanma-border)' }}>
       <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>{title}</h2>
-      <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '1rem' }}>
+      <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '1rem' }}>
         {description}
       </p>
 
@@ -103,7 +103,7 @@ export default function SettingsFormClient({
                   <select 
                     value={value || ''} 
                     onChange={(e) => handleChange(f.name, e.target.value)}
-                    style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', outline: 'none', backgroundColor: 'white', cursor: 'pointer' }}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', cursor: 'pointer' }}
                   >
                     <option value="" disabled>Seleccionar opción...</option>
                     {f.options?.map(opt => (
@@ -116,7 +116,7 @@ export default function SettingsFormClient({
                     placeholder={f.placeholder || ''} 
                     value={value || ''} 
                     onChange={(e) => handleChange(f.name, f.type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value)}
-                    style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', outline: 'none' }} 
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', outline: 'none' }} 
                   />
                 )}
               </div>

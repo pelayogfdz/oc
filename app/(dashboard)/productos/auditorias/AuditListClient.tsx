@@ -34,7 +34,7 @@ export default function AuditListClient({ initialAudits }: { initialAudits: any[
             <ClipboardList size={28} color="#10b981" />
             Auditorías de Inventario Físico
           </h1>
-          <p style={{ color: 'var(--pulpos-text-muted)', margin: 0 }}>
+          <p style={{ color: 'var(--caanma-text-muted)', margin: 0 }}>
             Realiza conteos cíclicos o ciegos de 3 fases para reajustar tu stock de forma segura.
           </p>
         </div>
@@ -50,9 +50,9 @@ export default function AuditListClient({ initialAudits }: { initialAudits: any[
         </button>
       </div>
 
-      <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--pulpos-border)', overflow: 'hidden' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--caanma-border)', overflow: 'hidden' }}>
         {initialAudits.length === 0 ? (
-          <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+          <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
             <div style={{ width: '80px', height: '80px', backgroundColor: '#f1f5f9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
               <ClipboardList size={40} color="#94a3b8" />
             </div>
@@ -62,7 +62,7 @@ export default function AuditListClient({ initialAudits }: { initialAudits: any[
         ) : (
           <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
-              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--pulpos-border)' }}>
+              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b' }}>Nombre</th>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b' }}>Estado y Fase</th>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b' }}>Fecha</th>
@@ -72,7 +72,7 @@ export default function AuditListClient({ initialAudits }: { initialAudits: any[
             </thead>
             <tbody>
               {initialAudits.map(audit => (
-                <tr key={audit.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                <tr key={audit.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                   <td data-label="Nombre" style={{ padding: '1rem', fontWeight: 'bold', color: '#0f172a' }}>{audit.name}</td>
                   <td data-label="Estado y Fase" style={{ padding: '1rem' }}>
                     <span style={{ 
@@ -88,13 +88,13 @@ export default function AuditListClient({ initialAudits }: { initialAudits: any[
                        audit.status === 'COUNT_2' ? 'Fase 2: Diferencias' : 'Fase 3: Aclaraciones'}
                     </span>
                   </td>
-                  <td data-label="Fecha" style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>
+                  <td data-label="Fecha" style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <Calendar size={16} />
                       {new Date(audit.createdAt).toLocaleDateString()}
                     </div>
                   </td>
-                  <td data-label="Productos Contados" style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold' }}>
+                  <td data-label="Productos Contados" style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold' }}>
                     {audit._count.items}
                   </td>
                   <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'right' }}>
@@ -128,14 +128,14 @@ export default function AuditListClient({ initialAudits }: { initialAudits: any[
                 value={auditName}
                 onChange={e => setAuditName(e.target.value)}
                 placeholder="Ej. Conteo Mensual Abril"
-                style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', outline: 'none' }}
+                style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', outline: 'none' }}
               />
             </div>
 
             <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
               <button 
                 onClick={() => setIsModalOpen(false)} 
-                style={{ flex: 1, padding: '0.75rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', background: 'white' }}
+                style={{ flex: 1, padding: '0.75rem', border: '1px solid var(--caanma-border)', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', background: 'white' }}
               >
                 Cancelar
               </button>

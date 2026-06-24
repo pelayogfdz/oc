@@ -532,7 +532,7 @@ export default function CollaboratorTaskPopup({ userId }: { userId: string }) {
                           <Camera size={20} />
                         </div>
                         <div>
-                          <span style={{ fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>Haz clic para tomar foto</span>
+                          <span style={{ fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>Haz clic para tomar foto</span>
                           <span style={{ fontSize: '0.875rem', color: '#64748b' }}> o seleccionar archivo</span>
                         </div>
                         <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Formatos aceptados: Imágenes o Documentos</span>

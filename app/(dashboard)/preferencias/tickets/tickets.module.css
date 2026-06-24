@@ -6,8 +6,8 @@
 
 .formBox {
   flex: 1;
-  background-color: var(--pulpos-card-bg);
-  border: 1px solid var(--pulpos-border);
+  background-color: var(--caanma-card-bg);
+  border: 1px solid var(--caanma-border);
   border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
@@ -23,7 +23,7 @@
   align-items: center;
   justify-content: flex-start;
   min-height: 500px;
-  border: 1px solid var(--pulpos-border);
+  border: 1px solid var(--caanma-border);
   position: relative;
   overflow: hidden;
   /* subtle pattern */
@@ -38,10 +38,10 @@
 }
 
 .headerDesc {
-  color: var(--pulpos-text-muted);
+  color: var(--caanma-text-muted);
   font-size: 0.875rem;
   margin-bottom: 1.5rem;
-  border-bottom: 1px solid var(--pulpos-border);
+  border-bottom: 1px solid var(--caanma-border);
   padding-bottom: 1rem;
 }
 
@@ -54,14 +54,14 @@
   font-size: 0.875rem;
   font-weight: bold;
   margin-bottom: 0.5rem;
-  color: var(--pulpos-text);
+  color: var(--caanma-text);
 }
 
 .inputField {
   width: 100%;
   padding: 0.75rem;
   border-radius: 6px;
-  border: 1px solid var(--pulpos-border);
+  border: 1px solid var(--caanma-border);
   font-family: inherit;
   font-size: 0.875rem;
   transition: border-color 0.2s;
@@ -70,7 +70,7 @@
 
 .inputField:focus {
   outline: none;
-  border-color: var(--pulpos-primary);
+  border-color: var(--caanma-primary);
   box-shadow: 0 0 0 2px rgba(0, 168, 150, 0.2);
 }
 
@@ -85,7 +85,7 @@
 .checkboxGroup input[type="checkbox"] {
   width: 1rem;
   height: 1rem;
-  accent-color: var(--pulpos-primary);
+  accent-color: var(--caanma-primary);
   cursor: pointer;
 }
 
@@ -114,7 +114,7 @@
 
 .formatBtn {
   background: white;
-  border: 1px solid var(--pulpos-border);
+  border: 1px solid var(--caanma-border);
   padding: 6px 12px;
   border-radius: 4px;
   font-size: 0.8rem;
@@ -124,9 +124,9 @@
 }
 
 .formatBtn.active {
-  background: var(--pulpos-primary);
+  background: var(--caanma-primary);
   color: white;
-  border-color: var(--pulpos-primary);
+  border-color: var(--caanma-primary);
 }
 
 .ticketWrapper {

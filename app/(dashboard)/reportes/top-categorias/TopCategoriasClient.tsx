@@ -142,7 +142,7 @@ export default function TopCategoriasClient({ initialData, initialBranchId, avai
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>🗂️ Reporte de Ventas por Categoría</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Análisis comercial consolidado del desempeño y margen de rentabilidad de tus familias de productos.</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Análisis comercial consolidado del desempeño y margen de rentabilidad de tus familias de productos.</p>
         </div>
         <div className="no-print" style={{ display: 'flex', gap: '0.75rem' }}>
           <button 

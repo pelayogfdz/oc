@@ -1574,6 +1574,78 @@ export async function getInsumosReportData(
   return data;
 }
 
+export async function getCostAndPricesData(branchIdFilter?: string, brandFilter?: string) {
+  const session = await getSession();
+  const branch = await getActiveBranch();
+  if (!branch) throw new Error('Unauthorized');
+  
+  const tenantId = session?.tenantId || branch.tenantId;
+  if (!tenantId) throw new Error('Unauthorized: Tenant context missing');
+  
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true, name: true }
+  });
+  const tenantBranchIds = tenantBranches.map(b => b.id);
+  
+  let branchCondition: any = branch.id === 'GLOBAL' 
+    ? { branchId: { in: tenantBranchIds } } 
+    : { branchId: branch.id };
+    
+  if (branchIdFilter && branchIdFilter !== 'ALL') {
+    if (tenantBranchIds.includes(branchIdFilter)) {
+      branchCondition = { branchId: branchIdFilter };
+    } else {
+      branchCondition = { branchId: { in: tenantBranchIds } };
+    }
+  }
+
+  const products = await prisma.product.findMany({
+    where: {
+      ...branchCondition,
+      isActive: true,
+      ...(brandFilter && brandFilter !== 'ALL' ? { brand: brandFilter } : {})
+    },
+    select: {
+      id: true,
+      sku: true,
+      barcode: true,
+      name: true,
+      stock: true,
+      cost: true,
+      price: true,
+      wholesalePrice: true,
+      specialPrice: true,
+      brand: true,
+      category: true,
+      imageUrl: true,
+      prices: {
+        select: {
+          priceListId: true,
+          price: true
+        }
+      }
+    },
+    orderBy: { name: 'asc' }
+  });
+
+  const priceLists = await prisma.priceList.findMany({
+    where: {
+      branchId: branchIdFilter && branchIdFilter !== 'ALL' ? branchIdFilter : { in: tenantBranchIds }
+    },
+    select: {
+      id: true,
+      name: true,
+      branchId: true
+    }
+  });
+
+  return {
+    products,
+    priceLists
+  };
+}
+
 
 
 

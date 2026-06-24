@@ -195,7 +195,7 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
             </div>
             <div>
               <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.25rem' }}>🌟 Puntos (Lealtad)</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>
                 {customer.pointsBalance || 0} pts
               </div>
               <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.1rem' }}>
@@ -292,9 +292,9 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
 
           <div className="card" style={{ gridColumn: '1 / -1' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Star size={20} color="var(--pulpos-primary)" fill="var(--pulpos-primary)" /> Control de Puntos de Fidelidad
+              <Star size={20} color="var(--caanma-primary)" fill="var(--caanma-primary)" /> Control de Puntos de Fidelidad
             </h3>
-            <p style={{ fontSize: '0.875rem', color: 'var(--pulpos-text-muted)', marginBottom: '1rem' }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--caanma-text-muted)', marginBottom: '1rem' }}>
               Ajusta manualmente el saldo de puntos de lealtad del cliente. Esto registrará una transacción en el log.
             </p>
             
@@ -466,15 +466,15 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
             <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                <thead style={{ backgroundColor: '#f8fafc' }}>
                   <tr>
-                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Ticket / Factura</th>
-                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Fecha</th>
-                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Total</th>
-                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Estado</th>
+                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Ticket / Factura</th>
+                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Fecha</th>
+                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Total</th>
+                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Estado</th>
                   </tr>
                </thead>
                <tbody>
                   {sales.map((sale: any) => (
-                     <tr key={sale.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                     <tr key={sale.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                         <td style={{ padding: '1rem', fontWeight: 'bold' }}>#{sale.id.slice(0,8).toUpperCase()}</td>
                         <td style={{ padding: '1rem', color: '#64748b' }}>{new Date(sale.createdAt).toLocaleDateString()}</td>
                         <td style={{ padding: '1rem', fontWeight: 'bold' }}>{formatCurrency(sale.total)}</td>
@@ -500,16 +500,16 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
             <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                <thead style={{ backgroundColor: '#f8fafc' }}>
                   <tr>
-                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>ID Pago</th>
-                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Fecha</th>
-                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Detalle / Razón</th>
-                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Monto</th>
-                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Acción</th>
+                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>ID Pago</th>
+                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Fecha</th>
+                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Detalle / Razón</th>
+                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Monto</th>
+                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Acción</th>
                   </tr>
                </thead>
                <tbody>
                   {payments.map((p: any) => (
-                     <tr key={p.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                     <tr key={p.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                         <td style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b' }}>{p.id.slice(0,8).toUpperCase()}</td>
                         <td style={{ padding: '1rem' }}>
                            <div>{new Date(p.paymentDate || p.createdAt).toLocaleDateString()}</div>

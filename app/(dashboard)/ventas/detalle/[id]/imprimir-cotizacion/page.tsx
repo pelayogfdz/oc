@@ -253,11 +253,11 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
 
         {/* Footer QR Box matching reference */}
         <div className="qr-box">
-          <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://clientes.pulpos.com?cotizacionId=${quote.id.slice(0, 8)}`} alt="QR Code" className="qr-img" />
+          <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://clientes.caanma.com?cotizacionId=${quote.id.slice(0, 8)}`} alt="QR Code" className="qr-img" />
           <div>
             <h4 className="qr-title">Escanea para Ver tu Cotización, Solicitar Cambios o Aprobarla</h4>
             <p className="qr-text">
-              o ingresa a: <strong style={{ color: primaryColor }}>clientes.pulpos.com</strong><br/>
+              o ingresa a: <strong style={{ color: primaryColor }}>clientes.caanma.com</strong><br/>
               Código del ticket: <strong>{quoteIdUpper}</strong>
             </p>
           </div>

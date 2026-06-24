@@ -524,7 +524,7 @@ export default function CitasClient({ initialAppointments, resources, initialBra
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             📅 Control de Citas y Calendario
           </h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>
             Gestiona la agenda de clientes, especialistas y servicios de tu negocio en tiempo real.
           </p>
         </div>

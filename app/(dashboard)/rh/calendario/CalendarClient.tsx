@@ -155,7 +155,7 @@ export default function CalendarClient({ employees, initialIncidents }: { employ
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#1e293b' }}>Calendario de Incidencias</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Gestiona faltas, vacaciones y permisos del personal.</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Gestiona faltas, vacaciones y permisos del personal.</p>
         </div>
         <button 
           onClick={() => {

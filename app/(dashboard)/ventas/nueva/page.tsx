@@ -84,7 +84,7 @@ export default async function NuevaVentaPage() {
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.9)', zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', borderRadius: '12px' }}>
           <Lock size={64} color="#ef4444" style={{ marginBottom: '1.5rem' }} />
           <h2 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem', color: '#1e293b' }}>Caja Cerrada</h2>
-          <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '1.1rem', marginBottom: '2rem', textAlign: 'center', maxWidth: '400px' }}>
+          <p style={{ color: 'var(--caanma-text-muted)', fontSize: '1.1rem', marginBottom: '2rem', textAlign: 'center', maxWidth: '400px' }}>
             No puedes procesar ventas en este momento. Debes realizar la apertura de turno y declarar tu fondo inicial.
           </p>
           <Link href="/caja/actual" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.25rem', padding: '1rem 2rem', textDecoration: 'none' }}>

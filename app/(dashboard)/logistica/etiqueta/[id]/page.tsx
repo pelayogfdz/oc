@@ -37,7 +37,7 @@ export default async function PrintLabelPage({ params }: { params: Promise<{ id:
           <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0, letterSpacing: '2px' }}>ETIQUETA DE ENVÍO</h1>
           <p style={{ margin: '0.5rem 0 0 0', fontSize: '1.25rem' }}>ORDEN: #{order.saleId.slice(0, 8).toUpperCase()}</p>
           <img 
-            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent((process.env.NEXT_PUBLIC_APP_URL || 'https://pulpos.com') + '/delivery/' + order.id)}`} 
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent((process.env.NEXT_PUBLIC_APP_URL || 'https://caanma.com') + '/delivery/' + order.id)}`} 
             alt="QR Code" 
             style={{ marginTop: '1rem' }} 
           />

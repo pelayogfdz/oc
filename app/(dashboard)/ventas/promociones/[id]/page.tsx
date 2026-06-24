@@ -90,7 +90,7 @@ export default async function EditarPromocionPage({ params }: { params: Promise<
   return (
     <div style={{ maxWidth: '850px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
-        <Link href="/ventas/promociones" style={{ textDecoration: 'none', color: 'var(--pulpos-text-muted)', fontSize: '1.25rem' }}>← Catálogo Promo</Link>
+        <Link href="/ventas/promociones" style={{ textDecoration: 'none', color: 'var(--caanma-text-muted)', fontSize: '1.25rem' }}>← Catálogo Promo</Link>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Editar Regla de Promoción</h1>
       </div>
 

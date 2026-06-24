@@ -229,7 +229,7 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
             alignItems: 'center',
             gap: '0.35rem',
             padding: '0.4rem 0.8rem',
-            backgroundColor: 'var(--pulpos-primary, #6366f1)',
+            backgroundColor: 'var(--caanma-primary, #6366f1)',
             border: 'none',
             borderRadius: '6px',
             cursor: 'pointer',
@@ -243,7 +243,7 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
             e.currentTarget.style.backgroundColor = '#4f46e5';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--pulpos-primary, #6366f1)';
+            e.currentTarget.style.backgroundColor = 'var(--caanma-primary, #6366f1)';
           }}
         >
           Convertir <ArrowRight size={14} />

@@ -10,15 +10,15 @@ export default function CommissionTabs({ initialUsers }: { initialUsers: any[] }
 
   return (
     <div>
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--pulpos-border)', marginBottom: '1.5rem', gap: '1rem' }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--caanma-border)', marginBottom: '1.5rem', gap: '1rem' }}>
         <button
           onClick={() => setActiveTab('config')}
           style={{
             padding: '0.75rem 1rem',
             border: 'none',
-            borderBottom: activeTab === 'config' ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
+            borderBottom: activeTab === 'config' ? '2px solid var(--caanma-primary)' : '2px solid transparent',
             backgroundColor: 'transparent',
-            color: activeTab === 'config' ? 'var(--pulpos-primary)' : 'var(--pulpos-text-muted)',
+            color: activeTab === 'config' ? 'var(--caanma-primary)' : 'var(--caanma-text-muted)',
             fontWeight: 'bold',
             cursor: 'pointer',
             display: 'flex',
@@ -33,9 +33,9 @@ export default function CommissionTabs({ initialUsers }: { initialUsers: any[] }
           style={{
             padding: '0.75rem 1rem',
             border: 'none',
-            borderBottom: activeTab === 'report' ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
+            borderBottom: activeTab === 'report' ? '2px solid var(--caanma-primary)' : '2px solid transparent',
             backgroundColor: 'transparent',
-            color: activeTab === 'report' ? 'var(--pulpos-primary)' : 'var(--pulpos-text-muted)',
+            color: activeTab === 'report' ? 'var(--caanma-primary)' : 'var(--caanma-text-muted)',
             fontWeight: 'bold',
             cursor: 'pointer',
             display: 'flex',

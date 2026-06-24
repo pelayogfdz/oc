@@ -253,23 +253,23 @@ export default function TareasClient({
                 width: '100%',
                 padding: '0.55rem 0.75rem 0.55rem 2.2rem',
                 borderRadius: '8px',
-                border: '1px solid var(--pulpos-border)',
+                border: '1px solid var(--caanma-border)',
                 fontSize: '0.875rem',
                 outline: 'none',
                 backgroundColor: 'white',
-                color: 'var(--pulpos-text)'
+                color: 'var(--caanma-text)'
               }}
             />
           </div>
 
-          <div style={{ display: 'flex', borderRadius: '8px', border: '1px solid var(--pulpos-border)', overflow: 'hidden', backgroundColor: 'white' }}>
+          <div style={{ display: 'flex', borderRadius: '8px', border: '1px solid var(--caanma-border)', overflow: 'hidden', backgroundColor: 'white' }}>
             <button
               onClick={() => setStatusFilter('ALL')}
               style={{
                 padding: '0.5rem 1rem',
                 border: 'none',
                 backgroundColor: statusFilter === 'ALL' ? '#f1f5f9' : 'transparent',
-                color: statusFilter === 'ALL' ? 'var(--pulpos-text)' : 'var(--pulpos-text-muted)',
+                color: statusFilter === 'ALL' ? 'var(--caanma-text)' : 'var(--caanma-text-muted)',
                 fontSize: '0.85rem',
                 fontWeight: '600',
                 cursor: 'pointer'
@@ -283,12 +283,12 @@ export default function TareasClient({
                 padding: '0.5rem 1rem',
                 border: 'none',
                 backgroundColor: statusFilter === 'PENDING' ? '#fef3c7' : 'transparent',
-                color: statusFilter === 'PENDING' ? '#b45309' : 'var(--pulpos-text-muted)',
+                color: statusFilter === 'PENDING' ? '#b45309' : 'var(--caanma-text-muted)',
                 fontSize: '0.85rem',
                 fontWeight: '600',
                 cursor: 'pointer',
-                borderLeft: '1px solid var(--pulpos-border)',
-                borderRight: '1px solid var(--pulpos-border)'
+                borderLeft: '1px solid var(--caanma-border)',
+                borderRight: '1px solid var(--caanma-border)'
               }}
             >
               Pendientes
@@ -299,7 +299,7 @@ export default function TareasClient({
                 padding: '0.5rem 1rem',
                 border: 'none',
                 backgroundColor: statusFilter === 'COMPLETED' ? '#dcfce7' : 'transparent',
-                color: statusFilter === 'COMPLETED' ? '#15803d' : 'var(--pulpos-text-muted)',
+                color: statusFilter === 'COMPLETED' ? '#15803d' : 'var(--caanma-text-muted)',
                 fontSize: '0.85rem',
                 fontWeight: '600',
                 cursor: 'pointer'
@@ -316,7 +316,7 @@ export default function TareasClient({
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem',
-            backgroundColor: 'var(--pulpos-primary)',
+            backgroundColor: 'var(--caanma-primary)',
             color: 'white',
             border: 'none',
             padding: '0.6rem 1.25rem',
@@ -342,7 +342,7 @@ export default function TareasClient({
               key={task.id}
               style={{
                 backgroundColor: 'white',
-                border: '1px solid var(--pulpos-border)',
+                border: '1px solid var(--caanma-border)',
                 borderRadius: '12px',
                 padding: '1.25rem',
                 display: 'flex',
@@ -355,7 +355,7 @@ export default function TareasClient({
             >
               {/* Top Row: Title & Action menu */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 'bold', margin: 0, color: 'var(--pulpos-text)', wordBreak: 'break-word' }}>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 'bold', margin: 0, color: 'var(--caanma-text)', wordBreak: 'break-word' }}>
                   {task.title}
                 </h3>
                 <div style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
@@ -405,7 +405,7 @@ export default function TareasClient({
               {/* Instructions */}
               <p style={{ 
                 fontSize: '0.875rem', 
-                color: 'var(--pulpos-text-muted)', 
+                color: 'var(--caanma-text-muted)', 
                 margin: 0, 
                 whiteSpace: 'pre-wrap',
                 flex: 1
@@ -417,7 +417,7 @@ export default function TareasClient({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem', fontSize: '0.8rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ color: '#64748b' }}>Asignado a:</span>
-                  <span style={{ fontWeight: '600', color: 'var(--pulpos-text)' }}>
+                  <span style={{ fontWeight: '600', color: 'var(--caanma-text)' }}>
                     {task.assignedTo.name || task.assignedTo.email || 'N/A'}
                   </span>
                 </div>
@@ -441,7 +441,7 @@ export default function TareasClient({
                     <span style={{ color: '#64748b' }}>Fecha Límite:</span>
                     <span style={{ 
                       fontWeight: '600', 
-                      color: isOverdue ? '#ef4444' : 'var(--pulpos-text)',
+                      color: isOverdue ? '#ef4444' : 'var(--caanma-text)',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.25rem'
@@ -473,7 +473,7 @@ export default function TareasClient({
                 {isCompleted && task.completedAt && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: '#64748b' }}>Completada el:</span>
-                    <span style={{ fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>
+                    <span style={{ fontWeight: '500', color: 'var(--caanma-text-muted)' }}>
                       {new Date(task.completedAt).toLocaleString()}
                     </span>
                   </div>
@@ -493,13 +493,13 @@ export default function TareasClient({
                       justifyContent: 'center',
                       gap: '0.5rem',
                       backgroundColor: '#f8fafc',
-                      border: '1px solid var(--pulpos-border)',
+                      border: '1px solid var(--caanma-border)',
                       padding: '0.5rem',
                       borderRadius: '6px',
                       cursor: selectedEvidenceLoading === task.id ? 'not-allowed' : 'pointer',
                       fontSize: '0.8rem',
                       fontWeight: 'bold',
-                      color: 'var(--pulpos-primary)',
+                      color: 'var(--caanma-primary)',
                       transition: 'background-color 0.2s',
                       opacity: selectedEvidenceLoading === task.id ? 0.7 : 1
                     }}
@@ -519,10 +519,10 @@ export default function TareasClient({
             gridColumn: '1 / -1',
             padding: '4rem',
             textAlign: 'center',
-            color: 'var(--pulpos-text-muted)',
+            color: 'var(--caanma-text-muted)',
             backgroundColor: 'white',
             borderRadius: '12px',
-            border: '1px dashed var(--pulpos-border)',
+            border: '1px dashed var(--caanma-border)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -530,7 +530,7 @@ export default function TareasClient({
           }}>
             <ClipboardList size={48} color="#94a3b8" />
             <div>
-              <h4 style={{ margin: '0 0 0.25rem 0', fontWeight: 'bold', color: 'var(--pulpos-text)' }}>No se encontraron tareas</h4>
+              <h4 style={{ margin: '0 0 0.25rem 0', fontWeight: 'bold', color: 'var(--caanma-text)' }}>No se encontraron tareas</h4>
               <p style={{ margin: 0, fontSize: '0.9rem' }}>Ajusta los filtros o crea una nueva tarea para comenzar.</p>
             </div>
           </div>
@@ -563,8 +563,8 @@ export default function TareasClient({
             animation: 'fadeIn 0.2s ease-out'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--pulpos-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ClipboardList size={22} color="var(--pulpos-primary)" /> {editingTask ? 'Editar Tarea' : 'Asignar Nueva Tarea'}
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--caanma-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ClipboardList size={22} color="var(--caanma-primary)" /> {editingTask ? 'Editar Tarea' : 'Asignar Nueva Tarea'}
               </h3>
               <button 
                 onClick={handleCloseModal} 
@@ -590,9 +590,9 @@ export default function TareasClient({
                     width: '100%',
                     padding: '0.65rem 0.75rem',
                     borderRadius: '8px',
-                    border: '1px solid var(--pulpos-border)',
+                    border: '1px solid var(--caanma-border)',
                     backgroundColor: '#f8fafc',
-                    color: 'var(--pulpos-text)',
+                    color: 'var(--caanma-text)',
                     fontSize: '0.9rem',
                     outline: 'none'
                   }}
@@ -609,9 +609,9 @@ export default function TareasClient({
                     width: '100%',
                     padding: '0.65rem 0.75rem',
                     borderRadius: '8px',
-                    border: '1px solid var(--pulpos-border)',
+                    border: '1px solid var(--caanma-border)',
                     backgroundColor: '#f8fafc',
-                    color: 'var(--pulpos-text)',
+                    color: 'var(--caanma-text)',
                     fontSize: '0.9rem',
                     outline: 'none',
                     cursor: 'pointer'
@@ -636,9 +636,9 @@ export default function TareasClient({
                       width: '100%',
                       padding: '0.65rem 0.75rem',
                       borderRadius: '8px',
-                      border: '1px solid var(--pulpos-border)',
+                      border: '1px solid var(--caanma-border)',
                       backgroundColor: '#f8fafc',
-                      color: 'var(--pulpos-text)',
+                      color: 'var(--caanma-text)',
                       fontSize: '0.9rem',
                       outline: 'none',
                       cursor: 'pointer'
@@ -661,9 +661,9 @@ export default function TareasClient({
                       width: '100%',
                       padding: '0.6rem 0.75rem',
                       borderRadius: '8px',
-                      border: '1px solid var(--pulpos-border)',
+                      border: '1px solid var(--caanma-border)',
                       backgroundColor: '#f8fafc',
-                      color: 'var(--pulpos-text)',
+                      color: 'var(--caanma-text)',
                       fontSize: '0.9rem',
                       outline: 'none',
                       cursor: 'pointer'
@@ -684,9 +684,9 @@ export default function TareasClient({
                     width: '100%',
                     padding: '0.65rem 0.75rem',
                     borderRadius: '8px',
-                    border: '1px solid var(--pulpos-border)',
+                    border: '1px solid var(--caanma-border)',
                     backgroundColor: '#f8fafc',
-                    color: 'var(--pulpos-text)',
+                    color: 'var(--caanma-text)',
                     fontSize: '0.9rem',
                     outline: 'none',
                     resize: 'none'
@@ -700,9 +700,9 @@ export default function TareasClient({
                   onClick={handleCloseModal} 
                   style={{ 
                     padding: '0.6rem 1.25rem', 
-                    border: '1px solid var(--pulpos-border)', 
+                    border: '1px solid var(--caanma-border)', 
                     backgroundColor: 'transparent', 
-                    color: 'var(--pulpos-text)', 
+                    color: 'var(--caanma-text)', 
                     borderRadius: '8px', 
                     cursor: 'pointer', 
                     fontWeight: 'bold', 
@@ -717,7 +717,7 @@ export default function TareasClient({
                   style={{ 
                     padding: '0.6rem 1.25rem', 
                     border: 'none', 
-                    backgroundColor: 'var(--pulpos-primary)', 
+                    backgroundColor: 'var(--caanma-primary)', 
                     color: 'white', 
                     borderRadius: '8px', 
                     cursor: isSubmitting ? 'not-allowed' : 'pointer', 
@@ -808,16 +808,16 @@ export default function TareasClient({
                 gap: '1rem',
                 minWidth: '320px'
               }}>
-                <FileText size={64} color="var(--pulpos-primary)" />
+                <FileText size={64} color="var(--caanma-primary)" />
                 <div style={{ textAlign: 'center' }}>
-                  <p style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold', color: 'var(--pulpos-text)' }}>Evidencia de Archivo Cargada</p>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>El archivo se guardó correctamente.</p>
+                  <p style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold', color: 'var(--caanma-text)' }}>Evidencia de Archivo Cargada</p>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>El archivo se guardó correctamente.</p>
                 </div>
                 <a 
                   href={selectedEvidence} 
                   download={`evidencia_${selectedEvidenceTitle.replace(/\s+/g, '_').toLowerCase()}`}
                   style={{
-                    backgroundColor: 'var(--pulpos-primary)',
+                    backgroundColor: 'var(--caanma-primary)',
                     color: 'white',
                     padding: '0.6rem 1.25rem',
                     borderRadius: '6px',

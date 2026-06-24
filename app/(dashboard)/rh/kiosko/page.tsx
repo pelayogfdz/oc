@@ -34,10 +34,10 @@ export default async function KioskoPage() {
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
       <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '2.2rem', fontWeight: '800', color: 'var(--pulpos-primary)', marginBottom: '0.5rem', letterSpacing: '-0.025em' }}>
+        <h1 style={{ fontSize: '2.2rem', fontWeight: '800', color: 'var(--caanma-primary)', marginBottom: '0.5rem', letterSpacing: '-0.025em' }}>
           Modo Kiosko de Asistencia
         </h1>
-        <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '1.05rem', maxWidth: '800px', margin: 0 }}>
+        <p style={{ color: 'var(--caanma-text-muted)', fontSize: '1.05rem', maxWidth: '800px', margin: 0 }}>
           Este panel permite a cualquier empleado registrar su Entrada (Check-In) o Salida (Check-Out) utilizando reconocimiento facial o lector de huellas dactilares.
         </p>
       </div>

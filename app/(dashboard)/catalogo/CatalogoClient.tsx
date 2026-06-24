@@ -72,17 +72,17 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Tu Catálogo en Línea (B2C)</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Muestra tu inventario digitalmente para que tus clientes te hagan pedidos por WhatsApp.</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Muestra tu inventario digitalmente para que tus clientes te hagan pedidos por WhatsApp.</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: active ? '#f0fdf4' : '#f1f5f9', padding: '0.5rem 1rem', borderRadius: '50px', border: `1px solid ${active ? '#bbf7d0' : '#e2e8f0'}` }}>
-           <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: active ? '#166534' : 'var(--pulpos-text-muted)' }}>
+           <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: active ? '#166534' : 'var(--caanma-text-muted)' }}>
               {active ? 'Catálogo Público' : 'Catálogo Oculto'}
            </span>
            <label style={{ position: 'relative', display: 'inline-block', width: '40px', height: '24px' }}>
               <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} style={{ opacity: 0, width: 0, height: 0 }} />
               <span style={{ 
                 position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, 
-                backgroundColor: active ? 'var(--pulpos-primary)' : '#cbd5e1', 
+                backgroundColor: active ? 'var(--caanma-primary)' : '#cbd5e1', 
                 transition: '.4s', borderRadius: '34px'
               }}>
                 <span style={{
@@ -102,14 +102,14 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
       )}
 
       {/* URL de la Tienda */}
-      <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)', marginBottom: '2rem' }}>
+      <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', marginBottom: '2rem' }}>
          <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <ShoppingBag size={20} color="var(--pulpos-primary)" /> Integración y Enlace
+            <ShoppingBag size={20} color="var(--caanma-primary)" /> Integración y Enlace
          </h2>
-         <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '1rem' }}>Comparte tu enlace de ventas en tus redes sociales (Instagram, Facebook) para captar pedidos al instante.</p>
+         <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '1rem' }}>Comparte tu enlace de ventas en tus redes sociales (Instagram, Facebook) para captar pedidos al instante.</p>
          
          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: '250px', padding: '1rem', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--pulpos-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ flex: 1, minWidth: '250px', padding: '1rem', backgroundColor: '#f8fafc', border: '1px solid var(--caanma-border)', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--caanma-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                <ExternalLink size={18} /> {storeUrl}
             </div>
             <button 
@@ -130,7 +130,7 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
          
          {/* Configuracion de Pedidos */}
-         <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+         <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Opciones de Recepción</h2>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -138,23 +138,23 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
                     <MessageCircle size={18} color="#16a34a" /> Número de WhatsApp de Atención
                   </label>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>A este número llegarán todos los carritos armados por tus clientes.</p>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>A este número llegarán todos los carritos armados por tus clientes.</p>
                   <input 
                     type="tel" 
                     placeholder="Ej. 5512345678" 
                     value={whatsapp}
                     onChange={e => setWhatsapp(e.target.value)}
-                    style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)' }}
                   />
                </div>
 
-               <div style={{ borderTop: '1px solid var(--pulpos-border)', paddingTop: '1.5rem' }}>
+               <div style={{ borderTop: '1px solid var(--caanma-border)', paddingTop: '1.5rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                      <div>
                         <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                            <Store size={18} /> Recoger en Tienda (Pickup)
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>Permite a los clientes pasar a recoger su pedido.</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>Permite a los clientes pasar a recoger su pedido.</div>
                      </div>
                      <input type="checkbox" checked={allowPickup} onChange={e => setAllowPickup(e.target.checked)} style={{ width: '20px', height: '20px' }} />
                   </div>
@@ -163,7 +163,7 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
                         <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                            <ShoppingBag size={18} /> Envío a Domicilio
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>Permite solicitar envío a una dirección específica.</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>Permite solicitar envío a una dirección específica.</div>
                      </div>
                      <input type="checkbox" checked={allowDelivery} onChange={e => setAllowDelivery(e.target.checked)} style={{ width: '20px', height: '20px' }} />
                   </div>
@@ -172,13 +172,13 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
          </div>
 
          {/* SECCIÓN NUEVA: Integración Personalizada por API */}
-         <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+         <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Code2 size={22} color="var(--pulpos-primary)" /> Integración Personalizada por API
+                  <Code2 size={22} color="var(--caanma-primary)" /> Integración Personalizada por API
                </h2>
                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: apiActive ? '#166534' : 'var(--pulpos-text-muted)' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: apiActive ? '#166534' : 'var(--caanma-text-muted)' }}>
                      {apiActive ? 'API Activa' : 'API Inactiva'}
                   </span>
                   <label style={{ position: 'relative', display: 'inline-block', width: '40px', height: '24px' }}>
@@ -198,7 +198,7 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
                </div>
             </div>
             
-            <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+            <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
                Conecta tu propio sitio web personalizado, e-commerce externo (WooCommerce, Shopify) o sistemas ERP utilizando nuestra API pública. Te permite consultar inventarios y precios en tiempo real, así como descargar e importar ventas automáticamente.
             </p>
 
@@ -207,7 +207,7 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
                     <Key size={18} color="#f59e0b" /> Token de Autorización API
                   </label>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.75rem' }}>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginBottom: '0.75rem' }}>
                      Usa este token en tus peticiones HTTP en el encabezado <code>Authorization: Bearer &lt;Token&gt;</code>.
                   </p>
                   
@@ -217,7 +217,7 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
                        readOnly 
                        value={apiToken || 'No se ha generado ningún Token de API.'}
                        placeholder="Haz clic en Generar para crear un token de seguridad..."
-                       style={{ flex: 1, padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', fontFamily: 'monospace', backgroundColor: '#f8fafc', color: apiToken ? '#334155' : '#94a3b8', fontSize: '0.9rem' }}
+                       style={{ flex: 1, padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', fontFamily: 'monospace', backgroundColor: '#f8fafc', color: apiToken ? '#334155' : '#94a3b8', fontSize: '0.9rem' }}
                      />
                      {apiToken && (
                         <button 
@@ -233,7 +233,7 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
                        type="button" 
                        onClick={generateToken} 
                        className="btn-secondary" 
-                       style={{ padding: '0.75rem 1.5rem', fontWeight: 'bold', borderColor: 'var(--pulpos-primary)', color: 'var(--pulpos-primary)' }}
+                       style={{ padding: '0.75rem 1.5rem', fontWeight: 'bold', borderColor: 'var(--caanma-primary)', color: 'var(--caanma-primary)' }}
                      >
                         {apiToken ? 'Generar Nuevo' : 'Generar Token'}
                      </button>
@@ -241,7 +241,7 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
                </div>
 
                {apiActive && apiToken && (
-                  <div style={{ borderTop: '1px solid var(--pulpos-border)', paddingTop: '1.5rem', marginTop: '0.5rem' }}>
+                  <div style={{ borderTop: '1px solid var(--caanma-border)', paddingTop: '1.5rem', marginTop: '0.5rem' }}>
                      <h4 style={{ fontWeight: 'bold', fontSize: '0.95rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         📖 Documentación Interactiva de la API
                      </h4>
@@ -253,7 +253,7 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
                            <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                               <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '0.2rem 0.6rem', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.75rem' }}>GET</span>
                               <strong style={{ fontFamily: 'monospace', color: '#0f172a' }}>/api/integrations/products</strong>
-                              <span style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.8rem', marginLeft: 'auto' }}>Consultar Inventario y Precios</span>
+                              <span style={{ color: 'var(--caanma-text-muted)', fontSize: '0.8rem', marginLeft: 'auto' }}>Consultar Inventario y Precios</span>
                            </div>
                            <div style={{ padding: '1rem', backgroundColor: '#fafafa' }}>
                               <p style={{ margin: '0 0 0.75rem 0', color: '#475569' }}>Devuelve el listado de productos activos de esta sucursal, con stock físico y precios.</p>
@@ -274,7 +274,7 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
                            <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                               <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '0.2rem 0.6rem', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.75rem' }}>GET</span>
                               <strong style={{ fontFamily: 'monospace', color: '#0f172a' }}>/api/integrations/sales</strong>
-                              <span style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.8rem', marginLeft: 'auto' }}>Descargar Historial de Ventas</span>
+                              <span style={{ color: 'var(--caanma-text-muted)', fontSize: '0.8rem', marginLeft: 'auto' }}>Descargar Historial de Ventas</span>
                            </div>
                            <div style={{ padding: '1rem', backgroundColor: '#fafafa' }}>
                               <p style={{ margin: '0 0 0.75rem 0', color: '#475569' }}>Descarga ventas registradas en esta sucursal. Parámetros opcionales: <code>limit</code> (ej: 50) y <code>since</code> (fecha ISO).</p>
@@ -295,7 +295,7 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
                            <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                               <span style={{ backgroundColor: '#e0f2fe', color: '#0369a1', padding: '0.2rem 0.6rem', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.75rem' }}>POST</span>
                               <strong style={{ fontFamily: 'monospace', color: '#0f172a' }}>/api/integrations/sales</strong>
-                              <span style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.8rem', marginLeft: 'auto' }}>Importar Venta Externa</span>
+                              <span style={{ color: 'var(--caanma-text-muted)', fontSize: '0.8rem', marginLeft: 'auto' }}>Importar Venta Externa</span>
                            </div>
                            <div style={{ padding: '1rem', backgroundColor: '#fafafa' }}>
                               <p style={{ margin: '0 0 0.75rem 0', color: '#475569' }}>Crea y descuenta stock automáticamente de una venta externa (WooCommerce, Shopify) mapeada por SKU de producto.</p>
@@ -344,12 +344,12 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
          </div>
 
          {/* Personalización visual */}
-         <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+         <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Apariencia del Catálogo</h2>
             
             <div>
                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                 <PaintBucket size={18} color="var(--pulpos-primary)" /> Color Primario de la Tienda
+                 <PaintBucket size={18} color="var(--caanma-primary)" /> Color Primario de la Tienda
                </label>
                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '1rem' }}>
                   <input 
@@ -364,7 +364,7 @@ export default function CatalogoClient({ initialConfig }: { initialConfig: any }
                </div>
             </div>
 
-            <div style={{ marginTop: '2.5rem', borderTop: '1px solid var(--pulpos-border)', paddingTop: '1.5rem' }}>
+            <div style={{ marginTop: '2.5rem', borderTop: '1px solid var(--caanma-border)', paddingTop: '1.5rem' }}>
                 <button onClick={handleSave} disabled={isPending} className="btn-primary" style={{ width: '100%', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
                    <Save size={20} /> {isPending ? 'Guardando Ajustes...' : 'Guardar Configuración B2C'}
                 </button>

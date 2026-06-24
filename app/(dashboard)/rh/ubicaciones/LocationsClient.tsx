@@ -86,7 +86,7 @@ export default function LocationsClient({ initialLocations }: { initialLocations
             <button
               onClick={() => openForm()}
               style={{
-                backgroundColor: 'var(--pulpos-primary)',
+                backgroundColor: 'var(--caanma-primary)',
                 color: 'white',
                 border: 'none',
                 padding: '0.6rem 1.2rem',
@@ -102,16 +102,16 @@ export default function LocationsClient({ initialLocations }: { initialLocations
           <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
             <thead>
               <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
-                <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-text)' }}>Nombre</th>
-                <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-text)' }}>Coordenadas</th>
-                <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-text)' }}>Radio (m)</th>
-                <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-text)', textAlign: 'right' }}>Acciones</th>
+                <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text)' }}>Nombre</th>
+                <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text)' }}>Coordenadas</th>
+                <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text)' }}>Radio (m)</th>
+                <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text)', textAlign: 'right' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {locations.length === 0 ? (
                 <tr>
-                  <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                  <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                     No hay ubicaciones registradas.
                   </td>
                 </tr>
@@ -124,7 +124,7 @@ export default function LocationsClient({ initialLocations }: { initialLocations
                         href={`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}`}
                         target="_blank"
                         rel="noreferrer"
-                        style={{ color: 'var(--pulpos-primary)', textDecoration: 'underline' }}
+                        style={{ color: 'var(--caanma-primary)', textDecoration: 'underline' }}
                       >
                         {loc.lat}, {loc.lng}
                       </a>
@@ -152,7 +152,7 @@ export default function LocationsClient({ initialLocations }: { initialLocations
         </>
       ) : (
         <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '1.5rem', color: 'var(--pulpos-primary)' }}>
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '1.5rem', color: 'var(--caanma-primary)' }}>
             {form.id ? 'Editar Ubicación' : 'Nueva Ubicación'}
           </h2>
           <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '500px' }}>
@@ -210,7 +210,7 @@ export default function LocationsClient({ initialLocations }: { initialLocations
                 type="submit"
                 disabled={isLoading}
                 style={{
-                  backgroundColor: 'var(--pulpos-primary)',
+                  backgroundColor: 'var(--caanma-primary)',
                   color: 'white',
                   border: 'none',
                   padding: '0.6rem 1.2rem',

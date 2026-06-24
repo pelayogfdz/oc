@@ -9,9 +9,9 @@ export default async function PuntosPage() {
   const activeBranch = await getActiveBranch();
   if (!activeBranch || activeBranch.id === 'GLOBAL') {
     return (
-      <div style={{ padding: '2rem', backgroundColor: 'white', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}>
+      <div style={{ padding: '2rem', backgroundColor: 'white', borderRadius: '8px', border: '1px solid var(--caanma-border)' }}>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>Fidelización y Puntos</h2>
-        <p style={{ color: 'var(--pulpos-text-muted)' }}>Por favor selecciona una sucursal específica para configurar el motor de fidelización.</p>
+        <p style={{ color: 'var(--caanma-text-muted)' }}>Por favor selecciona una sucursal específica para configurar el motor de fidelización.</p>
       </div>
     );
   }

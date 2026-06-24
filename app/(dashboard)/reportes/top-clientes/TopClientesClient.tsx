@@ -160,7 +160,7 @@ export default function TopClientesClient({ initialData, initialBranchId, availa
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>🏆 Reporte Financiero: Mejores Clientes</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Clasificación detallada de compradores por valor facturado y frecuencia de compras.</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Clasificación detallada de compradores por valor facturado y frecuencia de compras.</p>
         </div>
         <div className="no-print" style={{ display: 'flex', gap: '0.75rem' }}>
           <button 

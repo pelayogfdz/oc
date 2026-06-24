@@ -34,7 +34,7 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Reporte de Inventario Valorizado</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Conoce qué productos amarran tu capital y cuál es tu ganancia potencial.</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Conoce qué productos amarran tu capital y cuál es tu ganancia potencial.</p>
         </div>
         <div className="no-print">
           <button 
@@ -59,7 +59,7 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
       </div>
 
       {loading && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--pulpos-primary)', fontWeight: 'bold' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--caanma-primary)', fontWeight: 'bold' }}>
           <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
           Calculando valuación de inventario...
         </div>
@@ -67,26 +67,26 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
 
       {/* KPI Widgets */}
       <div style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.2s', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
             <div style={{ padding: '0.5rem', backgroundColor: '#fee2e2', borderRadius: '8px' }}><PackageOpen size={20} color="#ef4444" /></div>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)' }}>Capital Detenido (Costo)</h3>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Capital Detenido (Costo)</h3>
           </div>
           <div style={{ fontSize: '2rem', fontWeight: '900', color: '#ef4444' }}>{formatCurrency(data.totalValue)}</div>
         </div>
         
-        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
             <div style={{ padding: '0.5rem', backgroundColor: '#dcfce7', borderRadius: '8px' }}><DollarSign size={20} color="#16a34a" /></div>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)' }}>Valor de Venta Comercial</h3>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Valor de Venta Comercial</h3>
           </div>
           <div style={{ fontSize: '2rem', fontWeight: '900', color: '#16a34a' }}>{formatCurrency(data.totalSellValue)}</div>
         </div>
 
-        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
             <div style={{ padding: '0.5rem', backgroundColor: '#e0f2fe', borderRadius: '8px' }}><TrendingDown size={20} color="#0284c7" /></div>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)' }}>Ganancia Potencial (Al liquidar)</h3>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Ganancia Potencial (Al liquidar)</h3>
           </div>
           <div style={{ fontSize: '2rem', fontWeight: '900', color: '#0284c7' }}>{formatCurrency(data.potentialProfit)}</div>
         </div>
@@ -95,7 +95,7 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
       <div style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.2s', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 400px', gap: '2rem', alignItems: 'start' }}>
         
         {/* Tabla Analítica */}
-        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>Listado de Stock y Márgenes</h2>
             
@@ -122,7 +122,7 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
           <div style={{ overflowX: 'auto', maxHeight: '500px' }}>
             <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead style={{ position: 'sticky', top: 0, backgroundColor: 'white' }}>
-                <tr style={{ borderBottom: '2px solid var(--pulpos-border)', color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>
+                <tr style={{ borderBottom: '2px solid var(--caanma-border)', color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>
                   <th style={{ padding: '0.75rem 0.5rem' }}>SKU</th>
                   <th style={{ padding: '0.75rem 0.5rem' }}>Producto</th>
                   <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>Stock</th>
@@ -133,8 +133,8 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
               </thead>
               <tbody>
                 {filteredInventory.map((i: any) => (
-                  <tr key={i.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                    <td data-label="SKU" style={{ padding: '1rem 0.5rem', fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', fontFamily: 'monospace' }}>{i.sku}</td>
+                  <tr key={i.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
+                    <td data-label="SKU" style={{ padding: '1rem 0.5rem', fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontFamily: 'monospace' }}>{i.sku}</td>
                     <td data-label="Producto" style={{ padding: '1rem 0.5rem', fontWeight: '500' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <div 
@@ -143,7 +143,7 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
                             width: '40px', 
                             height: '40px', 
                             borderRadius: '6px', 
-                            border: '1px solid var(--pulpos-border)', 
+                            border: '1px solid var(--caanma-border)', 
                             overflow: 'hidden', 
                             backgroundColor: '#f8fafc',
                             cursor: i.imageUrl ? 'pointer' : 'default',
@@ -174,7 +174,7 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
                         {i.stock}
                       </span>
                     </td>
-                    <td data-label="Costo U." style={{ padding: '1rem 0.5rem', textAlign: 'right', color: 'var(--pulpos-text-muted)' }}>{formatCurrency(i.cost)}</td>
+                    <td data-label="Costo U." style={{ padding: '1rem 0.5rem', textAlign: 'right', color: 'var(--caanma-text-muted)' }}>{formatCurrency(i.cost)}</td>
                     <td data-label="Capital Det." style={{ padding: '1rem 0.5rem', textAlign: 'right', fontWeight: 'bold', color: '#ef4444' }}>{formatCurrency(i.costValue)}</td>
                     <td data-label="Margen %" style={{ padding: '1rem 0.5rem', textAlign: 'center' }}>
                       <span style={{ color: i.margin < 15 ? '#ef4444' : i.margin > 40 ? '#16a34a' : '#f59e0b', fontWeight: 'bold' }}>
@@ -189,9 +189,9 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
         </div>
 
         {/* Gráficas Laterales */}
-        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
           <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Top 10 Capital Detenido</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', marginBottom: '1.5rem' }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginBottom: '1.5rem' }}>
             Los productos que tienen más dinero tuyo amarrado en el almacén.
           </p>
           

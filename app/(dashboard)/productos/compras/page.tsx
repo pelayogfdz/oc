@@ -27,14 +27,14 @@ export default async function ComprasPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <ShoppingCart size={28} color="var(--pulpos-primary)" />
+            <ShoppingCart size={28} color="var(--caanma-primary)" />
             Compras
           </h1>
-          <p style={{ color: 'var(--pulpos-text-muted)', marginTop: '0.25rem' }}>
+          <p style={{ color: 'var(--caanma-text-muted)', marginTop: '0.25rem' }}>
             Historial de compras directas ingresadas al inventario.
           </p>
         </div>
-        <Link href="/productos/compras/nuevo" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--pulpos-primary)', borderColor: 'var(--pulpos-primary)', color: 'white', textDecoration: 'none' }}>
+        <Link href="/productos/compras/nuevo" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--caanma-primary)', borderColor: 'var(--caanma-primary)', color: 'white', textDecoration: 'none' }}>
           <Plus size={18} /> Nueva Compra Directa
         </Link>
       </div>

@@ -41,7 +41,7 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Analítica General</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Desempeño global de tus ventas y márgenes.</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Desempeño global de tus ventas y márgenes.</p>
         </div>
         <div className="no-print">
           <button 
@@ -65,7 +65,7 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
       </div>
 
       {isLoading && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--pulpos-primary)', fontWeight: 'bold' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--caanma-primary)', fontWeight: 'bold' }}>
           <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
           Actualizando métricas...
         </div>
@@ -74,44 +74,44 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
       <div style={{ opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
         {/* KPI Widgets */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
               <div style={{ padding: '0.5rem', backgroundColor: '#dcfce7', borderRadius: '8px' }}><DollarSign size={20} color="#16a34a" /></div>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)' }}>Ingresos Brutos</h3>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Ingresos Brutos</h3>
             </div>
             <div style={{ fontSize: '2rem', fontWeight: '900', color: '#16a34a' }}>{formatCurrency(data.totalRevenue)}</div>
           </div>
           
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
               <div style={{ padding: '0.5rem', backgroundColor: '#e0f2fe', borderRadius: '8px' }}><TrendingUp size={20} color="#0284c7" /></div>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)' }}>Utilidad Neta (Ganancia)</h3>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Utilidad Neta (Ganancia)</h3>
             </div>
             <div style={{ fontSize: '2rem', fontWeight: '900', color: '#0284c7' }}>{formatCurrency(data.totalProfit)}</div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
               <div style={{ padding: '0.5rem', backgroundColor: '#fef3c7', borderRadius: '8px' }}><Percent size={20} color="#d97706" /></div>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)' }}>Margen Global</h3>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Margen Global</h3>
             </div>
             <div style={{ fontSize: '2rem', fontWeight: '900', color: '#d97706' }}>{data.margin.toFixed(2)}%</div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
               <div style={{ padding: '0.5rem', backgroundColor: '#f3e8ff', borderRadius: '8px' }}><FileText size={20} color="#9333ea" /></div>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)' }}>Tickets y Ticket Prom.</h3>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Tickets y Ticket Prom.</h3>
             </div>
             <div style={{ fontSize: '2rem', fontWeight: '900', color: '#9333ea' }}>{data.totalTickets}</div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', marginTop: '0.25rem' }}>Promedio: {formatCurrency(data.avgTicket)}</div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginTop: '0.25rem' }}>Promedio: {formatCurrency(data.avgTicket)}</div>
           </div>
         </div>
 
         {/* Charts Container */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           {/* Main Chart */}
-          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)', height: '400px' }}>
+          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', height: '400px' }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '2rem' }}>Tendencia de Ingresos vs Utilidad</h2>
             <ResponsiveContainer width="100%" height="85%">
               <AreaChart data={data.chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
@@ -139,7 +139,7 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
           </div>
 
           {/* Tickets Chart */}
-          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)', height: '350px' }}>
+          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', height: '350px' }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '2rem' }}>Tickets Emitidos por Día</h2>
             <ResponsiveContainer width="100%" height="85%">
               <BarChart data={data.chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>

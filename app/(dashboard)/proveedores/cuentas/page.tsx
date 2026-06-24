@@ -29,7 +29,7 @@ export default async function CuentasPorPagarPage() {
             <Banknote size={28} color="#ef4444" />
             Cuentas por Pagar (Proveedores)
           </h1>
-          <p style={{ color: 'var(--pulpos-text-muted)', marginTop: '0.25rem' }}>Gestiona los deudas pendientes con tus proveedores y programa cobros.</p>
+          <p style={{ color: 'var(--caanma-text-muted)', marginTop: '0.25rem' }}>Gestiona los deudas pendientes con tus proveedores y programa cobros.</p>
         </div>
       </div>
 

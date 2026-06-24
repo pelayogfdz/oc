@@ -125,7 +125,7 @@ export default function ComisionesReportClient({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>💰 Reporte de Comisiones por Vendedor</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>
             Visualiza y audita las ventas base, porcentajes de comisión y bonos asignados al personal.
           </p>
         </div>
@@ -186,8 +186,8 @@ export default function ComisionesReportClient({
 
       {/* Loading Indicator */}
       {loading && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--pulpos-primary)', fontWeight: 'bold' }}>
-          <span style={{ display: 'inline-block', width: '16px', height: '16px', border: '2px solid var(--pulpos-primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--caanma-primary)', fontWeight: 'bold' }}>
+          <span style={{ display: 'inline-block', width: '16px', height: '16px', border: '2px solid var(--caanma-primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
           Calculando comisiones...
         </div>
       )}
@@ -197,33 +197,33 @@ export default function ComisionesReportClient({
         
         {/* Metrics Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
               <TrendingUp size={16} color="#16a34a" /> Venta Personal Acumulada
             </span>
             <span style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#16a34a' }}>{formatCurrency(metrics.totalSales)}</span>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
-              <DollarSign size={16} color="var(--pulpos-primary)" /> Comisiones Generadas
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
+              <DollarSign size={16} color="var(--caanma-primary)" /> Comisiones Generadas
             </span>
-            <span style={{ fontSize: '1.75rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>{formatCurrency(metrics.totalCommissions)}</span>
+            <span style={{ fontSize: '1.75rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>{formatCurrency(metrics.totalCommissions)}</span>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
               <Award size={16} color="#f59e0b" /> Bonos Asignados
             </span>
             <span style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#d97706' }}>{formatCurrency(metrics.totalBonuses)}</span>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
               <Users size={16} color="#8b5cf6" /> Vendedores con Venta
             </span>
             <span style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#7c3aed' }}>
-              {metrics.activeSellersCount} <span style={{ fontSize: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: 'normal' }}>de {data.length}</span>
+              {metrics.activeSellersCount} <span style={{ fontSize: '1rem', color: 'var(--caanma-text-muted)', fontWeight: 'normal' }}>de {data.length}</span>
             </span>
           </div>
         </div>
@@ -232,13 +232,13 @@ export default function ComisionesReportClient({
         <div style={{ display: 'grid', gridTemplateColumns: selectedUser ? '1fr 400px' : '1fr', gap: '2rem', alignItems: 'start', transition: 'all 0.3s' }}>
           
           {/* Main Table */}
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Resumen de Liquidación</h2>
             
             <div style={{ overflowX: 'auto' }}>
               <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
-                  <tr style={{ borderBottom: '2px solid var(--pulpos-border)', color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>
+                  <tr style={{ borderBottom: '2px solid var(--caanma-border)', color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>
                     <th style={{ padding: '0.75rem 0.5rem' }}>Vendedor</th>
                     <th style={{ padding: '0.75rem 0.5rem' }}>Puesto</th>
                     <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Venta Personal</th>
@@ -258,7 +258,7 @@ export default function ComisionesReportClient({
                         key={u.id} 
                         onClick={() => setSelectedUser(u)}
                         style={{ 
-                          borderBottom: '1px solid var(--pulpos-border)', 
+                          borderBottom: '1px solid var(--caanma-border)', 
                           cursor: 'pointer',
                           backgroundColor: isSelected ? '#f8fafc' : 'transparent',
                           transition: 'background-color 0.2s'
@@ -295,17 +295,17 @@ export default function ComisionesReportClient({
                           </span>
                         </td>
                         <td data-label="Venta Personal" style={{ padding: '1rem 0.5rem', textAlign: 'right' }}>{formatCurrency(u.personalSales)}</td>
-                        <td data-label="Venta Equipo" style={{ padding: '1rem 0.5rem', textAlign: 'right', color: 'var(--pulpos-text-muted)' }}>{u.teamSales > 0 ? formatCurrency(u.teamSales) : '-'}</td>
+                        <td data-label="Venta Equipo" style={{ padding: '1rem 0.5rem', textAlign: 'right', color: 'var(--caanma-text-muted)' }}>{u.teamSales > 0 ? formatCurrency(u.teamSales) : '-'}</td>
                         <td data-label="% Comisión" style={{ padding: '1rem 0.5rem', textAlign: 'center', fontWeight: '500' }}>{u.commissionPct}%</td>
-                        <td data-label="Comisiones" style={{ padding: '1rem 0.5rem', textAlign: 'right', color: 'var(--pulpos-primary)', fontWeight: '500' }}>{formatCurrency(u.commissionsEarned)}</td>
+                        <td data-label="Comisiones" style={{ padding: '1rem 0.5rem', textAlign: 'right', color: 'var(--caanma-primary)', fontWeight: '500' }}>{formatCurrency(u.commissionsEarned)}</td>
                         <td data-label="Bonos" style={{ padding: '1rem 0.5rem', textAlign: 'right', color: '#16a34a' }}>{formatCurrency(u.bonusEarned + u.teamBonusEarned)}</td>
                         <td data-label="Total" style={{ padding: '1rem 0.5rem', textAlign: 'right', fontWeight: 'bold', color: u.totalEarned > 0 ? '#15803d' : '#64748b' }}>{formatCurrency(u.totalEarned)}</td>
                         <td data-label="Auditar" style={{ padding: '1rem 0.5rem', textAlign: 'center' }} className="no-print">
                           <button 
                             style={{ 
                               padding: '0.35rem 0.75rem', 
-                              backgroundColor: isSelected ? 'var(--pulpos-primary)' : '#f1f5f9',
-                              color: isSelected ? 'white' : 'var(--pulpos-primary)',
+                              backgroundColor: isSelected ? 'var(--caanma-primary)' : '#f1f5f9',
+                              color: isSelected ? 'white' : 'var(--caanma-primary)',
                               border: 'none',
                               borderRadius: '6px',
                               fontSize: '0.8rem',
@@ -322,7 +322,7 @@ export default function ComisionesReportClient({
                   })}
                   {data.length === 0 && (
                     <tr>
-                      <td colSpan={9} style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                      <td colSpan={9} style={{ padding: '2rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                         No hay vendedores registrados.
                       </td>
                     </tr>
@@ -338,16 +338,16 @@ export default function ComisionesReportClient({
               backgroundColor: 'white', 
               padding: '1.5rem', 
               borderRadius: '12px', 
-              border: '1px solid var(--pulpos-border)',
+              border: '1px solid var(--caanma-border)',
               display: 'flex',
               flexDirection: 'column',
               maxHeight: '700px',
               overflowY: 'auto'
             }} className="no-print">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.75rem' }}>
                 <div>
                   <h3 style={{ fontWeight: 'bold', fontSize: '1.05rem', margin: 0 }}>Ventas de {selectedUser.name}</h3>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--pulpos-text-muted)' }}>Detalle de comisiones generadas</span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>Detalle de comisiones generadas</span>
                 </div>
                 <button 
                   onClick={() => setSelectedUser(null)}
@@ -358,7 +358,7 @@ export default function ComisionesReportClient({
               </div>
 
               {selectedUser.salesList.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--pulpos-text-muted)' }}>
+                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--caanma-text-muted)' }}>
                   <UserCheck size={32} color="#cbd5e1" style={{ margin: '0 auto 1rem' }} />
                   Este vendedor no registró ventas en el rango de fechas seleccionado.
                 </div>
@@ -368,7 +368,7 @@ export default function ComisionesReportClient({
                     <div 
                       key={sale.id} 
                       style={{ 
-                        border: '1px solid var(--pulpos-border)', 
+                        border: '1px solid var(--caanma-border)', 
                         borderRadius: '8px', 
                         padding: '1rem',
                         display: 'flex',
@@ -377,19 +377,19 @@ export default function ComisionesReportClient({
                         fontSize: '0.9rem',
                         transition: 'border-color 0.2s'
                       }}
-                      onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--pulpos-primary)'}
-                      onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--pulpos-border)'}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--caanma-primary)'}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--caanma-border)'}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Link href={`/ventas/detalle/${sale.id}`} style={{ fontWeight: 'bold', color: 'var(--pulpos-primary)', textDecoration: 'none', fontFamily: 'monospace' }}>
+                        <Link href={`/ventas/detalle/${sale.id}`} style={{ fontWeight: 'bold', color: 'var(--caanma-primary)', textDecoration: 'none', fontFamily: 'monospace' }}>
                           Ticket #{sale.id.split('-')[0].toUpperCase()}
                         </Link>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)' }}>
                           {formatDate(sale.date)}
                         </span>
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--pulpos-text)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--caanma-text)' }}>
                         <span>Cliente: {sale.customer}</span>
                         <span style={{ 
                           fontSize: '0.75rem', 
@@ -403,7 +403,7 @@ export default function ComisionesReportClient({
                         </span>
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--pulpos-text-muted)', borderTop: '1px dashed var(--pulpos-border)', paddingTop: '0.5rem', marginTop: '0.25rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--caanma-text-muted)', borderTop: '1px dashed var(--caanma-border)', paddingTop: '0.5rem', marginTop: '0.25rem' }}>
                         <span>Monto: <strong>{formatCurrency(sale.total)}</strong></span>
                         <span>Comisión ({sale.commissionPct}%): <strong style={{ color: '#16a34a' }}>{formatCurrency(sale.commissionEarned)}</strong></span>
                       </div>

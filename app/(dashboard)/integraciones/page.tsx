@@ -22,7 +22,7 @@ export default async function IntegracionesPage() {
          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
            <Store size={36} color="#8b5cf6" /> Hub de Integraciones (Omnicanal)
          </h1>
-         <p style={{ color: 'var(--pulpos-text-muted)' }}>Sincroniza inventarios, pedidos y facturación bidireccionalmente con los gigantes del e-commerce.</p>
+         <p style={{ color: 'var(--caanma-text-muted)' }}>Sincroniza inventarios, pedidos y facturación bidireccionalmente con los gigantes del e-commerce.</p>
       </div>
 
       <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', fontWeight: 'bold' }}>Canales Conectados ({data.length})</h2>
@@ -44,8 +44,8 @@ export default async function IntegracionesPage() {
           })}
         </div>
       ) : (
-         <div className="card" style={{ padding: '2rem', textAlign: 'center', marginBottom: '3rem', border: '1px dashed var(--pulpos-border)' }}>
-            <p style={{ color: 'var(--pulpos-text-muted)' }}>Aún no tienes canales de venta externos conectados con tu sucursal.</p>
+         <div className="card" style={{ padding: '2rem', textAlign: 'center', marginBottom: '3rem', border: '1px dashed var(--caanma-border)' }}>
+            <p style={{ color: 'var(--caanma-text-muted)' }}>Aún no tienes canales de venta externos conectados con tu sucursal.</p>
          </div>
       )}
 
@@ -61,7 +61,7 @@ export default async function IntegracionesPage() {
                 <span style={{ fontSize: '2rem' }}>{p.icon}</span>
              </div>
              <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-               <div style={{ fontSize: '0.875rem', color: 'var(--pulpos-text-muted)', display: 'grid', gap: '0.5rem' }}>
+               <div style={{ fontSize: '0.875rem', color: 'var(--caanma-text-muted)', display: 'grid', gap: '0.5rem' }}>
                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981' }}></div> Carga de Stock</div>
                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981' }}></div> Descarga de Ventas</div>
                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981' }}></div> Emparejador de SKU</div>

@@ -112,7 +112,7 @@ export default function PaymentMethodsConfigClient({ initialConfig }: { initialC
     <div style={{ maxWidth: '800px' }}>
        <div style={{ marginBottom: '2rem' }}>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Métodos de Pago</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Maneja cómo tus clientes efectúan sus pagos en sucursal.</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Maneja cómo tus clientes efectúan sus pagos en sucursal.</p>
        </div>
 
        {showToast && (
@@ -125,16 +125,16 @@ export default function PaymentMethodsConfigClient({ initialConfig }: { initialC
           {STANDARD_METHODS.map(method => {
             const isActive = enabledIds.includes(method.id);
             return (
-              <div key={method.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.5rem', backgroundColor: 'white', border: `1px solid ${isActive ? 'var(--pulpos-primary)' : 'var(--pulpos-border)'}`, borderRadius: '12px', boxShadow: isActive ? '0 0 0 1px var(--pulpos-primary)' : 'none', transition: 'all 0.2s' }}>
+              <div key={method.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.5rem', backgroundColor: 'white', border: `1px solid ${isActive ? 'var(--caanma-primary)' : 'var(--caanma-border)'}`, borderRadius: '12px', boxShadow: isActive ? '0 0 0 1px var(--caanma-primary)' : 'none', transition: 'all 0.2s' }}>
                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
                     <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: isActive ? '#f0f9ff' : '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0' }}>
                        {method.icon}
                     </div>
                     <div>
-                       <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: isActive ? 'var(--pulpos-text)' : 'var(--pulpos-text-muted)' }}>
+                       <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: isActive ? 'var(--caanma-text)' : 'var(--caanma-text-muted)' }}>
                          {method.name}
                        </div>
-                       <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>
+                       <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>
                          {isActive ? 'Activo en Punto de Venta' : 'Inactivo'}
                        </div>
                     </div>
@@ -145,7 +145,7 @@ export default function PaymentMethodsConfigClient({ initialConfig }: { initialC
                     <input type="checkbox" checked={isActive} onChange={() => toggleMethod(method.id)} style={{ opacity: 0, width: 0, height: 0 }} />
                     <span style={{ 
                       position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, 
-                      backgroundColor: isActive ? 'var(--pulpos-primary)' : '#cbd5e1', 
+                      backgroundColor: isActive ? 'var(--caanma-primary)' : '#cbd5e1', 
                       transition: '.4s', borderRadius: '34px'
                     }}>
                       <span style={{
@@ -161,19 +161,19 @@ export default function PaymentMethodsConfigClient({ initialConfig }: { initialC
        </div>
 
        {/* Custom Payment Methods Section */}
-       <div style={{ borderTop: '1px solid var(--pulpos-border)', paddingTop: '2.5rem', marginBottom: '2.5rem' }}>
+       <div style={{ borderTop: '1px solid var(--caanma-border)', paddingTop: '2.5rem', marginBottom: '2.5rem' }}>
           <div style={{ marginBottom: '1.5rem' }}>
              <h2 style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>Métodos de Pago Personalizados</h2>
-             <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>Agrega opciones de cobro adicionales para tus sucursales (ej. Mercado Pago, American Express).</p>
+             <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>Agrega opciones de cobro adicionales para tus sucursales (ej. Mercado Pago, American Express).</p>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px dashed var(--pulpos-border)' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px dashed var(--caanma-border)' }}>
              <input 
                type="text" 
                placeholder="Nombre del método de pago (ej. Mercado Pago)" 
                value={newMethodName} 
                onChange={(e) => setNewMethodName(e.target.value)}
-               style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', outline: 'none', fontSize: '0.95rem' }} 
+               style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', fontSize: '0.95rem' }} 
                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCustom(); } }}
              />
              <button 
@@ -192,7 +192,7 @@ export default function PaymentMethodsConfigClient({ initialConfig }: { initialC
                const isEditing = editingId === method.id;
 
                return (
-                 <div key={method.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.5rem', backgroundColor: 'white', border: `1px solid ${isActive ? 'var(--pulpos-primary)' : 'var(--pulpos-border)'}`, borderRadius: '12px', boxShadow: isActive ? '0 0 0 1px var(--pulpos-primary)' : 'none', transition: 'all 0.2s' }}>
+                 <div key={method.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.5rem', backgroundColor: 'white', border: `1px solid ${isActive ? 'var(--caanma-primary)' : 'var(--caanma-border)'}`, borderRadius: '12px', boxShadow: isActive ? '0 0 0 1px var(--caanma-primary)' : 'none', transition: 'all 0.2s' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flex: 1 }}>
                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: isActive ? '#f0f9ff' : '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0' }}>
                           <Wallet size={24} color="#8b5cf6" />
@@ -204,7 +204,7 @@ export default function PaymentMethodsConfigClient({ initialConfig }: { initialC
                               type="text" 
                               value={editingName} 
                               onChange={(e) => setEditingName(e.target.value)} 
-                              style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-primary)', outline: 'none', fontSize: '1rem', flex: 1, maxWidth: '300px' }}
+                              style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--caanma-primary)', outline: 'none', fontSize: '1rem', flex: 1, maxWidth: '300px' }}
                               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSaveEdit(method.id); } }}
                               autoFocus
                             />
@@ -226,10 +226,10 @@ export default function PaymentMethodsConfigClient({ initialConfig }: { initialC
                        ) : (
                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                             <div>
-                               <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: isActive ? 'var(--pulpos-text)' : 'var(--pulpos-text-muted)' }}>
+                               <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: isActive ? 'var(--caanma-text)' : 'var(--caanma-text-muted)' }}>
                                  {method.name}
                                </div>
-                               <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>
+                               <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>
                                  {isActive ? 'Activo en Punto de Venta' : 'Inactivo'}
                                </div>
                             </div>
@@ -262,7 +262,7 @@ export default function PaymentMethodsConfigClient({ initialConfig }: { initialC
                        <input type="checkbox" checked={isActive} onChange={() => toggleMethod(method.id)} style={{ opacity: 0, width: 0, height: 0 }} />
                        <span style={{ 
                          position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, 
-                         backgroundColor: isActive ? 'var(--pulpos-primary)' : '#cbd5e1', 
+                         backgroundColor: isActive ? 'var(--caanma-primary)' : '#cbd5e1', 
                          transition: '.4s', borderRadius: '34px'
                        }}>
                          <span style={{
@@ -278,7 +278,7 @@ export default function PaymentMethodsConfigClient({ initialConfig }: { initialC
           </div>
        </div>
 
-       <div style={{ borderTop: '1px solid var(--pulpos-border)', paddingTop: '1.5rem' }}>
+       <div style={{ borderTop: '1px solid var(--caanma-border)', paddingTop: '1.5rem' }}>
           <button onClick={handleSave} disabled={isPending} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 2rem', fontSize: '1rem' }}>
              <Save size={20} /> {isPending ? 'Guardando...' : 'Guardar Configuración'}
           </button>

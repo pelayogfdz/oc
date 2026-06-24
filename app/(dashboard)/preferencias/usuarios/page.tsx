@@ -38,7 +38,7 @@ export default async function UsuariosPage() {
   });
 
   return (
-    <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '2rem', border: '1px solid var(--pulpos-border)' }}>
+    <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '2rem', border: '1px solid var(--caanma-border)' }}>
       <UserClient initialUsers={users} branches={branches} hrLocations={hrLocations} />
     </div>
   );

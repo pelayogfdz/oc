@@ -737,13 +737,73 @@ export default function POSClient({ products: initialProducts, customers, suppli
   }, [displayedProducts, stockFilter, filterCategory]);
 
   // Recalculate total dynamically with active price list
+  // Recalculate total dynamically with active price list
   const subTotal = useMemo(() => cart.reduce((sum, item) => sum + (getProductPrice(item) * item.quantity), 0), [cart, priceList]);
-  
-  const discount = useMemo(() => {
-    let d = 0;
+
+  const hasActivePromotion = useCallback((product: any) => {
+    if (!promotions || promotions.length === 0) return false;
     
-    // Solo aplicar reglas de promoción automáticas si la lista de precios seleccionada está permitida para la promoción
-    promotions.forEach(promo => {
+    return promotions.some((promo: any) => {
+      if (!promo.active) return false;
+      
+      let meta: any = {};
+      try {
+        meta = promo.metadata ? JSON.parse(promo.metadata) : {};
+      } catch (e) {
+        meta = { targetType: 'ALL' };
+      }
+      
+      // Check if this promotion applies to the current priceList
+      const allowedPriceLists = meta.targetPriceLists && meta.targetPriceLists.length > 0
+        ? meta.targetPriceLists
+        : ['price'];
+      if (!allowedPriceLists.includes(priceList)) return false;
+      
+      // Date validity check
+      const now = new Date();
+      if (meta.startDate) {
+        const sDate = new Date(meta.startDate);
+        if (now < sDate) return false;
+      }
+      if (meta.endDate) {
+        const eDate = new Date(meta.endDate);
+        if (now > eDate) return false;
+      }
+      
+      // Target segments check
+      const hasNewTargets = (meta.targetProducts?.length > 0) || (meta.targetCategories?.length > 0) || (meta.targetBrands?.length > 0);
+      
+      if (hasNewTargets) {
+        const matchProduct = meta.targetProducts?.includes(product.id);
+        const matchCategory = product.category && meta.targetCategories?.includes(product.category);
+        const matchBrand = product.brand && meta.targetBrands?.includes(product.brand);
+        return !!(matchProduct || matchCategory || matchBrand);
+      } else {
+        // Fallback to legacy structure
+        if (meta.targetType === 'CATEGORY') {
+          return !!(product.category && meta.applyToCategories?.includes(product.category));
+        } else if (meta.targetType === 'BRAND') {
+          return !!(product.brand && meta.applyToBrands?.includes(product.brand));
+        } else if (meta.targetType === 'PRODUCTS') {
+          return !!meta.applyToProducts?.includes(product.id);
+        } else {
+          return true; // Applies to all products
+        }
+      }
+    });
+  }, [promotions, priceList]);
+
+  const getItemDiscounts = useCallback((cartItems: any[]) => {
+    const discountsMap: { [key: string]: number } = {};
+    
+    // Initialize discounts to 0
+    cartItems.forEach(item => {
+      discountsMap[item.cartItemId] = 0;
+    });
+
+    if (!promotions || promotions.length === 0) return discountsMap;
+
+    promotions.forEach((promo: any) => {
       if (!promo.active) return;
       
       let meta: any = {};
@@ -754,7 +814,6 @@ export default function POSClient({ products: initialProducts, customers, suppli
       }
       
       // Check if this promotion applies to the current priceList
-      // Default to ['price'] for legacy promotions
       const allowedPriceLists = meta.targetPriceLists && meta.targetPriceLists.length > 0
         ? meta.targetPriceLists
         : ['price'];
@@ -774,9 +833,9 @@ export default function POSClient({ products: initialProducts, customers, suppli
       // Target segments check
       const hasNewTargets = (meta.targetProducts?.length > 0) || (meta.targetCategories?.length > 0) || (meta.targetBrands?.length > 0);
       
-      let applicableCartItems = cart;
+      let applicableCartItems = cartItems;
       if (hasNewTargets) {
-        applicableCartItems = cart.filter(item => {
+        applicableCartItems = cartItems.filter(item => {
           const matchProduct = meta.targetProducts?.includes(item.id);
           const matchCategory = item.category && meta.targetCategories?.includes(item.category);
           const matchBrand = item.brand && meta.targetBrands?.includes(item.brand);
@@ -785,11 +844,11 @@ export default function POSClient({ products: initialProducts, customers, suppli
       } else {
         // Fallback to legacy structure
         if (meta.targetType === 'CATEGORY') {
-          applicableCartItems = cart.filter(item => meta.applyToCategories?.includes(item.category));
+          applicableCartItems = cartItems.filter(item => meta.applyToCategories?.includes(item.category));
         } else if (meta.targetType === 'BRAND') {
-          applicableCartItems = cart.filter(item => meta.applyToBrands?.includes(item.brand));
+          applicableCartItems = cartItems.filter(item => meta.applyToBrands?.includes(item.brand));
         } else if (meta.targetType === 'PRODUCTS') {
-          applicableCartItems = cart.filter(item => meta.applyToProducts?.includes(item.id));
+          applicableCartItems = cartItems.filter(item => meta.applyToProducts?.includes(item.id));
         }
       }
       
@@ -797,21 +856,42 @@ export default function POSClient({ products: initialProducts, customers, suppli
 
       if (applicableSubTotal > 0) {
         if (promo.type === 'PERCENTAGE') {
-          d += applicableSubTotal * (promo.value / 100);
+          applicableCartItems.forEach(item => {
+            const itemPrice = getProductPrice(item);
+            const itemSubtotal = itemPrice * item.quantity;
+            const itemDiscount = itemSubtotal * (promo.value / 100);
+            discountsMap[item.cartItemId] += itemDiscount;
+          });
         } else if (promo.type === 'FIXED_AMOUNT') {
-          d += promo.value;
+          // Distribute the fixed amount proportionally to each matching item's subtotal
+          applicableCartItems.forEach(item => {
+            const itemPrice = getProductPrice(item);
+            const itemSubtotal = itemPrice * item.quantity;
+            const itemDiscount = (itemSubtotal / applicableSubTotal) * promo.value;
+            discountsMap[item.cartItemId] += itemDiscount;
+          });
         } else if (promo.type === 'BOGO') {
           applicableCartItems.forEach(item => {
-             const pay = meta.payQty || 1;
-             const rec = meta.receiveQty || 2;
-             const freeQty = Math.floor(item.quantity / rec) * (rec - pay);
-             if (freeQty > 0) {
-               d += freeQty * getProductPrice(item);
-             }
+            const pay = meta.payQty || 1;
+            const rec = meta.receiveQty || 2;
+            const freeQty = Math.floor(item.quantity / rec) * (rec - pay);
+            if (freeQty > 0) {
+              const itemPrice = getProductPrice(item);
+              const itemDiscount = freeQty * itemPrice;
+              discountsMap[item.cartItemId] += itemDiscount;
+            }
           });
         }
       }
     });
+
+    return discountsMap;
+  }, [promotions, priceList, getProductPrice]);
+
+  const itemDiscounts = useMemo(() => getItemDiscounts(cart), [cart, getItemDiscounts]);
+
+  const discount = useMemo(() => {
+    let d = Object.values(itemDiscounts).reduce((sum, val) => sum + val, 0);
     
     if (typeof manualDiscountValue === 'number' && manualDiscountValue > 0) {
       if (manualDiscountType === '$') {
@@ -822,7 +902,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
     }
     
     return d > subTotal ? subTotal : d;
-  }, [subTotal, cart, promotions, manualDiscountValue, manualDiscountType, priceList]);
+  }, [subTotal, itemDiscounts, manualDiscountValue, manualDiscountType]);
 
   let total = subTotal - discount;
   if (ventasConfig.redondeo === 'redondeo_50') total = Math.round(total * 2) / 2;
@@ -840,6 +920,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
   const change = (typeof amountReceived === 'number' ? amountReceived : 0) - finalTotalWithTip;
 
   const printTicket = async (cartItems: any[], tTotal: number, tChange: number, tDiscount: number, saleId?: string) => {
+    const itemDiscountsMap = getItemDiscounts(cartItems);
     // Generate inner styling for the ticket
     const paperWidth = ticketConfig.anchoTicket === '58mm' || impresorasConfig.receiptWidth === '58mm' ? '58mm' : '80mm';
     const is58 = paperWidth === '58mm';
@@ -915,13 +996,18 @@ export default function POSClient({ products: initialProducts, customers, suppli
               <span class="col-desc">DESCRIPCIÓN</span>
               <span class="col-price">IMPORTE</span>
             </div>
-            ${cartItems.map(item => `
-              <div class="item-row">
-                <span class="col-cant">${item.quantity}</span>
-                <span class="col-desc">${item.name}</span>
-                <span class="col-price">$${(getProductPrice(item) * item.quantity).toFixed(2)}</span>
-              </div>
-            `).join('')}
+            ${cartItems.map(item => {
+              const itemDisc = itemDiscountsMap[item.cartItemId] || 0;
+              const discLabel = itemDisc > 0 ? `<div style="font-size: 0.85em; color: #555; padding-left: 25px; margin-top: -2px; margin-bottom: 4px;">* Promo desc: -$${itemDisc.toFixed(2)}</div>` : '';
+              return `
+                <div class="item-row">
+                  <span class="col-cant">${item.quantity}</span>
+                  <span class="col-desc">${item.name}</span>
+                  <span class="col-price">$${(getProductPrice(item) * item.quantity).toFixed(2)}</span>
+                </div>
+                ${discLabel}
+              `;
+            }).join('')}
           </div>
           <div class="t-divider"></div>
           <div class="totals">
@@ -1930,6 +2016,12 @@ export default function POSClient({ products: initialProducts, customers, suppli
                     <div className="pos-cart-item-info">
                       <div className="pos-cart-item-title">{item.name}</div>
                       <div className="pos-cart-item-price">${itemPrice.toFixed(2)}</div>
+                      {itemDiscounts[item.cartItemId] > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#db2777', fontSize: '0.8rem', fontWeight: 'bold', marginTop: '0.25rem' }}>
+                          <Percent size={14} />
+                          <span>Promoción: -${itemDiscounts[item.cartItemId].toFixed(2)}</span>
+                        </div>
+                      )}
                       {mode === 'QUOTE' && (() => {
                         const purchasePrice = item.averageCost || item.cost || 0;
                         const marginPercent = itemPrice > 0 ? ((itemPrice - purchasePrice) / itemPrice) * 100 : 0;
@@ -1980,8 +2072,19 @@ export default function POSClient({ products: initialProducts, customers, suppli
                     </div>
 
                     {/* Subtotal */}
-                    <div className="pos-cart-item-subtotal">
-                      ${itemSubtotal.toFixed(2)}
+                    <div className="pos-cart-item-subtotal" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+                      {itemDiscounts[item.cartItemId] > 0 ? (
+                        <>
+                          <span style={{ fontSize: '0.8rem', color: '#94a3b8', textDecoration: 'line-through' }}>
+                            ${itemSubtotal.toFixed(2)}
+                          </span>
+                          <span style={{ color: '#db2777', fontWeight: 'bold' }}>
+                            ${(itemSubtotal - itemDiscounts[item.cartItemId]).toFixed(2)}
+                          </span>
+                        </>
+                      ) : (
+                        `$${itemSubtotal.toFixed(2)}`
+                      )}
                     </div>
 
                     {/* Actions menu */}
@@ -2216,7 +2319,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                  value={fastItemName}
                  onChange={e => setFastItemName(e.target.value)}
                  placeholder="Ej. Servicio de instalación..."
-                 style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+                 style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
                />
              </div>
              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
@@ -2229,7 +2332,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                    value={fastItemPrice}
                    onChange={e => setFastItemPrice(e.target.value === '' ? '' : parseFloat(e.target.value))}
                    placeholder="$0.00"
-                   style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+                   style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
                  />
                </div>
                <div style={{ flex: 1 }}>
@@ -2239,7 +2342,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                    min="1"
                    value={fastItemQuantity}
                    onChange={e => setFastItemQuantity(parseInt(e.target.value) || 1)}
-                   style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+                   style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
                  />
                </div>
              </div>
@@ -2253,7 +2356,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                    value={fastItemCost}
                    onChange={e => setFastItemCost(e.target.value === '' ? '' : parseFloat(e.target.value))}
                    placeholder="$0.00"
-                   style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+                   style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
                  />
                </div>
                <div style={{ flex: 1 }}>
@@ -2261,7 +2364,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                  <select 
                    value={fastItemSupplierId}
                    onChange={e => setFastItemSupplierId(e.target.value)}
-                   style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', height: '45px', backgroundColor: 'white' }}
+                   style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', height: '45px', backgroundColor: 'white' }}
                  >
                    <option value="">-- Seleccionar --</option>
                    {suppliers.map((sup: any) => (
@@ -2280,7 +2383,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                    setFastItemCost('');
                    setFastItemSupplierId('');
                  }}
-                 style={{ flex: 1, padding: '0.75rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', background: 'white' }}
+                 style={{ flex: 1, padding: '0.75rem', border: '1px solid var(--caanma-border)', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', background: 'white' }}
                >
                  Cancelar
                </button>
@@ -2448,10 +2551,10 @@ export default function POSClient({ products: initialProducts, customers, suppli
                {mode === 'QUOTE' ? 'Finalizar Cotización' : mode === 'CONSIGNMENT' ? 'Finalizar Consignación' : 'Finalizar Venta'}
             </h2>
             
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '1rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '1rem' }}>
                <button 
                  onClick={() => setDocumentType('TICKET')} 
-                 style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: 'none', backgroundColor: documentType === 'TICKET' ? 'var(--pulpos-primary)' : '#f1f5f9', color: documentType === 'TICKET' ? 'white' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}
+                 style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: 'none', backgroundColor: documentType === 'TICKET' ? 'var(--caanma-primary)' : '#f1f5f9', color: documentType === 'TICKET' ? 'white' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}
                >
                   Emitir Ticket
                </button>
@@ -2464,8 +2567,8 @@ export default function POSClient({ products: initialProducts, customers, suppli
             </div>
             
             <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: '1rem', color: 'var(--pulpos-text-muted)' }}>{mode === 'QUOTE' ? 'Total Presupuestado' : mode === 'CONSIGNMENT' ? 'Total Consignado' : 'Total a Pagar'}</div>
-              <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>${finalTotalWithTip.toFixed(2)}</div>
+              <div style={{ fontSize: '1rem', color: 'var(--caanma-text-muted)' }}>{mode === 'QUOTE' ? 'Total Presupuestado' : mode === 'CONSIGNMENT' ? 'Total Consignado' : 'Total a Pagar'}</div>
+              <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>${finalTotalWithTip.toFixed(2)}</div>
             </div>
 
             {/* Monedero Electrónico */}
@@ -2524,7 +2627,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
             )}
 
             {mode !== 'QUOTE' && mode !== 'CONSIGNMENT' && ventasConfig.solicitarPropinas && (
-               <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '1.5rem' }}>
+               <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '1.5rem' }}>
                  <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>Añadir Propina</label>
                  <div style={{ display: 'flex', gap: '0.5rem' }}>
                    {[10, 15, 20].map(pct => {
@@ -2533,7 +2636,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                        <button
                          key={pct}
                          onClick={() => setTipAmount(tipAmount === amt ? 0 : amt)}
-                         style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: '1px solid', borderColor: tipAmount === amt ? '#10b981' : 'var(--pulpos-border)', backgroundColor: tipAmount === amt ? '#d1fae5' : 'white', cursor: 'pointer', fontWeight: tipAmount === amt ? 'bold' : 'normal' }}
+                         style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: '1px solid', borderColor: tipAmount === amt ? '#10b981' : 'var(--caanma-border)', backgroundColor: tipAmount === amt ? '#d1fae5' : 'white', cursor: 'pointer', fontWeight: tipAmount === amt ? 'bold' : 'normal' }}
                        >
                          {pct}% (${amt.toFixed(2)})
                        </button>
@@ -2553,9 +2656,9 @@ export default function POSClient({ products: initialProducts, customers, suppli
                       onClick={() => setPaymentMethod(method.id)}
                       style={{ 
                         padding: '0.75rem', borderRadius: '4px', border: '1px solid', 
-                        borderColor: paymentMethod === method.id ? 'var(--pulpos-primary)' : 'var(--pulpos-border)',
+                        borderColor: paymentMethod === method.id ? 'var(--caanma-primary)' : 'var(--caanma-border)',
                         backgroundColor: paymentMethod === method.id ? '#eff6ff' : 'white',
-                        color: paymentMethod === method.id ? 'var(--pulpos-primary)' : 'inherit',
+                        color: paymentMethod === method.id ? 'var(--caanma-primary)' : 'inherit',
                         fontWeight: paymentMethod === method.id ? 'bold' : 'normal',
                         cursor: 'pointer'
                       }}
@@ -2590,7 +2693,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                   value={amountReceived}
                   onChange={e => setAmountReceived(e.target.value === '' ? '' : parseFloat(e.target.value))}
                   placeholder={`Mínimo $${finalTotalWithTip.toFixed(2)}`}
-                  style={{ width: '100%', padding: '1rem', fontSize: '1.25rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', textAlign: 'right' }}
+                  style={{ width: '100%', padding: '1rem', fontSize: '1.25rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', textAlign: 'right' }}
                 />
                 {(typeof amountReceived === 'number' && amountReceived >= finalTotalWithTip) && (
                   <div style={{ marginTop: '0.5rem', textAlign: 'right', fontSize: '1.1rem', color: '#16a34a', fontWeight: 'bold' }}>
@@ -2613,7 +2716,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                        if (typeof v === 'number' && v <= finalTotalWithTip) setAmountReceived(finalTotalWithTip - v);
                     }}
                     placeholder={`Monto`}
-                    style={{ width: '100%', padding: '1rem', fontSize: '1.25rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', textAlign: 'right' }}
+                    style={{ width: '100%', padding: '1rem', fontSize: '1.25rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', textAlign: 'right' }}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
@@ -2623,7 +2726,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                     value={amountReceived}
                     onChange={e => setAmountReceived(e.target.value === '' ? '' : parseFloat(e.target.value))}
                     placeholder={`Restante`}
-                    style={{ width: '100%', padding: '1rem', fontSize: '1.25rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', textAlign: 'right' }}
+                    style={{ width: '100%', padding: '1rem', fontSize: '1.25rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', textAlign: 'right' }}
                   />
                 </div>
               </div>
@@ -2636,7 +2739,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                   placeholder="Ej. Entregar pedido especial..."
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
                />
             </div>
 
@@ -2686,7 +2789,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
             )}
 
             <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-              <button onClick={() => setIsCheckoutOpen(false)} style={{ flex: 1, padding: '1rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', background: 'white' }}>
+              <button onClick={() => setIsCheckoutOpen(false)} style={{ flex: 1, padding: '1rem', border: '1px solid var(--caanma-border)', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', background: 'white' }}>
                 Cancelar
               </button>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -2726,12 +2829,12 @@ export default function POSClient({ products: initialProducts, customers, suppli
                 value={quoteSearchId} 
                 onChange={(e) => setQuoteSearchId(e.target.value)}
                 placeholder="🔍 Buscar ID de Cotización..."
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
                 autoFocus
               />
             </div>
 
-            <div style={{ overflowY: 'auto', flex: 1, marginBottom: '1.5rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px' }}>
+            <div style={{ overflowY: 'auto', flex: 1, marginBottom: '1.5rem', border: '1px solid var(--caanma-border)', borderRadius: '4px' }}>
                {pendingQuotes.filter(q => q.id.includes(quoteSearchId.trim())).map(quote => (
                  <button 
                     key={quote.id} 
@@ -2742,7 +2845,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                       display: 'flex', 
                       justifyContent: 'space-between', 
                       alignItems: 'center', 
-                      borderBottom: '1px solid var(--pulpos-border)', 
+                      borderBottom: '1px solid var(--caanma-border)', 
                       backgroundColor: 'white', 
                       cursor: 'pointer',
                       textAlign: 'left'
@@ -2750,15 +2853,15 @@ export default function POSClient({ products: initialProducts, customers, suppli
                  >
                     <div>
                       <div style={{ fontWeight: 'bold', color: '#1e293b' }}>Cotización #{quote.id.slice(0, 8)}</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--pulpos-text-muted)' }}>{new Date(quote.createdAt).toLocaleString()}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>{new Date(quote.createdAt).toLocaleString()}</div>
                     </div>
-                    <div style={{ fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>
+                    <div style={{ fontWeight: 'bold', color: 'var(--caanma-primary)' }}>
                       ${quote.total.toFixed(2)}
                     </div>
                  </button>
                ))}
                {pendingQuotes.length === 0 && (
-                 <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                 <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                     No hay cotizaciones pendientes en esta sucursal.
                  </div>
                )}
@@ -2767,7 +2870,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                <button 
                  onClick={() => setIsQuoteModalOpen(false)}
-                 style={{ padding: '0.75rem 1.5rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', background: 'white', cursor: 'pointer', fontWeight: 'bold', color: 'var(--pulpos-text-muted)' }}
+                 style={{ padding: '0.75rem 1.5rem', border: '1px solid var(--caanma-border)', borderRadius: '4px', background: 'white', cursor: 'pointer', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}
                  disabled={isLoadingQuote}
                >
                  Cancelar
@@ -2784,7 +2887,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
             <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>
                Seleccionar Variante
             </h2>
-            <div style={{ color: 'var(--pulpos-text-muted)', marginBottom: '1.5rem' }}>
+            <div style={{ color: 'var(--caanma-text-muted)', marginBottom: '1.5rem' }}>
               {selectedProductForVariant.name}
             </div>
             
@@ -2802,7 +2905,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     padding: '1rem',
-                    border: '1px solid var(--pulpos-border)',
+                    border: '1px solid var(--caanma-border)',
                     borderRadius: '4px',
                     backgroundColor: 'white',
                     cursor: 'pointer',
@@ -2811,7 +2914,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                 >
                   <div>
                     <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{v.attribute}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--pulpos-text-muted)' }}>SKU: {v.sku || '--'}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>SKU: {v.sku || '--'}</div>
                   </div>
                   <div style={{ fontSize: '0.875rem', fontWeight: '600', color: v.stock > 0 ? '#16a34a' : '#dc2626' }}>
                     {v.stock} disp.
@@ -2821,7 +2924,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
             </div>
 
             <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
-              <button onClick={() => setSelectedProductForVariant(null)} style={{ padding: '0.75rem 1.5rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', cursor: 'pointer', background: 'white', fontWeight: 'bold' }}>
+              <button onClick={() => setSelectedProductForVariant(null)} style={{ padding: '0.75rem 1.5rem', border: '1px solid var(--caanma-border)', borderRadius: '4px', cursor: 'pointer', background: 'white', fontWeight: 'bold' }}>
                 Cancelar
               </button>
             </div>
@@ -2846,7 +2949,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
                 <div>
                   <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Total de Venta</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>
                     ${successModalData.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                   </div>
                 </div>
@@ -2989,7 +3092,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                 }}
                 style={{
                   padding: '1rem',
-                  backgroundColor: 'var(--pulpos-primary)',
+                  backgroundColor: 'var(--caanma-primary)',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
@@ -3030,9 +3133,9 @@ export default function POSClient({ products: initialProducts, customers, suppli
             borderRadius: '12px',
             boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.75rem' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                <Clock size={20} color="var(--pulpos-primary)" /> Tickets en Espera ({mode === 'QUOTE' ? 'Cotizaciones' : mode === 'CONSIGNMENT' ? 'Consignaciones' : 'Ventas'})
+                <Clock size={20} color="var(--caanma-primary)" /> Tickets en Espera ({mode === 'QUOTE' ? 'Cotizaciones' : mode === 'CONSIGNMENT' ? 'Consignaciones' : 'Ventas'})
               </h3>
               <button type="button" onClick={() => setShowOnHoldModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
                 <X size={24} />
@@ -3047,13 +3150,13 @@ export default function POSClient({ products: initialProducts, customers, suppli
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   {onHoldTickets.map(ticket => (
-                    <div key={ticket.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid var(--pulpos-border)', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+                    <div key={ticket.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', border: '1px solid var(--caanma-border)', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
                       <div>
                         <div style={{ fontWeight: 'bold', fontSize: '1rem', color: '#1e293b' }}>{ticket.name}</div>
                         <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
                           Creado: {ticket.timestamp}
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-primary)', fontWeight: '500', marginTop: '0.25rem' }}>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--caanma-primary)', fontWeight: '500', marginTop: '0.25rem' }}>
                           {ticket.cart.length} art. | Total: ${ticket.total.toFixed(2)}
                         </div>
                       </div>
@@ -3063,7 +3166,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                           onClick={() => handleRestoreTicket(ticket)}
                           style={{
                             padding: '0.5rem 1rem',
-                            backgroundColor: 'var(--pulpos-primary)',
+                            backgroundColor: 'var(--caanma-primary)',
                             color: 'white',
                             border: 'none',
                             borderRadius: '6px',
@@ -3095,7 +3198,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
               )}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--pulpos-border)', paddingTop: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--caanma-border)', paddingTop: '1rem' }}>
               <button 
                 type="button"
                 onClick={() => setShowOnHoldModal(false)}
@@ -3103,7 +3206,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                   padding: '0.6rem 2rem',
                   backgroundColor: '#f1f5f9',
                   color: '#334155',
-                  border: '1px solid var(--pulpos-border)',
+                  border: '1px solid var(--caanma-border)',
                   borderRadius: '6px',
                   fontWeight: 'bold',
                   cursor: 'pointer'
@@ -3220,6 +3323,9 @@ export default function POSClient({ products: initialProducts, customers, suppli
                         })()}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        {hasActivePromotion(p) && (
+                          <span style={{ fontSize: '0.75rem', backgroundColor: '#fce7f3', color: '#db2777', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>Promoción</span>
+                        )}
                         <div style={{ fontWeight: 'bold', color: '#8b5cf6', fontSize: '1rem' }}>
                           ${pPrice.toFixed(2)}
                         </div>

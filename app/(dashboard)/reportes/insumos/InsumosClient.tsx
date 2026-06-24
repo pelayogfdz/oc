@@ -331,7 +331,7 @@ export default function InsumosClient({
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             🛠️ Reporte de Resurtido de Insumos
           </h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>
             Sugerencia de compra de materias primas e insumos de fabricación basada en ventas de productos finales.
           </p>
         </div>

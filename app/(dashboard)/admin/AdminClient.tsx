@@ -161,19 +161,19 @@ export default function AdminClient({ initialData }: { initialData: any }) {
         <ShieldAlert size={32} color="#dc2626" />
         <div>
           <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>Panel de Super Admin</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Gestión global del sistema CAANMA PRO</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Gestión global del sistema CAANMA PRO</p>
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
         
         {/* Mercado Pago Settings */}
-        <section style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+        <section style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <CreditCard size={20} color="#2563eb" /> 
             Configuración de Mercado Pago
           </h2>
-          <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+          <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
             Ingresa las credenciales maestras donde recibirás los pagos de suscripción de todas las organizaciones.
           </p>
           
@@ -210,12 +210,12 @@ export default function AdminClient({ initialData }: { initialData: any }) {
         </section>
 
         {/* Global Pricing Settings */}
-        <section style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+        <section style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <DollarSign size={20} color="#16a34a" /> 
             Precios Globales (Por defecto)
           </h2>
-          <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+          <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
             Define el costo base de plataforma y el costo adicional por usuario para el cobro mensual automatizado.
           </p>
           
@@ -253,7 +253,7 @@ export default function AdminClient({ initialData }: { initialData: any }) {
       </div>
 
       {/* Organizations Table */}
-      <section style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+      <section style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Building2 size={20} color="#16a34a" /> 
           Organizaciones Registradas
@@ -262,7 +262,7 @@ export default function AdminClient({ initialData }: { initialData: any }) {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
             <thead>
-              <tr style={{ borderBottom: '2px solid var(--pulpos-border)', textAlign: 'left', color: 'var(--pulpos-text-muted)' }}>
+              <tr style={{ borderBottom: '2px solid var(--caanma-border)', textAlign: 'left', color: 'var(--caanma-text-muted)' }}>
                 <th style={{ padding: '0.75rem' }}>Organización</th>
                 <th style={{ padding: '0.75rem' }}>Usuarios</th>
                 <th style={{ padding: '0.75rem' }}>Cálculo Mensual</th>
@@ -277,7 +277,7 @@ export default function AdminClient({ initialData }: { initialData: any }) {
                 const total = effectiveBase + (t._count?.users || 0) * effectiveUserPrice;
                 
                 return (
-                <tr key={t.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                <tr key={t.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                   <td style={{ padding: '1rem 0.75rem', fontWeight: '500' }}>
                     {t.name}
                     {t.subscriptionStatus === 'PAST_DUE' && (
@@ -375,7 +375,7 @@ export default function AdminClient({ initialData }: { initialData: any }) {
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Asignar Créditos</h3>
-            <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+            <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
               Los créditos ingresados se descontarán de la próxima factura de <strong>{selectedTenant.name}</strong>.
             </p>
             
@@ -414,7 +414,7 @@ export default function AdminClient({ initialData }: { initialData: any }) {
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Precios Especiales</h3>
-            <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+            <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
               Define precios personalizados para <strong>{pricingTenant.name}</strong>. Déjalos en blanco para usar el precio global.
             </p>
             
@@ -505,7 +505,7 @@ export default function AdminClient({ initialData }: { initialData: any }) {
               <Lock size={20} color="#4338ca" />
               Gestionar Accesos - {selectedTenantForPasswords.name}
             </h3>
-            <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+            <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
               Cambia la contraseña de los usuarios de esta organización directamente.
             </p>
 

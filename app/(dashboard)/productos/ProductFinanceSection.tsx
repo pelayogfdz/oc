@@ -178,13 +178,13 @@ export default function ProductFinanceSection({
             value={cost}
             onChange={e => handleCostChange(e.target.value)}
             placeholder="0.00"
-            style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', outline: 'none' }}
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', outline: 'none' }}
           />
         </div>
 
         {/* Costo Promedio */}
         <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem', color: 'var(--pulpos-text-muted)' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem', color: 'var(--caanma-text-muted)' }}>
             Costo Promedio ($)
           </label>
           <input
@@ -194,7 +194,7 @@ export default function ProductFinanceSection({
             defaultValue={initialCost}
             readOnly
             title="Se calcula ponderadamente según historial de compras"
-            style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: '#f3f4f6', cursor: 'not-allowed', color: 'var(--pulpos-text-muted)', outline: 'none' }}
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: '#f3f4f6', cursor: 'not-allowed', color: 'var(--caanma-text-muted)', outline: 'none' }}
           />
         </div>
 
@@ -212,7 +212,7 @@ export default function ProductFinanceSection({
               onChange={e => handlePriceChange(e.target.value)}
               required
               placeholder="0.00"
-              style={{ flex: 2, padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', outline: 'none' }}
+              style={{ flex: 2, padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', outline: 'none' }}
             />
             <div style={{ display: 'flex', alignItems: 'center', flex: 1, position: 'relative' }}>
               <input
@@ -244,7 +244,7 @@ export default function ProductFinanceSection({
             name="taxRate"
             value={taxRate}
             onChange={e => setTaxRate(parseFloat(e.target.value) || 0)}
-            style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', outline: 'none' }}
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', outline: 'none' }}
           />
         </div>
       </div>
@@ -254,7 +254,7 @@ export default function ProductFinanceSection({
         <div></div>
         <div></div>
         <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem', color: 'var(--pulpos-text-muted)' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem', color: 'var(--caanma-text-muted)' }}>
             Precio Mayoreo ($)
           </label>
           <input
@@ -264,11 +264,11 @@ export default function ProductFinanceSection({
             value={wholesalePrice}
             onChange={e => setWholesalePrice(e.target.value)}
             placeholder="Opcional"
-            style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', outline: 'none' }}
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', outline: 'none' }}
           />
         </div>
         <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem', color: 'var(--pulpos-text-muted)' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem', color: 'var(--caanma-text-muted)' }}>
             Precio Especial ($)
           </label>
           <input
@@ -278,14 +278,14 @@ export default function ProductFinanceSection({
             value={specialPrice}
             onChange={e => setSpecialPrice(e.target.value)}
             placeholder="Opcional"
-            style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', outline: 'none' }}
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', outline: 'none' }}
           />
         </div>
       </div>
 
       {/* Dynamic Price Lists Grid */}
       {priceLists.length > 0 && (
-        <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--pulpos-border)' }}>
+        <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--caanma-border)' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#475569', marginBottom: '1rem' }}>
             📋 Listas de Precios Dinámicas
           </h3>

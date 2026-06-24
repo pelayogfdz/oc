@@ -33,7 +33,7 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
-        <Link href="/clientes" style={{ textDecoration: 'none', color: 'var(--pulpos-text-muted)', fontSize: '1.25rem' }}>← Volver al Directorio</Link>
+        <Link href="/clientes" style={{ textDecoration: 'none', color: 'var(--caanma-text-muted)', fontSize: '1.25rem' }}>← Volver al Directorio</Link>
       </div>
 
       <ClientProfile customer={customer} sales={sales} payments={payments} />

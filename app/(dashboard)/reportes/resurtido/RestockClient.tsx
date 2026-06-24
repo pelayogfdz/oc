@@ -356,7 +356,7 @@ export default function RestockClient({
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             📋 Reporte de Resurtido
           </h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>
             Sugerencia de abastecimiento de stock en base al ritmo de venta y stock actual.
           </p>
         </div>

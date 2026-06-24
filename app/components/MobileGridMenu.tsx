@@ -45,7 +45,7 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
     <div className="mobile-grid-overlay">
       <div className="mobile-grid-header" style={{ position: 'sticky', top: 0, zIndex: 92, background: 'white' }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Menú Principal</h2>
-        <button onClick={closeMenu} style={{ padding: '0.5rem', color: 'var(--pulpos-text)' }}>
+        <button onClick={closeMenu} style={{ padding: '0.5rem', color: 'var(--caanma-text)' }}>
           <X size={24} />
         </button>
       </div>
@@ -69,18 +69,18 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
                   style={isNuevaVenta ? {
                     display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', 
                     borderRadius: '8px', textDecoration: 'none', 
-                    backgroundColor: 'var(--pulpos-primary)',
+                    backgroundColor: 'var(--caanma-primary)',
                     color: 'white',
                     fontWeight: 'bold',
-                    border: '1px solid var(--pulpos-primary)',
+                    border: '1px solid var(--caanma-primary)',
                     marginBottom: '0.25rem'
                   } : { 
                     display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', 
                     borderRadius: '8px', textDecoration: 'none', 
                     backgroundColor: NodeActive ? 'rgba(139, 92, 246, 0.1)' : 'white',
-                    color: NodeActive ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
+                    color: NodeActive ? 'var(--caanma-primary)' : 'var(--caanma-text)',
                     fontWeight: NodeActive ? 'bold' : '500',
-                    border: '1px solid var(--pulpos-border)'
+                    border: '1px solid var(--caanma-border)'
                   }}
                 >
                   {isNuevaVenta ? (
@@ -95,17 +95,17 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
               const isOpen = openGroups[node.title];
               
               content = (
-                <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: 'white', borderRadius: '8px', border: '1px solid var(--pulpos-border)', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: 'white', borderRadius: '8px', border: '1px solid var(--caanma-border)', overflow: 'hidden' }}>
                   <div 
                     onClick={(e) => toggleGroup(node.title, e)}
                     style={{ 
                       display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', 
                       cursor: 'pointer',
-                      color: NodeActive && !isOpen ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
+                      color: NodeActive && !isOpen ? 'var(--caanma-primary)' : 'var(--caanma-text)',
                       fontWeight: '600'
                     }}
                   >
-                    <div style={{ color: NodeActive && !isOpen ? 'var(--pulpos-primary)' : 'var(--pulpos-text-muted)' }}>
+                    <div style={{ color: NodeActive && !isOpen ? 'var(--caanma-primary)' : 'var(--caanma-text-muted)' }}>
                       {node.icon}
                     </div>
                     <span style={{ flex: 1 }}>{node.title}</span>
@@ -113,7 +113,7 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
                   </div>
 
                   {isOpen && node.items && (
-                    <div style={{ display: 'flex', flexDirection: 'column', padding: '0.5rem 1rem 1rem 3.5rem', gap: '0.75rem', backgroundColor: '#f8fafc', borderTop: '1px solid var(--pulpos-border)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', padding: '0.5rem 1rem 1rem 3.5rem', gap: '0.75rem', backgroundColor: '#f8fafc', borderTop: '1px solid var(--caanma-border)' }}>
                       {node.items.map((item: any) => {
                         const ItemActive = isItemActive(item.path);
                         return (
@@ -123,7 +123,7 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
                             onClick={closeMenu}
                             style={{ 
                               display: 'flex', alignItems: 'center', textDecoration: 'none', 
-                              color: ItemActive ? 'var(--pulpos-primary)' : '#475569',
+                              color: ItemActive ? 'var(--caanma-primary)' : '#475569',
                               fontWeight: ItemActive ? 'bold' : '500',
                               fontSize: '0.95rem'
                             }}
@@ -142,14 +142,14 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
               <div key={node.title} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {content}
                 {node.hasDividerAfter && (
-                  <div style={{ height: '1px', backgroundColor: 'var(--pulpos-border)', margin: '1rem 0' }} />
+                  <div style={{ height: '1px', backgroundColor: 'var(--caanma-border)', margin: '1rem 0' }} />
                 )}
               </div>
             );
           })}
 
           {!isSuperAdmin && (
-            <div style={{ height: '1px', backgroundColor: 'var(--pulpos-border)', margin: '1rem 0' }} />
+            <div style={{ height: '1px', backgroundColor: 'var(--caanma-border)', margin: '1rem 0' }} />
           )}
 
           {/* Footer Items */}
@@ -167,7 +167,7 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
               style={{ 
                 display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', 
                 borderRadius: '8px', textDecoration: 'none', 
-                backgroundColor: 'white', border: '1px solid var(--pulpos-border)',
+                backgroundColor: 'white', border: '1px solid var(--caanma-border)',
                 color: '#475569', fontWeight: '500'
               }}
             >

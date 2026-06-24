@@ -50,7 +50,7 @@ export default function FormatDesignerClient({ configJson }: { configJson: any }
     <div style={{ display: 'flex', gap: '2rem', flexDirection: 'column' }}>
       
       {/* Tab Navigation */}
-      <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem', borderBottom: '1px solid var(--pulpos-border)' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem', borderBottom: '1px solid var(--caanma-border)' }}>
         {tabs.map(tab => (
           <button
             key={tab.id}
@@ -61,11 +61,11 @@ export default function FormatDesignerClient({ configJson }: { configJson: any }
               gap: '0.5rem',
               padding: '0.75rem 1.25rem',
               borderRadius: '8px',
-              backgroundColor: activeTab === tab.id ? 'var(--pulpos-primary)' : 'white',
-              color: activeTab === tab.id ? 'white' : 'var(--pulpos-text)',
+              backgroundColor: activeTab === tab.id ? 'var(--caanma-primary)' : 'white',
+              color: activeTab === tab.id ? 'white' : 'var(--caanma-text)',
               fontWeight: activeTab === tab.id ? 'bold' : 'normal',
               border: '1px solid',
-              borderColor: activeTab === tab.id ? 'var(--pulpos-primary)' : 'var(--pulpos-border)',
+              borderColor: activeTab === tab.id ? 'var(--caanma-primary)' : 'var(--caanma-border)',
               transition: 'all 0.2s',
               whiteSpace: 'nowrap'
             }}
@@ -91,9 +91,9 @@ export default function FormatDesignerClient({ configJson }: { configJson: any }
 
         {/* Live Preview Placeholder */}
         <div className="card" style={{ flex: '1 1 40%', backgroundColor: '#f8fafc', minHeight: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-           <Palette size={48} color="var(--pulpos-text-muted)" style={{ marginBottom: '1rem' }} />
-           <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--pulpos-text)', marginBottom: '0.5rem' }}>Vista Previa</h3>
-           <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.9rem', maxWidth: '300px' }}>
+           <Palette size={48} color="var(--caanma-text-muted)" style={{ marginBottom: '1rem' }} />
+           <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--caanma-text)', marginBottom: '0.5rem' }}>Vista Previa</h3>
+           <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.9rem', maxWidth: '300px' }}>
              Los cambios que guardes se aplicarán la próxima vez que generes este tipo de documento.
            </p>
         </div>

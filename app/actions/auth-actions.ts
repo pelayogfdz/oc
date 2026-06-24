@@ -75,16 +75,16 @@ export async function loginAction(formData: FormData) {
   await createSession(user.id, user.tenantId, user.role);
   try {
     const cookieStore = await cookies();
-    cookieStore.delete('pulpos_active_branch');
+    cookieStore.delete('caanma_active_branch');
   } catch (cookieErr) {
-    console.warn('Failed to delete pulpos_active_branch cookie on login:', cookieErr);
+    console.warn('Failed to delete caanma_active_branch cookie on login:', cookieErr);
   }
   return { success: true };
 }
 
 export async function setActiveBranch(branchId: string) {
   const cookieStore = await cookies();
-  cookieStore.set('pulpos_active_branch', branchId, { path: '/' });
+  cookieStore.set('caanma_active_branch', branchId, { path: '/' });
   revalidatePath('/', 'layout');
 }
 

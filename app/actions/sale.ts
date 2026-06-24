@@ -76,7 +76,6 @@ export async function createSale(
     const config = branchSettings?.configJson ? JSON.parse(branchSettings.configJson)['ventas'] || {} : {};
     const permitirVenderSinStock = config.venderSinStock === true;
     const permitirVenderBajoCosto = config.venderBajoCosto === true;
-
     // Validate items against preferences
     for (const item of items) {
       let product = await prisma.product.findUnique({ where: { id: item.productId } });

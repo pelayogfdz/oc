@@ -41,7 +41,7 @@ export default async function Page() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <SpecificIcon size={28} color="var(--pulpos-primary)" />
+            <SpecificIcon size={28} color="var(--caanma-primary)" />
             Traspasos de Inventario
           </h1>
         </div>
@@ -49,7 +49,7 @@ export default async function Page() {
           <Link href="/productos/traspasos/solicitar" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155', padding: '0.5rem 1rem', borderRadius: '4px', textDecoration: 'none', fontWeight: 'bold' }}>
             Solicitar Traspaso
           </Link>
-          <Link href="/productos/traspasos/salida" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--pulpos-primary)', borderColor: 'var(--pulpos-primary)', color: 'white', textDecoration: 'none' }}>
+          <Link href="/productos/traspasos/salida" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--caanma-primary)', borderColor: 'var(--caanma-primary)', color: 'white', textDecoration: 'none' }}>
             <ArrowRight size={18} /> Enviar Traspaso Directo
           </Link>
         </div>

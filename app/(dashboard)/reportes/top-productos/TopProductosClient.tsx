@@ -159,7 +159,7 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>📦 Reporte Financiero: Productos Más Vendidos</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Análisis de volúmenes de venta, ingresos consolidados, costos y margen de rentabilidad por SKU.</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Análisis de volúmenes de venta, ingresos consolidados, costos y margen de rentabilidad por SKU.</p>
         </div>
         <div className="no-print" style={{ display: 'flex', gap: '0.75rem' }}>
           <button 

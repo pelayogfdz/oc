@@ -12,7 +12,7 @@ export default function RecargasConfigClient({ initialConfig }: { initialConfig:
   const [isPending, setIsPending] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
-  // Mock data for UI demonstration as in Pulpos
+  // Mock data for UI demonstration as in Caanma
   const balance = 12500.50; // Saldo Bolsa Total
 
   const providers = [
@@ -42,17 +42,17 @@ export default function RecargasConfigClient({ initialConfig }: { initialConfig:
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Recargas y Servicios</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Vende recargas telefónicas y cobra servicios para atraer más tráfico.</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Vende recargas telefónicas y cobra servicios para atraer más tráfico.</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: active ? '#f0fdf4' : '#f1f5f9', padding: '0.5rem 1rem', borderRadius: '50px', border: `1px solid ${active ? '#bbf7d0' : '#e2e8f0'}` }}>
-           <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: active ? '#166534' : 'var(--pulpos-text-muted)' }}>
+           <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: active ? '#166534' : 'var(--caanma-text-muted)' }}>
               {active ? 'Módulo Activo' : 'Módulo Inactivo'}
            </span>
            <label style={{ position: 'relative', display: 'inline-block', width: '40px', height: '24px' }}>
               <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} style={{ opacity: 0, width: 0, height: 0 }} />
               <span style={{ 
                 position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, 
-                backgroundColor: active ? 'var(--pulpos-primary)' : '#cbd5e1', 
+                backgroundColor: active ? 'var(--caanma-primary)' : '#cbd5e1', 
                 transition: '.4s', borderRadius: '34px'
               }}>
                 <span style={{
@@ -66,8 +66,8 @@ export default function RecargasConfigClient({ initialConfig }: { initialConfig:
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'revert', gap: '2rem', marginBottom: '2rem' }}>
-         <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '2rem', border: '1px solid var(--pulpos-border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <h3 style={{ fontSize: '1rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Saldo de Bolsa</h3>
+         <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '2rem', border: '1px solid var(--caanma-border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <h3 style={{ fontSize: '1rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>Saldo de Bolsa</h3>
             <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#16a34a', marginBottom: '1rem' }}>
               {formatCurrency(balance)}
             </div>
@@ -77,11 +77,11 @@ export default function RecargasConfigClient({ initialConfig }: { initialConfig:
          </div>
       </div>
 
-      <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '2rem', border: '1px solid var(--pulpos-border)', marginBottom: '2rem' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '2rem', border: '1px solid var(--caanma-border)', marginBottom: '2rem' }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Comisiones por Proveedor</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
            {providers.map((p, i) => (
-             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', border: '1px solid var(--pulpos-border)', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', border: '1px solid var(--caanma-border)', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
                <div style={{ backgroundColor: 'white', padding: '0.5rem', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                  {p.icon}
                </div>
@@ -94,7 +94,7 @@ export default function RecargasConfigClient({ initialConfig }: { initialConfig:
         </div>
       </div>
 
-      <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '2rem', border: '1px solid var(--pulpos-border)' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '2rem', border: '1px solid var(--caanma-border)' }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Configuración del Punto de Venta</h2>
         
         {showToast && (
@@ -106,21 +106,21 @@ export default function RecargasConfigClient({ initialConfig }: { initialConfig:
         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem', maxWidth: '500px' }}>
           <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-              Token de Integración VIP <Info size={14} color="var(--pulpos-text-muted)" />
+              Token de Integración VIP <Info size={14} color="var(--caanma-text-muted)" />
             </label>
             <input 
               type="text" 
               value={apiKey} 
               onChange={e => setApiKey(e.target.value)} 
               placeholder="Ej: wp_xxx_5923ns"
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)' }}
             />
           </div>
           <div>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
               Sobrecargo a clientes ($ MXN)
             </label>
-            <p style={{ fontSize: '0.8rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>
+            <p style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
               Esta tarifa se sumará al total. Ej: Si cobras $3 de sobrecargo al pagar el recibo de luz.
             </p>
             <input 
@@ -128,7 +128,7 @@ export default function RecargasConfigClient({ initialConfig }: { initialConfig:
               value={markup} 
               onChange={e => setMarkup(e.target.value)} 
               placeholder="0"
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)' }}
             />
           </div>
 

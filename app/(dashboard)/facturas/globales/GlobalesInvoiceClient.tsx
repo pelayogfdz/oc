@@ -59,10 +59,10 @@ export default function GlobalesInvoiceClient() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#0f172a' }}>
-            <FileText size={28} color="var(--pulpos-primary)" />
+            <FileText size={28} color="var(--caanma-primary)" />
             Facturación Global
           </h1>
-          <p style={{ color: 'var(--pulpos-text-muted)', marginTop: '0.25rem' }}>
+          <p style={{ color: 'var(--caanma-text-muted)', marginTop: '0.25rem' }}>
             Selecciona el rango de fechas personalizado para agrupar todas las ventas de mostrador sin facturar en un solo CFDI a Público en General.
           </p>
         </div>
@@ -97,15 +97,15 @@ export default function GlobalesInvoiceClient() {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: '2rem' }}>
         
         {/* Total Summary Card */}
-        <div className="card" style={{ padding: '2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', border: '1px solid var(--pulpos-border)' }}>
+        <div className="card" style={{ padding: '2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', border: '1px solid var(--caanma-border)' }}>
           <h2 style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#475569', marginBottom: '1.5rem' }}>Monto Acumulado en el Periodo</h2>
           
           {loading ? (
             <div style={{ padding: '2rem 0' }}>
-              <Loader2 className="animate-spin" size={48} color="var(--pulpos-primary)" />
+              <Loader2 className="animate-spin" size={48} color="var(--caanma-primary)" />
             </div>
           ) : (
-            <div style={{ fontSize: '3rem', fontWeight: '900', color: 'var(--pulpos-primary)', marginBottom: '1.5rem', letterSpacing: '-1px' }}>
+            <div style={{ fontSize: '3rem', fontWeight: '900', color: 'var(--caanma-primary)', marginBottom: '1.5rem', letterSpacing: '-1px' }}>
               ${totalAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
             </div>
           )}
@@ -126,7 +126,7 @@ export default function GlobalesInvoiceClient() {
               gap: '0.5rem', 
               padding: '1rem', 
               fontSize: '1.1rem',
-              backgroundColor: pendingSales.length === 0 ? '#cbd5e1' : 'var(--pulpos-primary)',
+              backgroundColor: pendingSales.length === 0 ? '#cbd5e1' : 'var(--caanma-primary)',
               cursor: pendingSales.length === 0 ? 'not-allowed' : 'pointer',
               border: 'none',
               borderRadius: '8px'
@@ -138,8 +138,8 @@ export default function GlobalesInvoiceClient() {
         </div>
 
         {/* Detailed Sales List in Preview */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--pulpos-border)' }}>
-          <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--pulpos-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--caanma-border)' }}>
+          <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--caanma-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0f172a' }}>Ventas del Periodo Incluidas</h2>
             <button 
               onClick={loadPendingSales} 
@@ -152,7 +152,7 @@ export default function GlobalesInvoiceClient() {
 
           <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
             <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--pulpos-border)' }}>
+              <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
                 <tr>
                   <th style={{ padding: '1rem', color: '#64748b', fontWeight: '500' }}>Folio / Venta</th>
                   <th style={{ padding: '1rem', color: '#64748b', fontWeight: '500' }}>Fecha</th>
@@ -161,7 +161,7 @@ export default function GlobalesInvoiceClient() {
               </thead>
               <tbody>
                 {pendingSales.map((sale) => (
-                  <tr key={sale.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                  <tr key={sale.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                     <td style={{ padding: '0.75rem 1rem', fontWeight: 'bold' }}>
                       #{sale.folio || sale.id.substring(0, 8).toUpperCase()}
                     </td>
@@ -175,7 +175,7 @@ export default function GlobalesInvoiceClient() {
                 ))}
                 {pendingSales.length === 0 && (
                   <tr>
-                    <td colSpan={3} style={{ padding: '4rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                    <td colSpan={3} style={{ padding: '4rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                       <ShoppingBag size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.3 }} />
                       No hay ventas pendientes de facturar para el rango seleccionado.
                     </td>

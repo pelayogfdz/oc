@@ -51,7 +51,7 @@ export default function PwaInstallButton() {
         alignItems: 'center',
         gap: '0.5rem',
         padding: '0.4rem 0.8rem',
-        backgroundColor: 'var(--pulpos-primary)',
+        backgroundColor: 'var(--caanma-primary)',
         color: 'white',
         border: 'none',
         borderRadius: '6px',
@@ -61,8 +61,8 @@ export default function PwaInstallButton() {
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         transition: 'background-color 0.2s ease',
       }}
-      onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--pulpos-primary-hover, #7c3aed)'}
-      onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--pulpos-primary)'}
+      onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--caanma-primary-hover, #7c3aed)'}
+      onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--caanma-primary)'}
     >
       <Download size={16} />
       <span className="hidden sm:inline">Instalar PWA</span>

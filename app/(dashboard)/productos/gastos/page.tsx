@@ -44,10 +44,10 @@ export default async function GastosPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <PackageOpen size={28} color="var(--pulpos-primary)" />
+            <PackageOpen size={28} color="var(--caanma-primary)" />
             Gastos Administrativos y Operación
           </h1>
-          <p style={{ color: 'var(--pulpos-text-muted)', marginTop: '0.25rem' }}>
+          <p style={{ color: 'var(--caanma-text-muted)', marginTop: '0.25rem' }}>
             Registra recibos de luz, nóminas, renta y otros pagos ajenos al inventario de mercancía.
           </p>
         </div>
@@ -64,7 +64,7 @@ export default async function GastosPage() {
           <form action={createExpense} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Categoría Contable</label>
-              <select name="category" required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}>
+              <select name="category" required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}>
                 <option value="Renta">Renta / Arrendamiento</option>
                 <option value="Nómina">Nómina / Sueldos</option>
                 <option value="Servicios Básicos">Servicios (Luz, Agua, Internet)</option>
@@ -76,11 +76,11 @@ export default async function GastosPage() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Concepto o Detalle</label>
-              <input type="text" name="reason" placeholder="Ej. Pago recibo CFE Enero" required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+              <input type="text" name="reason" placeholder="Ej. Pago recibo CFE Enero" required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Monto ($)</label>
-              <input type="number" step="0.01" name="amount" placeholder="0.00" required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+              <input type="number" step="0.01" name="amount" placeholder="0.00" required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
             </div>
             
             <div style={{ backgroundColor: '#fff7ed', border: '1px solid #fed7aa', padding: '1rem', borderRadius: '6px', fontSize: '0.85rem', color: '#9a3412', marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
@@ -95,22 +95,22 @@ export default async function GastosPage() {
 
         {/* Historial */}
         <div className="card" style={{ padding: '0' }}>
-          <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', display: 'flex', justifyContent: 'space-between' }}>
+          <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--caanma-border)', display: 'flex', justifyContent: 'space-between' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Historial del Periodo</h2>
           </div>
           <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ backgroundColor: '#f8fafc' }}>
-              <tr style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>Fecha</th>
-                <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>Categoría</th>
-                <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>Concepto</th>
-                <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', textAlign: 'right' }}>Monto</th>
+              <tr style={{ borderBottom: '1px solid var(--caanma-border)' }}>
+                <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>Fecha</th>
+                <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>Categoría</th>
+                <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>Concepto</th>
+                <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', textAlign: 'right' }}>Monto</th>
               </tr>
             </thead>
             <tbody>
               {expenses.map(e => (
-                <tr key={e.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-                  <td data-label="Fecha" style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>{e.createdAt.toLocaleDateString()}</td>
+                <tr key={e.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
+                  <td data-label="Fecha" style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>{e.createdAt.toLocaleDateString()}</td>
                   <td data-label="Categoría" style={{ padding: '1rem' }}>
                     <span style={{ backgroundColor: '#f1f5f9', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
                       {e.category}
@@ -118,7 +118,7 @@ export default async function GastosPage() {
                   </td>
                   <td data-label="Concepto" style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: '500' }}>{e.reason}</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--pulpos-text-muted)' }}>Registrado por: {e.user.name}</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--caanma-text-muted)' }}>Registrado por: {e.user.name}</div>
                   </td>
                   <td data-label="Monto" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: '#dc2626' }}>
                     -{formatCurrency(e.amount)}
@@ -127,7 +127,7 @@ export default async function GastosPage() {
               ))}
               {expenses.length === 0 && (
                 <tr>
-                  <td colSpan={4} style={{ padding: '3rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                  <td colSpan={4} style={{ padding: '3rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                     <FileText size={32} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
                     No hay gastos en esta sucursal.
                   </td>

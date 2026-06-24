@@ -83,16 +83,16 @@ export default function HeaderTitle() {
         fontSize: '1.25rem', 
         fontWeight: '700', 
         margin: 0, 
-        color: 'var(--pulpos-text)',
+        color: 'var(--caanma-text)',
       }} className="header-module-title">
         {info.title}
       </h1>
       {info.subtitle && (
         <span className="header-module-subtitle" style={{
           fontSize: '0.875rem',
-          color: 'var(--pulpos-text-muted)',
+          color: 'var(--caanma-text-muted)',
           fontWeight: '400',
-          borderLeft: '1px solid var(--pulpos-border)',
+          borderLeft: '1px solid var(--caanma-border)',
           paddingLeft: '0.75rem',
           display: 'none' // Hidden on mobile, shown via CSS on desktop
         }}>

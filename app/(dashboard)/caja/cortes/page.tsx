@@ -30,34 +30,34 @@ export default async function CortesCajaPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Historial y Auditoría de Cortes</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Últimos 50 cierres de turno para {branch.name}.</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Últimos 50 cierres de turno para {branch.name}.</p>
         </div>
-        <Link href="/caja/actual" style={{ backgroundColor: 'var(--pulpos-primary)', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold' }}>
+        <Link href="/caja/actual" style={{ backgroundColor: 'var(--caanma-primary)', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold' }}>
           Ir a Caja Actual
         </Link>
       </div>
 
-      <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--pulpos-border)' }}>
+          <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
             <tr>
-              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', fontSize: '0.85rem' }}>TURNO</th>
-              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', fontSize: '0.85rem' }}>CAJERO</th>
-              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', fontSize: '0.85rem' }}>INICIAL</th>
-              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', fontSize: '0.85rem' }}>ESPERADO (SISTEMA)</th>
-              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', fontSize: '0.85rem' }}>FÍSICO (REAL)</th>
-              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', fontSize: '0.85rem' }}>SOBRANTE/FALTANTE</th>
-              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-text-muted)', fontSize: '0.85rem', textAlign: 'center' }}>ACCIONES</th>
+              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>TURNO</th>
+              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>CAJERO</th>
+              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>INICIAL</th>
+              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>ESPERADO (SISTEMA)</th>
+              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>FÍSICO (REAL)</th>
+              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>SOBRANTE/FALTANTE</th>
+              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem', textAlign: 'center' }}>ACCIONES</th>
             </tr>
           </thead>
           <tbody>
             {sessions.map((session, i) => (
-              <tr key={session.id} style={{ borderBottom: i === sessions.length - 1 ? 'none' : '1px solid var(--pulpos-border)' }}>
+              <tr key={session.id} style={{ borderBottom: i === sessions.length - 1 ? 'none' : '1px solid var(--caanma-border)' }}>
                 <td data-label="Turno" style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
                     {format(new Date(session.closedAt!), "dd MMM yyyy", { locale: es })}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--pulpos-text-muted)' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>
                     {format(new Date(session.closedAt!), "HH:mm a", { locale: es })}
                   </div>
                 </td>
@@ -77,11 +77,11 @@ export default async function CortesCajaPage() {
                       display: 'inline-flex', 
                       alignItems: 'center', 
                       gap: '0.25rem', 
-                      color: 'var(--pulpos-primary)', 
+                      color: 'var(--caanma-primary)', 
                       textDecoration: 'none', 
                       fontWeight: 'bold', 
                       fontSize: '0.85rem',
-                      border: '1px solid var(--pulpos-primary)',
+                      border: '1px solid var(--caanma-primary)',
                       padding: '0.35rem 0.75rem',
                       borderRadius: '6px',
                       backgroundColor: 'transparent'
@@ -94,7 +94,7 @@ export default async function CortesCajaPage() {
             ))}
             {sessions.length === 0 && (
               <tr>
-                <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                   <Calculator size={32} style={{ margin: '0 auto 1rem auto', opacity: 0.5 }} />
                   No hay cortes de caja registrados en esta sucursal.
                 </td>

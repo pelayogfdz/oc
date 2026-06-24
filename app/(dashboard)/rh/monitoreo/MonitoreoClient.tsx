@@ -131,7 +131,7 @@ export default function MonitoreoClient({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>Monitoreo de Asistencia</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)', margin: '0.25rem 0 0' }}>Panel en tiempo real e historial detallado de entradas y salidas.</p>
+          <p style={{ color: 'var(--caanma-text-muted)', margin: '0.25rem 0 0' }}>Panel en tiempo real e historial detallado de entradas y salidas.</p>
         </div>
 
         {/* Tab Buttons */}
@@ -834,7 +834,7 @@ export default function MonitoreoClient({
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div className="card" style={{ width: '400px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem', border: 'none', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>Registro Manual</h2>
-            <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.9rem', margin: 0 }}>Agregando registro para <strong>{selectedUser.name}</strong></p>
+            <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.9rem', margin: 0 }}>Agregando registro para <strong>{selectedUser.name}</strong></p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <label style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#475569' }}>Tipo de Registro</label>

@@ -34,34 +34,34 @@ export default function SolicitudesClient({ initialRequests }: { initialRequests
   return (
     <div className="card" style={{ padding: 0, overflowX: 'auto', fontFamily: 'var(--font-geist-sans)' }}>
       {/* Toolbar */}
-      <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', borderBottom: '1px solid var(--pulpos-border)' }}>
+      <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', borderBottom: '1px solid var(--caanma-border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', maxWidth: '400px', position: 'relative' }}>
-          <Search size={18} style={{ position: 'absolute', left: '1rem', color: 'var(--pulpos-text-muted)' }} />
+          <Search size={18} style={{ position: 'absolute', left: '1rem', color: 'var(--caanma-text-muted)' }} />
           <input 
             type="text" 
             placeholder="🔍 Buscar producto o usuario..." 
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            style={{ padding: '0.6rem 1.5rem 0.6rem 2.5rem', width: '100%', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}
+            style={{ padding: '0.6rem 1.5rem 0.6rem 2.5rem', width: '100%', borderRadius: '8px', border: '1px solid var(--caanma-border)' }}
           />
         </div>
         
         <div style={{ display: 'flex', gap: '0.5rem', backgroundColor: '#f1f5f9', padding: '0.25rem', borderRadius: '8px' }}>
           <button 
             onClick={() => setFilterStatus('ALL')}
-            style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: filterStatus === 'ALL' ? 'white' : 'transparent', color: filterStatus === 'ALL' ? 'var(--pulpos-primary)' : 'var(--pulpos-text-muted)', fontWeight: filterStatus === 'ALL' ? 'bold' : 'normal', boxShadow: filterStatus === 'ALL' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+            style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: filterStatus === 'ALL' ? 'white' : 'transparent', color: filterStatus === 'ALL' ? 'var(--caanma-primary)' : 'var(--caanma-text-muted)', fontWeight: filterStatus === 'ALL' ? 'bold' : 'normal', boxShadow: filterStatus === 'ALL' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
           >
             Todas
           </button>
           <button 
             onClick={() => setFilterStatus('PENDING')}
-            style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: filterStatus === 'PENDING' ? 'white' : 'transparent', color: filterStatus === 'PENDING' ? '#d97706' : 'var(--pulpos-text-muted)', fontWeight: filterStatus === 'PENDING' ? 'bold' : 'normal', boxShadow: filterStatus === 'PENDING' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+            style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: filterStatus === 'PENDING' ? 'white' : 'transparent', color: filterStatus === 'PENDING' ? '#d97706' : 'var(--caanma-text-muted)', fontWeight: filterStatus === 'PENDING' ? 'bold' : 'normal', boxShadow: filterStatus === 'PENDING' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
           >
             Pendientes
           </button>
           <button 
             onClick={() => setFilterStatus('ORDERED')}
-            style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: filterStatus === 'ORDERED' ? 'white' : 'transparent', color: filterStatus === 'ORDERED' ? '#16a34a' : 'var(--pulpos-text-muted)', fontWeight: filterStatus === 'ORDERED' ? 'bold' : 'normal', boxShadow: filterStatus === 'ORDERED' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+            style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: filterStatus === 'ORDERED' ? 'white' : 'transparent', color: filterStatus === 'ORDERED' ? '#16a34a' : 'var(--caanma-text-muted)', fontWeight: filterStatus === 'ORDERED' ? 'bold' : 'normal', boxShadow: filterStatus === 'ORDERED' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
           >
             Pedidas
           </button>
@@ -71,17 +71,17 @@ export default function SolicitudesClient({ initialRequests }: { initialRequests
       <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
         <thead style={{ backgroundColor: '#f8fafc' }}>
           <tr>
-            <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Fecha</th>
-            <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Producto / Solicitado</th>
-            <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Cant.</th>
-            <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Solicitante</th>
-            <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Estado</th>
-            <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Acciones</th>
+            <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Fecha</th>
+            <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Producto / Solicitado</th>
+            <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Cant.</th>
+            <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Solicitante</th>
+            <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Estado</th>
+            <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Acciones</th>
           </tr>
         </thead>
         <tbody>
           {filteredRequests.map(req => (
-            <tr key={req.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+            <tr key={req.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
               <td style={{ padding: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b' }}>
                   <Calendar size={16} /> {new Date(req.createdAt).toLocaleDateString()}
@@ -89,7 +89,7 @@ export default function SolicitudesClient({ initialRequests }: { initialRequests
               </td>
               <td style={{ padding: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }}>
-                  <Package size={18} color="var(--pulpos-primary)" />
+                  <Package size={18} color="var(--caanma-primary)" />
                   {req.product ? (
                     req.product.name
                   ) : (
@@ -136,7 +136,7 @@ export default function SolicitudesClient({ initialRequests }: { initialRequests
           ))}
           {filteredRequests.length === 0 && (
             <tr>
-              <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+              <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                 No hay solicitudes que coincidan con los filtros.
               </td>
             </tr>

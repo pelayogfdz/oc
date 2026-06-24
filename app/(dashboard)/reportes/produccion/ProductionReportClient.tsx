@@ -285,7 +285,7 @@ export default function ProductionReportClient({
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             📋 Reporte de Producción
           </h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>
             Sugerencia de fabricación de stock en base al ritmo de venta y stock actual de productos con receta.
           </p>
         </div>
@@ -318,7 +318,7 @@ export default function ProductionReportClient({
               display: 'flex', 
               alignItems: 'center', 
               gap: '0.5rem', 
-              backgroundColor: 'var(--pulpos-primary)', 
+              backgroundColor: 'var(--caanma-primary)', 
               color: 'white', 
               border: 'none', 
               padding: '0.65rem 1.25rem', 

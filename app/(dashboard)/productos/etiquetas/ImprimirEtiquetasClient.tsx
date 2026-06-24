@@ -55,7 +55,7 @@ export default function ImprimirEtiquetasClient({
   return (
     <div style={{ fontFamily: 'var(--font-geist-sans)' }}>
       {/* Controles UI (Ocultos al imprimir) */}
-      <div className="no-print" style={{ marginBottom: '2rem', backgroundColor: 'white', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}>
+      <div className="no-print" style={{ marginBottom: '2rem', backgroundColor: 'white', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--caanma-border)' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
           <Printer size={24} /> Imprimir Etiquetas
         </h1>

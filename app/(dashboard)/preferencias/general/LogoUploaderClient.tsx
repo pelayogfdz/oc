@@ -118,11 +118,11 @@ export default function LogoUploaderClient({ initialLogoUrl }: { initialLogoUrl:
   };
 
   return (
-    <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '2rem', border: '1px solid var(--pulpos-border)', marginBottom: '2rem' }}>
+    <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '2rem', border: '1px solid var(--caanma-border)', marginBottom: '2rem' }}>
       <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-        <ImageIcon size={24} color="var(--pulpos-primary)" /> Logotipo de la Empresa
+        <ImageIcon size={24} color="var(--caanma-primary)" /> Logotipo de la Empresa
       </h2>
-      <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '1rem' }}>
+      <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '1rem' }}>
         Sube el logotipo oficial de tu empresa. Aparecerá de forma automática en todas las notas de venta, cotizaciones, traspasos, compras y tickets térmicos.
       </p>
 
@@ -148,7 +148,7 @@ export default function LogoUploaderClient({ initialLogoUrl }: { initialLogoUrl:
           width: '140px',
           height: '140px',
           backgroundColor: '#f8fafc',
-          border: logoUrl ? '1px solid var(--pulpos-border)' : '2px dashed #cbd5e1',
+          border: logoUrl ? '1px solid var(--caanma-border)' : '2px dashed #cbd5e1',
           borderRadius: '12px',
           display: 'flex',
           alignItems: 'center',
@@ -176,7 +176,7 @@ export default function LogoUploaderClient({ initialLogoUrl }: { initialLogoUrl:
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             style={{
-              border: isDragging ? '2px dashed var(--pulpos-primary)' : '2px dashed #e2e8f0',
+              border: isDragging ? '2px dashed var(--caanma-primary)' : '2px dashed #e2e8f0',
               backgroundColor: isDragging ? '#eff6ff' : '#f8fafc',
               borderRadius: '8px',
               padding: '1.5rem',
@@ -201,7 +201,7 @@ export default function LogoUploaderClient({ initialLogoUrl }: { initialLogoUrl:
                 cursor: isPending ? 'not-allowed' : 'pointer'
               }}
             />
-            <Upload size={28} color="var(--pulpos-primary)" style={{ margin: '0 auto 0.5rem auto', opacity: 0.8 }} />
+            <Upload size={28} color="var(--caanma-primary)" style={{ margin: '0 auto 0.5rem auto', opacity: 0.8 }} />
             <p style={{ margin: '0 0 0.25rem 0', fontWeight: 'bold', fontSize: '0.9rem', color: '#334155' }}>
               {isPending ? 'Procesando archivo...' : 'Arrastra tu imagen aquí o haz clic para buscar'}
             </p>

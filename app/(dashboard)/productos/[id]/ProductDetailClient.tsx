@@ -290,7 +290,7 @@ export function ProductDetailClient({
           marginBottom: '1.5rem', 
           alignItems: 'center', 
           background: 'linear-gradient(to right, #ffffff, #f8fafc)', 
-          border: '1px solid var(--pulpos-border)',
+          border: '1px solid var(--caanma-border)',
           borderRadius: '12px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           flexWrap: 'wrap'
@@ -306,7 +306,7 @@ export function ProductDetailClient({
             width: '120px', 
             height: '120px', 
             backgroundColor: '#f8fafc', 
-            border: '1px solid var(--pulpos-border)', 
+            border: '1px solid var(--caanma-border)', 
             borderRadius: '12px', 
             display: 'flex', 
             alignItems: 'center', 
@@ -377,7 +377,7 @@ export function ProductDetailClient({
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minWidth: '280px' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--pulpos-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--caanma-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             {product.category || 'General'}
           </span>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>
@@ -396,15 +396,15 @@ export function ProductDetailClient({
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '2rem', borderBottom: '1px solid var(--pulpos-border)', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', gap: '2rem', borderBottom: '1px solid var(--caanma-border)', marginBottom: '1.5rem' }}>
         <button 
           onClick={() => setActiveTab('details')}
           style={{ 
             padding: '0.75rem 0', 
             background: 'none', 
             border: 'none', 
-            borderBottom: activeTab === 'details' ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
-            color: activeTab === 'details' ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
+            borderBottom: activeTab === 'details' ? '2px solid var(--caanma-primary)' : '2px solid transparent',
+            color: activeTab === 'details' ? 'var(--caanma-primary)' : 'var(--caanma-text)',
             fontWeight: activeTab === 'details' ? 'bold' : 'normal',
             cursor: 'pointer',
             fontSize: '1rem'
@@ -419,8 +419,8 @@ export function ProductDetailClient({
               padding: '0.75rem 0', 
               background: 'none', 
               border: 'none', 
-              borderBottom: activeTab === 'kardex' ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
-              color: activeTab === 'kardex' ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
+              borderBottom: activeTab === 'kardex' ? '2px solid var(--caanma-primary)' : '2px solid transparent',
+              color: activeTab === 'kardex' ? 'var(--caanma-primary)' : 'var(--caanma-text)',
               fontWeight: activeTab === 'kardex' ? 'bold' : 'normal',
               cursor: 'pointer',
               fontSize: '1rem'
@@ -435,8 +435,8 @@ export function ProductDetailClient({
             padding: '0.75rem 0', 
             background: 'none', 
             border: 'none', 
-            borderBottom: activeTab === 'media' ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
-            color: activeTab === 'media' ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
+            borderBottom: activeTab === 'media' ? '2px solid var(--caanma-primary)' : '2px solid transparent',
+            color: activeTab === 'media' ? 'var(--caanma-primary)' : 'var(--caanma-text)',
             fontWeight: activeTab === 'media' ? 'bold' : 'normal',
             cursor: 'pointer',
             fontSize: '1rem'
@@ -450,8 +450,8 @@ export function ProductDetailClient({
             padding: '0.75rem 0', 
             background: 'none', 
             border: 'none', 
-            borderBottom: activeTab === 'sales' ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
-            color: activeTab === 'sales' ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
+            borderBottom: activeTab === 'sales' ? '2px solid var(--caanma-primary)' : '2px solid transparent',
+            color: activeTab === 'sales' ? 'var(--caanma-primary)' : 'var(--caanma-text)',
             fontWeight: activeTab === 'sales' ? 'bold' : 'normal',
             cursor: 'pointer',
             fontSize: '1rem'
@@ -466,8 +466,8 @@ export function ProductDetailClient({
               padding: '0.75rem 0', 
               background: 'none', 
               border: 'none', 
-              borderBottom: activeTab === 'variants' ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
-              color: activeTab === 'variants' ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
+              borderBottom: activeTab === 'variants' ? '2px solid var(--caanma-primary)' : '2px solid transparent',
+              color: activeTab === 'variants' ? 'var(--caanma-primary)' : 'var(--caanma-text)',
               fontWeight: activeTab === 'variants' ? 'bold' : 'normal',
               cursor: 'pointer',
               fontSize: '1rem'
@@ -483,8 +483,8 @@ export function ProductDetailClient({
               padding: '0.75rem 0', 
               background: 'none', 
               border: 'none', 
-              borderBottom: activeTab === 'omnichannel' ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
-              color: activeTab === 'omnichannel' ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
+              borderBottom: activeTab === 'omnichannel' ? '2px solid var(--caanma-primary)' : '2px solid transparent',
+              color: activeTab === 'omnichannel' ? 'var(--caanma-primary)' : 'var(--caanma-text)',
               fontWeight: activeTab === 'omnichannel' ? 'bold' : 'normal',
               cursor: 'pointer',
               fontSize: '1rem'
@@ -500,8 +500,8 @@ export function ProductDetailClient({
               padding: '0.75rem 0', 
               background: 'none', 
               border: 'none', 
-              borderBottom: activeTab === 'batches' ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
-              color: activeTab === 'batches' ? 'var(--pulpos-primary)' : 'var(--pulpos-text)',
+              borderBottom: activeTab === 'batches' ? '2px solid var(--caanma-primary)' : '2px solid transparent',
+              color: activeTab === 'batches' ? 'var(--caanma-primary)' : 'var(--caanma-text)',
               fontWeight: activeTab === 'batches' ? 'bold' : 'normal',
               cursor: 'pointer',
               fontSize: '1rem'
@@ -542,11 +542,11 @@ export function ProductDetailClient({
             </div>
             
             {showAdjustForm && (
-              <form onSubmit={handleAdjustmentSubmit} style={{ padding: '1.5rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid var(--pulpos-border)', marginBottom: '1.5rem', display: 'grid', gap: '1rem' }}>
+              <form onSubmit={handleAdjustmentSubmit} style={{ padding: '1.5rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid var(--caanma-border)', marginBottom: '1.5rem', display: 'grid', gap: '1rem' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,2fr)', gap: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Tipo</label>
-                    <select name="type" required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}>
+                    <select name="type" required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}>
                       <option value="IN">Entrada (+)</option>
                       <option value="OUT">Salida (-)</option>
                       <option value="ADJUSTMENT">Ajuste / Merma (-)</option>
@@ -554,11 +554,11 @@ export function ProductDetailClient({
                   </div>
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Cantidad</label>
-                    <input type="number" name="quantity" required min="1" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                    <input type="number" name="quantity" required min="1" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
                   </div>
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Motivo</label>
-                    <input type="text" name="reason" required placeholder="Ej. Inventario físico..." style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+                    <input type="text" name="reason" required placeholder="Ej. Inventario físico..." style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
                   </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -571,12 +571,12 @@ export function ProductDetailClient({
 
             <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: '#f9fafb' }}>
-                  <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Fecha</th>
-                  <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Tipo</th>
-                  <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Motivo</th>
-                  <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500', textAlign: 'right' }}>Cantidad</th>
-                  <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500', textAlign: 'right' }}>Saldo</th>
+                <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
+                  <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Fecha</th>
+                  <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Tipo</th>
+                  <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Motivo</th>
+                  <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right' }}>Cantidad</th>
+                  <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right' }}>Saldo</th>
                 </tr>
               </thead>
               <tbody>
@@ -586,7 +586,7 @@ export function ProductDetailClient({
                     onClick={() => handleMovementClick(mov)}
                     className="kardex-row"
                     style={{ 
-                      borderBottom: '1px solid var(--pulpos-border)',
+                      borderBottom: '1px solid var(--caanma-border)',
                       cursor: 'pointer',
                       transition: 'background-color 0.2s'
                     }}
@@ -616,7 +616,7 @@ export function ProductDetailClient({
                 ))}
                 {movements.length === 0 && (
                   <tr>
-                    <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                    <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                       No hay movimientos registrados para este artículo.
                     </td>
                   </tr>
@@ -631,15 +631,15 @@ export function ProductDetailClient({
         <div className="card">
           <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: '#f9fafb' }}>
-                <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Venta N° (ID)</th>
-                <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500', textAlign: 'center' }}>Unidades Vendidas</th>
-                <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500', textAlign: 'right' }}>Subtotal Generado</th>
+              <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
+                <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Venta N° (ID)</th>
+                <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'center' }}>Unidades Vendidas</th>
+                <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right' }}>Subtotal Generado</th>
               </tr>
             </thead>
             <tbody>
               {sales.map(s => (
-                <tr key={s.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                <tr key={s.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                   <td data-label="Venta N° (ID)" style={{ padding: '1rem', fontFamily: 'monospace' }}>{s.saleId.slice(0, 8)}...</td>
                   <td data-label="Unidades Vendidas" style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>{s.quantity}</td>
                   <td data-label="Subtotal Generado" style={{ padding: '1rem', textAlign: 'right' }}>${(s.quantity * s.price).toFixed(2)}</td>
@@ -647,7 +647,7 @@ export function ProductDetailClient({
               ))}
               {sales.length === 0 && (
                 <tr>
-                  <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                  <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                     Este producto no tiene ventas históricas registradas.
                   </td>
                 </tr>
@@ -660,26 +660,26 @@ export function ProductDetailClient({
       {activeTab === 'variants' && (
         <div className="card" style={{ padding: '2rem' }}>
           <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', fontWeight: 'bold' }}>Multi-Variantes del Producto</h2>
-          <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '2rem', fontSize: '0.875rem' }}>Agrega tallas, colores o características especiales sin crear un producto nuevo.</p>
+          <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '2rem', fontSize: '0.875rem' }}>Agrega tallas, colores o características especiales sin crear un producto nuevo.</p>
           
           <form action={createVariant} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
              <input type="hidden" name="productId" value={product.id} />
-             <input type="text" name="attribute" placeholder="Ej. Talla M - Color Rojo" required style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-             <input type="text" name="sku" placeholder="SKU Variante (Opcional)" style={{ width: '200px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+             <input type="text" name="attribute" placeholder="Ej. Talla M - Color Rojo" required style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+             <input type="text" name="sku" placeholder="SKU Variante (Opcional)" style={{ width: '200px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
              <button type="submit" className="btn-primary" style={{ padding: '0 2rem' }}>+ Agregar</button>
           </form>
 
           <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
              <thead>
-               <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid var(--pulpos-border)' }}>
-                 <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>Atributo</th>
-                 <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>SKU Propio</th>
-                 <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', textAlign: 'center' }}>Acciones</th>
+               <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid var(--caanma-border)' }}>
+                 <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>Atributo</th>
+                 <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>SKU Propio</th>
+                 <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', textAlign: 'center' }}>Acciones</th>
                </tr>
              </thead>
              <tbody>
                {variants?.map(v => (
-                 <tr key={v.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                 <tr key={v.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                    <td data-label="Atributo" style={{ padding: '1rem', fontWeight: 'bold' }}>{v.attribute}</td>
                    <td data-label="SKU Propio" style={{ padding: '1rem' }}>{v.sku || '-'}</td>
                    <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }}>
@@ -693,7 +693,7 @@ export function ProductDetailClient({
                ))}
                {!variants || variants.length === 0 && (
                  <tr>
-                   <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>No hay variantes registradas.</td>
+                   <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>No hay variantes registradas.</td>
                  </tr>
                )}
              </tbody>
@@ -704,28 +704,28 @@ export function ProductDetailClient({
       {activeTab === 'batches' && (
         <div className="card" style={{ padding: '2rem' }}>
           <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', fontWeight: 'bold' }}>Lotes y Caducidades</h2>
-          <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '2rem', fontSize: '0.875rem' }}>Administra los lotes y sus fechas de caducidad para este producto.</p>
+          <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '2rem', fontSize: '0.875rem' }}>Administra los lotes y sus fechas de caducidad para este producto.</p>
           
           <form action={createBatch} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
              <input type="hidden" name="productId" value={product.id} />
-             <input type="text" name="batchNumber" placeholder="Ej. LOTE-001" required style={{ flex: 1, minWidth: '150px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-             <input type="date" name="expirationDate" required style={{ width: '200px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-             <input type="number" name="stock" placeholder="Stock Inicial" min="0" style={{ width: '120px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+             <input type="text" name="batchNumber" placeholder="Ej. LOTE-001" required style={{ flex: 1, minWidth: '150px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+             <input type="date" name="expirationDate" required style={{ width: '200px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+             <input type="number" name="stock" placeholder="Stock Inicial" min="0" style={{ width: '120px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
              <button type="submit" className="btn-primary" style={{ padding: '0 2rem' }}>+ Agregar Lote</button>
           </form>
 
           <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
              <thead>
-               <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid var(--pulpos-border)' }}>
-                 <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>Lote</th>
-                 <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>Caducidad</th>
-                 <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', textAlign: 'right' }}>Stock Actual</th>
-                 <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', textAlign: 'center' }}>Acciones</th>
+               <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid var(--caanma-border)' }}>
+                 <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>Lote</th>
+                 <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>Caducidad</th>
+                 <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', textAlign: 'right' }}>Stock Actual</th>
+                 <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', textAlign: 'center' }}>Acciones</th>
                </tr>
              </thead>
              <tbody>
                {batches?.map(b => (
-                 <tr key={b.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                 <tr key={b.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                    <td data-label="Lote" style={{ padding: '1rem', fontWeight: 'bold' }}>{b.batchNumber}</td>
                    <td data-label="Caducidad" style={{ padding: '1rem' }}>{b.expirationDate ? new Date(b.expirationDate).toLocaleDateString() : '-'}</td>
                    <td data-label="Stock Actual" style={{ padding: '1rem', textAlign: 'right' }}>{b.stock}</td>
@@ -740,7 +740,7 @@ export function ProductDetailClient({
                ))}
                {!batches || batches.length === 0 && (
                  <tr>
-                   <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>No hay lotes registrados.</td>
+                   <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>No hay lotes registrados.</td>
                  </tr>
                )}
              </tbody>
@@ -751,25 +751,25 @@ export function ProductDetailClient({
       {activeTab === 'omnichannel' && siblingProducts && (
         <div className="card" style={{ padding: '2rem' }}>
           <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', fontWeight: 'bold' }}>Inventario Transversal (Red de Sucursales)</h2>
-          <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '2rem', fontSize: '0.875rem' }}>Visualiza la existencia de este mismo artículo (por SKU) a lo largo de toda tu empresa matriz para facilitar traspasos o redireccionar ventas.</p>
+          <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '2rem', fontSize: '0.875rem' }}>Visualiza la existencia de este mismo artículo (por SKU) a lo largo de toda tu empresa matriz para facilitar traspasos o redireccionar ventas.</p>
           
           <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
              <thead>
-               <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid var(--pulpos-border)' }}>
-                 <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', width: '60%' }}>Sucursal / Almacén</th>
-                 <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', textAlign: 'right' }}>Estado del Producto</th>
-                 <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', textAlign: 'center' }}>Stock Disponible</th>
+               <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid var(--caanma-border)' }}>
+                 <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', width: '60%' }}>Sucursal / Almacén</th>
+                 <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', textAlign: 'right' }}>Estado del Producto</th>
+                 <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', textAlign: 'center' }}>Stock Disponible</th>
                </tr>
              </thead>
              <tbody>
                {siblingProducts.map(sp => (
-                 <tr key={sp.id} style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: sp.id === product.id ? '#f0fdf4' : 'transparent' }}>
+                 <tr key={sp.id} style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: sp.id === product.id ? '#f0fdf4' : 'transparent' }}>
                    <td data-label="Sucursal / Almacén" style={{ padding: '1rem' }}>
                      <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                        {sp.branch?.name || 'Desconocida'}
                        {sp.id === product.id && <span style={{ fontSize: '0.65rem', backgroundColor: '#22c55e', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>ACTUAL</span>}
                      </div>
-                     <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)' }}>{sp.branch?.location || '-'}</div>
+                     <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)' }}>{sp.branch?.location || '-'}</div>
                    </td>
                    <td data-label="Estado del Producto" style={{ padding: '1rem', textAlign: 'right' }}>
                      {sp.isActive ? (
@@ -779,19 +779,19 @@ export function ProductDetailClient({
                      )}
                    </td>
                    <td data-label="Stock Disponible" style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', fontSize: '1.1rem', color: sp.stock > 0 ? '#1e293b' : '#ef4444' }}>
-                     {sp.stock} <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--pulpos-text-muted)' }}>{sp.unit}</span>
+                     {sp.stock} <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--caanma-text-muted)' }}>{sp.unit}</span>
                    </td>
                  </tr>
                ))}
              </tbody>
           </table>
-          <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', marginTop: '2rem' }}>
+          <div style={{ backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', marginTop: '2rem' }}>
             <h3 style={{ fontWeight: 'bold', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Truck size={18} color="var(--pulpos-primary)" />
+              <Truck size={18} color="var(--caanma-primary)" />
               Sugerencia de Abastecimiento
             </h3>
-            <p style={{ fontSize: '0.9rem', color: 'var(--pulpos-text-muted)' }}>
-              Para nivelar inventarios, visita el módulo de <a href={`/productos/traspasos`} style={{ color: 'var(--pulpos-primary)', fontWeight: 'bold' }}>Traspasos</a> e ingresa el SKU {product.sku}.
+            <p style={{ fontSize: '0.9rem', color: 'var(--caanma-text-muted)' }}>
+              Para nivelar inventarios, visita el módulo de <a href={`/productos/traspasos`} style={{ color: 'var(--caanma-primary)', fontWeight: 'bold' }}>Traspasos</a> e ingresa el SKU {product.sku}.
             </p>
           </div>
         </div>

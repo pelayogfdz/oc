@@ -218,7 +218,7 @@ export default function PreciosMasivosClient({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Actualización Masiva de Precios</h1>
-            <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>Selecciona la lista, aplica un margen global y ajusta individualmente.</p>
+            <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>Selecciona la lista, aplica un margen global y ajusta individualmente.</p>
           </div>
         </div>
 
@@ -245,7 +245,7 @@ export default function PreciosMasivosClient({
             alignItems: 'center',
             justifyContent: 'center',
             marginBottom: '1.5rem',
-            color: 'var(--pulpos-primary)'
+            color: 'var(--caanma-primary)'
           }}>
             <Store size={32} />
           </div>
@@ -255,7 +255,7 @@ export default function PreciosMasivosClient({
           </h2>
           
           <p style={{ 
-            color: 'var(--pulpos-text-muted)', 
+            color: 'var(--caanma-text-muted)', 
             fontSize: '0.95rem', 
             maxWidth: '500px', 
             lineHeight: '1.6',
@@ -291,7 +291,7 @@ export default function PreciosMasivosClient({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Actualización Masiva de Precios</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>Selecciona la lista, aplica un margen global y ajusta individualmente.</p>
+          <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>Selecciona la lista, aplica un margen global y ajusta individualmente.</p>
         </div>
         <button onClick={handleSave} disabled={isSaving || modifiedCount === 0} className="btn-primary" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', opacity: (isSaving || modifiedCount === 0) ? 0.5 : 1 }}>
           <Save size={18} />
@@ -300,7 +300,7 @@ export default function PreciosMasivosClient({
       </div>
 
       {/* Price List Tabs */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: '1.5rem', borderBottom: '2px solid var(--pulpos-border)', overflowX: 'auto' }}>
+      <div style={{ display: 'flex', gap: 0, marginBottom: '1.5rem', borderBottom: '2px solid var(--caanma-border)', overflowX: 'auto' }}>
         {PRICE_LISTS.map(list => (
           <button
             key={list.key}
@@ -308,12 +308,12 @@ export default function PreciosMasivosClient({
             style={{
               padding: '0.6rem 1.25rem',
               border: 'none',
-              borderBottom: activePriceListKey === list.key ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
+              borderBottom: activePriceListKey === list.key ? '2px solid var(--caanma-primary)' : '2px solid transparent',
               marginBottom: '-2px',
               background: 'none',
               cursor: 'pointer',
               fontWeight: activePriceListKey === list.key ? 'bold' : 'normal',
-              color: activePriceListKey === list.key ? 'var(--pulpos-primary)' : 'var(--pulpos-text-muted)',
+              color: activePriceListKey === list.key ? 'var(--caanma-primary)' : 'var(--caanma-text-muted)',
               fontSize: '0.9rem',
               whiteSpace: 'nowrap',
               transition: 'all 0.15s'
@@ -342,7 +342,7 @@ export default function PreciosMasivosClient({
                 onChange={e => setGlobalMargin(e.target.value)}
                 style={{ width: '100px', padding: '0.5rem', borderRadius: '4px', border: '1px solid #86efac', fontSize: '1rem' }}
               />
-              <span style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.85rem' }}>% de margen → para <strong>{activeList?.label}</strong></span>
+              <span style={{ color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>% de margen → para <strong>{activeList?.label}</strong></span>
             </div>
           </div>
           <button onClick={applyGlobalMargin} style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', padding: '0.6rem 1.25rem', background: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.875rem' }}>
@@ -357,18 +357,18 @@ export default function PreciosMasivosClient({
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'end', flexWrap: 'wrap' }}>
           <div style={{ flex: 2, minWidth: '180px' }}>
             <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.4rem', fontWeight: 'bold' }}><Search size={14} style={{ display: 'inline', marginRight: '4px' }}/> Buscar</label>
-            <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="SKU o Nombre..." style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+            <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="SKU o Nombre..." style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
           </div>
           <div style={{ flex: 1, minWidth: '130px' }}>
             <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.4rem', fontWeight: 'bold' }}><Filter size={14} style={{ display: 'inline', marginRight: '4px' }}/> Marca</label>
-            <select value={brandFilter} onChange={e => setBrandFilter(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}>
+            <select value={brandFilter} onChange={e => setBrandFilter(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}>
               <option value="">(Todas)</option>
               {brands.map(b => <option key={b} value={b}>{b}</option>)}
             </select>
           </div>
           <div style={{ flex: 1, minWidth: '130px' }}>
             <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.4rem', fontWeight: 'bold' }}><Filter size={14} style={{ display: 'inline', marginRight: '4px' }}/> Categoría</label>
-            <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}>
+            <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}>
               <option value="">(Todas)</option>
               {categories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -381,14 +381,14 @@ export default function PreciosMasivosClient({
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
           <thead style={{ backgroundColor: '#f8fafc' }}>
             <tr>
-              <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--pulpos-border)' }}>SKU</th>
-              <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--pulpos-border)', minWidth: '200px' }}>Producto</th>
-              <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Costo</th>
-              <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--pulpos-border)', color: 'var(--pulpos-primary)', minWidth: '150px' }}>
+              <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--caanma-border)' }}>SKU</th>
+              <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--caanma-border)', minWidth: '200px' }}>Producto</th>
+              <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--caanma-border)' }}>Costo</th>
+              <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--caanma-border)', color: 'var(--caanma-primary)', minWidth: '150px' }}>
                 {activeList?.label} <span style={{ fontWeight: 'normal', fontSize: '0.75rem' }}>(activa)</span>
               </th>
               {PRICE_LISTS.filter(l => l.key !== activePriceListKey).map(l => (
-                <th key={l.key} style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--pulpos-border)', color: 'var(--pulpos-text-muted)', fontWeight: 'normal', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                <th key={l.key} style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--caanma-border)', color: 'var(--caanma-text-muted)', fontWeight: 'normal', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                   {l.label}
                 </th>
               ))}
@@ -410,18 +410,18 @@ export default function PreciosMasivosClient({
               const otherLists = PRICE_LISTS.filter(l => l.key !== activePriceListKey);
 
               return (
-                <tr key={p.id} style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: p._modified ? '#fefce8' : 'transparent' }}>
-                  <td style={{ padding: '0.5rem 1rem', color: 'var(--pulpos-text-muted)' }}>{p.sku || '--'}</td>
+                <tr key={p.id} style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: p._modified ? '#fefce8' : 'transparent' }}>
+                  <td style={{ padding: '0.5rem 1rem', color: 'var(--caanma-text-muted)' }}>{p.sku || '--'}</td>
                   <td style={{ padding: '0.5rem 1rem', fontWeight: '500' }}>
                     <div style={{ maxWidth: '220px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={p.name}>{p.name}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--pulpos-text-muted)' }}>{p.brand || 'S/M'} | {p.category || 'S/C'}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--caanma-text-muted)' }}>{p.brand || 'S/M'} | {p.category || 'S/C'}</div>
                   </td>
-                  <td style={{ padding: '0.5rem 1rem', color: 'var(--pulpos-text-muted)' }}>${p.cost.toFixed(2)}</td>
+                  <td style={{ padding: '0.5rem 1rem', color: 'var(--caanma-text-muted)' }}>${p.cost.toFixed(2)}</td>
 
                   {/* Active price list — editable + margin */}
                   <td style={{ padding: '0.5rem 1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <span style={{ color: 'var(--pulpos-text-muted)' }}>$</span>
+                      <span style={{ color: 'var(--caanma-text-muted)' }}>$</span>
                       <input
                         type="number"
                         step="1"
@@ -431,13 +431,13 @@ export default function PreciosMasivosClient({
                           width: '80px',
                           padding: '0.25rem',
                           borderRadius: '4px',
-                          border: isActiveModified ? '2px solid #eab308' : '1px solid var(--pulpos-border)',
+                          border: isActiveModified ? '2px solid #eab308' : '1px solid var(--caanma-border)',
                           backgroundColor: isActiveModified ? '#fefce8' : 'white',
                           fontWeight: isActiveModified ? 'bold' : 'normal',
                           fontSize: '0.9rem'
                         }}
                       />
-                      <small style={{ color: margen < 0 ? '#ef4444' : margen > 0 ? '#16a34a' : 'var(--pulpos-text-muted)' }}>
+                      <small style={{ color: margen < 0 ? '#ef4444' : margen > 0 ? '#16a34a' : 'var(--caanma-text-muted)' }}>
                         {activeVal !== '' ? `${margen.toFixed(1)}%` : '—'}
                       </small>
                     </div>
@@ -447,7 +447,7 @@ export default function PreciosMasivosClient({
                   {otherLists.map(l => {
                     const val = p[l.newKey];
                     return (
-                      <td key={l.key} style={{ padding: '0.5rem 1rem', color: 'var(--pulpos-text-muted)', fontSize: '0.8rem' }}>
+                      <td key={l.key} style={{ padding: '0.5rem 1rem', color: 'var(--caanma-text-muted)', fontSize: '0.8rem' }}>
                         {val !== '' && val != null ? `$${Number(val).toFixed(0)}` : <span style={{ opacity: 0.4 }}>N/A</span>}
                       </td>
                     );
@@ -456,7 +456,7 @@ export default function PreciosMasivosClient({
               );
             })}
             {displayedProducts.length === 0 && (
-              <tr><td colSpan={5 + PRICE_LISTS.length} style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>No hay productos que coincidan.</td></tr>
+              <tr><td colSpan={5 + PRICE_LISTS.length} style={{ padding: '2rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>No hay productos que coincidan.</td></tr>
             )}
           </tbody>
         </table>
@@ -468,7 +468,7 @@ export default function PreciosMasivosClient({
             type="button"
             onClick={() => setDisplayLimit(prev => prev + 200)} 
             className="btn-secondary"
-            style={{ padding: '0.6rem 2rem', fontWeight: 'bold', cursor: 'pointer', border: '1px solid var(--pulpos-border)', borderRadius: '6px', backgroundColor: 'white' }}
+            style={{ padding: '0.6rem 2rem', fontWeight: 'bold', cursor: 'pointer', border: '1px solid var(--caanma-border)', borderRadius: '6px', backgroundColor: 'white' }}
           >
             Cargar más productos (Mostrando {displayLimit} de {displayedProducts.length})
           </button>

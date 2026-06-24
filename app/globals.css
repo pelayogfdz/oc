@@ -19,17 +19,17 @@
 }
 
 :root {
-  --pulpos-bg: #f8fafc;
-  --pulpos-sidebar-bg: #ffffff;
-  --pulpos-sidebar-hover: #f1f5f9;
-  --pulpos-sidebar-text: #64748b;
-  --pulpos-sidebar-text-active: #8b5cf6;
-  --pulpos-primary: #8b5cf6; 
-  --pulpos-primary-hover: #7c3aed;
-  --pulpos-text: #334155;
-  --pulpos-text-muted: #94a3b8;
-  --pulpos-border: #f1f5f9;
-  --pulpos-card-bg: #ffffff;
+  --caanma-bg: #f8fafc;
+  --caanma-sidebar-bg: #ffffff;
+  --caanma-sidebar-hover: #f1f5f9;
+  --caanma-sidebar-text: #64748b;
+  --caanma-sidebar-text-active: #8b5cf6;
+  --caanma-primary: #8b5cf6; 
+  --caanma-primary-hover: #7c3aed;
+  --caanma-text: #334155;
+  --caanma-text-muted: #94a3b8;
+  --caanma-border: #f1f5f9;
+  --caanma-card-bg: #ffffff;
   
   --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
 }
@@ -55,8 +55,8 @@ html, body {
 }
 
 body {
-  background: var(--pulpos-bg);
-  color: var(--pulpos-text);
+  background: var(--caanma-bg);
+  color: var(--caanma-text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -76,7 +76,7 @@ button {
 
 /* Utilities */
 .btn-primary {
-  background-color: var(--pulpos-primary);
+  background-color: var(--caanma-primary);
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 4px;
@@ -85,12 +85,12 @@ button {
 }
 
 .btn-primary:hover {
-  background-color: var(--pulpos-primary-hover);
+  background-color: var(--caanma-primary-hover);
 }
 
 .card {
-  background-color: var(--pulpos-card-bg);
-  border: 1px solid var(--pulpos-border);
+  background-color: var(--caanma-card-bg);
+  border: 1px solid var(--caanma-border);
   border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
@@ -146,7 +146,7 @@ button {
     position: sticky;
     top: 0;
     z-index: 30;
-    background-color: var(--pulpos-card-bg);
+    background-color: var(--caanma-card-bg);
   }
 
   .header-user-info {
@@ -180,7 +180,7 @@ button {
     right: 0;
     height: 70px;
     background-color: #ffffff;
-    border-top: 1px solid var(--pulpos-border);
+    border-top: 1px solid var(--caanma-border);
     z-index: 100;
     justify-content: space-around;
     align-items: center;
@@ -192,7 +192,7 @@ button {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: var(--pulpos-text-muted);
+    color: var(--caanma-text-muted);
     font-size: 0.65rem;
     font-weight: 500;
     width: 20%;
@@ -204,7 +204,7 @@ button {
   }
 
   .mobile-bottom-nav-item.active {
-    color: var(--pulpos-primary);
+    color: var(--caanma-primary);
   }
 
   .mobile-bottom-nav-action {
@@ -214,14 +214,14 @@ button {
     justify-content: center;
     font-size: 0.65rem;
     font-weight: 500;
-    color: var(--pulpos-text-muted);
+    color: var(--caanma-text-muted);
     width: 20%;
     position: relative;
     top: -15px; /* Floating effect */
   }
 
   .mobile-bottom-nav-action .action-button {
-    background-color: var(--pulpos-primary);
+    background-color: var(--caanma-primary);
     width: 50px;
     height: 50px;
     border-radius: 50%;
@@ -253,7 +253,7 @@ button {
     position: sticky;
     top: 0;
     z-index: 91;
-    border-bottom: 1px solid var(--pulpos-border);
+    border-bottom: 1px solid var(--caanma-border);
   }
 
   .mobile-grid-content {
@@ -280,13 +280,13 @@ button {
 
   .mobile-grid-card:active {
     transform: scale(0.97);
-    border-color: var(--pulpos-primary);
+    border-color: var(--caanma-primary);
   }
 
   .mobile-grid-card .title {
     font-size: 0.85rem;
     font-weight: 500;
-    color: var(--pulpos-text);
+    color: var(--caanma-text);
     line-height: 1.2;
   }
 
@@ -307,7 +307,7 @@ button {
   table.responsive-table tr {
     display: flex;
     flex-direction: column;
-    border: 1px solid var(--pulpos-border);
+    border: 1px solid var(--caanma-border);
     border-radius: 12px;
     padding: 1rem;
     background-color: white !important;
@@ -328,7 +328,7 @@ button {
   table.responsive-table td::before {
     content: attr(data-label);
     font-weight: bold;
-    color: var(--pulpos-text-muted);
+    color: var(--caanma-text-muted);
     font-size: 0.85rem;
     text-align: left;
     margin-right: 1rem;
@@ -413,7 +413,7 @@ button {
   flex-shrink: 0;
   background-color: white;
   border-radius: 8px;
-  border: 1px solid var(--pulpos-border);
+  border: 1px solid var(--caanma-border);
   padding: 1rem 0;
   display: flex;
   flex-direction: column;

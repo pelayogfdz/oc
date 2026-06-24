@@ -35,7 +35,7 @@ export default function PromotionsClient({ initialPromos }: { initialPromos: any
               value={name} 
               onChange={e => setName(e.target.value)} 
               required 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
             />
           </div>
           <div>
@@ -43,7 +43,7 @@ export default function PromotionsClient({ initialPromos }: { initialPromos: any
             <select 
               value={type} 
               onChange={e => setType(e.target.value)}
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
             >
               <option value="PERCENTAGE">Descuento Global en %</option>
               <option value="FIXED_DISCOUNT">Descuento Directo en $ MXN</option>
@@ -57,7 +57,7 @@ export default function PromotionsClient({ initialPromos }: { initialPromos: any
               value={value} 
               onChange={e => setValue(e.target.value === '' ? '' : parseFloat(e.target.value))} 
               required 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
             />
           </div>
           <button type="submit" disabled={isProcessing} className="btn-primary" style={{ padding: '0.75rem', fontWeight: 'bold' }}>
@@ -69,19 +69,19 @@ export default function PromotionsClient({ initialPromos }: { initialPromos: any
       <div className="card" style={{ padding: '0' }}>
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: '#f9fafb' }}>
-              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Nombre</th>
-              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Mecánica</th>
-              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--pulpos-text-muted)', textAlign: 'center' }}>Estado</th>
-              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--pulpos-text-muted)', textAlign: 'right' }}>Eliminar</th>
+            <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
+              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Nombre</th>
+              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Mecánica</th>
+              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--caanma-text-muted)', textAlign: 'center' }}>Estado</th>
+              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--caanma-text-muted)', textAlign: 'right' }}>Eliminar</th>
             </tr>
           </thead>
           <tbody>
             {initialPromos.map(promo => (
-              <tr key={promo.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+              <tr key={promo.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                 <td data-label="Nombre" style={{ padding: '1rem', fontWeight: 'bold' }}>{promo.name}</td>
                 <td data-label="Mecánica" style={{ padding: '1rem' }}>
-                  <span style={{ color: 'var(--pulpos-primary)', fontWeight: 'bold' }}>
+                  <span style={{ color: 'var(--caanma-primary)', fontWeight: 'bold' }}>
                     {promo.type === 'PERCENTAGE' ? `Descuento ${promo.value}%` : `Descuento $${promo.value}`}
                   </span>
                 </td>
@@ -111,7 +111,7 @@ export default function PromotionsClient({ initialPromos }: { initialPromos: any
             ))}
             {initialPromos.length === 0 && (
                <tr>
-                 <td colSpan={4} style={{ padding: '3rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>No hay promociones registradas.</td>
+                 <td colSpan={4} style={{ padding: '3rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>No hay promociones registradas.</td>
                </tr>
             )}
           </tbody>

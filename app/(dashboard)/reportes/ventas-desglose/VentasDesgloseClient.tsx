@@ -51,7 +51,7 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Reporte de Ventas Detalladas</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Analiza contribuciones, tickets individuales y métodos de pago.</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Analiza contribuciones, tickets individuales y métodos de pago.</p>
         </div>
         <div className="no-print">
           <button 
@@ -77,7 +77,7 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
       </div>
 
       {loading && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--pulpos-primary)', fontWeight: 'bold' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--caanma-primary)', fontWeight: 'bold' }}>
           <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
           Cargando ventas...
         </div>
@@ -86,7 +86,7 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
       <div style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.2s', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         
         {/* Main Chart */}
-        <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)', height: '350px' }}>
+        <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', height: '350px' }}>
           <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '2rem' }}>Ventas Totales por Día</h2>
           <ResponsiveContainer width="100%" height="85%">
             <AreaChart data={data.chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
@@ -111,7 +111,7 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 350px', gap: '2rem', alignItems: 'start' }}>
           
           {/* Tabla Analítica */}
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>Historial de Transacciones</h2>
               
@@ -138,7 +138,7 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
             <div style={{ overflowX: 'auto', maxHeight: '500px' }}>
               <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10 }}>
-                  <tr style={{ borderBottom: '2px solid var(--pulpos-border)', color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>
+                  <tr style={{ borderBottom: '2px solid var(--caanma-border)', color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>
                     <th style={{ padding: '0.75rem 0.5rem' }}>Fecha</th>
                     <th style={{ padding: '0.75rem 0.5rem' }}>ID Ticket</th>
                     <th style={{ padding: '0.75rem 0.5rem' }}>Cliente</th>
@@ -152,11 +152,11 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
                 </thead>
                 <tbody>
                   {filteredSales.map((s: any) => (
-                    <tr key={s.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                    <tr key={s.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                       <td data-label="Fecha" style={{ padding: '1rem 0.5rem', fontSize: '0.9rem' }}>{formatDate(s.date)}</td>
-                      <td data-label="ID Ticket" style={{ padding: '1rem 0.5rem', fontSize: '0.9rem', color: 'var(--pulpos-primary)', fontFamily: 'monospace' }}>{s.id.split('-')[0]}</td>
+                      <td data-label="ID Ticket" style={{ padding: '1rem 0.5rem', fontSize: '0.9rem', color: 'var(--caanma-primary)', fontFamily: 'monospace' }}>{s.id.split('-')[0]}</td>
                       <td data-label="Cliente" style={{ padding: '1rem 0.5rem' }}>{s.customer}</td>
-                      <td data-label="Cajero" style={{ padding: '1rem 0.5rem', color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>{s.user}</td>
+                      <td data-label="Cajero" style={{ padding: '1rem 0.5rem', color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>{s.user}</td>
                       <td data-label="Método" style={{ padding: '1rem 0.5rem' }}>
                         <span style={{ 
                           padding: '0.25rem 0.5rem', 
@@ -201,7 +201,7 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
                       <td data-label="Total" style={{ padding: '1rem 0.5rem', textAlign: 'right', fontWeight: 'bold' }}>{formatCurrency(s.total)}</td>
                       <td data-label="Ganancia" style={{ padding: '1rem 0.5rem', textAlign: 'right', color: '#16a34a' }}>{formatCurrency(s.profit)}</td>
                       <td data-label="Acciones" style={{ padding: '1rem 0.5rem', textAlign: 'center' }}>
-                        <button style={{ padding: '0.25rem', color: 'var(--pulpos-primary)' }}>
+                        <button style={{ padding: '0.25rem', color: 'var(--caanma-primary)' }}>
                           <Eye size={18} />
                         </button>
                       </td>
@@ -209,7 +209,7 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
                   ))}
                   {filteredSales.length === 0 && (
                     <tr>
-                      <td colSpan={9} style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                      <td colSpan={9} style={{ padding: '2rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                         No se encontraron ventas para estos filtros.
                       </td>
                     </tr>
@@ -220,7 +220,7 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
           </div>
 
           {/* Gráficas Laterales */}
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Ventas por Vendedor</h2>
             
             <div style={{ height: '300px' }}>
@@ -246,14 +246,14 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
             </div>
 
             <div style={{ marginTop: '2rem' }}>
-              <h3 style={{ fontWeight: 'bold', color: 'var(--pulpos-text-muted)', marginBottom: '1rem', fontSize: '0.9rem', textTransform: 'uppercase' }}>Resumen Rápido</h3>
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--pulpos-border)', marginBottom: '0.5rem' }}>
-                <span style={{ color: 'var(--pulpos-text-muted)' }}>Tickets Filtrados</span>
+              <h3 style={{ fontWeight: 'bold', color: 'var(--caanma-text-muted)', marginBottom: '1rem', fontSize: '0.9rem', textTransform: 'uppercase' }}>Resumen Rápido</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--caanma-border)', marginBottom: '0.5rem' }}>
+                <span style={{ color: 'var(--caanma-text-muted)' }}>Tickets Filtrados</span>
                 <span style={{ fontWeight: 'bold' }}>{filteredSales.length}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--pulpos-border)' }}>
-                <span style={{ color: 'var(--pulpos-text-muted)' }}>Monto Seleccionado</span>
-                <span style={{ fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--caanma-border)' }}>
+                <span style={{ color: 'var(--caanma-text-muted)' }}>Monto Seleccionado</span>
+                <span style={{ fontWeight: 'bold', color: 'var(--caanma-primary)' }}>
                   {formatCurrency(filteredSales.reduce((acc: number, val: any) => acc + val.total, 0))}
                 </span>
               </div>

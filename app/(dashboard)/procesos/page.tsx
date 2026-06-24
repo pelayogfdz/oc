@@ -49,7 +49,7 @@ export default async function ProcesosPage() {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', color: 'var(--pulpos-text)' }}>
+      <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', color: 'var(--caanma-text)' }}>
         Órdenes de Producción
       </h1>
       <ProcesosClient 

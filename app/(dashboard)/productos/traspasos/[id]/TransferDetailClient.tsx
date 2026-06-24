@@ -107,14 +107,14 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '1rem' }}>
-      <Link href="/productos/traspasos" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--pulpos-primary)', textDecoration: 'none', marginBottom: '1.5rem', fontWeight: 500 }}>
+      <Link href="/productos/traspasos" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--caanma-primary)', textDecoration: 'none', marginBottom: '1.5rem', fontWeight: 500 }}>
         <ArrowLeft size={16} /> Volver a Traspasos
       </Link>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', margin: '0 0 0.5rem 0' }}>Traspaso #{transfer.id.substring(0,8).toUpperCase()}</h1>
-          <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.95rem' }}>Fecha de solicitud: {new Date(transfer.createdAt).toLocaleString()}</div>
+          <div style={{ color: 'var(--caanma-text-muted)', fontSize: '0.95rem' }}>Fecha de solicitud: {new Date(transfer.createdAt).toLocaleString()}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -173,7 +173,7 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
            <div style={{ position: 'absolute', top: '24px', left: '10%', right: '10%', height: '4px', backgroundColor: '#e2e8f0', zIndex: 0 }}>
              <div style={{ 
                height: '100%', 
-               backgroundColor: 'var(--pulpos-primary)', 
+               backgroundColor: 'var(--caanma-primary)', 
                width: `${(currentPhaseIdx / 3) * 100}%`,
                transition: 'width 0.5s ease'
              }} />
@@ -186,7 +186,7 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
                <div key={phase.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, width: '25%' }}>
                  <div style={{ 
                     width: '48px', height: '48px', borderRadius: '50%', 
-                    backgroundColor: isCompleted ? 'var(--pulpos-primary)' : '#f1f5f9',
+                    backgroundColor: isCompleted ? 'var(--caanma-primary)' : '#f1f5f9',
                     color: isCompleted ? 'white' : '#94a3b8',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     boxShadow: isCompleted ? '0 0 0 4px rgba(79, 70, 229, 0.2)' : '0 0 0 4px white',
@@ -196,7 +196,7 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
                  </div>
                  <div style={{ fontWeight: 'bold', color: isCompleted ? '#0f172a' : '#94a3b8', marginBottom: '0.25rem' }}>{phase.label}</div>
                  {phase.user && (
-                    <div style={{ fontSize: '0.8rem', color: 'var(--pulpos-text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                       <User size={12} /> {phase.user}
                     </div>
                  )}
@@ -213,7 +213,7 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
         <div className="card" style={{ padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--pulpos-text)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--caanma-text)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <MapPin size={18} color="#64748b" /> Origen (Surte)
           </h3>
           <div style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>{transfer.branch?.name || 'Central'}</div>
@@ -221,7 +221,7 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
         </div>
 
         <div className="card" style={{ padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--pulpos-text)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--caanma-text)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <MapPin size={18} color="#64748b" /> Destino (Solicita)
           </h3>
           <div style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>{transfer.toBranch?.name || 'Central'}</div>
@@ -230,9 +230,9 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
       </div>
 
       <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--caanma-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ fontSize: '1.25rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Package size={20} color="var(--pulpos-primary)" />
+            <Package size={20} color="var(--caanma-primary)" />
             Artículos {transfer.status === 'REQUESTED' || transfer.status === 'CREATED' ? 'Solicitados' : 'Traspasados'}
           </h2>
           
@@ -262,7 +262,7 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
         
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
-            <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--pulpos-border)' }}>
+            <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
               <th style={{ padding: '1rem', color: '#64748b', fontWeight: 500 }}>Producto</th>
               <th style={{ padding: '1rem', color: '#64748b', fontWeight: 500, textAlign: 'center' }}>Solicitados</th>
               {isOrigin && transfer.status === 'CREATED' && (
@@ -284,7 +284,7 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
               const totalCost = costToShow * (transfer.status === 'CREATED' ? dispatchQuantities[item.id] || 0 : item.quantity);
               
               return (
-                <tr key={item.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                <tr key={item.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                   <td data-label="Producto" style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: 'bold', color: '#0f172a' }}>{productName}</div>
                     <div style={{ fontSize: '0.8rem', color: '#64748b' }}>SKU: {sku || 'N/A'}</div>
@@ -302,7 +302,7 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
                          max={item.quantity}
                          value={dispatchQuantities[item.id] ?? item.quantity}
                          onChange={(e) => setDispatchQuantities({...dispatchQuantities, [item.id]: parseInt(e.target.value) || 0})}
-                         style={{ width: '80px', padding: '0.5rem', textAlign: 'center', border: '1px solid var(--pulpos-border)', borderRadius: '4px', fontWeight: 'bold' }}
+                         style={{ width: '80px', padding: '0.5rem', textAlign: 'center', border: '1px solid var(--caanma-border)', borderRadius: '4px', fontWeight: 'bold' }}
                        />
                        {(item.quantity - (dispatchQuantities[item.id] ?? item.quantity)) > 0 && (
                          <div style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '0.25rem' }}>

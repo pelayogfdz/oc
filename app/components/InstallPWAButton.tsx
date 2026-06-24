@@ -65,7 +65,7 @@ export default function InstallPWAButton() {
 
   // Si no está instalada, mostramos el botón (incluso si no está el prompt, porque pueden forzarla si se les da instrucciones, pero idealmente funciona con click)
   return (
-    <div style={{ marginTop: 'auto', padding: '1rem', borderTop: '1px solid var(--pulpos-border)' }}>
+    <div style={{ marginTop: 'auto', padding: '1rem', borderTop: '1px solid var(--caanma-border)' }}>
       <button 
         onClick={handleInstallClick}
         style={{
@@ -76,7 +76,7 @@ export default function InstallPWAButton() {
           gap: '0.5rem',
           padding: '0.75rem 1rem',
           borderRadius: '6px',
-          backgroundColor: 'var(--pulpos-primary)',
+          backgroundColor: 'var(--caanma-primary)',
           color: 'white',
           fontWeight: 'bold',
           fontSize: '0.9rem',
@@ -91,7 +91,7 @@ export default function InstallPWAButton() {
         <Download size={18} />
         Instalar Versión Desktop
       </button>
-      <p style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', textAlign: 'center', marginTop: '0.5rem' }}>
+      <p style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', textAlign: 'center', marginTop: '0.5rem' }}>
         Trabaja sin internet desde tu computadora.
       </p>
     </div>

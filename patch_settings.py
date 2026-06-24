@@ -1,7 +1,7 @@
 import os
 import re
 
-base_dir = r"C:\\Users\\barca2\.gemini\antigravity\playground\drifting-magnetosphere\pulpos_clone\app\(dashboard)\preferencias"
+base_dir = r"C:\\Users\\barca2\.gemini\antigravity\playground\drifting-magnetosphere\caanma\app\(dashboard)\preferencias"
 
 for root, dirs, files in os.walk(base_dir):
     for filename in files:

@@ -46,7 +46,7 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
     <div style={{ maxWidth: '900px', margin: '0 auto', fontFamily: 'sans-serif', color: 'black' }}>
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-         <Link href="/productos/compras" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--pulpos-text-muted)', textDecoration: 'none', fontWeight: 'bold' }}>
+         <Link href="/productos/compras" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--caanma-text-muted)', textDecoration: 'none', fontWeight: 'bold' }}>
             <ArrowLeft size={20} /> Volver a Compras
          </Link>
          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -228,7 +228,7 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
                   <span style={{ color: '#0f172a' }}>+${purchase.freightCost.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
                </div>
              ) : null}
-             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0', fontWeight: 'bold', fontSize: '1.5rem', color: 'var(--pulpos-primary)' }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0', fontWeight: 'bold', fontSize: '1.5rem', color: 'var(--caanma-primary)' }}>
                 <span>Total Compra:</span>
                 <span>${(purchase.total + (purchase.freightCost || 0)).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
              </div>

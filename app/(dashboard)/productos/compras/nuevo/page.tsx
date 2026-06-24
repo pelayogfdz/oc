@@ -22,7 +22,7 @@ export default async function NuevaCompraPage() {
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <Link href="/productos/compras" style={{ color: 'var(--pulpos-text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+        <Link href="/productos/compras" style={{ color: 'var(--caanma-text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           <ArrowLeft size={18} /> Volver a Historial de Compras
         </Link>
       </div>
@@ -30,10 +30,10 @@ export default async function NuevaCompraPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <ShoppingBag size={28} color="var(--pulpos-primary)" />
+            <ShoppingBag size={28} color="var(--caanma-primary)" />
             Registrar Compra Directa
           </h1>
-          <p style={{ color: 'var(--pulpos-text-muted)', marginTop: '0.25rem' }}>
+          <p style={{ color: 'var(--caanma-text-muted)', marginTop: '0.25rem' }}>
             Ingresa mercancía a tu inventario con o sin proveedor registrado.
           </p>
         </div>

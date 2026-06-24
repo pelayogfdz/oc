@@ -14,7 +14,7 @@ export default function ConvertButton({ quoteId }: { quoteId: string }) {
       style={{ 
         padding: '0.25rem 0.75rem', 
         backgroundColor: '#f1f5f9', 
-        border: '1px solid var(--pulpos-border)', 
+        border: '1px solid var(--caanma-border)', 
         borderRadius: '4px', 
         cursor: 'pointer',
         fontWeight: 'bold',

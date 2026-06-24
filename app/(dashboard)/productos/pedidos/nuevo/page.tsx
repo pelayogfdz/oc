@@ -31,7 +31,7 @@ export default async function NuevoPedidoPage() {
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <Link href="/productos/pedidos" style={{ color: 'var(--pulpos-text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+        <Link href="/productos/pedidos" style={{ color: 'var(--caanma-text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           <ArrowLeft size={18} /> Volver a Pedidos
         </Link>
       </div>
@@ -39,10 +39,10 @@ export default async function NuevoPedidoPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <ShoppingCart size={28} color="var(--pulpos-primary)" />
+            <ShoppingCart size={28} color="var(--caanma-primary)" />
             Crear Pedido a Proveedor
           </h1>
-          <p style={{ color: 'var(--pulpos-text-muted)', marginTop: '0.25rem' }}>
+          <p style={{ color: 'var(--caanma-text-muted)', marginTop: '0.25rem' }}>
             Selecciona los productos a solicitar. Puedes usar <strong>Sugeridos</strong> automáticamente según el faltante de Inventario Mínimo.
           </p>
         </div>

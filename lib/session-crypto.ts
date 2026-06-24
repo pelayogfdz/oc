@@ -1,6 +1,6 @@
 import { jwtVerify, SignJWT } from 'jose';
 
-const secretKey = process.env.SESSION_SECRET || 'pulpos-elite-saas-super-secret-key-12345';
+const secretKey = process.env.SESSION_SECRET || 'caanma-elite-saas-super-secret-key-12345';
 export const encodedKey = new TextEncoder().encode(secretKey);
 
 export type SessionPayload = {

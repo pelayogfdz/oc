@@ -79,7 +79,7 @@ export default async function WhatsappBandejaPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Bandeja WhatsApp</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Buzón centralizado para asignar conversaciones a tu equipo de ventas</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Buzón centralizado para asignar conversaciones a tu equipo de ventas</p>
         </div>
       </div>
       

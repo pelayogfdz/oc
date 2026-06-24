@@ -28,18 +28,18 @@ export default async function Page() {
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead style={{ backgroundColor: '#f8fafc' }}>
             <tr>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Ticket Original</th>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Método de Pago</th>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Total Devuelto</th>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Estado</th>
+              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Ticket Original</th>
+              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Método de Pago</th>
+              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Total Devuelto</th>
+              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Estado</th>
             </tr>
           </thead>
           <tbody>
             {data.map((item: any) => (
-              <tr key={item.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+              <tr key={item.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                 <td data-label="Ticket Original" style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: '500' }}>Venta #{item.id.substring(0,8).toUpperCase()}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)' }}>{new Date(item.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)' }}>{new Date(item.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}</div>
                 </td>
                 <td data-label="Método de Pago" style={{ padding: '1rem' }}>
                   <span style={{ fontSize: '0.85rem', fontWeight: '500', color: '#64748b' }}>{item.paymentMethod === 'MIXTO' ? 'Mixto (Efectivo/Tarjeta)' : item.paymentMethod === 'CASH' ? 'Efectivo' : 'Tarjeta/Otro'}</span>
@@ -54,7 +54,7 @@ export default async function Page() {
             ))}
             {data.length === 0 && (
               <tr>
-                <td colSpan={4} style={{ padding: '4rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                <td colSpan={4} style={{ padding: '4rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                   <FileText size={40} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
                   No hay devoluciones registradas.
                 </td>

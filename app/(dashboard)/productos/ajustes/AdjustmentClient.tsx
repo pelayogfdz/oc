@@ -75,13 +75,13 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
     <div style={{ display: 'flex', gap: '2rem', minHeight: 'calc(100vh - 120px)', boxSizing: 'border-box' }}>
       
       {/* Columna Izquierda: Buscador */}
-      <div style={{ flex: 1, backgroundColor: 'white', border: '1px solid var(--pulpos-border)', borderRadius: '12px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', backgroundColor: '#f8fafc' }}>
+      <div style={{ flex: 1, backgroundColor: 'white', border: '1px solid var(--caanma-border)', borderRadius: '12px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f8fafc' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Package size={20} /> Catálogo de Productos
           </h2>
           <div style={{ position: 'relative' }}>
-            <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--pulpos-text-muted)' }} size={20} />
+            <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--caanma-text-muted)' }} size={20} />
             <input 
               type="text" 
               placeholder="Buscar por nombre o código de barras..." 
@@ -94,12 +94,12 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
 
         <div style={{ flex: 1, minHeight: '380px', padding: '1rem', backgroundColor: '#f1f5f9' }}>
           {displayedProducts.length === 0 && !isSearching && (
-            <div style={{ textAlign: 'center', color: 'var(--pulpos-text-muted)', padding: '3rem 1rem' }}>
+            <div style={{ textAlign: 'center', color: 'var(--caanma-text-muted)', padding: '3rem 1rem' }}>
               No se encontraron resultados para "{searchTerm}"
             </div>
           )}
           {isSearching && (
-             <div style={{ textAlign: 'center', color: 'var(--pulpos-text-muted)', padding: '3rem 1rem' }}>
+             <div style={{ textAlign: 'center', color: 'var(--caanma-text-muted)', padding: '3rem 1rem' }}>
                Buscando...
              </div>
           )}
@@ -118,7 +118,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
                     gap: '1rem', 
                     padding: '0.85rem 1rem', 
                     borderRadius: '8px', 
-                    border: '1px solid var(--pulpos-border)', 
+                    border: '1px solid var(--caanma-border)', 
                     backgroundColor: isAdded ? '#f8fafc' : 'white', 
                     cursor: isAdded ? 'not-allowed' : 'pointer', 
                     textAlign: 'left',
@@ -166,7 +166,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
                     <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {prod.name}
                     </div>
-                    <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.8rem' }}>
+                    <div style={{ color: 'var(--caanma-text-muted)', fontSize: '0.8rem' }}>
                       SKU: {prod.sku || '--'}
                     </div>
                   </div>
@@ -174,7 +174,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
                     <div style={{ fontWeight: '900', fontSize: '1.1rem', color: prod.stock > 0 ? '#10b981' : '#ef4444' }}>
                       {prod.stock}
                     </div>
-                    <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.7rem' }}>En sistema</div>
+                    <div style={{ color: 'var(--caanma-text-muted)', fontSize: '0.7rem' }}>En sistema</div>
                   </div>
                 </button>
               );
@@ -184,12 +184,12 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
       </div>
 
       {/* Columna Derecha: Manifiesto de Ajuste */}
-      <div style={{ flex: 1.5, display: 'flex', flexDirection: 'column', backgroundColor: 'white', border: '1px solid var(--pulpos-border)', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+      <div style={{ flex: 1.5, display: 'flex', flexDirection: 'column', backgroundColor: 'white', border: '1px solid var(--caanma-border)', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
         
-        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', backgroundColor: '#ffffff', display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#ffffff', display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
           <div style={{ flex: 1 }}>
             <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.25rem', fontWeight: 'bold' }}>Manifiesto de Ajuste</h3>
-            <p style={{ color: 'var(--pulpos-text-muted)', margin: 0, fontSize: '0.875rem' }}>Los cambios aplicados sobrescribirán el stock actual.</p>
+            <p style={{ color: 'var(--caanma-text-muted)', margin: 0, fontSize: '0.875rem' }}>Los cambios aplicados sobrescribirán el stock actual.</p>
           </div>
           <div style={{ width: '300px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem', color: '#475569', fontSize: '0.85rem' }}>Motivo de la Bitácora (Obligatorio)</label>
@@ -199,7 +199,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
 
         <div style={{ flex: 1, minHeight: '380px', backgroundColor: items.length === 0 ? '#f8fafc' : 'white' }}>
           {items.length === 0 ? (
-            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--pulpos-text-muted)', gap: '1rem' }}>
+            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--caanma-text-muted)', gap: '1rem' }}>
               <ArrowRightLeft size={48} style={{ opacity: 0.2 }} />
               <p style={{ fontSize: '1.1rem' }}>No hay productos en el manifiesto.</p>
             </div>
@@ -207,11 +207,11 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
             <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f8fafc', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', zIndex: 10 }}>
                 <tr>
-                  <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--pulpos-border)' }}>Producto</th>
-                  <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'center' }}>Stock Actual</th>
-                  <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'center', width: '140px' }}>Nuevo Stock</th>
-                  <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'center' }}>Diferencia</th>
-                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}></th>
+                  <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--caanma-border)' }}>Producto</th>
+                  <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'center' }}>Stock Actual</th>
+                  <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'center', width: '140px' }}>Nuevo Stock</th>
+                  <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'center' }}>Diferencia</th>
+                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -220,10 +220,10 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
                   const isModified = diff !== 0;
                   
                   return (
-                    <tr key={item.id} style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: isModified ? '#f0fdf4' : 'transparent', transition: 'background-color 0.2s' }}>
+                    <tr key={item.id} style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: isModified ? '#f0fdf4' : 'transparent', transition: 'background-color 0.2s' }}>
                       <td data-label="Producto" style={{ padding: '1rem' }}>
                         <div style={{ fontWeight: 'bold', color: '#0f172a' }}>{item.name}</div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--pulpos-text-muted)' }}>{item.sku || 'Sin SKU'}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>{item.sku || 'Sin SKU'}</div>
                       </td>
                       <td data-label="Stock Actual" style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', color: '#64748b', fontSize: '1.1rem' }}>
                         {item.oldStock}
@@ -277,7 +277,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
           )}
         </div>
 
-        <div style={{ padding: '1.5rem', borderTop: '1px solid var(--pulpos-border)', backgroundColor: '#f8fafc' }}>
+        <div style={{ padding: '1.5rem', borderTop: '1px solid var(--caanma-border)', backgroundColor: '#f8fafc' }}>
           <button 
             onClick={handleSave} 
             disabled={isPending || items.length === 0} 

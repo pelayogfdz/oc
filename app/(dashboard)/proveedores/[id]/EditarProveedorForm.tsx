@@ -84,8 +84,8 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
       {/* Identificación */}
-      <div className="card" style={{ padding: '1.5rem', backgroundColor: 'white', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem', fontWeight: 'bold' }}>Identificación Básica</h2>
+      <div className="card" style={{ padding: '1.5rem', backgroundColor: 'white', borderRadius: '8px', border: '1px solid var(--caanma-border)' }}>
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem', fontWeight: 'bold' }}>Identificación Básica</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '1.5rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Nombre Comercial o Identificador *</label>
@@ -96,7 +96,7 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
               value={formValues.name} 
               onChange={handleChange} 
               placeholder="Ej. Abarrotes Lupita" 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', outline: 'none' }} 
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', outline: 'none' }} 
             />
           </div>
           <div>
@@ -107,7 +107,7 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
               value={formValues.phone} 
               onChange={handleChange} 
               placeholder="(Opcional)" 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', outline: 'none' }} 
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', outline: 'none' }} 
             />
           </div>
           <div style={{ gridColumn: 'span 2' }}>
@@ -118,7 +118,7 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
               value={formValues.email} 
               onChange={handleChange} 
               placeholder="cliente@correo.com" 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', outline: 'none' }} 
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', outline: 'none' }} 
             />
           </div>
           <div style={{ gridColumn: 'span 2' }}>
@@ -129,15 +129,15 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
               value={formValues.additionalEmails} 
               onChange={handleChange} 
               placeholder="conta@correo.com, pagos@correo.com" 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', outline: 'none' }} 
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', outline: 'none' }} 
             />
           </div>
         </div>
       </div>
 
       {/* Dirección */}
-      <div className="card" style={{ padding: '1.5rem', backgroundColor: 'white', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem', fontWeight: 'bold' }}>Domicilio Corporativo</h2>
+      <div className="card" style={{ padding: '1.5rem', backgroundColor: 'white', borderRadius: '8px', border: '1px solid var(--caanma-border)' }}>
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem', fontWeight: 'bold' }}>Domicilio Corporativo</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(0,1fr) minmax(0,1fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Calle</label>
@@ -146,7 +146,7 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
               name="street" 
               value={formValues.street} 
               onChange={handleChange} 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', outline: 'none' }} 
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', outline: 'none' }} 
             />
           </div>
           <div>
@@ -156,7 +156,7 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
               name="exteriorNumber" 
               value={formValues.exteriorNumber} 
               onChange={handleChange} 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', outline: 'none' }} 
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', outline: 'none' }} 
             />
           </div>
           <div>
@@ -166,7 +166,7 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
               name="interiorNumber" 
               value={formValues.interiorNumber} 
               onChange={handleChange} 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', outline: 'none' }} 
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', outline: 'none' }} 
             />
           </div>
         </div>
@@ -178,7 +178,7 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
               name="neighborhood" 
               value={formValues.neighborhood} 
               onChange={handleChange} 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', outline: 'none' }} 
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', outline: 'none' }} 
             />
           </div>
           <div>
@@ -188,7 +188,7 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
               name="city" 
               value={formValues.city} 
               onChange={handleChange} 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', outline: 'none' }} 
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', outline: 'none' }} 
             />
           </div>
           <div>
@@ -198,15 +198,15 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
               name="state" 
               value={formValues.state} 
               onChange={handleChange} 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', outline: 'none' }} 
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', outline: 'none' }} 
             />
           </div>
         </div>
       </div>
 
       {/* Facturación */}
-      <div className="card" style={{ padding: '1.5rem', backgroundColor: 'white', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+      <div className="card" style={{ padding: '1.5rem', backgroundColor: 'white', borderRadius: '8px', border: '1px solid var(--caanma-border)' }}>
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
           <span>Configuración Fiscal (SAT)</span>
           <span style={{ fontSize: '0.875rem', color: '#10b981', backgroundColor: '#dcfce7', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>Módulo CFDI Activo</span>
         </h2>
@@ -220,7 +220,7 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
               value={formValues.taxId} 
               onChange={handleChange} 
               placeholder="XAXX010101000" 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', outline: 'none' }} 
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', outline: 'none' }} 
             />
           </div>
           <div>
@@ -231,7 +231,7 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
               required 
               value={formValues.legalName} 
               onChange={handleChange} 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', outline: 'none' }} 
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', outline: 'none' }} 
             />
           </div>
         </div>
@@ -243,7 +243,7 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
               name="zipCode" 
               value={formValues.zipCode} 
               onChange={handleChange} 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', outline: 'none' }} 
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', outline: 'none' }} 
             />
           </div>
           <div>
@@ -252,7 +252,7 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
               name="taxRegime" 
               value={formValues.taxRegime} 
               onChange={handleChange} 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', outline: 'none' }}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', outline: 'none' }}
             >
                <option value="601">601 - General de Ley Personas Morales</option>
                <option value="612">612 - Personas Físicas con Actividades</option>
@@ -266,7 +266,7 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
               name="cfdiUse" 
               value={formValues.cfdiUse} 
               onChange={handleChange} 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', outline: 'none' }}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', outline: 'none' }}
             >
                <option value="G03">G03 - Gastos en general</option>
                <option value="G01">G01 - Adquisición de mercancias</option>
@@ -278,8 +278,8 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
       </div>
 
       {/* Cobranza */}
-      <div className="card" style={{ padding: '1.5rem', backgroundColor: 'white', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.5rem', fontWeight: 'bold' }}>Crédito y Finanzas</h2>
+      <div className="card" style={{ padding: '1.5rem', backgroundColor: 'white', borderRadius: '8px', border: '1px solid var(--caanma-border)' }}>
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem', fontWeight: 'bold' }}>Crédito y Finanzas</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: '1.5rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Límite de Crédito Autorizado ($)</label>
@@ -289,7 +289,7 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
               name="creditLimit" 
               value={formValues.creditLimit} 
               onChange={handleChange} 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', outline: 'none' }} 
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', outline: 'none' }} 
             />
           </div>
           <div>
@@ -299,7 +299,7 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
               name="creditDays" 
               value={formValues.creditDays} 
               onChange={handleChange} 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)', outline: 'none' }} 
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', outline: 'none' }} 
             />
           </div>
         </div>
@@ -308,7 +308,7 @@ export default function EditarProveedorForm({ supplier }: { supplier: SupplierDa
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
         <Link 
           href="/proveedores" 
-          style={{ padding: '0.75rem 2rem', textDecoration: 'none', color: 'var(--pulpos-text)', border: '1px solid var(--pulpos-border)', borderRadius: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}
+          style={{ padding: '0.75rem 2rem', textDecoration: 'none', color: 'var(--caanma-text)', border: '1px solid var(--caanma-border)', borderRadius: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}
         >
           Cancelar
         </Link>

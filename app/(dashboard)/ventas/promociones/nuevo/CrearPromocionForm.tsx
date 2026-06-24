@@ -168,7 +168,7 @@ export default function CrearPromocionForm({ products, branchId, categories, bra
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Basic Configuration Card */}
       <div className="card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: '0 0 0.5rem 0', color: 'var(--pulpos-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: '0 0 0.5rem 0', color: 'var(--caanma-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Settings size={20} /> Datos Básicos de la Promoción
         </h3>
 
@@ -180,7 +180,7 @@ export default function CrearPromocionForm({ products, branchId, categories, bra
             placeholder="Ej. Buen Fin - Zapatos, Promoción 3x2 en Tintas"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', fontSize: '1.05rem', outline: 'none' }}
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', fontSize: '1.05rem', outline: 'none' }}
           />
         </div>
 
@@ -190,7 +190,7 @@ export default function CrearPromocionForm({ products, branchId, categories, bra
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white', outline: 'none', height: '45px' }}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', backgroundColor: 'white', outline: 'none', height: '45px' }}
             >
               <option value="PERCENTAGE">Porcentaje (%)</option>
               <option value="FIXED_AMOUNT">Monto Fijo de Descuento ($)</option>
@@ -209,7 +209,7 @@ export default function CrearPromocionForm({ products, branchId, categories, bra
                     required
                     value={payQty}
                     onChange={(e) => setPayQty(parseInt(e.target.value) || 1)}
-                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', outline: 'none' }}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none' }}
                   />
                 </div>
                 <div style={{ alignSelf: 'flex-end', paddingBottom: '0.75rem', fontWeight: 'bold', fontSize: '1.25rem' }}>x</div>
@@ -221,7 +221,7 @@ export default function CrearPromocionForm({ products, branchId, categories, bra
                     required
                     value={receiveQty}
                     onChange={(e) => setReceiveQty(parseInt(e.target.value) || 2)}
-                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', outline: 'none' }}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none' }}
                   />
                 </div>
               </div>
@@ -238,7 +238,7 @@ export default function CrearPromocionForm({ products, branchId, categories, bra
                   placeholder="Ej. 10"
                   value={value}
                   onChange={(e) => setValue(parseFloat(e.target.value) || 0)}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', outline: 'none' }}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none' }}
                 />
               </div>
             )}
@@ -246,9 +246,9 @@ export default function CrearPromocionForm({ products, branchId, categories, bra
         </div>
 
         {/* Branch Selection Section */}
-        <div style={{ borderTop: '1px solid var(--pulpos-border)', paddingTop: '1.5rem' }}>
+        <div style={{ borderTop: '1px solid var(--caanma-border)', paddingTop: '1.5rem' }}>
           <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 'bold', color: '#334155' }}>Sucursales que Aplica *</label>
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', border: '1px solid var(--pulpos-border)', padding: '1rem', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', border: '1px solid var(--caanma-border)', padding: '1rem', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
             {activeBranches.map(b => (
               <label key={b.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
                 <input
@@ -268,9 +268,9 @@ export default function CrearPromocionForm({ products, branchId, categories, bra
         </div>
 
         {/* Price List Selection Section */}
-        <div style={{ borderTop: '1px solid var(--pulpos-border)', paddingTop: '1.5rem' }}>
+        <div style={{ borderTop: '1px solid var(--caanma-border)', paddingTop: '1.5rem' }}>
           <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 'bold', color: '#334155' }}>Lista de Precios a la que Aplica *</label>
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', border: '1px solid var(--pulpos-border)', padding: '1rem', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', border: '1px solid var(--caanma-border)', padding: '1rem', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
               <input
                 type="checkbox"
@@ -338,7 +338,7 @@ export default function CrearPromocionForm({ products, branchId, categories, bra
         <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: '0 0 0.5rem 0', color: '#ec4899', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Calendar size={20} /> Vigencia de la Promoción
         </h3>
-        <p style={{ margin: 0, color: 'var(--pulpos-text-muted)', fontSize: '0.9rem' }}>
+        <p style={{ margin: 0, color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>
           Configura un rango de fechas. Fuera de estas fechas la promoción no se aplicará automáticamente en caja. Dejar vacío si no expira.
         </p>
 
@@ -349,7 +349,7 @@ export default function CrearPromocionForm({ products, branchId, categories, bra
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', outline: 'none' }}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none' }}
             />
           </div>
           <div>
@@ -358,7 +358,7 @@ export default function CrearPromocionForm({ products, branchId, categories, bra
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', outline: 'none' }}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none' }}
             />
           </div>
         </div>
@@ -384,7 +384,7 @@ export default function CrearPromocionForm({ products, branchId, categories, bra
               placeholder="Buscar artículo por nombre o SKU..."
               value={productSearch}
               onChange={(e) => setProductSearch(e.target.value)}
-              style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', fontSize: '0.9rem', outline: 'none' }}
+              style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', fontSize: '0.9rem', outline: 'none' }}
             />
 
             <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.5rem' }}>

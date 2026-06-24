@@ -529,12 +529,12 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '1rem' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Users size={24} /> Usuarios y Permisos
           </h2>
-          <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+          <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
             Administra los empleados que tienen acceso al sistema, y define qué pueden ver o hacer.
           </p>
         </div>
@@ -542,12 +542,12 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
 
       <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', marginBottom: '3rem' }}>
         <thead>
-          <tr style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
-            <th style={{ padding: '0.75rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Nombre Empleado</th>
-            <th style={{ padding: '0.75rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Correo (Login)</th>
-            <th style={{ padding: '0.75rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Nivel Base</th>
-            <th style={{ padding: '0.75rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Puesto Ventas</th>
-            <th style={{ padding: '0.75rem', color: 'var(--pulpos-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Permisos ACL</th>
+          <tr style={{ borderBottom: '1px solid var(--caanma-border)' }}>
+            <th style={{ padding: '0.75rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Nombre Empleado</th>
+            <th style={{ padding: '0.75rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Correo (Login)</th>
+            <th style={{ padding: '0.75rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Nivel Base</th>
+            <th style={{ padding: '0.75rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Puesto Ventas</th>
+            <th style={{ padding: '0.75rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Permisos ACL</th>
             <th style={{ padding: '0.75rem', textAlign: 'right' }}>Acciones</th>
           </tr>
         </thead>
@@ -556,9 +556,9 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
             const hasCustomPerms = u.permissions && u.permissions !== '[]';
             const isProtected = u.isSuperAdmin || u.id === oldestUser?.id;
             return (
-            <tr key={u.id || i} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+            <tr key={u.id || i} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
               <td data-label="Nombre Empleado" style={{ padding: '1rem', fontWeight: 'bold' }}>{u.name}</td>
-              <td data-label="Correo (Login)" style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>{u.email}</td>
+              <td data-label="Correo (Login)" style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>{u.email}</td>
               <td data-label="Nivel Base" style={{ padding: '1rem' }}>
                 <span style={{ 
                   backgroundColor: u.role === 'ADMIN' ? '#fee2e2' : (u.role === 'MANAGER' ? '#fef3c7' : '#e0f2fe'), 
@@ -575,7 +575,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                 </span>
               </td>
               <td data-label="Puesto Ventas" style={{ padding: '1rem' }}>
-                <span style={{ fontWeight: 'bold', color: 'var(--pulpos-primary)', fontSize: '0.85rem' }}>
+                <span style={{ fontWeight: 'bold', color: 'var(--caanma-primary)', fontSize: '0.85rem' }}>
                   {u.commissionRole || 'VENDEDOR'}
                 </span>
               </td>
@@ -664,20 +664,20 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
       </table>
 
       {/* Formulario Estático Abajo */}
-      <div id="user-form" style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '8px', border: '1px dashed var(--pulpos-border)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '1rem' }}>
+      <div id="user-form" style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '8px', border: '1px dashed var(--caanma-border)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '1rem' }}>
           <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
             {editingUser ? `Editando Privilegios: ${editingUser.name}` : 'Dar de Alta Nuevo Usuario y Permisos'}
           </h3>
           {editingUser && (
-            <button type="button" onClick={openNewUser} style={{ fontSize: '0.875rem', padding: '0.25rem 0.75rem', border: '1px solid var(--pulpos-border)', borderRadius: '4px', cursor: 'pointer', backgroundColor: 'white' }}>
+            <button type="button" onClick={openNewUser} style={{ fontSize: '0.875rem', padding: '0.25rem 0.75rem', border: '1px solid var(--caanma-border)', borderRadius: '4px', cursor: 'pointer', backgroundColor: 'white' }}>
               + Crear Nuevo En Su Lugar
             </button>
           )}
         </div>
         
         {/* Top-level Tabs for the Form */}
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)' }}>
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)' }}>
           {['basics', 'personal', 'payroll', 'schedule', 'biometrics'].map(tab => (
             <button
               key={tab}
@@ -687,8 +687,8 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                 padding: '0.75rem 1rem',
                 background: 'transparent',
                 border: 'none',
-                borderBottom: activeTab === tab || (tab === 'basics' && dynamicModules.map(m=>m.id).includes(activeTab)) ? '2px solid var(--pulpos-primary)' : '2px solid transparent',
-                color: activeTab === tab || (tab === 'basics' && dynamicModules.map(m=>m.id).includes(activeTab)) ? 'var(--pulpos-primary)' : 'var(--pulpos-text-muted)',
+                borderBottom: activeTab === tab || (tab === 'basics' && dynamicModules.map(m=>m.id).includes(activeTab)) ? '2px solid var(--caanma-primary)' : '2px solid transparent',
+                color: activeTab === tab || (tab === 'basics' && dynamicModules.map(m=>m.id).includes(activeTab)) ? 'var(--caanma-primary)' : 'var(--caanma-text-muted)',
                 fontWeight: activeTab === tab || (tab === 'basics' && dynamicModules.map(m=>m.id).includes(activeTab)) ? 'bold' : 'normal',
                 cursor: 'pointer'
               }}
@@ -752,32 +752,32 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: '1rem', marginBottom: '2rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Nombre Completo</label>
-                <input type="text" name="name" defaultValue={editingUser?.name || ''} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                <input type="text" name="name" defaultValue={editingUser?.name || ''} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Correo (Login)</label>
-                <input type="email" name="email" defaultValue={editingUser?.email || ''} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                <input type="email" name="email" defaultValue={editingUser?.email || ''} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Contraseña {editingUser ? '(Opcional)' : '*'}</label>
-                <input type="password" name="password" required={!editingUser} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                <input type="password" name="password" required={!editingUser} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Nivel Base (Acceso)</label>
-                <select name="role" defaultValue={editingUser?.role || 'USER'} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}>
+                <select name="role" defaultValue={editingUser?.role || 'USER'} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }}>
                   <option value="USER">Cajero / Vendedor</option>
                   <option value="MANAGER">Encargado</option>
                   <option value="ADMIN">Administrador VIP</option>
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--pulpos-primary)' }}>Sucursal Asignada (Reloj Checador)</label>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--caanma-primary)' }}>Sucursal Asignada (Reloj Checador)</label>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <select 
                     value={selectedBranchId} 
                     onChange={(e) => setSelectedBranchId(e.target.value)} 
                     required 
-                    style={{ flex: 1, padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-primary)', backgroundColor: 'white' }}
+                    style={{ flex: 1, padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-primary)', backgroundColor: 'white' }}
                   >
                     <option value="">Selecciona Sucursal...</option>
                     {branchesList.map(b => (
@@ -789,7 +789,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                     onClick={() => setIsBranchModalOpen(true)}
                     style={{
                       padding: '0.75rem 1rem',
-                      backgroundColor: 'var(--pulpos-primary)',
+                      backgroundColor: 'var(--caanma-primary)',
                       color: 'white',
                       border: 'none',
                       borderRadius: '6px',
@@ -809,14 +809,14 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
             </div>
 
             {/* Matriz de Permisos */}
-            <div style={{ border: '1px solid var(--pulpos-border)', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'white' }}>
-              <div style={{ padding: '1rem', backgroundColor: '#f1f5f9', borderBottom: '1px solid var(--pulpos-border)' }}>
+            <div style={{ border: '1px solid var(--caanma-border)', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'white' }}>
+              <div style={{ padding: '1rem', backgroundColor: '#f1f5f9', borderBottom: '1px solid var(--caanma-border)' }}>
                 <h4 style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>Permisos Específicos</h4>
-                <p style={{ fontSize: '0.875rem', color: 'var(--pulpos-text-muted)' }}>Márcales el acceso explícito (palomitas) por cada módulo. Si desmarcas todo, no verá la sección.</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--caanma-text-muted)' }}>Márcales el acceso explícito (palomitas) por cada módulo. Si desmarcas todo, no verá la sección.</p>
               </div>
               
               <div style={{ display: 'flex' }}>
-                <div style={{ width: '250px', borderRight: '1px solid var(--pulpos-border)', backgroundColor: '#f8fafc' }}>
+                <div style={{ width: '250px', borderRight: '1px solid var(--caanma-border)', backgroundColor: '#f8fafc' }}>
                   {dynamicModules.map(mod => (
                     <button
                       key={mod.id}
@@ -833,7 +833,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                         cursor: 'pointer',
                         display: 'flex',
                         justifyContent: 'space-between',
-                        borderBottom: '1px solid var(--pulpos-border)'
+                        borderBottom: '1px solid var(--caanma-border)'
                       }}
                     >
                       {mod.name}
@@ -847,7 +847,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                     const isModActive = perms[mod.id] || false;
                     return (
                       <div key={mod.id} style={{ display: activeTab === mod.id ? 'block' : 'none' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.75rem' }}>
                           <h5 style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>{mod.name}</h5>
                           <button 
                             type="button" 
@@ -986,7 +986,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                                       checked={perms[p.id] || false}
                                       disabled={!isModActive || !isSubmodActive}
                                       onChange={(e) => handlePermissionChange(p.id, e.target.checked)}
-                                      style={{ width: '1.25rem', height: '1.25rem', cursor: 'pointer', accentColor: 'var(--pulpos-primary)' }}
+                                      style={{ width: '1.25rem', height: '1.25rem', cursor: 'pointer', accentColor: 'var(--caanma-primary)' }}
                                     />
                                     <span style={{ fontSize: '0.9rem', fontWeight: (isModActive && isSubmodActive && perms[p.id]) ? 'bold' : 'normal' }}>
                                       {p.label}
@@ -1004,30 +1004,30 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                             pointerEvents: isModActive ? 'auto' : 'none', 
                             transition: 'opacity 0.2s' 
                           }}>
-                            <div style={{ padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)', marginTop: '2rem' }}>
-                              <h5 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--pulpos-primary)' }}>Coordenadas Excepcionales (Home Office / Fuera de Oficina)</h5>
-                              <p style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', marginBottom: '1rem' }}>
+                            <div style={{ padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--caanma-border)', marginTop: '2rem' }}>
+                              <h5 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--caanma-primary)' }}>Coordenadas Excepcionales (Home Office / Fuera de Oficina)</h5>
+                              <p style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginBottom: '1rem' }}>
                                 Si el empleado hace Home Office, define aquí sus coordenadas. Esto ignorará las coordenadas de la sucursal al validar el GPS.
                               </p>
                               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                                 <div>
                                   <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Latitud</label>
-                                  <input type="number" step="any" name="homeLat" disabled={!isModActive} defaultValue={editingUser?.homeLat || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: isModActive ? 'white' : '#f1f5f9' }} />
+                                  <input type="number" step="any" name="homeLat" disabled={!isModActive} defaultValue={editingUser?.homeLat || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: isModActive ? 'white' : '#f1f5f9' }} />
                                 </div>
                                 <div>
                                   <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Longitud</label>
-                                  <input type="number" step="any" name="homeLng" disabled={!isModActive} defaultValue={editingUser?.homeLng || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: isModActive ? 'white' : '#f1f5f9' }} />
+                                  <input type="number" step="any" name="homeLng" disabled={!isModActive} defaultValue={editingUser?.homeLng || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: isModActive ? 'white' : '#f1f5f9' }} />
                                 </div>
                                 <div>
                                   <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Radio (mts)</label>
-                                  <input type="number" step="any" name="homeRadius" disabled={!isModActive} defaultValue={editingUser?.homeRadius || ''} placeholder="50" style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: isModActive ? 'white' : '#f1f5f9' }} />
+                                  <input type="number" step="any" name="homeRadius" disabled={!isModActive} defaultValue={editingUser?.homeRadius || ''} placeholder="50" style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: isModActive ? 'white' : '#f1f5f9' }} />
                                 </div>
                               </div>
                             </div>
                             
-                            <div style={{ padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)', marginTop: '1rem' }}>
-                              <h5 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--pulpos-primary)' }}>Ubicaciones GPS Permitidas</h5>
-                              <p style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', marginBottom: '1rem' }}>
+                            <div style={{ padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--caanma-border)', marginTop: '1rem' }}>
+                              <h5 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--caanma-primary)' }}>Ubicaciones GPS Permitidas</h5>
+                              <p style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginBottom: '1rem' }}>
                                 Selecciona las ubicaciones adicionales donde este empleado tiene permitido registrar asistencia.
                               </p>
                               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
@@ -1044,7 +1044,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                                           setSelectedHrLocations(selectedHrLocations.filter(id => id !== loc.id));
                                         }
                                       }}
-                                      style={{ width: '1rem', height: '1rem', accentColor: 'var(--pulpos-primary)' }}
+                                      style={{ width: '1rem', height: '1rem', accentColor: 'var(--caanma-primary)' }}
                                     />
                                     <span style={{ fontSize: '0.875rem' }}>{loc.name}</span>
                                   </label>
@@ -1069,19 +1069,19 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: '1rem', marginBottom: '2rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>RFC</label>
-                <input type="text" name="rfc" defaultValue={editingUser?.rfc || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                <input type="text" name="rfc" defaultValue={editingUser?.rfc || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>CURP</label>
-                <input type="text" name="curp" defaultValue={editingUser?.curp || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                <input type="text" name="curp" defaultValue={editingUser?.curp || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>NSS (Seguro Social)</label>
-                <input type="text" name="nss" defaultValue={editingUser?.nss || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                <input type="text" name="nss" defaultValue={editingUser?.nss || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Régimen Fiscal</label>
-                <select name="taxRegime" defaultValue={editingUser?.taxRegime || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}>
+                <select name="taxRegime" defaultValue={editingUser?.taxRegime || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }}>
                   <option value="">No Asignado</option>
                   <option value="Sueldos y Salarios">Sueldos y Salarios</option>
                   <option value="Asimilados">Asimilados a Salarios</option>
@@ -1089,19 +1089,19 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Dirección Completa</label>
-                <input type="text" name="address" defaultValue={editingUser?.address || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                <input type="text" name="address" defaultValue={editingUser?.address || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Teléfono Móvil</label>
-                <input type="text" name="phone" defaultValue={editingUser?.phone || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                <input type="text" name="phone" defaultValue={editingUser?.phone || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Fecha de Nacimiento</label>
-                <input type="date" name="birthDate" defaultValue={editingUser?.birthDate ? new Date(editingUser.birthDate).toISOString().split('T')[0] : ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                <input type="date" name="birthDate" defaultValue={editingUser?.birthDate ? new Date(editingUser.birthDate).toISOString().split('T')[0] : ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Fecha de Contratación</label>
-                <input type="date" name="hireDate" defaultValue={editingUser?.hireDate ? new Date(editingUser.hireDate).toISOString().split('T')[0] : ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                <input type="date" name="hireDate" defaultValue={editingUser?.hireDate ? new Date(editingUser.hireDate).toISOString().split('T')[0] : ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
               </div>
             </div>
           </div>
@@ -1111,7 +1111,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: '1rem', marginBottom: '2rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Tipo de Nómina</label>
-                <select name="payrollType" defaultValue={editingUser?.payrollType || 'QUINCENAL'} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }}>
+                <select name="payrollType" defaultValue={editingUser?.payrollType || 'QUINCENAL'} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }}>
                   <option value="SEMANAL">Semanal</option>
                   <option value="CATORCENAL">Catorcenal</option>
                   <option value="QUINCENAL">Quincenal</option>
@@ -1120,21 +1120,21 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Salario Diario ($)</label>
-                <input type="number" step="0.01" name="dailySalary" defaultValue={editingUser?.dailySalary || 0} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                <input type="number" step="0.01" name="dailySalary" defaultValue={editingUser?.dailySalary || 0} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Banco</label>
-                <input type="text" name="bankName" defaultValue={editingUser?.bankName || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                <input type="text" name="bankName" defaultValue={editingUser?.bankName || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>CLABE / Cuenta</label>
-                <input type="text" name="bankAccount" defaultValue={editingUser?.bankAccount || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: 'white' }} />
+                <input type="text" name="bankAccount" defaultValue={editingUser?.bankAccount || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
               </div>
 
               {/* Comisiones Anteriores */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--pulpos-primary)' }}>Puesto Ventas (Comisiones)</label>
-                <select name="commissionRole" defaultValue={editingUser?.commissionRole || 'VENDEDOR'} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-primary)', backgroundColor: 'white' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--caanma-primary)' }}>Puesto Ventas (Comisiones)</label>
+                <select name="commissionRole" defaultValue={editingUser?.commissionRole || 'VENDEDOR'} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-primary)', backgroundColor: 'white' }}>
                   <option value="VENDEDOR">Vendedor Base</option>
                   <option value="LIDER_SECUNDARIO">Líder Secundario</option>
                   <option value="LIDER">Líder de Equipo</option>
@@ -1165,8 +1165,8 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                 <input type="number" step="10" name="bonusPunctuality" defaultValue={editingUser?.bonusPunctuality || 0} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #8b5cf6', backgroundColor: 'white' }} />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', marginTop: '1.5rem' }}>
-                <input type="checkbox" id="deductLunchHour" name="deductLunchHour" defaultChecked={editingUser?.deductLunchHour || false} style={{ marginRight: '0.5rem', width: '1.25rem', height: '1.25rem', accentColor: 'var(--pulpos-primary)' }} />
-                <label htmlFor="deductLunchHour" style={{ fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--pulpos-text)' }}>Descontar hora de comida de las horas trabajadas</label>
+                <input type="checkbox" id="deductLunchHour" name="deductLunchHour" defaultChecked={editingUser?.deductLunchHour || false} style={{ marginRight: '0.5rem', width: '1.25rem', height: '1.25rem', accentColor: 'var(--caanma-primary)' }} />
+                <label htmlFor="deductLunchHour" style={{ fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--caanma-text)' }}>Descontar hora de comida de las horas trabajadas</label>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#8b5cf6' }}>Bono Despensa ($)</label>
@@ -1188,18 +1188,18 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <div>
                 <h4 style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>Horario Laboral</h4>
-                <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.85rem' }}>Selecciona los días laborables y establece la hora de entrada y salida.</p>
+                <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>Selecciona los días laborables y establece la hora de entrada y salida.</p>
               </div>
             </div>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--caanma-border)' }}>
               {['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'].map(day => {
                 const isActive = schedule[day] && schedule[day].length === 2;
                 const start = isActive ? schedule[day][0] : "09:00";
                 const end = isActive ? schedule[day][1] : "18:00";
 
                 return (
-                  <div key={day} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem', backgroundColor: isActive ? 'white' : 'transparent', border: isActive ? '1px solid var(--pulpos-border)' : '1px dashed #cbd5e1', borderRadius: '6px', opacity: isActive ? 1 : 0.6 }}>
+                  <div key={day} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem', backgroundColor: isActive ? 'white' : 'transparent', border: isActive ? '1px solid var(--caanma-border)' : '1px dashed #cbd5e1', borderRadius: '6px', opacity: isActive ? 1 : 0.6 }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '120px', cursor: 'pointer' }}>
                       <input 
                         type="checkbox" 
@@ -1213,7 +1213,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                           }
                           setSchedule(newSched);
                         }}
-                        style={{ width: '1.2rem', height: '1.2rem', accentColor: 'var(--pulpos-primary)' }}
+                        style={{ width: '1.2rem', height: '1.2rem', accentColor: 'var(--caanma-primary)' }}
                       />
                       <span style={{ fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#0f172a' : '#64748b' }}>{day}</span>
                     </label>
@@ -1228,7 +1228,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                           if (newSched[day]) newSched[day][0] = e.target.value;
                           setSchedule(newSched);
                         }}
-                        style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: isActive ? 'white' : '#f1f5f9' }}
+                        style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: isActive ? 'white' : '#f1f5f9' }}
                       />
                       <span style={{ color: '#64748b' }}>a</span>
                       <input 
@@ -1240,7 +1240,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                           if (newSched[day]) newSched[day][1] = e.target.value;
                           setSchedule(newSched);
                         }}
-                        style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', backgroundColor: isActive ? 'white' : '#f1f5f9' }}
+                        style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: isActive ? 'white' : '#f1f5f9' }}
                       />
                     </div>
                   </div>
@@ -1255,11 +1255,11 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
           {/* TAB 5: BIOMETRÍA Y SEGURIDAD */}
           <div style={{ display: activeTab === 'biometrics' ? 'block' : 'none' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', marginBottom: '2rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)' }}>
-                <input type="checkbox" name="reqGps" defaultChecked={editingUser?.reqGps} style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--pulpos-primary)' }} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--caanma-border)' }}>
+                <input type="checkbox" name="reqGps" defaultChecked={editingUser?.reqGps} style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--caanma-primary)' }} />
                 <div>
                   <span style={{ fontSize: '1rem', fontWeight: 'bold', display: 'block' }}>Requerir GPS para Check-in</span>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>El empleado no podrá registrar asistencia si está fuera de la geocerca de su oficina.</span>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>El empleado no podrá registrar asistencia si está fuera de la geocerca de su oficina.</span>
                 </div>
               </label>
 
@@ -1271,11 +1271,11 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                 </div>
               </label>
               
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--pulpos-border)' }}>
-                <input type="checkbox" name="reqPhoto" defaultChecked={editingUser?.reqPhoto} style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--pulpos-primary)' }} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '1rem', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid var(--caanma-border)' }}>
+                <input type="checkbox" name="reqPhoto" defaultChecked={editingUser?.reqPhoto} style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--caanma-primary)' }} />
                 <div>
                   <span style={{ fontSize: '1rem', fontWeight: 'bold', display: 'block' }}>Requerir Fotografía (Selfie Check-in)</span>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>El empleado debe tomarse una foto en tiempo real para verificar su identidad.</span>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>El empleado debe tomarse una foto en tiempo real para verificar su identidad.</span>
                 </div>
               </label>
 
@@ -1338,7 +1338,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--pulpos-border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--caanma-border)' }}>
             <button type="submit" className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 2rem' }}>
               {editingUser ? <CheckCircle2 size={18} /> : <Plus size={18} />}
               {editingUser ? 'Actualizar Usuario' : 'Crear Usuario'}
@@ -1375,7 +1375,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
             color: '#1e293b'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--pulpos-primary)' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--caanma-primary)' }}>
                 <Plus size={20} /> Crear Nueva Sucursal
               </h3>
               <button 
@@ -1475,7 +1475,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                     padding: '0.75rem 1.5rem', 
                     borderRadius: '8px', 
                     border: 'none', 
-                    backgroundColor: 'var(--pulpos-primary)', 
+                    backgroundColor: 'var(--caanma-primary)', 
                     color: 'white',
                     cursor: isCreatingBranch ? 'not-allowed' : 'pointer', 
                     fontWeight: 'bold',

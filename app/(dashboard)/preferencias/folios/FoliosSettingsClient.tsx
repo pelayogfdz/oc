@@ -157,7 +157,7 @@ export default function FoliosSettingsClient({ branchName, branchPrefix, initial
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e293b', margin: 0 }}>
-            <Hash size={28} style={{ color: 'var(--pulpos-primary, #6366f1)' }} />
+            <Hash size={28} style={{ color: 'var(--caanma-primary, #6366f1)' }} />
             Folios de Documentos
           </h1>
           <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.25rem' }}>
@@ -356,7 +356,7 @@ export default function FoliosSettingsClient({ branchName, branchPrefix, initial
             disabled={isSaving}
             style={{
               padding: '0.75rem 2rem',
-              backgroundColor: 'var(--pulpos-primary, #6366f1)',
+              backgroundColor: 'var(--caanma-primary, #6366f1)',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -373,7 +373,7 @@ export default function FoliosSettingsClient({ branchName, branchPrefix, initial
               if (!isSaving) e.currentTarget.style.backgroundColor = '#4f46e5';
             }}
             onMouseLeave={(e) => {
-              if (!isSaving) e.currentTarget.style.backgroundColor = 'var(--pulpos-primary, #6366f1)';
+              if (!isSaving) e.currentTarget.style.backgroundColor = 'var(--caanma-primary, #6366f1)';
             }}
           >
             {isSaving ? (

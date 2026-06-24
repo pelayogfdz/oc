@@ -340,7 +340,7 @@ export default function KioskoClient({ initialUsers }: { initialUsers: UserKiosk
         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <Clock size={20} color="var(--pulpos-primary)" />
+          <Clock size={20} color="var(--caanma-primary)" />
           <span style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1e293b', letterSpacing: '-0.02em' }}>
             {currentTime || '--:--:--'}
           </span>
@@ -555,7 +555,7 @@ export default function KioskoClient({ initialUsers }: { initialUsers: UserKiosk
           {/* General Loading indicator */}
           {isLoading && authMode === 'none' && !successMsg && !errorMsg && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-              <Loader2 className="animate-spin" size={40} color="var(--pulpos-primary)" />
+              <Loader2 className="animate-spin" size={40} color="var(--caanma-primary)" />
               <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#475569' }}>
                 Verificando datos en el servidor...
               </span>
@@ -864,7 +864,7 @@ export default function KioskoClient({ initialUsers }: { initialUsers: UserKiosk
                           width: '100%',
                           padding: '0.85rem 1rem',
                           borderRadius: '12px',
-                          border: isSelected ? '2px solid var(--pulpos-primary)' : '1px solid #e2e8f0',
+                          border: isSelected ? '2px solid var(--caanma-primary)' : '1px solid #e2e8f0',
                           backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.05)' : '#ffffff',
                           cursor: 'pointer',
                           textAlign: 'left',
@@ -942,7 +942,7 @@ export default function KioskoClient({ initialUsers }: { initialUsers: UserKiosk
                   {/* Header: Selected User */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', paddingBottom: '1.5rem', borderBottom: '1px solid #f1f5f9' }}>
                     <div>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--pulpos-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--caanma-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         Colaborador Seleccionado
                       </span>
                       <h2 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#1e293b', margin: '0.25rem 0' }}>
@@ -1103,7 +1103,7 @@ export default function KioskoClient({ initialUsers }: { initialUsers: UserKiosk
                                   style={{
                                     width: '100%',
                                     padding: '0.85rem',
-                                    backgroundColor: 'var(--pulpos-primary)',
+                                    backgroundColor: 'var(--caanma-primary)',
                                     color: '#ffffff',
                                     border: 'none',
                                     borderRadius: '10px',
@@ -1169,7 +1169,7 @@ export default function KioskoClient({ initialUsers }: { initialUsers: UserKiosk
                     {/* General Loader */}
                     {isLoading && (
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', padding: '2rem' }}>
-                        <Loader2 className="animate-spin" size={36} color="var(--pulpos-primary)" />
+                        <Loader2 className="animate-spin" size={36} color="var(--caanma-primary)" />
                         <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#475569' }}>
                           Guardando registro en la base de datos...
                         </span>
@@ -1290,7 +1290,7 @@ export default function KioskoClient({ initialUsers }: { initialUsers: UserKiosk
                   padding: '0.75rem',
                   border: 'none',
                   borderRadius: '10px',
-                  backgroundColor: 'var(--pulpos-primary)',
+                  backgroundColor: 'var(--caanma-primary)',
                   color: '#ffffff',
                   fontWeight: 'bold',
                   cursor: 'pointer',

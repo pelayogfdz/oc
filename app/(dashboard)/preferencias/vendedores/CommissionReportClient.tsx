@@ -44,20 +44,20 @@ export default function CommissionReportClient({ initialUsers }: { initialUsers:
       <div className="card" style={{ marginBottom: '2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <h2 style={{ fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, marginBottom: '0.5rem', color: 'var(--pulpos-primary)' }}>
-              <Calendar color="var(--pulpos-primary)" /> Liquidación Mensual de Comisiones
+            <h2 style={{ fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, marginBottom: '0.5rem', color: 'var(--caanma-primary)' }}>
+              <Calendar color="var(--caanma-primary)" /> Liquidación Mensual de Comisiones
             </h2>
-            <p style={{ color: 'var(--pulpos-text-muted)', margin: 0 }}>
+            <p style={{ color: 'var(--caanma-text-muted)', margin: 0 }}>
               Calcula y visualiza el pago de comisiones y bonos del periodo seleccionado.
             </p>
           </div>
           
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <div style={{ display: 'flex', border: '1px solid var(--pulpos-border)', borderRadius: '8px', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', border: '1px solid var(--caanma-border)', borderRadius: '8px', overflow: 'hidden' }}>
               <select 
                 value={month} 
                 onChange={(e) => setMonth(parseInt(e.target.value))}
-                style={{ padding: '0.5rem 1rem', border: 'none', borderRight: '1px solid var(--pulpos-border)', outline: 'none', backgroundColor: '#f8fafc', fontWeight: 'bold' }}
+                style={{ padding: '0.5rem 1rem', border: 'none', borderRight: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: '#f8fafc', fontWeight: 'bold' }}
               >
                 {months.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
@@ -103,12 +103,12 @@ export default function CommissionReportClient({ initialUsers }: { initialUsers:
           <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ backgroundColor: '#f8fafc', color: '#475569', fontSize: '0.85rem' }}>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Empleado</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Puesto</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Venta Base Computable</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)', color: '#0369a1' }}>Comisión %</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)', color: '#16a34a' }}>Bonos (Ind / Eq)</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#f1f5f9' }}>Total a Liquidar</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Empleado</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Puesto</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Venta Base Computable</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', color: '#0369a1' }}>Comisión %</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', color: '#16a34a' }}>Bonos (Ind / Eq)</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'right', fontWeight: 'bold', backgroundColor: '#f1f5f9' }}>Total a Liquidar</th>
               </tr>
             </thead>
             <tbody>
@@ -127,7 +127,7 @@ export default function CommissionReportClient({ initialUsers }: { initialUsers:
                 </tr>
               ) : (
                 reportData.sort((a,b) => b.totalEarned - a.totalEarned).map(row => (
-                  <tr key={row.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                  <tr key={row.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                     <td data-label="Empleado" style={{ padding: '1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <div style={{ 
                         width: '10px', height: '10px', borderRadius: '50%', 

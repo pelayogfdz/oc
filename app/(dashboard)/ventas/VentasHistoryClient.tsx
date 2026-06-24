@@ -94,7 +94,7 @@ export default function VentasHistoryClient({
       <div className="page-header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 className="page-header-title" style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Historial de Ventas</h1>
-          <p className="page-header-subtitle" style={{ color: 'var(--pulpos-text-muted)', margin: 0 }}>Módulo de ventas y cortes de caja</p>
+          <p className="page-header-subtitle" style={{ color: 'var(--caanma-text-muted)', margin: 0 }}>Módulo de ventas y cortes de caja</p>
         </div>
         <div className="page-header-actions">
           <Link href="/ventas/nueva" className="btn-primary" style={{ padding: '0.75rem 1.5rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -112,24 +112,24 @@ export default function VentasHistoryClient({
         padding: '1.25rem', 
         backgroundColor: '#f8fafc', 
         borderRadius: '12px', 
-        border: '1px solid var(--pulpos-border)' 
+        border: '1px solid var(--caanma-border)' 
       }}>
         {/* Date Filter */}
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
             <Calendar size={14} /> Fecha
           </label>
           <input 
             type="date" 
             value={filterDate} 
             onChange={(e) => setFilterDate(e.target.value)} 
-            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
+            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
           />
         </div>
 
         {/* Client Filter */}
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
             <User size={14} /> Cliente
           </label>
           <input 
@@ -137,13 +137,13 @@ export default function VentasHistoryClient({
             placeholder="Buscar por cliente" 
             value={filterClient} 
             onChange={(e) => setFilterClient(e.target.value)} 
-            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
+            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
           />
         </div>
 
         {/* CFDI Filter */}
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
             <Receipt size={14} /> Folio CFDI
           </label>
           <input 
@@ -151,19 +151,19 @@ export default function VentasHistoryClient({
             placeholder="Buscar folio CFDI" 
             value={filterCfdi} 
             onChange={(e) => setFilterCfdi(e.target.value)} 
-            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
+            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
           />
         </div>
 
         {/* Seller Filter */}
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
             <User size={14} /> Vendedor
           </label>
           <select 
             value={filterUser} 
             onChange={(e) => setFilterUser(e.target.value)} 
-            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }}
+            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }}
           >
             <option value="">Todos los vendedores</option>
             {users.map((u: any) => (
@@ -174,14 +174,14 @@ export default function VentasHistoryClient({
 
         {/* Branch Filter */}
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
             <MapPin size={14} /> Sucursal
           </label>
           <select 
             value={filterBranch} 
             onChange={(e) => setFilterBranch(e.target.value)} 
             disabled={currentBranch.id !== 'GLOBAL'}
-            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', outline: 'none', backgroundColor: currentBranch.id !== 'GLOBAL' ? '#f1f5f9' : 'white', fontSize: '0.9rem' }}
+            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: currentBranch.id !== 'GLOBAL' ? '#f1f5f9' : 'white', fontSize: '0.9rem' }}
           >
             {currentBranch.id === 'GLOBAL' ? (
               <>
@@ -198,13 +198,13 @@ export default function VentasHistoryClient({
 
         {/* Status Filter */}
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
             <Tag size={14} /> Estado
           </label>
           <select 
             value={filterStatus} 
             onChange={(e) => setFilterStatus(e.target.value)} 
-            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }}
+            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }}
           >
             <option value="">Todos los estados</option>
             {statuses.map((status) => (
@@ -233,23 +233,23 @@ export default function VentasHistoryClient({
       <div className="card">
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: '#f9fafb' }}>
-              <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>ID Venta</th>
-              <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Fecha / Hora</th>
-              <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Cliente</th>
-              <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Folio CFDI</th>
-              <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Sucursal / Vendedor</th>
-              <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500', textAlign: 'right' }}>Artículos</th>
-              <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500', textAlign: 'right' }}>Total</th>
-              <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500', textAlign: 'center' }}>Estado</th>
-              <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500', textAlign: 'center' }}>Acciones</th>
+            <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
+              <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>ID Venta</th>
+              <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Fecha / Hora</th>
+              <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Cliente</th>
+              <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Folio CFDI</th>
+              <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Sucursal / Vendedor</th>
+              <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right' }}>Artículos</th>
+              <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right' }}>Total</th>
+              <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'center' }}>Estado</th>
+              <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'center' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {filteredSales.map(sale => {
               const qtySum = sale.items.reduce((sum: number, item: any) => sum + item.quantity, 0);
               return (
-                <tr key={sale.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                <tr key={sale.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                   <td data-label="ID Venta" style={{ padding: '1rem', fontFamily: 'monospace', fontWeight: 'bold' }}>
                     {sale.folio || sale.id.slice(0, 8).toUpperCase()}
                   </td>
@@ -260,7 +260,7 @@ export default function VentasHistoryClient({
                     {sale.customer ? (
                       <div style={{ fontWeight: '500' }}>{sale.customer.name}</div>
                     ) : (
-                      <div style={{ color: 'var(--pulpos-text-muted)', fontStyle: 'italic' }}>Público General</div>
+                      <div style={{ color: 'var(--caanma-text-muted)', fontStyle: 'italic' }}>Público General</div>
                     )}
                   </td>
                   <td data-label="Folio CFDI" style={{ padding: '1rem' }}>
@@ -281,14 +281,14 @@ export default function VentasHistoryClient({
                         {sale.invoiceId}
                       </span>
                     ) : (
-                      <span style={{ color: 'var(--pulpos-text-muted)' }}>-</span>
+                      <span style={{ color: 'var(--caanma-text-muted)' }}>-</span>
                     )}
                   </td>
                   <td data-label="Sucursal / Vendedor" style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: '500' }}>{sale.branch?.name || currentBranch.name}</div>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--pulpos-text-muted)' }}>Vendió: {sale.user.name}</div>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--caanma-text-muted)' }}>Vendió: {sale.user.name}</div>
                   </td>
-                  <td data-label="Artículos" style={{ padding: '1rem', textAlign: 'right', color: 'var(--pulpos-text-muted)' }}>
+                  <td data-label="Artículos" style={{ padding: '1rem', textAlign: 'right', color: 'var(--caanma-text-muted)' }}>
                     {new Intl.NumberFormat('es-MX').format(qtySum)} Pzas
                   </td>
                   <td data-label="Total" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>
@@ -321,7 +321,7 @@ export default function VentasHistoryClient({
             })}
             {filteredSales.length === 0 && (
               <tr>
-                <td colSpan={9} style={{ padding: '3rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                <td colSpan={9} style={{ padding: '3rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                   No se encontraron ventas con los filtros seleccionados.
                 </td>
               </tr>

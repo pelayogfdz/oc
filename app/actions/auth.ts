@@ -83,7 +83,7 @@ export const getActiveBranch = cache(async () => {
   }
 
   const cookieStore = await cookies();
-  let branchId = cookieStore.get('pulpos_active_branch')?.value;
+  let branchId = cookieStore.get('caanma_active_branch')?.value;
   
   // 2. Enforce restrictions for non-global users
   if (user && !isGlobal && allowedBranchIds.length > 0) {

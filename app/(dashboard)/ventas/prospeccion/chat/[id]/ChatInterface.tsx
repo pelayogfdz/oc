@@ -1058,7 +1058,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
       )}
 
       {/* Input Area */}
-      <div style={{ padding: '0.75rem 1rem', backgroundColor: '#ffffff', borderTop: '1px solid var(--pulpos-border)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      <div style={{ padding: '0.75rem 1rem', backgroundColor: '#ffffff', borderTop: '1px solid var(--caanma-border)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         
         {/* Barra de Acciones / Herramientas */}
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.25rem', alignItems: 'center' }}>

@@ -120,35 +120,35 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
       {/* Filters Bar */}
-      <div className="no-print" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', backgroundColor: 'var(--pulpos-card-bg)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}>
+      <div className="no-print" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', backgroundColor: 'var(--caanma-card-bg)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--caanma-border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Calendar size={18} color="var(--pulpos-text-muted)" />
-          <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }} />
+          <Calendar size={18} color="var(--caanma-text-muted)" />
+          <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--caanma-border)' }} />
           <span> - </span>
-          <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }} />
+          <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--caanma-border)' }} />
         </div>
         
-        <select value={filterUserId} onChange={e => setFilterUserId(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }}>
+        <select value={filterUserId} onChange={e => setFilterUserId(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--caanma-border)' }}>
           <option value="ALL">Todos los Vendedores</option>
           {users.map((u: any) => (
             <option key={u.id} value={u.id}>{u.name || u.email}</option>
           ))}
         </select>
  
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }}>
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--caanma-border)' }}>
           <option value="ALL">Todo (Facturado y No Facturado)</option>
           <option value="FACTURADO">Solo Facturado</option>
           <option value="PENDIENTE">Pendiente / No Facturado</option>
         </select>
 
-        <select value={filterBrand} onChange={e => setFilterBrand(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }}>
+        <select value={filterBrand} onChange={e => setFilterBrand(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--caanma-border)' }}>
           <option value="ALL">Todas las Marcas</option>
           {brands.map((b: string) => (
             <option key={b} value={b}>{b}</option>
           ))}
         </select>
  
-        <button onClick={handleApplyFilters} style={{ padding: '0.5rem 1rem', backgroundColor: 'var(--pulpos-primary)', color: 'white', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+        <button onClick={handleApplyFilters} style={{ padding: '0.5rem 1rem', backgroundColor: 'var(--caanma-primary)', color: 'white', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
           Aplicar Filtros
         </button>
  
@@ -156,7 +156,7 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
           <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: '#6d28d9', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
             <Printer size={18} /> Imprimir / PDF
           </button>
-          <button onClick={exportToCSV} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: 'var(--pulpos-bg)', border: '1px solid var(--pulpos-border)', color: 'var(--pulpos-text)', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+          <button onClick={exportToCSV} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: 'var(--caanma-bg)', border: '1px solid var(--caanma-border)', color: 'var(--caanma-text)', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
             <Download size={18} /> Exportar Excel
           </button>
         </div>
@@ -164,13 +164,13 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-        <div style={{ backgroundColor: 'var(--pulpos-card-bg)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}>
-          <h3 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem' }}>Total Ventas (Periodo)</h3>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--pulpos-text)' }}>
+        <div style={{ backgroundColor: 'var(--caanma-card-bg)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--caanma-border)' }}>
+          <h3 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>Total Ventas (Periodo)</h3>
+          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--caanma-text)' }}>
             ${totalVentas.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
         </div>
-        <div style={{ backgroundColor: 'var(--pulpos-card-bg)', padding: '1.5rem', borderRadius: '8px', border: '1px solid #10b981' }}>
+        <div style={{ backgroundColor: 'var(--caanma-card-bg)', padding: '1.5rem', borderRadius: '8px', border: '1px solid #10b981' }}>
           <h3 style={{ margin: 0, fontSize: '0.9rem', color: '#059669', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileText size={16} /> Total Facturado (CFDI)
           </h3>
@@ -178,11 +178,11 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
             ${totalFacturado.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
         </div>
-        <div style={{ backgroundColor: 'var(--pulpos-card-bg)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}>
-          <h3 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ backgroundColor: 'var(--caanma-card-bg)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--caanma-border)' }}>
+          <h3 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <TrendingUp size={16} /> Porcentaje Facturado
           </h3>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>
             {percentageFacturado}%
           </div>
         </div>
@@ -190,7 +190,7 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
 
       {/* Charts */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
-        <div style={{ backgroundColor: 'var(--pulpos-card-bg)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}>
+        <div style={{ backgroundColor: 'var(--caanma-card-bg)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--caanma-border)' }}>
           <h3 style={{ margin: 0, marginBottom: '1.5rem', fontSize: '1.1rem', fontWeight: 'bold' }}>Tendencia de Facturación</h3>
           <div style={{ height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -206,7 +206,7 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
           </div>
         </div>
         
-        <div style={{ backgroundColor: 'var(--pulpos-card-bg)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}>
+        <div style={{ backgroundColor: 'var(--caanma-card-bg)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--caanma-border)' }}>
           <h3 style={{ margin: 0, marginBottom: '1.5rem', fontSize: '1.1rem', fontWeight: 'bold' }}>Facturado por Método de Pago</h3>
           <div style={{ height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -232,26 +232,26 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
       </div>
 
       {/* Data Table */}
-      <div style={{ backgroundColor: 'var(--pulpos-card-bg)', borderRadius: '8px', border: '1px solid var(--pulpos-border)', overflow: 'hidden' }}>
+      <div style={{ backgroundColor: 'var(--caanma-card-bg)', borderRadius: '8px', border: '1px solid var(--caanma-border)', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead style={{ backgroundColor: 'var(--pulpos-bg)', borderBottom: '1px solid var(--pulpos-border)' }}>
+          <thead style={{ backgroundColor: 'var(--caanma-bg)', borderBottom: '1px solid var(--caanma-border)' }}>
             <tr>
-              <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>Folio</th>
-              <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>Fecha</th>
-              <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>Cliente / RFC</th>
-              <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>Vendedor</th>
-              <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>Monto</th>
-              <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>Estado</th>
+              <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>Folio</th>
+              <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>Fecha</th>
+              <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>Cliente / RFC</th>
+              <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>Vendedor</th>
+              <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>Monto</th>
+              <th style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>Estado</th>
             </tr>
           </thead>
           <tbody>
             {filteredSales.map((s: any) => (
-              <tr key={s.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+              <tr key={s.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                 <td style={{ padding: '1rem', fontWeight: '500' }}>{s.id.slice(-6).toUpperCase()}</td>
                 <td style={{ padding: '1rem' }}>{new Date(s.createdAt).toLocaleString()}</td>
                 <td style={{ padding: '1rem' }}>
                   <div>{s.customer?.name || 'Público en General'}</div>
-                  {s.isFacturado && <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)' }}>{s.notes?.match(/RFC: ([A-Z0-9]+)/)?.[1] || 'RFC Generico'}</div>}
+                  {s.isFacturado && <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)' }}>{s.notes?.match(/RFC: ([A-Z0-9]+)/)?.[1] || 'RFC Generico'}</div>}
                 </td>
                 <td style={{ padding: '1rem' }}>{s.user?.name || s.user?.email || 'Caja'}</td>
                 <td style={{ padding: '1rem', fontWeight: 'bold' }}>${s.total.toFixed(2)}</td>
@@ -270,7 +270,7 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
             ))}
             {filteredSales.length === 0 && (
               <tr>
-                <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                   No hay ventas que coincidan con los filtros.
                 </td>
               </tr>

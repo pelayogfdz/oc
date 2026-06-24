@@ -14,7 +14,7 @@ export default function DesktopMenuToggle() {
         border: 'none',
         padding: '0.5rem',
         cursor: 'pointer',
-        color: 'var(--pulpos-text)',
+        color: 'var(--caanma-text)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

@@ -56,18 +56,18 @@ export default function NominaClient() {
 
   return (
     <div>
-      <form onSubmit={handleCalculate} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', marginBottom: '2rem', backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--pulpos-border)' }}>
+      <form onSubmit={handleCalculate} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', marginBottom: '2rem', backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--caanma-border)' }}>
         <div style={{ flex: 1 }}>
           <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Fecha de Inicio</label>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }} />
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)' }} />
         </div>
         <div style={{ flex: 1 }}>
           <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Fecha de Fin</label>
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)' }} />
+          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)' }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 'bold' }}>
-            <input type="checkbox" checked={discountLates} onChange={(e) => setDiscountLates(e.target.checked)} style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--pulpos-primary)' }} />
+            <input type="checkbox" checked={discountLates} onChange={(e) => setDiscountLates(e.target.checked)} style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--caanma-primary)' }} />
             Descontar Faltas por Retardo (3 = 1)
           </label>
         </div>
@@ -80,13 +80,13 @@ export default function NominaClient() {
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Resultados del Periodo</h3>
-            <button onClick={handleDownloadCSV} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', border: '1px solid var(--pulpos-border)', borderRadius: '6px', backgroundColor: 'white', cursor: 'pointer', fontWeight: '500' }}>
+            <button onClick={handleDownloadCSV} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', border: '1px solid var(--caanma-border)', borderRadius: '6px', backgroundColor: 'white', cursor: 'pointer', fontWeight: '500' }}>
               <Download size={16} /> Exportar CSV
             </button>
           </div>
 
           <div className="table-container">
-            <table className="pulpos-table">
+            <table className="caanma-table">
               <thead>
                 <tr>
                   <th>Empleado</th>
@@ -114,7 +114,7 @@ export default function NominaClient() {
                     <td data-label="Faltas / Sin Goce" style={{ color: row.absences > 0 ? '#ea580c' : 'inherit' }}>
                       {row.absences}
                     </td>
-                    <td data-label="Total a Pagar" style={{ textAlign: 'right', fontWeight: 'bold', color: 'var(--pulpos-primary)', fontSize: '1.1rem' }}>
+                    <td data-label="Total a Pagar" style={{ textAlign: 'right', fontWeight: 'bold', color: 'var(--caanma-primary)', fontSize: '1.1rem' }}>
                       ${row.totalToPay.toFixed(2)}
                       {row.lunchDeduction > 0 && (
                         <div style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 'normal', marginTop: '0.25rem' }}>

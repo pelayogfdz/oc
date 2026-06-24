@@ -76,10 +76,10 @@ export default function AIClient({ user, branch }: { user: any, branch: any }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)', backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--pulpos-border)', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)', backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--caanma-border)', overflow: 'hidden' }}>
       
       {/* Header */}
-      <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', display: 'flex', alignItems: 'center', gap: '1rem', backgroundColor: '#f8fafc' }}>
+      <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--caanma-border)', display: 'flex', alignItems: 'center', gap: '1rem', backgroundColor: '#f8fafc' }}>
         <div style={{ backgroundColor: '#e0e7ff', padding: '0.75rem', borderRadius: '12px' }}>
           <Sparkles size={24} color="#4f46e5" />
         </div>
@@ -147,7 +147,7 @@ export default function AIClient({ user, branch }: { user: any, branch: any }) {
       </div>
 
       {/* Input Area */}
-      <div style={{ padding: '1.5rem', borderTop: '1px solid var(--pulpos-border)' }}>
+      <div style={{ padding: '1.5rem', borderTop: '1px solid var(--caanma-border)' }}>
         <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '1rem', position: 'relative' }}>
           <input
             type="text"

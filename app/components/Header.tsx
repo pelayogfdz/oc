@@ -59,8 +59,8 @@ export default async function Header() {
   return (
     <header className="dashboard-header" style={{
       height: '64px',
-      backgroundColor: 'var(--pulpos-card-bg)',
-      borderBottom: '1px solid var(--pulpos-border)',
+      backgroundColor: 'var(--caanma-card-bg)',
+      borderBottom: '1px solid var(--caanma-border)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -110,7 +110,7 @@ export default async function Header() {
             width: '32px', 
             height: '32px', 
             borderRadius: '50%', 
-            backgroundColor: 'var(--pulpos-primary)', 
+            backgroundColor: 'var(--caanma-primary)', 
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center', 
@@ -118,7 +118,7 @@ export default async function Header() {
             fontSize: '0.8rem',
             color: 'white',
             flexShrink: 0,
-            boxShadow: '0 0 0 2px #fff, 0 0 0 3px var(--pulpos-primary)'
+            boxShadow: '0 0 0 2px #fff, 0 0 0 3px var(--caanma-primary)'
           }}>
             {currentUser?.name ? currentUser.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'US'}
           </div>

@@ -16,7 +16,7 @@ export default async function NuevoIntegracion({ params }: { params: { platform:
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
-        <Link href="/integraciones" style={{ textDecoration: 'none', color: 'var(--pulpos-text-muted)', fontSize: '1.25rem' }}>← Cancelar Conexión</Link>
+        <Link href="/integraciones" style={{ textDecoration: 'none', color: 'var(--caanma-text-muted)', fontSize: '1.25rem' }}>← Cancelar Conexión</Link>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Vincular Plataforma: {platform}</h1>
       </div>
 
@@ -32,17 +32,17 @@ export default async function NuevoIntegracion({ params }: { params: { platform:
         
         <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>App ID / Client ID *</label>
-          <input type="text" name="appId" required placeholder="Ej. 1234567890123456" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
-          <p style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', marginTop: '0.25rem' }}>Identificador público de tu aplicación o tienda.</p>
+          <input type="text" name="appId" required placeholder="Ej. 1234567890123456" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+          <p style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', marginTop: '0.25rem' }}>Identificador público de tu aplicación o tienda.</p>
         </div>
 
         <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Client Secret / API Key *</label>
           <div style={{ position: 'relative' }}>
              <KeyRound size={20} color="#94a3b8" style={{ position: 'absolute', top: '0.9rem', left: '0.75rem' }} />
-             <input type="password" name="clientSecret" required placeholder="********************************" style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.5rem', borderRadius: '4px', border: '1px solid var(--pulpos-border)' }} />
+             <input type="password" name="clientSecret" required placeholder="********************************" style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
           </div>
-          <p style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)', marginTop: '0.25rem' }}>La llave secreta que permite a Pulpos escribir en tu cuenta.</p>
+          <p style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', marginTop: '0.25rem' }}>La llave secreta que permite a Caanma escribir en tu cuenta.</p>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>

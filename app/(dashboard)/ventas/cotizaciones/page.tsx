@@ -25,7 +25,7 @@ export default async function CotizacionesPage() {
           display: inline-block;
         }
         .quote-id-text {
-          color: var(--pulpos-primary, #6366f1);
+          color: var(--caanma-primary, #6366f1);
           font-weight: 600;
           text-decoration: underline dotted;
           cursor: help;
@@ -140,7 +140,7 @@ export default async function CotizacionesPage() {
           font-size: 0.75rem;
         }
         .quote-tooltip-total-val {
-          color: var(--pulpos-primary, #6366f1);
+          color: var(--caanma-primary, #6366f1);
           font-size: 1.05rem;
         }
       ` }} />
@@ -155,19 +155,19 @@ export default async function CotizacionesPage() {
       <div className="card" style={{ padding: '0' }}>
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: '#f9fafb' }}>
-              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>ID Cotización</th>
-              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Fecha</th>
-              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Cliente</th>
-              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Creado por</th>
-              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Total</th>
-              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--pulpos-text-muted)' }}>Estado</th>
-              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--pulpos-text-muted)', textAlign: 'right' }}>Acción</th>
+            <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
+              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>ID Cotización</th>
+              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Fecha</th>
+              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Cliente</th>
+              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Creado por</th>
+              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Total</th>
+              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Estado</th>
+              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--caanma-text-muted)', textAlign: 'right' }}>Acción</th>
             </tr>
           </thead>
           <tbody>
             {quotes.map(quote => (
-              <tr key={quote.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+              <tr key={quote.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                 <td data-label="ID Cotización" style={{ padding: '1rem' }}>
                   <div className="quote-id-wrapper">
                     <span className="quote-id-text">#{quote.folio || quote.id.slice(0, 8).toUpperCase()}</span>
@@ -230,12 +230,12 @@ export default async function CotizacionesPage() {
                     </div>
                   </div>
                 </td>
-                <td data-label="Fecha" style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>
+                <td data-label="Fecha" style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>
                   {new Date(quote.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}
                 </td>
                 <td data-label="Cliente" style={{ padding: '1rem' }}>{quote.customer?.name || 'Público en General'}</td>
                 <td data-label="Creado por" style={{ padding: '1rem' }}>{quote.user.name}</td>
-                <td data-label="Total" style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--pulpos-primary)' }}>
+                <td data-label="Total" style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>
                   ${quote.total.toFixed(2)}
                 </td>
                 <td data-label="Estado" style={{ padding: '1rem' }}>
@@ -259,7 +259,7 @@ export default async function CotizacionesPage() {
             ))}
             {quotes.length === 0 && (
               <tr>
-                <td colSpan={7} style={{ padding: '4rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                <td colSpan={7} style={{ padding: '4rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                   No hay cotizaciones registradas. Crea tu primera cotización en la parte superior.
                 </td>
               </tr>

@@ -25,7 +25,7 @@ export default async function ConciliacionPage() {
             <HandCoins size={28} color="#059669" />
             Conciliación Bancaria
           </h1>
-          <p style={{ color: 'var(--pulpos-text-muted)', marginTop: '0.25rem' }}>
+          <p style={{ color: 'var(--caanma-text-muted)', marginTop: '0.25rem' }}>
             Asegura que los depósitos de cada corte coincidan exactamente con tu estado de cuenta bancario.
           </p>
         </div>
@@ -50,18 +50,18 @@ export default async function ConciliacionPage() {
           <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ backgroundColor: '#f8fafc' }}>
               <tr>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Fecha de Corte</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'right' }}>Monto A Depositar</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Estado</th>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)', textAlign: 'center' }}>Acciones</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Fecha de Corte</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'right' }}>Monto A Depositar</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Estado</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'center' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {sessions.map((item: any) => (
-                <tr key={item.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                <tr key={item.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                   <td data-label="Fecha de Corte" style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: '500' }}>{item.closedAt?.toLocaleString() || 'Desconocido'}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)' }}>Cajero: {item.user?.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)' }}>Cajero: {item.user?.name}</div>
                   </td>
                   <td data-label="Monto A Depositar" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: '#0f172a' }}>
                     ${(item.actualAmount || item.expectedAmount || 0).toFixed(2)}
@@ -81,7 +81,7 @@ export default async function ConciliacionPage() {
               ))}
               {sessions.length === 0 && (
                 <tr>
-                  <td colSpan={4} style={{ padding: '4rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                  <td colSpan={4} style={{ padding: '4rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                     <FileText size={40} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
                     No hay cortes de caja pendientes de conciliar.
                   </td>

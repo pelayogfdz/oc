@@ -318,7 +318,7 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Logística y Entregas</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Gestión de rutas y despachos de pedidos</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Gestión de rutas y despachos de pedidos</p>
         </div>
         
         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -350,7 +350,7 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
           </div>
           <div>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', lineHeight: '1' }}>{pendingCount}</div>
-            <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.875rem' }}>Pendientes</div>
+            <div style={{ color: 'var(--caanma-text-muted)', fontSize: '0.875rem' }}>Pendientes</div>
           </div>
         </div>
 
@@ -360,7 +360,7 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
           </div>
           <div>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', lineHeight: '1' }}>{inProgressCount}</div>
-            <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.875rem' }}>En Ruta</div>
+            <div style={{ color: 'var(--caanma-text-muted)', fontSize: '0.875rem' }}>En Ruta</div>
           </div>
         </div>
 
@@ -370,7 +370,7 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
           </div>
           <div>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', lineHeight: '1' }}>{deliveredCount}</div>
-            <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.875rem' }}>Completados</div>
+            <div style={{ color: 'var(--caanma-text-muted)', fontSize: '0.875rem' }}>Completados</div>
           </div>
         </div>
 
@@ -380,7 +380,7 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
           </div>
           <div>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', lineHeight: '1' }}>{postponedCount}</div>
-            <div style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.875rem' }}>Pospuestos</div>
+            <div style={{ color: 'var(--caanma-text-muted)', fontSize: '0.875rem' }}>Pospuestos</div>
           </div>
         </div>
       </div>
@@ -404,23 +404,23 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
         <div style={{ overflowX: 'auto' }}>
           <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--pulpos-border)', backgroundColor: '#f9fafb' }}>
-                <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Venta / Fecha</th>
-                <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Cliente</th>
-                <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Dirección</th>
-                <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500' }}>Chofer Asignado</th>
-                <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500', textAlign: 'center' }}>Estado</th>
-                <th style={{ padding: '1rem', color: 'var(--pulpos-text-muted)', fontWeight: '500', textAlign: 'center' }}>Acciones</th>
+              <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
+                <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Venta / Fecha</th>
+                <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Cliente</th>
+                <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Dirección</th>
+                <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Chofer Asignado</th>
+                <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'center' }}>Estado</th>
+                <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'center' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {filteredOrders.length > 0 ? filteredOrders.map(order => {
                 const statusTheme = getStatusColor(order.status);
                 return (
-                  <tr key={order.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+                  <tr key={order.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                     <td data-label="Venta" style={{ padding: '1rem' }}>
                       <div style={{ fontWeight: '500', fontFamily: 'monospace' }}>{order.saleId?.slice(0,8)}</div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</div>
                     </td>
                     <td data-label="Cliente" style={{ padding: '1rem', fontWeight: '500' }}>
                       {order.sale?.customer?.name || 'Venta de Mostrador'}
@@ -429,13 +429,13 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
                       {order.street ? (
                         <>
                           <div>{order.street} {order.exteriorNumber}</div>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)' }}>{order.neighborhood}, {order.city}</div>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>{order.neighborhood}, {order.city}</div>
                         </>
                       ) : (
                         <span style={{ color: '#ef4444', fontSize: '0.85rem' }}><AlertTriangle size={14} style={{display:'inline'}}/> Sin dirección</span>
                       )}
                     </td>
-                    <td data-label="Chofer" style={{ padding: '1rem', color: 'var(--pulpos-text-muted)' }}>
+                    <td data-label="Chofer" style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>
                       {order.driver?.name || 'Sin asignar'}
                     </td>
                     <td data-label="Estado" style={{ padding: '1rem', textAlign: 'center' }}>
@@ -491,7 +491,7 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
                 );
               }) : (
                 <tr>
-                  <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                  <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                     No hay entregas registradas que coincidan con la búsqueda.
                   </td>
                 </tr>

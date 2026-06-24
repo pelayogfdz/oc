@@ -140,7 +140,7 @@ export default function VentasVendedorClient({ initialData, initialBranchId, ava
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>👥 Rendimiento de Ventas por Vendedor</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Análisis de productividad comercial, número de transacciones cobradas y cálculo automático de comisiones de personal.</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Análisis de productividad comercial, número de transacciones cobradas y cálculo automático de comisiones de personal.</p>
         </div>
         <div className="no-print" style={{ display: 'flex', gap: '0.75rem' }}>
           <button 

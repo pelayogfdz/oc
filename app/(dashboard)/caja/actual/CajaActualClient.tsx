@@ -292,10 +292,10 @@ export default function CajaActualClient({
   // If no session is active, show the Apertura screen
   if (!initialSession) {
     return (
-      <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)', textAlign: 'center' }}>
+      <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', textAlign: 'center' }}>
         <Calculator size={48} color="#d946ef" style={{ margin: '0 auto 1.5rem auto' }} />
         <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>No tienes una Caja Abierta</h2>
-        <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '2rem' }}>Apertura tu turno ingresando el fondo de caja fijo (morralla) inicial en efectivo para {branchName}.</p>
+        <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '2rem' }}>Apertura tu turno ingresando el fondo de caja fijo (morralla) inicial en efectivo para {branchName}.</p>
         
         {error && <div style={{ backgroundColor: '#fef2f2', color: '#ef4444', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>{error}</div>}
         
@@ -335,20 +335,20 @@ export default function CajaActualClient({
        {error && <div style={{ backgroundColor: '#fef2f2', color: '#ef4444', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>{error}</div>}
 
        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
-             <h3 style={{ fontSize: '0.9rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Fondo Inicial</h3>
-             <div style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--pulpos-text)' }}>{formatCurrency(initialSession.initialAmount)}</div>
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
+             <h3 style={{ fontSize: '0.9rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Fondo Inicial</h3>
+             <div style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--caanma-text)' }}>{formatCurrency(initialSession.initialAmount)}</div>
           </div>
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
-             <h3 style={{ fontSize: '0.9rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Ventas de Efectivo</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
+             <h3 style={{ fontSize: '0.9rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Ventas de Efectivo</h3>
              <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#16a34a' }}>+ {formatCurrency(totalSalesCash + totalSalesMixtoCash)}</div>
           </div>
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
-             <h3 style={{ fontSize: '0.9rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Ingresos Extra</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
+             <h3 style={{ fontSize: '0.9rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Ingresos Extra</h3>
              <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#0ea5e9' }}>+ {formatCurrency(totalIn)}</div>
           </div>
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
-             <h3 style={{ fontSize: '0.9rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Retiros/Egresos</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
+             <h3 style={{ fontSize: '0.9rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Retiros/Egresos</h3>
              <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#ef4444' }}>- {formatCurrency(totalOut)}</div>
           </div>
        </div>
@@ -372,11 +372,11 @@ export default function CajaActualClient({
           </button>
        </div>
 
-       <div style={{ borderTop: '1px solid var(--pulpos-border)', paddingTop: '2rem', textAlign: 'center' }}>
+       <div style={{ borderTop: '1px solid var(--caanma-border)', paddingTop: '2rem', textAlign: 'center' }}>
           <button onClick={() => setIsCloseModalOpen(true)} style={{ backgroundColor: '#ef4444', color: 'white', padding: '1rem 3rem', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '1.25rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.4)' }}>
              <CheckCircle size={24} /> Realizar Corte de Caja (Turno Ciego)
           </button>
-          <p style={{ color: 'var(--pulpos-text-muted)', marginTop: '1rem', fontSize: '0.9rem' }}>Una vez realizado, el turno terminará y se registrarán diferencias.</p>
+          <p style={{ color: 'var(--caanma-text-muted)', marginTop: '1rem', fontSize: '0.9rem' }}>Una vez realizado, el turno terminará y se registrarán diferencias.</p>
        </div>
 
        {/* Movement Modal */}
@@ -409,7 +409,7 @@ export default function CajaActualClient({
          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}>
             <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)' }}>
                <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#1e293b' }}>Corte de Caja</h3>
-               <p style={{ color: 'var(--pulpos-text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+               <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
                  Haz un recuento manual del efectivo en tu caja y otros métodos de pago y compáralos con el valor registrado en Pulpo.
                </p>
 

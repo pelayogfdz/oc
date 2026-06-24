@@ -31,7 +31,7 @@ export default async function CajaActualPage() {
     <div style={{ maxWidth: '800px', margin: '0 auto', fontFamily: 'var(--font-geist-sans)' }}>
       <div style={{ marginBottom: '2rem' }}>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Caja Actual</h1>
-        <p style={{ color: 'var(--pulpos-text-muted)' }}>
+        <p style={{ color: 'var(--caanma-text-muted)' }}>
           Gestiona el efectivo en caja para {branch.name}. Responsable en turno: {user?.name}.
         </p>
       </div>

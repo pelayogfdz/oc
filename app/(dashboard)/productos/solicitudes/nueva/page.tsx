@@ -12,10 +12,10 @@ export default async function NuevaSolicitudPage() {
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div style={{ marginBottom: '2rem' }}>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <ClipboardPlus size={28} color="var(--pulpos-primary)" />
+          <ClipboardPlus size={28} color="var(--caanma-primary)" />
           Nueva Solicitud de Compra
         </h1>
-        <p style={{ color: 'var(--pulpos-text-muted)', marginTop: '0.25rem' }}>
+        <p style={{ color: 'var(--caanma-text-muted)', marginTop: '0.25rem' }}>
           Agrega productos del catálogo o solicita productos nuevos para que sean comprados.
         </p>
       </div>

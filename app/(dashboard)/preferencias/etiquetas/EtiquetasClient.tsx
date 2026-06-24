@@ -43,11 +43,11 @@ export default function EtiquetasClient({ initialConfig }: { initialConfig: any 
   };
 
   return (
-    <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '2rem', border: '1px solid var(--pulpos-border)' }}>
+    <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '2rem', border: '1px solid var(--caanma-border)' }}>
       <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
         <Tag size={24} /> Configuración de Etiquetas
       </h2>
-      <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--pulpos-border)', paddingBottom: '1rem' }}>
+      <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '1rem' }}>
         Ajusta las medidas y datos a imprimir en tu etiquetadora térmica (ej. Xprinter, Zebra).
       </p>
       
@@ -58,13 +58,13 @@ export default function EtiquetasClient({ initialConfig }: { initialConfig: any 
             <label style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>
               Ancho de etiqueta (mm)
             </label>
-            <input type="number" name="width" value={config.width} onChange={handleChange} min={10} max={200} style={{ padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', outline: 'none' }} required />
+            <input type="number" name="width" value={config.width} onChange={handleChange} min={10} max={200} style={{ padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', outline: 'none' }} required />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <label style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>
               Alto de etiqueta (mm)
             </label>
-            <input type="number" name="height" value={config.height} onChange={handleChange} min={10} max={200} style={{ padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', outline: 'none' }} required />
+            <input type="number" name="height" value={config.height} onChange={handleChange} min={10} max={200} style={{ padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', outline: 'none' }} required />
           </div>
         </div>
 
@@ -73,13 +73,13 @@ export default function EtiquetasClient({ initialConfig }: { initialConfig: any 
             <label style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>
               Margen interno (mm)
             </label>
-            <input type="number" name="margin" value={config.margin} onChange={handleChange} min={0} max={10} style={{ padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', outline: 'none' }} required />
+            <input type="number" name="margin" value={config.margin} onChange={handleChange} min={0} max={10} style={{ padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', outline: 'none' }} required />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <label style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>
               Formato de Código
             </label>
-            <select name="barcodeFormat" value={config.barcodeFormat} onChange={handleChange} style={{ padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--pulpos-border)', outline: 'none' }}>
+            <select name="barcodeFormat" value={config.barcodeFormat} onChange={handleChange} style={{ padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', outline: 'none' }}>
               <option value="CODE128">CODE128 (Alfanumérico común)</option>
               <option value="EAN13">EAN13 (Solo 13 dígitos)</option>
               <option value="EAN8">EAN8 (Solo 8 dígitos)</option>

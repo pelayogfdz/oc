@@ -38,7 +38,7 @@ export default async function Page() {
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <SpecificIcon size={28} color="#ec4899" />
-            Promociones y Reglas {isGlobal && <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'var(--pulpos-text-muted)' }}>(Todas las Sucursales)</span>}
+            Promociones y Reglas {isGlobal && <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'var(--caanma-text-muted)' }}>(Todas las Sucursales)</span>}
           </h1>
         </div>
         <Link href="/ventas/promociones/nuevo" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#ec4899', borderColor: '#ec4899', textDecoration: 'none' }}>
@@ -50,21 +50,21 @@ export default async function Page() {
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead style={{ backgroundColor: '#f8fafc' }}>
             <tr>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Promoción</th>
-              {isGlobal && <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Sucursal</th>}
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Valor</th>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Estado</th>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--pulpos-border)' }}>Acciones</th>
+              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Promoción</th>
+              {isGlobal && <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Sucursal</th>}
+              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Valor</th>
+              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Estado</th>
+              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {data.map((item: any) => (
-              <tr key={item.id} style={{ borderBottom: '1px solid var(--pulpos-border)' }}>
+              <tr key={item.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                 <td style={{ padding: '1rem' }}>
                   <Link href={`/ventas/promociones/${item.id}`} style={{ textDecoration: 'none', color: '#ec4899', fontWeight: 'bold' }}>
                     {item.name}
                   </Link>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--pulpos-text-muted)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)' }}>
                     Tipo: {item.type === 'PERCENTAGE' ? 'Porcentaje' : item.type === 'FIXED_AMOUNT' ? 'Monto Fijo' : item.type === 'BOGO' ? 'Paga/Lleva (3x2, 2x1, etc.)' : item.type}
                   </div>
                 </td>
@@ -95,7 +95,7 @@ export default async function Page() {
             ))}
             {data.length === 0 && (
               <tr>
-                <td colSpan={4} style={{ padding: '4rem', textAlign: 'center', color: 'var(--pulpos-text-muted)' }}>
+                <td colSpan={4} style={{ padding: '4rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                   <FileText size={40} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
                   No hay promociones registradas.
                 </td>

@@ -16,6 +16,7 @@ export default function ReportesModuleClient({ initialMetrics }: { initialMetric
     { title: 'Ventas por Vendedor', icon: <Users size={24} color="#3b82f6" />, description: 'Rendimiento y comisiones por cajero/vendedor.', route: '/reportes/ventas-por-vendedor' },
     { title: 'Comisiones de Vendedores', icon: <Calculator size={24} color="#10b981" />, description: 'Liquidaciones de bonos y comisiones ganadas por tu equipo.', route: '/reportes/comisiones' },
     { title: 'Inventario Valorizado', icon: <Package size={24} color="#6366f1" />, description: 'Valor total de tu mercancía a costo y precio venta.', route: '/reportes/inventario-valorizado' },
+    { title: 'Costos y Precios', icon: <Package size={24} color="#8b5cf6" />, description: 'Listado de artículos con su costo, precio de venta (por lista seleccionable) y margen de utilidad.', route: '/reportes/costos-precios' },
     { title: 'Reporte de Resurtido', icon: <Package size={24} color="#10b981" />, description: 'Sugerencias de compra basadas en promedio de ventas y stock.', route: '/reportes/resurtido' },
     { title: 'Reporte de Insumos', icon: <ChefHat size={24} color="#8b5cf6" />, description: 'Sugerencia de compra de materias primas basada en recetas de productos vendidos.', route: '/reportes/insumos' },
     { title: 'Reporte de Producción', icon: <ChefHat size={24} color="#f59e0b" />, description: 'Sugerencias de fabricación basadas en ritmo de ventas y stock.', route: '/reportes/produccion' },
@@ -31,27 +32,27 @@ export default function ReportesModuleClient({ initialMetrics }: { initialMetric
     <div style={{ maxWidth: '1200px', margin: '0 auto', fontFamily: 'var(--font-geist-sans)' }}>
        <div style={{ marginBottom: '2rem' }}>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Centro de Reportes</h1>
-          <p style={{ color: 'var(--pulpos-text-muted)' }}>Mide el rendimiento de tus sucursales y toma decisiones basadas en datos.</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Mide el rendimiento de tus sucursales y toma decisiones basadas en datos.</p>
        </div>
 
        {/* Resumen Rapido */}
        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
-             <h3 style={{ fontSize: '0.9rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Ventas del Día</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
+             <h3 style={{ fontSize: '0.9rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Ventas del Día</h3>
              <div style={{ fontSize: '2rem', fontWeight: '900', color: '#16a34a' }}>{formatCurrency(initialMetrics.ventasDelDia)}</div>
              <div style={{ fontSize: '0.85rem', color: '#16a34a', marginTop: '0.5rem', fontWeight: 'bold' }}>Hoy</div>
           </div>
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
-             <h3 style={{ fontSize: '0.9rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Tickets Emitidos</h3>
-             <div style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--pulpos-text)' }}>{initialMetrics.ticketsEmitidos}</div>
-             <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', marginTop: '0.5rem', fontWeight: 'bold' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
+             <h3 style={{ fontSize: '0.9rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Tickets Emitidos</h3>
+             <div style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--caanma-text)' }}>{initialMetrics.ticketsEmitidos}</div>
+             <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginTop: '0.5rem', fontWeight: 'bold' }}>
                Ticket prom. {initialMetrics.ticketsEmitidos > 0 ? formatCurrency(initialMetrics.ventasDelDia / initialMetrics.ticketsEmitidos) : formatCurrency(0)}
              </div>
           </div>
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)' }}>
-             <h3 style={{ fontSize: '0.9rem', color: 'var(--pulpos-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Valor de Inventario</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
+             <h3 style={{ fontSize: '0.9rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Valor de Inventario</h3>
              <div style={{ fontSize: '2rem', fontWeight: '900', color: '#0ea5e9' }}>{formatCurrency(initialMetrics.valorInventario)}</div>
-             <div style={{ fontSize: '0.85rem', color: 'var(--pulpos-text-muted)', marginTop: '0.5rem' }}>Calculado a Precio Costo</div>
+             <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginTop: '0.5rem' }}>Calculado a Precio Costo</div>
           </div>
        </div>
 
@@ -60,19 +61,19 @@ export default function ReportesModuleClient({ initialMetrics }: { initialMetric
        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1.5rem' }}>
           {reports.map((report, idx) => (
              <Link href={report.route} key={idx} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--pulpos-border)', height: '100%', transition: 'all 0.2s', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
-                     onMouseOver={e => e.currentTarget.style.borderColor = 'var(--pulpos-primary)'}
-                     onMouseOut={e => e.currentTarget.style.borderColor = 'var(--pulpos-border)'}>
+                <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', height: '100%', transition: 'all 0.2s', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
+                     onMouseOver={e => e.currentTarget.style.borderColor = 'var(--caanma-primary)'}
+                     onMouseOut={e => e.currentTarget.style.borderColor = 'var(--caanma-border)'}>
                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
                       <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '10px' }}>
                         {report.icon}
                       </div>
                       <h3 style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{report.title}</h3>
                    </div>
-                   <p style={{ color: 'var(--pulpos-text-muted)', fontSize: '0.9rem', flex: 1, marginBottom: '1.5rem' }}>
+                   <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.9rem', flex: 1, marginBottom: '1.5rem' }}>
                       {report.description}
                    </p>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--pulpos-primary)', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--caanma-primary)', fontWeight: 'bold', fontSize: '0.9rem' }}>
                       Pulsar para ver <ArrowRight size={16} />
                    </div>
                 </div>
