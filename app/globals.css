@@ -623,6 +623,27 @@ img[data-header-img="true"]::after {
   color: #1e40af;
 }
 
+/* Dashboard Grids (Desktop) */
+@media (min-width: 769px) {
+  .dashboard-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  .dashboard-main-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .dashboard-reports-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
 /* ==========================================================================
    Mobile Responsiveness Enhancements (<= 768px)
    ========================================================================== */

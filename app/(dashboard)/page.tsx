@@ -87,6 +87,13 @@ export default async function DashboardPage(props: Props) {
         ...branchFilter,
         createdAt: { gte: startOfDay, lte: endOfDay }
       },
+      include: {
+        customer: {
+          select: {
+            name: true
+          }
+        }
+      },
       orderBy: { createdAt: 'desc' },
       take: 5
     }),
@@ -299,7 +306,6 @@ export default async function DashboardPage(props: Props) {
           { title: 'Ingresos de Hoy', value: formatter.format(totalSalesValue), icon: <DollarSign size={24} color="#10b981" /> },
           { title: 'Ventas de Hoy', value: totalOrders.toLocaleString('es-MX'), icon: <ShoppingCart size={24} color="#3b82f6" /> },
           { title: 'Ticket Promedio', value: formatter.format(avgTicket), icon: <DollarSign size={24} color="#f59e0b" /> },
-          { title: 'Alertas de Restock', value: lowStockProducts.toLocaleString('es-MX') + ' SKUs críticos', icon: <PackagePlus size={24} color="#ef4444" /> },
         ].map(stat => (
           <div key={stat.title} style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
@@ -325,7 +331,7 @@ export default async function DashboardPage(props: Props) {
              <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                <thead>
                  <tr style={{ borderBottom: '2px solid #f3f4f6', textAlign: 'left' }}>
-                   <th style={{ padding: '0.75rem 0', color: '#6b7280', fontSize: '0.875rem' }}>Ticket</th>
+                   <th style={{ padding: '0.75rem 0', color: '#6b7280', fontSize: '0.875rem' }}>Ticket / Cliente</th>
                    <th style={{ padding: '0.75rem 0', color: '#6b7280', fontSize: '0.875rem' }}>Hora</th>
                    <th style={{ padding: '0.75rem 0', color: '#6b7280', fontSize: '0.875rem' }}>Total</th>
                  </tr>
@@ -333,14 +339,19 @@ export default async function DashboardPage(props: Props) {
                <tbody>
                  {recentSales.map(sale => (
                    <tr key={sale.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                     <td data-label="Ticket" style={{ padding: '1rem 0', fontSize: '0.9rem', fontWeight: '500' }}>
+                     <td data-label="Ticket / Cliente" style={{ padding: '1rem 0', fontSize: '0.9rem', fontWeight: '500' }}>
                        <Link 
                          href={`/ventas/detalle/${sale.id}`} 
                          style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 'bold' }}
                          className="hover:underline"
                        >
-                         #{sale.id.slice(-6).toUpperCase()}
+                         {sale.folio ? `Folio ${sale.folio}` : `#${sale.id.slice(-6).toUpperCase()}`}
                        </Link>
+                       {sale.customer && (
+                         <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.1rem', fontWeight: 'normal' }}>
+                           {sale.customer.name}
+                         </div>
+                       )}
                      </td>
                      <td data-label="Hora" style={{ padding: '1rem 0', fontSize: '0.9rem', color: '#6b7280' }}>
                        <Link 
