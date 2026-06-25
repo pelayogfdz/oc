@@ -45,11 +45,18 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
 
   // Auto-print script
   const printScript = `
-    window.onload = function() {
-      setTimeout(function() {
+    (function() {
+      function doPrint() {
         window.print();
-      }, 500);
-    }
+      }
+      if (document.readyState === 'complete') {
+        setTimeout(doPrint, 500);
+      } else {
+        window.addEventListener('load', function() {
+          setTimeout(doPrint, 500);
+        });
+      }
+    })();
   `;
 
   // Calculations for dynamic original prices, discounts and totals

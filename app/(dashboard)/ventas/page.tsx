@@ -1,23 +1,28 @@
 import { prisma } from "@/lib/prisma";
-import { getActiveBranch } from "@/app/actions/auth";
+import { getActiveBranch, getSession } from "@/app/actions/auth";
 import { getBranchFilter } from "@/lib/utils";
 import VentasHistoryClient from "./VentasHistoryClient";
 
 export default async function VentasPage() {
   const branch = await getActiveBranch();
+  const session = await getSession();
 
-  // Fetch all branches to populate branch selector
+  // Fetch only branches of this tenant to populate branch selector
   const branches = await prisma.branch.findMany({
+    where: { tenantId: session?.tenantId, isActive: true },
     orderBy: { name: 'asc' }
   });
 
-  // Fetch all users/sellers to populate seller selector
+  // Fetch only users/sellers of this tenant to populate seller selector
   const users = await prisma.user.findMany({
+    where: { tenantId: session?.tenantId },
     orderBy: { name: 'asc' }
   });
   
   const sales = await prisma.sale.findMany({
-    where: getBranchFilter(branch),
+    where: branch.id === 'GLOBAL'
+      ? { branch: { tenantId: session?.tenantId } }
+      : { branchId: branch.id },
     include: {
       user: true,
       branch: true,

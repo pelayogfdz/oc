@@ -55,11 +55,18 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
 
   // Auto-print script
   const printScript = `
-    window.onload = function() {
-      setTimeout(function() {
+    (function() {
+      function doPrint() {
         window.print();
-      }, 500);
-    }
+      }
+      if (document.readyState === 'complete') {
+        setTimeout(doPrint, 500);
+      } else {
+        window.addEventListener('load', function() {
+          setTimeout(doPrint, 500);
+        });
+      }
+    })();
   `;
 
   return (
