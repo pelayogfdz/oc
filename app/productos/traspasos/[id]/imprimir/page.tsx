@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { getActiveBranch } from "@/app/actions/auth";
+import PrintActions from "@/app/components/PrintActions";
 
 export default async function PrintTransferPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -209,17 +210,15 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
       </div>
 
       {/* Action Buttons (No print) */}
-      <div className="no-print" style={{ textAlign: 'center', marginTop: '2rem', paddingBottom: '2rem' }}>
-        <button onClick={() => window.print()} style={{ padding: '0.75rem 2rem', cursor: 'pointer', background: primaryColor, color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', marginRight: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-          Imprimir Traspaso
-        </button>
-        <a href={`/productos/traspasos/${transfer.id}/etiqueta`} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', textDecoration: 'none', padding: '0.75rem 2rem', cursor: 'pointer', background: '#e2e8f0', color: '#1e293b', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', marginRight: '1rem' }}>
-          Imprimir Etiqueta Logística
-        </a>
-        <button onClick={() => window.close()} style={{ padding: '0.75rem 2rem', cursor: 'pointer', background: 'white', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold' }}>
-          Cerrar Ventana
-        </button>
-      </div>
+      <PrintActions
+        primaryColor={primaryColor}
+        printLabel="Imprimir Traspaso"
+        extraButton={
+          <a href={`/productos/traspasos/${transfer.id}/etiqueta`} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', textDecoration: 'none', padding: '0.75rem 2rem', cursor: 'pointer', background: '#e2e8f0', color: '#1e293b', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', marginRight: '1rem' }}>
+            Imprimir Etiqueta Logística
+          </a>
+        }
+      />
     </>
   );
 }

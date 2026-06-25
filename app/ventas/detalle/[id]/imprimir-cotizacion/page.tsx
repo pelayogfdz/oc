@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import PrintActions from "@/app/components/PrintActions";
 
 // Helper function to truncate product description to max 20 words
 function getShortDescription(text: string | null): string {
@@ -266,14 +267,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
       </div>
 
       {/* Action Buttons (No print) */}
-      <div className="no-print" style={{ textAlign: 'center', marginTop: '2rem', paddingBottom: '2rem' }}>
-        <button onClick={() => window.print()} style={{ padding: '0.75rem 2rem', cursor: 'pointer', background: primaryColor, color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', marginRight: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-          Imprimir Cotización
-        </button>
-        <button onClick={() => window.close()} style={{ padding: '0.75rem 2rem', cursor: 'pointer', background: 'white', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold' }}>
-          Cerrar Ventana
-        </button>
-      </div>
+      <PrintActions primaryColor={primaryColor} printLabel="Imprimir Cotización" />
     </>
   );
 }
