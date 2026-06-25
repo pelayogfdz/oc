@@ -146,7 +146,18 @@ export default function LoginPage() {
       const params = new URLSearchParams(window.location.search);
       const errorParam = params.get('error');
       const openParam = params.get('open');
-      if (errorParam) {
+      const resetEmailParam = params.get('resetEmail');
+      const tempPasswordParam = params.get('tempPassword');
+
+      if (resetEmailParam && tempPasswordParam) {
+        setTempEmailForChange(resetEmailParam);
+        setChangeTempPassword(tempPasswordParam);
+        setIsForceChangeOpen(true);
+        
+        // Clean the URL parameters so they don't persist on page refreshes
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      } else if (errorParam) {
         setError(errorParam);
         setIsLoginOpen(true);
         

@@ -24,23 +24,36 @@ export const sendTemporaryPasswordEmail = async (to: string, tempPassword: strin
     return { success: true, simulated: true };
   }
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || 'https://caanma.com';
+  const resetLink = `${baseUrl}/login?resetEmail=${encodeURIComponent(to)}&tempPassword=${encodeURIComponent(tempPassword)}`;
+
   try {
     const info = await transporter.sendMail({
       from: `"Soporte CAANMA" <${process.env.SMTP_USER}>`,
       to,
       subject: 'Recuperación de Contraseña - CAANMA',
-      text: `Has solicitado recuperar tu contraseña. \n\nTu contraseña temporal es: ${tempPassword}\n\nPor favor, ingresa al sistema utilizando esta contraseña. Se te solicitará crear una nueva contraseña de forma obligatoria por seguridad.\n\nEl equipo de CAANMA.`,
+      text: `Has solicitado recuperar tu contraseña. \n\nTu contraseña temporal es: ${tempPassword}\n\nPuedes ingresar directamente y restablecer tu contraseña haciendo clic en el siguiente enlace:\n${resetLink}\n\nPor favor, ingresa al sistema utilizando esta contraseña. Se te solicitará crear una nueva contraseña de forma obligatoria por seguridad.\n\nEl equipo de CAANMA.`,
       html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-          <h2 style="color: #4F46E5;">Recuperación de Contraseña</h2>
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px;">
+          <h2 style="color: #4F46E5; text-align: center;">Recuperación de Contraseña</h2>
           <p>Has solicitado recuperar tu contraseña de acceso a CAANMA.</p>
           <p>Tu contraseña temporal es:</p>
-          <div style="background-color: #f3f4f6; padding: 10px; border-radius: 5px; font-size: 18px; font-weight: bold; letter-spacing: 2px; text-align: center; margin: 20px 0;">
+          <div style="background-color: #f3f4f6; padding: 15px; border-radius: 6px; font-size: 18px; font-weight: bold; letter-spacing: 2px; text-align: center; margin: 20px 0; font-family: monospace;">
             ${tempPassword}
           </div>
-          <p>Por favor, ingresa al sistema utilizando esta contraseña. <strong>Se te solicitará crear una nueva contraseña de forma obligatoria</strong> al iniciar sesión por razones de seguridad.</p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetLink}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);">
+              Restablecer Contraseña Directamente
+            </a>
+          </div>
+
+          <p>Al hacer clic en el botón de arriba, se te redirigirá automáticamente a la página donde podrás establecer tu nueva contraseña sin tener que escribir la contraseña temporal manualmente.</p>
+          <p>Si el botón no funciona, puedes copiar y pegar el siguiente enlace en tu navegador:</p>
+          <p style="word-break: break-all; font-size: 13px; color: #4F46E5;"><a href="${resetLink}">${resetLink}</a></p>
+          
           <hr style="border: none; border-top: 1px solid #eaeaea; margin: 20px 0;" />
-          <p style="font-size: 12px; color: #888;">Si no solicitaste este cambio, puedes ignorar este correo.</p>
+          <p style="font-size: 12px; color: #888; text-align: center;">Si no solicitaste este cambio, puedes ignorar este correo de forma segura.</p>
         </div>
       `,
     });
