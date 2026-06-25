@@ -72,30 +72,35 @@ export default function ComprasClient({ initialPurchases }: { initialPurchases: 
             onMouseOut={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.05)'; }}
             >
               <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--caanma-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                   <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                     <ShoppingCart size={14} /> #{purchase.id.substring(0,8).toUpperCase()}
-                   </div>
-                   <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginTop: '0.25rem', color: '#1e293b' }}>
-                     {purchase.supplier?.name || 'Proveedor General'}
-                   </h3>
+                <div style={{ flexGrow: 1 }}>
+                  <Link href={`/productos/compras/${purchase.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }} className="hover:underline">
+                    <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <ShoppingCart size={14} /> #{purchase.id.substring(0,8).toUpperCase()}
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginTop: '0.25rem', color: '#1e293b' }}>
+                      {purchase.supplier?.name || 'Proveedor General'}
+                    </h3>
+                  </Link>
                 </div>
-                <div style={{ position: 'relative' }}>
+                <div style={{ position: 'relative', marginLeft: '0.5rem' }}>
                   <button 
                     onClick={() => setOpenDropdownId(openDropdownId === purchase.id ? null : purchase.id)}
-                    style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--caanma-text-muted)' }}
+                    style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--caanma-text-muted)', padding: '0.25rem' }}
                   >
                     <MoreVertical size={20} />
                   </button>
                   {openDropdownId === purchase.id && (
                     <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '0.5rem', backgroundColor: 'white', border: '1px solid var(--caanma-border)', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 20, width: '150px', overflow: 'hidden' }}>
-                      <Link href={`/productos/compras/${purchase.id}`} style={{ display: 'block', padding: '0.75rem 1rem', textDecoration: 'none', color: 'var(--caanma-text)', fontSize: '0.9rem' }}>Ver Detalle</Link>
+                      <Link href={`/productos/compras/${purchase.id}`} style={{ display: 'block', padding: '0.75rem 1rem', textDecoration: 'none', color: 'var(--caanma-text)', fontSize: '0.9rem' }} className="hover:bg-slate-100">Ver Detalle</Link>
+                      {purchase.status !== 'CANCELLED' && (
+                        <Link href={`/productos/compras/${purchase.id}/editar`} style={{ display: 'block', padding: '0.75rem 1rem', textDecoration: 'none', color: 'var(--caanma-text)', fontSize: '0.9rem' }} className="hover:bg-slate-100">Editar Compra</Link>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
               
-              <div style={{ padding: '1.25rem', flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ padding: '1.25rem', flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'var(--caanma-text-muted)' }}>
                   <Calendar size={16} /> {new Date(purchase.createdAt).toLocaleDateString()}
                 </div>
@@ -112,11 +117,55 @@ export default function ComprasClient({ initialPurchases }: { initialPurchases: 
                     purchase.paymentMethod
                   }
                 </div>
-                {purchase.paymentMethod === 'CREDIT' && (
-                  <div style={{ fontSize: '0.8rem', color: '#ef4444', fontWeight: 'bold' }}>
-                    Deuda: ${purchase.balanceDue?.toFixed(2)}
-                  </div>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                  {(() => {
+                    const isCancelled = purchase.status === 'CANCELLED';
+                    const hasDebt = purchase.status !== 'CANCELLED' && (purchase.balanceDue || 0) > 0;
+                    if (isCancelled) {
+                      return (
+                        <span style={{ 
+                          backgroundColor: '#fee2e2', 
+                          color: '#991b1b', 
+                          padding: '0.25rem 0.5rem', 
+                          borderRadius: '6px', 
+                          fontSize: '0.75rem', 
+                          fontWeight: 'bold',
+                          display: 'inline-block'
+                        }}>
+                          CANCELADA
+                        </span>
+                      );
+                    } else if (hasDebt) {
+                      return (
+                        <span style={{ 
+                          backgroundColor: '#fee2e2', 
+                          color: '#b91c1c', 
+                          padding: '0.25rem 0.5rem', 
+                          borderRadius: '6px', 
+                          fontSize: '0.75rem', 
+                          fontWeight: 'bold',
+                          display: 'inline-block'
+                        }}>
+                          DEUDA: ${purchase.balanceDue.toFixed(2)}
+                        </span>
+                      );
+                    } else {
+                      return (
+                        <span style={{ 
+                          backgroundColor: '#dcfce7', 
+                          color: '#15803d', 
+                          padding: '0.25rem 0.5rem', 
+                          borderRadius: '6px', 
+                          fontSize: '0.75rem', 
+                          fontWeight: 'bold',
+                          display: 'inline-block'
+                        }}>
+                          PAGADA
+                        </span>
+                      );
+                    }
+                  })()}
+                </div>
               </div>
               
               <div style={{ padding: '1rem 1.25rem', backgroundColor: '#f8fafc', borderTop: '1px solid var(--caanma-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -137,15 +186,19 @@ export default function ComprasClient({ initialPurchases }: { initialPurchases: 
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Proveedor</th>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Sucursal</th>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Forma de Pago</th>
+                <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Estatus</th>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Artículos</th>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', textAlign: 'right' }}>Total</th>
+                <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', textAlign: 'center' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {filteredPurchases.map(purchase => (
                 <tr key={purchase.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                   <td data-label="Folio / Fecha" style={{ padding: '1rem' }}>
-                    <div style={{ fontWeight: 'bold', fontFamily: 'monospace', color: '#1e293b' }}>#{purchase.id.substring(0,8).toUpperCase()}</div>
+                    <Link href={`/productos/compras/${purchase.id}`} style={{ fontWeight: 'bold', fontFamily: 'monospace', color: 'var(--caanma-primary)', textDecoration: 'none' }} className="hover:underline">
+                      #{purchase.id.substring(0,8).toUpperCase()}
+                    </Link>
                     <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
                       <Calendar size={12} /> {new Date(purchase.createdAt).toLocaleDateString()}
                     </div>
@@ -160,8 +213,8 @@ export default function ComprasClient({ initialPurchases }: { initialPurchases: 
                   </td>
                   <td data-label="Forma de Pago" style={{ padding: '1rem' }}>
                     <span style={{ 
-                      backgroundColor: purchase.paymentMethod === 'CREDIT' ? '#fee2e2' : '#f1f5f9', 
-                      color: purchase.paymentMethod === 'CREDIT' ? '#b91c1c' : '#475569',
+                      backgroundColor: '#f1f5f9', 
+                      color: '#475569',
                       padding: '0.35rem 0.75rem', 
                       borderRadius: '8px', 
                       fontSize: '0.85rem', 
@@ -179,11 +232,85 @@ export default function ComprasClient({ initialPurchases }: { initialPurchases: 
                       }
                     </span>
                   </td>
+                  <td data-label="Estatus" style={{ padding: '1rem' }}>
+                    {(() => {
+                      const isCancelled = purchase.status === 'CANCELLED';
+                      const hasDebt = purchase.status !== 'CANCELLED' && (purchase.balanceDue || 0) > 0;
+                      if (isCancelled) {
+                        return (
+                          <span style={{ 
+                            backgroundColor: '#fee2e2', 
+                            color: '#991b1b', 
+                            padding: '0.35rem 0.75rem', 
+                            borderRadius: '8px', 
+                            fontSize: '0.85rem', 
+                            fontWeight: 'bold'
+                          }}>
+                            CANCELADA
+                          </span>
+                        );
+                      } else if (hasDebt) {
+                        return (
+                          <span style={{ 
+                            backgroundColor: '#fee2e2', 
+                            color: '#b91c1c', 
+                            padding: '0.35rem 0.75rem', 
+                            borderRadius: '8px', 
+                            fontSize: '0.85rem', 
+                            fontWeight: 'bold'
+                          }}>
+                            DEUDA: ${purchase.balanceDue.toFixed(2)}
+                          </span>
+                        );
+                      } else {
+                        return (
+                          <span style={{ 
+                            backgroundColor: '#dcfce7', 
+                            color: '#15803d', 
+                            padding: '0.35rem 0.75rem', 
+                            borderRadius: '8px', 
+                            fontSize: '0.85rem', 
+                            fontWeight: 'bold'
+                          }}>
+                            PAGADA
+                          </span>
+                        );
+                      }
+                    })()}
+                  </td>
                   <td data-label="Artículos" style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>
                     {purchase.items?.length || 0} líneas
                   </td>
                   <td data-label="Total" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--caanma-primary)' }}>
                     ${purchase.total?.toFixed(2)}
+                  </td>
+                  <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                      <Link href={`/productos/compras/${purchase.id}`} style={{ 
+                        textDecoration: 'none', 
+                        color: 'var(--caanma-primary)', 
+                        fontSize: '0.85rem', 
+                        fontWeight: 'bold',
+                        padding: '0.25rem 0.5rem',
+                        border: '1px solid var(--caanma-primary)',
+                        borderRadius: '4px'
+                      }} className="hover:bg-slate-50">
+                        Ver
+                      </Link>
+                      {purchase.status !== 'CANCELLED' && (
+                        <Link href={`/productos/compras/${purchase.id}/editar`} style={{ 
+                          textDecoration: 'none', 
+                          color: '#475569', 
+                          fontSize: '0.85rem', 
+                          fontWeight: 'bold',
+                          padding: '0.25rem 0.5rem',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '4px'
+                        }} className="hover:bg-slate-50">
+                          Editar
+                        </Link>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

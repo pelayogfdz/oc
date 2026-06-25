@@ -53,6 +53,11 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
             <Link target="_blank" href={`/productos/compras/${purchase.id}/imprimir`} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px' }}>
                <Printer size={20} /> Imprimir Orden
             </Link>
+            {purchase.status !== 'CANCELLED' && (
+               <Link href={`/productos/compras/${purchase.id}/editar`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', fontWeight: 'bold' }} className="hover:bg-slate-50">
+                  Editar Compra
+               </Link>
+            )}
             <PurchaseActionsClient purchaseId={purchase.id} status={purchase.status} />
          </div>
       </div>
@@ -63,8 +68,51 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
           <div>
             <h1 style={{ fontSize: '2rem', fontWeight: 'bold', margin: '0 0 0.5rem 0', color: '#1e293b' }}>Resumen de Compra</h1>
             <div style={{ fontSize: '1.2rem', color: '#64748b' }}>Folio: #{purchase.folio || purchase.id.slice(0, 8).toUpperCase()}</div>
-            <div style={{ display: 'inline-block', marginTop: '0.5rem', padding: '0.25rem 0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold', backgroundColor: purchase.status === 'COMPLETED' ? '#dcfce7' : purchase.status === 'CANCELLED' ? '#fee2e2' : '#fef3c7', color: purchase.status === 'COMPLETED' ? '#166534' : purchase.status === 'CANCELLED' ? '#991b1b' : '#b45309' }}>
-              {purchase.status === 'COMPLETED' ? 'Recibido' : purchase.status === 'CANCELLED' ? 'Cancelado' : purchase.status}
+            <div style={{ display: 'inline-block', marginTop: '0.5rem' }}>
+              {(() => {
+                const isCancelled = purchase.status === 'CANCELLED';
+                const hasDebt = purchase.status !== 'CANCELLED' && (purchase.balanceDue || 0) > 0;
+                if (isCancelled) {
+                  return (
+                    <span style={{ 
+                      backgroundColor: '#fee2e2', 
+                      color: '#991b1b', 
+                      padding: '0.35rem 0.75rem', 
+                      borderRadius: '8px', 
+                      fontSize: '0.85rem', 
+                      fontWeight: 'bold'
+                    }}>
+                      CANCELADA
+                    </span>
+                  );
+                } else if (hasDebt) {
+                  return (
+                    <span style={{ 
+                      backgroundColor: '#fee2e2', 
+                      color: '#b91c1c', 
+                      padding: '0.35rem 0.75rem', 
+                      borderRadius: '8px', 
+                      fontSize: '0.85rem', 
+                      fontWeight: 'bold'
+                    }}>
+                      DEUDA
+                    </span>
+                  );
+                } else {
+                  return (
+                    <span style={{ 
+                      backgroundColor: '#dcfce7', 
+                      color: '#15803d', 
+                      padding: '0.35rem 0.75rem', 
+                      borderRadius: '8px', 
+                      fontSize: '0.85rem', 
+                      fontWeight: 'bold'
+                    }}>
+                      PAGADA
+                    </span>
+                  );
+                }
+              })()}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
