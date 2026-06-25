@@ -25,13 +25,16 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
   let config: any = {};
   if (sale.branch?.settings?.configJson) {
     try {
-      config = JSON.parse(sale.branch.settings.configJson);
+      const parsed = JSON.parse(sale.branch.settings.configJson);
+      if (parsed && typeof parsed === 'object') {
+        config = parsed;
+      }
     } catch(e) {}
   }
-  const globalLogoUrl = config.global?.logoUrl || '';
-  const facturaConfig = config.formatos_factura || {};
-  const logoUrl = facturaConfig.logoUrl || globalLogoUrl;
-  const { primaryColor = '#8b5cf6', showProductSKU, footerNotes, showTaxBreakdown } = facturaConfig;
+  const globalLogoUrl = config?.global?.logoUrl || '';
+  const facturaConfig = config?.formatos_factura || {};
+  const logoUrl = facturaConfig?.logoUrl || globalLogoUrl;
+  const { primaryColor = '#8b5cf6', showProductSKU = false, footerNotes = '', showTaxBreakdown = false } = facturaConfig || {};
 
   // Auto-print script
   const printScript = `
@@ -42,8 +45,9 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
     }
   `;
 
-  const subtotal = sale.total / 1.16;
-  const iva = sale.total - subtotal;
+  const subtotal = (sale.total || 0) / 1.16;
+  const iva = (sale.total || 0) - subtotal;
+
 
   return (
     <>
@@ -142,8 +146,8 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
                   {item.variant && <div style={{ fontSize: '0.85em', color: '#64748b', marginTop: '0.1rem' }}>Var: {item.variant.attribute}</div>}
                   {showProductSKU && item.product?.sku && <div style={{ fontSize: '0.85em', color: '#64748b', marginTop: '0.1rem' }}>SKU: {item.product.sku}</div>}
                 </td>
-                <td style={{ textAlign: 'right' }}>${item.price.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
-                <td style={{ textAlign: 'right', fontWeight: '600' }}>${(item.price * item.quantity).toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                <td style={{ textAlign: 'right' }}>${(item.price || 0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                <td style={{ textAlign: 'right', fontWeight: '600' }}>${((item.price || 0) * (item.quantity || 0)).toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
               </tr>
             ))}
           </tbody>
@@ -153,23 +157,23 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
         <div className="totals-box">
           {showTaxBreakdown ? (
             <>
-              <div className="total-row"><span>Subtotal:</span><span>${subtotal.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
-              <div className="total-row"><span>IVA (16%):</span><span>${iva.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
+              <div className="total-row"><span>Subtotal:</span><span>${(subtotal || 0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
+              <div className="total-row"><span>IVA (16%):</span><span>${(iva || 0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
             </>
           ) : (
-            <div className="total-row"><span>Subtotal:</span><span>${sale.total.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
+            <div className="total-row"><span>Subtotal:</span><span>${(sale.total || 0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
           )}
           
           <div className="total-final">
             <span>TOTAL:</span>
-            <span>${sale.total.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+            <span>${(sale.total || 0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
           </div>
           
           {sale.cashAmount ? (
             <div style={{ marginTop: '1rem', borderTop: '1px dashed #cbd5e1', paddingTop: '0.5rem' }}>
-              <div className="total-row" style={{ fontSize: '0.85rem', color: '#64748b' }}><span>Efectivo Recibido:</span><span>${sale.cashAmount.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
+              <div className="total-row" style={{ fontSize: '0.85rem', color: '#64748b' }}><span>Efectivo Recibido:</span><span>${(sale.cashAmount || 0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
               {sale.cashAmount > sale.total && (
-                <div className="total-row" style={{ fontSize: '0.85rem', color: '#64748b' }}><span>Cambio:</span><span>${(sale.cashAmount - sale.total).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
+                <div className="total-row" style={{ fontSize: '0.85rem', color: '#64748b' }}><span>Cambio:</span><span>${((sale.cashAmount || 0) - (sale.total || 0)).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
               )}
             </div>
           ) : null}

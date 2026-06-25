@@ -247,31 +247,31 @@ export default function QZTrayConfig({ qzConfig = {} }: { qzConfig?: { certifica
       iframe.style.height = '0px';
       iframe.style.border = 'none';
       
-      iframe.onload = () => {
-        const body = iframe.contentWindow?.document.body;
-        if (!body || !body.innerHTML || body.innerHTML === 'undefined' || body.innerHTML.trim() === '') {
-          return;
-        }
-        
-        iframe.contentWindow?.focus();
-        if (typeof window !== 'undefined' && (window.navigator.webdriver || (window as any).__isTesting)) {
-          console.log("Bypassing browser print dialog in testing environment");
-        } else {
-          iframe.contentWindow?.print();
-        }
-        setTimeout(() => {
-          if (document.body.contains(iframe)) {
-            document.body.removeChild(iframe);
-          }
-        }, 1000);
-      };
-
       document.body.appendChild(iframe);
       
       if (iframe.contentWindow) {
         iframe.contentWindow.document.open();
         iframe.contentWindow.document.write(getTestTicketHtml());
         iframe.contentWindow.document.close();
+        
+        const win = iframe.contentWindow;
+        setTimeout(() => {
+          try {
+            win.focus();
+            if (typeof window !== 'undefined' && (window.navigator.webdriver || (window as any).__isTesting)) {
+              console.log("Bypassing browser print dialog in testing environment");
+            } else {
+              win.print();
+            }
+          } catch (e) {
+            console.error('Failed to trigger iframe print:', e);
+          }
+          setTimeout(() => {
+            if (document.body.contains(iframe)) {
+              document.body.removeChild(iframe);
+            }
+          }, 1000);
+        }, 500);
       }
     } else {
       // QZ Tray printing test

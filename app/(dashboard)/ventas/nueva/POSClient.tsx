@@ -1101,27 +1101,6 @@ export default function POSClient({ products: initialProducts, customers, suppli
     iframe.style.height = '0px';
     iframe.style.border = 'none';
     
-    // Allow image to load before printing - set onload handler before writing and appending
-    iframe.onload = () => {
-      // Avoid firing on initial empty about:blank load
-      const body = iframe.contentWindow?.document.body;
-      if (!body || !body.innerHTML || body.innerHTML === 'undefined' || body.innerHTML.trim() === '') {
-        return;
-      }
-      
-      iframe.contentWindow?.focus();
-      if (typeof window !== 'undefined' && (window.navigator.webdriver || (window as any).__isTesting)) {
-        console.log("Bypassing browser print dialog in testing environment");
-      } else {
-        iframe.contentWindow?.print();
-      }
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe);
-        }
-      }, 1000);
-    };
-
     document.body.appendChild(iframe);
     
     // Write contents to iframe
@@ -1129,6 +1108,25 @@ export default function POSClient({ products: initialProducts, customers, suppli
       iframe.contentWindow.document.open();
       iframe.contentWindow.document.write(html);
       iframe.contentWindow.document.close();
+      
+      const win = iframe.contentWindow;
+      setTimeout(() => {
+        try {
+          win.focus();
+          if (typeof window !== 'undefined' && (window.navigator.webdriver || (window as any).__isTesting)) {
+            console.log("Bypassing browser print dialog in testing environment");
+          } else {
+            win.print();
+          }
+        } catch (e) {
+          console.error('Failed to trigger iframe print:', e);
+        }
+        setTimeout(() => {
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+        }, 1000);
+      }, 500);
     }
   };
 
