@@ -39,16 +39,7 @@ export async function POST(req: Request) {
     const tempPassword = generateRandomPassword(8);
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
-    // Save temporary password and force change on next login
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        forcePasswordChange: true,
-      },
-    });
-
-    // Send email
+    // Send email first
     const emailResult = await sendTemporaryPasswordEmail(user.email, tempPassword);
 
     if (!emailResult.success) {
@@ -58,6 +49,15 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
+
+    // Save temporary password and force change on next login only if email succeeded
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        forcePasswordChange: true,
+      },
+    });
 
     return NextResponse.json(
       { message: 'Si el correo existe, se enviarán las instrucciones.' },

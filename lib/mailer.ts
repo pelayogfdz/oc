@@ -15,6 +15,10 @@ const transporter = nodemailer.createTransport({
 export const sendTemporaryPasswordEmail = async (to: string, tempPassword: string) => {
   // If credentials are not set, we just log it for development purposes
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('❌ Error: SMTP credentials are not configured in production environment.');
+      return { success: false, error: 'SMTP credentials not configured' };
+    }
     console.warn('⚠️ SMTP credentials not set. Simulating email sending.');
     console.log(`[EMAIL SIMULADO] Destino: ${to} | Contraseña Temporal: ${tempPassword}`);
     return { success: true, simulated: true };
@@ -51,6 +55,10 @@ export const sendTemporaryPasswordEmail = async (to: string, tempPassword: strin
 
 export const sendTaskEmail = async (to: string, taskTitle: string, instructions: string, creatorName: string) => {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('❌ Error: SMTP credentials are not configured in production environment.');
+      return { success: false, error: 'SMTP credentials not configured' };
+    }
     console.warn('⚠️ SMTP credentials not set. Simulating task email sending.');
     console.log(`[EMAIL SIMULADO TAREA] Destino: ${to} | Tarea: ${taskTitle} | Asignado por: ${creatorName} | Instrucciones: ${instructions}`);
     return { success: true, simulated: true };
@@ -97,6 +105,10 @@ export const sendSaleNotificationEmail = async (
   pickupCode?: string | null
 ) => {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('❌ Error: SMTP credentials are not configured in production environment.');
+      return { success: false, error: 'SMTP credentials not configured' };
+    }
     console.warn('⚠️ SMTP credentials not set. Simulating sale email sending.');
     console.log(`[EMAIL SIMULADO VENTA] Destino: ${to} | Código Recolección: ${pickupCode || 'N/A'}`);
     return { success: true, simulated: true };
