@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Clock, MapPin, CalendarDays, CheckCircle2, AlertTriangle, FileText, User, Camera, Fingerprint } from 'lucide-react';
+import { Clock, MapPin, CalendarDays, CheckCircle2, AlertTriangle, FileText, User, Camera, Fingerprint, Lock } from 'lucide-react';
 import { registerAttendance, createLeaveRequest, registerFaceDescriptor, registerFingerprintCredential } from '@/app/actions/hr';
+import { changeOwnPassword } from '@/app/actions/auth-actions';
 import FaceRecognitionClient from './FaceRecognitionClient';
 import { formatTime12h } from '@/app/lib/timezone';
 
@@ -38,7 +39,45 @@ export default function PortalEmpleadoClient({
   const [enrollStatus, setEnrollStatus] = useState('');
   const enrollFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Change Password States
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  const handleChangeOwnPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      setPasswordError('La nueva contraseña y la confirmación no coinciden.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError('La nueva contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+    setIsChangingPassword(true);
+    setPasswordError(null);
+    try {
+      const res = await changeOwnPassword(currentPassword, newPassword);
+      if (!res.success) {
+        throw new Error(res.error || 'Error desconocido');
+      }
+      alert('Contraseña actualizada correctamente.');
+      setIsPasswordModalOpen(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      setPasswordError(err.message || 'Error al cambiar la contraseña.');
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   // Reusable helper to get fresh, high-accuracy GPS coordinates
+
   const getGPSCoordinates = (): Promise<{lat: number, lng: number}> => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
@@ -915,6 +954,21 @@ export default function PortalEmpleadoClient({
             </button>
           </div>
 
+          {/* Change Password Card */}
+          <div className="card" style={{ padding: '1.5rem', backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', marginTop: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e293b' }}>
+              <Lock size={20} color="var(--caanma-primary)" /> Seguridad
+            </h3>
+            <p style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', marginBottom: '1.25rem', lineHeight: '1.4' }}>
+              Mantén tu cuenta protegida cambiando tu contraseña periódicamente.
+            </p>
+            <button 
+              onClick={() => setIsPasswordModalOpen(true)}
+              style={{ width: '100%', padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', color: '#334155' }}>
+              Cambiar Contraseña
+            </button>
+          </div>
+
         </div>
       </div>
 
@@ -958,6 +1012,41 @@ export default function PortalEmpleadoClient({
           </div>
         </div>
       )}
+
+      {/* Change Password Modal */}
+      {isPasswordModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Cambiar Contraseña</h3>
+            <form onSubmit={handleChangeOwnPasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {passwordError && (
+                <div style={{ padding: '0.75rem', backgroundColor: '#fef2f2', border: '1px solid #f87171', color: '#ef4444', borderRadius: '6px', fontSize: '0.85rem' }}>
+                  {passwordError}
+                </div>
+              )}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Contraseña Actual</label>
+                <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Nueva Contraseña</label>
+                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1' }} placeholder="Mínimo 6 caracteres" />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Confirmar Nueva Contraseña</label>
+                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                <button type="button" onClick={() => { setIsPasswordModalOpen(false); setPasswordError(null); }} style={{ padding: '0.75rem 1.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'transparent', cursor: 'pointer' }}>Cancelar</button>
+                <button type="submit" disabled={isChangingPassword} style={{ padding: '0.75rem 1.5rem', borderRadius: '6px', border: 'none', backgroundColor: '#8b5cf6', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>
+                  {isChangingPassword ? 'Actualizando...' : 'Actualizar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 }

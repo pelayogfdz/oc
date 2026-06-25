@@ -93,3 +93,57 @@ export async function logout() {
   revalidatePath('/', 'layout');
   redirect('https://caanma.com');
 }
+
+export async function changeOwnPassword(currentPassword: string, newPassword: string) {
+  try {
+    const user = await getActiveUser();
+    if (!user) {
+      return { success: false, error: 'Sesión no activa' };
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      return { success: false, error: 'La nueva contraseña debe tener al menos 6 caracteres' };
+    }
+
+    // Verify current password
+    let isCurrentPasswordValid = false;
+    if (user.password === currentPassword) {
+      isCurrentPasswordValid = true;
+    } else {
+      isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password || '');
+    }
+
+    if (!isCurrentPasswordValid) {
+      return { success: false, error: 'La contraseña actual es incorrecta' };
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update in Master Database
+    await masterClient.user.update({
+      where: { id: user.id },
+      data: { password: hashedNewPassword, forcePasswordChange: false }
+    });
+
+    // Update in Tenant Database if applicable
+    if (user.tenantId) {
+      try {
+        const tenantClient = getClientForTenant(user.tenantId);
+        if (tenantClient !== masterClient) {
+          await tenantClient.user.update({
+            where: { id: user.id },
+            data: { password: hashedNewPassword, forcePasswordChange: false }
+          });
+        }
+      } catch (tenantErr) {
+        console.error('Failed to update password in tenant DB:', tenantErr);
+      }
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('Error changing own password:', err);
+    return { success: false, error: err.message || 'Error al cambiar la contraseña' };
+  }
+}
+
