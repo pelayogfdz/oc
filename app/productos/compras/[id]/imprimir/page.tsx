@@ -226,11 +226,11 @@ export default async function PrintPurchasePage({ params }: { params: Promise<{ 
         {/* Footer & QR */}
         <div style={{ position: 'absolute', bottom: '2cm', left: '2cm', right: '2cm' }}>
           <div className="qr-section">
-            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://clientes.caanma.com?compraId=${purchase.id.slice(0, 8)}`} alt="QR Code" style={{ width: '80px', height: '80px' }} />
+            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://caanma.com/clientes/portal?compraId=${purchase.id.slice(0, 8)}`} alt="QR Code" style={{ width: '80px', height: '80px' }} />
             <div>
               <h4 style={{ margin: '0 0 0.25rem 0', color: '#0f172a', fontSize: '1rem' }}>Verificación Interna</h4>
               <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>
-                Escanea el código QR o ingresa a <strong>clientes.caanma.com</strong> con el folio:<br/>
+                Escanea el código QR o ingresa a <strong>caanma.com/clientes/portal</strong> con el folio:<br/>
                 <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: primaryColor, letterSpacing: '1px' }}>{purchase.folio || "OC-" + purchase.id.slice(0, 8).toUpperCase()}</span>
               </p>
             </div>
