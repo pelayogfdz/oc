@@ -47,7 +47,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
   useEffect(() => {
     if (!isOnline) {
       import('@/lib/offlineDB').then(({ db }) => {
-        db.products.toArray().then(res => setInventory(res.length ? res : initialInventory));
+        db.products.where('branchId').equals(originBranchId).toArray().then(res => setInventory(res.length ? res : initialInventory));
         db.branches.toArray().then(res => {
           if (res.length) {
             setOtherBranches(res.filter(b => b.id !== originBranchId && b.id !== 'GLOBAL'));

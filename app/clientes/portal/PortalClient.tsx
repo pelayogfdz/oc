@@ -79,7 +79,7 @@ export default function PortalClient() {
             setTaxData({
               legalName: result.sale.customer.legalName || result.sale.customer.name || '',
               rfc: result.sale.customer.taxId || '',
-              taxRegime: result.sale.customer.taxRegime || '601',
+              taxRegime: result.sale.customer.taxRegime || ((result.sale.customer.taxId && result.sale.customer.taxId.length === 12) ? '601' : '605'),
               zipCode: result.sale.customer.zipCode || '',
               cfdiUse: result.sale.customer.cfdiUse || 'G03',
               email: result.sale.customer.email || '',
@@ -109,7 +109,7 @@ export default function PortalClient() {
         setTaxData({
           legalName: result.sale.customer.legalName || result.sale.customer.name || '',
           rfc: result.sale.customer.taxId || '',
-          taxRegime: result.sale.customer.taxRegime || '601',
+          taxRegime: result.sale.customer.taxRegime || ((result.sale.customer.taxId && result.sale.customer.taxId.length === 12) ? '601' : '605'),
           zipCode: result.sale.customer.zipCode || '',
           cfdiUse: result.sale.customer.cfdiUse || 'G03',
           email: result.sale.customer.email || '',
@@ -772,7 +772,18 @@ export default function PortalClient() {
                             type="text" 
                             placeholder="RFC a 12 o 13 caracteres"
                             value={taxData.rfc}
-                            onChange={e => setTaxData(prev => ({ ...prev, rfc: e.target.value.toUpperCase() }))}
+                            onChange={e => {
+                              const newRfc = e.target.value.toUpperCase().replace(/[^A-Z0-9&]/g, '');
+                              setTaxData(prev => {
+                                let newRegime = prev.taxRegime;
+                                if (newRfc.length === 13 && (prev.taxRegime === '601' || prev.taxRegime === '603')) {
+                                  newRegime = '605';
+                                } else if (newRfc.length === 12 && (prev.taxRegime !== '601' && prev.taxRegime !== '603')) {
+                                  newRegime = '601';
+                                }
+                                return { ...prev, rfc: newRfc, taxRegime: newRegime };
+                              });
+                            }}
                             required
                             style={{ padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }}
                           />

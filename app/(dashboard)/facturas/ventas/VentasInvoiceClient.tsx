@@ -604,7 +604,18 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                         type="text" 
                         placeholder="RFC a 12 o 13 posiciones"
                         value={newCustomer.taxId}
-                        onChange={e => setNewCustomer(prev => ({ ...prev, taxId: e.target.value.toUpperCase() }))}
+                        onChange={e => {
+                          const newRfc = e.target.value.toUpperCase().replace(/[^A-Z0-9&]/g, '');
+                          setNewCustomer(prev => {
+                            let newRegime = prev.taxRegime;
+                            if (newRfc.length === 13 && (prev.taxRegime === '601' || prev.taxRegime === '603')) {
+                              newRegime = '605';
+                            } else if (newRfc.length === 12 && (prev.taxRegime !== '601' && prev.taxRegime !== '603')) {
+                              newRegime = '601';
+                            }
+                            return { ...prev, taxId: newRfc, taxRegime: newRegime };
+                          });
+                        }}
                         required
                         style={{ width: '100%', padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }}
                       />

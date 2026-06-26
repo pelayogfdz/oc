@@ -271,15 +271,16 @@ export default function POSClient({ products: initialProducts, customers, suppli
     if (!isOnline) {
       import('@/lib/offlineDB').then(({ db }) => {
         db.customers.toArray().then(res => setActiveCustomers(res.length ? res : customers));
-        db.products.orderBy('name').limit(50).toArray().then(res => {
-          if (res.length) setDisplayedProducts(res);
+        db.products.where('branchId').equals(branchId).toArray().then(res => {
+          const sorted = res.sort((a, b) => a.name.localeCompare(b.name)).slice(0, 50);
+          if (sorted.length) setDisplayedProducts(sorted);
         });
       });
     } else {
       setActiveCustomers(customers);
       if (searchTerm === '') setDisplayedProducts(initialProducts);
     }
-  }, [isOnline, customers, initialProducts, searchTerm]);
+  }, [isOnline, customers, initialProducts, searchTerm, branchId]);
 
   // Default to "Público en General"
   useEffect(() => {
@@ -633,11 +634,13 @@ export default function POSClient({ products: initialProducts, customers, suppli
         if (!isOnline && searchTerm.trim() !== '') {
            const { db } = await import('@/lib/offlineDB');
            const lowerTerm = searchTerm.toLowerCase();
-           const results = await db.products.filter(p => 
-             Boolean(p.name.toLowerCase().includes(lowerTerm) || 
-             (p.sku && p.sku.toLowerCase().includes(lowerTerm)) || 
-             (p.barcode && p.barcode.includes(lowerTerm)))
-           ).limit(50).toArray();
+           const results = await db.products
+             .where('branchId').equals(branchId)
+             .filter(p => 
+               Boolean(p.name.toLowerCase().includes(lowerTerm) || 
+               (p.sku && p.sku.toLowerCase().includes(lowerTerm)) || 
+               (p.barcode && p.barcode.includes(lowerTerm)))
+             ).limit(50).toArray();
            setDisplayedProducts(results);
         } else if (searchTerm.trim() !== '') {
            const results = await searchProducts(searchTerm, branchId);
@@ -2756,7 +2759,24 @@ export default function POSClient({ products: initialProducts, customers, suppli
                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '0.85rem', color: '#166534', fontWeight: 'bold', marginBottom: '0.25rem' }}>RFC *</label>
-                      <input type="text" value={billRfc} onChange={e => setBillRfc(e.target.value.toUpperCase())} placeholder="XAXX010101000" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #bbf7d0' }} />
+                      <input 
+                         type="text" 
+                         value={billRfc} 
+                         onChange={e => {
+                           const newRfc = e.target.value.toUpperCase().replace(/[^A-Z0-9&]/g, '');
+                           setBillRfc(newRfc);
+                           setBillRegime(prev => {
+                             if (newRfc.length === 13 && (prev === '601' || prev === '603')) {
+                               return '612'; // Default physical person regime in this select
+                             } else if (newRfc.length === 12 && (prev !== '601' && prev !== '603')) {
+                               return '601'; // Default moral person regime
+                             }
+                             return prev;
+                           });
+                         }} 
+                         placeholder="XAXX010101000" 
+                         style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #bbf7d0' }} 
+                       />
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: '0.85rem', color: '#166534', fontWeight: 'bold', marginBottom: '0.25rem' }}>Cód. Postal *</label>

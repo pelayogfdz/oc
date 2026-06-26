@@ -203,6 +203,29 @@ export async function createProduct(prevState: any, formData: FormData) {
 
 
 
+  // Propagate common details to sibling products in other branches
+  const fieldsToPropagate = {
+    name,
+    barcode,
+    description,
+    price,
+    cost,
+    taxRate,
+    brand,
+    imageUrl,
+    youtubeUrl,
+    isActive,
+    allowProduction,
+    isProductionInput,
+    isService,
+    unit,
+    satKey,
+    satUnit,
+    expirationDate,
+    hasTraceability,
+    showInWeb
+  };
+
   if (tenantId) {
     const siblingBranches = await prisma.branch.findMany({
       where: {
@@ -212,12 +235,13 @@ export async function createProduct(prevState: any, formData: FormData) {
       },
       select: { id: true }
     });
+    const siblingBranchIds = siblingBranches.map(b => b.id);
 
     if (siblingBranches.length > 0) {
       const existingSiblings = await prisma.product.findMany({
         where: {
           sku: sku,
-          branchId: { in: siblingBranches.map(b => b.id) }
+          branchId: { in: siblingBranchIds }
         },
         select: { branchId: true }
       });
@@ -271,40 +295,21 @@ export async function createProduct(prevState: any, formData: FormData) {
           }
         }
       }
+
+      // Propagate common details to sibling products in other branches OF THE SAME TENANT
+      if (siblingBranchIds.length > 0) {
+        await prisma.product.updateMany({
+          where: {
+            sku: sku,
+            branchId: { in: siblingBranchIds },
+            id: { not: product.id }
+          },
+          // @ts-ignore
+          data: fieldsToPropagate
+        });
+      }
     }
   }
-
-  // Propagate common details to sibling products in other branches
-  const fieldsToPropagate = {
-    name,
-    barcode,
-    description,
-    price,
-    cost,
-    taxRate,
-    brand,
-    imageUrl,
-    youtubeUrl,
-    isActive,
-    allowProduction,
-    isProductionInput,
-    isService,
-    unit,
-    satKey,
-    satUnit,
-    expirationDate,
-    hasTraceability,
-    showInWeb
-  };
-
-  await prisma.product.updateMany({
-    where: {
-      sku: sku,
-      id: { not: product.id }
-    },
-    // @ts-ignore
-    data: fieldsToPropagate
-  });
 
   } catch (error: any) {
     console.error("Error creating product:", error);
@@ -426,24 +431,37 @@ export async function updateProduct(productId: string, formData: FormData) {
         });
       }
 
-      // Propagate common details to sibling products in other branches
+      // Propagate common details to sibling products in other branches OF THE SAME TENANT
       if (currentProduct && currentProduct.sku) {
-        // Exclude stock, minStock, branchId, supplierId, id from propagation
-        const fieldsToPropagate = { ...data };
-        delete fieldsToPropagate.stock;
-        delete fieldsToPropagate.minStock;
-        delete fieldsToPropagate.branchId;
-        delete fieldsToPropagate.supplierId;
-
-        if (Object.keys(fieldsToPropagate).length > 0) {
-          await prisma.product.updateMany({
-            where: {
-              sku: currentProduct.sku,
-              id: { not: productId }
-            },
-            // @ts-ignore
-            data: fieldsToPropagate
+        const activeBranch = await getActiveBranch();
+        const tenantId = activeBranch?.tenantId;
+        if (tenantId) {
+          const tenantBranches = await prisma.branch.findMany({
+            where: { tenantId, isActive: true },
+            select: { id: true }
           });
+          const siblingBranchIds = tenantBranches.map(b => b.id);
+
+          if (siblingBranchIds.length > 0) {
+            // Exclude stock, minStock, branchId, supplierId, id from propagation
+            const fieldsToPropagate = { ...data };
+            delete fieldsToPropagate.stock;
+            delete fieldsToPropagate.minStock;
+            delete fieldsToPropagate.branchId;
+            delete fieldsToPropagate.supplierId;
+
+            if (Object.keys(fieldsToPropagate).length > 0) {
+              await prisma.product.updateMany({
+                where: {
+                  sku: currentProduct.sku,
+                  branchId: { in: siblingBranchIds },
+                  id: { not: productId }
+                },
+                // @ts-ignore
+                data: fieldsToPropagate
+              });
+            }
+          }
         }
       }
     }

@@ -91,7 +91,21 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
       customerData = {
         legal_name: finalCustomer.legalName || finalCustomer.name,
         tax_id: finalCustomer.taxId,
-        tax_system: (finalCustomer as any).taxSystem || "601",
+        tax_system: (() => {
+          const rfc = finalCustomer.taxId;
+          const regime = finalCustomer.taxRegime;
+          if (rfc.length === 12) {
+            if (!regime || ["605", "606", "612", "621"].includes(regime)) {
+              return "601";
+            }
+            return regime;
+          } else {
+            if (!regime || ["601", "603"].includes(regime)) {
+              return "605";
+            }
+            return regime;
+          }
+        })(),
         address: {
           zip: finalCustomer.zipCode || "01000"
         }
@@ -458,7 +472,21 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
       customerData = {
         legal_name: finalCustomer.legalName || finalCustomer.name,
         tax_id: finalCustomer.taxId,
-        tax_system: (finalCustomer as any).taxSystem || "601",
+        tax_system: (() => {
+          const rfc = finalCustomer.taxId;
+          const regime = finalCustomer.taxRegime;
+          if (rfc.length === 12) {
+            if (!regime || ["605", "606", "612", "621"].includes(regime)) {
+              return "601";
+            }
+            return regime;
+          } else {
+            if (!regime || ["601", "603"].includes(regime)) {
+              return "605";
+            }
+            return regime;
+          }
+        })(),
         address: {
           zip: finalCustomer.zipCode || "01000"
         }
