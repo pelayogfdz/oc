@@ -141,20 +141,34 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
       payment_method = "PPD"; // Pago en Parcialidades o Diferido
     }
 
-    if (finalCustomer && finalCustomer.cfdiUse) {
+    if (customerData.tax_id === "XAXX010101000") {
+      customerData.legal_name = "PUBLICO EN GENERAL";
+      customerData.tax_system = "616";
+      cfdiUse = "S01";
+    } else if (finalCustomer && finalCustomer.cfdiUse) {
       cfdiUse = finalCustomer.cfdiUse;
-    } else if (customerData.tax_id !== "XAXX010101000") {
+    } else {
       cfdiUse = "G03"; // Gastos en general como default seguro para RFC conocidos
     }
 
     // Generate Invoice
-    const invoice = await facturapi.invoices.create({
+    const invoicePayload: any = {
       customer: customerData,
       items: items,
       payment_form: payment_form,
       payment_method: payment_method,
       use: cfdiUse
-    });
+    };
+
+    if (customerData.tax_id === "XAXX010101000") {
+      invoicePayload.global_info = {
+        periodicity: "01", // Diario
+        months: String(new Date().getMonth() + 1).padStart(2, '0'),
+        year: new Date().getFullYear()
+      };
+    }
+
+    const invoice = await facturapi.invoices.create(invoicePayload);
 
     // Update the Sale record with the Invoice ID and link customer if provided
     await prisma.sale.update({
@@ -534,20 +548,34 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
       else payment_form = "01";
     }
 
-    if (finalCustomer && finalCustomer.cfdiUse) {
+    if (customerData.tax_id === "XAXX010101000") {
+      customerData.legal_name = "PUBLICO EN GENERAL";
+      customerData.tax_system = "616";
+      cfdiUse = "S01";
+    } else if (finalCustomer && finalCustomer.cfdiUse) {
       cfdiUse = finalCustomer.cfdiUse;
-    } else if (customerData.tax_id !== "XAXX010101000") {
+    } else {
       cfdiUse = "G03";
     }
 
     // Generate Invoice
-    const invoice = await facturapi.invoices.create({
+    const invoicePayload: any = {
       customer: customerData,
       items: items,
       payment_form: payment_form,
       payment_method: payment_method,
       use: cfdiUse
-    });
+    };
+
+    if (customerData.tax_id === "XAXX010101000") {
+      invoicePayload.global_info = {
+        periodicity: "01", // Diario
+        months: String(new Date().getMonth() + 1).padStart(2, '0'),
+        year: new Date().getFullYear()
+      };
+    }
+
+    const invoice = await facturapi.invoices.create(invoicePayload);
 
     // Update all sales with the invoice ID
     await prisma.sale.updateMany({
