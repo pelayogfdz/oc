@@ -46,3 +46,16 @@ next-env.d.ts
 
 # Local Netlify folder
 .netlify
+
+# scratch and logs
+/scratch
+/scratch_*
+/whatsapp_service_output.log
+/tsc_errors_utf8.txt
+/tsc_output_utf8.txt
+/whatsapp_error_utf8.txt
+/temp_*
+/test-*
+/test_*
+/trigger_*
+/tmp_*

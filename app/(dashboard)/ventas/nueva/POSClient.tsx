@@ -1115,7 +1115,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
       setTimeout(() => {
         try {
           win.focus();
-          if (typeof window !== 'undefined' && (window.navigator.webdriver || (window as any).__isTesting)) {
+          if (typeof window !== 'undefined' && (window as any).__isTesting) {
             console.log("Bypassing browser print dialog in testing environment");
           } else {
             win.print();
@@ -1340,7 +1340,13 @@ export default function POSClient({ products: initialProducts, customers, suppli
       setIsCheckoutOpen(false);
       setIsProcessing(false);
 
-      const isAutoPrint = impresorasConfig.printAutomatically === 'true' || impresorasConfig.printAutomatically === true;
+      const isAutoPrint = 
+        impresorasConfig.printAutomatically === 'true' || 
+        impresorasConfig.printAutomatically === true || 
+        impresorasConfig.printAutomatically === 'si' ||
+        ticketConfig.impresionAutomatica === 'true' ||
+        ticketConfig.impresionAutomatica === true ||
+        ticketConfig.impresionAutomatica === 'si';
 
       if (mode === 'SALE') {
         if (isAutoPrint) {

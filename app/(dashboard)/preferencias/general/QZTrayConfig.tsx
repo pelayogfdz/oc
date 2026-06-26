@@ -260,7 +260,7 @@ export default function QZTrayConfig({ qzConfig = {} }: { qzConfig?: { certifica
         setTimeout(() => {
           try {
             win.focus();
-            if (typeof window !== 'undefined' && (window.navigator.webdriver || (window as any).__isTesting)) {
+            if (typeof window !== 'undefined' && (window as any).__isTesting) {
               console.log("Bypassing browser print dialog in testing environment");
             } else {
               win.print();
