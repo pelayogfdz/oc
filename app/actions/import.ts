@@ -120,6 +120,38 @@ export async function importProducts(records: any[]) {
     let productObj;
 
     if (existing) {
+      // Log price changes if public price is modified
+      if (existing.price !== price) {
+        await prisma.priceChangeLog.create({
+          data: {
+            productId: existing.id,
+            oldPrice: existing.price,
+            newPrice: price,
+            branchId: branch.id
+          }
+        });
+
+        // Log for sister branches too
+        if (sisterBranchIds.length > 0) {
+          const sisterProducts = await prisma.product.findMany({
+            where: { sku: existing.sku, branchId: { in: sisterBranchIds } },
+            select: { id: true, branchId: true, price: true }
+          });
+          for (const sp of sisterProducts) {
+            if (sp.price !== price) {
+              await prisma.priceChangeLog.create({
+                data: {
+                  productId: sp.id,
+                  oldPrice: sp.price,
+                  newPrice: price,
+                  branchId: sp.branchId
+                }
+              });
+            }
+          }
+        }
+      }
+
       // Update existing product
       productObj = await prisma.product.update({
         where: { id: existing.id },

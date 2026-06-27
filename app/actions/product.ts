@@ -410,7 +410,7 @@ export async function updateProduct(productId: string, formData: FormData) {
     // Get current product details before update (to find siblings by old SKU)
     const currentProduct = await prisma.product.findUnique({
       where: { id: productId },
-      select: { sku: true }
+      select: { sku: true, price: true, branchId: true }
     });
 
     if (Object.keys(data).length > 0) {
@@ -441,6 +441,30 @@ export async function updateProduct(productId: string, formData: FormData) {
             select: { id: true }
           });
           const siblingBranchIds = tenantBranches.map(b => b.id);
+
+          // Log price changes if public price is modified
+          if (data.price !== undefined && currentProduct.price !== data.price) {
+            const affectedProducts = await prisma.product.findMany({
+              where: {
+                sku: currentProduct.sku,
+                branchId: { in: siblingBranchIds }
+              },
+              select: { id: true, branchId: true, price: true }
+            });
+
+            for (const p of affectedProducts) {
+              if (p.price !== data.price) {
+                await prisma.priceChangeLog.create({
+                  data: {
+                    productId: p.id,
+                    oldPrice: p.price,
+                    newPrice: data.price,
+                    branchId: p.branchId
+                  }
+                });
+              }
+            }
+          }
 
           if (siblingBranchIds.length > 0) {
             // Exclude stock, minStock, branchId, supplierId, id from propagation
@@ -664,4 +688,48 @@ export async function deleteProduct(productId: string) {
     throw e;
   }
   revalidatePath('/productos');
+}
+
+export async function getPriceChangesInLast24Hours() {
+  try {
+    const activeBranch = await getActiveBranch();
+    if (!activeBranch || activeBranch.id === 'GLOBAL') {
+      return [];
+    }
+
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const changes = await prisma.priceChangeLog.findMany({
+      where: {
+        branchId: activeBranch.id,
+        createdAt: {
+          gte: twentyFourHoursAgo
+        }
+      },
+      include: {
+        product: {
+          select: {
+            name: true,
+            sku: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    return changes.map(c => ({
+      id: c.id,
+      productId: c.productId,
+      name: c.product.name,
+      sku: c.product.sku,
+      oldPrice: c.oldPrice,
+      newPrice: c.newPrice,
+      createdAt: c.createdAt
+    }));
+  } catch (error) {
+    console.error("Error in getPriceChangesInLast24Hours:", error);
+    return [];
+  }
 }

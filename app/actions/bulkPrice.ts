@@ -9,7 +9,26 @@ export async function bulkUpdatePrices(
 ) {
   if (updates.length > 0) {
     await prisma.$transaction(async (tx) => {
+      const productIds = updates.map(u => u.id);
+      const currentProducts = await tx.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, price: true, branchId: true }
+      });
+      const currentPriceMap = new Map(currentProducts.map(p => [p.id, p]));
+
       for (const update of updates) {
+        const current = currentPriceMap.get(update.id);
+        if (current && current.price !== update.price) {
+          await tx.priceChangeLog.create({
+            data: {
+              productId: update.id,
+              oldPrice: current.price,
+              newPrice: update.price,
+              branchId: current.branchId
+            }
+          });
+        }
+
         await tx.product.update({
           where: { id: update.id },
           data: {

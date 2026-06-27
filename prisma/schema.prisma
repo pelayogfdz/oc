@@ -306,6 +306,7 @@ model Product {
   transferItems       TransferItem[]
   hasTraceability     Boolean              @default(false)
   fuelTraceabilities  FuelTraceability[]
+  priceChanges        PriceChangeLog[]
 
   @@unique([sku, branchId])
   @@index([branchId, stock])
@@ -1160,6 +1161,18 @@ model CartaPorte {
   transaction        FuelTransaction? @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   sale               Sale?            @relation(fields: [saleId], references: [id], onDelete: SetNull)
   purchase           Purchase?        @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+}
+
+model PriceChangeLog {
+  id        String   @id @default(uuid())
+  productId String
+  oldPrice  Float
+  newPrice  Float
+  branchId  String
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([branchId, createdAt])
 }
 
 

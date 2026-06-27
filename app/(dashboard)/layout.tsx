@@ -13,6 +13,7 @@ import { getActiveUser } from '@/app/actions/auth';
 import { prisma } from '@/lib/prisma';
 import FloatingWhatsappWidget from '../components/FloatingWhatsappWidget';
 import CollaboratorTaskPopup from '../components/CollaboratorTaskPopup';
+import PriceChangesAlertPopup from '../components/PriceChangesAlertPopup';
 import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
@@ -89,6 +90,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <MobileBottomNav />
         {user && <FloatingWhatsappWidget />}
         {user && <CollaboratorTaskPopup userId={user.id} />}
+        {user && <PriceChangesAlertPopup />}
       </MobileMenuProvider>
     </OfflineSyncProvider>
   );
