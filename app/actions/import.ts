@@ -102,9 +102,19 @@ export async function importProducts(records: any[]) {
       }
     }
 
-    // Check if Product exists
+    // Check if Product exists (by SKU or by Barcode if provided)
     const existing = await prisma.product.findFirst({
-      where: { sku, branchId: branch.id }
+      where: {
+        OR: [
+          { sku },
+          ...(barcode ? [
+            { barcode },
+            { sku: barcode }
+          ] : []),
+          { barcode: sku }
+        ],
+        branchId: branch.id
+      }
     });
 
     let productObj;
@@ -114,6 +124,7 @@ export async function importProducts(records: any[]) {
       productObj = await prisma.product.update({
         where: { id: existing.id },
         data: {
+          sku,
           name,
           price,
           cost,
@@ -141,8 +152,9 @@ export async function importProducts(records: any[]) {
       // Propagate update to sister branches
       if (sisterBranchIds.length > 0) {
         await prisma.product.updateMany({
-          where: { sku, branchId: { in: sisterBranchIds } },
+          where: { sku: existing.sku, branchId: { in: sisterBranchIds } },
           data: {
+            sku,
             name,
             price,
             cost,
