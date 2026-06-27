@@ -1249,6 +1249,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
 
       let saleId: string | undefined;
       let responseSale: any = null;
+      let invoiceError: string | undefined;
 
       if (mode === 'QUOTE') {
         if (!isOnline) {
@@ -1337,6 +1338,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
           }
           saleId = response.sale?.id;
           responseSale = response.sale;
+          invoiceError = response.invoiceError;
         }
       }
       resetActiveTab();
@@ -1363,7 +1365,9 @@ export default function POSClient({ products: initialProducts, customers, suppli
           discount: discountBackup,
           customerName: selectedCust ? selectedCust.name : 'Público en General',
           customerPhone: selectedCust?.phone || '',
-          cartBackup
+          cartBackup,
+          documentType,
+          invoiceError: invoiceError
         });
         setShowSuccessModal(true);
         router.refresh();
@@ -2988,6 +2992,30 @@ export default function POSClient({ products: initialProducts, customers, suppli
                   </div>
                 )}
               </div>
+
+              {/* Estado de Facturación */}
+              {successModalData.documentType === 'FACTURA' && (
+                successModalData.invoiceError ? (
+                  <div style={{ padding: '0.85rem 1rem', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#991b1b', fontSize: '0.85rem' }}>
+                    <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.25rem' }}>
+                      ⚠️ Factura no emitida
+                    </div>
+                    <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>{successModalData.invoiceError}</div>
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#7f1d1d' }}>
+                      La venta fue registrada, pero no se pudo timbrar. Puedes reintentar timbrarla desde el detalle de la venta más tarde.
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ padding: '0.85rem 1rem', backgroundColor: '#ecfdf5', border: '1px solid #6ee7b7', borderRadius: '8px', color: '#065f46', fontSize: '0.85rem' }}>
+                    <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      ✓ Factura Timbrada Exitosamente
+                    </div>
+                    <div style={{ fontSize: '0.8rem', opacity: 0.9, marginTop: '0.25rem' }}>
+                      Se ha generado el folio fiscal correspondiente en Facturapi.
+                    </div>
+                  </div>
+                )
+              )}
 
               {/* Actions Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>

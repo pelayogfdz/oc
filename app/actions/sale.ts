@@ -339,7 +339,8 @@ export async function createSale(
       }
     }
 
-    // Si se solicitó factura, actualizar datos fiscales del cliente si existe
+    // Si se solicitó factura, actualizar datos fiscales del cliente si existe y timbrar la factura
+    let invoiceError: string | undefined = undefined;
     if (billingData && customerId) {
        await prisma.customer.update({
           where: { id: customerId },
@@ -351,6 +352,18 @@ export async function createSale(
              cfdiUse: billingData.use
           }
        });
+
+       try {
+         const { stampInvoice } = await import('./facturacion');
+         const stampRes = await stampInvoice(sale.id, customerId);
+         if (!stampRes.success) {
+           invoiceError = stampRes.error;
+           console.error("Auto-stamping invoice failed during createSale:", stampRes.error);
+         }
+       } catch (err: any) {
+         invoiceError = err.message || String(err);
+         console.error("Error invoking stampInvoice during sale creation:", err);
+       }
     }
 
     if (quoteIdToConvert) {
@@ -373,7 +386,7 @@ export async function createSale(
     revalidatePath('/productos');
     if (paymentMethod === 'CREDIT') revalidatePath('/clientes/cobranza');
     
-    return { success: true, sale };
+    return { success: true, sale, invoiceError };
   } catch (error: any) {
     return { success: false, error: error.message || String(error) };
   }

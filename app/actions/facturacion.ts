@@ -21,11 +21,33 @@ function getFacturapiApiKey(config: any): string | null {
 
 export async function stampInvoice(saleId: string, customerId?: string | null) {
   try {
-    const branch = await getActiveBranch();
+    // Fetch the specific Sale first to determine its branch
+    const sale = await prisma.sale.findUnique({
+      where: { id: saleId },
+      include: {
+        items: {
+          include: { product: true }
+        },
+        customer: true,
+      }
+    });
+
+    if (!sale) {
+      throw new Error("La venta especificada no existe.");
+    }
+
+    if (sale.status === 'TIMBRADA' || sale.invoiceId) {
+       throw new Error("Esta venta ya fue facturada.");
+    }
+
+    const branchId = sale.branchId;
+    if (!branchId) {
+      throw new Error("La venta no está asociada a ninguna sucursal.");
+    }
     
     // Check if facturapi is configured for this branch
     const branchSettings = await prisma.branchSettings.findUnique({
-      where: { branchId: branch.id }
+      where: { branchId }
     });
 
     if (!branchSettings || !branchSettings.configJson) {
@@ -46,25 +68,6 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
     }
 
     const facturapi = new Facturapi(apiKey);
-
-    // Fetch the specific Sale
-    const sale = await prisma.sale.findUnique({
-      where: { id: saleId },
-      include: {
-        items: {
-          include: { product: true }
-        },
-        customer: true,
-      }
-    });
-
-    if (!sale) {
-      throw new Error("La venta especificada no existe.");
-    }
-
-    if (sale.status === 'TIMBRADA' || sale.invoiceId) {
-       throw new Error("Esta venta ya fue facturada.");
-    }
 
     // Determine Customer (Receiver)
     let finalCustomer = sale.customer;
@@ -161,8 +164,8 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
     };
 
     if (customerData.tax_id === "XAXX010101000") {
-      invoicePayload.global_info = {
-        periodicity: "01", // Diario
+      invoicePayload.global = {
+        periodicity: "day",
         months: String(new Date().getMonth() + 1).padStart(2, '0'),
         year: new Date().getFullYear()
       };
@@ -282,8 +285,8 @@ export async function stampGlobalInvoice(startDateStr?: string, endDateStr?: str
       payment_method: "PUE",
       use: "S01",
       type: "I",
-      global_info: {
-         periodicity: "01", // Diario
+      global: {
+         periodicity: "day",
          months: String(new Date().getMonth() + 1).padStart(2, '0'), // Mes actual
          year: new Date().getFullYear()
       }
@@ -568,8 +571,8 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
     };
 
     if (customerData.tax_id === "XAXX010101000") {
-      invoicePayload.global_info = {
-        periodicity: "01", // Diario
+      invoicePayload.global = {
+        periodicity: "day",
         months: String(new Date().getMonth() + 1).padStart(2, '0'),
         year: new Date().getFullYear()
       };
