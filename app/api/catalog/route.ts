@@ -38,6 +38,21 @@ export async function GET(request: NextRequest) {
 
     const aggregated: Record<string, any> = {};
 
+    const mapImageUrl = (imageUrl: string | null, categoryName: string | null) => {
+      if (!imageUrl) {
+        return categoryName === 'gatos' ? 'assets/cat_food.png' : 'assets/dog_food.png';
+      }
+      if (imageUrl.startsWith('data:') || imageUrl.startsWith('http')) {
+        if (imageUrl.startsWith('http') && imageUrl.includes('netlify.app')) {
+          return imageUrl.replace(/^https:\/\/[^/]+/, 'https://petqro.com');
+        }
+        return imageUrl;
+      }
+      const base = tenantId === 'db5d3949-f8dd-41f6-9627-90374d55d044' ? 'https://petqro.com' : request.nextUrl.origin;
+      const cleanUrl = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+      return `${base}${cleanUrl}`;
+    };
+
     sortedRaw.forEach(item => {
       const sku = item.sku;
       if (!aggregated[sku]) {
@@ -88,9 +103,7 @@ export async function GET(request: NextRequest) {
           discount_percent: discountPercent,
           is_recurring_allowed: true,
           life_stage: nameLower.includes('cachorro') || nameLower.includes('puppy') || nameLower.includes('kitten') ? 'cachorro' : (nameLower.includes('senior') ? 'senior' : 'adulto'),
-          image_url: item.imageUrl
-            ? (item.imageUrl.startsWith('http') || item.imageUrl.startsWith('data:') ? item.imageUrl : `${request.nextUrl.origin}${item.imageUrl}`)
-            : (category === 'gatos' ? 'assets/cat_food.png' : 'assets/dog_food.png'),
+          image_url: mapImageUrl(item.imageUrl, category),
           description: item.description || `Producto de alta calidad: ${item.name}. Sincronizado desde el catálogo activo de CAANMA ERP.`,
           ingredients: "Ingredientes de calidad seleccionada según estándares de la marca.",
           nutritional_facts: { "Categoría ERP": item.category || "General", "SKU": sku },
@@ -101,9 +114,7 @@ export async function GET(request: NextRequest) {
         const existingImg = aggregated[sku].image_url;
         const isPlaceholder = !existingImg || existingImg.includes('assets/') || existingImg.startsWith('data:');
         if (isPlaceholder && item.imageUrl && !item.imageUrl.startsWith('data:')) {
-          aggregated[sku].image_url = item.imageUrl.startsWith('http') || item.imageUrl.startsWith('data:') 
-            ? item.imageUrl 
-            : `${request.nextUrl.origin}${item.imageUrl}`;
+          aggregated[sku].image_url = mapImageUrl(item.imageUrl, item.category ? item.category.trim() : 'General');
         }
       }
 
