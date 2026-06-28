@@ -70,21 +70,21 @@ export async function getBranchSettings() {
   return settings;
 }
 
+const getCachedTenantSettings = (tenantId: string) => unstable_cache(
+  async () => prisma.tenant.findUnique({
+    where: { id: tenantId }
+  }),
+  [`tenant-settings-${tenantId}`],
+  { tags: [`tenant-settings-${tenantId}`] }
+)();
+
 export const getTenantSettings = cache(async () => {
   const branch = await getActiveBranch();
   if (!branch || !branch.tenantId) {
     return { decimals: 2 };
   }
   
-  const getSettings = unstable_cache(
-    async (tenantId: string) => prisma.tenant.findUnique({
-      where: { id: tenantId }
-    }),
-    [`tenant-settings-${branch.tenantId}`],
-    { tags: [`tenant-settings-${branch.tenantId}`] }
-  );
-  
-  const tenant = await getSettings(branch.tenantId);
+  const tenant = await getCachedTenantSettings(branch.tenantId);
   return tenant || { decimals: 2 };
 });
 
