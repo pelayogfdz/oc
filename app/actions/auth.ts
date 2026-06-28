@@ -33,53 +33,14 @@ export const getActiveUser = cache(async () => {
   return user;
 });
 
-const getCachedUserPerms = (uId: string) => unstable_cache(
-  async () => {
-    return prisma.user.findUnique({
-      where: { id: uId },
-      select: { id: true, email: true, role: true, permissions: true, branchId: true }
-    });
-  },
-  [`user-perms-${uId}`],
-  { tags: [`user-${uId}`] }
-)();
-
-const getCachedBranch = (bId: string, tId: string | null) => unstable_cache(
-  async () => {
-    return prisma.branch.findFirst({ 
-      where: { id: bId, isActive: true, tenantId: tId } 
-    });
-  },
-  [`branch-${bId}`],
-  { tags: [`branch-${bId}`, `tenant-branches-${tId}`] }
-)();
-
-const getFallbackBranch = (tId: string | null) => unstable_cache(
-  async () => {
-    return prisma.branch.findFirst({
-      where: { tenantId: tId, isActive: true }
-    });
-  },
-  [`branch-fallback-${tId}`],
-  { tags: [`tenant-branches-${tId}`] }
-)();
-
-const getCachedTenantBranches = (tId: string) => unstable_cache(
-  async () => {
-    return prisma.branch.findMany({
-      where: { isActive: true, tenantId: tId },
-      orderBy: { name: 'asc' }
-    });
-  },
-  [`tenant-branches-${tId}`],
-  { tags: [`tenant-branches-${tId}`] }
-)();
-
 export const getActiveBranch = cache(async () => {
   const session = await getSession();
   if (!session) throw new Error('Unauthorized');
   
-  const user = await getCachedUserPerms(session.userId);
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { id: true, email: true, role: true, permissions: true, branchId: true }
+  });
   
   let isGlobal = true;
   const allowedBranchIds: string[] = [];
@@ -130,12 +91,16 @@ export const getActiveBranch = cache(async () => {
       return { id: 'GLOBAL', name: 'Todas las Sucursales', location: 'Corporativo', isActive: true, deletedAt: null, tenantId: session.tenantId };
     }
     
-    const branch = await getCachedBranch(branchId, session.tenantId);
+    const branch = await prisma.branch.findFirst({ 
+      where: { id: branchId, isActive: true, tenantId: session.tenantId } 
+    });
     if (branch) return branch;
   }
   
   // Fallback a la primera sucursal del Tenant si la cookie no coincide
-  const firstBranch = await getFallbackBranch(session.tenantId);
+  const firstBranch = await prisma.branch.findFirst({
+    where: { tenantId: session.tenantId, isActive: true }
+  });
   
   if (!firstBranch) {
     throw new Error('No se encontró ninguna sucursal activa para esta empresa.');
@@ -144,7 +109,10 @@ export const getActiveBranch = cache(async () => {
 });
 
 export const getTenantBranches = cache(async (tenantId: string) => {
-  return getCachedTenantBranches(tenantId);
+  return prisma.branch.findMany({
+    where: { isActive: true, tenantId: tenantId },
+    orderBy: { name: 'asc' }
+  });
 });
 
 export async function verifyActiveTenantSession() {
