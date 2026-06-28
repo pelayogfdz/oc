@@ -23,7 +23,8 @@ export default async function NuevaCotizacionPage({
 
   const products = await prisma.product.findMany({
     where: { branchId: branch.id, isActive: true },
-    orderBy: { name: 'asc' }
+    orderBy: { name: 'asc' },
+    take: 50
   });
 
   const customers = await prisma.customer.findMany({

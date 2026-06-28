@@ -1759,7 +1759,8 @@ export default function POSClient({ products: initialProducts, customers, suppli
                 }}
                 style={{ 
                   width: '100%', 
-                  padding: '0.55rem 0.75rem', 
+                  padding: '0.55rem 0.75rem',
+                  paddingRight: selectedCustomerId ? '32px' : '0.75rem', 
                   borderRadius: '8px', 
                   border: '1px solid #cbd5e1', 
                   fontSize: '0.9rem', 
@@ -1768,11 +1769,40 @@ export default function POSClient({ products: initialProducts, customers, suppli
                   backgroundColor: 'white'
                 }}
               />
+              {selectedCustomerId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleCustomerChange('');
+                    setCustomerSearchTerm('');
+                  }}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#94a3b8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '4px',
+                    fontSize: '1rem',
+                    fontWeight: 'bold',
+                    zIndex: 5
+                  }}
+                >
+                  ✕
+                </button>
+              )}
               {/* Customer Dropdown */}
               {customerSearchTerm.trim() !== '' && !selectedCustomerId && (
                 <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginTop: '0.25rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
                   <div 
-                    onClick={() => {
+                    onMouseDown={(e) => {
+                      e.preventDefault();
                       setCustomerSearchTerm('Público en General');
                       handleCustomerChange('');
                     }}
@@ -1783,8 +1813,9 @@ export default function POSClient({ products: initialProducts, customers, suppli
                   {activeCustomers.filter(c => c.name.toLowerCase().includes(customerSearchTerm.toLowerCase())).map(c => (
                     <div 
                       key={c.id} 
-                      onClick={() => {
-                        setSelectedCustomerId(c.id);
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleCustomerChange(c.id);
                         setCustomerSearchTerm(c.name);
                       }}
                       style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem', color: '#1e293b' }}
