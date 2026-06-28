@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Image as ImageIcon, Plus, Trash2, Camera, X } from 'lucide-react';
+import { Image as ImageIcon, Plus, Trash2, Camera } from 'lucide-react';
 import { createProduct } from "@/app/actions/product";
 import { useFormState } from 'react-dom';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
@@ -17,7 +17,7 @@ const initialState = {
   success: false
 };
 
-export default function ProductFormClient({ cloneProduct, suppliers, priceLists, branchId, tenantId, categories = [] }: any) {
+export default function ProductFormClient({ cloneProduct, suppliers, priceLists, branchId, tenantId, categories }: any) {
   const { isOnline, pushOfflineProduct } = useOfflineSync();
   const [state, formAction] = useFormState(createProduct, initialState);
   const [hasVariants, setHasVariants] = useState(false);
@@ -25,8 +25,11 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
   const [hasBatches, setHasBatches] = useState(false);
   const [batches, setBatches] = useState<{ batchNumber: string, expirationDate: string, stock: number }[]>([]);
   const [isService, setIsService] = useState(cloneProduct?.isService || false);
-  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
-  const [categoryValue, setCategoryValue] = useState(cloneProduct?.category || '');
+
+  const [categoriesList, setCategoriesList] = useState<string[]>(categories || []);
+  const [selectedCategory, setSelectedCategory] = useState(cloneProduct?.category || '');
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   const isTargetTenant = tenantId === '8b52cbcd-c956-4717-a1bd-02e57386aaa2' || tenantId === 'db5d3949-f8dd-41f6-9627-90374d55d044';
   const initialShowInWeb = cloneProduct 
@@ -109,50 +112,67 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Categoría / Departamento</label>
-            <input type="hidden" name="category" value={categoryValue} />
-            {!isCreatingCategory ? (
-              <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+            {!showNewCategoryInput ? (
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <select 
-                  value={categoryValue} 
-                  onChange={e => setCategoryValue(e.target.value)}
-                  style={{ flexGrow: 1, padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }}
+                  value={selectedCategory} 
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white', cursor: 'pointer' }}
                 >
                   <option value="">-- Seleccionar Categoría --</option>
-                  {categories.map((cat: string) => (
+                  {categoriesList.map((cat) => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>
                 <button 
                   type="button" 
-                  onClick={() => setIsCreatingCategory(true)}
-                  style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--caanma-primary, #4f46e5)', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  title="Crear Nueva Categoría"
+                  onClick={() => setShowNewCategoryInput(true)}
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '42px', height: '42px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                  title="Nueva Categoría"
                 >
-                  <Plus size={18} />
+                  <Plus size={20} />
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <input 
                   type="text" 
-                  value={categoryValue} 
-                  onChange={e => setCategoryValue(e.target.value)}
-                  placeholder="Escribe la nueva categoría..." 
+                  value={newCategoryName} 
+                  onChange={(e) => setNewCategoryName(e.target.value)} 
+                  placeholder="Nueva categoría..."
                   autoFocus
-                  style={{ flexGrow: 1, padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} 
+                  style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
                 />
                 <button 
                   type="button" 
                   onClick={() => {
-                    setIsCreatingCategory(false);
+                    const trimmed = newCategoryName.trim();
+                    if (trimmed) {
+                      if (!categoriesList.some(c => c.toLowerCase() === trimmed.toLowerCase())) {
+                        setCategoriesList([...categoriesList, trimmed].sort());
+                      }
+                      setSelectedCategory(trimmed);
+                      setNewCategoryName('');
+                      setShowNewCategoryInput(false);
+                    }
                   }}
-                  style={{ padding: '0.75rem 1rem', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  title="Cancelar / Seleccionar de la lista"
+                  style={{ padding: '0.75rem 1rem', backgroundColor: '#22c55e', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
                 >
-                  <X size={18} />
+                  Agregar
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setNewCategoryName('');
+                    setShowNewCategoryInput(false);
+                  }}
+                  style={{ padding: '0.75rem 1rem', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                  Cancelar
                 </button>
               </div>
             )}
+            <input type="hidden" name="category" value={selectedCategory} />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Marca</label>

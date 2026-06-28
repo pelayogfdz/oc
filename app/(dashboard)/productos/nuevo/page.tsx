@@ -25,19 +25,27 @@ export default async function NuevoProductoPage({ searchParams }: { searchParams
     where: { branchId: branch?.id }
   });
 
-  // Fetch distinct categories for this tenant's branches
+  // Fetch distinct categories for the current branch
   const categoriesData = await prisma.product.findMany({
     where: { 
-      branch: { tenantId: branch?.tenantId },
-      isActive: true,
-      category: { not: null }
+      branchId: branch?.id,
+      NOT: [
+        { category: null },
+        { category: "" }
+      ]
     },
     select: { category: true },
     distinct: ['category']
   });
   const categories = categoriesData
-    .map(c => c.category?.trim())
-    .filter(Boolean) as string[];
+    .map(c => c.category)
+    .filter(Boolean)
+    .map(c => c!.trim())
+    .filter(c => c !== "")
+    .sort();
+
+  // Deduplicate case-insensitively just in case
+  const uniqueCategories = Array.from(new Set(categories));
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
@@ -52,7 +60,7 @@ export default async function NuevoProductoPage({ searchParams }: { searchParams
         priceLists={priceLists} 
         branchId={branch?.id} 
         tenantId={branch?.tenantId}
-        categories={categories}
+        categories={uniqueCategories}
       />
     </div>
   );
