@@ -74,6 +74,32 @@ export async function createProduct(prevState: any, formData: FormData) {
      return { error: "Faltan campos obligatorios (SKU, Nombre o Sucursal)." };
   }
 
+  // Cross-match check to prevent duplicates in the same branch
+  if (barcode) {
+    const existingDuplicate = await prisma.product.findFirst({
+      where: {
+        branchId,
+        OR: [
+          { barcode },
+          { sku: barcode }
+        ]
+      }
+    });
+    if (existingDuplicate) {
+      return { error: `Ya existe un producto con el código de barras o SKU "${barcode}" (${existingDuplicate.name}) en esta sucursal.` };
+    }
+  }
+
+  const existingDuplicateSku = await prisma.product.findFirst({
+    where: {
+      branchId,
+      barcode: sku
+    }
+  });
+  if (existingDuplicateSku) {
+    return { error: `Ya existe un producto con el código de barras "${sku}" (${existingDuplicateSku.name}) en esta sucursal.` };
+  }
+
   // Find tenantId for branchId
   const branch = await prisma.branch.findUnique({
     where: { id: branchId },
@@ -412,6 +438,41 @@ export async function updateProduct(productId: string, formData: FormData) {
       where: { id: productId },
       select: { sku: true, price: true, branchId: true }
     });
+
+    if (!currentProduct) return;
+
+    // Cross-match check to prevent duplicates in the same branch during update
+    const newBarcode = data.barcode;
+    const newSku = data.sku;
+
+    if (newBarcode) {
+      const existingDuplicate = await prisma.product.findFirst({
+        where: {
+          branchId: currentProduct.branchId,
+          id: { not: productId },
+          OR: [
+            { barcode: newBarcode },
+            { sku: newBarcode }
+          ]
+        }
+      });
+      if (existingDuplicate) {
+        throw new Error(`Ya existe un producto con el código de barras o SKU "${newBarcode}" (${existingDuplicate.name}) en esta sucursal.`);
+      }
+    }
+
+    if (newSku) {
+      const existingDuplicateSku = await prisma.product.findFirst({
+        where: {
+          branchId: currentProduct.branchId,
+          id: { not: productId },
+          barcode: newSku
+        }
+      });
+      if (existingDuplicateSku) {
+        throw new Error(`Ya existe un producto con el código de barras "${newSku}" (${existingDuplicateSku.name}) en esta sucursal.`);
+      }
+    }
 
     if (Object.keys(data).length > 0) {
       await prisma.product.update({
