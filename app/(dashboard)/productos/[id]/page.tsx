@@ -223,6 +223,8 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
       >
         <form action={updateProductWithId}>
           <input type="hidden" name="branchId" value={product.branchId} />
+          <input type="hidden" name="imageUrl" defaultValue={product.imageUrl || ''} id="details-imageUrl-input" />
+          <input type="hidden" name="youtubeUrl" defaultValue={product.youtubeUrl || ''} id="details-youtubeUrl-input" />
           
           {/* Identificación */}
           <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>

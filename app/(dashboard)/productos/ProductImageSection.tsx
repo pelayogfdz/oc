@@ -52,6 +52,21 @@ export default function ProductImageSection({
     setYoutubeUrl(initialYoutubeUrl);
   }, [initialYoutubeUrl]);
 
+  // Synchronize state changes to hidden inputs in the Details form (if present in the DOM)
+  useEffect(() => {
+    const detailsInput = document.getElementById('details-imageUrl-input') as HTMLInputElement | null;
+    if (detailsInput && detailsInput.value !== imageUrl) {
+      detailsInput.value = imageUrl;
+    }
+  }, [imageUrl]);
+
+  useEffect(() => {
+    const detailsInput = document.getElementById('details-youtubeUrl-input') as HTMLInputElement | null;
+    if (detailsInput && detailsInput.value !== youtubeUrl) {
+      detailsInput.value = youtubeUrl;
+    }
+  }, [youtubeUrl]);
+
   const handleCompressFile = (file: File) => {
     setIsCompressing(true);
     const reader = new FileReader();
