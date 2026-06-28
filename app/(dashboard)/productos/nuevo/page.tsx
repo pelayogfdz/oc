@@ -25,6 +25,20 @@ export default async function NuevoProductoPage({ searchParams }: { searchParams
     where: { branchId: branch?.id }
   });
 
+  // Fetch distinct categories for this tenant's branches
+  const categoriesData = await prisma.product.findMany({
+    where: { 
+      branch: { tenantId: branch?.tenantId },
+      isActive: true,
+      category: { not: null }
+    },
+    select: { category: true },
+    distinct: ['category']
+  });
+  const categories = categoriesData
+    .map(c => c.category?.trim())
+    .filter(Boolean) as string[];
+
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
@@ -38,6 +52,7 @@ export default async function NuevoProductoPage({ searchParams }: { searchParams
         priceLists={priceLists} 
         branchId={branch?.id} 
         tenantId={branch?.tenantId}
+        categories={categories}
       />
     </div>
   );
