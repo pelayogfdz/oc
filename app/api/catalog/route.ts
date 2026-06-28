@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { authenticateToken } from '../integrations/auth';
+import fs from 'fs';
+import path from 'path';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,8 +50,14 @@ export async function GET(request: NextRequest) {
         }
         return imageUrl;
       }
-      const base = tenantId === 'db5d3949-f8dd-41f6-9627-90374d55d044' ? 'https://petqro.com' : request.nextUrl.origin;
+      
       const cleanUrl = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+      const physicalPath = path.join(process.cwd(), 'public', cleanUrl);
+      if (!fs.existsSync(physicalPath)) {
+        return categoryName === 'gatos' ? 'assets/cat_food.png' : 'assets/dog_food.png';
+      }
+      
+      const base = tenantId === 'db5d3949-f8dd-41f6-9627-90374d55d044' ? 'https://petqro.com' : request.nextUrl.origin;
       return `${base}${cleanUrl}`;
     };
 
