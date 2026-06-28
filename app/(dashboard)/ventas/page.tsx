@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { prisma } from "@/lib/prisma";
 import { getActiveBranch, getSession } from "@/app/actions/auth";
 import { getBranchFilter } from "@/lib/utils";

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";

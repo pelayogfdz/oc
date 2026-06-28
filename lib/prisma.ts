@@ -98,7 +98,11 @@ const getClientForRequest = cache(async (): Promise<PrismaClient> => {
         }
       }
     }
-  } catch (e) {
+  } catch (e: any) {
+    // Rethrow Next.js dynamic server usage errors so Next.js knows to make the page dynamic
+    if (e && (e.name === 'DynamicServerError' || e.message?.includes('dynamic') || e.digest === 'DYNAMIC_SERVER_USAGE')) {
+      throw e;
+    }
     // cookies() or headers() throws error during static generation / pre-rendering,
     // or we are not in a request context. Fallback to master client.
   }
