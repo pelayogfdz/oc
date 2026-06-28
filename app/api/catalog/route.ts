@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
     const mapImageUrl = (imageUrl: string | null, categoryName: string | null) => {
       if (!imageUrl) {
-        return categoryName === 'gatos' ? 'assets/cat_food.png' : 'assets/dog_food.png';
+        return 'assets/no_image.svg';
       }
       if (imageUrl.startsWith('data:') || imageUrl.startsWith('http')) {
         if (imageUrl.startsWith('http') && imageUrl.includes('netlify.app')) {
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       const cleanUrl = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
       const physicalPath = path.join(process.cwd(), 'public', cleanUrl);
       if (!fs.existsSync(physicalPath)) {
-        return categoryName === 'gatos' ? 'assets/cat_food.png' : 'assets/dog_food.png';
+        return 'assets/no_image.svg';
       }
       
       const base = tenantId === 'db5d3949-f8dd-41f6-9627-90374d55d044' ? 'https://petqro.com' : request.nextUrl.origin;
