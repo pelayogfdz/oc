@@ -17,6 +17,7 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
   const [supplierId, setSupplierId] = useState(purchase.supplierId || "");
   const [paymentMethod, setPaymentMethod] = useState(purchase.paymentMethod || "CASH");
   const [freightCost, setFreightCost] = useState(purchase.freightCost || 0);
+  const [supplierFolio, setSupplierFolio] = useState(purchase.supplierFolio || "");
   const [items, setItems] = useState<any[]>(() => {
     return purchase.items.map((item: any) => ({
       productId: item.productId,
@@ -94,7 +95,8 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
         total,
         paymentMethod,
         supplierId || null,
-        freightCost
+        freightCost,
+        supplierFolio || null
       );
 
       if (res && !res.success) {
@@ -554,6 +556,29 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
               <option value="CARD">Tarjeta (Débito/Crédito)</option>
               <option value="CREDIT">Crédito CxP (Pendiente de Pago)</option>
             </select>
+          </div>
+
+          {/* Folio Proveedor input */}
+          <div style={{ backgroundColor: "white", padding: "1.25rem", borderRadius: "12px", border: "1px solid #cbd5e1", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <label style={{ fontSize: "0.85rem", fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em" }}>Folio del Proveedor</label>
+            <input 
+              type="text" 
+              value={supplierFolio} 
+              onChange={(e) => setSupplierFolio(e.target.value)} 
+              placeholder="Ej. FAC-12345" 
+              style={{ 
+                width: "100%", 
+                padding: "0.5rem 0.75rem",
+                borderRadius: "8px",
+                border: "1px solid #cbd5e1",
+                fontWeight: "600", 
+                color: "#1e293b", 
+                fontSize: "0.9rem", 
+                height: "40px",
+                outline: "none",
+                backgroundColor: "white"
+              }}
+            />
           </div>
 
           {/* Freight Cost */}

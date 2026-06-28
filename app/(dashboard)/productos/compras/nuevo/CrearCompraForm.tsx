@@ -12,6 +12,7 @@ export default function CrearCompraForm({ suppliers, products, branchId }: { sup
   const [supplierId, setSupplierId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [freightCost, setFreightCost] = useState(0);
+  const [supplierFolio, setSupplierFolio] = useState('');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<{ 
     productId: string, 
@@ -178,11 +179,12 @@ export default function CrearCompraForm({ suppliers, products, branchId }: { sup
           paymentMethod,
           freightCost,
           items,
-          total
+          total,
+          supplierFolio: supplierFolio || null
         });
         alert('Compra guardada en modo Offline. Se sincronizará al recuperar conexión.');
       } else {
-        const res = await createPurchase(items, total, paymentMethod, supplierId || null, freightCost);
+        const res = await createPurchase(items, total, paymentMethod, supplierId || null, freightCost, undefined, supplierFolio || null);
         if (res && !res.success) {
           throw new Error(res.error);
         }
@@ -705,6 +707,29 @@ export default function CrearCompraForm({ suppliers, products, branchId }: { sup
               <option value="CARD">Tarjeta (Débito/Crédito)</option>
               <option value="CREDIT">Crédito CxP (Pendiente de Pago)</option>
             </select>
+          </div>
+
+          {/* Folio Proveedor input */}
+          <div style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Folio del Proveedor</label>
+            <input 
+              type="text" 
+              value={supplierFolio} 
+              onChange={(e) => setSupplierFolio(e.target.value)} 
+              placeholder="Ej. FAC-12345" 
+              style={{ 
+                width: '100%', 
+                padding: '0.5rem 0.75rem',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontWeight: '600', 
+                color: '#1e293b', 
+                fontSize: '0.9rem', 
+                height: '40px',
+                outline: 'none',
+                backgroundColor: 'white'
+              }}
+            />
           </div>
 
           {/* Costo de Flete input */}

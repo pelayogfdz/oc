@@ -13,7 +13,8 @@ export default function ComprasClient({ initialPurchases }: { initialPurchases: 
     const term = searchTerm.toLowerCase();
     const idMatch = purchase.id.toLowerCase().includes(term);
     const supplierMatch = (purchase.supplier?.name || '').toLowerCase().includes(term);
-    return idMatch || supplierMatch;
+    const supplierFolioMatch = (purchase.supplierFolio || '').toLowerCase().includes(term);
+    return idMatch || supplierMatch || supplierFolioMatch;
   });
 
   return (
@@ -24,7 +25,7 @@ export default function ComprasClient({ initialPurchases }: { initialPurchases: 
           <Search size={18} style={{ position: 'absolute', left: '1rem', color: 'var(--caanma-text-muted)' }} />
           <input 
             type="text" 
-            placeholder="🔍 Buscar compra por folio o proveedor..." 
+            placeholder="🔍 Buscar compra por folio, proveedor o folio de proveedor..." 
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             style={{ padding: '0.8rem 1.5rem 0.8rem 2.5rem', width: '100%', borderRadius: '999px', border: '1px solid var(--caanma-border)', backgroundColor: 'white', fontSize: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
@@ -74,8 +75,13 @@ export default function ComprasClient({ initialPurchases }: { initialPurchases: 
               <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--caanma-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ flexGrow: 1 }}>
                   <Link href={`/productos/compras/${purchase.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }} className="hover:underline">
-                    <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <ShoppingCart size={14} /> #{purchase.id.substring(0,8).toUpperCase()}
+                    <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span><ShoppingCart size={14} /> #{purchase.id.substring(0,8).toUpperCase()}</span>
+                      {purchase.supplierFolio && (
+                        <span style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '1px 6px', borderRadius: '4px', fontSize: '0.75rem' }}>
+                          Prov: {purchase.supplierFolio}
+                        </span>
+                      )}
                     </div>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginTop: '0.25rem', color: '#1e293b' }}>
                       {purchase.supplier?.name || 'Proveedor General'}
@@ -184,6 +190,7 @@ export default function ComprasClient({ initialPurchases }: { initialPurchases: 
               <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Folio / Fecha</th>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Proveedor</th>
+                <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Folio Prov.</th>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Sucursal</th>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Forma de Pago</th>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Estatus</th>
@@ -205,6 +212,9 @@ export default function ComprasClient({ initialPurchases }: { initialPurchases: 
                   </td>
                   <td data-label="Proveedor" style={{ padding: '1rem', fontWeight: 'bold', color: '#1e293b' }}>
                     {purchase.supplier?.name || 'General / Varios'}
+                  </td>
+                  <td data-label="Folio Prov." style={{ padding: '1rem', color: '#475569', fontWeight: '600' }}>
+                    {purchase.supplierFolio || '-'}
                   </td>
                   <td data-label="Sucursal" style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>

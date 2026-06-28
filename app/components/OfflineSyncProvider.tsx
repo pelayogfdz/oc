@@ -359,7 +359,15 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
         try {
           if (p.isDirectPurchase) {
             const { createPurchase } = await import('../actions/purchase');
-            const res = await createPurchase(p.items, p.total || 0, p.paymentMethod || 'CASH', p.supplierId || '', p.freightCost || 0, p.id);
+            const res = await createPurchase(
+              p.items,
+              p.total || 0,
+              p.paymentMethod || 'CASH',
+              p.supplierId || '',
+              p.freightCost || 0,
+              p.id,
+              p.supplierFolio || null
+            );
             if (res && !res.success) {
               if (res.error && (res.error.includes('Unique constraint') || res.error.includes('already exists') || res.error.includes('duplicate key'))) {
                 console.log('[PWA] Compra ya sincronizada previamente (duplicada en BD), eliminando de la cola:', p.id);

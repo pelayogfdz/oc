@@ -569,6 +569,7 @@ model Supplier {
 model Purchase {
   id            String            @id @default(uuid())
   folio         String?
+  supplierFolio String?
   branchId      String?
   userId        String
   supplierId    String?

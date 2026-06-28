@@ -138,6 +138,9 @@ export default async function PrintPurchasePage({ params }: { params: Promise<{ 
               <tbody>
                 <tr><td style={{ color: '#64748b', padding: '0.2rem 0' }}>Registrado por:</td><td style={{ fontWeight: '600', textAlign: 'right' }}>{purchase.user?.name || 'N/A'}</td></tr>
                 <tr><td style={{ color: '#64748b', padding: '0.2rem 0' }}>Referencia:</td><td style={{ fontWeight: '600', textAlign: 'right' }}>{purchase.folio || purchase.id.slice(0, 8)}</td></tr>
+                {purchase.supplierFolio && (
+                  <tr><td style={{ color: '#64748b', padding: '0.2rem 0' }}>Folio Prov:</td><td style={{ fontWeight: '600', textAlign: 'right', fontFamily: 'monospace' }}>{purchase.supplierFolio}</td></tr>
+                )}
               </tbody>
             </table>
           </div>

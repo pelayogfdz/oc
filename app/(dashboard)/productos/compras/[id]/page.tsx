@@ -133,6 +133,11 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
              {purchase.supplier?.taxId && <p style={{ margin: 0, fontSize: '0.9rem', color: '#475569' }}>RFC: {purchase.supplier.taxId}</p>}
              {purchase.supplier?.phone && <p style={{ margin: 0, fontSize: '0.9rem', color: '#475569' }}>Tel: {purchase.supplier.phone}</p>}
              {purchase.supplier?.email && <p style={{ margin: 0, fontSize: '0.9rem', color: '#475569' }}>Email: {purchase.supplier.email}</p>}
+             {purchase.supplierFolio && (
+               <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.95rem', color: '#1e293b' }}>
+                 <strong>Folio Proveedor:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 'bold', backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>{purchase.supplierFolio}</span>
+               </p>
+             )}
           </div>
           <div style={{ flex: 1, textAlign: 'right' }}>
              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase' }}>Registrado en:</h3>

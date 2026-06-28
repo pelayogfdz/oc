@@ -25,7 +25,8 @@ export async function createPurchase(
   paymentMethod: string = 'CASH',
   supplierId: string | null = null,
   freightCost: number = 0,
-  purchaseId?: string
+  purchaseId?: string,
+  supplierFolio?: string | null
 ) {
   try {
     const branch = await getActiveBranch();
@@ -68,6 +69,7 @@ export async function createPurchase(
         data: {
           id: purchaseId,
           folio,
+          supplierFolio,
           total,
           paymentMethod,
           supplierId,
@@ -309,7 +311,8 @@ export async function updatePurchase(
   total: number,
   paymentMethod: string = 'CASH',
   supplierId: string | null = null,
-  freightCost: number = 0
+  freightCost: number = 0,
+  supplierFolio?: string | null
 ) {
   try {
     const branch = await getActiveBranch();
@@ -411,7 +414,8 @@ export async function updatePurchase(
           supplierId,
           freightCost,
           dueDate,
-          balanceDue
+          balanceDue,
+          supplierFolio
         }
       });
 
