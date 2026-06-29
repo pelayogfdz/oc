@@ -30,6 +30,20 @@ const OfflineContext = createContext<OfflineContextType>({
   refreshCatalogs: async (isBackground?: boolean) => {},
 });
 
+export function isOfflineEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  // 1. Check if PWA is installed / standalone
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+  if (!isStandalone) return false;
+  
+  // 2. Check if mobile (phone or tablet) using User Agent
+  const userAgent = window.navigator.userAgent || "";
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(userAgent);
+  
+  return !isMobile;
+}
+
 
 export function OfflineSyncProvider({ children }: { children: React.ReactNode }) {
   const [isOnline, setIsOnline] = useState<boolean>(true);
@@ -56,46 +70,50 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
     
     const handleOnline = () => {
       setIsOnline(true);
-      setShowToast({ message: 'Conexión Restablecida. Sincronizando datos...', type: 'success' });
-      forceSync();
-      refreshCatalogs();
+      if (isOfflineEnabled()) {
+        setShowToast({ message: 'Conexión Restablecida. Sincronizando datos...', type: 'success' });
+        forceSync();
+        refreshCatalogs();
+      }
     };
     const handleOffline = () => {
       setIsOnline(false);
-      setShowToast({ message: 'Sin Internet. Cambiando a base de datos de respaldo (Offline).', type: 'warn' });
+      if (isOfflineEnabled()) {
+        setShowToast({ message: 'Sin Internet. Cambiando a base de datos de respaldo (Offline).', type: 'warn' });
+      }
     };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
-    loadPendingQueues();
+    const isEnabled = isOfflineEnabled();
     
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
-    
-    const shouldRefreshOnStart = async () => {
-      if (!navigator.onLine) return;
-      if (isStandalone) {
-        // En modo standalone, sincronizar catálogos silenciosamente de inmediato al iniciar
+    if (isEnabled) {
+      loadPendingQueues();
+      
+      const shouldRefreshOnStart = async () => {
+        if (!navigator.onLine) return;
+        // En modo standalone de escritorio, sincronizar catálogos silenciosamente de inmediato al iniciar
         await refreshCatalogs(true);
-      } else {
-        const lastSync = localStorage.getItem('last_catalog_sync_timestamp');
-        const now = Date.now();
-        const THRESHOLD = 30 * 60 * 1000; // 30 minutes
-        
-        const productCount = await db.products.count();
-        if (productCount === 0 || !lastSync || (now - parseInt(lastSync, 10)) > THRESHOLD) {
-          await refreshCatalogs();
-        }
-      }
-    };
-    
-    shouldRefreshOnStart();
+      };
+      
+      shouldRefreshOnStart();
+    } else {
+      // Clear IndexedDB for non-supported offline clients to reclaim storage space
+      db.transaction('rw', [db.customers, db.suppliers, db.branches, db.settings, db.users, db.products], async () => {
+        await db.customers.clear();
+        await db.suppliers.clear();
+        await db.branches.clear();
+        await db.users.clear();
+        await db.products.clear();
+      }).catch(e => console.error('[Offline] Error clearing IndexedDB:', e));
+    }
 
-    // Configurar intervalos de sincronización continua en segundo plano solo para la versión descargable (standalone)
+    // Configurar intervalos de sincronización continua en segundo plano solo para la versión descargable en escritorio (PWA)
     let syncInterval: NodeJS.Timeout | null = null;
     let catalogInterval: NodeJS.Timeout | null = null;
 
-    if (isStandalone) {
+    if (isEnabled) {
       console.log('[PWA] Inicializando sincronización en segundo plano...');
       // Cada 30 segundos: sincronizar transacciones offline pendientes
       syncInterval = setInterval(() => {
@@ -481,6 +499,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   };
 
   const refreshCatalogs = async (isBackground?: boolean) => {
+    if (!isOfflineEnabled()) return;
     if (!navigator.onLine) return;
     try {
       const { syncBasicCatalogs, syncProductsPage } = await import('../actions/sync');
