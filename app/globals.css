@@ -139,6 +139,8 @@ button {
   .dashboard-main {
     padding: 1rem !important;
     padding-bottom: 90px !important; /* Make room for bottom nav */
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
   }
 
   .dashboard-header {

@@ -105,7 +105,7 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
       <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
         <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Identificación</h2>
         
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Nombre del Producto *</label>
             <input type="text" name="name" defaultValue={cloneProduct ? `${cloneProduct.name} (Copia)` : ''} required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
@@ -266,7 +266,7 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
               </label>
             </div>
           </div>
-           <div style={{ padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '4px', border: '1px dashed #22c55e', gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+           <div style={{ padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '4px', border: '1px dashed #22c55e', gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#166534' }}>Clave de Producto SAT (Product Key)</label>
               <SatKeyAutocomplete defaultValue={cloneProduct?.satKey || ''} name="satKey" />
@@ -401,7 +401,7 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
       {isService ? (
         <div className="card" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
           <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Configuración del Servicio</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
             <input type="hidden" name="stock" value="0" />
             <input type="hidden" name="minStock" value="0" />
             <input type="hidden" name="expirationDate" value="" />
@@ -435,7 +435,7 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
         (!hasVariants && !hasBatches) && (
           <div className="card" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
             <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Inventario Físico Global</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Stock Inicial</label>
                 <input type="number" name="stock" defaultValue={cloneProduct?.stock || "0"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />

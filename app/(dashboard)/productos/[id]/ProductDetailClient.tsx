@@ -396,7 +396,7 @@ export function ProductDetailClient({
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '2rem', borderBottom: '1px solid var(--caanma-border)', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', gap: '1rem 2rem', flexWrap: 'wrap', borderBottom: '1px solid var(--caanma-border)', marginBottom: '1.5rem' }}>
         <button 
           onClick={() => setActiveTab('details')}
           style={{ 

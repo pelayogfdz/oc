@@ -1591,6 +1591,44 @@ export default function POSClient({ products: initialProducts, customers, suppli
           gap: 1rem;
           transition: all 0.2s;
         }
+        @media (max-width: 640px) {
+          .pos-cart-item {
+            grid-template-areas: 
+              "image info actions"
+              "image qty subtotal";
+            grid-template-columns: 52px 1fr auto;
+            grid-template-rows: auto auto;
+            gap: 0.5rem 0.75rem;
+            padding: 0.75rem;
+          }
+          .pos-cart-item-image {
+            grid-area: image;
+            align-self: center;
+          }
+          .pos-cart-item-info {
+            grid-area: info;
+          }
+          .pos-cart-item-qty {
+            grid-area: qty;
+            display: flex;
+            justify-content: flex-start !important;
+            align-items: center;
+          }
+          .pos-cart-item-subtotal {
+            grid-area: subtotal;
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: flex-end !important;
+            gap: 0.5rem;
+          }
+          .pos-cart-item-actions {
+            grid-area: actions;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+          }
+        }
         .pos-cart-item:hover {
           background-color: #f8fafc;
           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
@@ -2094,7 +2132,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
 
 
                     {/* Quantity input box */}
-                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <div className="pos-cart-item-qty" style={{ display: 'flex', justifyContent: 'center' }}>
                       <input 
                         type="number"
                         min="1"
@@ -2132,7 +2170,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                     </div>
 
                     {/* Actions menu */}
-                    <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+                    <div className="pos-cart-item-actions" style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
                       <button 
                         type="button"
                         onClick={() => setActiveItemMenuId(activeItemMenuId === item.cartItemId ? null : item.cartItemId)}
