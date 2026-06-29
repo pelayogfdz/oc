@@ -10,19 +10,13 @@ import { X, ChevronDown, ChevronUp, ShieldAlert } from 'lucide-react';
 export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, userRole = 'USER' }: { isSuperAdmin?: boolean; userPermissions?: Record<string, boolean>; userRole?: string }) {
   const { isMobileMenuOpen, closeMenu } = useMobileMenu();
   const pathname = usePathname();
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
-    const initialState: Record<string, boolean> = {};
-    navStructure.forEach(node => {
-      if (node.items) initialState[node.title] = true;
-    });
-    return initialState;
-  });
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
 
   if (!isMobileMenuOpen) return null;
 
   const toggleGroup = (title: string, e: React.MouseEvent) => {
     e.preventDefault();
-    setOpenGroups(prev => ({ ...prev, [title]: !prev[title] }));
+    setOpenGroup(prev => prev === title ? null : title);
   };
 
   const isNodeActive = (node: any) => {
@@ -92,7 +86,7 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
                 </Link>
               );
             } else {
-              const isOpen = openGroups[node.title];
+              const isOpen = openGroup === node.title;
               
               content = (
                 <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: 'white', borderRadius: '8px', border: '1px solid var(--caanma-border)', overflow: 'hidden' }}>
