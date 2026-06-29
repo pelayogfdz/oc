@@ -153,10 +153,41 @@ export default function PortalClient() {
   };
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '4rem auto', padding: '0 1rem', fontFamily: 'var(--font-geist-sans)' }}>
+    <div className="portal-container" style={{ maxWidth: '1000px', margin: '4rem auto', padding: '0 1rem', fontFamily: 'var(--font-geist-sans)' }}>
+      <style dangerouslySetInnerHTML={{__html: `
+        @media (max-width: 768px) {
+          .portal-container {
+            margin: 1.5rem auto !important;
+          }
+          .portal-header {
+            margin-bottom: 1.5rem !important;
+          }
+          .portal-header h1 {
+            font-size: 1.75rem !important;
+          }
+          .portal-tabs {
+            flex-direction: column !important;
+          }
+          .portal-tab-btn {
+            padding: 1rem !important;
+            font-size: 0.9rem !important;
+            border-bottom: 1px solid var(--caanma-border) !important;
+            border-left: 3px solid transparent !important;
+            justify-content: flex-start !important;
+          }
+          .portal-tab-btn-active {
+            border-left: 3px solid var(--caanma-primary) !important;
+            border-bottom: 1px solid var(--caanma-border) !important;
+            background-color: white !important;
+          }
+          .portal-card-body {
+            padding: 1.25rem !important;
+          }
+        }
+      `}} />
       
       {/* Header Premium */}
-      <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+      <div className="portal-header" style={{ textAlign: 'center', marginBottom: '3rem' }}>
          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '80px', height: '80px', borderRadius: '20px', backgroundColor: 'var(--caanma-primary)', marginBottom: '1.5rem', boxShadow: '0 10px 25px -5px rgba(22, 163, 74, 0.4)' }}>
            <FileText color="white" size={40} />
          </div>
@@ -171,20 +202,23 @@ export default function PortalClient() {
       <div style={{ backgroundColor: 'white', borderRadius: '16px', border: '1px solid var(--caanma-border)', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
         
         {/* Tabs */}
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--caanma-border)' }}>
+        <div className="portal-tabs" style={{ display: 'flex', borderBottom: '1px solid var(--caanma-border)' }}>
           <button 
+            className={`portal-tab-btn ${tab === 'loyalty' ? 'portal-tab-btn-active' : ''}`}
             onClick={() => { setTab('loyalty'); setError(''); setPortalData(null); }}
             style={{ flex: 1, padding: '1.25rem', backgroundColor: tab === 'loyalty' ? 'white' : '#f8fafc', border: 'none', borderBottom: tab === 'loyalty' ? '3px solid var(--caanma-primary)' : '3px solid transparent', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', gap: '0.5rem', alignItems: 'center', color: tab === 'loyalty' ? 'var(--caanma-primary)' : 'var(--caanma-text-muted)', transition: 'all 0.2s' }}
           >
             <Star size={20} fill={tab === 'loyalty' ? 'var(--caanma-primary)' : 'transparent'} /> Mi Espacio Cliente (Puntos)
           </button>
           <button 
+            className={`portal-tab-btn ${tab === 'b2c' ? 'portal-tab-btn-active' : ''}`}
             onClick={() => { setTab('b2c'); setError(''); setSale(null); }}
             style={{ flex: 1, padding: '1.25rem', backgroundColor: tab === 'b2c' ? 'white' : '#f8fafc', border: 'none', borderBottom: tab === 'b2c' ? '3px solid var(--caanma-primary)' : '3px solid transparent', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', gap: '0.5rem', alignItems: 'center', color: tab === 'b2c' ? 'var(--caanma-primary)' : 'var(--caanma-text-muted)', transition: 'all 0.2s' }}
           >
             <UserCircle size={20} /> Facturar un Ticket
           </button>
           <button 
+             className={`portal-tab-btn ${tab === 'b2b' ? 'portal-tab-btn-active' : ''}`}
              onClick={() => { setTab('b2b'); setError(''); setB2bSearched(false); }}
              style={{ flex: 1, padding: '1.25rem', backgroundColor: tab === 'b2b' ? 'white' : '#f8fafc', border: 'none', borderBottom: tab === 'b2b' ? '3px solid var(--caanma-primary)' : '3px solid transparent', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', gap: '0.5rem', alignItems: 'center', color: tab === 'b2b' ? 'var(--caanma-primary)' : 'var(--caanma-text-muted)', transition: 'all 0.2s' }}
           >
@@ -192,7 +226,7 @@ export default function PortalClient() {
           </button>
         </div>
 
-        <div style={{ padding: '2.5rem' }}>
+        <div className="portal-card-body" style={{ padding: '2.5rem' }}>
           
           {/* TAB 1: LOYALTY PORTAL (Mi Espacio Cliente) */}
           {tab === 'loyalty' && (
