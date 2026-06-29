@@ -742,16 +742,95 @@ export default function GlobalSearch() {
       setResults([]);
       return;
     }
-    
+
     const searchVal = normalizeString(query);
-    const filtered = SEARCH_DIRECTORY.filter(item => {
-      const matchName = normalizeString(item.name).includes(searchVal);
-      const matchDesc = normalizeString(item.description).includes(searchVal);
-      const matchCat = normalizeString(item.category).includes(searchVal);
-      const matchKeywords = item.keywords.some(kw => normalizeString(kw).includes(searchVal));
-      return matchName || matchDesc || matchCat || matchKeywords;
+    const searchTokens = searchVal.split(/\s+/).filter(Boolean);
+
+    if (searchTokens.length === 0) {
+      setResults([]);
+      return;
+    }
+
+    // Fuzzy matching / Levenshtein distance helper
+    const levenshteinDistance = (a: string, b: string): number => {
+      const tmp = [];
+      for (let i = 0; i <= a.length; i++) tmp.push([i]);
+      for (let j = 0; j <= b.length; j++) tmp[0][j] = j;
+      for (let i = 1; i <= a.length; i++) {
+        for (let j = 1; j <= b.length; j++) {
+          tmp[i][j] = Math.min(
+            tmp[i - 1][j] + 1,
+            tmp[i][j - 1] + 1,
+            tmp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+          );
+        }
+      }
+      return tmp[a.length][b.length];
+    };
+
+    const isFuzzyMatch = (wordA: string, wordB: string): boolean => {
+      if (wordB.includes(wordA) || wordA.includes(wordB)) return true;
+      const maxDistance = wordA.length >= 5 ? 2 : 1;
+      if (wordA.length >= 3 && wordB.length >= 3) {
+        const dist = levenshteinDistance(wordA, wordB);
+        if (dist <= maxDistance) return true;
+      }
+      return false;
+    };
+
+    const scored = SEARCH_DIRECTORY.map(item => {
+      const nameNorm = normalizeString(item.name);
+      const descNorm = normalizeString(item.description);
+      const catNorm = normalizeString(item.category);
+      const itemTokens = [
+        ...nameNorm.split(/\s+/),
+        ...descNorm.split(/\s+/),
+        ...catNorm.split(/\s+/),
+        ...item.keywords.map(normalizeString)
+      ].filter(Boolean);
+
+      let matches = 0;
+      let score = 0;
+
+      for (const sToken of searchTokens) {
+        // Direct match on name (highest priority)
+        if (nameNorm.includes(sToken)) {
+          score += 10;
+          matches++;
+          continue;
+        }
+
+        // Direct match on keywords
+        const directKeywordMatch = item.keywords.some(kw => normalizeString(kw).includes(sToken));
+        if (directKeywordMatch) {
+          score += 5;
+          matches++;
+          continue;
+        }
+
+        // Direct match on description or category
+        if (descNorm.includes(sToken) || catNorm.includes(sToken)) {
+          score += 2;
+          matches++;
+          continue;
+        }
+
+        // Fuzzy match
+        const hasFuzzy = itemTokens.some(iToken => isFuzzyMatch(sToken, iToken));
+        if (hasFuzzy) {
+          score += 1;
+          matches++;
+        }
+      }
+
+      return { item, score, matches };
     });
-    
+
+    const filtered = scored
+      .filter(entry => entry.matches > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(entry => entry.item);
+
     setResults(filtered.slice(0, 8)); // Expanded view list cap
   }, [query]);
 

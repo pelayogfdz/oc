@@ -154,19 +154,102 @@ export async function executeAiFunction(functionName: string, callArgs: any, bra
     }
 
     case 'consultar_inventario': {
-      const q = callArgs.query;
-      const products = await prisma.product.findMany({
-        where: {
-          ...whereBranch,
-          isActive: true,
-          OR: [
-            { name: { contains: q, mode: 'insensitive' } },
-            { sku: { contains: q, mode: 'insensitive' } }
-          ]
-        },
-        take: 10,
-        select: { name: true, sku: true, stock: true, price: true, cost: true, brand: true, minStock: true }
-      });
+      const q = callArgs.query || '';
+      const words = q.split(/\s+/).filter(Boolean);
+      
+      let products: any[] = [];
+      if (words.length > 0) {
+        products = await prisma.product.findMany({
+          where: {
+            ...whereBranch,
+            isActive: true,
+            AND: words.map((word: string) => ({
+              OR: [
+                { name: { contains: word, mode: 'insensitive' } },
+                { sku: { contains: word, mode: 'insensitive' } },
+                { brand: { contains: word, mode: 'insensitive' } }
+              ]
+            }))
+          },
+          take: 15,
+          select: { name: true, sku: true, stock: true, price: true, cost: true, brand: true, minStock: true }
+        });
+      }
+
+      // Fallback: if no direct token match, perform a fuzzy Levenshtein match on active products
+      if (products.length === 0 && q.trim()) {
+        const allProducts = await prisma.product.findMany({
+          where: {
+            ...whereBranch,
+            isActive: true
+          },
+          select: { name: true, sku: true, stock: true, price: true, cost: true, brand: true, minStock: true },
+          take: 200 // fetch a reasonable chunk for local fuzzy matching
+        });
+
+        const normalizeStr = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const searchTokens = normalizeStr(q).split(/\s+/).filter(Boolean);
+
+        const levenshteinDistance = (a: string, b: string): number => {
+          const tmp = [];
+          for (let i = 0; i <= a.length; i++) tmp.push([i]);
+          for (let j = 0; j <= b.length; j++) tmp[0][j] = j;
+          for (let i = 1; i <= a.length; i++) {
+            for (let j = 1; j <= b.length; j++) {
+              tmp[i][j] = Math.min(
+                tmp[i - 1][j] + 1,
+                tmp[i][j - 1] + 1,
+                tmp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+              );
+            }
+          }
+          return tmp[a.length][b.length];
+        };
+
+        const isFuzzy = (wA: string, wB: string): boolean => {
+          if (wB.includes(wA) || wA.includes(wB)) return true;
+          const maxDist = wA.length >= 5 ? 2 : 1;
+          if (wA.length >= 3 && wB.length >= 3) {
+            return levenshteinDistance(wA, wB) <= maxDist;
+          }
+          return false;
+        };
+
+        const scored = allProducts.map(p => {
+          const nameNorm = normalizeStr(p.name);
+          const brandNorm = p.brand ? normalizeStr(p.brand) : '';
+          const skuNorm = normalizeStr(p.sku);
+          const itemTokens = [...nameNorm.split(/\s+/), ...brandNorm.split(/\s+/), skuNorm].filter(Boolean);
+
+          let matches = 0;
+          let score = 0;
+
+          for (const sToken of searchTokens) {
+            if (nameNorm.includes(sToken)) {
+              score += 10;
+              matches++;
+              continue;
+            }
+            if (skuNorm.includes(sToken)) {
+              score += 8;
+              matches++;
+              continue;
+            }
+            const hasFuzzy = itemTokens.some(iToken => isFuzzy(sToken, iToken));
+            if (hasFuzzy) {
+              score += 2;
+              matches++;
+            }
+          }
+          return { product: p, score, matches };
+        });
+
+        products = scored
+          .filter(e => e.matches > 0)
+          .sort((a, b) => b.score - a.score)
+          .map(e => e.product)
+          .slice(0, 10);
+      }
 
       return {
         resultados: products,
