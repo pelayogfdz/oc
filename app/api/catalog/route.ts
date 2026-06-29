@@ -61,6 +61,13 @@ export async function GET(request: NextRequest) {
       return `${base}${cleanUrl}`;
     };
 
+    const getImagePriority = (url: string | null) => {
+      if (!url) return 1;
+      if (url.includes('assets/') || url.includes('no_image.svg')) return 1;
+      if (url.startsWith('data:') || (url.startsWith('http') && !url.includes('/img/products/'))) return 3;
+      return 2;
+    };
+
     sortedRaw.forEach(item => {
       const sku = item.sku;
       if (!aggregated[sku]) {
@@ -118,11 +125,11 @@ export async function GET(request: NextRequest) {
           stocks: { "la-pradera": 0, "cerrito-colorado": 0 }
         };
       } else {
-        // If it already exists, and the current item has a valid image path (not base64), while the existing one is empty/base64/placeholder, update it.
+        // If the new branch has a higher priority image (e.g. Base64 over local/placeholder), update it
         const existingImg = aggregated[sku].image_url;
-        const isPlaceholder = !existingImg || existingImg.includes('assets/') || existingImg.startsWith('data:');
-        if (isPlaceholder && item.imageUrl && !item.imageUrl.startsWith('data:')) {
-          aggregated[sku].image_url = mapImageUrl(item.imageUrl, item.category ? item.category.trim() : 'General');
+        const newImg = mapImageUrl(item.imageUrl, item.category ? item.category.trim() : 'General');
+        if (getImagePriority(newImg) > getImagePriority(existingImg)) {
+          aggregated[sku].image_url = newImg;
         }
       }
 

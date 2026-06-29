@@ -512,12 +512,14 @@ export function ProductDetailClient({
         )}
       </div>
 
-      {activeTab === 'details' && (
-        <div>{children}</div>
-      )}
+      <div style={{ display: activeTab === 'details' ? 'block' : 'none' }}>
+        {children}
+      </div>
 
-      {activeTab === 'media' && mediaContent && (
-        <div>{mediaContent}</div>
+      {mediaContent && (
+        <div style={{ display: activeTab === 'media' ? 'block' : 'none' }}>
+          {mediaContent}
+        </div>
       )}
 
       {activeTab === 'kardex' && (() => {
