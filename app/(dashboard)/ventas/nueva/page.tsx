@@ -76,6 +76,14 @@ export default async function NuevaVentaPage() {
     } catch(e) {}
   }
 
+  // Fallback branch name and location if not explicitly set in ticket configurator
+  if (!ticketConfig.storeName && branch) {
+    ticketConfig.storeName = branch.name;
+  }
+  if (!ticketConfig.address && branch?.location) {
+    ticketConfig.address = branch.location;
+  }
+
   return (
     <div style={{ position: 'relative' }}>
       {/* Título removido, ahora está en el header */}

@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import PrintActions from "@/app/components/PrintActions";
+import { headers } from "next/headers";
 
 export default async function PrintVentaTicketPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -98,10 +99,15 @@ export default async function PrintVentaTicketPage({ params }: { params: Promise
     })();
   `;
 
+  const headersList = await headers();
+  const host = headersList.get('host') || 'caanma.com';
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  const origin = `${protocol}://${host}`;
+
   const ticketIdParam = sale.folio || sale.id.slice(-6).toUpperCase();
   let billingBaseUrl = ticketConfig.autofacturacionUrl 
     ? ticketConfig.autofacturacionUrl.trim() 
-    : 'https://caanma.com/clientes/portal';
+    : `${origin}/clientes/portal`;
 
   const separator = billingBaseUrl.includes('?') ? '&' : '?';
   const finalUrl = `${billingBaseUrl}${separator}ticketId=${ticketIdParam}`;

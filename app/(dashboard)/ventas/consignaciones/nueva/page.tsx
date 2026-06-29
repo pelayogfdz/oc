@@ -1,5 +1,6 @@
 import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
+import { getBranchSettings } from "@/app/actions/settings";
 import POSClient from "../../nueva/POSClient";
 
 export default async function NuevaConsignacionPage({ searchParams }: { searchParams: { customerId?: string } }) {
@@ -14,22 +15,31 @@ export default async function NuevaConsignacionPage({ searchParams }: { searchPa
     );
   }
 
-  const products = await prisma.product.findMany({
-    where: { branchId: branch.id, isActive: true },
-    orderBy: { name: 'asc' }
-  });
+  const [products, customers, suppliers, promotions, settings] = await Promise.all([
+    prisma.product.findMany({
+      where: { branchId: branch.id, isActive: true },
+      orderBy: { name: 'asc' }
+    }),
+    prisma.customer.findMany({ orderBy: { name: 'asc' } }),
+    prisma.supplier.findMany({ orderBy: { name: 'asc' } }),
+    prisma.promotion.findMany({ where: { branchId: branch.id, active: true } }),
+    getBranchSettings()
+  ]);
 
-  const customers = await prisma.customer.findMany({
-    orderBy: { name: 'asc' }
-  });
-
-  const suppliers = await prisma.supplier.findMany({
-    orderBy: { name: 'asc' }
-  });
-
-  const promotions = await prisma.promotion.findMany({
-    where: { branchId: branch.id, active: true }
-  });
+  let ticketConfig: any = {};
+  if (settings?.configJson) {
+    try {
+      const parsed = JSON.parse(settings.configJson);
+      ticketConfig = parsed.tickets || {};
+      ticketConfig.globalLogo = parsed.global?.logoUrl || '';
+    } catch(e) {}
+  }
+  if (!ticketConfig.storeName && branch) {
+    ticketConfig.storeName = branch.name;
+  }
+  if (!ticketConfig.address && branch?.location) {
+    ticketConfig.address = branch.location;
+  }
 
   return (
     <div>
@@ -42,6 +52,7 @@ export default async function NuevaConsignacionPage({ searchParams }: { searchPa
         mode="CONSIGNMENT" 
         branchId={branch.id} 
         initialCustomerId={searchParams.customerId}
+        ticketConfig={ticketConfig}
       />
     </div>
   );

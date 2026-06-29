@@ -1,5 +1,6 @@
 import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
+import { getBranchSettings } from "@/app/actions/settings";
 import POSClient from "../../nueva/POSClient";
 
 export default async function NuevaCotizacionPage({ 
@@ -21,23 +22,32 @@ export default async function NuevaCotizacionPage({
     );
   }
 
-  const products = await prisma.product.findMany({
-    where: { branchId: branch.id, isActive: true },
-    orderBy: { name: 'asc' },
-    take: 50
-  });
+  const [products, customers, suppliers, promotions, settings] = await Promise.all([
+    prisma.product.findMany({
+      where: { branchId: branch.id, isActive: true },
+      orderBy: { name: 'asc' },
+      take: 50
+    }),
+    prisma.customer.findMany({ orderBy: { name: 'asc' } }),
+    prisma.supplier.findMany({ orderBy: { name: 'asc' } }),
+    prisma.promotion.findMany({ where: { branchId: branch.id, active: true } }),
+    getBranchSettings()
+  ]);
 
-  const customers = await prisma.customer.findMany({
-    orderBy: { name: 'asc' }
-  });
-
-  const suppliers = await prisma.supplier.findMany({
-    orderBy: { name: 'asc' }
-  });
-
-  const promotions = await prisma.promotion.findMany({
-    where: { branchId: branch.id, active: true }
-  });
+  let ticketConfig: any = {};
+  if (settings?.configJson) {
+    try {
+      const parsed = JSON.parse(settings.configJson);
+      ticketConfig = parsed.tickets || {};
+      ticketConfig.globalLogo = parsed.global?.logoUrl || '';
+    } catch(e) {}
+  }
+  if (!ticketConfig.storeName && branch) {
+    ticketConfig.storeName = branch.name;
+  }
+  if (!ticketConfig.address && branch?.location) {
+    ticketConfig.address = branch.location;
+  }
 
   const isEditing = !!quoteId;
 
@@ -54,6 +64,7 @@ export default async function NuevaCotizacionPage({
         mode="QUOTE" 
         branchId={branch.id} 
         initialCustomerId={customerId}
+        ticketConfig={ticketConfig}
       />
     </div>
   );
