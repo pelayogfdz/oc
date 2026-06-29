@@ -184,34 +184,41 @@ export async function updateBranchLogo(logoUrl: string) {
     branch = realBranch;
   }
 
-  let settings = await prisma.branchSettings.findUnique({ where: { branchId: branch.id } });
-  
-  if (!settings) {
-    settings = await prisma.branchSettings.create({ data: { branchId: branch.id } });
-  }
-
-  let currentJson: Record<string, any> = {};
-  if (settings.configJson) {
-    try {
-      const parsed = JSON.parse(settings.configJson);
-      if (parsed && typeof parsed === 'object') {
-        currentJson = parsed;
-      }
-    } catch (e) {
-      console.error("Error parsing configJson:", e);
-    }
-  }
-
-  if (!currentJson.global) {
-    currentJson.global = {};
-  }
-
-  currentJson.global.logoUrl = logoUrl;
-
-  await prisma.branchSettings.update({
-    where: { branchId: branch.id },
-    data: { configJson: JSON.stringify(currentJson) }
+  // Find all active branches for this tenant
+  const branches = await prisma.branch.findMany({
+    where: { tenantId: branch.tenantId, isActive: true }
   });
+
+  for (const b of branches) {
+    let settings = await prisma.branchSettings.findUnique({ where: { branchId: b.id } });
+    
+    if (!settings) {
+      settings = await prisma.branchSettings.create({ data: { branchId: b.id } });
+    }
+
+    let currentJson: Record<string, any> = {};
+    if (settings.configJson) {
+      try {
+        const parsed = JSON.parse(settings.configJson);
+        if (parsed && typeof parsed === 'object') {
+          currentJson = parsed;
+        }
+      } catch (e) {
+        console.error("Error parsing configJson:", e);
+      }
+    }
+
+    if (!currentJson.global) {
+      currentJson.global = {};
+    }
+
+    currentJson.global.logoUrl = logoUrl;
+
+    await prisma.branchSettings.update({
+      where: { branchId: b.id },
+      data: { configJson: JSON.stringify(currentJson) }
+    });
+  }
 
   revalidatePath('/preferencias', 'layout');
 }

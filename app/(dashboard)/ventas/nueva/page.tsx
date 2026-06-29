@@ -75,6 +75,24 @@ export default async function NuevaVentaPage() {
     } catch(e) {}
   }
 
+  // Fallback: If no logo is configured on this branch, try to fetch the logo from any branch settings of the same tenant
+  if (!ticketConfig.globalLogo && branch?.tenantId) {
+    const siblingSettings = await prisma.branchSettings.findFirst({
+      where: {
+        branch: {
+          tenantId: branch.tenantId
+        },
+        configJson: { contains: 'logoUrl' }
+      }
+    });
+    if (siblingSettings?.configJson) {
+      try {
+        const parsed = JSON.parse(siblingSettings.configJson);
+        ticketConfig.globalLogo = parsed.global?.logoUrl || '';
+      } catch (e) {}
+    }
+  }
+
   // Fallback branch name and location if not explicitly set in ticket configurator
   if (!ticketConfig.storeName && branch) {
     ticketConfig.storeName = branch.name;

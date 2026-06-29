@@ -37,6 +37,24 @@ export default async function PrintVentaTicketPage({ params }: { params: Promise
     } catch (e) {}
   }
 
+  // Fallback: If no logo is configured on this branch, try to fetch the logo from any branch settings of the same tenant
+  if (!ticketConfig.globalLogo && sale.branch?.tenantId) {
+    const siblingSettings = await prisma.branchSettings.findFirst({
+      where: {
+        branch: {
+          tenantId: sale.branch.tenantId
+        },
+        configJson: { contains: 'logoUrl' }
+      }
+    });
+    if (siblingSettings?.configJson) {
+      try {
+        const parsed = JSON.parse(siblingSettings.configJson);
+        ticketConfig.globalLogo = parsed.global?.logoUrl || '';
+      } catch (e) {}
+    }
+  }
+
   const paperWidth = ticketConfig.anchoTicket === '58mm' || impresorasConfig.receiptWidth === '58mm' ? '58mm' : '80mm';
   const is58 = paperWidth === '58mm';
   const ticketLogo = ticketConfig.logoRecibo || ticketConfig.globalLogo;
