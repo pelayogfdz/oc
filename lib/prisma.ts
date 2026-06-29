@@ -40,8 +40,12 @@ export function getClientForTenant(tenantId: string): PrismaClient {
 }
 
 export const getTenantIdFromToken = cache(async (token: string): Promise<string | null> => {
+  const mappedTenantIds = Object.keys(tenantDbNames);
   const tenants = await masterClient.tenant.findMany({
-    where: { isActive: true },
+    where: { 
+      id: { in: mappedTenantIds },
+      isActive: true 
+    },
     select: { id: true }
   });
 

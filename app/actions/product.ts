@@ -395,7 +395,7 @@ export async function updateProduct(productId: string, formData: FormData) {
     if (isProductionInput !== null) data.isProductionInput = isProductionInput === 'true';
 
     const isService = formData.get('isService');
-    if (isService !== null) data.isService = isService === 'true';
+    if (isService !== null) data.isService = formData.getAll('isService').includes('true');
 
     const unit = formData.get('unit');
     if (unit !== null) data.unit = (unit as string) || 'Pza';
@@ -425,12 +425,12 @@ export async function updateProduct(productId: string, formData: FormData) {
 
     const showInWeb = formData.get('showInWeb');
     if (showInWeb !== null) {
-      data.showInWeb = showInWeb === 'true';
+      data.showInWeb = formData.getAll('showInWeb').includes('true');
     }
 
     const hasTraceability = formData.get('hasTraceability');
     if (hasTraceability !== null) {
-      data.hasTraceability = hasTraceability === 'true';
+      data.hasTraceability = formData.getAll('hasTraceability').includes('true');
     }
 
     // Get current product details before update (to find siblings by old SKU)
