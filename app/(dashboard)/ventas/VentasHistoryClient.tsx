@@ -311,8 +311,11 @@ export default function VentasHistoryClient({
                       <Link href={`/ventas/detalle/${sale.id}`} style={{ padding: '0.25rem', color: '#64748b', display: 'flex', alignItems: 'center' }} title="Ver Detalle">
                         <Eye size={20} />
                       </Link>
-                      <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir`} style={{ padding: '0.25rem', color: '#64748b', display: 'flex', alignItems: 'center' }} title="Imprimir">
+                      <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir`} style={{ padding: '0.25rem', color: '#64748b', display: 'flex', alignItems: 'center' }} title="Imprimir Nota (A4)">
                         <Printer size={20} />
+                      </Link>
+                      <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir-ticket`} style={{ padding: '0.25rem', color: '#64748b', display: 'flex', alignItems: 'center' }} title="Imprimir Ticket Térmico">
+                        <Receipt size={20} />
                       </Link>
                     </div>
                   </td>

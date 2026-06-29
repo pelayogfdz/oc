@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { getActiveBranch } from "@/app/actions/auth";
 import Link from "next/link";
-import { Printer, ArrowLeft } from "lucide-react";
+import { Printer, ArrowLeft, Receipt } from "lucide-react";
 import VentaActionsClient from "./VentaActionsClient";
 
 export default async function VentaDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -47,7 +47,10 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
          </Link>
          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir`} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px' }}>
-               <Printer size={20} /> Imprimir Comprobante
+               <Printer size={20} /> Imprimir Nota (A4)
+            </Link>
+            <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir-ticket`} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: '#fff', color: '#334155', fontWeight: 'bold' }}>
+               <Receipt size={20} /> Imprimir Ticket
             </Link>
             <VentaActionsClient 
               saleId={sale.id}

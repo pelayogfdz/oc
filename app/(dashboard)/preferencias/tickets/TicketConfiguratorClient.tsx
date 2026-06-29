@@ -20,6 +20,7 @@ export default function TicketConfiguratorClient({
   const [rfc, setRfc] = useState(initialConfig.rfc || '');
   const [address, setAddress] = useState(initialConfig.address || '');
   const [phone, setPhone] = useState(initialConfig.phone || '');
+  const [email, setEmail] = useState(initialConfig.email || '');
   const [headerMsg, setHeaderMsg] = useState(initialConfig.headerMsg || '');
   const [footerMsg, setFooterMsg] = useState(initialConfig.footerMsg || '¡Gracias por su compra!\nVuelva pronto.');
   const [showTax, setShowTax] = useState(initialConfig.showTax ?? true);
@@ -44,6 +45,7 @@ export default function TicketConfiguratorClient({
     formData.append('rfc', rfc);
     formData.append('address', address);
     formData.append('phone', phone);
+    formData.append('email', email);
     formData.append('headerMsg', headerMsg);
     formData.append('footerMsg', footerMsg);
     formData.append('showTax', showTax ? 'true' : 'false');
@@ -117,6 +119,16 @@ export default function TicketConfiguratorClient({
           </div>
 
           <div className={styles.formGroup}>
+            <label>Correo Electrónico</label>
+            <input 
+              className={styles.inputField} 
+              value={email} 
+              onChange={e => setEmail(e.target.value)} 
+              placeholder="ejemplo@negocio.com" 
+            />
+          </div>
+
+          <div className={styles.formGroup}>
             <label>Mensaje de Saludo (Arriba)</label>
             <textarea 
               className={styles.inputField} 
@@ -184,6 +196,7 @@ export default function TicketConfiguratorClient({
               />
             )}
             {phone && <div className={styles.tLine}>Tel: {phone}</div>}
+            {email && <div className={styles.tLine}>Email: {email}</div>}
           </div>
 
           <div className={styles.tDivider} />
