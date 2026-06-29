@@ -210,6 +210,16 @@ async function crawlImageForProduct(product) {
       const destPath = path.join(PUBLIC_PRODUCT_IMG_DIR, destFileName);
       const dbUrl = `/img/products/${destFileName}`;
 
+      // First line of defense: Domain/Keywords Blocklist
+      const BLOCKLIST_KEYWORDS = [
+        'eporner', 'pornhub', 'redtube', 'xvideos', 'sex', 'porn', 'adult', 'mature', 'naked', 'erotic', 'hentai',
+        'etsy', 'pinterest', 'pinimg', 'instagram', 'facebook', 'twitter', 'cartoon', 'meme', 'reproductive'
+      ];
+      if (BLOCKLIST_KEYWORDS.some(kw => foundImgUrl.toLowerCase().includes(kw))) {
+        console.warn(`    [BLOCKLIST] Skipping candidate URL due to safety patterns: ${foundImgUrl}`);
+        continue;
+      }
+
       try {
         console.log(`    Downloading image to: ${destFileName}...`);
         const imgRes = await fetch(foundImgUrl, {
@@ -225,6 +235,42 @@ async function crawlImageForProduct(product) {
         }
 
         const buffer = await imgRes.buffer();
+
+        // Second line of defense: Gemini AI Multimodal Safety Filter
+        try {
+          const apiKey = process.env.GEMINI_API_KEY;
+          if (apiKey) {
+            console.log(`    [AI Security] Validating image safety with Gemini...`);
+            const { GoogleGenerativeAI } = require('@google/generative-ai');
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            
+            let mimeType = 'image/jpeg';
+            if (foundImgUrl.toLowerCase().includes('.png')) mimeType = 'image/png';
+            else if (foundImgUrl.toLowerCase().includes('.webp')) mimeType = 'image/webp';
+
+            const result = await model.generateContent([
+              {
+                inlineData: {
+                  data: buffer.toString("base64"),
+                  mimeType: mimeType
+                }
+              },
+              "Analyze this image. Does this image contain adult/pornographic content, nudity, human reproductive anatomy diagrams, suggestive clothing, or is it inappropriate for a public pet supply or office product catalog? Reply with exactly 'YES' if it is inappropriate, or 'NO' if it is appropriate and safe."
+            ]);
+            
+            const responseText = result.response.text().trim().toUpperCase();
+            console.log(`    [AI Security] SafeSearch Decision: ${responseText}`);
+            
+            if (responseText.includes('YES')) {
+              console.warn(`    [AI Security] [REJECTED] Image contains inappropriate or unrelated content! skipping candidate.`);
+              continue;
+            }
+          }
+        } catch (aiErr) {
+          console.error(`    [AI Security] [ERROR] Gemini validation failed, proceeding with caution:`, aiErr.message);
+        }
+
         fs.writeFileSync(destPath, buffer);
 
         // Update database across ALL 10 branches of Office City simultaneously
