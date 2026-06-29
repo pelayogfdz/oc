@@ -1,6 +1,6 @@
 'use server';
 
-import { prisma } from "@/lib/prisma";
+import { prisma, resolveClientForSale } from "@/lib/prisma";
 import Facturapi from "facturapi";
 import { getActiveBranch } from "./auth";
 import { revalidatePath } from "next/cache";
@@ -21,20 +21,11 @@ function getFacturapiApiKey(config: any): string | null {
 
 export async function stampInvoice(saleId: string, customerId?: string | null) {
   try {
-    // Fetch the specific Sale first to determine its branch
-    const sale = await prisma.sale.findUnique({
-      where: { id: saleId },
-      include: {
-        items: {
-          include: { product: true }
-        },
-        customer: true,
-      }
-    });
-
-    if (!sale) {
+    const resolved = await resolveClientForSale(saleId);
+    if (!resolved) {
       throw new Error("La venta especificada no existe.");
     }
+    const { client: db, sale } = resolved;
 
     if (sale.status === 'TIMBRADA' || sale.invoiceId) {
        throw new Error("Esta venta ya fue facturada.");
@@ -46,7 +37,7 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
     }
     
     // Check if facturapi is configured for this branch
-    const branchSettings = await prisma.branchSettings.findUnique({
+    const branchSettings = await db.branchSettings.findUnique({
       where: { branchId }
     });
 
@@ -73,7 +64,7 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
     let finalCustomer = sale.customer;
     if (customerId !== undefined) {
       if (customerId && customerId !== "") {
-        finalCustomer = await prisma.customer.findUnique({
+        finalCustomer = await db.customer.findUnique({
           where: { id: customerId }
         });
       } else {
@@ -116,7 +107,7 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
     }
 
     // Map the items, validating SAT keys
-    const items = sale.items.map(item => {
+    const items = (sale.items as any[]).map((item: any) => {
       if (!item.product.satKey || !item.product.satUnit) {
         throw new Error(`El producto "${item.product.name}" no cuenta con Clave del SAT o Unidad del SAT. Debes configurarlas desde el Catálogo antes de facturar esta venta.`);
       }
@@ -174,7 +165,7 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
     const invoice = await facturapi.invoices.create(invoicePayload);
 
     // Update the Sale record with the Invoice ID and link customer if provided
-    await prisma.sale.update({
+    await db.sale.update({
       where: { id: saleId },
       data: { 
         invoiceId: invoice.id,

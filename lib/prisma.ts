@@ -343,3 +343,55 @@ export const prisma = new Proxy({} as PrismaClient, {
     });
   }
 });
+
+const TENANT_IDS = [
+  '8b52cbcd-c956-4717-a1bd-02e57386aaa2', // OFFICE CITY
+  'db5d3949-f8dd-41f6-9627-90374d55d044', // PETQRO
+  'cd1e1142-ae76-46aa-b2d2-e5de02904788', // SEIT
+  '0d246cea-0220-4328-92b0-8a1387ce6a6d'  // PIZCA
+];
+
+export function getAllTenantClients(): PrismaClient[] {
+  const clients = [masterClient];
+  for (const id of TENANT_IDS) {
+    const client = getClientForTenant(id);
+    if (client !== masterClient && !clients.includes(client)) {
+      clients.push(client);
+    }
+  }
+  return clients;
+}
+
+export async function resolveClientForSale(saleIdOrFolio: string): Promise<{ client: PrismaClient; sale: any } | null> {
+  const cleanId = saleIdOrFolio.trim();
+  const clients = getAllTenantClients();
+
+  for (const client of clients) {
+    try {
+      const sale = await client.sale.findFirst({
+        where: {
+          OR: [
+            { id: cleanId },
+            { id: { endsWith: cleanId.toLowerCase() } },
+            { id: { endsWith: cleanId } },
+            { folio: cleanId },
+            { folio: { equals: cleanId, mode: 'insensitive' } },
+            { folio: { endsWith: `-${cleanId}` } },
+            { folio: { endsWith: `#${cleanId}` } }
+          ]
+        },
+        include: {
+          customer: true,
+          items: { include: { product: true } }
+        }
+      });
+      if (sale) {
+        return { client, sale };
+      }
+    } catch (e) {
+      // Ignore query errors for individual databases
+    }
+  }
+  return null;
+}
+

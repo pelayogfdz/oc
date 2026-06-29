@@ -1,28 +1,12 @@
 'use server';
-import { prisma } from "@/lib/prisma";
+import { prisma, resolveClientForSale, getAllTenantClients } from "@/lib/prisma";
 
 export async function searchTicket(ticketId: string) {
   try {
-    const cleanTicketId = ticketId.trim();
-    const sale = await prisma.sale.findFirst({
-      where: {
-        OR: [
-          { id: cleanTicketId },
-          { id: { endsWith: cleanTicketId.toLowerCase() } },
-          { id: { endsWith: cleanTicketId } },
-          { folio: cleanTicketId },
-          { folio: { equals: cleanTicketId, mode: 'insensitive' } },
-          { folio: { endsWith: `-${cleanTicketId}` } },
-          { folio: { endsWith: `#${cleanTicketId}` } }
-        ]
-      },
-      include: {
-        customer: true,
-        items: { include: { product: true } }
-      }
-    });
+    const resolved = await resolveClientForSale(ticketId);
+    if (!resolved) return { error: "Ticket no encontrado. Verifica el folio." };
 
-    if (!sale) return { error: "Ticket no encontrado. Verifica el folio." };
+    const { sale } = resolved;
     if (sale.status !== "COMPLETED") return { error: "El ticket no es válido para facturación fiscal." };
 
     return { sale };
@@ -35,20 +19,19 @@ import { stampInvoice } from "./facturacion";
 
 export async function generateInvoice(ticketId: string, taxData: any) {
   try {
-    const sale = await prisma.sale.findUnique({
-      where: { id: ticketId }
-    });
+    const resolved = await resolveClientForSale(ticketId);
+    if (!resolved) return { error: "Ticket inválido." };
 
-    if (!sale) return { error: "Ticket inválido." };
+    const { client: db, sale } = resolved;
     if (sale.invoiceId) return { error: "El ticket ya fue facturado." };
 
-    const branch = await prisma.branch.findUnique({
+    const branch = await db.branch.findUnique({
       where: { id: sale.branchId || '' },
       select: { tenantId: true }
     });
 
     // Find customer by taxId (RFC) in the same tenant (via branches belonging to that tenant)
-    let customer = await prisma.customer.findFirst({
+    let customer = await db.customer.findFirst({
       where: {
         taxId: { equals: taxData.rfc, mode: 'insensitive' },
         branch: {
@@ -58,7 +41,7 @@ export async function generateInvoice(ticketId: string, taxData: any) {
     });
 
     if (customer) {
-      customer = await prisma.customer.update({
+      customer = await db.customer.update({
         where: { id: customer.id },
         data: {
           name: taxData.legalName,
@@ -70,7 +53,7 @@ export async function generateInvoice(ticketId: string, taxData: any) {
         }
       });
     } else {
-      customer = await prisma.customer.create({
+      customer = await db.customer.create({
         data: {
           name: taxData.legalName,
           legalName: taxData.legalName,
@@ -85,7 +68,7 @@ export async function generateInvoice(ticketId: string, taxData: any) {
     }
 
     // Link customer to sale
-    await prisma.sale.update({
+    await db.sale.update({
        where: { id: ticketId },
        data: { customerId: customer.id }
     });
@@ -105,38 +88,52 @@ export async function generateInvoice(ticketId: string, taxData: any) {
 
 export async function searchB2BInvoices(rfc: string) {
   try {
-    const sales = await prisma.sale.findMany({
-      where: {
-        customer: {
-          taxId: { equals: rfc, mode: 'insensitive' }
-        },
-        invoiceId: {
-          not: null
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        createdAt: true,
-        total: true,
-        invoiceId: true,
-        status: true
+    const clients = getAllTenantClients();
+    const allInvoices: any[] = [];
+    const searchPromises = clients.map(async (client) => {
+      try {
+        const sales = await client.sale.findMany({
+          where: {
+            customer: {
+              taxId: { equals: rfc, mode: 'insensitive' }
+            },
+            invoiceId: {
+              not: null
+            }
+          },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            createdAt: true,
+            total: true,
+            invoiceId: true,
+            status: true
+          }
+        });
+        return sales;
+      } catch (e) {
+        return [];
       }
     });
 
-    if (sales.length === 0) {
+    const results = await Promise.all(searchPromises);
+    for (const sales of results) {
+      for (const s of sales) {
+        allInvoices.push({
+          id: s.id,
+          date: s.createdAt,
+          total: s.total,
+          uuid: s.invoiceId,
+          status: "Timbrada"
+        });
+      }
+    }
+
+    if (allInvoices.length === 0) {
       return { error: 'No se encontraron facturas timbradas para el RFC proporcionado.' };
     }
 
-    return { 
-      invoices: sales.map(s => ({
-        id: s.id,
-        date: s.createdAt,
-        total: s.total,
-        uuid: s.invoiceId,
-        status: "Timbrada"
-      }))
-    };
+    return { invoices: allInvoices };
   } catch (error) {
     return { error: "Error de servidor al buscar facturas B2B." };
   }
@@ -145,34 +142,45 @@ export async function searchB2BInvoices(rfc: string) {
 export async function searchCustomerPortalData(emailOrPhone: string) {
   try {
     const cleanedSearch = emailOrPhone.trim().toLowerCase();
-    
-    // Find customer by email, phone, or tax ID (RFC)
-    const customer = await prisma.customer.findFirst({
-      where: {
-        OR: [
-          { email: { equals: cleanedSearch, mode: 'insensitive' } },
-          { phone: { contains: emailOrPhone.trim() } },
-          { taxId: { equals: emailOrPhone.trim(), mode: 'insensitive' } }
-        ]
-      },
-      include: {
-        branch: true
-      }
-    });
+    const clients = getAllTenantClients();
+    let customer = null;
+    let db = null;
 
-    if (!customer) {
+    for (const client of clients) {
+      try {
+        const c = await client.customer.findFirst({
+          where: {
+            OR: [
+              { email: { equals: cleanedSearch, mode: 'insensitive' } },
+              { phone: { contains: emailOrPhone.trim() } },
+              { taxId: { equals: emailOrPhone.trim(), mode: 'insensitive' } }
+            ]
+          },
+          include: {
+            branch: true
+          }
+        });
+        if (c) {
+          customer = c;
+          db = client;
+          break;
+        }
+      } catch (e) {}
+    }
+
+    if (!customer || !db) {
       return { error: "Cliente no encontrado. Por favor verifica tu correo, teléfono o RFC registrado." };
     }
 
     // Fetch transactions
-    const loyaltyTransactions = await prisma.loyaltyTransaction.findMany({
+    const loyaltyTransactions = await db.loyaltyTransaction.findMany({
       where: { customerId: customer.id },
       orderBy: { createdAt: 'desc' },
       take: 30
     });
 
     // Fetch sales
-    const sales = await prisma.sale.findMany({
+    const sales = await db.sale.findMany({
       where: { customerId: customer.id },
       orderBy: { createdAt: 'desc' },
       take: 20,
@@ -193,14 +201,14 @@ export async function searchCustomerPortalData(emailOrPhone: string) {
     });
 
     // Fetch payments
-    const payments = await prisma.customerPayment.findMany({
+    const payments = await db.customerPayment.findMany({
       where: { customerId: customer.id },
       orderBy: { createdAt: 'desc' },
       take: 20
     });
 
     // Fetch quotes
-    const quotes = await prisma.quote.findMany({
+    const quotes = await db.quote.findMany({
       where: { customerId: customer.id },
       orderBy: { createdAt: 'desc' },
       take: 20,
@@ -219,7 +227,7 @@ export async function searchCustomerPortalData(emailOrPhone: string) {
     });
 
     // Fetch consignments
-    const consignments = await prisma.consignment.findMany({
+    const consignments = await db.consignment.findMany({
       where: { customerId: customer.id },
       orderBy: { createdAt: 'desc' },
       take: 20,
@@ -263,7 +271,7 @@ export async function searchCustomerPortalData(emailOrPhone: string) {
 
     // Fetch Active Promotions in the branch
     const promotions = customer.branchId 
-      ? await prisma.promotion.findMany({
+      ? await db.promotion.findMany({
           where: { branchId: customer.branchId, active: true },
           take: 5
         })
@@ -272,7 +280,7 @@ export async function searchCustomerPortalData(emailOrPhone: string) {
     // Check if Google Wallet is enabled for this branch
     let googleWalletEnabled = false;
     if (customer.branchId) {
-      const branchSettings = await prisma.branchSettings.findUnique({
+      const branchSettings = await db.branchSettings.findUnique({
         where: { branchId: customer.branchId }
       });
       if (branchSettings?.configJson) {
