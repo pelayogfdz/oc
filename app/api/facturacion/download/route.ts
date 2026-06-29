@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getAllTenantClients } from '@/lib/prisma';
+import Facturapi from 'facturapi';
 
 export const dynamic = "force-dynamic";
 
@@ -32,40 +33,49 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Formato inválido. Debe ser pdf o xml' }, { status: 400 });
     }
 
-    // 1. Resolve branch settings to get API Key
-    let branchId: string | null = null;
-
-    if (invoiceId) {
-      // Find sale with this invoiceId to get the branch
-      const sale = await prisma.sale.findFirst({
-        where: { invoiceId: invoiceId }
-      });
-      if (sale) {
-        branchId = sale.branchId;
-      }
-    }
-
+    // 1. Resolve branch settings and API Key from tenant databases
+    const clients = getAllTenantClients();
     let apiKey: string | null = null;
 
-    if (branchId) {
-      const settings = await prisma.branchSettings.findUnique({
-        where: { branchId: branchId }
-      });
-      if (settings && settings.configJson) {
-        apiKey = getFacturapiApiKey(JSON.parse(settings.configJson));
+    if (invoiceId) {
+      // Find sale with this invoiceId across all tenant databases to get the branch
+      for (const client of clients) {
+        try {
+          const sale = await client.sale.findFirst({
+            where: { invoiceId: invoiceId }
+          });
+          if (sale && sale.branchId) {
+            const settings = await client.branchSettings.findUnique({
+              where: { branchId: sale.branchId }
+            });
+            if (settings && settings.configJson) {
+              apiKey = getFacturapiApiKey(JSON.parse(settings.configJson));
+              if (apiKey) break;
+            }
+          }
+        } catch (e) {
+          // Keep searching
+        }
       }
     }
 
-    // If still no apiKey, try to query any branchSettings in the system that has a valid API key
+    // If still no apiKey, query all tenant clients' branchSettings to find any valid key
     if (!apiKey) {
-      const allSettings = await prisma.branchSettings.findMany();
-      for (const settings of allSettings) {
-        if (settings.configJson) {
-          const key = getFacturapiApiKey(JSON.parse(settings.configJson));
-          if (key) {
-            apiKey = key;
-            break;
+      for (const client of clients) {
+        try {
+          const allSettings = await client.branchSettings.findMany();
+          for (const settings of allSettings) {
+            if (settings.configJson) {
+              const key = getFacturapiApiKey(JSON.parse(settings.configJson));
+              if (key) {
+                apiKey = key;
+                break;
+              }
+            }
           }
+          if (apiKey) break;
+        } catch (e) {
+          // Keep searching
         }
       }
     }
@@ -74,29 +84,35 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'No se encontró configuración de Facturapi activa en el sistema.' }, { status: 404 });
     }
 
-    // 2. Fetch the file from Facturapi
-    const resource = invoiceId ? 'invoices' : 'receipts';
-    const id = invoiceId || receiptId;
-    const url = `https://api.facturapi.com/v1/${resource}/${id}/${format}`;
-    const authHeader = 'Basic ' + Buffer.from(apiKey + ':').toString('base64');
+    // 2. Instantiate Facturapi SDK
+    const facturapi = new Facturapi(apiKey);
+    const id = (invoiceId || receiptId) as string;
 
-    const res = await fetch(url, {
-      headers: {
-        'Authorization': authHeader
+    // 3. Fetch the file from Facturapi using SDK to prevent native fetch SSL SNI errors
+    let blob: any;
+    if (invoiceId) {
+      if (format === 'pdf') {
+        blob = await facturapi.invoices.downloadPdf(id);
+      } else {
+        blob = await facturapi.invoices.downloadXml(id);
       }
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error(`Error de Facturapi al descargar ${format}:`, errText);
-      return NextResponse.json({ error: `Facturapi devolvió error al descargar: ${res.statusText}` }, { status: res.status });
+    } else {
+      if (format === 'pdf') {
+        blob = await facturapi.receipts.downloadPdf(id);
+      } else {
+        return NextResponse.json({ error: 'Formatos xml no están soportados para recibos simplificados' }, { status: 400 });
+      }
     }
 
-    const fileBuffer = await res.arrayBuffer();
+    if (!blob) {
+      return NextResponse.json({ error: 'No se pudo descargar el archivo desde Facturapi.' }, { status: 500 });
+    }
 
-    // 3. Return response with correct headers
+    const fileBuffer = await blob.arrayBuffer();
+
+    // 4. Return response with correct headers
     const contentType = format === 'pdf' ? 'application/pdf' : 'application/xml';
-    const filename = `${resource === 'invoices' ? 'factura' : 'complemento'}_${id}.${format}`;
+    const filename = `${invoiceId ? 'factura' : 'complemento'}_${id}.${format}`;
 
     return new Response(Buffer.from(fileBuffer), {
       headers: {
