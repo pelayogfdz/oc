@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Edit } from "lucide-react";
 import Link from "next/link";
 import EditarCompraForm from "./EditarCompraForm";
+import { getTenantSuppliers } from "@/app/actions/supplier";
 
 export const dynamic = "force-dynamic";
 
@@ -61,9 +62,7 @@ export default async function EditarCompraPage({ params }: PageProps) {
     select: { id: true, name: true, stock: true, cost: true, hasTraceability: true, sku: true, imageUrl: true },
   });
 
-  const suppliers = await prisma.supplier.findMany({
-    orderBy: { name: "asc" },
-  });
+  const suppliers = await getTenantSuppliers();
 
   return (
     <div style={{ maxWidth: "1000px", margin: "0 auto" }}>

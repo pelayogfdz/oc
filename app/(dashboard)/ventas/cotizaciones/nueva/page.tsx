@@ -2,6 +2,7 @@ import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import { getBranchSettings } from "@/app/actions/settings";
 import POSClient from "../../nueva/POSClient";
+import { getTenantSuppliers } from "@/app/actions/supplier";
 
 export default async function NuevaCotizacionPage({ 
   searchParams 
@@ -22,16 +23,16 @@ export default async function NuevaCotizacionPage({
     );
   }
 
-  const [products, customers, suppliers, promotions, settings] = await Promise.all([
+  const [products, customers, promotions, settings, suppliers] = await Promise.all([
     prisma.product.findMany({
       where: { branchId: branch.id, isActive: true },
       orderBy: { name: 'asc' },
       take: 50
     }),
     prisma.customer.findMany({ orderBy: { name: 'asc' } }),
-    prisma.supplier.findMany({ orderBy: { name: 'asc' } }),
     prisma.promotion.findMany({ where: { branchId: branch.id, active: true } }),
-    getBranchSettings()
+    getBranchSettings(),
+    getTenantSuppliers()
   ]);
 
   let ticketConfig: any = {};

@@ -62,3 +62,27 @@ export async function updateSupplier(id: string, data: any) {
   revalidatePath('/proveedores');
   return { success: true };
 }
+
+export async function getTenantSuppliers() {
+  const branch = await getActiveBranch();
+  if (!branch) return [];
+
+  const suppliers = await prisma.supplier.findMany({
+    where: {
+      branch: {
+        tenantId: branch.tenantId
+      }
+    },
+    orderBy: { name: 'asc' }
+  });
+
+  // Deduplicate in memory by taxId/RFC or Name (case-insensitive)
+  const uniqueMap = new Map<string, any>();
+  for (const sup of suppliers) {
+    const key = (sup.taxId || sup.name).trim().toUpperCase();
+    if (!uniqueMap.has(key)) {
+      uniqueMap.set(key, sup);
+    }
+  }
+  return Array.from(uniqueMap.values());
+}

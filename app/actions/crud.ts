@@ -24,6 +24,25 @@ export async function crudAction(entity: string, formData: FormData) {
   try {
      if (entity === 'supplier') {
         const { id, branch: _, ...supplierData } = data;
+        
+        // Check if supplier already exists under this tenant by name or RFC (taxId)
+        const existing = await prisma.supplier.findFirst({
+           where: {
+              branch: {
+                 tenantId: branch.tenantId
+              },
+              OR: [
+                 { name: { equals: supplierData.name, mode: 'insensitive' as const } },
+                 ...(supplierData.taxId ? [{ taxId: { equals: supplierData.taxId, mode: 'insensitive' as const } }] : [])
+              ]
+           }
+        });
+        
+        if (existing) {
+           console.log(`Supplier already exists for tenant: ${supplierData.name}`);
+           return;
+        }
+
         await prisma.supplier.create({ data: supplierData });
      } else if (entity === 'customer') {
         await prisma.customer.create({ data: { name: data.name, taxId: data.taxId, phone: data.phone, creditLimit: data.creditLimit, branchId: branch.id }});

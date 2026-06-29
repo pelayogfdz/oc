@@ -6,6 +6,7 @@ import POSClient from "./POSClient";
 import { getCurrentSession } from "@/app/actions/caja";
 import { Lock, ArrowRight } from 'lucide-react';
 import Link from "next/link";
+import { getTenantSuppliers } from "@/app/actions/supplier";
 
 export const dynamic = 'force-dynamic';
 
@@ -26,12 +27,12 @@ export default async function NuevaVentaPage() {
   const [
     products,
     customers,
-    suppliers,
     promotions,
     dynamicPriceLists,
     pendingQuotes,
     session,
-    settings
+    settings,
+    suppliers
   ] = await Promise.all([
     prisma.product.findMany({
       where: { branchId, isActive: true },
@@ -40,9 +41,6 @@ export default async function NuevaVentaPage() {
       take: 50
     }),
     prisma.customer.findMany({
-      orderBy: { name: 'asc' }
-    }),
-    prisma.supplier.findMany({
       orderBy: { name: 'asc' }
     }),
     prisma.promotion.findMany({
@@ -57,7 +55,8 @@ export default async function NuevaVentaPage() {
       take: 20
     }),
     getCurrentSession(),
-    getBranchSettings()
+    getBranchSettings(),
+    getTenantSuppliers()
   ]);
   let ticketConfig: any = {};
   let metodosConfig = {};

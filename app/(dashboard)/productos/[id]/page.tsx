@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ProductDetailClient } from "./ProductDetailClient";
 import { updateProduct, deleteProduct } from "@/app/actions/product";
 import { getActiveBranch } from "@/app/actions/auth";
+import { getTenantSuppliers } from "@/app/actions/supplier";
 import { Image as ImageIcon } from 'lucide-react';
 import ProductFinanceSection from '../ProductFinanceSection';
 import ProductImageSection from '../ProductImageSection';
@@ -57,9 +58,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
     }
   }
 
-  const suppliers = await prisma.supplier.findMany({
-    orderBy: { name: 'asc' }
-  });
+  const suppliers = await getTenantSuppliers();
 
   const dynamicPriceLists = await prisma.priceList.findMany({
     where: { branchId: product.branchId },

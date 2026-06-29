@@ -4,6 +4,8 @@ import { ArrowLeft, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 import CrearCompraForm from './CrearCompraForm';
 
+import { getTenantSuppliers } from "@/app/actions/supplier";
+
 export const dynamic = 'force-dynamic';
 
 export default async function NuevaCompraPage() {
@@ -15,9 +17,7 @@ export default async function NuevaCompraPage() {
     select: { id: true, name: true, stock: true, cost: true, hasTraceability: true, sku: true }
   });
   
-  const suppliers = await prisma.supplier.findMany({
-    orderBy: { name: 'asc' }
-  });
+  const suppliers = await getTenantSuppliers();
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>

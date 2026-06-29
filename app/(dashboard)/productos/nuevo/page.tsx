@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Image as ImageIcon } from 'lucide-react';
 import ProductFormClient from "./ProductFormClient";
+import { getTenantSuppliers } from "@/app/actions/supplier";
 
 export default async function NuevoProductoPage({ searchParams }: { searchParams: { cloneId?: string } }) {
   const branch = await getActiveBranch();
@@ -18,9 +19,7 @@ export default async function NuevoProductoPage({ searchParams }: { searchParams
     });
   }
 
-  const suppliers = await prisma.supplier.findMany({
-    orderBy: { name: 'asc' }
-  });
+  const suppliers = await getTenantSuppliers();
   const priceLists = await prisma.priceList.findMany({
     where: { branchId: branch?.id }
   });

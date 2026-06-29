@@ -8,6 +8,9 @@ export default async function CuentasPorPagarPage() {
   
   const suppliersWithStatus = await prisma.supplier.findMany({
     where: { 
+       branch: {
+          tenantId: branch.tenantId
+       },
        OR: [
           { creditBalance: { gt: 0 } },
           { purchases: { some: { paymentMethod: 'CREDIT', balanceDue: { gt: 0 } } } }

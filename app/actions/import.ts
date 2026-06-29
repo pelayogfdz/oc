@@ -72,7 +72,12 @@ export async function importProducts(records: any[]) {
     if (!supplierId && row.supplierName?.trim()) {
       const supName = row.supplierName.trim();
       const existingSupplier = await prisma.supplier.findFirst({
-        where: { branchId: branch.id, name: { equals: supName, mode: 'insensitive' } }
+        where: {
+          branch: {
+            tenantId: branch.tenantId
+          },
+          name: { equals: supName, mode: 'insensitive' }
+        }
       });
       if (existingSupplier) {
         supplierId = existingSupplier.id;

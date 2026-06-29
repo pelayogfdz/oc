@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ShoppingCart, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import CrearPedidoForm from './CrearPedidoForm';
+import { getTenantSuppliers } from "@/app/actions/supplier";
 
 export const dynamic = 'force-dynamic';
 
@@ -16,9 +17,7 @@ export default async function NuevoPedidoPage() {
     select: { id: true, name: true, stock: true, minStock: true, cost: true }
   });
   
-  const suppliers = await prisma.supplier.findMany({
-    orderBy: { name: 'asc' }
-  });
+  const suppliers = await getTenantSuppliers();
 
   const pendingRequests = await prisma.purchaseRequest.findMany({
     where: { ...query, status: 'PENDING' },

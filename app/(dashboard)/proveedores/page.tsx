@@ -4,11 +4,10 @@ import * as Icons from 'lucide-react';
 import { FileText, Plus, Trash2, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { deleteEntity } from '@/app/actions/crud';
+import { getTenantSuppliers } from '@/app/actions/supplier';
 
 export default async function Page() {
-  const data = await prisma.supplier.findMany({
-    orderBy: { name: 'asc' }
-  });
+  const data = await getTenantSuppliers();
   const SpecificIcon = (Icons as any)['Users'] || Icons.Box;
 
   return (
