@@ -25,6 +25,12 @@ export default function CostosPreciosClient({
   const [sortColumn, setSortColumn] = useState('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
+  // Cost and Price Range filters
+  const [minCost, setMinCost] = useState('');
+  const [maxCost, setMaxCost] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+
   // Load new data on branch filter change
   const handleFilterChange = async (filters: ReportFilterState) => {
     setLoading(true);
@@ -100,6 +106,34 @@ export default function CostosPreciosClient({
       result = result.filter((p: any) => p.category === categoryFilter);
     }
 
+    // Cost Range Filters
+    if (minCost !== '') {
+      const min = parseFloat(minCost);
+      if (!isNaN(min)) {
+        result = result.filter((p: any) => p.cost >= min);
+      }
+    }
+    if (maxCost !== '') {
+      const max = parseFloat(maxCost);
+      if (!isNaN(max)) {
+        result = result.filter((p: any) => p.cost <= max);
+      }
+    }
+
+    // Price Range Filters
+    if (minPrice !== '') {
+      const min = parseFloat(minPrice);
+      if (!isNaN(min)) {
+        result = result.filter((p: any) => p.resolvedPrice >= min);
+      }
+    }
+    if (maxPrice !== '') {
+      const max = parseFloat(maxPrice);
+      if (!isNaN(max)) {
+        result = result.filter((p: any) => p.resolvedPrice <= max);
+      }
+    }
+
     // Sorting
     result.sort((a: any, b: any) => {
       let valA: any, valB: any;
@@ -138,7 +172,7 @@ export default function CostosPreciosClient({
     });
 
     return result;
-  }, [data.products, activePriceListKey, searchTerm, categoryFilter, sortColumn, sortDirection]);
+  }, [data.products, activePriceListKey, searchTerm, categoryFilter, sortColumn, sortDirection, minCost, maxCost, minPrice, maxPrice]);
 
   // KPIs Calculations
   const kpis = useMemo(() => {
@@ -330,6 +364,39 @@ export default function CostosPreciosClient({
                 ))}
               </select>
             </div>
+
+            {/* Dedicated Sort Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <select 
+                value={`${sortColumn}-${sortDirection}`}
+                onChange={(e) => {
+                  const [col, dir] = e.target.value.split('-');
+                  setSortColumn(col);
+                  setSortDirection(dir as 'asc' | 'desc');
+                }}
+                style={{ 
+                  padding: '0.5rem 1rem', 
+                  borderRadius: '6px', 
+                  border: '1px solid #cbd5e1', 
+                  fontSize: '0.9rem',
+                  backgroundColor: 'white',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  fontWeight: '500'
+                }}
+              >
+                <option value="name-asc">Ordenar: Nombre (A-Z)</option>
+                <option value="name-desc">Ordenar: Nombre (Z-A)</option>
+                <option value="cost-desc">Ordenar: Costo (Mayor a Menor) ⬇</option>
+                <option value="cost-asc">Ordenar: Costo (Menor a Mayor) ⬆</option>
+                <option value="price-desc">Ordenar: Precio (Mayor a Menor) ⬇</option>
+                <option value="price-asc">Ordenar: Precio (Menor a Mayor) ⬆</option>
+                <option value="margin-desc">Ordenar: Margen (Mayor a Menor) ⬇</option>
+                <option value="margin-asc">Ordenar: Margen (Menor a Mayor) ⬆</option>
+                <option value="stock-desc">Ordenar: Stock (Mayor a Menor) ⬇</option>
+                <option value="stock-asc">Ordenar: Stock (Menor a Mayor) ⬆</option>
+              </select>
+            </div>
           </div>
 
           {/* Price List Selector */}
@@ -355,6 +422,79 @@ export default function CostosPreciosClient({
               ))}
             </select>
           </div>
+        </div>
+
+        {/* Cost and Price Range Filters Row */}
+        <div className="no-print" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.75rem', borderTop: '1px solid var(--caanma-border)', paddingTop: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Costo:</span>
+            <input 
+              type="number" 
+              placeholder="Mín" 
+              value={minCost}
+              onChange={(e) => setMinCost(e.target.value)}
+              style={{ width: '90px', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
+            />
+            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>-</span>
+            <input 
+              type="number" 
+              placeholder="Máx" 
+              value={maxCost}
+              onChange={(e) => setMaxCost(e.target.value)}
+              style={{ width: '90px', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Precio Venta:</span>
+            <input 
+              type="number" 
+              placeholder="Mín" 
+              value={minPrice}
+              onChange={(e) => setMinPrice(e.target.value)}
+              style={{ width: '90px', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
+            />
+            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>-</span>
+            <input 
+              type="number" 
+              placeholder="Máx" 
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(e.target.value)}
+              style={{ width: '90px', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
+            />
+          </div>
+
+          {/* Clean Filters Button */}
+          {(searchTerm || categoryFilter !== 'ALL' || minCost || maxCost || minPrice || maxPrice || sortColumn !== 'name' || sortDirection !== 'asc') && (
+            <button 
+              onClick={() => {
+                setSearchTerm('');
+                setCategoryFilter('ALL');
+                setMinCost('');
+                setMaxCost('');
+                setMinPrice('');
+                setMaxPrice('');
+                setSortColumn('name');
+                setSortDirection('asc');
+              }}
+              style={{
+                marginLeft: 'auto',
+                backgroundColor: 'transparent',
+                color: 'var(--caanma-primary)',
+                border: '1px solid var(--caanma-primary)',
+                padding: '0.4rem 1rem',
+                borderRadius: '6px',
+                fontSize: '0.85rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--caanma-primary)'; e.currentTarget.style.color = 'white'; }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--caanma-primary)'; }}
+            >
+              Limpiar Filtros
+            </button>
+          )}
         </div>
 
         {/* Data Table */}
