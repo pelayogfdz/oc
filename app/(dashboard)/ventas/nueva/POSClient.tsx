@@ -922,7 +922,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
 
   const change = (typeof amountReceived === 'number' ? amountReceived : 0) - finalTotalWithTip;
 
-  const printTicket = async (cartItems: any[], tTotal: number, tChange: number, tDiscount: number, saleId?: string) => {
+  const printTicket = async (cartItems: any[], tTotal: number, tChange: number, tDiscount: number, saleId?: string, folio?: string) => {
     const itemDiscountsMap = getItemDiscounts(cartItems);
     // Generate inner styling for the ticket
     const paperWidth = ticketConfig.anchoTicket === '58mm' || impresorasConfig.receiptWidth === '58mm' ? '58mm' : '80mm';
@@ -991,7 +991,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
           <div class="t-body">
             <div class="info-row"><span>Fecha:</span><span>${new Date().toLocaleString()}</span></div>
             <div class="info-row"><span>Atendió:</span><span>Caja</span></div>
-            ${saleId ? `<div class="info-row"><span>Folio Web:</span><span>${saleId.slice(-6).toUpperCase()}</span></div>` : ''}
+            ${saleId ? `<div class="info-row"><span>Folio Web:</span><span>${folio || saleId.slice(-6).toUpperCase()}</span></div>` : ''}
           </div>
           <div class="items-table">
             <div class="item-head">
@@ -1028,7 +1028,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
             <div class="t-footer">${ticketConfig.footerMsg.replace(/\n/g, '<br/>')}</div>
           ` : ''}
           ${saleId ? (() => {
-            const ticketIdParam = saleId.slice(-6).toUpperCase();
+            const ticketIdParam = folio || saleId.slice(-6).toUpperCase();
             let billingBaseUrl = ticketConfig.autofacturacionUrl 
               ? ticketConfig.autofacturacionUrl.trim() 
               : (window.location.origin + '/clientes/portal');
@@ -1355,7 +1355,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
 
       if (mode === 'SALE') {
         if (isAutoPrint) {
-          printTicket(cartBackup, totalBackup, changeBackup, discountBackup, saleId);
+          printTicket(cartBackup, totalBackup, changeBackup, discountBackup, saleId, responseSale?.folio);
         }
         setSuccessModalData({
           saleId,
@@ -1380,7 +1380,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                 alert('¡Consignación creada con éxito! Imprimiendo Ticket...');
               }
            }
-           printTicket(cartBackup, totalBackup, changeBackup, discountBackup, saleId);
+           printTicket(cartBackup, totalBackup, changeBackup, discountBackup, saleId, responseSale?.folio);
            if (mode === 'QUOTE') {
               router.push('/ventas/cotizaciones');
            } else if (mode === 'CONSIGNMENT') {
@@ -3089,7 +3089,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
               {/* Actions Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
                 <button
-                  onClick={() => printTicket(successModalData.cartBackup, successModalData.total, successModalData.change, successModalData.discount, successModalData.saleId)}
+                  onClick={() => printTicket(successModalData.cartBackup, successModalData.total, successModalData.change, successModalData.discount, successModalData.saleId, successModalData.folio)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',

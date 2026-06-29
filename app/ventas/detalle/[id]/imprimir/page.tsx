@@ -190,7 +190,7 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
         {/* Footer & QR */}
         <div style={{ position: 'absolute', bottom: '2cm', left: '2cm', right: '2cm' }}>
           <div className="qr-section">
-            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://caanma.com/clientes/portal?ticketId=${sale.id.slice(0, 8)}`} alt="QR Code" style={{ width: '80px', height: '80px' }} />
+            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`https://caanma.com/clientes/portal?ticketId=${sale.folio || sale.id.slice(0, 8)}`)}`} alt="QR Code" style={{ width: '80px', height: '80px' }} />
             <div>
               <h4 style={{ margin: '0 0 0.25rem 0', color: '#0f172a', fontSize: '1rem' }}>¿Requieres Factura Electrónica?</h4>
               <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>
