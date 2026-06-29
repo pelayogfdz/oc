@@ -240,9 +240,31 @@ export default function PortalClient() {
   return (
     <div className="portal-container" style={{ maxWidth: '1000px', margin: '4rem auto', padding: '0 1rem', fontFamily: 'var(--font-geist-sans)' }}>
       <style dangerouslySetInnerHTML={{__html: `
+        .portal-grid-2 {
+          display: grid !important;
+          grid-template-columns: 1.5fr 1fr !important;
+          gap: 1rem !important;
+        }
+        .portal-grid-1-1 {
+          display: grid !important;
+          grid-template-columns: 1fr 1fr !important;
+          gap: 1rem !important;
+        }
+        @media (max-width: 600px) {
+          .portal-grid-2, .portal-grid-1-1 {
+            grid-template-columns: 1fr !important;
+          }
+        }
         @media (max-width: 768px) {
+          html, body {
+            max-width: 100% !important;
+            overflow-x: hidden !important;
+          }
           .portal-container {
-            margin: 1.5rem auto !important;
+            margin: 1rem auto !important;
+            padding: 0 0.5rem !important;
+            max-width: 100% !important;
+            overflow-x: hidden !important;
           }
           .portal-header {
             margin-bottom: 1.5rem !important;
@@ -266,7 +288,15 @@ export default function PortalClient() {
             background-color: white !important;
           }
           .portal-card-body {
-            padding: 1.25rem !important;
+            padding: 1rem !important;
+          }
+          .portal-greeting-banner {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1rem !important;
+          }
+          .portal-greeting-title {
+            font-size: 1.5rem !important;
           }
         }
       `}} />
@@ -338,10 +368,10 @@ export default function PortalClient() {
                 return (
                   <div>
                     {/* Logged in Header Banner */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
+                    <div className="portal-greeting-banner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
                       <div>
                         <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--caanma-primary)', textTransform: 'uppercase', letterSpacing: '1px' }}>Portal del Cliente</span>
-                        <h2 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#0f172a', marginTop: '0.25rem' }}>
+                        <h2 className="portal-greeting-title" style={{ fontSize: '2rem', fontWeight: 'bold', color: '#0f172a', marginTop: '0.25rem', wordBreak: 'break-word' }}>
                           ¡Hola, {portalData.customer.name}! 👋
                         </h2>
                         <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
@@ -357,7 +387,7 @@ export default function PortalClient() {
                     </div>
 
                     {/* Financial & Loyalty Cards Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
                       
                       {/* Loyalty Points Card */}
                       <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
@@ -526,8 +556,8 @@ export default function PortalClient() {
 
                     {/* SUBTAB 1: PURCHASES */}
                     {portalSubTab === 'purchases' && (
-                      <div style={{ border: '1px solid var(--caanma-border)', borderRadius: '10px', overflow: 'hidden' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <div style={{ border: '1px solid var(--caanma-border)', borderRadius: '10px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
                           <thead>
                             <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
                               <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 'bold' }}>Folio</th>
@@ -635,8 +665,8 @@ export default function PortalClient() {
 
                     {/* SUBTAB: UNPAID (Facturas por Vencer) */}
                     {portalSubTab === 'unpaid' && (
-                      <div style={{ border: '1px solid var(--caanma-border)', borderRadius: '10px', overflow: 'hidden' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <div style={{ border: '1px solid var(--caanma-border)', borderRadius: '10px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
                           <thead>
                             <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
                               <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 'bold' }}>Folio</th>
@@ -760,8 +790,8 @@ export default function PortalClient() {
                           </form>
                         </div>
 
-                        <div style={{ border: '1px solid var(--caanma-border)', borderRadius: '10px', overflow: 'hidden' }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <div style={{ border: '1px solid var(--caanma-border)', borderRadius: '10px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '550px' }}>
                             <thead>
                               <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
                                 <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 'bold' }}>Fecha</th>
@@ -802,8 +832,8 @@ export default function PortalClient() {
 
                     {/* SUBTAB 3: QUOTES */}
                     {portalSubTab === 'quotes' && (
-                      <div style={{ border: '1px solid var(--caanma-border)', borderRadius: '10px', overflow: 'hidden' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <div style={{ border: '1px solid var(--caanma-border)', borderRadius: '10px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '550px' }}>
                           <thead>
                             <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
                               <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 'bold' }}>Folio</th>
@@ -837,13 +867,13 @@ export default function PortalClient() {
 
                     {/* SUBTAB 4: FAVORITES */}
                     {portalSubTab === 'favorites' && (
-                      <div style={{ border: '1px solid var(--caanma-border)', borderRadius: '10px', overflow: 'hidden' }}>
-                        <div style={{ padding: '1.5rem', backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
+                      <div style={{ border: '1px solid var(--caanma-border)', borderRadius: '10px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                        <div style={{ padding: '1.5rem', backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)', minWidth: '500px' }}>
                           <h4 style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#334155' }}>Tus Favoritos (Más Comprados)</h4>
                           <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.8rem', marginTop: '0.2rem' }}>Estos son los artículos que compras con mayor regularidad en nuestras sucursales.</p>
                         </div>
                         
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '500px' }}>
                           <thead>
                             <tr style={{ backgroundColor: '#ffffff', borderBottom: '1px solid var(--caanma-border)' }}>
                               <th style={{ padding: '0.75rem 1.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 'bold' }}>SKU</th>
@@ -876,7 +906,7 @@ export default function PortalClient() {
                     {/* SUBTAB 5: PROMOTIONS */}
                     {portalSubTab === 'promos' && (
                       <div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
                           {portalData.promotions.map((promo: any) => (
                             <div key={promo.id} style={{ border: '1px solid var(--caanma-border)', borderRadius: '12px', padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
                               <div style={{ position: 'absolute', top: 0, right: 0, backgroundColor: '#fef3c7', color: '#d97706', fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.75rem', borderBottomLeftRadius: '10px' }}>
@@ -921,7 +951,7 @@ export default function PortalClient() {
                               />
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1rem' }}>
+                            <div className="portal-grid-2">
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                 <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>RFC *</label>
                                 <input 
@@ -955,7 +985,7 @@ export default function PortalClient() {
                               </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div className="portal-grid-1-1">
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                 <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Régimen Fiscal *</label>
                                 <select 
@@ -995,7 +1025,7 @@ export default function PortalClient() {
                               </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1rem' }}>
+                             <div className="portal-grid-2">
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                 <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Correo Electrónico * (Para envío)</label>
                                 <input 
@@ -1206,7 +1236,7 @@ export default function PortalClient() {
                         />
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div className="portal-grid-1-1">
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                           <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>RFC *</label>
                           <input 
@@ -1242,7 +1272,7 @@ export default function PortalClient() {
                         </div>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div className="portal-grid-1-1">
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                           <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Régimen Fiscal *</label>
                           <select 
@@ -1282,7 +1312,7 @@ export default function PortalClient() {
                         </div>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1rem' }}>
+                      <div className="portal-grid-2">
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                           <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Correo Electrónico * (Para envío)</label>
                           <input 

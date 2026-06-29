@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMobileMenu } from './MobileMenuContext';
 import { navStructure, footerNodes } from '../config/navigation';
-import { X, ChevronDown, ChevronUp, ShieldAlert } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, ShieldAlert, LogOut } from 'lucide-react';
 
 export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, userRole = 'USER' }: { isSuperAdmin?: boolean; userPermissions?: Record<string, boolean>; userRole?: string }) {
   const { isMobileMenuOpen, closeMenu } = useMobileMenu();
@@ -43,7 +43,7 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
           <X size={24} />
         </button>
       </div>
-      <div className="mobile-grid-content" style={{ padding: '1rem', backgroundColor: '#f8fafc', minHeight: '100%' }}>
+      <div className="mobile-grid-content" style={{ padding: '1rem', backgroundColor: '#f8fafc', paddingBottom: '8rem' }}>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {!isSuperAdmin && navStructure.map((node) => {
             if (node.requiredPermission && userRole !== 'OWNER' && userRole !== 'ADMIN') {
@@ -105,7 +105,7 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
                     <span style={{ flex: 1 }}>{node.title}</span>
                     {isOpen ? <ChevronUp size={20} color="#94a3b8" /> : <ChevronDown size={20} color="#94a3b8" />}
                   </div>
-
+ 
                   {isOpen && node.items && (
                     <div style={{ display: 'flex', flexDirection: 'column', padding: '0.5rem 1rem 1rem 3.5rem', gap: '0.75rem', backgroundColor: '#f8fafc', borderTop: '1px solid var(--caanma-border)' }}>
                       {node.items.map((item: any) => {
@@ -131,7 +131,7 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
                 </div>
               );
             }
-
+ 
             return (
               <div key={node.title} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {content}
@@ -141,11 +141,11 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
               </div>
             );
           })}
-
+ 
           {!isSuperAdmin && (
             <div style={{ height: '1px', backgroundColor: 'var(--caanma-border)', margin: '1rem 0' }} />
           )}
-
+ 
           {/* Footer Items */}
           {!isSuperAdmin && footerNodes.filter(node => {
             if (node.requiredPermission && userRole !== 'OWNER' && userRole !== 'ADMIN') {
@@ -169,7 +169,7 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
               <span style={{ flex: 1 }}>{node.title}</span>
             </Link>
           ))}
-
+ 
           {isSuperAdmin && (
             <Link 
               href="/admin" 
@@ -179,28 +179,29 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
                 borderRadius: '8px', textDecoration: 'none', 
                 backgroundColor: '#fee2e2', border: '1px solid #fecaca',
                 color: '#dc2626', fontWeight: 'bold'
-              }}
-            >
-              <ShieldAlert size={20} />
-              <span style={{ flex: 1 }}>Panel Global (Negocio)</span>
-            </Link>
-          )}
-
-          <form action={async () => {
-            const { logout } = await import('@/app/actions/auth-actions');
-            await logout();
-          }} style={{ marginTop: '0.5rem' }}>
-            <button type="submit" style={{ 
-                display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', 
-                borderRadius: '8px', width: '100%',
-                backgroundColor: '#fef2f2', border: '1px solid #fecaca',
-                color: '#dc2626', fontWeight: 'bold', cursor: 'pointer'
-              }}>
-              <span style={{ flex: 1, textAlign: 'left' }}>Cerrar Sesión</span>
-            </button>
-          </form>
-        </nav>
-      </div>
-    </div>
-  );
-}
+               }}
+             >
+               <ShieldAlert size={20} />
+               <span style={{ flex: 1 }}>Panel Global (Negocio)</span>
+             </Link>
+           )}
+ 
+           <form action={async () => {
+             const { logout } = await import('@/app/actions/auth-actions');
+             await logout();
+           }} style={{ marginTop: '0.5rem' }}>
+             <button type="submit" style={{ 
+                 display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', 
+                 borderRadius: '8px', width: '100%',
+                 backgroundColor: '#fef2f2', border: '1px solid #fecaca',
+                 color: '#dc2626', fontWeight: 'bold', cursor: 'pointer'
+               }}>
+               <LogOut size={20} />
+               <span style={{ flex: 1, textAlign: 'left' }}>Cerrar Sesión</span>
+             </button>
+           </form>
+         </nav>
+       </div>
+     </div>
+   );
+ }
