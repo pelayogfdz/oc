@@ -158,7 +158,13 @@ export default function LoginPage() {
         const newUrl = window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
       } else if (errorParam) {
-        setError(errorParam);
+        let friendlyMessage = errorParam;
+        if (errorParam === 'session_expired') {
+          friendlyMessage = 'Tu sesión ha expirado o se ha iniciado en otro dispositivo. Por favor ingresa de nuevo.';
+        } else if (errorParam === 'user_not_found') {
+          friendlyMessage = 'Usuario no encontrado. Por favor verifica tus datos.';
+        }
+        setError(friendlyMessage);
         setIsLoginOpen(true);
         
         // Clean the URL parameters so they don't persist on page refreshes

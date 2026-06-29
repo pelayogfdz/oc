@@ -4,6 +4,8 @@ import { unstable_cache } from 'next/cache';
 import { cache } from 'react';
 import { decrypt } from '@/lib/session';
 
+import { redirect } from 'next/navigation';
+
 export const getSession = cache(async () => {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('session');
@@ -21,12 +23,14 @@ export const getActiveUser = cache(async () => {
     include: { tenant: true }
   });
   
-  if (!user) throw new Error("User not found");
+  if (!user) {
+    redirect('/login?error=user_not_found');
+  }
 
   if (user.currentSessionId && session.sessionId) {
     const activeSessions = user.currentSessionId.split(',').filter(Boolean);
     if (!activeSessions.includes(session.sessionId)) {
-      throw new Error("Sesión iniciada en otro dispositivo");
+      redirect('/login?error=session_expired');
     }
   }
 

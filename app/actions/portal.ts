@@ -3,12 +3,17 @@ import { prisma } from "@/lib/prisma";
 
 export async function searchTicket(ticketId: string) {
   try {
+    const cleanTicketId = ticketId.trim();
     const sale = await prisma.sale.findFirst({
       where: {
         OR: [
-          { id: ticketId },
-          { id: { endsWith: ticketId.toLowerCase() } },
-          { id: { endsWith: ticketId } }
+          { id: cleanTicketId },
+          { id: { endsWith: cleanTicketId.toLowerCase() } },
+          { id: { endsWith: cleanTicketId } },
+          { folio: cleanTicketId },
+          { folio: { equals: cleanTicketId, mode: 'insensitive' } },
+          { folio: { endsWith: `-${cleanTicketId}` } },
+          { folio: { endsWith: `#${cleanTicketId}` } }
         ]
       },
       include: {
