@@ -144,7 +144,7 @@ async function crawlImageForProduct(product) {
     // Clean double spaces
     searchQuery = searchQuery.replace(/\s+/g, ' ').trim();
 
-    const bingUrl = `https://www.bing.com/images/search?q=${encodeURIComponent(searchQuery)}&first=1`;
+    const bingUrl = `https://www.bing.com/images/search?q=${encodeURIComponent(searchQuery)}&first=1&adlt=strict`;
     console.log(`  Searching: "${searchQuery}"`);
 
     const response = await fetch(bingUrl, {
