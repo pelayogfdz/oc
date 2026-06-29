@@ -5,7 +5,7 @@ import { Users, Plus, Shield, Edit2, Trash2, CheckCircle2, ChevronDown, ChevronR
 import { createUser, updateUser, deleteUser } from '@/app/actions/user';
 import { createBranch } from '@/app/actions/branch';
 
-const PERMISSION_MODULES = [
+export const PERMISSION_MODULES = [
   {
     id: 'pos',
     name: 'Punto de Venta (POS)',
@@ -148,7 +148,7 @@ const PERMISSION_MODULES = [
   }
 ];
 
-export default function UserClient({ initialUsers, branches, hrLocations = [] }: { initialUsers: any[], branches: any[], hrLocations?: any[] }) {
+export default function UserClient({ initialUsers, branches, hrLocations = [], customRoles = [] }: { initialUsers: any[], branches: any[], hrLocations?: any[], customRoles?: any[] }) {
   const [users, setUsers] = useState(initialUsers);
   const [isEditing, setIsEditing] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -175,6 +175,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
   
   // State for permissions mapping
   const [perms, setPerms] = useState<Record<string, boolean>>({});
+  const [selectedCustomRoleId, setSelectedCustomRoleId] = useState<string>('NONE');
   
   // State for selected HrLocations
   const [selectedHrLocations, setSelectedHrLocations] = useState<string[]>([]);
@@ -189,6 +190,58 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
     "Sabado": ["09:00", "14:00"]
   };
   const [schedule, setSchedule] = useState<Record<string, string[]>>(defaultSchedule);
+
+  const handleCustomRoleChange = (roleId: string) => {
+    setSelectedCustomRoleId(roleId);
+    if (roleId === 'NONE') {
+      if (editingUser) {
+        try {
+          const parsed = editingUser.permissions ? JSON.parse(editingUser.permissions) : {};
+          const obj: Record<string, boolean> = {};
+          if (Array.isArray(parsed)) {
+            parsed.forEach((k: string) => { obj[k] = true; });
+          } else {
+            Object.keys(parsed).forEach(k => { if (parsed[k]) obj[k] = true; });
+          }
+          setPerms(obj);
+        } catch {
+          setPerms({});
+        }
+      } else {
+        setPerms({});
+      }
+    } else {
+      const role = customRoles.find(r => r.id === roleId);
+      if (role && role.permissions) {
+        try {
+          const parsed = JSON.parse(role.permissions);
+          const obj: Record<string, boolean> = {};
+          if (Array.isArray(parsed)) {
+            parsed.forEach((k: string) => { obj[k] = true; });
+          } else {
+            Object.keys(parsed).forEach(k => { if (parsed[k]) obj[k] = true; });
+          }
+          dynamicModules.forEach(mod => {
+            let modActive = obj[mod.id] || false;
+            mod.submodules?.forEach((sm: any) => {
+              let smActive = obj[sm.id] || false;
+              sm.permissions?.forEach((p: any) => {
+                if (obj[p.id]) {
+                  smActive = true;
+                  modActive = true;
+                }
+              });
+              if (smActive) obj[sm.id] = true;
+            });
+            if (modActive) obj[mod.id] = true;
+          });
+          setPerms(obj);
+        } catch {
+          setPerms({});
+        }
+      }
+    }
+  };
 
   const handleCreateBranchFast = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -275,6 +328,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
     setIsEditing(true);
     setEditingUser(null);
     setPerms({});
+    setSelectedCustomRoleId('NONE');
     setActiveTab('branches');
     setFaceDescriptor('');
     setBaselinePhoto('');
@@ -297,6 +351,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
     setSchedule(defaultSchedule);
     setSelectedHrLocations([]);
     setSelectedBranchId('');
+    setSelectedCustomRoleId(user.customRoleId || 'NONE');
 
     try {
       const parsed = user.permissions ? JSON.parse(user.permissions) : {};
@@ -340,6 +395,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
   const openEditUser = (user: any) => {
     setIsEditing(true);
     setEditingUser(user);
+    setSelectedCustomRoleId(user.customRoleId || 'NONE');
     setClonedFromName(null);
     setActiveTab('branches');
     setFaceDescriptor(user.faceDescriptor || '');
@@ -396,6 +452,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
   const closeForm = () => {
     setIsEditing(false);
     setEditingUser(null);
+    setSelectedCustomRoleId('NONE');
   };
 
   const handleBioCapture = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -580,9 +637,15 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                 </span>
               </td>
               <td data-label="Permisos ACL" style={{ padding: '1rem' }}>
-                <span style={{ fontSize: '0.75rem', backgroundColor: hasCustomPerms ? '#dcfce7' : '#f1f5f9', color: hasCustomPerms ? '#166534' : '#64748b', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>
-                  {hasCustomPerms ? 'Modificados ✔️' : 'Por Defecto'}
-                </span>
+                {u.customRole ? (
+                  <span style={{ fontSize: '0.75rem', backgroundColor: '#e0e7ff', color: '#3730a3', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>
+                    Rol: {u.customRole.name}
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '0.75rem', backgroundColor: hasCustomPerms ? '#dcfce7' : '#f1f5f9', color: hasCustomPerms ? '#166534' : '#64748b', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>
+                    {hasCustomPerms ? 'Personalizados ✔️' : 'Por Defecto'}
+                  </span>
+                )}
               </td>
               <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'right' }}>
                 <button 
@@ -725,6 +788,7 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
               onClick={() => {
                 setClonedFromName(null);
                 setPerms({});
+                setSelectedCustomRoleId('NONE');
               }} 
               style={{ 
                 background: 'rgba(37, 99, 235, 0.1)', 
@@ -768,6 +832,20 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                   <option value="USER">Cajero / Vendedor</option>
                   <option value="MANAGER">Encargado</option>
                   <option value="ADMIN">Administrador VIP</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#16a34a' }}>Rol de Permisos</label>
+                <select 
+                  name="customRoleId" 
+                  value={selectedCustomRoleId} 
+                  onChange={(e) => handleCustomRoleChange(e.target.value)} 
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #16a34a', backgroundColor: 'white' }}
+                >
+                  <option value="NONE">-- Sin Rol / Permisos Personalizados --</option>
+                  {customRoles.map((cr: any) => (
+                    <option key={cr.id} value={cr.id}>{cr.name}</option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -852,16 +930,16 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                           <button 
                             type="button" 
                             onClick={() => handleSelectAll(mod.id)} 
-                            disabled={!isModActive}
+                            disabled={!isModActive || selectedCustomRoleId !== 'NONE'}
                             style={{ 
                               padding: '0.35rem 0.75rem', 
                               fontSize: '0.8rem', 
                               backgroundColor: '#f1f5f9', 
                               border: '1px solid #cbd5e1', 
                               borderRadius: '4px', 
-                              cursor: !isModActive ? 'not-allowed' : 'pointer', 
+                              cursor: (!isModActive || selectedCustomRoleId !== 'NONE') ? 'not-allowed' : 'pointer', 
                               fontWeight: 'bold',
-                              opacity: !isModActive ? 0.5 : 1
+                              opacity: (!isModActive || selectedCustomRoleId !== 'NONE') ? 0.5 : 1
                             }}
                           >
                             ✔️ Alternar Todos en Módulo
@@ -893,8 +971,9 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                             <input 
                               type="checkbox"
                               checked={isModActive}
+                              disabled={selectedCustomRoleId !== 'NONE'}
                               onChange={(e) => handlePermissionChange(mod.id, e.target.checked)}
-                              style={{ width: '1.5rem', height: '1.5rem', cursor: 'pointer', accentColor: '#2563eb' }}
+                              style={{ width: '1.5rem', height: '1.5rem', cursor: selectedCustomRoleId !== 'NONE' ? 'not-allowed' : 'pointer', accentColor: '#2563eb' }}
                             />
                           </label>
                         </div>
@@ -930,9 +1009,9 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                                     <input 
                                       type="checkbox"
                                       checked={isSubmodActive}
-                                      disabled={!isModActive}
+                                      disabled={!isModActive || selectedCustomRoleId !== 'NONE'}
                                       onChange={(e) => handlePermissionChange(submod.id, e.target.checked)}
-                                      style={{ width: '1.1rem', height: '1.1rem', cursor: 'pointer', accentColor: '#16a34a' }}
+                                      style={{ width: '1.1rem', height: '1.1rem', cursor: (!isModActive || selectedCustomRoleId !== 'NONE') ? 'not-allowed' : 'pointer', accentColor: '#16a34a' }}
                                     />
                                     <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: (isModActive && isSubmodActive) ? '#166534' : '#64748b' }}>
                                       👁️ Submódulo Visible
@@ -941,15 +1020,15 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                                   <button 
                                     type="button" 
                                     onClick={() => handleSelectSubmodule(submod)} 
-                                    disabled={!isModActive || !isSubmodActive}
+                                    disabled={!isModActive || !isSubmodActive || selectedCustomRoleId !== 'NONE'}
                                     style={{ 
-                                      padding: '0.2rem 0.5rem', 
-                                      fontSize: '0.7rem', 
-                                      backgroundColor: 'transparent', 
+                                      padding: '0.25rem 0.5rem', 
+                                      fontSize: '0.75rem', 
+                                      backgroundColor: 'white', 
                                       border: '1px solid #cbd5e1', 
                                       borderRadius: '4px', 
-                                      cursor: (!isModActive || !isSubmodActive) ? 'not-allowed' : 'pointer',
-                                      opacity: (!isModActive || !isSubmodActive) ? 0.5 : 1
+                                      cursor: (!isModActive || !isSubmodActive || selectedCustomRoleId !== 'NONE') ? 'not-allowed' : 'pointer',
+                                      opacity: (!isModActive || !isSubmodActive || selectedCustomRoleId !== 'NONE') ? 0.5 : 1
                                     }}
                                   >
                                     Alternar Todo
@@ -984,9 +1063,9 @@ export default function UserClient({ initialUsers, branches, hrLocations = [] }:
                                     <input 
                                       type="checkbox" 
                                       checked={perms[p.id] || false}
-                                      disabled={!isModActive || !isSubmodActive}
+                                      disabled={!isModActive || !isSubmodActive || selectedCustomRoleId !== 'NONE'}
                                       onChange={(e) => handlePermissionChange(p.id, e.target.checked)}
-                                      style={{ width: '1.25rem', height: '1.25rem', cursor: 'pointer', accentColor: 'var(--caanma-primary)' }}
+                                      style={{ width: '1.25rem', height: '1.25rem', cursor: (!isModActive || !isSubmodActive || selectedCustomRoleId !== 'NONE') ? 'not-allowed' : 'pointer', accentColor: 'var(--caanma-primary)' }}
                                     />
                                     <span style={{ fontSize: '0.9rem', fontWeight: (isModActive && isSubmodActive && perms[p.id]) ? 'bold' : 'normal' }}>
                                       {p.label}

@@ -11,6 +11,8 @@ export async function createUser(formData: FormData) {
     const password = formData.get('password') as string;
     const role = formData.get('role') as string;
     const permissions = formData.get('permissions') as string;
+    const rawCustomRoleId = formData.get('customRoleId') as string;
+    const customRoleId = rawCustomRoleId && rawCustomRoleId !== 'NONE' ? rawCustomRoleId : null;
     const commissionRole = formData.get('commissionRole') as string || 'VENDEDOR';
     const commissionPct = parseFloat(formData.get('commissionPct') as string || '0');
     const monthlyGoal = parseFloat(formData.get('monthlyGoal') as string || '0');
@@ -82,7 +84,7 @@ export async function createUser(formData: FormData) {
     await prisma.user.create({
       data: {
         name, email, password, role, commissionRole, commissionPct, monthlyGoal, bonusAmount, teamBonusAmount, managerId,
-        branchId: targetBranchId, tenantId: branch.tenantId, permissions,
+        branchId: targetBranchId, tenantId: branch.tenantId, permissions, customRoleId,
         rfc, curp, nss, taxRegime, address, phone, hireDate, birthDate,
         payrollType, dailySalary, bankName, bankAccount,
         bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus, deductLunchHour,
@@ -116,6 +118,8 @@ export async function updateUser(id: string, formData: FormData) {
     const managerId = rawManagerId && rawManagerId !== 'NONE' ? rawManagerId : null;
     const permissions = formData.get('permissions') as string;
     const password = formData.get('password') as string;
+    const rawCustomRoleId = formData.get('customRoleId') as string;
+    const customRoleId = rawCustomRoleId && rawCustomRoleId !== 'NONE' ? rawCustomRoleId : null;
     
     // HR & Payroll fields
     const rfc = formData.get('rfc') as string;
@@ -181,7 +185,7 @@ export async function updateUser(id: string, formData: FormData) {
     }
 
     const updateData: any = { 
-      name, email, role, branchId: targetBranchId, commissionRole, commissionPct, monthlyGoal, bonusAmount, teamBonusAmount, managerId, permissions,
+      name, email, role, branchId: targetBranchId, commissionRole, commissionPct, monthlyGoal, bonusAmount, teamBonusAmount, managerId, permissions, customRoleId,
       rfc, curp, nss, taxRegime, address, phone, hireDate, birthDate,
       payrollType, dailySalary, bankName, bankAccount,
       bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus, deductLunchHour,

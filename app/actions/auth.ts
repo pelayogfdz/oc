@@ -20,7 +20,7 @@ export const getActiveUser = cache(async () => {
 
   const user = await masterClient.user.findUnique({
     where: { id: session.userId },
-    include: { tenant: true }
+    include: { tenant: true, customRole: true }
   });
   
   if (!user) {
@@ -43,7 +43,7 @@ export const getActiveBranch = cache(async () => {
   
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { id: true, email: true, role: true, permissions: true, branchId: true }
+    select: { id: true, email: true, role: true, permissions: true, branchId: true, customRole: true }
   });
   
   let isGlobal = true;
@@ -52,9 +52,10 @@ export const getActiveBranch = cache(async () => {
   if (user) {
     isGlobal = user.role === 'ADMIN' || user.email?.toLowerCase() === 'pelayogfdz@gmail.com';
     
-    if (user.permissions) {
+    const rawPermissions = user.customRole?.permissions || user.permissions;
+    if (rawPermissions) {
       try {
-        const parsed = JSON.parse(user.permissions);
+        const parsed = JSON.parse(rawPermissions);
         const permArr = Array.isArray(parsed) ? parsed : Object.keys(parsed).filter(k => parsed[k]);
         
         if (permArr.includes('GLOBAL_VIEW')) {

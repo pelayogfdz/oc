@@ -58,8 +58,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
       }
       isSuperAdmin = user.email?.toLowerCase() === 'pelayogfdz@gmail.com';
       try {
-        if (user.permissions) {
-          const parsed = JSON.parse(user.permissions);
+        const rawPermissions = (user as any).customRole?.permissions || user.permissions;
+        if (rawPermissions) {
+          const parsed = JSON.parse(rawPermissions);
           if (Array.isArray(parsed)) {
             parsed.forEach((p: string) => userPermissions[p] = true);
           } else {

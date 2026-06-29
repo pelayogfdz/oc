@@ -310,3 +310,33 @@ export async function searchCustomerPortalData(emailOrPhone: string) {
   }
 }
 
+export async function notifyCustomerPayment(saleId: string, amount: number, reference: string, notes: string) {
+  try {
+    const resolved = await resolveClientForSale(saleId);
+    if (!resolved) return { error: "Venta no encontrada." };
+    const { client: db, sale } = resolved;
+
+    // Find an admin user to associate as the creator of the payment record
+    const adminUser = await db.user.findFirst({ where: { role: 'ADMIN' } }) || await db.user.findFirst();
+    if (!adminUser) return { error: "Error de configuración: no hay usuarios registrados." };
+
+    const reason = `NOTIFICACIÓN DE PAGO CLIENTE (Pendiente de revisión): ${reference} - ${notes}`;
+
+    await db.customerPayment.create({
+      data: {
+        customerId: sale.customerId || '',
+        saleId: sale.id,
+        amount: Number(amount),
+        reason: reason,
+        userId: adminUser.id,
+        branchId: sale.branchId,
+        paymentDate: new Date()
+      }
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    return { error: error.message || "Error al notificar el pago." };
+  }
+}
+

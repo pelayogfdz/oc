@@ -29,6 +29,7 @@ model Tenant {
   ManufacturingProcess ManufacturingProcess[]
   Recipe               Recipe[]
   users                User[]
+  customRoles          CustomRole[]
 }
 
 model SystemSettings {
@@ -122,6 +123,20 @@ model User {
   appointments              Appointment[]
   assignedTasks             CollaboratorTask[]       @relation("AssignedTasks")
   createdTasks              CollaboratorTask[]       @relation("CreatedTasks")
+  customRoleId              String?
+  customRole                CustomRole?              @relation(fields: [customRoleId], references: [id])
+}
+
+model CustomRole {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  permissions String   // JSON string storing the permissions object
+  tenantId    String?
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Branch {

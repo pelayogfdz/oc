@@ -256,7 +256,7 @@ export const prisma = new Proxy({} as PrismaClient, {
         return async function (...args: any[]) {
           const client = await getClientForRequest();
           const isWrite = writeMethods.has(method);
-          const isUserOrTenant = prop === 'user' || prop === 'tenant';
+          const isUserOrTenant = prop === 'user' || prop === 'tenant' || prop === 'customRole';
 
           if (isWrite && isUserOrTenant) {
             // Write to master database first
@@ -290,6 +290,8 @@ export const prisma = new Proxy({} as PrismaClient, {
                     targetTenantId = data.id || (args[0].where && args[0].where.id);
                   } else if (prop === 'user') {
                     targetTenantId = data.tenantId || (args[0].where && args[0].where.tenantId);
+                  } else if (prop === 'customRole') {
+                    targetTenantId = data.tenantId || (args[0].where && args[0].where.tenantId);
                   }
                 }
               }
@@ -305,6 +307,14 @@ export const prisma = new Proxy({} as PrismaClient, {
                     });
                     if (dbUser) {
                       targetTenantId = dbUser.tenantId;
+                    }
+                  } else if (prop === 'customRole') {
+                    const dbRole = await masterClient.customRole.findUnique({
+                      where: { id: args[0].where.id },
+                      select: { tenantId: true }
+                    });
+                    if (dbRole) {
+                      targetTenantId = dbRole.tenantId;
                     }
                   }
                 } catch (e) {

@@ -25,9 +25,10 @@ export default async function Header() {
   const allowedBranchIds: string[] = [];
 
   if (currentUser) {
-    if (currentUser.permissions) {
+    const rawPermissions = (currentUser as any).customRole?.permissions || currentUser.permissions;
+    if (rawPermissions) {
       try {
-        const parsed = JSON.parse(currentUser.permissions);
+        const parsed = JSON.parse(rawPermissions);
         const permArr = Array.isArray(parsed) ? parsed : Object.keys(parsed).filter(k => parsed[k]);
         if (permArr.includes('GLOBAL_VIEW')) {
           isGlobal = true;

@@ -29,6 +29,7 @@ export default async function UsuariosPage() {
     },
     include: {
       hrLocations: true,
+      customRole: true
     }
   });
 
@@ -37,9 +38,14 @@ export default async function UsuariosPage() {
     orderBy: { name: 'asc' }
   });
 
+  const customRoles = await prisma.customRole.findMany({
+    where: { tenantId: session?.tenantId },
+    orderBy: { name: 'asc' }
+  });
+
   return (
     <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '2rem', border: '1px solid var(--caanma-border)' }}>
-      <UserClient initialUsers={users} branches={branches} hrLocations={hrLocations} />
+      <UserClient initialUsers={users} branches={branches} hrLocations={hrLocations} customRoles={customRoles} />
     </div>
   );
 }

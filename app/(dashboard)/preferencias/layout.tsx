@@ -7,6 +7,7 @@ const prefTabs = [
   { name: 'Mi Suscripción', path: '/preferencias/subscripcion', icon: <CreditCard size={18} /> },
   { name: 'Configuración General', path: '/preferencias/general', icon: <Settings size={18} /> },
   { name: 'Usuarios y Permisos', path: '/preferencias/usuarios', icon: <Users size={18} /> },
+  { name: 'Roles de Permisos', path: '/preferencias/roles', icon: <Shield size={18} /> },
   { name: 'Vendedores y Comisiones', path: '/preferencias/vendedores', icon: <Star size={18} /> },
   { name: 'Impresión y Tickets', path: '/preferencias/tickets', icon: <LayoutTemplate size={18} /> },
   { name: 'Formatos de Documento', path: '/preferencias/formatos', icon: <FileText size={18} /> },
