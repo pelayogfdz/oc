@@ -81,13 +81,15 @@ export default function InsumosClient({
       groups[supplierId].items.push({
         productId: p.id,
         name: p.name,
+        sku: p.sku,
+        barcode: p.barcode,
         quantity: p.suggestedRestock,
         cost: p.cost,
         imageUrl: p.imageUrl
       });
     });
 
-    const activeBranchId = branchId === 'ALL' ? 'GLOBAL' : branchId;
+    const activeBranchId = initialBranchId === 'ALL' ? 'GLOBAL' : initialBranchId;
     const localStorageKey = `caanma_active_purchase_tabs_${activeBranchId}`;
     const localStorageActiveIdKey = `caanma_active_purchase_tab_id_${activeBranchId}`;
 

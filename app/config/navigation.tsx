@@ -84,6 +84,7 @@ export const navStructure: MenuNode[] = [
       { name: 'Compras', path: '/productos/compras' },
       { name: 'Solicitudes', path: '/productos/solicitudes', badge: 'Nuevo' },
       { name: 'Pedidos a Proveedores', path: '/productos/pedidos' },
+      { name: 'Nuevo Pedido / Sugerido', path: '/productos/pedidos/nuevo', badge: 'Nuevo' },
       { name: 'Registro de Gastos', path: '/productos/gastos' },
       { name: 'Directorio de Proveedores', path: '/proveedores' },
       { name: 'Control de Caducidades', path: '/productos/caducidades', badge: 'Alertas' },

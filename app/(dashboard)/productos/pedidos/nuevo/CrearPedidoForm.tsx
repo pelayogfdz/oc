@@ -222,7 +222,15 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
   const handleAddItem = (product: any) => {
     if (!product || !product.id) return;
     if (items.some((i: any) => i.productId === product.id)) return;
-    setItems([...items, { productId: product.id, name: product.name, quantity: 1, cost: product.cost, imageUrl: product.imageUrl }]);
+    setItems([...items, { 
+      productId: product.id, 
+      name: product.name, 
+      sku: product.sku,
+      barcode: product.barcode,
+      quantity: 1, 
+      cost: product.cost, 
+      imageUrl: product.imageUrl 
+    }]);
   };
 
   const handleUpdateItem = (index: number, field: string, value: number) => {
@@ -232,13 +240,15 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
   };
 
   const generateSuggested = () => {
-    const suggested: { productId: string, name: string, quantity: number, cost: number, imageUrl?: string }[] = [];
+    const suggested: { productId: string, name: string, sku: string, barcode?: string, quantity: number, cost: number, imageUrl?: string }[] = [];
     availableProducts.forEach(p => {
       if (p.stock <= p.minStock) {
         const required = Math.max(1, p.minStock - p.stock);
         suggested.push({
           productId: p.id,
           name: p.name,
+          sku: p.sku,
+          barcode: p.barcode,
           quantity: required,
           cost: p.cost,
           imageUrl: p.imageUrl
@@ -598,7 +608,16 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
                         onClick={() => {
                           if (req.product) {
                             if (!isAdded) {
-                              setItems([...items, { productId: req.product.id, name: req.product.name, quantity: req.quantity, cost: req.product.cost, requestId: req.id, imageUrl: req.product.imageUrl }]);
+                              setItems([...items, { 
+                                productId: req.product.id, 
+                                name: req.product.name, 
+                                sku: req.product.sku,
+                                barcode: req.product.barcode,
+                                quantity: req.quantity, 
+                                cost: req.product.cost, 
+                                requestId: req.id, 
+                                imageUrl: req.product.imageUrl 
+                              }]);
                             }
                           } else {
                             alert('Este es un "Pre-producto" que no existe en el catálogo. Por favor, asegúrate de crear el producto real en el catálogo o búscalo manualmente si ya existe, y luego agrégalo al pedido.');
@@ -652,10 +671,22 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
                       )}
                     </div>
 
-                    {/* Name and SKU */}
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.name}>
+                    {/* Name, SKU and Barcode */}
+                    <div style={{ minWidth: '150px', flex: 1 }}>
+                      <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b', wordBreak: 'break-word' }} title={item.name}>
                         {item.name}
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.2rem' }}>
+                        {item.sku && (
+                          <span style={{ fontSize: '0.75rem', color: '#64748b', backgroundColor: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                            SKU: {item.sku}
+                          </span>
+                        )}
+                        {item.barcode && item.barcode !== 'N/A' && (
+                          <span style={{ fontSize: '0.75rem', color: '#64748b', backgroundColor: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                            Código: {item.barcode}
+                          </span>
+                        )}
                       </div>
                       {item.requestId && (
                         <span style={{ display: 'inline-block', backgroundColor: '#fef3c7', color: '#d97706', fontSize: '0.7rem', fontWeight: 'bold', padding: '0.1rem 0.4rem', borderRadius: '4px', marginTop: '0.2rem' }}>
