@@ -61,7 +61,13 @@ export async function syncProductsPage(page: number, limit: number) {
     skip,
     take: limit,
   });
-  return products;
+
+  return products.map(product => {
+    if (product.imageUrl && product.imageUrl.startsWith('data:')) {
+      product.imageUrl = `https://caanma.com/api/catalog/image?id=${product.id}`;
+    }
+    return product;
+  });
 }
 
 export async function syncAllCatalogs() {
@@ -82,6 +88,13 @@ export async function syncAllCatalogs() {
     take: 1000
   });
 
+  const mappedProducts = products.map(product => {
+    if (product.imageUrl && product.imageUrl.startsWith('data:')) {
+      product.imageUrl = `https://caanma.com/api/catalog/image?id=${product.id}`;
+    }
+    return product;
+  });
+
   // 2. Clientes
   const customers = await prisma.customer.findMany();
 
@@ -99,7 +112,7 @@ export async function syncAllCatalogs() {
   });
 
   return {
-    products,
+    products: mappedProducts,
     customers,
     suppliers,
     branches,

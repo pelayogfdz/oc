@@ -15,6 +15,7 @@ interface OfflineContextType {
   pushOfflineAttendance: (attendanceParams: Omit<OfflinePendingAttendance, 'id' | 'timestamp' | 'synced' | 'retryCount' | 'failed' | 'errorMessage'>) => Promise<void>;
   forceSync: () => Promise<void>;
   refreshCatalogs: (isBackground?: boolean) => Promise<void>;
+  lastSyncTime: number | null;
 }
 
 const OfflineContext = createContext<OfflineContextType>({
@@ -28,6 +29,7 @@ const OfflineContext = createContext<OfflineContextType>({
   pushOfflineAttendance: async () => {},
   forceSync: async () => {},
   refreshCatalogs: async (isBackground?: boolean) => {},
+  lastSyncTime: null,
 });
 
 export function isOfflineEnabled(): boolean {
@@ -54,6 +56,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   const [pendingAttendance, setPendingAttendance] = useState<OfflinePendingAttendance[]>([]);
   const [showToast, setShowToast] = useState<{message: string, type: 'success' | 'warn' | 'error'} | null>(null);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
   const isSyncingRef = useRef(false);
 
   // Auto-clear toasts
@@ -67,6 +70,14 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   // Initialize Network status
   useEffect(() => {
     setIsOnline(navigator.onLine);
+    
+    // Load last sync time from localStorage
+    if (typeof window !== 'undefined') {
+      const ts = localStorage.getItem('last_catalog_sync_timestamp');
+      if (ts) {
+        setLastSyncTime(parseInt(ts));
+      }
+    }
     
     const handleOnline = () => {
       setIsOnline(true);
@@ -553,6 +564,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       });
 
       localStorage.setItem('last_catalog_sync_timestamp', Date.now().toString());
+      setLastSyncTime(Date.now());
       if (!isBackground) {
         setSyncMessage(null);
         setShowToast({ message: 'Catálogos actualizados y guardados en local.', type: 'success' });
@@ -567,7 +579,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   };
 
   return (
-    <OfflineContext.Provider value={{ isOnline, pendingSales, syncMessage, pushOfflineSale, forceSync, pushOfflineTransfer, pushOfflinePurchase, pushOfflineProduct, pushOfflineAttendance, refreshCatalogs }}>
+    <OfflineContext.Provider value={{ isOnline, pendingSales, syncMessage, pushOfflineSale, forceSync, pushOfflineTransfer, pushOfflinePurchase, pushOfflineProduct, pushOfflineAttendance, refreshCatalogs, lastSyncTime }}>
       {children}
       {showToast && (
         <div style={{

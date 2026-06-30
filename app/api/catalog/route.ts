@@ -40,11 +40,14 @@ export async function GET(request: NextRequest) {
 
     const aggregated: Record<string, any> = {};
 
-    const mapImageUrl = (imageUrl: string | null, categoryName: string | null) => {
+    const mapImageUrl = (imageUrl: string | null, categoryName: string | null, productId: string) => {
       if (!imageUrl) {
         return 'assets/no_image.svg';
       }
-      if (imageUrl.startsWith('data:') || imageUrl.startsWith('http')) {
+      if (imageUrl.startsWith('data:')) {
+        return `https://caanma.com/api/catalog/image?id=${productId}`;
+      }
+      if (imageUrl.startsWith('http')) {
         if (imageUrl.startsWith('http') && imageUrl.includes('netlify.app')) {
           return imageUrl.replace(/^https:\/\/[^/]+/, 'https://petqro.com');
         }
@@ -64,7 +67,7 @@ export async function GET(request: NextRequest) {
     const getImagePriority = (url: string | null) => {
       if (!url) return 1;
       if (url.includes('assets/') || url.includes('no_image.svg')) return 1;
-      if (url.startsWith('data:') || (url.startsWith('http') && !url.includes('/img/products/'))) return 3;
+      if (url.startsWith('data:') || url.includes('/api/catalog/image') || (url.startsWith('http') && !url.includes('/img/products/'))) return 3;
       return 2;
     };
 
@@ -118,7 +121,7 @@ export async function GET(request: NextRequest) {
           discount_percent: discountPercent,
           is_recurring_allowed: true,
           life_stage: nameLower.includes('cachorro') || nameLower.includes('puppy') || nameLower.includes('kitten') ? 'cachorro' : (nameLower.includes('senior') ? 'senior' : 'adulto'),
-          image_url: mapImageUrl(item.imageUrl, category),
+          image_url: mapImageUrl(item.imageUrl, category, item.id),
           description: item.description || `Producto de alta calidad: ${item.name}. Sincronizado desde el catálogo activo de CAANMA ERP.`,
           ingredients: "Ingredientes de calidad seleccionada según estándares de la marca.",
           nutritional_facts: { "Categoría ERP": item.category || "General", "SKU": sku },
@@ -127,7 +130,7 @@ export async function GET(request: NextRequest) {
       } else {
         // If the new branch has a higher priority image (e.g. Base64 over local/placeholder), update it
         const existingImg = aggregated[sku].image_url;
-        const newImg = mapImageUrl(item.imageUrl, item.category ? item.category.trim() : 'General');
+        const newImg = mapImageUrl(item.imageUrl, item.category ? item.category.trim() : 'General', item.id);
         if (getImagePriority(newImg) > getImagePriority(existingImg)) {
           aggregated[sku].image_url = newImg;
         }

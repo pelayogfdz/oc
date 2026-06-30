@@ -18,6 +18,55 @@ function getFacturapiApiKey(config: any): string | null {
   }
 }
 
+async function binaryDownloadToBuffer(download: any): Promise<Buffer> {
+  if (!download) {
+    throw new Error('El archivo descargado está vacío');
+  }
+
+  // 1. Is it a Buffer?
+  if (Buffer.isBuffer(download)) {
+    return download;
+  }
+
+  // 2. Is it a Blob? (Browser / Node 18+ Globals)
+  if (typeof download.arrayBuffer === 'function') {
+    const arrayBuf = await download.arrayBuffer();
+    return Buffer.from(arrayBuf);
+  }
+
+  // 3. Is it a Node.js Readable Stream?
+  if (typeof download.on === 'function') {
+    return new Promise<Buffer>((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      download.on('data', (chunk: any) => chunks.push(Buffer.from(chunk)));
+      download.on('end', () => resolve(Buffer.concat(chunks)));
+      download.on('error', (err: any) => reject(err));
+    });
+  }
+
+  // 4. Is it a Web ReadableStream?
+  if (typeof download.getReader === 'function') {
+    const reader = download.getReader();
+    const chunks: Uint8Array[] = [];
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) chunks.push(value);
+    }
+    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return Buffer.from(result);
+  }
+
+  // 5. Fallback
+  return Buffer.from(download);
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -108,13 +157,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'No se pudo descargar el archivo desde Facturapi.' }, { status: 500 });
     }
 
-    const fileBuffer = await blob.arrayBuffer();
+    const fileBuffer = await binaryDownloadToBuffer(blob);
 
     // 4. Return response with correct headers
     const contentType = format === 'pdf' ? 'application/pdf' : 'application/xml';
     const filename = `${invoiceId ? 'factura' : 'complemento'}_${id}.${format}`;
 
-    return new Response(Buffer.from(fileBuffer), {
+    return new Response(new Uint8Array(fileBuffer), {
       headers: {
         'Content-Type': contentType,
         'Content-Disposition': `attachment; filename="${filename}"`,
