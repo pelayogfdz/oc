@@ -1,0 +1,3 @@
+﻿app/(dashboard)/catalogo/CatalogoClient.tsx(152,72): error TS2353: Object literal may only specify known properties, and 'justifyBranch' does not exist in type 'Properties<string | number, string & {}>'.
+app/(dashboard)/catalogo/CatalogoClient.tsx(161,72): error TS2353: Object literal may only specify known properties, and 'justifyBranch' does not exist in type 'Properties<string | number, string & {}>'.
+app/(dashboard)/catalogo/CatalogoClient.tsx(368,171): error TS2353: Object literal may only specify known properties, and 'justifyBranch' does not exist in type 'Properties<string | number, string & {}>'.

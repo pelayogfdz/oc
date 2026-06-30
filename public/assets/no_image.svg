@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <rect width="100%" height="100%" fill="#f1f5f9"/>
+  <g transform="translate(0, 0)">
+    <!-- Photo icon -->
+    <rect x="140" y="130" width="120" height="90" rx="8" fill="none" stroke="#94a3b8" stroke-width="4"/>
+    <circle cx="175" cy="160" r="12" fill="#94a3b8"/>
+    <path d="M142 205 L180 170 L210 195 L235 180 L258 205" fill="none" stroke="#94a3b8" stroke-width="4" stroke-linejoin="round"/>
+    
+    <!-- Text -->
+    <text x="50%" y="270" dominant-baseline="middle" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#64748b">Imagen no disponible</text>
+  </g>
+</svg>

@@ -1,0 +1,186 @@
+app/(dashboard)/caja/actual/page.tsx(12,7): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/caja/actual/page.tsx(35,46): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/caja/actual/page.tsx(39,69): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/caja/cortes/page.tsx(12,7): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/caja/cortes/page.tsx(22,24): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/caja/cortes/page.tsx(33,94): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/catalogo/CatalogoClient.tsx(152,72): error TS2353: Object literal may only specify known properties, and 'justifyBranch' does not exist in type 'Properties<string | number, string & {}>'.
+app/(dashboard)/catalogo/CatalogoClient.tsx(161,72): error TS2353: Object literal may only specify known properties, and 'justifyBranch' does not exist in type 'Properties<string | number, string & {}>'.
+app/(dashboard)/catalogo/CatalogoClient.tsx(368,171): error TS2353: Object literal may only specify known properties, and 'justifyBranch' does not exist in type 'Properties<string | number, string & {}>'.
+app/(dashboard)/clientes/[id]/editar/page.tsx(12,24): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/clientes/nuevo/page.tsx(9,24): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/clientes/portal/PortalClient.tsx(78,27): error TS2551: Property 'customer' does not exist on type '{ items: ({ product: { id: string; name: string; createdAt: Date; updatedAt: Date; isActive: boolean; branchId: string; sku: string; barcode: string | null; description: string | null; ... 21 more ...; hasTraceability: boolean; }; } & { ...; })[]; } & { ...; }'. Did you mean 'customerId'?
+app/(dashboard)/clientes/portal/PortalClient.tsx(80,38): error TS2551: Property 'customer' does not exist on type '{ items: ({ product: { id: string; name: string; createdAt: Date; updatedAt: Date; isActive: boolean; branchId: string; sku: string; barcode: string | null; description: string | null; ... 21 more ...; hasTraceability: boolean; }; } & { ...; })[]; } & { ...; }'. Did you mean 'customerId'?
+app/(dashboard)/clientes/portal/PortalClient.tsx(80,72): error TS2551: Property 'customer' does not exist on type '{ items: ({ product: { id: string; name: string; createdAt: Date; updatedAt: Date; isActive: boolean; branchId: string; sku: string; barcode: string | null; description: string | null; ... 21 more ...; hasTraceability: boolean; }; } & { ...; })[]; } & { ...; }'. Did you mean 'customerId'?
+app/(dashboard)/clientes/portal/PortalClient.tsx(81,32): error TS2551: Property 'customer' does not exist on type '{ items: ({ product: { id: string; name: string; createdAt: Date; updatedAt: Date; isActive: boolean; branchId: string; sku: string; barcode: string | null; description: string | null; ... 21 more ...; hasTraceability: boolean; }; } & { ...; })[]; } & { ...; }'. Did you mean 'customerId'?
+app/(dashboard)/clientes/portal/PortalClient.tsx(82,38): error TS2551: Property 'customer' does not exist on type '{ items: ({ product: { id: string; name: string; createdAt: Date; updatedAt: Date; isActive: boolean; branchId: string; sku: string; barcode: string | null; description: string | null; ... 21 more ...; hasTraceability: boolean; }; } & { ...; })[]; } & { ...; }'. Did you mean 'customerId'?
+app/(dashboard)/clientes/portal/PortalClient.tsx(83,36): error TS2551: Property 'customer' does not exist on type '{ items: ({ product: { id: string; name: string; createdAt: Date; updatedAt: Date; isActive: boolean; branchId: string; sku: string; barcode: string | null; description: string | null; ... 21 more ...; hasTraceability: boolean; }; } & { ...; })[]; } & { ...; }'. Did you mean 'customerId'?
+app/(dashboard)/clientes/portal/PortalClient.tsx(84,36): error TS2551: Property 'customer' does not exist on type '{ items: ({ product: { id: string; name: string; createdAt: Date; updatedAt: Date; isActive: boolean; branchId: string; sku: string; barcode: string | null; description: string | null; ... 21 more ...; hasTraceability: boolean; }; } & { ...; })[]; } & { ...; }'. Did you mean 'customerId'?
+app/(dashboard)/clientes/portal/PortalClient.tsx(85,34): error TS2551: Property 'customer' does not exist on type '{ items: ({ product: { id: string; name: string; createdAt: Date; updatedAt: Date; isActive: boolean; branchId: string; sku: string; barcode: string | null; description: string | null; ... 21 more ...; hasTraceability: boolean; }; } & { ...; })[]; } & { ...; }'. Did you mean 'customerId'?
+app/(dashboard)/clientes/portal/PortalClient.tsx(86,34): error TS2551: Property 'customer' does not exist on type '{ items: ({ product: { id: string; name: string; createdAt: Date; updatedAt: Date; isActive: boolean; branchId: string; sku: string; barcode: string | null; description: string | null; ... 21 more ...; hasTraceability: boolean; }; } & { ...; })[]; } & { ...; }'. Did you mean 'customerId'?
+app/(dashboard)/clientes/portal/PortalClient.tsx(108,23): error TS2551: Property 'customer' does not exist on type '{ items: ({ product: { id: string; name: string; createdAt: Date; updatedAt: Date; isActive: boolean; branchId: string; sku: string; barcode: string | null; description: string | null; ... 21 more ...; hasTraceability: boolean; }; } & { ...; })[]; } & { ...; }'. Did you mean 'customerId'?
+app/(dashboard)/clientes/portal/PortalClient.tsx(110,34): error TS2551: Property 'customer' does not exist on type '{ items: ({ product: { id: string; name: string; createdAt: Date; updatedAt: Date; isActive: boolean; branchId: string; sku: string; barcode: string | null; description: string | null; ... 21 more ...; hasTraceability: boolean; }; } & { ...; })[]; } & { ...; }'. Did you mean 'customerId'?
+app/(dashboard)/clientes/portal/PortalClient.tsx(110,68): error TS2551: Property 'customer' does not exist on type '{ items: ({ product: { id: string; name: string; createdAt: Date; updatedAt: Date; isActive: boolean; branchId: string; sku: string; barcode: string | null; description: string | null; ... 21 more ...; hasTraceability: boolean; }; } & { ...; })[]; } & { ...; }'. Did you mean 'customerId'?
+app/(dashboard)/clientes/portal/PortalClient.tsx(111,28): error TS2551: Property 'customer' does not exist on type '{ items: ({ product: { id: string; name: string; createdAt: Date; updatedAt: Date; isActive: boolean; branchId: string; sku: string; barcode: string | null; description: string | null; ... 21 more ...; hasTraceability: boolean; }; } & { ...; })[]; } & { ...; }'. Did you mean 'customerId'?
+app/(dashboard)/clientes/portal/PortalClient.tsx(112,34): error TS2551: Property 'customer' does not exist on type '{ items: ({ product: { id: string; name: string; createdAt: Date; updatedAt: Date; isActive: boolean; branchId: string; sku: string; barcode: string | null; description: string | null; ... 21 more ...; hasTraceability: boolean; }; } & { ...; })[]; } & { ...; }'. Did you mean 'customerId'?
+app/(dashboard)/clientes/portal/PortalClient.tsx(113,32): error TS2551: Property 'customer' does not exist on type '{ items: ({ product: { id: string; name: string; createdAt: Date; updatedAt: Date; isActive: boolean; branchId: string; sku: string; barcode: string | null; description: string | null; ... 21 more ...; hasTraceability: boolean; }; } & { ...; })[]; } & { ...; }'. Did you mean 'customerId'?
+app/(dashboard)/clientes/portal/PortalClient.tsx(114,32): error TS2551: Property 'customer' does not exist on type '{ items: ({ product: { id: string; name: string; createdAt: Date; updatedAt: Date; isActive: boolean; branchId: string; sku: string; barcode: string | null; description: string | null; ... 21 more ...; hasTraceability: boolean; }; } & { ...; })[]; } & { ...; }'. Did you mean 'customerId'?
+app/(dashboard)/clientes/portal/PortalClient.tsx(115,30): error TS2551: Property 'customer' does not exist on type '{ items: ({ product: { id: string; name: string; createdAt: Date; updatedAt: Date; isActive: boolean; branchId: string; sku: string; barcode: string | null; description: string | null; ... 21 more ...; hasTraceability: boolean; }; } & { ...; })[]; } & { ...; }'. Did you mean 'customerId'?
+app/(dashboard)/clientes/portal/PortalClient.tsx(116,30): error TS2551: Property 'customer' does not exist on type '{ items: ({ product: { id: string; name: string; createdAt: Date; updatedAt: Date; isActive: boolean; branchId: string; sku: string; barcode: string | null; description: string | null; ... 21 more ...; hasTraceability: boolean; }; } & { ...; })[]; } & { ...; }'. Did you mean 'customerId'?
+app/(dashboard)/clientes/portal/PortalClient.tsx(390,108): error TS2353: Object literal may only specify known properties, and 'hover' does not exist in type 'Properties<string | number, string & {}>'.
+app/(dashboard)/clientes/portal/PortalClient.tsx(879,39): error TS2304: Cannot find name 'Loader2'.
+app/(dashboard)/conciliacion/page.tsx(15,24): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/DashboardCharts.tsx(224,25): error TS2322: Type '{ label: string; date: string; dateStr: string; count: number; amount: number; }[] | { label: string; count: number; amount: number; sortKey: string; }[]' is not assignable to type 'ChartData<{ label: string; date: string; dateStr: string; count: number; amount: number; }> | undefined'.
+  Type '{ label: string; count: number; amount: number; sortKey: string; }[]' is not assignable to type 'readonly { label: string; date: string; dateStr: string; count: number; amount: number; }[]'.
+    Type '{ label: string; count: number; amount: number; sortKey: string; }' is missing the following properties from type '{ label: string; date: string; dateStr: string; count: number; amount: number; }': date, dateStr
+app/(dashboard)/DashboardCharts.tsx(254,26): error TS2322: Type '{ label: string; date: string; dateStr: string; count: number; amount: number; }[] | { label: string; count: number; amount: number; sortKey: string; }[]' is not assignable to type 'ChartData<{ label: string; date: string; dateStr: string; count: number; amount: number; }> | undefined'.
+  Type '{ label: string; count: number; amount: number; sortKey: string; }[]' is not assignable to type 'readonly { label: string; date: string; dateStr: string; count: number; amount: number; }[]'.
+    Type '{ label: string; count: number; amount: number; sortKey: string; }' is missing the following properties from type '{ label: string; date: string; dateStr: string; count: number; amount: number; }': date, dateStr
+app/(dashboard)/facturas/complementos/page.tsx(11,17): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/facturas/complementos/REPClient.tsx(126,12): error TS2304: Cannot find name 'AlertTriangle'.
+app/(dashboard)/facturas/ventas/page.tsx(11,17): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/facturas/ventas/page.tsx(23,19): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/finanzas/conciliacion/page.tsx(15,24): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/integraciones/amazon/page.tsx(12,45): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/integraciones/liverpool/page.tsx(12,45): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/integraciones/mercadolibre/page.tsx(12,45): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/integraciones/mercadolibre/page.tsx(16,62): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/integraciones/page.tsx(8,76): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/integraciones/rappi/page.tsx(11,45): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/integraciones/rappi/page.tsx(15,54): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/integraciones/ubereats/page.tsx(11,45): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/integraciones/ubereats/page.tsx(15,58): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/integraciones/walmart/page.tsx(12,45): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/logistica/page.tsx(26,17): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/logistica/page.tsx(26,54): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/mi-portal/page.tsx(71,14): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+app/(dashboard)/page.tsx(24,14): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+app/(dashboard)/preferencias/listas-de-precios/page.tsx(9,24): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/preferencias/sucursales/page.tsx(44,13): error TS2322: Type '(formData: FormData) => Promise<{ success: boolean; branch: { id: string; name: string; location: string | null; createdAt: Date; updatedAt: Date; isActive: boolean; tenantId: string | null; }; }>' is not assignable to type 'string | ((formData: FormData) => void | Promise<void>) | undefined'.
+  Type '(formData: FormData) => Promise<{ success: boolean; branch: { id: string; name: string; location: string | null; createdAt: Date; updatedAt: Date; isActive: boolean; tenantId: string | null; }; }>' is not assignable to type '(formData: FormData) => void | Promise<void>'.
+    Type 'Promise<{ success: boolean; branch: { id: string; name: string; location: string | null; createdAt: Date; updatedAt: Date; isActive: boolean; tenantId: string | null; }; }>' is not assignable to type 'void | Promise<void>'.
+      Type 'Promise<{ success: boolean; branch: { id: string; name: string; location: string | null; createdAt: Date; updatedAt: Date; isActive: boolean; tenantId: string | null; }; }>' is not assignable to type 'Promise<void>'.
+        Type '{ success: boolean; branch: { id: string; name: string; location: string | null; createdAt: Date; updatedAt: Date; isActive: boolean; tenantId: string | null; }; }' is not assignable to type 'void'.
+app/(dashboard)/productos/[id]/page.tsx(201,9): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+app/(dashboard)/productos/caducidades/page.tsx(15,16): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/caducidades/page.tsx(15,65): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/compras/[id]/imprimir/page.tsx(29,7): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/compras/[id]/page.tsx(33,7): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/compras/[id]/page.tsx(33,33): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/compras/nuevo/page.tsx(12,17): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/compras/nuevo/page.tsx(12,59): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/compras/nuevo/page.tsx(42,76): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/compras/page.tsx(13,12): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/compras/page.tsx(13,54): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/costos-proveedor/page.tsx(12,24): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/costos-proveedor/page.tsx(19,24): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/costos-proveedor/page.tsx(23,90): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/ExportButton.tsx(5,18): error TS7016: Could not find a declaration file for module 'papaparse'. 'C:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/caanma/node_modules/papaparse/papaparse.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/papaparse` if it exists or add a new declaration (.d.ts) file containing `declare module 'papaparse';`
+app/(dashboard)/productos/gastos/page.tsx(21,17): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/gastos/page.tsx(35,24): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/ImportButton.tsx(5,18): error TS7016: Could not find a declaration file for module 'papaparse'. 'C:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/caanma/node_modules/papaparse/papaparse.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/papaparse` if it exists or add a new declaration (.d.ts) file containing `declare module 'papaparse';`
+app/(dashboard)/productos/ImportButton.tsx(22,26): error TS7006: Parameter 'results' implicitly has an 'any' type.
+app/(dashboard)/productos/ImportButton.tsx(35,17): error TS7006: Parameter 'error' implicitly has an 'any' type.
+app/(dashboard)/productos/pedidos/nuevo/CrearPedidoForm.tsx(220,31): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+app/(dashboard)/productos/pedidos/nuevo/CrearPedidoForm.tsx(220,36): error TS7006: Parameter 'item' implicitly has an 'any' type.
+app/(dashboard)/productos/pedidos/nuevo/CrearPedidoForm.tsx(224,20): error TS7006: Parameter 'i' implicitly has an 'any' type.
+app/(dashboard)/productos/pedidos/nuevo/CrearPedidoForm.tsx(249,53): error TS7006: Parameter 'i' implicitly has an 'any' type.
+app/(dashboard)/productos/pedidos/nuevo/CrearPedidoForm.tsx(585,46): error TS7006: Parameter 'i' implicitly has an 'any' type.
+app/(dashboard)/productos/pedidos/nuevo/CrearPedidoForm.tsx(639,29): error TS7006: Parameter 'item' implicitly has an 'any' type.
+app/(dashboard)/productos/pedidos/nuevo/CrearPedidoForm.tsx(639,35): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+app/(dashboard)/productos/pedidos/nuevo/CrearPedidoForm.tsx(721,63): error TS7006: Parameter '_' implicitly has an 'any' type.
+app/(dashboard)/productos/pedidos/nuevo/CrearPedidoForm.tsx(721,66): error TS7006: Parameter 'i' implicitly has an 'any' type.
+app/(dashboard)/productos/pedidos/nuevo/CrearPedidoForm.tsx(940,45): error TS7006: Parameter 'i' implicitly has an 'any' type.
+app/(dashboard)/productos/pedidos/page.tsx(13,12): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/pedidos/page.tsx(13,54): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/precios-masivos/page.tsx(12,24): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/precios-masivos/page.tsx(19,24): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/precios-masivos/page.tsx(26,24): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/precios-masivos/page.tsx(30,24): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/precios-masivos/page.tsx(40,113): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/solicitudes/nueva/page.tsx(23,39): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/solicitudes/page.tsx(13,12): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/productos/solicitudes/page.tsx(13,54): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/rh/monitoreo/page.tsx(22,14): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+app/(dashboard)/rh/tramites/page.tsx(30,14): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+app/(dashboard)/ventas/consignaciones/page.tsx(20,14): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+app/(dashboard)/ventas/cotizaciones/page.tsx(10,24): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/ventas/devoluciones/page.tsx(10,64): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/ventas/page.tsx(74,9): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/ventas/page.tsx(75,11): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/ventas/page.tsx(79,14): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+app/(dashboard)/ventas/page.tsx(79,18): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/ventas/prospeccion/chat/[id]/page.tsx(15,12): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/ventas/prospeccion/chat/[id]/page.tsx(15,70): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/ventas/prospeccion/page.tsx(12,26): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/ventas/prospeccion/page.tsx(12,68): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/ventas/prospeccion/page.tsx(45,11): error TS18047: 'branch' is possibly 'null'.
+app/(dashboard)/ventas/prospeccion/page.tsx(45,53): error TS18047: 'branch' is possibly 'null'.
+app/actions/branch.ts(32,5): error TS2554: Expected 2 arguments, but got 1.
+app/actions/branch.ts(94,3): error TS2554: Expected 2 arguments, but got 1.
+app/actions/branch.ts(95,3): error TS2554: Expected 2 arguments, but got 1.
+app/actions/branch.ts(119,3): error TS2554: Expected 2 arguments, but got 1.
+app/actions/branch.ts(120,3): error TS2554: Expected 2 arguments, but got 1.
+app/actions/caja.ts(14,17): error TS18047: 'branch' is possibly 'null'.
+app/actions/caja.ts(27,7): error TS18047: 'branch' is possibly 'null'.
+app/actions/caja.ts(34,24): error TS18047: 'branch' is possibly 'null'.
+app/actions/caja.ts(41,17): error TS18047: 'branch' is possibly 'null'.
+app/actions/crud.ts(11,33): error TS18047: 'branch' is possibly 'null'.
+app/actions/crud.ts(29,144): error TS18047: 'branch' is possibly 'null'.
+app/actions/crud.ts(31,197): error TS18047: 'branch' is possibly 'null'.
+app/actions/crud.ts(33,58): error TS18047: 'branch' is possibly 'null'.
+app/actions/crud.ts(33,81): error TS18047: 'branch' is possibly 'null'.
+app/actions/crud.ts(36,71): error TS18047: 'branch' is possibly 'null'.
+app/actions/crud.ts(41,66): error TS18047: 'branch' is possibly 'null'.
+app/actions/crud.ts(43,66): error TS18047: 'branch' is possibly 'null'.
+app/actions/customer.ts(44,17): error TS18047: 'branch' is possibly 'null'.
+app/actions/customer.ts(113,17): error TS18047: 'branch' is possibly 'null'.
+app/actions/customer.ts(146,17): error TS18047: 'branch' is possibly 'null'.
+app/actions/customerPayment.ts(27,43): error TS18047: 'branch' is possibly 'null'.
+app/actions/customerPayment.ts(75,24): error TS18047: 'branch' is possibly 'null'.
+app/actions/customerPayment.ts(91,24): error TS18047: 'branch' is possibly 'null'.
+app/actions/customerPayment.ts(145,45): error TS18047: 'branch' is possibly 'null'.
+app/actions/facturacion.ts(28,26): error TS18047: 'branch' is possibly 'null'.
+app/actions/facturacion.ts(167,26): error TS18047: 'branch' is possibly 'null'.
+app/actions/facturacion.ts(203,19): error TS18047: 'branch' is possibly 'null'.
+app/actions/facturacion.ts(286,26): error TS18047: 'branch' is possibly 'null'.
+app/actions/facturacion.ts(325,26): error TS18047: 'branch' is possibly 'null'.
+app/actions/facturacion.ts(360,55): error TS2322: Type '"02"' is not assignable to type 'CancellationMotive'.
+app/actions/facturacion.ts(386,26): error TS18047: 'branch' is possibly 'null'.
+app/actions/facturacion.ts(412,19): error TS18047: 'branch' is possibly 'null'.
+app/actions/facturacion.ts(551,26): error TS18047: 'branch' is possibly 'null'.
+app/actions/facturacion.ts(589,19): error TS18047: 'branch' is possibly 'null'.
+app/actions/hr.ts(615,14): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+app/actions/hr.ts(731,14): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+app/actions/integration.ts(17,45): error TS18047: 'branch' is possibly 'null'.
+app/actions/integration.ts(27,25): error TS18047: 'branch' is possibly 'null'.
+app/actions/integration.ts(40,45): error TS18047: 'branch' is possibly 'null'.
+app/actions/inventory.ts(33,7): error TS18047: 'branch' is possibly 'null'.
+app/actions/pedidos.ts(14,7): error TS18047: 'branch' is possibly 'null'.
+app/actions/pedidos.ts(25,19): error TS18047: 'branch' is possibly 'null'.
+app/actions/price-list.ts(14,67): error TS18047: 'branch' is possibly 'null'.
+app/actions/price-list.ts(20,17): error TS18047: 'branch' is possibly 'null'.
+app/actions/promotion.ts(16,17): error TS18047: 'branch' is possibly 'null'.
+app/actions/purchaseRequest.ts(9,7): error TS18047: 'branch' is possibly 'null'.
+app/actions/purchaseRequest.ts(21,21): error TS18047: 'branch' is possibly 'null'.
+app/actions/supplier.ts(29,17): error TS18047: 'branch' is possibly 'null'.
+app/actions/supplierPayment.ts(26,43): error TS18047: 'branch' is possibly 'null'.
+app/actions/supplierPayment.ts(74,24): error TS18047: 'branch' is possibly 'null'.
+app/actions/supplierPayment.ts(90,24): error TS18047: 'branch' is possibly 'null'.
+app/actions/user.ts(206,5): error TS2554: Expected 2 arguments, but got 1.
+app/actions/user.ts(240,7): error TS2554: Expected 2 arguments, but got 1.
+app/actions/user.ts(260,9): error TS2554: Expected 2 arguments, but got 1.
+app/api/mercadolibre/sync/route.ts(11,47): error TS18047: 'branch' is possibly 'null'.
+app/api/mercadolibre/sync/route.ts(51,85): error TS18047: 'branch' is possibly 'null'.
+app/api/mercadolibre/sync/route.ts(70,25): error TS18047: 'branch' is possibly 'null'.

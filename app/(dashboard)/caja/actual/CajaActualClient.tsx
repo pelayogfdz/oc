@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { openSession, closeSession, addMovement } from '@/app/actions/caja';
 import { formatCurrency } from '@/lib/utils';
+import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import { 
   Calculator, 
   ArrowDownRight, 
@@ -42,6 +43,7 @@ export default function CajaActualClient({
   userName: string;
   metodosConfig: any;
 }) {
+  const { isOnline } = useOfflineSync();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -297,6 +299,13 @@ export default function CajaActualClient({
         <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>No tienes una Caja Abierta</h2>
         <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '2rem' }}>Apertura tu turno ingresando el fondo de caja fijo (morralla) inicial en efectivo para {branchName}.</p>
         
+        {!isOnline && (
+          <div style={{ backgroundColor: '#fffbeb', color: '#b45309', padding: '1.25rem', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #fcd34d', fontSize: '0.95rem', lineHeight: '1.5', textAlign: 'left' }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>⚠️ Modo Offline Activo</div>
+            Estás trabajando sin conexión a internet. No es necesario realizar la apertura de caja para registrar ventas offline. Puedes ir directamente al <strong>Punto de Venta</strong> para procesar transacciones; éstas se guardarán en tu dispositivo y se sincronizarán al recuperar la señal.
+          </div>
+        )}
+
         {error && <div style={{ backgroundColor: '#fef2f2', color: '#ef4444', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>{error}</div>}
         
         <form onSubmit={handleOpenSession} style={{ maxWidth: '300px', margin: '0 auto' }}>
@@ -306,13 +315,14 @@ export default function CajaActualClient({
                type="number" 
                step="0.01"
                required 
+               disabled={!isOnline}
                value={initialAmount} 
                onChange={e => setInitialAmount(e.target.value)} 
-               style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ddd', fontSize: '1.25rem', textAlign: 'center', fontWeight: 'bold' }} 
+               style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ddd', fontSize: '1.25rem', textAlign: 'center', fontWeight: 'bold', backgroundColor: isOnline ? 'white' : '#f1f5f9' }} 
              />
           </div>
-          <button type="submit" disabled={loading} style={{ width: '100%', padding: '1rem', backgroundColor: '#d946ef', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '1rem', cursor: loading ? 'not-allowed' : 'pointer' }}>
-             {loading ? 'Abriendo Turno...' : 'Abrir Turno'}
+          <button type="submit" disabled={loading || !isOnline} style={{ width: '100%', padding: '1rem', backgroundColor: isOnline ? '#d946ef' : '#cbd5e1', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '1rem', cursor: (loading || !isOnline) ? 'not-allowed' : 'pointer' }}>
+             {loading ? 'Abriendo Turno...' : isOnline ? 'Abrir Turno' : 'Apertura deshabilitada offline'}
           </button>
         </form>
       </div>

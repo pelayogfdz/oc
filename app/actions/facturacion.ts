@@ -106,11 +106,30 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
       };
     }
 
-    // Map the items, validating SAT keys
-    const items = (sale.items as any[]).map((item: any) => {
+    // Map the items, validating SAT keys and calculating proportional discounts
+    const itemsTotal = (sale.items as any[]).reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
+    const saleDiscount = Math.max(0, itemsTotal - sale.total);
+    let discountSum = 0;
+
+    const items = (sale.items as any[]).map((item: any, idx: number) => {
       if (!item.product.satKey || !item.product.satUnit) {
         throw new Error(`El producto "${item.product.name}" no cuenta con Clave del SAT o Unidad del SAT. Debes configurarlas desde el Catálogo antes de facturar esta venta.`);
       }
+
+      const itemSubtotal = Number(item.price) * Number(item.quantity);
+      const proportion = itemsTotal > 0 ? (itemSubtotal / itemsTotal) : 0;
+      let itemDiscount = 0;
+
+      if (saleDiscount > 0.01) {
+        if (idx === sale.items.length - 1) {
+          // Adjust last item to match total discount exactly
+          itemDiscount = Number((saleDiscount - discountSum).toFixed(2));
+        } else {
+          itemDiscount = Number((saleDiscount * proportion).toFixed(2));
+          discountSum += itemDiscount;
+        }
+      }
+
       return {
         product: {
           description: item.product.name,
@@ -122,7 +141,8 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
           ],
           unit_key: item.product.satUnit
         },
-        quantity: Number(item.quantity)
+        quantity: Number(item.quantity),
+        ...(itemDiscount > 0 ? { discount: itemDiscount } : {})
       };
     });
 
@@ -238,13 +258,31 @@ export async function stampGlobalInvoice(startDateStr?: string, endDateStr?: str
       throw new Error("No hay ventas pendientes en el rango de fechas seleccionado para incluir en la factura global.");
     }
 
-    // Comprimir todos los items en la factura global
+    // Comprimir todos los items en la factura global con proporcional de descuentos por venta
     const globalItems: any[] = [];
     for (const sale of salesFiltered) {
-       for (const item of sale.items) {
+       const saleItemsTotal = (sale.items as any[]).reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
+       const saleDiscount = Math.max(0, saleItemsTotal - sale.total);
+       let discountSum = 0;
+
+       (sale.items as any[]).forEach((item: any, idx: number) => {
           if (!item.product.satKey || !item.product.satUnit) {
             throw new Error(`El producto "${item.product.name}" no cuenta con Clave del SAT o Unidad del SAT. Configúralo antes de emitir la factura global.`);
           }
+
+          const itemSubtotal = Number(item.price) * Number(item.quantity);
+          const proportion = saleItemsTotal > 0 ? (itemSubtotal / saleItemsTotal) : 0;
+          let itemDiscount = 0;
+
+          if (saleDiscount > 0.01) {
+            if (idx === sale.items.length - 1) {
+              itemDiscount = Number((saleDiscount - discountSum).toFixed(2));
+            } else {
+              itemDiscount = Number((saleDiscount * proportion).toFixed(2));
+              discountSum += itemDiscount;
+            }
+          }
+
           globalItems.push({
             product: {
               description: item.product.name,
@@ -256,9 +294,10 @@ export async function stampGlobalInvoice(startDateStr?: string, endDateStr?: str
               ],
               unit_key: item.product.satUnit
             },
-            quantity: Number(item.quantity)
+            quantity: Number(item.quantity),
+            ...(itemDiscount > 0 ? { discount: itemDiscount } : {})
           });
-       }
+       });
     }
 
     // Factura Global CFDI 4.0 a Público en General
@@ -501,13 +540,31 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
       };
     }
 
-    // Map items from all sales
+    // Map items from all sales applying proportional discounts per sale
     const items: any[] = [];
     for (const sale of sales) {
-      for (const item of sale.items) {
+      const saleItemsTotal = (sale.items as any[]).reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
+      const saleDiscount = Math.max(0, saleItemsTotal - sale.total);
+      let discountSum = 0;
+
+      (sale.items as any[]).forEach((item: any, idx: number) => {
         if (!item.product.satKey || !item.product.satUnit) {
           throw new Error(`El producto "${item.product.name}" de la venta #${sale.folio || sale.id.substring(0, 8).toUpperCase()} no cuenta con Clave del SAT o Unidad del SAT. Debes configurarlas desde el Catálogo.`);
         }
+
+        const itemSubtotal = Number(item.price) * Number(item.quantity);
+        const proportion = saleItemsTotal > 0 ? (itemSubtotal / saleItemsTotal) : 0;
+        let itemDiscount = 0;
+
+        if (saleDiscount > 0.01) {
+          if (idx === sale.items.length - 1) {
+            itemDiscount = Number((saleDiscount - discountSum).toFixed(2));
+          } else {
+            itemDiscount = Number((saleDiscount * proportion).toFixed(2));
+            discountSum += itemDiscount;
+          }
+        }
+
         items.push({
           product: {
             description: item.product.name,
@@ -519,9 +576,10 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
             ],
             unit_key: item.product.satUnit
           },
-          quantity: Number(item.quantity)
+          quantity: Number(item.quantity),
+          ...(itemDiscount > 0 ? { discount: itemDiscount } : {})
         });
-      }
+      });
     }
 
     // Determine payment form and method

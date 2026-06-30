@@ -34,16 +34,7 @@ const OfflineContext = createContext<OfflineContextType>({
 
 export function isOfflineEnabled(): boolean {
   if (typeof window === 'undefined') return false;
-  
-  // 1. Check if PWA is installed / standalone
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
-  if (!isStandalone) return false;
-  
-  // 2. Check if mobile (phone or tablet) using User Agent
-  const userAgent = window.navigator.userAgent || "";
-  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(userAgent);
-  
-  return !isMobile;
+  return true;
 }
 
 
@@ -69,7 +60,8 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
 
   // Initialize Network status
   useEffect(() => {
-    setIsOnline(navigator.onLine);
+    const isMockOffline = typeof window !== 'undefined' && window.location.search.includes('mock-offline=true');
+    setIsOnline(isMockOffline ? false : navigator.onLine);
     
     // Load last sync time from localStorage
     if (typeof window !== 'undefined') {
@@ -80,8 +72,9 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
     }
     
     const handleOnline = () => {
-      setIsOnline(true);
-      if (isOfflineEnabled()) {
+      const isMockOffline = typeof window !== 'undefined' && window.location.search.includes('mock-offline=true');
+      setIsOnline(isMockOffline ? false : true);
+      if (isOfflineEnabled() && !isMockOffline) {
         setShowToast({ message: 'Conexión Restablecida. Sincronizando datos...', type: 'success' });
         forceSync();
         refreshCatalogs();
@@ -103,7 +96,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       loadPendingQueues();
       
       const shouldRefreshOnStart = async () => {
-        if (!navigator.onLine) return;
+        if (!isOnline) return;
         // En modo standalone de escritorio, sincronizar catálogos silenciosamente de inmediato al iniciar
         await refreshCatalogs(true);
       };
@@ -290,7 +283,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   };
 
   const forceSync = async () => {
-    if (!navigator.onLine) return;
+    if (!isOnline) return;
     if (isSyncingRef.current) {
       console.log('[PWA] Sincronización en curso, omitiendo ejecución paralela.');
       return;
@@ -392,7 +385,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
               p.items,
               p.total || 0,
               p.paymentMethod || 'CASH',
-              p.supplierId || '',
+              p.supplierId || null,
               p.freightCost || 0,
               p.id,
               p.supplierFolio || null
@@ -511,7 +504,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
 
   const refreshCatalogs = async (isBackground?: boolean) => {
     if (!isOfflineEnabled()) return;
-    if (!navigator.onLine) return;
+    if (!isOnline) return;
     try {
       const { syncBasicCatalogs, syncProductsPage } = await import('../actions/sync');
       if (!isBackground) {

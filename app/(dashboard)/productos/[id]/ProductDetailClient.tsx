@@ -42,7 +42,7 @@ export function ProductDetailClient({
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
   const [headerImageError, setHeaderImageError] = useState(false);
   const [selectedMovement, setSelectedMovement] = useState<any | null>(null);
-  const { pushOfflineProduct } = useOfflineSync();
+  const { isOnline, pushOfflineProduct } = useOfflineSync();
 
   const handleMovementClick = (mov: any) => {
     if (mov.detailUrl) {
@@ -54,7 +54,7 @@ export function ProductDetailClient({
 
   useEffect(() => {
     const handleFormSubmit = async (e: SubmitEvent) => {
-      if (!navigator.onLine) {
+      if (!isOnline) {
         const form = e.target as HTMLFormElement;
         const skuInput = form.querySelector('input[name="sku"]');
         if (skuInput) {

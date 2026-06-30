@@ -9,7 +9,10 @@ import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 import ImportButton from './ImportButton';
 import ExportButton from './ExportButton';
 
+import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
+
 export default function ProductListClient({ initialProducts, branchId, categories }: { initialProducts: any[], branchId: string, categories: string[] }) {
+  const { isOnline } = useOfflineSync();
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [displayedProducts, setDisplayedProducts] = useState<any[]>(initialProducts);
@@ -74,7 +77,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
   // Load products from IndexedDB if offline on mount or connection changes
   useEffect(() => {
     const loadOfflineProducts = async () => {
-      if (typeof window !== 'undefined' && !navigator.onLine) {
+      if (typeof window !== 'undefined' && !isOnline) {
         try {
           const { db } = await import('@/lib/offlineDB');
           const localProducts = await db.products.toArray();
@@ -85,14 +88,14 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       }
     };
     loadOfflineProducts();
-  }, []);
+  }, [isOnline]);
 
   useEffect(() => {
     if (!isInitialized) return;
 
     // Prevent searching on mount when searchTerm is empty (initialProducts is already loaded)
     if (searchTerm === '' && !hasSearched) {
-      if (!navigator.onLine) {
+      if (!isOnline) {
         import('@/lib/offlineDB').then(async ({ db }) => {
           const localProducts = await db.products.toArray();
           setDisplayedProducts(localProducts);
@@ -104,7 +107,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     const delayDebounceFn = setTimeout(async () => {
       setIsSearching(true);
       try {
-        if (navigator.onLine) {
+        if (isOnline) {
           const results = await searchProducts(searchTerm, branchId);
           setDisplayedProducts(results);
         } else {
@@ -128,7 +131,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, branchId, isInitialized, hasSearched]);
+  }, [searchTerm, branchId, isInitialized, hasSearched, isOnline]);
 
   const filteredProducts = useMemo(() => displayedProducts.filter(p => {
     if (filterCategory !== 'ALL' && p.category !== filterCategory) return false;
@@ -208,7 +211,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
           </button>
           <button onClick={async (e) => {
             e.stopPropagation();
-            if (!navigator.onLine) {
+            if (!isOnline) {
               alert('No es posible eliminar productos en modo offline. Por favor, conéctate a internet para realizar esta acción.');
               return;
             }

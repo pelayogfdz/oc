@@ -6,7 +6,8 @@ export default function PWAUpdater() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
-      if (!isStandalone) {
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (!isStandalone && !isLocalhost) {
         console.log('[PWA] Browser mode: skipping PWAUpdater.');
         return;
       }

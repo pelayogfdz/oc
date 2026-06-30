@@ -6,12 +6,15 @@ import Link from 'next/link';
 import { User, Trash2, FileText, Search } from 'lucide-react';
 import { deleteEntity } from '@/app/actions/crud';
 
+import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
+
 interface ClientesTableProps {
   initialCustomers: any[];
 }
 
 export default function ClientesTable({ initialCustomers }: ClientesTableProps) {
   const router = useRouter();
+  const { isOnline } = useOfflineSync();
   const [searchTerm, setSearchTerm] = useState('');
   const [customers, setCustomers] = useState<any[]>(initialCustomers);
 
@@ -23,7 +26,7 @@ export default function ClientesTable({ initialCustomers }: ClientesTableProps) 
   // Load customers from IndexedDB if offline on mount
   useEffect(() => {
     const loadOfflineCustomers = async () => {
-      if (typeof window !== 'undefined' && !navigator.onLine) {
+      if (typeof window !== 'undefined' && !isOnline) {
         try {
           const { db } = await import('@/lib/offlineDB');
           const localCustomers = await db.customers.toArray();
@@ -34,10 +37,10 @@ export default function ClientesTable({ initialCustomers }: ClientesTableProps) 
       }
     };
     loadOfflineCustomers();
-  }, []);
+  }, [isOnline]);
 
   const handleDelete = async (id: string) => {
-    if (!navigator.onLine) {
+    if (!isOnline) {
       alert('No es posible eliminar registros en modo offline. Por favor, conéctate a internet para realizar esta acción.');
       return;
     }
