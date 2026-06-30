@@ -38,7 +38,11 @@ export default async function Page() {
             {data.map((item: any) => (
               <tr key={item.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                 <td data-label="Proveedor" style={{ padding: '1rem' }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '1rem', color: '#0f172a' }}>{item.name}</div>
+                  <Link href={`/productos/compras?search=${encodeURIComponent(item.name)}`} style={{ textDecoration: 'none', color: 'inherit' }} className="hover:underline">
+                    <div style={{ fontWeight: 'bold', fontSize: '1.05rem', color: 'var(--caanma-primary)', cursor: 'pointer' }}>
+                      {item.name}
+                    </div>
+                  </Link>
                   {item.taxId && <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', marginTop: '0.25rem' }}>RFC: {item.taxId}</div>}
                 </td>
                 <td data-label="Contacto" style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>

@@ -36,6 +36,26 @@ export async function createSupplier(formData: FormData) {
 }
 
 export async function updateSupplier(id: string, data: any) {
+  const branch = await getActiveBranch();
+  
+  // Check duplicates
+  const existing = await prisma.supplier.findFirst({
+    where: {
+      id: { not: id },
+      branch: {
+        tenantId: branch.tenantId
+      },
+      OR: [
+        { name: { equals: data.name, mode: 'insensitive' as const } },
+        ...(data.taxId ? [{ taxId: { equals: data.taxId, mode: 'insensitive' as const } }] : [])
+      ]
+    }
+  });
+
+  if (existing) {
+    throw new Error(`Ya existe otro proveedor con el nombre "${data.name}" o RFC "${data.taxId || ''}" en este comercio.`);
+  }
+
   await prisma.supplier.update({
     where: { id },
     data: { 

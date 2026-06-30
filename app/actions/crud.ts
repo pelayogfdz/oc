@@ -39,8 +39,7 @@ export async function crudAction(entity: string, formData: FormData) {
         });
         
         if (existing) {
-           console.log(`Supplier already exists for tenant: ${supplierData.name}`);
-           return;
+           throw new Error(`El proveedor "${supplierData.name}" o RFC "${supplierData.taxId || ''}" ya existe en este comercio.`);
         }
 
         await prisma.supplier.create({ data: supplierData });
@@ -63,6 +62,7 @@ export async function crudAction(entity: string, formData: FormData) {
      }
   } catch (err) {
      console.error(err);
+     throw err;
   }
 
   // Generic revalidation

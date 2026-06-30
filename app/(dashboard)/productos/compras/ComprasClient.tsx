@@ -4,8 +4,14 @@ import { useState } from 'react';
 import { ShoppingCart, Calendar, Store, CreditCard, LayoutGrid, List, Search, MoreVertical } from 'lucide-react';
 import Link from 'next/link';
 
-export default function ComprasClient({ initialPurchases }: { initialPurchases: any[] }) {
-  const [searchTerm, setSearchTerm] = useState('');
+export default function ComprasClient({ 
+  initialPurchases, 
+  initialSearch = '' 
+}: { 
+  initialPurchases: any[], 
+  initialSearch?: string 
+}) {
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 

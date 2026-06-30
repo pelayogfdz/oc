@@ -6,8 +6,16 @@ import ComprasClient from './ComprasClient';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ComprasPage() {
+interface PageProps {
+  searchParams?: Promise<{
+    search?: string;
+  }>;
+}
+
+export default async function ComprasPage({ searchParams }: PageProps) {
   const branch = await getActiveBranch();
+  const resolvedParams = searchParams ? await searchParams : {};
+  const search = resolvedParams.search || '';
   
   const purchases = await prisma.purchase.findMany({
     where: branch.id === 'GLOBAL' ? {} : { branchId: branch.id },
@@ -39,7 +47,7 @@ export default async function ComprasPage() {
         </Link>
       </div>
 
-      <ComprasClient initialPurchases={purchases} />
+      <ComprasClient initialPurchases={purchases} initialSearch={search} />
     </div>
   );
 }
