@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { User, Trash2, FileText, Search } from 'lucide-react';
@@ -13,15 +13,41 @@ interface ClientesTableProps {
 export default function ClientesTable({ initialCustomers }: ClientesTableProps) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
+  const [customers, setCustomers] = useState<any[]>(initialCustomers);
+
+  // Sync state if initialCustomers changes
+  useEffect(() => {
+    setCustomers(initialCustomers);
+  }, [initialCustomers]);
+
+  // Load customers from IndexedDB if offline on mount
+  useEffect(() => {
+    const loadOfflineCustomers = async () => {
+      if (typeof window !== 'undefined' && !navigator.onLine) {
+        try {
+          const { db } = await import('@/lib/offlineDB');
+          const localCustomers = await db.customers.toArray();
+          setCustomers(localCustomers);
+        } catch (err) {
+          console.error('[Offline] Failed to load local customers:', err);
+        }
+      }
+    };
+    loadOfflineCustomers();
+  }, []);
 
   const handleDelete = async (id: string) => {
+    if (!navigator.onLine) {
+      alert('No es posible eliminar registros en modo offline. Por favor, conéctate a internet para realizar esta acción.');
+      return;
+    }
     if (confirm('¿Estás seguro de eliminar este cliente?')) {
       await deleteEntity('customer', id);
       router.refresh();
     }
   };
 
-  const filteredCustomers = initialCustomers.filter((item) => {
+  const filteredCustomers = customers.filter((item) => {
     const term = searchTerm.toLowerCase();
     return (
       item.name.toLowerCase().includes(term) ||
@@ -66,7 +92,7 @@ export default function ClientesTable({ initialCustomers }: ClientesTableProps) 
         </div>
         {searchTerm && (
           <div style={{ marginLeft: '1rem', fontSize: '0.85rem', color: '#64748b' }}>
-            Encontrados: <strong>{filteredCustomers.length}</strong> de {initialCustomers.length}
+            Encontrados: <strong>{filteredCustomers.length}</strong> de {customers.length}
           </div>
         )}
       </div>
@@ -113,7 +139,7 @@ export default function ClientesTable({ initialCustomers }: ClientesTableProps) 
             <tr>
               <td colSpan={4} style={{ padding: '4rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                 <FileText size={40} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
-                {initialCustomers.length === 0 ? 'No tienes clientes registrados aún.' : 'No se encontraron clientes que coincidan con tu búsqueda.'}
+                {customers.length === 0 ? 'No tienes clientes registrados aún.' : 'No se encontraron clientes que coincidan con tu búsqueda.'}
               </td>
             </tr>
           )}

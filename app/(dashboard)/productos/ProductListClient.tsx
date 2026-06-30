@@ -68,18 +68,57 @@ export default function ProductListClient({ initialProducts, branchId, categorie
   }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, currentPage, pageSize, isInitialized]);
 
   useEffect(() => {
+    setDisplayedProducts(initialProducts);
+  }, [initialProducts]);
+
+  // Load products from IndexedDB if offline on mount or connection changes
+  useEffect(() => {
+    const loadOfflineProducts = async () => {
+      if (typeof window !== 'undefined' && !navigator.onLine) {
+        try {
+          const { db } = await import('@/lib/offlineDB');
+          const localProducts = await db.products.toArray();
+          setDisplayedProducts(localProducts);
+        } catch (err) {
+          console.error('[Offline] Failed to load local products:', err);
+        }
+      }
+    };
+    loadOfflineProducts();
+  }, []);
+
+  useEffect(() => {
     if (!isInitialized) return;
 
     // Prevent searching on mount when searchTerm is empty (initialProducts is already loaded)
     if (searchTerm === '' && !hasSearched) {
+      if (!navigator.onLine) {
+        import('@/lib/offlineDB').then(async ({ db }) => {
+          const localProducts = await db.products.toArray();
+          setDisplayedProducts(localProducts);
+        });
+      }
       return;
     }
 
     const delayDebounceFn = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const results = await searchProducts(searchTerm, branchId);
-        setDisplayedProducts(results);
+        if (navigator.onLine) {
+          const results = await searchProducts(searchTerm, branchId);
+          setDisplayedProducts(results);
+        } else {
+          // Offline search! Filter Dexie database
+          const { db } = await import('@/lib/offlineDB');
+          const term = searchTerm.toLowerCase().trim();
+          const results = await db.products.filter(p => {
+            const nameMatch = p.name.toLowerCase().includes(term);
+            const skuMatch = typeof p.sku === 'string' && p.sku.toLowerCase().includes(term);
+            const barcodeMatch = typeof p.barcode === 'string' && p.barcode.toLowerCase().includes(term);
+            return nameMatch || skuMatch || barcodeMatch;
+          }).toArray();
+          setDisplayedProducts(results);
+        }
         setHasSearched(true);
       } catch (e) {
         console.error(e);
@@ -169,6 +208,10 @@ export default function ProductListClient({ initialProducts, branchId, categorie
           </button>
           <button onClick={async (e) => {
             e.stopPropagation();
+            if (!navigator.onLine) {
+              alert('No es posible eliminar productos en modo offline. Por favor, conéctate a internet para realizar esta acción.');
+              return;
+            }
             if(confirm('¿Eliminar producto definitivamente?')) {
               try {
                 await deleteProduct(prod.id);
