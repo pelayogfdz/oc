@@ -142,3 +142,46 @@ export async function deletePurchaseOrder(orderId: string) {
   });
   revalidatePath('/productos/pedidos');
 }
+
+export async function updatePurchaseOrder(
+  orderId: string,
+  supplierId: string | null,
+  notes: string | null,
+  items: { productId: string; quantity: number; cost: number }[],
+  total: number
+) {
+  const order = await prisma.purchaseOrder.findUnique({
+    where: { id: orderId }
+  });
+
+  if (!order || order.status !== 'PENDING') {
+    throw new Error('Pedido no encontrado o ya procesado (no se puede editar)');
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // Delete existing items
+    await tx.purchaseOrderItem.deleteMany({
+      where: { purchaseOrderId: orderId }
+    });
+
+    // Re-create items and update order details
+    await tx.purchaseOrder.update({
+      where: { id: orderId },
+      data: {
+        supplierId,
+        notes,
+        total,
+        items: {
+          create: items.map(item => ({
+            quantity: item.quantity,
+            cost: item.cost,
+            productId: item.productId
+          }))
+        }
+      }
+    });
+  });
+
+  revalidatePath('/productos/pedidos');
+  revalidatePath(`/productos/pedidos/${orderId}`);
+}

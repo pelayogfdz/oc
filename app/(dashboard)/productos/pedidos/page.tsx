@@ -57,7 +57,9 @@ export default async function PurchaseOrdersPage() {
               {orders.map((order: any) => (
                 <tr key={order.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                   <td data-label="Folio / Fecha" style={{ padding: '1rem' }}>
-                    <div style={{ fontWeight: '500' }}>#{order.id.substring(0,8).toUpperCase()}</div>
+                    <Link href={`/productos/pedidos/${order.id}`} style={{ fontWeight: 'bold', color: 'var(--caanma-primary)', textDecoration: 'none' }}>
+                      #{order.id.substring(0,8).toUpperCase()}
+                    </Link>
                     <div style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</div>
                   </td>
                   <td data-label="Proveedor" style={{ padding: '1rem' }}>
@@ -88,12 +90,43 @@ export default async function PurchaseOrdersPage() {
                     </span>
                   </td>
                   <td data-label="Acciones" style={{ padding: '1rem', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end' }}>
+                     <Link 
+                       href={`/productos/pedidos/${order.id}`}
+                       style={{ 
+                         backgroundColor: '#f1f5f9', 
+                         color: '#475569', 
+                         textDecoration: 'none', 
+                         padding: '0.4rem 0.75rem', 
+                         borderRadius: '4px', 
+                         border: '1px solid #cbd5e1',
+                         fontWeight: 'bold', 
+                         fontSize: '0.85rem', 
+                         display: 'inline-flex', 
+                         alignItems: 'center', 
+                         gap: '4px' 
+                       }}
+                     >
+                       Ver / Editar
+                     </Link>
                      {order.status === 'PENDING' && (
-                        <form action={async () => { 'use server'; const t = await import('@/app/actions/pedidos'); await t.receivePurchaseOrder(order.id); }}>
-                          <button type="submit" style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '0.4rem 0.75rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <ArrowRight size={14} /> Jalar a Compras
-                          </button>
-                        </form>
+                        <Link 
+                          href={`/productos/compras/nuevo?orderId=${order.id}`}
+                          style={{ 
+                            backgroundColor: '#10b981', 
+                            color: 'white', 
+                            textDecoration: 'none', 
+                            padding: '0.4rem 0.75rem', 
+                            borderRadius: '4px', 
+                            cursor: 'pointer', 
+                            fontWeight: 'bold', 
+                            fontSize: '0.85rem', 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            gap: '4px' 
+                          }}
+                        >
+                          <ArrowRight size={14} /> Jalar a Compras
+                        </Link>
                      )}
                      {order.status === 'RECEIVED' && (
                        <span style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>Consolidado</span>

@@ -6,7 +6,7 @@ import { Trash2, ShoppingBag, Search, Filter, Plus, Minus, FileText, CheckCircle
 import { createPurchase } from '@/app/actions/purchase';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 
-export default function CrearCompraForm({ suppliers, products, branchId }: { suppliers: any[], products: any[], branchId: string }) {
+export default function CrearCompraForm({ suppliers, products, branchId, preloadedOrder }: { suppliers: any[], products: any[], branchId: string, preloadedOrder?: any }) {
   const router = useRouter();
   const { isOnline, pushOfflinePurchase } = useOfflineSync();
   const [supplierId, setSupplierId] = useState('');
@@ -50,6 +50,28 @@ export default function CrearCompraForm({ suppliers, products, branchId }: { sup
 
   const [availableProducts, setAvailableProducts] = useState(products || []);
   const [availableSuppliers, setAvailableSuppliers] = useState(suppliers || []);
+
+  // Load preloaded order if available
+  useEffect(() => {
+    if (preloadedOrder) {
+      if (preloadedOrder.supplierId) {
+        setSupplierId(preloadedOrder.supplierId);
+      }
+      if (preloadedOrder.notes) {
+        setNotes(preloadedOrder.notes);
+      }
+      
+      const mappedItems = preloadedOrder.items.map((item: any) => ({
+        productId: item.productId,
+        name: item.product?.name || '',
+        quantity: item.quantity,
+        cost: item.cost,
+        sku: item.product?.sku || '',
+        hasTraceability: item.product?.hasTraceability || false
+      }));
+      setItems(mappedItems);
+    }
+  }, [preloadedOrder]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -184,7 +206,16 @@ export default function CrearCompraForm({ suppliers, products, branchId }: { sup
         });
         alert('Compra guardada en modo Offline. Se sincronizará al recuperar conexión.');
       } else {
-        const res = await createPurchase(items, total, paymentMethod, supplierId || null, freightCost, undefined, supplierFolio || null);
+        const res = await createPurchase(
+          items, 
+          total, 
+          paymentMethod, 
+          supplierId || null, 
+          freightCost, 
+          undefined, 
+          supplierFolio || null,
+          preloadedOrder?.id
+        );
         if (res && !res.success) {
           throw new Error(res.error);
         }

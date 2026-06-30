@@ -8,7 +8,13 @@ import { getTenantSuppliers } from "@/app/actions/supplier";
 
 export const dynamic = 'force-dynamic';
 
-export default async function NuevaCompraPage() {
+interface PageProps {
+  searchParams: {
+    orderId?: string;
+  };
+}
+
+export default async function NuevaCompraPage({ searchParams }: PageProps) {
   const branch = await getActiveBranch();
   
   const query = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
@@ -18,6 +24,26 @@ export default async function NuevaCompraPage() {
   });
   
   const suppliers = await getTenantSuppliers();
+
+  let preloadedOrder = null;
+  if (searchParams?.orderId) {
+    preloadedOrder = await prisma.purchaseOrder.findUnique({
+      where: { id: searchParams.orderId },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                name: true,
+                sku: true,
+                hasTraceability: true
+              }
+            }
+          }
+        }
+      }
+    });
+  }
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
@@ -31,15 +57,23 @@ export default async function NuevaCompraPage() {
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <ShoppingBag size={28} color="var(--caanma-primary)" />
-            Registrar Compra Directa
+            {preloadedOrder ? 'Recibir Pedido de Compra' : 'Registrar Compra Directa'}
           </h1>
           <p style={{ color: 'var(--caanma-text-muted)', marginTop: '0.25rem' }}>
-            Ingresa mercancía a tu inventario con o sin proveedor registrado.
+            {preloadedOrder 
+              ? `Revisa y completa la compra para el Pedido #${preloadedOrder.id.slice(0, 8)}` 
+              : 'Ingresa mercancía a tu inventario con o sin proveedor registrado.'
+            }
           </p>
         </div>
       </div>
 
-      <CrearCompraForm products={products} suppliers={suppliers} branchId={branch.id} />
+      <CrearCompraForm 
+        products={products} 
+        suppliers={suppliers} 
+        branchId={branch.id} 
+        preloadedOrder={preloadedOrder} 
+      />
     </div>
   );
 }

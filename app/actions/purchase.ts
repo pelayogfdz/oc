@@ -26,7 +26,8 @@ export async function createPurchase(
   supplierId: string | null = null,
   freightCost: number = 0,
   purchaseId?: string,
-  supplierFolio?: string | null
+  supplierFolio?: string | null,
+  purchaseOrderId?: string
 ) {
   try {
     const branch = await getActiveBranch();
@@ -80,6 +81,13 @@ export async function createPurchase(
           balanceDue
         }
       });
+
+      if (purchaseOrderId) {
+        await tx.purchaseOrder.update({
+          where: { id: purchaseOrderId },
+          data: { status: 'RECEIVED' }
+        });
+      }
 
       // Calculate sum of total costs to prorate freight based on value
       const baseItemsValue = items.reduce((acc, item) => acc + (item.cost * item.quantity), 0);
