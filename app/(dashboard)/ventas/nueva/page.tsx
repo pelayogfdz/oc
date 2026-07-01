@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { getActiveBranch } from "@/app/actions/auth";
+import { getActiveBranch, getActiveUser } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import { getBranchSettings } from "@/app/actions/settings";
 import POSPageClient from "./POSPageClient";
@@ -8,8 +8,9 @@ import { getTenantSuppliers } from "@/app/actions/supplier";
 
 export const dynamic = 'force-dynamic';
 
-export default async function NuevaVentaPage() {
+export default async function NuevaVentaPage({ searchParams }: { searchParams: any }) {
   const branch = await getActiveBranch();
+  const user = await getActiveUser();
   
   if (branch?.id === 'GLOBAL') {
     return (
@@ -99,6 +100,25 @@ export default async function NuevaVentaPage() {
     ticketConfig.address = branch.location;
   }
 
+  let userPermissions: Record<string, boolean> = {};
+  let userRole = 'USER';
+  let isSuperAdmin = false;
+  if (user) {
+    userRole = user.role;
+    isSuperAdmin = user.email?.toLowerCase() === 'pelayogfdz@gmail.com';
+    const rawPermissions = (user as any).customRole?.permissions || user.permissions;
+    if (rawPermissions) {
+      try {
+        const parsed = JSON.parse(rawPermissions);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((p: string) => userPermissions[p] = true);
+        } else {
+          userPermissions = parsed;
+        }
+      } catch (e) {}
+    }
+  }
+
   return (
     <POSPageClient
       products={products}
@@ -115,6 +135,9 @@ export default async function NuevaVentaPage() {
       ventasConfig={ventasConfig}
       impresorasConfig={impresorasConfig}
       qzCert={qzCert}
+      userPermissions={userPermissions}
+      userRole={userRole}
+      isSuperAdmin={isSuperAdmin}
     />
   );
 }

@@ -36,7 +36,13 @@ export async function syncBasicCatalogs() {
       faceDescriptor: true,
       webauthnCredentialId: true,
       webauthnPublicKey: true,
-      branchId: true
+      branchId: true,
+      permissions: true,
+      customRole: {
+        select: {
+          permissions: true
+        }
+      }
     }
   });
 

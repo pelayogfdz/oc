@@ -112,6 +112,8 @@ export interface OfflineUser {
   webauthnCredentialId?: string | null;
   webauthnPublicKey?: string | null;
   branchId?: string | null;
+  permissions?: string | null;
+  customRole?: { permissions: string } | null;
 }
 
 export interface OfflinePendingAttendance extends DLQMetadata {

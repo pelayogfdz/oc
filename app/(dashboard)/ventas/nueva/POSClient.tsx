@@ -12,7 +12,45 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import ProductTableUI from '@/app/components/ProductTableUI';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
-export default function POSClient({ products: initialProducts, customers, suppliers = [], promotions = [], mode = "SALE", sessionId, branchId, ticketConfig = {}, metodosConfig = {}, ventasConfig = {}, impresorasConfig = {}, dynamicPriceLists = [], pendingQuotes = [], initialCustomerId, qzCert }: { products: any[], customers: any[], suppliers?: any[], promotions?: any[], mode?: "SALE" | "QUOTE" | "CONSIGNMENT", sessionId?: string, branchId: string, ticketConfig?: any, metodosConfig?: any, ventasConfig?: any, impresorasConfig?: any, dynamicPriceLists?: any[], pendingQuotes?: any[], initialCustomerId?: string, qzCert?: string }) {
+export default function POSClient({ 
+  products: initialProducts, 
+  customers, 
+  suppliers = [], 
+  promotions = [], 
+  mode = "SALE", 
+  sessionId, 
+  branchId, 
+  ticketConfig = {}, 
+  metodosConfig = {}, 
+  ventasConfig = {}, 
+  impresorasConfig = {}, 
+  dynamicPriceLists = [], 
+  pendingQuotes = [], 
+  initialCustomerId, 
+  qzCert,
+  userPermissions = {},
+  userRole = 'USER',
+  isSuperAdmin = false
+}: { 
+  products: any[], 
+  customers: any[], 
+  suppliers?: any[], 
+  promotions?: any[], 
+  mode?: "SALE" | "QUOTE" | "CONSIGNMENT", 
+  sessionId?: string, 
+  branchId: string, 
+  ticketConfig?: any, 
+  metodosConfig?: any, 
+  ventasConfig?: any, 
+  impresorasConfig?: any, 
+  dynamicPriceLists?: any[], 
+  pendingQuotes?: any[], 
+  initialCustomerId?: string, 
+  qzCert?: string,
+  userPermissions?: Record<string, boolean>,
+  userRole?: string,
+  isSuperAdmin?: boolean
+}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isOnline, pushOfflineSale } = useOfflineSync();
@@ -40,7 +78,8 @@ export default function POSClient({ products: initialProducts, customers, suppli
       cardAmount: '',
       notes: '',
       documentType: 'TICKET',
-      transactionType: 'VENTA'
+      transactionType: 'VENTA',
+      appliedPromotionIds: null
     }
   ]);
 
@@ -61,7 +100,8 @@ export default function POSClient({ products: initialProducts, customers, suppli
         cardAmount,
         notes,
         documentType,
-        transactionType
+        transactionType,
+        appliedPromotionIds
       } : t);
       
       const target = updated.find(t => t.id === targetTabId);
@@ -80,6 +120,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
         setNotes(target.notes || '');
         setDocumentType((target.documentType || 'TICKET') as 'TICKET' | 'FACTURA');
         setTransactionType((target.transactionType || 'VENTA') as 'VENTA' | 'PEDIDO');
+        setAppliedPromotionIds(target.appliedPromotionIds !== undefined ? target.appliedPromotionIds : null);
         setActiveTabId(targetTabId);
       }
       return updated;
@@ -120,7 +161,8 @@ export default function POSClient({ products: initialProducts, customers, suppli
       cardAmount: '',
       notes: '',
       documentType: 'TICKET',
-      transactionType: 'VENTA'
+      transactionType: 'VENTA',
+      appliedPromotionIds: null
     };
 
     setTabs(prev => {
@@ -139,7 +181,8 @@ export default function POSClient({ products: initialProducts, customers, suppli
         cardAmount,
         notes,
         documentType,
-        transactionType
+        transactionType,
+        appliedPromotionIds
       } : t);
       
       setCart(newTab.cart);
@@ -156,6 +199,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
       setNotes(newTab.notes);
       setDocumentType(newTab.documentType as 'TICKET' | 'FACTURA');
       setTransactionType(newTab.transactionType as 'VENTA' | 'PEDIDO');
+      setAppliedPromotionIds(null);
       setActiveTabId(newId);
 
       return [...updated, newTab];
@@ -184,6 +228,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
         setNotes(lastTab.notes || '');
         setDocumentType((lastTab.documentType || 'TICKET') as 'TICKET' | 'FACTURA');
         setTransactionType((lastTab.transactionType || 'VENTA') as 'VENTA' | 'PEDIDO');
+        setAppliedPromotionIds(lastTab.appliedPromotionIds !== undefined ? lastTab.appliedPromotionIds : null);
         setActiveTabId(lastTab.id);
       }
       return remaining;
@@ -208,6 +253,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
     setSelectedCustomerId(defaultCustId);
     setCustomerSearchTerm(defaultCustName);
     setPriceList('price');
+    setAppliedPromotionIds(null);
     setNotes('');
     setTipAmount(0);
     setPointsRedeemed(0);
@@ -234,13 +280,15 @@ export default function POSClient({ products: initialProducts, customers, suppli
       cardAmount: '',
       notes: '',
       documentType: 'TICKET',
-      transactionType: 'VENTA'
+      transactionType: 'VENTA',
+      appliedPromotionIds: null
     } : t));
   };
   
   // States for sales/quotes/consignments on hold (en espera)
   const [onHoldTickets, setOnHoldTickets] = useState<any[]>([]);
   const [showOnHoldModal, setShowOnHoldModal] = useState(false);
+  const [showPromoModal, setShowPromoModal] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
@@ -257,7 +305,47 @@ export default function POSClient({ products: initialProducts, customers, suppli
     }
   }, [branchId, mode]);
   const [isMobileSearchActive, setIsMobileSearchActive] = useState(false);
+
+  // Load permissions and superadmin status
+  const [permissions, setPermissions] = useState<Record<string, boolean>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('caanma_user_permissions');
+        if (stored) return JSON.parse(stored);
+      } catch (e) {}
+    }
+    return userPermissions || {};
+  });
+
+  const [isAdminOrSuper, setIsAdminOrSuper] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('caanma_user_is_admin');
+      if (stored) return stored === 'true';
+    }
+    return isSuperAdmin || userRole === 'ADMIN';
+  });
+
+  useEffect(() => {
+    if (isOnline && userPermissions && Object.keys(userPermissions).length > 0) {
+      localStorage.setItem('caanma_user_permissions', JSON.stringify(userPermissions));
+      setPermissions(userPermissions);
+    }
+  }, [isOnline, userPermissions]);
+
+  useEffect(() => {
+    if (isOnline) {
+      const isAdmin = isSuperAdmin || userRole === 'ADMIN';
+      localStorage.setItem('caanma_user_is_admin', isAdmin ? 'true' : 'false');
+      setIsAdminOrSuper(isAdmin);
+    }
+  }, [isOnline, isSuperAdmin, userRole]);
+
+  const hasPermission = useCallback((permId: string) => {
+    if (isAdminOrSuper) return true;
+    return !!permissions[permId];
+  }, [isAdminOrSuper, permissions]);
   const [priceList, setPriceList] = useState('price');
+  const [appliedPromotionIds, setAppliedPromotionIds] = useState<string[] | null>(null);
   
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(initialCustomerId || null);
   const [customerSearchTerm, setCustomerSearchTerm] = useState(initialCustomer ? initialCustomer.name : '');
@@ -750,6 +838,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
     
     return promotions.some((promo: any) => {
       if (!promo.active) return false;
+      if (appliedPromotionIds !== null && !appliedPromotionIds.includes(promo.id)) return false;
       
       let meta: any = {};
       try {
@@ -796,7 +885,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
         }
       }
     });
-  }, [promotions, priceList]);
+  }, [promotions, priceList, appliedPromotionIds]);
 
   const getItemDiscounts = useCallback((cartItems: any[]) => {
     const discountsMap: { [key: string]: number } = {};
@@ -810,6 +899,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
 
     promotions.forEach((promo: any) => {
       if (!promo.active) return;
+      if (appliedPromotionIds !== null && !appliedPromotionIds.includes(promo.id)) return;
       
       let meta: any = {};
       try {
@@ -891,7 +981,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
     });
 
     return discountsMap;
-  }, [promotions, priceList, getProductPrice]);
+  }, [promotions, priceList, getProductPrice, appliedPromotionIds]);
 
   const itemDiscounts = useMemo(() => getItemDiscounts(cart), [cart, getItemDiscounts]);
 
@@ -1798,6 +1888,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                 type="text" 
                 placeholder="Buscar o escribir nombre de cliente..." 
                 value={customerSearchTerm}
+                disabled={!hasPermission('pos_change_customer')}
                 onChange={e => {
                   setCustomerSearchTerm(e.target.value);
                   const matched = customers.find((c: any) => c.id === e.target.value || c.name.toLowerCase() === e.target.value.toLowerCase());
@@ -1807,16 +1898,17 @@ export default function POSClient({ products: initialProducts, customers, suppli
                 style={{ 
                   width: '100%', 
                   padding: '0.55rem 0.75rem',
-                  paddingRight: selectedCustomerId ? '32px' : '0.75rem', 
+                  paddingRight: (selectedCustomerId && hasPermission('pos_change_customer')) ? '32px' : '0.75rem', 
                   borderRadius: '8px', 
                   border: '1px solid #cbd5e1', 
                   fontSize: '0.9rem', 
                   outline: 'none', 
                   height: '42px',
-                  backgroundColor: 'white'
+                  backgroundColor: hasPermission('pos_change_customer') ? 'white' : '#f1f5f9',
+                  cursor: hasPermission('pos_change_customer') ? 'text' : 'not-allowed'
                 }}
               />
-              {selectedCustomerId && (
+              {selectedCustomerId && hasPermission('pos_change_customer') && (
                 <button
                   type="button"
                   onClick={() => {
@@ -1845,7 +1937,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                 </button>
               )}
               {/* Customer Dropdown */}
-              {customerSearchTerm.trim() !== '' && !selectedCustomerId && (
+              {customerSearchTerm.trim() !== '' && !selectedCustomerId && hasPermission('pos_change_customer') && (
                 <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginTop: '0.25rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
                   <div 
                     onMouseDown={(e) => {
@@ -1875,6 +1967,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
             </div>
             <button
               type="button"
+              disabled={!hasPermission('pos_change_customer')}
               onClick={() => {
                 if (customerSearchTerm.trim() !== '' && customerSearchTerm !== 'Público en General' && !selectedCustomerId) {
                   setNewCustName(customerSearchTerm);
@@ -1891,13 +1984,13 @@ export default function POSClient({ products: initialProducts, customers, suppli
                 height: '42px',
                 borderRadius: '8px',
                 border: '1px solid #cbd5e1',
-                backgroundColor: 'white',
-                cursor: 'pointer',
+                backgroundColor: hasPermission('pos_change_customer') ? 'white' : '#f1f5f9',
+                cursor: hasPermission('pos_change_customer') ? 'pointer' : 'not-allowed',
                 transition: 'all 0.15s',
-                color: '#0da5aa',
+                color: hasPermission('pos_change_customer') ? '#0da5aa' : '#94a3b8',
                 flexShrink: 0
               }}
-              title="Registrar Nuevo Cliente"
+              title={hasPermission('pos_change_customer') ? "Registrar Nuevo Cliente" : "Sin permiso para cambiar cliente"}
             >
               <Plus size={20} />
             </button>
@@ -1990,10 +2083,11 @@ export default function POSClient({ products: initialProducts, customers, suppli
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               
               {/* Price lists select */}
-              <div style={{ display: 'flex', alignItems: 'center', border: 'none', borderRadius: '6px', backgroundColor: '#78716c', padding: '0 0.75rem', height: '36px', color: 'white' }}>
+              <div style={{ display: 'flex', alignItems: 'center', border: 'none', borderRadius: '6px', backgroundColor: hasPermission('pos_price_list_change') ? '#78716c' : '#a8a29e', padding: '0 0.75rem', height: '36px', color: 'white' }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 'bold', marginRight: '0.35rem' }}>Listas de Precios:</span>
                 <select 
                   value={priceList} 
+                  disabled={!hasPermission('pos_price_list_change')}
                   onChange={e => setPriceList(e.target.value)} 
                   style={{ 
                     border: 'none', 
@@ -2002,7 +2096,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                     fontWeight: '700', 
                     color: 'white', 
                     fontSize: '0.8rem', 
-                    cursor: 'pointer',
+                    cursor: hasPermission('pos_price_list_change') ? 'pointer' : 'not-allowed',
                     paddingRight: '0.25rem'
                   }}
                 >
@@ -2267,8 +2361,9 @@ export default function POSClient({ products: initialProducts, customers, suppli
                 <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b' }}>Descuento Manual:</span>
                 <select 
                   value={manualDiscountType} 
+                  disabled={!hasPermission('pos_manual_discount')}
                   onChange={e => setManualDiscountType(e.target.value as '$' | '%')} 
-                  style={{ width: '50px', padding: '0.25rem', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.85rem' }}
+                  style={{ width: '50px', padding: '0.25rem', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.85rem', backgroundColor: hasPermission('pos_manual_discount') ? 'white' : '#f1f5f9', cursor: hasPermission('pos_manual_discount') ? 'pointer' : 'not-allowed' }}
                 >
                   <option value="$">$</option>
                   <option value="%">%</option>
@@ -2278,9 +2373,15 @@ export default function POSClient({ products: initialProducts, customers, suppli
                   min="0"
                   placeholder="Monto"
                   value={manualDiscountValue}
+                  disabled={!hasPermission('pos_manual_discount')}
                   onChange={e => setManualDiscountValue(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                  style={{ width: '80px', padding: '0.25rem', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', outline: 'none', fontSize: '0.85rem' }}
+                  style={{ width: '80px', padding: '0.25rem', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', outline: 'none', fontSize: '0.85rem', backgroundColor: hasPermission('pos_manual_discount') ? 'white' : '#f1f5f9', cursor: hasPermission('pos_manual_discount') ? 'text' : 'not-allowed' }}
                 />
+                {!hasPermission('pos_manual_discount') && (
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    🔒 Bloqueado
+                  </span>
+                )}
               </div>
             )}
 
@@ -2315,8 +2416,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
                   alert('No hay promociones activas registradas.');
                   return;
                 }
-                const activePromoList = promotions.map((p: any) => `- ${p.name} (${p.type === 'PERCENTAGE' ? `${p.value}%` : `$${p.value}`})`).join('\n');
-                alert(`Promociones vigentes que se aplican automáticamente:\n\n${activePromoList}`);
+                setShowPromoModal(true);
               }}
               className="pos-action-card"
             >
@@ -3237,6 +3337,144 @@ export default function POSClient({ products: initialProducts, customers, suppli
                 ➕ Nueva Venta (Limpiar)
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showPromoModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div className="card" style={{
+            width: '500px',
+            maxWidth: '95%',
+            maxHeight: '85vh',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '1.5rem',
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.75rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                <Percent size={20} color="var(--caanma-primary)" /> Asignar Promociones
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setShowPromoModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ overflowY: 'auto', flex: 1, marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {promotions.length === 0 ? (
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#64748b' }}>
+                  No hay promociones activas registradas en esta sucursal.
+                </div>
+              ) : (
+                <>
+                  {!hasPermission('pos_assign_promotions') && (
+                    <div style={{ padding: '0.75rem', backgroundColor: '#fee2e2', color: '#991b1b', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '0.5rem', border: '1px solid #f87171', fontWeight: '500' }}>
+                      ⚠️ Solo lectura: No tienes permiso para asignar o modificar promociones en esta venta.
+                    </div>
+                  )}
+                  {promotions.map((promo: any) => {
+                    const isChecked = appliedPromotionIds === null || appliedPromotionIds.includes(promo.id);
+                    return (
+                      <label 
+                        key={promo.id} 
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '0.75rem', 
+                          padding: '0.75rem', 
+                          borderRadius: '8px', 
+                          border: '1px solid #e2e8f0', 
+                          backgroundColor: isChecked ? '#f8f5ff' : 'white',
+                          cursor: hasPermission('pos_assign_promotions') ? 'pointer' : 'not-allowed',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <input 
+                          type="checkbox"
+                          checked={isChecked}
+                          disabled={!hasPermission('pos_assign_promotions')}
+                          onChange={() => {
+                            if (!hasPermission('pos_assign_promotions')) return;
+                            
+                            setAppliedPromotionIds((prev: string[] | null) => {
+                              const activePromoIds = promotions.map((p: any) => p.id);
+                              const currentList = prev !== null ? prev : activePromoIds;
+                              if (currentList.includes(promo.id)) {
+                                return currentList.filter((id: string) => id !== promo.id);
+                              } else {
+                                return [...currentList, promo.id];
+                              }
+                            });
+                          }}
+                          style={{ width: '18px', height: '18px', accentColor: 'var(--caanma-primary)' }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <strong style={{ display: 'block', fontSize: '0.9rem', color: '#1e293b' }}>{promo.name}</strong>
+                          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                            Descuento: {promo.type === 'PERCENTAGE' ? `${promo.value}%` : `$${promo.value}`}
+                          </span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+
+            {hasPermission('pos_assign_promotions') && promotions.length > 0 && (
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', borderTop: '1px solid var(--caanma-border)', paddingTop: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setAppliedPromotionIds([])}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: 'white',
+                    color: '#475569',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Desactivar Todas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAppliedPromotionIds(null)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    border: 'none',
+                    backgroundColor: 'var(--caanma-primary)',
+                    color: 'white',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Activar Todas (Automáticas)
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

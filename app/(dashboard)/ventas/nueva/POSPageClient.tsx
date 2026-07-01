@@ -21,6 +21,9 @@ interface POSPageClientProps {
   ventasConfig: any;
   impresorasConfig: any;
   qzCert: string;
+  userPermissions?: Record<string, boolean>;
+  userRole?: string;
+  isSuperAdmin?: boolean;
 }
 
 export default function POSPageClient({
@@ -37,7 +40,10 @@ export default function POSPageClient({
   metodosConfig,
   ventasConfig,
   impresorasConfig,
-  qzCert
+  qzCert,
+  userPermissions = {},
+  userRole = 'USER',
+  isSuperAdmin = false
 }: POSPageClientProps) {
   const { isOnline } = useOfflineSync();
   const [mounted, setMounted] = useState(false);
@@ -83,6 +89,9 @@ export default function POSPageClient({
             ventasConfig={ventasConfig}
             impresorasConfig={impresorasConfig}
             qzCert={qzCert}
+            userPermissions={userPermissions}
+            userRole={userRole}
+            isSuperAdmin={isSuperAdmin}
           />
         </Suspense>
       </div>

@@ -17,6 +17,10 @@ export const PERMISSION_MODULES = [
           { id: 'pos_access', label: 'Acceder a Punto de Venta' },
           { id: 'pos_discount', label: 'Autorizar Descuentos' },
           { id: 'pos_price_change', label: 'Modificar Precio en Caja' },
+          { id: 'pos_change_customer', label: 'Cambiar Cliente en Caja' },
+          { id: 'pos_manual_discount', label: 'Asignar Descuento Manual' },
+          { id: 'pos_price_list_change', label: 'Cambiar Lista de Precios' },
+          { id: 'pos_assign_promotions', label: 'Asignar/Modificar Promociones' },
         ]
       },
       {
