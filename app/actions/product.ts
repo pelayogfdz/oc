@@ -602,9 +602,10 @@ export async function searchProducts(query: string, branchId: string) {
   let products = [];
   if (!query || query.trim() === '') {
     products = await prisma.product.findMany({
-      where: { branchId: { in: tenantBranchIds }, isActive: true },
+      where: { branchId: branchCondition, isActive: true },
       include: { variants: true, prices: true, branch: { select: { id: true, name: true } } },
-      orderBy: { name: 'asc' }
+      orderBy: { name: 'asc' },
+      take: 100
     });
   } else {
     const words = query.trim().split(/\s+/).filter(w => w.length > 0);
@@ -619,18 +620,37 @@ export async function searchProducts(query: string, branchId: string) {
 
     products = await prisma.product.findMany({
       where: {
-        branchId: { in: tenantBranchIds },
+        branchId: branchCondition,
         isActive: true,
         AND: searchConditions
       },
       include: { variants: true, prices: true, branch: { select: { id: true, name: true } } },
-      orderBy: { name: 'asc' }
+      orderBy: { name: 'asc' },
+      take: 100
     });
   }
 
+  // Extract unique identifiers to fetch cross-branch stock only for these products
+  const productSkus = products.map(p => p.sku).filter((sku): sku is string => typeof sku === 'string' && sku.trim() !== '');
+  const productBarcodes = products.map(p => p.barcode).filter((barcode): barcode is string => typeof barcode === 'string' && barcode.trim() !== '');
+  const productNames = products.map(p => p.name).filter((name): name is string => typeof name === 'string' && name.trim() !== '');
+
+  const otherBranchStocks = await prisma.product.findMany({
+    where: {
+      branchId: { in: tenantBranchIds },
+      isActive: true,
+      OR: [
+        { sku: { in: productSkus } },
+        { barcode: { in: productBarcodes } },
+        { name: { in: productNames } }
+      ]
+    },
+    select: { sku: true, barcode: true, name: true, stock: true, branchId: true, branch: { select: { name: true } } }
+  });
+
   // Build a map of key to branch stocks across the entire tenant
   const branchStocksMap = new Map<string, any[]>();
-  products.forEach(prod => {
+  otherBranchStocks.forEach(prod => {
     const key = ((prod.sku && prod.sku.trim() !== "")
       ? prod.sku.trim()
       : (prod.barcode && prod.barcode.trim() !== "")
@@ -697,7 +717,7 @@ export async function searchProducts(query: string, branchId: string) {
         ...prod,
         branchStocks: branchStocksMap.get(key) || []
       };
-    }).slice(0, 100);
+    });
   }
 
   // If specific branch is selected, filter matching tenant products to only display those belonging to this branch
@@ -712,7 +732,7 @@ export async function searchProducts(query: string, branchId: string) {
       ...prod,
       branchStocks: branchStocksMap.get(key) || []
     };
-  }).slice(0, 100);
+  });
 }
 
 export async function deleteProduct(productId: string) {

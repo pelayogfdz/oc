@@ -22,13 +22,13 @@ export default async function ProductosPage() {
     branchCondition = { in: tenantBranchIds };
   }
 
-  // Fetch all tenant products to construct cross-branch stocks, 
-  // and categories for the selected branch filter
-  const [allTenantProducts, categoriesData] = await Promise.all([
+  // Fetch a subset of products for displaying (paginated/limited) and categories
+  const [displayedProductsRaw, categoriesData] = await Promise.all([
     prisma.product.findMany({
-      where: { branchId: { in: tenantBranchIds }, isActive: true },
+      where: { branchId: branchCondition, isActive: true },
       include: { variants: true, prices: true, branch: { select: { id: true, name: true } } },
-      orderBy: { name: 'asc' }
+      orderBy: { name: 'asc' },
+      take: 100
     }),
     prisma.product.findMany({
       where: { branchId: branchCondition, isActive: true },
@@ -37,9 +37,27 @@ export default async function ProductosPage() {
     })
   ]);
 
+  // Extract unique identifiers to fetch cross-branch stock only for these products
+  const productSkus = displayedProductsRaw.map(p => p.sku).filter((sku): sku is string => typeof sku === 'string' && sku.trim() !== '');
+  const productBarcodes = displayedProductsRaw.map(p => p.barcode).filter((barcode): barcode is string => typeof barcode === 'string' && barcode.trim() !== '');
+  const productNames = displayedProductsRaw.map(p => p.name).filter((name): name is string => typeof name === 'string' && name.trim() !== '');
+
+  const otherBranchStocks = await prisma.product.findMany({
+    where: {
+      branchId: { in: tenantBranchIds },
+      isActive: true,
+      OR: [
+        { sku: { in: productSkus } },
+        { barcode: { in: productBarcodes } },
+        { name: { in: productNames } }
+      ]
+    },
+    select: { sku: true, barcode: true, name: true, stock: true, branchId: true, branch: { select: { name: true } } }
+  });
+
   // Build a map of key to branch stocks across the entire tenant
   const branchStocksMap = new Map<string, any[]>();
-  allTenantProducts.forEach(prod => {
+  otherBranchStocks.forEach(prod => {
     const key = ((prod.sku && prod.sku.trim() !== "")
       ? prod.sku.trim()
       : (prod.barcode && prod.barcode.trim() !== "")
@@ -67,7 +85,7 @@ export default async function ProductosPage() {
   let displayedProducts = [];
   if (isGlobal) {
     const mergedMap = new Map<string, any>();
-    allTenantProducts.forEach(prod => {
+    displayedProductsRaw.forEach(prod => {
       const key = ((prod.sku && prod.sku.trim() !== "")
         ? prod.sku.trim()
         : (prod.barcode && prod.barcode.trim() !== "")
@@ -107,11 +125,9 @@ export default async function ProductosPage() {
         ...prod,
         branchStocks: branchStocksMap.get(key) || []
       };
-    }).slice(0, 100);
+    });
   } else {
-    // If specific branch selected, filter to keep only products registered in that branch
-    const localProducts = allTenantProducts.filter(p => p.branchId === branchId);
-    displayedProducts = localProducts.map(prod => {
+    displayedProducts = displayedProductsRaw.map(prod => {
       const key = ((prod.sku && prod.sku.trim() !== "")
         ? prod.sku.trim()
         : (prod.barcode && prod.barcode.trim() !== "")
@@ -121,7 +137,7 @@ export default async function ProductosPage() {
         ...prod,
         branchStocks: branchStocksMap.get(key) || []
       };
-    }).slice(0, 100);
+    });
   }
 
   const safeProducts = JSON.parse(JSON.stringify(displayedProducts));
