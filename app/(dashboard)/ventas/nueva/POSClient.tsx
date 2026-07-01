@@ -3743,7 +3743,7 @@ export default function POSClient({
                       <div>
                         <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b' }}>{p.name}</div>
                         <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
-                          SKU: {p.sku || 'N/A'} | {p.isService ? (
+                          SKU: {p.sku || 'N/A'}{p.barcode ? ` | Código: ${p.barcode}` : ''} | {p.isService ? (
                             <span style={{ color: '#2563eb', fontWeight: 'bold', backgroundColor: '#dbeafe', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>Servicio</span>
                           ) : (
                             <>Stock: <span style={{ color: p.stock > 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>{p.stock}</span></>
