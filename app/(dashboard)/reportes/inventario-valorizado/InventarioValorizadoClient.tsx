@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
-import { Search, PackageOpen, TrendingDown, DollarSign, Loader2, Printer } from 'lucide-react';
+import { Search, PackageOpen, TrendingDown, DollarSign, Loader2, Printer, Download } from 'lucide-react';
 import ReportFilterBar, { ReportFilterState } from '@/components/ui/ReportFilterBar';
+import { exportToExcel } from '@/lib/exportExcel';
 import { getInventoryValuationData } from '@/app/actions/reportes';
 
 export default function InventarioValorizadoClient({ initialData, initialBranchId }: { initialData: any, initialBranchId: string }) {
@@ -41,6 +42,19 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
     i.sku.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const downloadExcel = () => {
+    const headers = ["SKU", "Producto", "Stock", "Costo U.", "Capital Det.", "Margen %"];
+    const rows = filteredInventory.map((i: any) => [
+      i.sku || 'N/A',
+      i.name,
+      i.stock,
+      i.cost,
+      i.costValue,
+      `${i.margin.toFixed(1)}%`
+    ]);
+    exportToExcel(headers, rows, 'Reporte_Inventario_Valorizado');
+  };
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', fontFamily: 'var(--font-geist-sans)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -48,7 +62,7 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Reporte de Inventario Valorizado</h1>
           <p style={{ color: 'var(--caanma-text-muted)' }}>Conoce qué productos amarran tu capital y cuál es tu ganancia potencial.</p>
         </div>
-        <div className="no-print">
+        <div className="no-print" style={{ display: 'flex', gap: '0.75rem' }}>
           <button 
             onClick={() => window.print()}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#6d28d9', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
@@ -56,6 +70,14 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
             onMouseLeave={e => e.currentTarget.style.backgroundColor='#6d28d9'}
           >
             <Printer size={18} /> Imprimir / PDF
+          </button>
+          <button 
+            onClick={downloadExcel}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0f172a', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor='#1e293b'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor='#0f172a'}
+          >
+            <Download size={18} /> Exportar Excel
           </button>
         </div>
       </div>

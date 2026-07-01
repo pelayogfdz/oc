@@ -2,8 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
-import { TrendingUp, Package, ArrowDownToLine, Loader2, Calendar, Search, DollarSign, Printer } from 'lucide-react';
+import { TrendingUp, Package, ArrowDownToLine, Loader2, Calendar, Search, DollarSign, Printer, Download } from 'lucide-react';
 import { getTopCategoriesReport } from '@/app/actions/reportes';
+import { exportToExcel } from '@/lib/exportExcel';
 
 export default function TopCategoriasClient({ initialData, initialBranchId, availableFilters }: { initialData: any[], initialBranchId: string, availableFilters: any }) {
   const [data, setData] = useState<any[]>(initialData);
@@ -114,27 +115,19 @@ export default function TopCategoriasClient({ initialData, initialBranchId, avai
 
   const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#d946ef', '#0ea5e9', '#6366f1', '#14b8a6', '#f43f5e'];
 
-  const downloadCSV = () => {
+  const downloadExcel = () => {
     const headers = ["Lugar", "Categoría", "Uds Vendidas", "Ventas Totales", "Costo Total", "Ganancia Bruta", "Margen %"];
     const rows = filteredData.map((c, idx) => [
       idx + 1,
       c.category,
       c.quantitySold,
-      c.totalRevenue.toFixed(2),
-      c.totalCost.toFixed(2),
-      c.grossProfit.toFixed(2),
-      c.margin.toFixed(2)
+      c.totalRevenue,
+      c.totalCost,
+      c.grossProfit,
+      `${c.margin.toFixed(2)}%`
     ]);
 
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.map(val => `"${val.toString().replace(/"/g, '""')}"`).join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Reporte_Top_Categorias_${startDateStr}_a_${endDateStr}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportToExcel(headers, rows, `Reporte_Top_Categorias_${startDateStr}_a_${endDateStr}`);
   };
 
   return (
@@ -154,12 +147,12 @@ export default function TopCategoriasClient({ initialData, initialBranchId, avai
             <Printer size={18} /> Imprimir / PDF
           </button>
           <button 
-            onClick={downloadCSV}
+            onClick={downloadExcel}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0f172a', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
             onMouseEnter={e => e.currentTarget.style.backgroundColor='#1e293b'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor='#0f172a'}
           >
-            <ArrowDownToLine size={18} /> Exportar CSV
+            <Download size={18} /> Exportar Excel
           </button>
         </div>
       </div>

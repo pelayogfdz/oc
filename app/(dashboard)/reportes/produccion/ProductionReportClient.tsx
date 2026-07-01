@@ -2,9 +2,10 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Package, ArrowDownToLine, Loader2, Search, DollarSign, ArrowUpDown, ChevronLeft, ChevronRight, ChefHat, Printer } from 'lucide-react';
+import { Package, ArrowDownToLine, Loader2, Search, DollarSign, ArrowUpDown, ChevronLeft, ChevronRight, ChefHat, Printer, Download } from 'lucide-react';
 import { getProductionReportData } from '@/app/actions/reportes';
 import { createProductionOrdersBulk } from '@/app/actions/manufacturing';
+import { exportToExcel } from '@/lib/exportExcel';
 
 interface ProductionProduct {
   id: string;
@@ -238,7 +239,7 @@ export default function ProductionReportClient({
   }, [filteredData, currentPage, pageSize]);
 
   // Download CSV report
-  const downloadCSV = () => {
+  const downloadExcel = () => {
     const headers = [
       "SKU", 
       "Código de Barras",
@@ -256,25 +257,17 @@ export default function ProductionReportClient({
       p.sku || "N/A",
       p.barcode || "N/A",
       p.name,
-      p.cost.toFixed(2),
-      p.price.toFixed(2),
+      p.cost,
+      p.price,
       p.stock,
       p.quantitySold,
       coverageDays,
       p.neededStock,
       p.suggestedRestock,
-      p.replenishmentCost.toFixed(2)
+      p.replenishmentCost
     ]);
 
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.map(val => `"${val.toString().replace(/"/g, '""')}"`).join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Reporte_Produccion_${startDateStr}_a_${endDateStr}_cobertura_${coverageDays}d.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportToExcel(headers, rows, `Reporte_Produccion_${startDateStr}_a_${endDateStr}_cobertura_${coverageDays}d`);
   };
 
   return (
@@ -333,12 +326,12 @@ export default function ProductionReportClient({
             <ChefHat size={18} /> Mandar a producción
           </button>
           <button 
-            onClick={downloadCSV}
+            onClick={downloadExcel}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0f172a', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
             onMouseEnter={e => e.currentTarget.style.backgroundColor='#1e293b'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor='#0f172a'}
           >
-            <ArrowDownToLine size={18} /> Exportar CSV
+            <Download size={18} /> Exportar Excel
           </button>
         </div>
       </div>

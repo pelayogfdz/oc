@@ -2,8 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { TrendingUp, Users, ArrowDownToLine, Loader2, Calendar, Search, Printer } from 'lucide-react';
+import { TrendingUp, Users, ArrowDownToLine, Loader2, Calendar, Search, Printer, Download } from 'lucide-react';
 import { getTopCustomersReport } from '@/app/actions/reportes';
+import { exportToExcel } from '@/lib/exportExcel';
 
 export default function TopClientesClient({ initialData, initialBranchId, availableFilters }: { initialData: any[], initialBranchId: string, availableFilters: any }) {
   const [data, setData] = useState<any[]>(initialData);
@@ -131,7 +132,7 @@ export default function TopClientesClient({ initialData, initialBranchId, availa
   };
 
   // Download CSV report
-  const downloadCSV = () => {
+  const downloadExcel = () => {
     const headers = ["Lugar", "Nombre del Cliente", "Teléfono", "Correo Electrónico", "Órdenes Totales", "Monto Facturado", "Ticket Promedio", "Última Compra"];
     const rows = filteredData.map((c, idx) => [
       idx + 1,
@@ -139,20 +140,12 @@ export default function TopClientesClient({ initialData, initialBranchId, availa
       c.phone || "N/A",
       c.email || "N/A",
       c.orderCount,
-      c.totalPurchased.toFixed(2),
-      (c.totalPurchased / c.orderCount).toFixed(2),
+      c.totalPurchased,
+      c.totalPurchased / c.orderCount,
       new Date(c.lastPurchaseDate).toLocaleDateString('es-MX')
     ]);
 
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.map(val => `"${val.toString().replace(/"/g, '""')}"`).join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Reporte_Mejores_Clientes_${startDateStr}_a_${endDateStr}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportToExcel(headers, rows, `Reporte_Mejores_Clientes_${startDateStr}_a_${endDateStr}`);
   };
 
   return (
@@ -172,12 +165,12 @@ export default function TopClientesClient({ initialData, initialBranchId, availa
             <Printer size={18} /> Imprimir / PDF
           </button>
           <button 
-            onClick={downloadCSV}
+            onClick={downloadExcel}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0f172a', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
             onMouseEnter={e => e.currentTarget.style.backgroundColor='#1e293b'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor='#0f172a'}
           >
-            <ArrowDownToLine size={18} /> Exportar CSV
+            <Download size={18} /> Exportar Excel
           </button>
         </div>
       </div>

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { getCollaboratorTaskReport } from '@/app/actions/task';
 import Link from 'next/link';
+import { exportToExcel } from '@/lib/exportExcel';
 
 type CollaboratorReport = {
   collaborator: {
@@ -104,7 +105,7 @@ export default function TareasReportClient({
     setExpandedCollabId(expandedCollabId === collabId ? null : collabId);
   };
 
-  const downloadCSV = () => {
+  const downloadExcel = () => {
     const headers = [
       "Colaborador",
       "Correo",
@@ -129,15 +130,7 @@ export default function TareasReportClient({
       row.stats.onTimeRate
     ]);
 
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.map(val => `"${val.toString().replace(/"/g, '""')}"`).join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Reporte_Tareas_Colaboradores_${startDate}_a_${endDate}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportToExcel(headers, rows, `Reporte_Tareas_Colaboradores_${startDate}_a_${endDate}`);
   };
 
   return (
@@ -172,7 +165,7 @@ export default function TareasReportClient({
         
         <div className="no-print" style={{ display: 'flex', gap: '0.75rem' }}>
           <button 
-            onClick={downloadCSV}
+            onClick={downloadExcel}
             style={{ 
               display: 'flex', 
               alignItems: 'center', 
@@ -187,7 +180,7 @@ export default function TareasReportClient({
               fontSize: '0.875rem'
             }}
           >
-            <Download size={16} /> Exportar CSV
+            <Download size={16} /> Exportar Excel
           </button>
           <button 
             onClick={() => window.print()}

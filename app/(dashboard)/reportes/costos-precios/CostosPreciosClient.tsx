@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { Search, Printer, Loader2, ArrowUpDown, ArrowUp, ArrowDown, TrendingUp, DollarSign, Package } from 'lucide-react';
+import { Search, Printer, Loader2, ArrowUpDown, ArrowUp, ArrowDown, TrendingUp, DollarSign, Package, Download } from 'lucide-react';
 import ReportFilterBar, { ReportFilterState } from '@/components/ui/ReportFilterBar';
 import { getCostAndPricesData } from '@/app/actions/reportes';
 import { formatCurrency } from '@/lib/utils';
+import { exportToExcel } from '@/lib/exportExcel';
 
 export default function CostosPreciosClient({ 
   initialData, 
@@ -233,6 +234,19 @@ export default function CostosPreciosClient({
       : <ArrowDown size={14} style={{ color: '#6d28d9' }} />;
   };
 
+  const downloadExcel = () => {
+    const headers = ["SKU", "Producto", "Stock", "Costo U.", "Precio Venta", "Margen"];
+    const rows = processedProducts.map((p: any) => [
+      p.sku || 'N/A',
+      p.name,
+      p.stock,
+      p.cost,
+      p.resolvedPrice,
+      p.resolvedMargin ? `${p.resolvedMargin.toFixed(1)}%` : '0.0%'
+    ]);
+    exportToExcel(headers, rows, 'Reporte_Costos_Y_Precios');
+  };
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', fontFamily: 'var(--font-geist-sans)' }}>
       {/* Header */}
@@ -241,7 +255,7 @@ export default function CostosPreciosClient({
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Reporte de Costos y Precios</h1>
           <p style={{ color: 'var(--caanma-text-muted)' }}>Compara costos contra precios de venta con márgenes de rentabilidad calculados en tiempo real.</p>
         </div>
-        <div className="no-print">
+        <div className="no-print" style={{ display: 'flex', gap: '0.75rem' }}>
           <button 
             onClick={() => window.print()}
             style={{ 
@@ -261,6 +275,26 @@ export default function CostosPreciosClient({
             onMouseLeave={e => e.currentTarget.style.backgroundColor='#6d28d9'}
           >
             <Printer size={18} /> Imprimir / PDF
+          </button>
+          <button 
+            onClick={downloadExcel}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              backgroundColor: '#0f172a', 
+              color: 'white', 
+              border: 'none', 
+              padding: '0.65rem 1.25rem', 
+              borderRadius: '8px', 
+              fontWeight: 'bold', 
+              cursor: 'pointer', 
+              transition: 'background-color 0.2s' 
+            }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor='#1e293b'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor='#0f172a'}
+          >
+            <Download size={18} /> Exportar Excel
           </button>
         </div>
       </div>

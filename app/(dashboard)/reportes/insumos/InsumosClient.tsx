@@ -2,8 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { TrendingUp, Package, ArrowDownToLine, Loader2, Calendar, Search, DollarSign, ArrowUpDown, ChevronLeft, ChevronRight, Filter, ShoppingCart, Printer } from 'lucide-react';
+import { TrendingUp, Package, ArrowDownToLine, Loader2, Calendar, Search, DollarSign, ArrowUpDown, ChevronLeft, ChevronRight, Filter, ShoppingCart, Printer, Download } from 'lucide-react';
 import { getInsumosReportData } from '@/app/actions/reportes';
+import { exportToExcel } from '@/lib/exportExcel';
 
 interface InsumoProduct {
   id: string;
@@ -287,7 +288,7 @@ export default function InsumosClient({
     return filteredData.slice(startIndex, startIndex + pageSize);
   }, [filteredData, currentPage, pageSize]);
 
-  const downloadCSV = () => {
+  const downloadExcel = () => {
     const headers = [
       "SKU", 
       "Código de Barras",
@@ -306,23 +307,15 @@ export default function InsumosClient({
       p.barcode || "N/A",
       p.name,
       p.lastSupplier || "Sin Proveedor",
-      p.cost.toFixed(2),
+      p.cost,
       p.stock,
-      p.quantitySold.toFixed(2),
+      p.quantitySold,
       p.neededStock,
       p.suggestedRestock,
-      p.replenishmentCost.toFixed(2)
+      p.replenishmentCost
     ]);
 
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.map(val => `"${val.toString().replace(/"/g, '""')}"`).join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Reporte_Insumos_${startDateStr}_a_${endDateStr}_cobertura_${coverageDays}d.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportToExcel(headers, rows, `Reporte_Insumos_${startDateStr}_a_${endDateStr}_cobertura_${coverageDays}d`);
   };
 
   return (
@@ -381,12 +374,12 @@ export default function InsumosClient({
             <ShoppingCart size={18} /> Agregar a pedido
           </button>
           <button 
-            onClick={downloadCSV}
+            onClick={downloadExcel}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0f172a', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
             onMouseEnter={e => e.currentTarget.style.backgroundColor='#1e293b'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor='#0f172a'}
           >
-            <ArrowDownToLine size={18} /> Exportar CSV
+            <Download size={18} /> Exportar Excel
           </button>
         </div>
       </div>

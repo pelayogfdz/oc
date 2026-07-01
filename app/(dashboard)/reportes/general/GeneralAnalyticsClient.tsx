@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
-import { TrendingUp, FileText, Percent, DollarSign, Loader2, Printer } from 'lucide-react';
+import { TrendingUp, FileText, Percent, DollarSign, Loader2, Printer, Download } from 'lucide-react';
 import ReportFilterBar, { ReportFilterState } from '@/components/ui/ReportFilterBar';
+import { exportToExcel } from '@/lib/exportExcel';
 import { getGeneralAnalyticsData } from '@/app/actions/reportes';
 
 export default function GeneralAnalyticsClient({ initialData, initialBranchId }: { initialData: any, initialBranchId: string }) {
@@ -16,6 +17,17 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
       return `$${(tickItem / 1000).toFixed(1)}k`;
     }
     return `$${tickItem}`;
+  };
+
+  const downloadExcel = () => {
+    const headers = ["Fecha", "Ventas (MXN)", "Ganancia (MXN)", "Tickets"];
+    const rows = data.chartData.map((c: any) => [
+      c.date,
+      c.Ventas,
+      c.Ganancia,
+      c.Tickets
+    ]);
+    exportToExcel(headers, rows, 'Reporte_Analitica_General');
   };
 
   const handleFilterChange = async (filters: ReportFilterState) => {
@@ -43,7 +55,7 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Analítica General</h1>
           <p style={{ color: 'var(--caanma-text-muted)' }}>Desempeño global de tus ventas y márgenes.</p>
         </div>
-        <div className="no-print">
+        <div className="no-print" style={{ display: 'flex', gap: '0.75rem' }}>
           <button 
             onClick={() => window.print()}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#6d28d9', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
@@ -51,6 +63,14 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
             onMouseLeave={e => e.currentTarget.style.backgroundColor='#6d28d9'}
           >
             <Printer size={18} /> Imprimir / PDF
+          </button>
+          <button 
+            onClick={downloadExcel}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0f172a', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor='#1e293b'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor='#0f172a'}
+          >
+            <Download size={18} /> Exportar Excel
           </button>
         </div>
       </div>

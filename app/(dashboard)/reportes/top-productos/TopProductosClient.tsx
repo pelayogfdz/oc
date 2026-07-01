@@ -2,8 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { TrendingUp, Package, ArrowDownToLine, Loader2, Calendar, Search, DollarSign, Printer } from 'lucide-react';
+import { TrendingUp, Package, ArrowDownToLine, Loader2, Calendar, Search, DollarSign, Printer, Download } from 'lucide-react';
 import { getTopProductsReport } from '@/app/actions/reportes';
+import { exportToExcel } from '@/lib/exportExcel';
 
 export default function TopProductosClient({ initialData, initialBranchId, availableFilters }: { initialData: any[], initialBranchId: string, availableFilters: any }) {
   const [data, setData] = useState<any[]>(initialData);
@@ -127,31 +128,23 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
   };
 
   // Download CSV report
-  const downloadCSV = () => {
+  const downloadExcel = () => {
     const headers = ["Lugar", "Nombre del Producto", "SKU", "Categoría", "Costo Unit.", "Precio Unit.", "Uds Vendidas", "Ventas Totales", "Costo Total", "Ganancia Bruta", "Margen %"];
     const rows = filteredData.map((p, idx) => [
       idx + 1,
       p.name,
       p.sku || "N/A",
       p.category || "General",
-      p.cost.toFixed(2),
-      p.price.toFixed(2),
+      p.cost,
+      p.price,
       p.quantitySold,
-      p.totalRevenue.toFixed(2),
-      p.totalCost.toFixed(2),
-      p.grossProfit.toFixed(2),
-      p.margin.toFixed(2)
+      p.totalRevenue,
+      p.totalCost,
+      p.grossProfit,
+      `${p.margin.toFixed(2)}%`
     ]);
 
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.map(val => `"${val.toString().replace(/"/g, '""')}"`).join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Reporte_Productos_Mas_Vendidos_${startDateStr}_a_${endDateStr}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportToExcel(headers, rows, `Reporte_Productos_Mas_Vendidos_${startDateStr}_a_${endDateStr}`);
   };
 
   return (
@@ -171,12 +164,12 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
             <Printer size={18} /> Imprimir / PDF
           </button>
           <button 
-            onClick={downloadCSV}
+            onClick={downloadExcel}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0f172a', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
             onMouseEnter={e => e.currentTarget.style.backgroundColor='#1e293b'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor='#0f172a'}
           >
-            <ArrowDownToLine size={18} /> Exportar CSV
+            <Download size={18} /> Exportar Excel
           </button>
         </div>
       </div>

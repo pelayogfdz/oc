@@ -10,8 +10,10 @@ import {
   TrendingUp,
   X,
   FileText,
-  UserCheck
+  UserCheck,
+  Download
 } from 'lucide-react';
+import { exportToExcel } from '@/lib/exportExcel';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import ReportFilterBar, { ReportFilterState } from '@/components/ui/ReportFilterBar';
 import { getCustomCommissionsReport } from '@/app/actions/commissions';
@@ -83,8 +85,7 @@ export default function ComisionesReportClient({
     };
   }, [data]);
 
-  // Export CSV function
-  const downloadCSV = () => {
+  const downloadExcel = () => {
     const headers = [
       "Vendedor", 
       "Puesto", 
@@ -99,24 +100,16 @@ export default function ComisionesReportClient({
     const rows = data.map(u => [
       u.name,
       u.role,
-      u.personalSales.toFixed(2),
-      u.teamSales.toFixed(2),
+      u.personalSales,
+      u.teamSales,
       u.commissionPct,
-      u.commissionsEarned.toFixed(2),
-      u.bonusEarned.toFixed(2),
-      u.teamBonusEarned.toFixed(2),
-      u.totalEarned.toFixed(2)
+      u.commissionsEarned,
+      u.bonusEarned,
+      u.teamBonusEarned,
+      u.totalEarned
     ]);
 
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.map(val => `"${val.toString().replace(/"/g, '""')}"`).join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Reporte_Comisiones_Vendedores.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportToExcel(headers, rows, `Reporte_Comisiones_Vendedores`);
   };
 
   return (
@@ -151,7 +144,7 @@ export default function ComisionesReportClient({
             <Printer size={18} /> Imprimir / PDF
           </button>
           <button 
-            onClick={downloadCSV}
+            onClick={downloadExcel}
             style={{ 
               display: 'flex', 
               alignItems: 'center', 
@@ -168,7 +161,7 @@ export default function ComisionesReportClient({
             onMouseEnter={e => e.currentTarget.style.backgroundColor='#1e293b'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor='#0f172a'}
           >
-            <ArrowDownToLine size={18} /> Exportar CSV
+            <Download size={18} /> Exportar Excel
           </button>
         </div>
       </div>

@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, Filter, FileText, Download, TrendingUp, Printer } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { exportToExcel } from '@/lib/exportExcel';
 
 export default function FacturacionReportClient({ initialSales, users, brands = [], startDate, endDate }: any) {
   const router = useRouter();
@@ -91,7 +92,7 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
 
   const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-  const exportToCSV = () => {
+  const exportExcel = () => {
     const headers = ['Folio', 'Fecha', 'Cliente', 'Vendedor', 'Forma Pago', 'Total', 'Estado Factura'];
     const rows = filteredSales.map((s: any) => [
       s.id.slice(-6).toUpperCase(),
@@ -99,21 +100,11 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
       s.customer?.name || 'Público en General',
       s.user?.name || s.user?.email || 'Desconocido',
       s.paymentMethod,
-      s.total.toFixed(2),
+      s.total,
       s.isFacturado ? 'Facturado' : 'Sin Facturar'
     ]);
     
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + headers.join(',') + "\n" 
-      + rows.map((r: any[]) => r.map(cell => `"${cell}"`).join(',')).join("\n");
-      
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `reporte_facturacion_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportToExcel(headers, rows, `reporte_facturacion_${new Date().toISOString().split('T')[0]}`);
   };
 
   return (
@@ -156,7 +147,7 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
           <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: '#6d28d9', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
             <Printer size={18} /> Imprimir / PDF
           </button>
-          <button onClick={exportToCSV} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: 'var(--caanma-bg)', border: '1px solid var(--caanma-border)', color: 'var(--caanma-text)', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+          <button onClick={exportExcel} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: 'var(--caanma-bg)', border: '1px solid var(--caanma-border)', color: 'var(--caanma-text)', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
             <Download size={18} /> Exportar Excel
           </button>
         </div>

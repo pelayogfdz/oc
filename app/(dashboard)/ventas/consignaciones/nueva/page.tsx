@@ -1,4 +1,4 @@
-import { getActiveBranch } from "@/app/actions/auth";
+import { getActiveBranch, getActiveUser } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import { getBranchSettings } from "@/app/actions/settings";
 import POSClient from "../../nueva/POSClient";
@@ -6,6 +6,7 @@ import { getTenantSuppliers } from "@/app/actions/supplier";
 
 export default async function NuevaConsignacionPage({ searchParams }: { searchParams: { customerId?: string } }) {
   const branch = await getActiveBranch();
+  const user = await getActiveUser();
   
   if (!branch || branch.id === 'GLOBAL') {
     return (
@@ -60,6 +61,25 @@ export default async function NuevaConsignacionPage({ searchParams }: { searchPa
     ticketConfig.address = branch.location;
   }
 
+  let userPermissions: Record<string, boolean> = {};
+  let userRole = 'USER';
+  let isSuperAdmin = false;
+  if (user) {
+    userRole = user.role;
+    isSuperAdmin = user.email?.toLowerCase() === 'pelayogfdz@gmail.com';
+    const rawPermissions = (user as any).customRole?.permissions || user.permissions;
+    if (rawPermissions) {
+      try {
+        const parsed = JSON.parse(rawPermissions);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((p: string) => userPermissions[p] = true);
+        } else {
+          userPermissions = parsed;
+        }
+      } catch (e) {}
+    }
+  }
+
   return (
     <div>
       <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', color: '#4f46e5' }}>Registrar Nueva Consignación</h1>
@@ -72,6 +92,9 @@ export default async function NuevaConsignacionPage({ searchParams }: { searchPa
         branchId={branch.id} 
         initialCustomerId={searchParams.customerId}
         ticketConfig={ticketConfig}
+        userPermissions={userPermissions}
+        userRole={userRole}
+        isSuperAdmin={isSuperAdmin}
       />
     </div>
   );

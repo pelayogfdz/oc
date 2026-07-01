@@ -2,8 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
-import { TrendingUp, Users, ArrowDownToLine, Loader2, Search, DollarSign, Award, Printer } from 'lucide-react';
+import { TrendingUp, Users, ArrowDownToLine, Loader2, Search, DollarSign, Award, Printer, Download } from 'lucide-react';
 import { getSalesBySellerReport } from '@/app/actions/reportes';
+import { exportToExcel } from '@/lib/exportExcel';
 
 export default function VentasVendedorClient({ initialData, initialBranchId, availableFilters }: { initialData: any[], initialBranchId: string, availableFilters: any }) {
   const [data, setData] = useState<any[]>(initialData);
@@ -112,27 +113,19 @@ export default function VentasVendedorClient({ initialData, initialBranchId, ava
 
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#d946ef', '#0ea5e9'];
 
-  const downloadCSV = () => {
+  const downloadExcel = () => {
     const headers = ["Lugar", "Vendedor / Cajero", "Transacciones", "Ventas Totales", "Ticket Promedio", "Comisión %", "Comisión Generada"];
     const rows = filteredData.map((s, idx) => [
       idx + 1,
       s.name,
       s.salesCount,
-      s.totalSales.toFixed(2),
-      s.avgTicket.toFixed(2),
+      s.totalSales,
+      s.avgTicket,
       s.commissionPct,
-      s.earnedCommission.toFixed(2)
+      s.earnedCommission
     ]);
 
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.map(val => `"${val.toString().replace(/"/g, '""')}"`).join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Reporte_Ventas_Vendedor_${startDateStr}_a_${endDateStr}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportToExcel(headers, rows, `Reporte_Ventas_Vendedor_${startDateStr}_a_${endDateStr}`);
   };
 
   return (
@@ -152,12 +145,12 @@ export default function VentasVendedorClient({ initialData, initialBranchId, ava
             <Printer size={18} /> Imprimir / PDF
           </button>
           <button 
-            onClick={downloadCSV}
+            onClick={downloadExcel}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0f172a', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
             onMouseEnter={e => e.currentTarget.style.backgroundColor='#1e293b'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor='#0f172a'}
           >
-            <ArrowDownToLine size={18} /> Exportar CSV
+            <Download size={18} /> Exportar Excel
           </button>
         </div>
       </div>

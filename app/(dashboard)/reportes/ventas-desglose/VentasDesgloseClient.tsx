@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { PieChart, Pie, Tooltip as RechartsTooltip, Cell, ResponsiveContainer, Legend, AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { Search, Eye, Loader2, Printer } from 'lucide-react';
+import { Search, Eye, Loader2, Printer, Download } from 'lucide-react';
 import { getSalesDetailData } from '@/app/actions/reportes';
 import ReportFilterBar, { ReportFilterState } from '@/components/ui/ReportFilterBar';
+import { exportToExcel } from '@/lib/exportExcel';
 
 const COLORS = ['#0ea5e9', '#16a34a', '#d946ef', '#f59e0b', '#8b5cf6', '#ef4444'];
 
@@ -46,6 +47,20 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
     return `$${tickItem}`;
   };
 
+  const downloadExcel = () => {
+    const headers = ["Fecha", "Folio", "Cliente", "Cajero/Vendedor", "Método Pago", "Facturado", "Monto"];
+    const rows = filteredSales.map((s: any) => [
+      formatDate(s.createdAt),
+      `#${s.id.slice(0, 8).toUpperCase()}`,
+      s.customer,
+      s.user,
+      s.paymentMethod,
+      s.isFacturado ? 'Sí' : 'No',
+      s.total
+    ]);
+    exportToExcel(headers, rows, 'Reporte_Desglose_Ventas');
+  };
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', fontFamily: 'var(--font-geist-sans)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
@@ -53,7 +68,7 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Reporte de Ventas Detalladas</h1>
           <p style={{ color: 'var(--caanma-text-muted)' }}>Analiza contribuciones, tickets individuales y métodos de pago.</p>
         </div>
-        <div className="no-print">
+        <div className="no-print" style={{ display: 'flex', gap: '0.75rem' }}>
           <button 
             onClick={() => window.print()}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#6d28d9', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
@@ -61,6 +76,14 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
             onMouseLeave={e => e.currentTarget.style.backgroundColor='#6d28d9'}
           >
             <Printer size={18} /> Imprimir / PDF
+          </button>
+          <button 
+            onClick={downloadExcel}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0f172a', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor='#1e293b'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor='#0f172a'}
+          >
+            <Download size={18} /> Exportar Excel
           </button>
         </div>
       </div>

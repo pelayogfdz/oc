@@ -1,4 +1,4 @@
-import { getActiveBranch } from "@/app/actions/auth";
+import { getActiveBranch, getActiveUser } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import { getBranchSettings } from "@/app/actions/settings";
 import POSClient from "../../nueva/POSClient";
@@ -13,6 +13,7 @@ export default async function NuevaCotizacionPage({
   const customerId = resolvedParams?.customerId;
   const quoteId = resolvedParams?.quoteId;
   const branch = await getActiveBranch();
+  const user = await getActiveUser();
   
   if (!branch || branch.id === 'GLOBAL') {
     return (
@@ -70,6 +71,25 @@ export default async function NuevaCotizacionPage({
 
   const isEditing = !!quoteId;
 
+  let userPermissions: Record<string, boolean> = {};
+  let userRole = 'USER';
+  let isSuperAdmin = false;
+  if (user) {
+    userRole = user.role;
+    isSuperAdmin = user.email?.toLowerCase() === 'pelayogfdz@gmail.com';
+    const rawPermissions = (user as any).customRole?.permissions || user.permissions;
+    if (rawPermissions) {
+      try {
+        const parsed = JSON.parse(rawPermissions);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((p: string) => userPermissions[p] = true);
+        } else {
+          userPermissions = parsed;
+        }
+      } catch (e) {}
+    }
+  }
+
   return (
     <div>
       <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', color: isEditing ? '#0284c7' : '#854d0e' }}>
@@ -84,6 +104,9 @@ export default async function NuevaCotizacionPage({
         branchId={branch.id} 
         initialCustomerId={customerId}
         ticketConfig={ticketConfig}
+        userPermissions={userPermissions}
+        userRole={userRole}
+        isSuperAdmin={isSuperAdmin}
       />
     </div>
   );

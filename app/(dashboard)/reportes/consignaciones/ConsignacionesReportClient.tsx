@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { Search, Loader2, PackageCheck, TrendingUp, DollarSign, Percent, ShieldCheck, Printer } from 'lucide-react';
+import { Search, Loader2, PackageCheck, TrendingUp, DollarSign, Percent, ShieldCheck, Printer, Download } from 'lucide-react';
 import { getConsignmentReportData } from '@/app/actions/reportes';
 import ReportFilterBar, { ReportFilterState } from '@/components/ui/ReportFilterBar';
+import { exportToExcel } from '@/lib/exportExcel';
 
 export default function ConsignacionesReportClient({ initialData, initialBranchId }: { initialData: any, initialBranchId: string }) {
   const [data, setData] = useState(initialData);
@@ -43,6 +44,20 @@ export default function ConsignacionesReportClient({ initialData, initialBranchI
     return `$${tickItem}`;
   };
 
+  const downloadExcel = () => {
+    const headers = ["Fecha", "Folio", "Cliente", "Cajero/Vendedor", "Artículos", "Estado", "Monto"];
+    const rows = filteredConsignments.map((c: any) => [
+      formatDate(c.date),
+      `#${c.id.slice(0,8).toUpperCase()}`,
+      c.customer,
+      c.user,
+      c.itemsCount,
+      c.status === 'ACTIVE' ? 'Activo' : c.status === 'CONVERTED' ? 'Convertido' : c.status,
+      c.total
+    ]);
+    exportToExcel(headers, rows, 'Reporte_Consignaciones');
+  };
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', fontFamily: 'var(--font-geist-sans)' }}>
       {/* Title */}
@@ -53,7 +68,7 @@ export default function ConsignacionesReportClient({ initialData, initialBranchI
           </h1>
           <p style={{ color: 'var(--caanma-text-muted)' }}>Mide la rotación, cobros e inventario flotante en manos de tus clientes.</p>
         </div>
-        <div className="no-print">
+        <div className="no-print" style={{ display: 'flex', gap: '0.75rem' }}>
           <button 
             onClick={() => window.print()}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#6d28d9', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
@@ -61,6 +76,14 @@ export default function ConsignacionesReportClient({ initialData, initialBranchI
             onMouseLeave={e => e.currentTarget.style.backgroundColor='#6d28d9'}
           >
             <Printer size={18} /> Imprimir / PDF
+          </button>
+          <button 
+            onClick={downloadExcel}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0f172a', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor='#1e293b'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor='#0f172a'}
+          >
+            <Download size={18} /> Exportar Excel
           </button>
         </div>
       </div>

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Clock, ArrowDownToLine, Loader2, Search, PlusCircle, MinusCircle, Info, Printer } from 'lucide-react';
+import { Clock, ArrowDownToLine, Loader2, Search, PlusCircle, MinusCircle, Info, Printer, Download } from 'lucide-react';
+import { exportToExcel } from '@/lib/exportExcel';
 import { getInventoryMovementReport } from '@/app/actions/reportes';
 
 export default function BitacoraInventarioClient({ initialData, initialBranchId, availableFilters }: { initialData: any, initialBranchId: string, availableFilters: any }) {
@@ -107,7 +108,7 @@ export default function BitacoraInventarioClient({ initialData, initialBranchId,
     }
   };
 
-  const downloadCSV = () => {
+  const downloadExcel = () => {
     const headers = ["Fecha", "SKU", "Producto", "Tipo Movimiento", "Cantidad", "Motivo", "Registrado por"];
     const rows = filteredMovements.map((m: any) => [
       new Date(m.createdAt).toLocaleString(),
@@ -119,15 +120,7 @@ export default function BitacoraInventarioClient({ initialData, initialBranchId,
       m.user?.name || m.user?.email || "Sistema"
     ]);
 
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map((e: any) => e.map((val: any) => `"${val.toString().replace(/"/g, '""')}"`).join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Bitacora_Inventario_${startDateStr}_a_${endDateStr}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportToExcel(headers, rows, `Bitacora_Inventario_${startDateStr}_a_${endDateStr}`);
   };
 
   return (
@@ -147,12 +140,12 @@ export default function BitacoraInventarioClient({ initialData, initialBranchId,
             <Printer size={18} /> Imprimir / PDF
           </button>
           <button 
-            onClick={downloadCSV}
+            onClick={downloadExcel}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0f172a', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
             onMouseEnter={e => e.currentTarget.style.backgroundColor='#1e293b'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor='#0f172a'}
           >
-            <ArrowDownToLine size={18} /> Exportar CSV
+            <Download size={18} /> Exportar Excel
           </button>
         </div>
       </div>
