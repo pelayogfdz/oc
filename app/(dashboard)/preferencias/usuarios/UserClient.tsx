@@ -212,7 +212,16 @@ export default function UserClient({ initialUsers, branches, hrLocations = [], c
           setPerms({});
         }
       } else {
-        setPerms({});
+        // Keep branch permissions even when resetting role to NONE for a new user
+        setPerms(prev => {
+          const newPerms: Record<string, boolean> = {};
+          Object.keys(prev).forEach(k => {
+            if (k.startsWith('__BRANCH_') || k === 'branches' || k === 'branches_access') {
+              newPerms[k] = prev[k];
+            }
+          });
+          return newPerms;
+        });
       }
     } else {
       const role = customRoles.find(r => r.id === roleId);
@@ -225,23 +234,42 @@ export default function UserClient({ initialUsers, branches, hrLocations = [], c
           } else {
             Object.keys(parsed).forEach(k => { if (parsed[k]) obj[k] = true; });
           }
-          dynamicModules.forEach(mod => {
-            let modActive = obj[mod.id] || false;
-            mod.submodules?.forEach((sm: any) => {
-              let smActive = obj[sm.id] || false;
-              sm.permissions?.forEach((p: any) => {
-                if (obj[p.id]) {
-                  smActive = true;
-                  modActive = true;
-                }
-              });
-              if (smActive) obj[sm.id] = true;
+          
+          setPerms(prev => {
+            const finalObj = { ...obj };
+            // Preserve existing branch permissions
+            Object.keys(prev).forEach(k => {
+              if (k.startsWith('__BRANCH_') || k === 'branches' || k === 'branches_access') {
+                finalObj[k] = prev[k];
+              }
             });
-            if (modActive) obj[mod.id] = true;
+
+            dynamicModules.forEach(mod => {
+              let modActive = finalObj[mod.id] || false;
+              mod.submodules?.forEach((sm: any) => {
+                let smActive = finalObj[sm.id] || false;
+                sm.permissions?.forEach((p: any) => {
+                  if (finalObj[p.id]) {
+                    smActive = true;
+                    modActive = true;
+                  }
+                });
+                if (smActive) finalObj[sm.id] = true;
+              });
+              if (modActive) finalObj[mod.id] = true;
+            });
+            return finalObj;
           });
-          setPerms(obj);
         } catch {
-          setPerms({});
+          setPerms(prev => {
+            const newPerms: Record<string, boolean> = {};
+            Object.keys(prev).forEach(k => {
+              if (k.startsWith('__BRANCH_') || k === 'branches' || k === 'branches_access') {
+                newPerms[k] = prev[k];
+              }
+            });
+            return newPerms;
+          });
         }
       }
     }
@@ -934,16 +962,16 @@ export default function UserClient({ initialUsers, branches, hrLocations = [], c
                           <button 
                             type="button" 
                             onClick={() => handleSelectAll(mod.id)} 
-                            disabled={!isModActive || selectedCustomRoleId !== 'NONE'}
+                            disabled={!isModActive || (selectedCustomRoleId !== 'NONE' && mod.id !== 'branches')}
                             style={{ 
                               padding: '0.35rem 0.75rem', 
                               fontSize: '0.8rem', 
                               backgroundColor: '#f1f5f9', 
                               border: '1px solid #cbd5e1', 
                               borderRadius: '4px', 
-                              cursor: (!isModActive || selectedCustomRoleId !== 'NONE') ? 'not-allowed' : 'pointer', 
+                              cursor: (!isModActive || (selectedCustomRoleId !== 'NONE' && mod.id !== 'branches')) ? 'not-allowed' : 'pointer', 
                               fontWeight: 'bold',
-                              opacity: (!isModActive || selectedCustomRoleId !== 'NONE') ? 0.5 : 1
+                              opacity: (!isModActive || (selectedCustomRoleId !== 'NONE' && mod.id !== 'branches')) ? 0.5 : 1
                             }}
                           >
                             ✔️ Alternar Todos en Módulo
@@ -975,9 +1003,9 @@ export default function UserClient({ initialUsers, branches, hrLocations = [], c
                             <input 
                               type="checkbox"
                               checked={isModActive}
-                              disabled={selectedCustomRoleId !== 'NONE'}
+                              disabled={selectedCustomRoleId !== 'NONE' && mod.id !== 'branches'}
                               onChange={(e) => handlePermissionChange(mod.id, e.target.checked)}
-                              style={{ width: '1.5rem', height: '1.5rem', cursor: selectedCustomRoleId !== 'NONE' ? 'not-allowed' : 'pointer', accentColor: '#2563eb' }}
+                              style={{ width: '1.5rem', height: '1.5rem', cursor: (selectedCustomRoleId !== 'NONE' && mod.id !== 'branches') ? 'not-allowed' : 'pointer', accentColor: '#2563eb' }}
                             />
                           </label>
                         </div>
@@ -1013,9 +1041,9 @@ export default function UserClient({ initialUsers, branches, hrLocations = [], c
                                     <input 
                                       type="checkbox"
                                       checked={isSubmodActive}
-                                      disabled={!isModActive || selectedCustomRoleId !== 'NONE'}
+                                      disabled={!isModActive || (selectedCustomRoleId !== 'NONE' && mod.id !== 'branches')}
                                       onChange={(e) => handlePermissionChange(submod.id, e.target.checked)}
-                                      style={{ width: '1.1rem', height: '1.1rem', cursor: (!isModActive || selectedCustomRoleId !== 'NONE') ? 'not-allowed' : 'pointer', accentColor: '#16a34a' }}
+                                      style={{ width: '1.1rem', height: '1.1rem', cursor: (!isModActive || (selectedCustomRoleId !== 'NONE' && mod.id !== 'branches')) ? 'not-allowed' : 'pointer', accentColor: '#16a34a' }}
                                     />
                                     <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: (isModActive && isSubmodActive) ? '#166534' : '#64748b' }}>
                                       👁️ Submódulo Visible
@@ -1024,15 +1052,15 @@ export default function UserClient({ initialUsers, branches, hrLocations = [], c
                                   <button 
                                     type="button" 
                                     onClick={() => handleSelectSubmodule(submod)} 
-                                    disabled={!isModActive || !isSubmodActive || selectedCustomRoleId !== 'NONE'}
+                                    disabled={!isModActive || !isSubmodActive || (selectedCustomRoleId !== 'NONE' && mod.id !== 'branches')}
                                     style={{ 
                                       padding: '0.25rem 0.5rem', 
                                       fontSize: '0.75rem', 
                                       backgroundColor: 'white', 
                                       border: '1px solid #cbd5e1', 
                                       borderRadius: '4px', 
-                                      cursor: (!isModActive || !isSubmodActive || selectedCustomRoleId !== 'NONE') ? 'not-allowed' : 'pointer',
-                                      opacity: (!isModActive || !isSubmodActive || selectedCustomRoleId !== 'NONE') ? 0.5 : 1
+                                      cursor: (!isModActive || !isSubmodActive || (selectedCustomRoleId !== 'NONE' && mod.id !== 'branches')) ? 'not-allowed' : 'pointer',
+                                      opacity: (!isModActive || !isSubmodActive || (selectedCustomRoleId !== 'NONE' && mod.id !== 'branches')) ? 0.5 : 1
                                     }}
                                   >
                                     Alternar Todo
@@ -1067,9 +1095,9 @@ export default function UserClient({ initialUsers, branches, hrLocations = [], c
                                     <input 
                                       type="checkbox" 
                                       checked={perms[p.id] || false}
-                                      disabled={!isModActive || !isSubmodActive || selectedCustomRoleId !== 'NONE'}
+                                      disabled={!isModActive || !isSubmodActive || (selectedCustomRoleId !== 'NONE' && mod.id !== 'branches')}
                                       onChange={(e) => handlePermissionChange(p.id, e.target.checked)}
-                                      style={{ width: '1.25rem', height: '1.25rem', cursor: (!isModActive || !isSubmodActive || selectedCustomRoleId !== 'NONE') ? 'not-allowed' : 'pointer', accentColor: 'var(--caanma-primary)' }}
+                                      style={{ width: '1.25rem', height: '1.25rem', cursor: (!isModActive || !isSubmodActive || (selectedCustomRoleId !== 'NONE' && mod.id !== 'branches')) ? 'not-allowed' : 'pointer', accentColor: 'var(--caanma-primary)' }}
                                     />
                                     <span style={{ fontSize: '0.9rem', fontWeight: (isModActive && isSubmodActive && perms[p.id]) ? 'bold' : 'normal' }}>
                                       {p.label}
