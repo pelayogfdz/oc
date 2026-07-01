@@ -749,6 +749,9 @@ export default function POSClient({
   }, [searchTerm, branchId, isOnline]);
 
   const getProductPrice = useCallback((prod: any) => {
+    if (prod.customPrice !== undefined && prod.customPrice !== null && prod.customPrice !== '') {
+      return prod.customPrice;
+    }
     // Dynamic price lists check
     if (priceList.startsWith('priceList_')) {
       const plId = priceList.replace('priceList_', '');
@@ -810,6 +813,10 @@ export default function POSClient({
       return prevCart.map(c => c.cartItemId === cartItemId ? { ...c, quantity: newQ } : c);
     });
   }, [ventasConfig.venderSinStock, mode]);
+
+  const handleUpdatePrice = useCallback((cartItemId: string, newPrice: number) => {
+    setCart(prevCart => prevCart.map(c => c.cartItemId === cartItemId ? { ...c, customPrice: newPrice } : c));
+  }, []);
 
   const handleProductClick = useCallback((product: any) => {
     if (product.variants && product.variants.length > 0) {
@@ -2200,7 +2207,41 @@ export default function POSClient({
                     {/* Product description & Price details */}
                     <div className="pos-cart-item-info">
                       <div className="pos-cart-item-title">{item.name}</div>
-                      <div className="pos-cart-item-price">${itemPrice.toFixed(2)}</div>
+                      {hasPermission('pos_price_change') ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                          <span style={{ color: '#64748b', fontSize: '0.85rem' }}>$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={item.customPrice !== undefined ? item.customPrice : itemPrice}
+                            onChange={e => {
+                              const val = e.target.value;
+                              if (val === '') {
+                                handleUpdatePrice(item.cartItemId, '' as any);
+                              } else {
+                                const parsed = parseFloat(val);
+                                if (!isNaN(parsed)) {
+                                  handleUpdatePrice(item.cartItemId, parsed);
+                                }
+                              }
+                            }}
+                            style={{
+                              width: '85px',
+                              padding: '0.15rem 0.35rem',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '4px',
+                              fontSize: '0.9rem',
+                              fontWeight: 'bold',
+                              color: '#1e293b',
+                              outline: 'none',
+                              backgroundColor: 'white'
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="pos-cart-item-price">${itemPrice.toFixed(2)}</div>
+                      )}
                       {itemDiscounts[item.cartItemId] > 0 && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#db2777', fontSize: '0.8rem', fontWeight: 'bold', marginTop: '0.25rem' }}>
                           <Percent size={14} />
