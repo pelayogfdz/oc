@@ -272,7 +272,8 @@ export default function POSClient({ products: initialProducts, customers, suppli
     if (!isOnline) {
       import('@/lib/offlineDB').then(({ db }) => {
         db.customers.toArray().then(res => setActiveCustomers(res.length ? res : customers));
-        db.products.where('branchId').equals(branchId).toArray().then(res => {
+        const queryChain = branchId === 'GLOBAL' ? db.products : db.products.where('branchId').equals(branchId);
+        queryChain.toArray().then(res => {
           const sorted = res.sort((a, b) => a.name.localeCompare(b.name)).slice(0, 50);
           if (sorted.length) setDisplayedProducts(sorted);
         });
@@ -635,8 +636,8 @@ export default function POSClient({ products: initialProducts, customers, suppli
         if (!isOnline && searchTerm.trim() !== '') {
            const { db } = await import('@/lib/offlineDB');
            const lowerTerm = searchTerm.toLowerCase();
-           const results = await db.products
-             .where('branchId').equals(branchId)
+           const queryChain = branchId === 'GLOBAL' ? db.products : db.products.where('branchId').equals(branchId);
+           const results = await queryChain
              .filter(p => 
                Boolean(p.name.toLowerCase().includes(lowerTerm) || 
                (p.sku && p.sku.toLowerCase().includes(lowerTerm)) || 
@@ -657,7 +658,7 @@ export default function POSClient({ products: initialProducts, customers, suppli
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, branchId]);
+  }, [searchTerm, branchId, isOnline]);
 
   const getProductPrice = useCallback((prod: any) => {
     // Dynamic price lists check

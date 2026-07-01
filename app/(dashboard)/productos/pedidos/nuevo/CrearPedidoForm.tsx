@@ -156,7 +156,8 @@ export default function CrearPedidoForm({ suppliers, products, pendingRequests, 
   useEffect(() => {
     if (!isOnline) {
       import('@/lib/offlineDB').then(({ db }) => {
-        db.products.where('branchId').equals(branchId).toArray().then(res => setAvailableProducts(res.length ? res : products));
+        const queryChain = branchId === 'GLOBAL' ? db.products : db.products.where('branchId').equals(branchId);
+        queryChain.toArray().then(res => setAvailableProducts(res.length ? res : products));
         db.suppliers.toArray().then(res => setAvailableSuppliers(res.length ? res : suppliers));
       });
     } else {

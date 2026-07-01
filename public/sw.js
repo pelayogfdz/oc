@@ -1,4 +1,4 @@
-const CACHE_NAME = 'caanma-offline-cache-v2';
+const CACHE_NAME = 'caanma-offline-cache-v3';
 
 const PRECACHE_ASSETS = [
   '/',
@@ -8,9 +8,14 @@ const PRECACHE_ASSETS = [
   '/ventas/consignaciones/nueva',
   '/productos',
   '/clientes',
+  '/clientes/nuevo',
   '/productos/compras',
+  '/productos/compras/nuevo',
   '/productos/pedidos',
+  '/productos/pedidos/nuevo',
   '/productos/traspasos',
+  '/productos/traspasos/salida',
+  '/productos/traspasos/solicitar',
   '/manifest.json?v=6',
   '/favicon.ico',
   '/icon-192x192.png',
