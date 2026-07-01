@@ -52,7 +52,9 @@ export default async function VentasPage() {
     invoiceFolio: s.invoiceFolio,
     customer: s.customer ? {
       id: s.customer.id,
-      name: s.customer.name
+      name: s.customer.name,
+      phone: s.customer.phone,
+      email: s.customer.email
     } : null,
     user: {
       id: s.user.id,

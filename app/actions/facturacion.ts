@@ -790,4 +790,101 @@ export async function getPendingGlobalSales(startDateStr: string, endDateStr: st
   }
 }
 
+async function binaryDownloadToBuffer(download: any): Promise<Buffer> {
+  if (!download) {
+    throw new Error('El archivo descargado está vacío');
+  }
+  if (Buffer.isBuffer(download)) {
+    return download;
+  }
+  if (typeof download.arrayBuffer === 'function') {
+    const arrayBuf = await download.arrayBuffer();
+    return Buffer.from(arrayBuf);
+  }
+  if (typeof download.on === 'function') {
+    return new Promise<Buffer>((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      download.on('data', (chunk: any) => chunks.push(Buffer.from(chunk)));
+      download.on('end', () => resolve(Buffer.concat(chunks)));
+      download.on('error', (err: any) => reject(err));
+    });
+  }
+  if (typeof download.getReader === 'function') {
+    const reader = download.getReader();
+    const chunks: Uint8Array[] = [];
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) chunks.push(value);
+    }
+    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return Buffer.from(result);
+  }
+  return Buffer.from(download);
+}
+
+export async function sendInvoiceByEmail(saleId: string, email: string) {
+  try {
+    const resolved = await resolveClientForSale(saleId);
+    if (!resolved) throw new Error("Venta no encontrada.");
+    const { client, sale } = resolved;
+
+    if (!sale.invoiceId) {
+      throw new Error("Esta venta no cuenta con una factura timbrada para enviar.");
+    }
+
+    // Resolve branch settings and API Key
+    let apiKey: string | null = null;
+    if (sale.branchId) {
+      const settings = await client.branchSettings.findUnique({
+        where: { branchId: sale.branchId }
+      });
+      if (settings && settings.configJson) {
+        apiKey = getFacturapiApiKey(JSON.parse(settings.configJson));
+      }
+    }
+
+    if (!apiKey) {
+      const allSettings = await client.branchSettings.findMany();
+      for (const settings of allSettings) {
+        if (settings.configJson) {
+          apiKey = getFacturapiApiKey(JSON.parse(settings.configJson));
+          if (apiKey) break;
+        }
+      }
+    }
+
+    if (!apiKey) {
+      throw new Error("No se encontró configuración de Facturapi activa.");
+    }
+
+    const facturapi = new Facturapi(apiKey);
+
+    // Fetch PDF and XML binary buffers from Facturapi
+    const pdfBlob = await facturapi.invoices.downloadPdf(sale.invoiceId);
+    let xmlBlob: any = null;
+    try {
+      xmlBlob = await facturapi.invoices.downloadXml(sale.invoiceId);
+    } catch (e) {
+      // Ignore if XML download fails
+    }
+
+    const pdfBuffer = await binaryDownloadToBuffer(pdfBlob);
+    const xmlBuffer = xmlBlob ? await binaryDownloadToBuffer(xmlBlob) : undefined;
+
+    const { sendInvoiceNotificationEmail } = await import('@/lib/mailer');
+    const result = await sendInvoiceNotificationEmail(email, sale, pdfBuffer, xmlBuffer);
+    return result;
+  } catch (error: any) {
+    console.error("Error al enviar factura por correo:", error);
+    return { success: false, error: error.message || "Error al procesar el envío de factura." };
+  }
+}
+
 

@@ -66,12 +66,13 @@ export default async function PrintPurchasePage({ params }: { params: Promise<{ 
     <>
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
-          @page { size: A4 portrait; margin: 1.5cm; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; }
+          @page { size: letter portrait; margin: 1.2cm; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; margin: 0; padding: 0; }
           .no-print { display: none !important; }
+          .letter-container { width: 100% !important; max-width: none !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
         }
         body { font-family: 'Inter', system-ui, sans-serif; background: #f1f5f9; margin: 0; padding: 2rem 0; color: #1e293b; }
-        .a4-container { width: 21cm; min-height: 29.7cm; margin: 0 auto; background: white; padding: 2cm; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); position: relative; }
+        .letter-container { width: 21.59cm; min-height: 27.94cm; margin: 0 auto; background: white; padding: 1.5cm; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); position: relative; box-sizing: border-box; }
         .header-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; margin-bottom: 2rem; border-bottom: 3px solid ${primaryColor}; padding-bottom: 1.5rem; }
         .invoice-title { font-size: 2.2rem; font-weight: 900; color: ${primaryColor}; margin: 0 0 0.5rem 0; text-transform: uppercase; line-height: 1.1; }
         .info-card { background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; }
@@ -89,7 +90,7 @@ export default async function PrintPurchasePage({ params }: { params: Promise<{ 
       `}} />
       <script dangerouslySetInnerHTML={{ __html: printScript }} />
       
-      <div className="a4-container">
+      <div className="letter-container">
         {/* Header */}
         <div className="header-grid">
           <div>
@@ -227,7 +228,7 @@ export default async function PrintPurchasePage({ params }: { params: Promise<{ 
         </div>
 
         {/* Footer & QR */}
-        <div style={{ position: 'absolute', bottom: '2cm', left: '2cm', right: '2cm' }}>
+        <div style={{ marginTop: '4rem', paddingBottom: '1rem' }}>
           <div className="qr-section">
             <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://caanma.com/clientes/portal?compraId=${purchase.id.slice(0, 8)}`} alt="QR Code" style={{ width: '80px', height: '80px' }} />
             <div>

@@ -354,7 +354,7 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
 
         @media print {
           @page { 
-            size: A4 portrait; 
+            size: letter portrait; 
             margin: 0; 
           }
           body { 
@@ -372,6 +372,14 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
             margin: 0; 
             border: none; 
           }
+          .a4-page {
+            margin: 0 !important;
+            box-shadow: none !important;
+            width: 21.59cm !important;
+            height: 27.94cm !important;
+            page-break-after: always;
+            break-after: page;
+          }
         }
 
         body { 
@@ -384,15 +392,15 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
         }
 
         .a4-page { 
-          width: 21cm; 
-          height: 29.7cm; 
+          width: 21.59cm; 
+          height: 27.94cm; 
           margin: 0 auto 2rem auto; 
           background: white; 
           box-shadow: 0 4px 20px rgba(0,0,0,0.06); 
           position: relative; 
           box-sizing: border-box; 
           overflow: hidden; 
-          padding: 2cm 1.5cm 1.5cm 1.5cm; 
+          padding: 1.5cm; 
         }
 
         /* 1. Portada Revista Editorial */

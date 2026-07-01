@@ -97,12 +97,13 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
     <>
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
-          @page { size: A4 portrait; margin: 1.5cm; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; }
+          @page { size: letter portrait; margin: 1.2cm; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; margin: 0; padding: 0; }
           .no-print { display: none !important; }
+          .letter-container { width: 100% !important; max-width: none !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
         }
         body { font-family: 'Inter', system-ui, sans-serif; background: #f1f5f9; margin: 0; padding: 2rem 0; color: #1e293b; }
-        .a4-container { width: 21cm; min-height: 29.7cm; margin: 0 auto; background: white; padding: 2cm; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); position: relative; box-sizing: border-box; }
+        .letter-container { width: 21.59cm; min-height: 27.94cm; margin: 0 auto; background: white; padding: 1.5cm; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); position: relative; box-sizing: border-box; }
         
         /* Header styling matching reference */
         .header-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; margin-bottom: 2rem; }
@@ -158,7 +159,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
       `}} />
       <script dangerouslySetInnerHTML={{ __html: printScript }} />
       
-      <div className="a4-container">
+      <div className="letter-container">
         {/* Header Grid */}
         <div className="header-grid">
           <div>

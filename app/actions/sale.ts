@@ -681,4 +681,27 @@ export async function updateSale(
   }
 }
 
+export async function sendSaleByEmail(saleId: string, email: string) {
+  try {
+    const sale = await prisma.sale.findUnique({
+      where: { id: saleId },
+      include: {
+        customer: true,
+        items: {
+          include: { product: true }
+        }
+      }
+    });
+
+    if (!sale) throw new Error("Venta no encontrada.");
+
+    const { sendSaleNotificationEmail } = await import('@/lib/mailer');
+    const result = await sendSaleNotificationEmail(email, sale, false, null);
+    return result;
+  } catch (error: any) {
+    console.error("Error al enviar ticket de venta por correo:", error);
+    return { success: false, error: error.message || "Error al procesar el envío del correo de venta." };
+  }
+}
+
 

@@ -351,3 +351,87 @@ export const sendQuoteNotificationEmail = async (
     return { success: false, error: error.message || error };
   }
 };
+
+export const sendInvoiceNotificationEmail = async (
+  to: string,
+  sale: any,
+  pdfBuffer: Buffer,
+  xmlBuffer?: Buffer
+) => {
+  const { transporter: customTransporter, fromEmail, fromName, isCustom, configured } = await getTransporterAndSender(sale.branchId);
+  const brandName = isCustom ? fromName : "CAANMA Facturación";
+
+  if (!configured) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('❌ Error: SMTP credentials are not configured in production environment.');
+      return { success: false, error: 'SMTP credentials not configured' };
+    }
+    console.warn('⚠️ SMTP credentials not set. Simulating invoice email sending.');
+    console.log(`[EMAIL SIMULADO FACTURA] Destino: ${to} | Folio CFDI: ${sale.invoiceFolio || sale.invoiceId}`);
+    return { success: true, simulated: true };
+  }
+
+  const attachments = [
+    {
+      filename: `Factura_${sale.invoiceFolio || sale.invoiceId || 'CFDI'}.pdf`,
+      content: pdfBuffer,
+      contentType: 'application/pdf'
+    }
+  ];
+
+  if (xmlBuffer) {
+    attachments.push({
+      filename: `Factura_${sale.invoiceFolio || sale.invoiceId || 'CFDI'}.xml`,
+      content: xmlBuffer,
+      contentType: 'application/xml'
+    });
+  }
+
+  try {
+    const info = await customTransporter.sendMail({
+      from: `"${brandName}" <${fromEmail}>`,
+      to,
+      subject: `Comprobante Fiscal Digital (CFDI) - Folio #${sale.invoiceFolio || sale.invoiceId || sale.id.slice(0, 8)}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px;">
+          <div style="text-align: center; border-bottom: 2px solid #0ea5e9; padding-bottom: 20px;">
+            <h1 style="color: #0ea5e9; margin: 0; font-size: 28px;">Factura Electrónica</h1>
+            <p style="color: #666; margin: 5px 0 0 0;">Folio #${sale.invoiceFolio || sale.invoiceId || sale.id.slice(0, 8)}</p>
+          </div>
+          
+          <p>Estimado(a) <strong>${sale.customer?.name || 'Cliente'}</strong>,</p>
+          <p>Le compartimos el Comprobante Fiscal Digital (CFDI) correspondiente a su compra realizada.</p>
+          <p>Adjunto a este correo encontrará los archivos <strong>PDF</strong> y <strong>XML</strong> de su factura para su descarga.</p>
+          
+          <h3 style="color: #333; border-bottom: 1px solid #eaeaea; padding-bottom: 8px;">Detalles del Comprobante</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+            <tr>
+              <td style="padding: 8px; font-weight: bold; width: 30%;">Venta:</td>
+              <td style="padding: 8px;">#${sale.folio || sale.id.slice(0, 8)}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; font-weight: bold;">Folio Fiscal CFDI:</td>
+              <td style="padding: 8px;">${sale.invoiceFolio || sale.invoiceId}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; font-weight: bold;">Total:</td>
+              <td style="padding: 8px; font-weight: bold; color: #0ea5e9;">$${sale.total.toFixed(2)} MXN</td>
+            </tr>
+          </table>
+
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; text-align: center; font-size: 12px; color: #888;">
+            <p>Este es un correo automático de CAANMA, por favor no responda directamente.</p>
+            <p><strong>CAANMA ERP</strong></p>
+          </div>
+        </div>
+      `,
+      attachments
+    });
+
+    console.log('Correo de factura enviado: %s', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error: any) {
+    console.error('Error al enviar el correo de factura:', error);
+    return { success: false, error: error.message || error };
+  }
+};
