@@ -377,6 +377,7 @@ model Sale {
   cashAmount    Float?
   cardAmount    Float?
   invoiceId     String?
+  invoiceFolio  String?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   satCreditNote String?

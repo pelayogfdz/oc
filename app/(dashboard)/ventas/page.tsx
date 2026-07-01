@@ -49,6 +49,7 @@ export default async function VentasPage() {
     total: s.total,
     status: s.status,
     invoiceId: s.invoiceId,
+    invoiceFolio: s.invoiceFolio,
     customer: s.customer ? {
       id: s.customer.id,
       name: s.customer.name

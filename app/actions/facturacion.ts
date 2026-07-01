@@ -19,6 +19,29 @@ function getFacturapiApiKey(config: any): string | null {
   }
 }
 
+function parseSaleFolio(saleFolio: string | null | undefined): { series?: string; folio?: number } {
+  if (!saleFolio) return {};
+  
+  if (saleFolio.includes('-')) {
+    const parts = saleFolio.split('-');
+    const series = parts[0]?.trim();
+    const folioStr = parts[1]?.trim();
+    const folio = parseInt(folioStr || '', 10);
+    if (!isNaN(folio)) {
+      return { series, folio };
+    }
+  }
+  
+  const match = saleFolio.match(/^([A-Za-z]+)?\s*#?\s*(\d+)$/);
+  if (match) {
+    const series = match[1]?.trim() || undefined;
+    const folio = parseInt(match[2], 10);
+    return { series, folio };
+  }
+  
+  return {};
+}
+
 export async function stampInvoice(saleId: string, customerId?: string | null) {
   try {
     const resolved = await resolveClientForSale(saleId);
@@ -174,6 +197,13 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
       use: cfdiUse
     };
 
+    // Marry the invoice series and folio with the sale folio prefix and number
+    if (sale.folio) {
+      const parsed = parseSaleFolio(sale.folio);
+      if (parsed.series) invoicePayload.series = parsed.series;
+      if (parsed.folio !== undefined) invoicePayload.folio = parsed.folio;
+    }
+
     if (customerData.tax_id === "XAXX010101000") {
       invoicePayload.global = {
         periodicity: "day",
@@ -183,12 +213,14 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
     }
 
     const invoice = await facturapi.invoices.create(invoicePayload);
+    const invoiceFolio = [(invoice as any).series, (invoice as any).folio].filter(Boolean).join('');
 
-    // Update the Sale record with the Invoice ID and link customer if provided
+    // Update the Sale record with the Invoice ID, Invoice Folio and link customer if provided
     await db.sale.update({
       where: { id: saleId },
       data: { 
         invoiceId: invoice.id,
+        invoiceFolio: invoiceFolio || null,
         ...(customerId ? { customerId } : {})
       }
     });
@@ -322,11 +354,15 @@ export async function stampGlobalInvoice(startDateStr?: string, endDateStr?: str
       }
     } as any);
 
-    // Update sales with invoice Id
+    const invoiceFolio = [(invoice as any).series, (invoice as any).folio].filter(Boolean).join('');
+    // Update sales with invoice Id and invoice Folio
     const saleIds = salesFiltered.map(s => s.id);
     await prisma.sale.updateMany({
        where: { id: { in: saleIds } },
-       data: { invoiceId: invoice.id }
+       data: { 
+         invoiceId: invoice.id,
+         invoiceFolio: invoiceFolio || null
+       }
     });
 
     revalidatePath('/facturas/globales');
@@ -420,10 +456,13 @@ export async function cancelInvoice(saleId: string) {
     // Cancel invoice in Facturapi with motive "02" (Comprobante emitido con errores sin relación)
     await facturapi.invoices.cancel(sale.invoiceId, { motive: "02" as any });
 
-    // Clear invoice ID in database to allow re-stamping if needed
+    // Clear invoice ID and folio in database to allow re-stamping if needed
     await prisma.sale.update({
       where: { id: saleId },
-      data: { invoiceId: null }
+      data: { 
+        invoiceId: null,
+        invoiceFolio: null
+      }
     });
 
     revalidatePath('/facturas/ventas');
@@ -619,6 +658,13 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
       use: cfdiUse
     };
 
+    // Marry the invoice series and folio with the first sale's folio prefix and number
+    if (sales[0] && sales[0].folio) {
+      const parsed = parseSaleFolio(sales[0].folio);
+      if (parsed.series) invoicePayload.series = parsed.series;
+      if (parsed.folio !== undefined) invoicePayload.folio = parsed.folio;
+    }
+
     if (customerData.tax_id === "XAXX010101000") {
       invoicePayload.global = {
         periodicity: "day",
@@ -628,14 +674,16 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
     }
 
     const invoice = await facturapi.invoices.create(invoicePayload);
+    const invoiceFolio = [(invoice as any).series, (invoice as any).folio].filter(Boolean).join('');
 
-    // Update all sales with the invoice ID
+    // Update all sales with the invoice ID and invoice Folio
     await prisma.sale.updateMany({
       where: {
         id: { in: saleIds }
       },
       data: {
-        invoiceId: invoice.id
+        invoiceId: invoice.id,
+        invoiceFolio: invoiceFolio || null
       }
     });
 

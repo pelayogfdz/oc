@@ -283,7 +283,7 @@ export default function VentasHistoryClient({
                         }} 
                         title="Ver PDF de la Factura (CFDI)"
                       >
-                        {sale.invoiceId.substring(0, 8).toUpperCase()}
+                        {sale.invoiceFolio || sale.invoiceId.substring(0, 8).toUpperCase()}
                       </a>
                     ) : (
                       <span style={{ color: 'var(--caanma-text-muted)' }}>-</span>
