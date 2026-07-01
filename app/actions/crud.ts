@@ -10,11 +10,21 @@ export async function crudAction(entity: string, formData: FormData) {
   const user = await getActiveUser();
   const data: any = { branchId: branch.id };
   
+  const numericKeys = new Set([
+    'creditLimit',
+    'creditDays',
+    'quantity',
+    'value',
+    'creditBalance',
+    'storeCredit',
+    'pointsBalance'
+  ]);
+
   formData.forEach((value, key) => {
     if (key !== 'entity' && !key.startsWith('$ACTION_ID')) {
-       // Convert numbers if numeric
-       if (!isNaN(value as any) && value !== '') {
-          data[key] = Number(value);
+       // Convert numbers only if the key is known to be numeric
+       if (numericKeys.has(key)) {
+          data[key] = (value !== '' && !isNaN(value as any)) ? Number(value) : undefined;
        } else {
           data[key] = value;
        }
