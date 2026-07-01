@@ -65,6 +65,49 @@ export async function updateCustomRole(formData: FormData) {
       }
     });
 
+    // Synchronize permissions to all users belonging to this role, preserving their branch-specific permissions
+    try {
+      const users = await prisma.user.findMany({
+        where: {
+          customRoleId: id,
+          tenantId: session.tenantId
+        },
+        select: {
+          id: true,
+          permissions: true
+        }
+      });
+
+      const newRolePermsList = JSON.parse(permissions || '[]');
+
+      for (const u of users) {
+        let userPermsList: string[] = [];
+        try {
+          const parsed = u.permissions ? JSON.parse(u.permissions) : [];
+          if (Array.isArray(parsed)) {
+            userPermsList = parsed;
+          } else if (parsed && typeof parsed === 'object') {
+            userPermsList = Object.keys(parsed).filter(k => parsed[k] === true);
+          }
+        } catch (e) {}
+
+        // Filter user's current permissions to find only branch-specific ones
+        const branchPerms = userPermsList.filter(p => p.startsWith('__BRANCH_') || p === 'branches' || p === 'branches_access');
+        
+        // Merge role permissions with user's branch permissions
+        const mergedPerms = Array.from(new Set([...newRolePermsList, ...branchPerms]));
+
+        await prisma.user.update({
+          where: { id: u.id },
+          data: {
+            permissions: JSON.stringify(mergedPerms)
+          }
+        });
+      }
+    } catch (syncErr) {
+      console.error("Error syncing role permissions to users:", syncErr);
+    }
+
     revalidatePath('/preferencias/roles');
     revalidatePath('/preferencias/usuarios');
     return { success: true };
