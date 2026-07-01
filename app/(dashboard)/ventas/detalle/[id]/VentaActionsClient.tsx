@@ -309,6 +309,54 @@ export default function VentaActionsClient({
         </button>
       )}
 
+      {/* Descargar PDF y XML */}
+      {invoiceId && (
+        <>
+          <a
+            href={`/api/facturacion/download?invoiceId=${invoiceId}&format=pdf`}
+            download
+            className="btn-secondary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.75rem 1.25rem',
+              borderRadius: '4px',
+              backgroundColor: '#eff6ff',
+              color: '#1d4ed8',
+              border: '1px solid #bfdbfe',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              textDecoration: 'none'
+            }}
+          >
+            <FileText size={18} />
+            Descargar PDF (CFDI)
+          </a>
+          <a
+            href={`/api/facturacion/download?invoiceId=${invoiceId}&format=xml`}
+            download
+            className="btn-secondary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.75rem 1.25rem',
+              borderRadius: '4px',
+              backgroundColor: '#f8fafc',
+              color: '#475569',
+              border: '1px solid #cbd5e1',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              textDecoration: 'none'
+            }}
+          >
+            <FileText size={18} />
+            Descargar XML (CFDI)
+          </a>
+        </>
+      )}
+
       {/* Cancel Invoice */}
       {invoiceId && (
         <button

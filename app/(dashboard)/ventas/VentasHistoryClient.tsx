@@ -265,21 +265,26 @@ export default function VentasHistoryClient({
                   </td>
                   <td data-label="Folio CFDI" style={{ padding: '1rem' }}>
                     {sale.invoiceId ? (
-                      <span 
+                      <a 
+                        href={`/api/facturacion/download?invoiceId=${sale.invoiceId}&format=pdf`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         style={{ 
                           fontFamily: 'monospace', 
                           fontSize: '0.85rem', 
-                          fontWeight: '500', 
-                          color: '#0369a1', 
-                          backgroundColor: '#e0f2fe', 
+                          fontWeight: 'bold', 
+                          color: '#1d4ed8', 
+                          backgroundColor: '#eff6ff', 
+                          border: '1px solid #bfdbfe',
                           padding: '0.2rem 0.4rem', 
                           borderRadius: '4px',
-                          wordBreak: 'break-all'
+                          textDecoration: 'none',
+                          display: 'inline-block'
                         }} 
-                        title={sale.invoiceId}
+                        title="Ver PDF de la Factura (CFDI)"
                       >
-                        {sale.invoiceId}
-                      </span>
+                        {sale.invoiceId.substring(0, 8).toUpperCase()}
+                      </a>
                     ) : (
                       <span style={{ color: 'var(--caanma-text-muted)' }}>-</span>
                     )}
