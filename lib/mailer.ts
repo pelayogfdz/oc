@@ -206,3 +206,88 @@ export const sendSaleNotificationEmail = async (
     return { success: false, error };
   }
 };
+
+export const sendQuoteNotificationEmail = async (
+  to: string,
+  quote: any
+) => {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('❌ Error: SMTP credentials are not configured in production environment.');
+      return { success: false, error: 'SMTP credentials not configured' };
+    }
+    console.warn('⚠️ SMTP credentials not set. Simulating quote email sending.');
+    console.log(`[EMAIL SIMULADO COTIZACIÓN] Destino: ${to} | Folio: ${quote.folio || quote.id.slice(0, 8)}`);
+    return { success: true, simulated: true };
+  }
+
+  try {
+    const itemsListHtml = quote.items.map((item: any) => `
+      <tr>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea;">${item.product?.name || 'Artículo'} (SKU: ${item.product?.sku || 'N/A'})</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: center;">${item.quantity}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: right;">$${item.price.toFixed(2)} MXN</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: right;">$${(item.quantity * item.price).toFixed(2)} MXN</td>
+      </tr>
+    `).join('');
+
+    const displayFolio = quote.folio || quote.id.slice(0, 8).toUpperCase();
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || 'https://caanma.com';
+    const link = `${baseUrl}/ventas/detalle/${quote.id}/imprimir-cotizacion`;
+
+    const info = await transporter.sendMail({
+      from: `"CAANMA Cotizaciones" <${process.env.SMTP_USER}>`,
+      to,
+      subject: `Nueva Cotización Realizada - Folio #${displayFolio}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px;">
+          <div style="text-align: center; border-bottom: 2px solid #0ea5e9; padding-bottom: 20px;">
+            <h1 style="color: #0ea5e9; margin: 0; font-size: 28px;">Cotización de Venta</h1>
+            <p style="color: #666; margin: 5px 0 0 0;">Folio #${displayFolio}</p>
+          </div>
+          
+          <p>Estimado(a) <strong>${quote.customer?.name || 'Cliente'}</strong>,</p>
+          <p>Le compartimos la cotización detallada de su solicitud. Puede consultar el documento original o imprimirlo en el siguiente enlace:</p>
+          
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${link}" target="_blank" style="background-color: #0ea5e9; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.2);">
+              Ver / Imprimir Cotización Completa
+            </a>
+          </div>
+
+          <h3 style="color: #333; border-bottom: 1px solid #eaeaea; padding-bottom: 8px;">Resumen del Pedido</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+            <thead>
+              <tr style="background-color: #f8fafc;">
+                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: left;">Producto</th>
+                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: center;">Cant.</th>
+                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: right;">Precio Unit.</th>
+                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: right;">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsListHtml}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" style="padding: 10px 8px; text-align: right; font-weight: bold; font-size: 16px;">Total:</td>
+                <td style="padding: 10px 8px; text-align: right; font-weight: bold; font-size: 16px; color: #0ea5e9;">$${quote.total.toFixed(2)} MXN</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; text-align: center; font-size: 12px; color: #888;">
+            <p>Este es un correo automático de CAANMA, por favor no responda directamente.</p>
+            <p><strong>CAANMA ERP</strong></p>
+          </div>
+        </div>
+      `,
+    });
+
+    console.log('Correo de cotización enviado: %s', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error: any) {
+    console.error('Error al enviar el correo de cotización:', error);
+    return { success: false, error: error.message || error };
+  }
+};

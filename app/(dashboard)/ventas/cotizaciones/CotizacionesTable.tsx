@@ -293,6 +293,7 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                   status={quote.status}
                   customerPhone={quote.customer?.phone}
                   customerName={quote.customer?.name}
+                  customerEmail={quote.customer?.email}
                   quoteTotal={quote.total}
                 />
               </td>

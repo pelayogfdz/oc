@@ -178,3 +178,21 @@ export async function createQuickProductsForQuote(
 
   return result;
 }
+
+export async function sendQuoteByEmail(quoteId: string, email: string) {
+  const quote = await prisma.quote.findUnique({
+    where: { id: quoteId },
+    include: {
+      customer: true,
+      items: {
+        include: { product: true }
+      }
+    }
+  });
+
+  if (!quote) throw new Error("Cotización no encontrada.");
+
+  const { sendQuoteNotificationEmail } = await import('@/lib/mailer');
+  const result = await sendQuoteNotificationEmail(email, quote);
+  return result;
+}

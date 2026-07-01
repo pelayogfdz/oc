@@ -814,3 +814,86 @@ export async function getPriceChangesInLast24Hours() {
     return [];
   }
 }
+
+export async function getProductBranchStocks(params: {
+  productId: string;
+  sku: string | null;
+  barcode: string | null;
+  name: string;
+  variantId: string | null;
+  attribute: string | null;
+  currentBranchId: string;
+}) {
+  const session = await getSession();
+  const activeBranch = await getActiveBranch();
+  if (!activeBranch) return [];
+  const tenantId = session?.tenantId || activeBranch.tenantId;
+  if (!tenantId) return [];
+
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true, name: true }
+  });
+
+  let attributeToMatch = params.attribute;
+  if (params.variantId && !attributeToMatch) {
+    try {
+      const dbVar = await prisma.productVariant.findUnique({
+        where: { id: params.variantId },
+        select: { attribute: true }
+      });
+      if (dbVar) {
+        attributeToMatch = dbVar.attribute;
+      }
+    } catch (e) {
+      console.error("Error resolving variant attribute:", e);
+    }
+  }
+
+  const orConditions: any[] = [];
+  if (params.sku && params.sku.trim() !== '') {
+    orConditions.push({ sku: params.sku });
+  }
+  if (params.barcode && params.barcode.trim() !== '') {
+    orConditions.push({ barcode: params.barcode });
+  }
+  if (orConditions.length === 0) {
+    orConditions.push({ name: params.name });
+  }
+
+  const products = await prisma.product.findMany({
+    where: {
+      branchId: { in: tenantBranches.map(b => b.id) },
+      isActive: true,
+      OR: orConditions
+    },
+    include: {
+      variants: true
+    }
+  });
+
+  const branchStocks = tenantBranches.map(b => {
+    const branchProds = products.filter(p => p.branchId === b.id);
+    
+    let totalStock = 0;
+    if (attributeToMatch) {
+      branchProds.forEach(p => {
+        const matchingVar = p.variants.find(v => v.attribute.toLowerCase() === attributeToMatch!.toLowerCase());
+        if (matchingVar) {
+          totalStock += matchingVar.stock;
+        }
+      });
+    } else {
+      totalStock = branchProds.reduce((sum, p) => sum + p.stock, 0);
+    }
+
+    return {
+      branchId: b.id,
+      branchName: b.name,
+      stock: totalStock,
+      isCurrent: b.id === params.currentBranchId
+    };
+  });
+
+  return branchStocks;
+}

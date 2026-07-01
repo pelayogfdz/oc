@@ -4,6 +4,18 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import PrintActions from "@/app/components/PrintActions";
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const quote = await prisma.quote.findUnique({
+    where: { id },
+    select: { folio: true }
+  });
+  const displayFolio = quote?.folio || id.slice(0, 8).toUpperCase();
+  return {
+    title: `Cotizacion_${displayFolio}`,
+  };
+}
+
 // Helper function to truncate product description to max 20 words
 function getShortDescription(text: string | null): string {
   if (!text) return '';

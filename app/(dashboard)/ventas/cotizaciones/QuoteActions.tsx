@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Printer, Send, Share2, Loader2, CheckCircle, ArrowRight, Pencil } from 'lucide-react';
+import { Printer, Send, Share2, Loader2, CheckCircle, ArrowRight, Pencil, Mail, Download, X } from 'lucide-react';
+import { sendQuoteByEmail } from '@/app/actions/quote';
 
 interface QuoteActionsProps {
   quoteId: string;
@@ -10,10 +11,11 @@ interface QuoteActionsProps {
   status: string;
   customerPhone?: string | null;
   customerName?: string | null;
+  customerEmail?: string | null;
   quoteTotal: number;
 }
 
-export default function QuoteActions({ quoteId, quoteFolio, status, customerPhone, customerName, quoteTotal }: QuoteActionsProps) {
+export default function QuoteActions({ quoteId, quoteFolio, status, customerPhone, customerName, customerEmail, quoteTotal }: QuoteActionsProps) {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [phone, setPhone] = useState(customerPhone || '');
@@ -23,6 +25,19 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
   const [isSending, setIsSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+
+  // Email States
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [emailInput, setEmailInput] = useState(customerEmail || '');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailSuccess, setEmailSuccess] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (customerEmail) {
+      setEmailInput(customerEmail);
+    }
+  }, [customerEmail]);
 
   // Generate standard prefilled message
   const getShareMessage = () => {
@@ -120,6 +135,29 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
     }
   };
 
+  const handleSendEmail = async () => {
+    if (!emailInput) return;
+    setIsSendingEmail(true);
+    setEmailError(null);
+    try {
+      const result = await sendQuoteByEmail(quoteId, emailInput);
+      if (result.success) {
+        setEmailSuccess(true);
+        setTimeout(() => {
+          setIsEmailModalOpen(false);
+          setEmailSuccess(false);
+        }, 1500);
+      } else {
+        throw new Error(result.error || 'Error al enviar correo.');
+      }
+    } catch (e: any) {
+      console.error(e);
+      setEmailError(e.message || 'Error de red o SMTP no configurado.');
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', alignItems: 'center' }}>
       {/* Print Quote */}
@@ -127,7 +165,7 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
         href={`/ventas/detalle/${quoteId}/imprimir-cotizacion`}
         target="_blank"
         rel="noopener noreferrer"
-        title="Imprimir o Descargar PDF"
+        title="Imprimir"
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -155,6 +193,40 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
         <Printer size={15} />
         Imprimir
       </a>
+
+      {/* Download Quote */}
+      <a
+        href={`/ventas/detalle/${quoteId}/imprimir-cotizacion`}
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Descargar PDF"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.35rem',
+          padding: '0.4rem 0.8rem',
+          backgroundColor: '#f1f5f9',
+          border: '1px solid #cbd5e1',
+          borderRadius: '6px',
+          cursor: 'pointer',
+          fontWeight: '600',
+          fontSize: '0.825rem',
+          color: '#334155',
+          textDecoration: 'none',
+          transition: 'all 0.15s ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#e2e8f0';
+          e.currentTarget.style.borderColor = '#94a3b8';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#f1f5f9';
+          e.currentTarget.style.borderColor = '#cbd5e1';
+        }}
+      >
+        <Download size={15} />
+        Descargar
+      </a >
 
       {/* Share Quote WhatsApp */}
       <button
@@ -185,6 +257,37 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
       >
         <Share2 size={15} />
         WhatsApp
+      </button>
+
+      {/* Send via Email */}
+      <button
+        onClick={() => setIsEmailModalOpen(true)}
+        title="Enviar por Correo Electrónico"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.35rem',
+          padding: '0.4rem 0.8rem',
+          backgroundColor: '#eff6ff',
+          border: '1px solid #bfdbfe',
+          borderRadius: '6px',
+          cursor: 'pointer',
+          fontWeight: '600',
+          fontSize: '0.825rem',
+          color: '#1d4ed8',
+          transition: 'all 0.15s ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#dbeafe';
+          e.currentTarget.style.borderColor = '#93c5fd';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#eff6ff';
+          e.currentTarget.style.borderColor = '#bfdbfe';
+        }}
+      >
+        <Mail size={15} />
+        Enviar por mail
       </button>
 
       {/* Edit Quote Button (If Pending) */}
@@ -464,6 +567,160 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
                     {sendError}
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Email Share Modal */}
+      {isEmailModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.45)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            animation: 'fadeIn 0.2s ease-out',
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '480px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              border: '1px solid #e2e8f0',
+              overflow: 'hidden',
+              animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                padding: '1.25rem 1.5rem',
+                borderBottom: '1px solid #f1f5f9',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                color: 'white',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  ✉️ Enviar Cotización por Correo
+                </h3>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.75rem', opacity: 0.9 }}>
+                  Envía la cotización en formato digital PDF a tu cliente.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsEmailModalOpen(false)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '28px',
+                  height: '28px',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)')}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Correo Destinatario</label>
+                <input
+                  type="email"
+                  placeholder="ejemplo@correo.com"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  style={{
+                    padding: '0.625rem 0.75rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              {emailError && (
+                <div style={{ padding: '0.5rem 0.75rem', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '6px', fontSize: '0.775rem', color: '#b91c1c' }}>
+                  {emailError}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button
+                  onClick={() => setIsEmailModalOpen(false)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: 'white',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    fontSize: '0.85rem',
+                    fontWeight: '600',
+                    color: '#475569',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSendEmail}
+                  disabled={isSendingEmail || !emailInput || emailSuccess}
+                  style={{
+                    padding: '0.5rem 1.25rem',
+                    backgroundColor: '#1d4ed8',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '0.85rem',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1e40af')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#1d4ed8')}
+                >
+                  {isSendingEmail ? (
+                    <>
+                      <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                      Enviando...
+                    </>
+                  ) : emailSuccess ? (
+                    <>
+                      <CheckCircle size={14} color="#4ade80" /> ¡Enviado!
+                    </>
+                  ) : (
+                    <>
+                      Enviar <Send size={12} />
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>

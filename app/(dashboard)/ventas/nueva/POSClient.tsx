@@ -7,7 +7,7 @@ import { createCustomerPOS } from '@/app/actions/customer';
 import { getLoyaltySettings } from '@/app/actions/loyalty';
 import { createQuote, getQuoteForPOS, createQuickProductsForQuote } from '@/app/actions/quote';
 import { createConsignment, getConsignmentForPOS } from '@/app/actions/consignment';
-import { searchProducts } from '@/app/actions/product';
+import { searchProducts, getProductBranchStocks } from '@/app/actions/product';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import ProductTableUI from '@/app/components/ProductTableUI';
@@ -473,6 +473,12 @@ export default function POSClient({
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successModalData, setSuccessModalData] = useState<any>(null);
   
+  // Stock Branch Modal State
+  const [showStockModal, setShowStockModal] = useState(false);
+  const [stockModalProduct, setStockModalProduct] = useState<any | null>(null);
+  const [branchStocks, setBranchStocks] = useState<any[]>([]);
+  const [loadingBranchStocks, setLoadingBranchStocks] = useState(false);
+  
   const [successPhone, setSuccessPhone] = useState('');
   const [successProspects, setSuccessProspects] = useState<any[]>([]);
   const [successSelectedProspectId, setSuccessSelectedProspectId] = useState<string>('');
@@ -793,6 +799,7 @@ export default function POSClient({
           name: cartItemName, 
           sku: cartItemSku,
           variantId: variant ? variant.id : null,
+          attribute: variant ? variant.attribute : null,
           quantity: 1 
         }];
       }
@@ -2207,6 +2214,10 @@ export default function POSClient({
                     {/* Product description & Price details */}
                     <div className="pos-cart-item-info">
                       <div className="pos-cart-item-title">{item.name}</div>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.15rem', fontSize: '0.725rem', color: '#64748b' }}>
+                        {item.sku && <span>SKU: <strong style={{ color: '#334155' }}>{item.sku}</strong></span>}
+                        {item.barcode && <span>| Código: <strong style={{ color: '#334155' }}>{item.barcode}</strong></span>}
+                      </div>
                       {hasPermission('pos_price_change') ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
                           <span style={{ color: '#64748b', fontSize: '0.85rem' }}>$</span>
@@ -2328,7 +2339,37 @@ export default function POSClient({
                             onClick={() => setActiveItemMenuId(null)}
                             style={{ position: 'fixed', inset: 0, zIndex: 10 }}
                           />
-                          <div style={{ position: 'absolute', right: 0, top: '100%', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 11, minWidth: '120px', padding: '4px' }}>
+                          <div style={{ position: 'absolute', right: 0, top: '100%', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 11, minWidth: '150px', padding: '4px' }}>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                setActiveItemMenuId(null);
+                                setStockModalProduct(item);
+                                setShowStockModal(true);
+                                setLoadingBranchStocks(true);
+                                try {
+                                  const stocks = await getProductBranchStocks({
+                                    productId: item.id,
+                                    sku: item.sku || null,
+                                    barcode: item.barcode || null,
+                                    name: item.name,
+                                    variantId: item.variantId || null,
+                                    attribute: item.attribute || null,
+                                    currentBranchId: branchId
+                                  });
+                                  setBranchStocks(stocks);
+                                } catch (e) {
+                                  console.error("Error fetching branch stocks:", e);
+                                } finally {
+                                  setLoadingBranchStocks(false);
+                                }
+                              }}
+                              style={{ display: 'flex', width: '100%', padding: '8px 12px', fontSize: '0.85rem', color: '#334155', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', borderRadius: '4px', borderBottom: '1px solid #f1f5f9' }}
+                              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+                              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                              Stock sucursales
+                            </button>
                             <button
                               type="button"
                               onClick={() => {
@@ -3750,6 +3791,107 @@ export default function POSClient({
               )}
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Stock branches modal */}
+      {showStockModal && stockModalProduct && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '16px', width: '550px', maxWidth: '95%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', overflow: 'hidden', color: '#1e293b' }}>
+            <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: 'white', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: 0 }}>Existencias en Sucursales</h2>
+                <p style={{ margin: '0.25rem 0 0 0', opacity: 0.8, fontSize: '0.85rem' }}>
+                  {stockModalProduct.name} {stockModalProduct.sku ? `(SKU: ${stockModalProduct.sku})` : ''}
+                </p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setShowStockModal(false);
+                  setStockModalProduct(null);
+                  setBranchStocks([]);
+                }} 
+                style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ padding: '1.5rem', maxHeight: '60vh', overflowY: 'auto' }}>
+              {loadingBranchStocks ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 0', gap: '0.75rem' }}>
+                  <div style={{ width: '40px', height: '40px', border: '3px solid #cbd5e1', borderTopColor: '#0f172a', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  <span style={{ fontSize: '0.9rem', color: '#64748b' }}>Consultando existencias...</span>
+                  <style>{`
+                    @keyframes spin {
+                      0% { transform: rotate(0deg); }
+                      100% { transform: rotate(360deg); }
+                    }
+                  `}</style>
+                </div>
+              ) : branchStocks.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem 0', color: '#64748b' }}>
+                  No se encontraron sucursales configuradas o existencias para este producto.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {branchStocks.map((bs) => (
+                    <div 
+                      key={bs.branchId} 
+                      style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        padding: '1rem', 
+                        borderRadius: '8px', 
+                        border: bs.isCurrent ? '2px solid #3b82f6' : '1px solid #e2e8f0',
+                        backgroundColor: bs.isCurrent ? '#eff6ff' : '#f8fafc'
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                        <span style={{ fontWeight: 'bold', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {bs.branchName}
+                          {bs.isCurrent && (
+                            <span style={{ fontSize: '0.7rem', backgroundColor: '#3b82f6', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '9999px', fontWeight: 'normal' }}>
+                              Sucursal Actual
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ 
+                          fontSize: '1.25rem', 
+                          fontWeight: 'bold', 
+                          color: bs.stock > 0 ? '#16a34a' : '#ef4444',
+                          backgroundColor: bs.stock > 0 ? '#dcfce7' : '#fee2e2',
+                          padding: '0.25rem 0.75rem',
+                          borderRadius: '6px'
+                        }}>
+                          {bs.stock} pza{bs.stock !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ padding: '1rem 1.5rem', backgroundColor: '#f8fafc', borderTop: '1px solid #e2e8f0', textAlign: 'right' }}>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setShowStockModal(false);
+                  setStockModalProduct(null);
+                  setBranchStocks([]);
+                }} 
+                className="btn-primary" 
+                style={{ padding: '0.5rem 1.5rem', fontSize: '0.9rem' }}
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}

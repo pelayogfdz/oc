@@ -196,10 +196,16 @@ export default async function PrintVentaTicketPage({ params }: { params: Promise
             <span className="col-price">IMPORTE</span>
           </div>
           {sale.items.map(item => (
-            <div className="item-row" key={item.id}>
-              <span className="col-cant">{item.quantity}</span>
-              <span className="col-desc">{item.product?.name || 'Desconocido'} {item.variant?.attribute ? `(${item.variant.attribute})` : ''}</span>
-              <span className="col-price">${((item.price || 0) * (item.quantity || 0)).toFixed(2)}</span>
+            <div key={item.id} style={{ marginBottom: '6px' }}>
+              <div className="item-row" style={{ marginBottom: '1px' }}>
+                <span className="col-cant">{item.quantity}</span>
+                <span className="col-desc">{item.product?.name || 'Desconocido'} {item.variant?.attribute ? `(${item.variant.attribute})` : ''}</span>
+                <span className="col-price">${((item.price || 0) * (item.quantity || 0)).toFixed(2)}</span>
+              </div>
+              <div style={{ paddingLeft: is58 ? '25px' : '40px', fontSize: is58 ? '8px' : '10px', color: '#666', fontFamily: 'monospace' }}>
+                {item.product?.sku && <span>SKU: {item.product.sku}</span>}
+                {item.product?.barcode && <span style={{ marginLeft: '8px' }}>EAN: {item.product.barcode}</span>}
+              </div>
             </div>
           ))}
         </div>
