@@ -2,7 +2,8 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star, X, Clock, FolderOpen, Trash2, ShoppingBag, Plus, Percent, Tag, PlusCircle, MoreVertical } from 'lucide-react';
 import QRCode from 'qrcode';
-import { createSale } from '@/app/actions/sale';
+import { createSale, sendSaleByEmail } from '@/app/actions/sale';
+import { sendInvoiceByEmail } from '@/app/actions/facturacion';
 import { createCustomerPOS } from '@/app/actions/customer';
 import { getLoyaltySettings } from '@/app/actions/loyalty';
 import { createQuote, getQuoteForPOS, createQuickProductsForQuote } from '@/app/actions/quote';
@@ -485,13 +486,21 @@ export default function POSClient({
   const [successSendSuccess, setSuccessSendSuccess] = useState(false);
   const [successSendError, setSuccessSendError] = useState<string | null>(null);
 
+  const [successEmail, setSuccessEmail] = useState('');
+  const [successIsSendingEmail, setSuccessIsSendingEmail] = useState(false);
+  const [successSendEmailSuccess, setSuccessSendEmailSuccess] = useState(false);
+  const [successSendEmailError, setSuccessSendEmailError] = useState<string | null>(null);
+
   // Fetch prospects for option B when success modal opens
   useEffect(() => {
     if (showSuccessModal && successModalData) {
       setSuccessPhone(successModalData.customerPhone || '');
+      setSuccessEmail(successModalData.customerEmail || '');
       setSuccessIsLoadingProspects(true);
       setSuccessSendError(null);
       setSuccessSendSuccess(false);
+      setSuccessSendEmailError(null);
+      setSuccessSendEmailSuccess(false);
       fetch(`/api/prospects?t=${Date.now()}`)
         .then((res) => {
           if (res.ok) return res.json();
@@ -570,6 +579,37 @@ export default function POSClient({
       setSuccessSendError(err.message || 'Error de red o microservicio desconectado.');
     } finally {
       setSuccessIsSending(false);
+    }
+  };
+
+  const handleSuccessSendEmail = async () => {
+    if (!successEmail || !successModalData) return;
+    setSuccessIsSendingEmail(true);
+    setSuccessSendEmailError(null);
+    try {
+      const isInvoiced = successModalData.documentType === 'INVOICE' && !successModalData.invoiceError;
+      let result;
+      if (isInvoiced) {
+        result = await sendInvoiceByEmail(successModalData.saleId, successEmail);
+      } else {
+        result = await sendSaleByEmail(successModalData.saleId, successEmail);
+      }
+
+      if (result.success) {
+        setSuccessSendEmailSuccess(true);
+        setTimeout(() => {
+          setSuccessSendEmailSuccess(false);
+          setShowSuccessModal(false);
+          setSuccessModalData(null);
+        }, 1500);
+      } else {
+        throw new Error(result.error || 'Error al enviar correo.');
+      }
+    } catch (e: any) {
+      console.error(e);
+      setSuccessSendEmailError(e.message || 'Error de red o de configuración del servidor de correo (SMTP).');
+    } finally {
+      setSuccessIsSendingEmail(false);
     }
   };
 
@@ -1476,9 +1516,11 @@ export default function POSClient({
           discount: discountBackup,
           customerName: selectedCust ? selectedCust.name : 'Público en General',
           customerPhone: selectedCust?.phone || '',
+          customerEmail: selectedCust?.email || '',
           cartBackup,
           documentType,
-          invoiceError: invoiceError
+          invoiceError: invoiceError,
+          invoiceId: responseSale?.invoiceId || null
         });
         setShowSuccessModal(true);
         router.refresh();
@@ -3394,6 +3436,56 @@ export default function POSClient({
                     <div style={{ marginTop: '0.5rem', color: '#ef4444', fontSize: '0.75rem' }}>{successSendError}</div>
                   )}
                 </div>
+              </div>
+
+              {/* Email options */}
+              <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '1rem', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 'bold', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  ✉️ Enviar por Correo Electrónico
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', lineHeight: '1.4' }}>
+                  {successModalData.documentType === 'INVOICE' && !successModalData.invoiceError
+                    ? "Envía la factura CFDI (PDF y XML adjuntos) al correo del cliente." 
+                    : "Envía el ticket de la venta al correo del cliente."}
+                </p>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    type="email"
+                    placeholder="cliente@ejemplo.com"
+                    value={successEmail}
+                    onChange={(e) => setSuccessEmail(e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: '0.5rem',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.85rem',
+                      outline: 'none',
+                    }}
+                  />
+                  <button
+                    onClick={handleSuccessSendEmail}
+                    disabled={!successEmail || successIsSendingEmail || successSendEmailSuccess}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      backgroundColor: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
+                    }}
+                  >
+                    {successIsSendingEmail ? 'Enviando...' : successSendEmailSuccess ? '✓ ¡Enviado!' : 'Enviar'}
+                  </button>
+                </div>
+                {successSendEmailError && (
+                  <div style={{ color: '#ef4444', fontSize: '0.75rem' }}>{successSendEmailError}</div>
+                )}
               </div>
 
               {/* Reset POS & Close */}

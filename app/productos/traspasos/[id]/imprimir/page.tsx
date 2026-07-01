@@ -73,23 +73,23 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
     <>
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
-          @page { size: letter portrait; margin: 1.2cm; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; margin: 0; padding: 0; }
+          @page { size: letter portrait; margin: 1cm; }
+          html, body { height: auto !important; overflow: visible !important; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; margin: 0; padding: 0; }
           .no-print { display: none !important; }
           .letter-container { width: 100% !important; max-width: none !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
         }
         body { font-family: 'Inter', system-ui, sans-serif; background: #f1f5f9; margin: 0; padding: 2rem 0; color: #1e293b; }
         .letter-container { width: 21.59cm; min-height: 27.94cm; margin: 0 auto; background: white; padding: 1.5cm; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); position: relative; box-sizing: border-box; }
-        .header-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; margin-bottom: 2rem; border-bottom: 3px solid ${primaryColor}; padding-bottom: 1.5rem; }
-        .invoice-title { font-size: 2.2rem; font-weight: 900; color: ${primaryColor}; margin: 0 0 0.5rem 0; text-transform: uppercase; line-height: 1.1; }
-        .info-card { background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem; }
-        .data-label { font-size: 0.75rem; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 0.25rem; }
-        .data-value { font-size: 0.95rem; font-weight: 500; }
+        .header-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; margin-bottom: 1.5rem; border-bottom: 2px solid ${primaryColor}; padding-bottom: 1.5rem; }
+        .invoice-title { font-size: 2rem; font-weight: 900; color: ${primaryColor}; margin: 0 0 0.5rem 0; text-transform: uppercase; line-height: 1.1; }
+        .info-card { background: #f8fafc; padding: 1.25rem; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; margin-top: 1.5rem; }
+        .data-label { font-size: 0.75rem; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 0.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.25rem; }
+        .data-value { font-size: 1.05rem; font-weight: bold; color: #0f172a; margin-bottom: 0.35rem; }
         .items-table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; font-size: 0.9rem; }
-        .items-table th { background-color: ${primaryColor}; color: white; padding: 0.75rem; text-align: left; font-weight: 600; }
-        .items-table td { padding: 0.75rem; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
-        .items-table tr:nth-child(even) td { background-color: #f8fafc; }
+        .items-table th { background-color: #f8fafc; border-top: 1px solid #cbd5e1; border-bottom: 2px solid #cbd5e1; padding: 0.75rem 0.5rem; text-align: left; font-weight: 700; color: #475569; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; }
+        .items-table td { padding: 0.75rem 0.5rem; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
         .qr-section { margin-top: 2rem; display: flex; align-items: center; gap: 1rem; background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px dashed #cbd5e1; }
       `}} />
       <script dangerouslySetInnerHTML={{ __html: printScript }} />
@@ -128,20 +128,22 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
         <div className="info-grid">
           <div className="info-card">
             <div className="data-label">SUCURSAL ORIGEN (SALIDA)</div>
-            <div className="data-value" style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0f172a' }}>
+            <div className="data-value">
               {transfer.branch?.name || 'Bodega Central'}
             </div>
-            <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>Autorizado / Enviado por:</div>
-            <div style={{ fontSize: '0.9rem', fontWeight: '500' }}>{transfer.createdBy?.name || 'N/A'}</div>
+            <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.35rem' }}>
+              <strong>Enviado por:</strong> {transfer.createdBy?.name || 'N/A'}
+            </div>
           </div>
           
           <div className="info-card">
             <div className="data-label">SUCURSAL DESTINO (ENTRADA)</div>
-            <div className="data-value" style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0f172a' }}>
+            <div className="data-value">
               {transfer.toBranch?.name || 'N/A'}
             </div>
-            <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>Recibido por:</div>
-            <div style={{ fontSize: '0.9rem', fontWeight: '500' }}>{transfer.receivedBy?.name || 'Pendiente de Recepción'}</div>
+            <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.35rem' }}>
+              <strong>Recibido por:</strong> {transfer.receivedBy?.name || 'Pendiente de Recepción'}
+            </div>
           </div>
         </div>
 

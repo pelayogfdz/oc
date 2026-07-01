@@ -501,6 +501,8 @@ button {
     background-color: white !important;
     margin: 0 !important;
     color: #000000 !important;
+    height: auto !important;
+    overflow: visible !important;
   }
 
   /* Eliminar sombras para una impresión más limpia */
