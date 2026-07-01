@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { prisma } from './prisma';
 
 // Configure Nodemailer with environment variables
 // Expects: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS
@@ -11,6 +12,59 @@ const transporter = nodemailer.createTransport({
     pass: process.env.SMTP_PASS,
   },
 });
+
+async function getTransporterAndSender(branchId?: string | null) {
+  // Default values from environment variables
+  let host = process.env.SMTP_HOST || 'smtp.zoho.com';
+  let port = parseInt(process.env.SMTP_PORT || '465', 10);
+  let secure = true;
+  let user = process.env.SMTP_USER;
+  let pass = process.env.SMTP_PASS;
+  let fromName = '';
+  let isCustom = false;
+
+  if (branchId) {
+    try {
+      const settings = await prisma.branchSettings.findUnique({
+        where: { branchId }
+      });
+      if (settings && settings.configJson) {
+        const config = JSON.parse(settings.configJson)['notificaciones'] || {};
+        if (config.smtpHost && config.smtpUser && config.smtpPass) {
+          host = config.smtpHost.trim();
+          port = parseInt(config.smtpPort || '465', 10);
+          secure = config.smtpSecure === 'true' || config.smtpSecure === true;
+          user = config.smtpUser.trim();
+          pass = config.smtpPass.trim();
+          if (config.emailFromName) {
+            fromName = config.emailFromName.trim();
+          }
+          isCustom = true;
+        }
+      }
+    } catch (e) {
+      console.error("Error loading branch SMTP settings:", e);
+    }
+  }
+
+  const transporterInstance = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: {
+      user,
+      pass,
+    },
+  });
+
+  return {
+    transporter: transporterInstance,
+    fromEmail: user,
+    fromName,
+    isCustom,
+    configured: !!(user && pass)
+  };
+}
 
 export const sendTemporaryPasswordEmail = async (to: string, tempPassword: string) => {
   // If credentials are not set, we just log it for development purposes
@@ -117,7 +171,10 @@ export const sendSaleNotificationEmail = async (
   isPickup: boolean,
   pickupCode?: string | null
 ) => {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+  const { transporter: customTransporter, fromEmail, fromName, isCustom, configured } = await getTransporterAndSender(sale.branchId);
+  const brandName = isCustom ? fromName : "PETQRO Showroom";
+
+  if (!configured) {
     if (process.env.NODE_ENV === 'production') {
       console.error('❌ Error: SMTP credentials are not configured in production environment.');
       return { success: false, error: 'SMTP credentials not configured' };
@@ -157,15 +214,15 @@ export const sendSaleNotificationEmail = async (
         </div>
       `;
 
-    const info = await transporter.sendMail({
-      from: `"PETQRO Showroom" <${process.env.SMTP_USER}>`,
+    const info = await customTransporter.sendMail({
+      from: `"${brandName}" <${fromEmail}>`,
       to,
-      subject: `Confirmación de Pedido PETQRO - Folio #${sale.id.slice(0, 8)}`,
+      subject: isCustom ? `Confirmación de Pedido - Folio #${sale.id.slice(0, 8)}` : `Confirmación de Pedido PETQRO - Folio #${sale.id.slice(0, 8)}`,
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px;">
           <div style="text-align: center; border-bottom: 2px solid #0ea5e9; padding-bottom: 20px;">
             <h1 style="color: #0ea5e9; margin: 0; font-size: 28px;">¡Gracias por tu compra!</h1>
-            <p style="color: #666; margin: 5px 0 0 0;">Pedido de Showroom PETQRO</p>
+            <p style="color: #666; margin: 5px 0 0 0;">Pedido de ${brandName}</p>
           </div>
           
           ${deliveryDetailsHtml}
@@ -193,7 +250,7 @@ export const sendSaleNotificationEmail = async (
 
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; text-align: center; font-size: 12px; color: #888;">
             <p>Este es un correo automático, por favor no respondas a esta dirección.</p>
-            <p><strong>PETQRO Showroom & CAANMA ERP</strong></p>
+            <p><strong>${brandName} & CAANMA ERP</strong></p>
           </div>
         </div>
       `,
@@ -211,7 +268,10 @@ export const sendQuoteNotificationEmail = async (
   to: string,
   quote: any
 ) => {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+  const { transporter: customTransporter, fromEmail, fromName, isCustom, configured } = await getTransporterAndSender(quote.branchId);
+  const finalFromName = isCustom ? fromName : "CAANMA Cotizaciones";
+
+  if (!configured) {
     if (process.env.NODE_ENV === 'production') {
       console.error('❌ Error: SMTP credentials are not configured in production environment.');
       return { success: false, error: 'SMTP credentials not configured' };
@@ -235,8 +295,8 @@ export const sendQuoteNotificationEmail = async (
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || 'https://caanma.com';
     const link = `${baseUrl}/ventas/detalle/${quote.id}/imprimir-cotizacion`;
 
-    const info = await transporter.sendMail({
-      from: `"CAANMA Cotizaciones" <${process.env.SMTP_USER}>`,
+    const info = await customTransporter.sendMail({
+      from: `"${finalFromName}" <${fromEmail}>`,
       to,
       subject: `Nueva Cotización Realizada - Folio #${displayFolio}`,
       html: `

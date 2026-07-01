@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getBranchSettings } from "@/app/actions/settings";
 import POSClient from "../../nueva/POSClient";
 import { getTenantSuppliers } from "@/app/actions/supplier";
+import { hasPermission } from '@/app/config/permissions';
 
 export default async function NuevaCotizacionPage({ 
   searchParams 
@@ -81,11 +82,17 @@ export default async function NuevaCotizacionPage({
     if (rawPermissions) {
       try {
         const parsed = JSON.parse(rawPermissions);
+        const tempPermissions: Record<string, boolean> = {};
         if (Array.isArray(parsed)) {
-          parsed.forEach((p: string) => userPermissions[p] = true);
+          parsed.forEach((p: string) => tempPermissions[p] = true);
         } else {
-          userPermissions = parsed;
+          Object.keys(parsed).forEach((k) => { if (parsed[k]) tempPermissions[k] = true; });
         }
+        Object.keys(tempPermissions).forEach(p => {
+          if (hasPermission(tempPermissions, p)) {
+            userPermissions[p] = true;
+          }
+        });
       } catch (e) {}
     }
   }

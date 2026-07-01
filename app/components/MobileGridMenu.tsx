@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useMobileMenu } from './MobileMenuContext';
 import { navStructure, footerNodes } from '../config/navigation';
 import { X, ChevronDown, ChevronUp, ShieldAlert, LogOut } from 'lucide-react';
+import { hasNodeAccess } from '@/app/config/permissions';
 
 export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, userRole = 'USER' }: { isSuperAdmin?: boolean; userPermissions?: Record<string, boolean>; userRole?: string }) {
   const { isMobileMenuOpen, closeMenu } = useMobileMenu();
@@ -13,6 +14,19 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 
   if (!isMobileMenuOpen) return null;
+
+  const hasNodeVisible = (node: any) => {
+    if (isSuperAdmin || userRole === 'OWNER' || userRole === 'ADMIN') {
+      return true;
+    }
+    if (node.path) {
+      return hasNodeAccess(userPermissions, node.requiredPermission, isSuperAdmin, userRole);
+    }
+    if (node.items) {
+      return node.items.some((item: any) => hasNodeAccess(userPermissions, item.requiredPermission, isSuperAdmin, userRole));
+    }
+    return true;
+  };
 
   const toggleGroup = (title: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -46,11 +60,7 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
       <div className="mobile-grid-content" style={{ padding: '1rem', backgroundColor: '#f8fafc', paddingBottom: '8rem' }}>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {!isSuperAdmin && navStructure.map((node) => {
-            if (node.requiredPermission && userRole !== 'OWNER' && userRole !== 'ADMIN') {
-              const reqs = Array.isArray(node.requiredPermission) ? node.requiredPermission : [node.requiredPermission];
-              const hasAccess = reqs.some(req => userPermissions[req]);
-              if (!hasAccess) return null;
-            }
+            if (!hasNodeVisible(node)) return null;
             const NodeActive = isNodeActive(node);
             
             let content;
@@ -109,6 +119,9 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
                   {isOpen && node.items && (
                     <div style={{ display: 'flex', flexDirection: 'column', padding: '0.5rem 1rem 1rem 3.5rem', gap: '0.75rem', backgroundColor: '#f8fafc', borderTop: '1px solid var(--caanma-border)' }}>
                       {node.items.map((item: any) => {
+                        if (!hasNodeAccess(userPermissions, item.requiredPermission, isSuperAdmin, userRole)) {
+                          return null;
+                        }
                         const ItemActive = isItemActive(item.path);
                         return (
                           <Link 
@@ -146,13 +159,8 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
             <div style={{ height: '1px', backgroundColor: 'var(--caanma-border)', margin: '1rem 0' }} />
           )}
  
-          {/* Footer Items */}
           {!isSuperAdmin && footerNodes.filter(node => {
-            if (node.requiredPermission && userRole !== 'OWNER' && userRole !== 'ADMIN') {
-              const reqs = Array.isArray(node.requiredPermission) ? node.requiredPermission : [node.requiredPermission];
-              return reqs.some(req => userPermissions[req]);
-            }
-            return true;
+            return hasNodeAccess(userPermissions, node.requiredPermission, isSuperAdmin, userRole);
           }).map(node => (
             <Link 
               key={node.title}

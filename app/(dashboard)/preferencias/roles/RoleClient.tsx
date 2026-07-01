@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Shield, Plus, Edit2, Trash2, CheckCircle2, ChevronRight, X, Info } from 'lucide-react';
 import { createCustomRole, updateCustomRole, deleteCustomRole } from '@/app/actions/role-actions';
-import { PERMISSION_MODULES } from '../usuarios/UserClient';
+import { PERMISSION_MODULES } from '@/app/config/permissions';
 
 export default function RoleClient({ initialRoles }: { initialRoles: any[] }) {
   const [roles, setRoles] = useState(initialRoles);
@@ -63,7 +63,58 @@ export default function RoleClient({ initialRoles }: { initialRoles: any[] }) {
   };
 
   const handlePermissionChange = (id: string, value: boolean) => {
-    setPerms(prev => ({ ...prev, [id]: value }));
+    setPerms(prev => {
+      const next = { ...prev, [id]: value };
+
+      // Find if we disabled a module
+      const mod = PERMISSION_MODULES.find(m => m.id === id);
+      if (mod && !value) {
+        next[mod.id] = false;
+        mod.submodules?.forEach((sm: any) => {
+          next[sm.id] = false;
+          sm.permissions?.forEach((p: any) => {
+            next[p.id] = false;
+          });
+        });
+      }
+
+      // Find if we disabled a submodule
+      if (!mod && !value) {
+        for (const m of PERMISSION_MODULES) {
+          const sm = m.submodules?.find((s: any) => s.id === id);
+          if (sm) {
+            next[sm.id] = false;
+            sm.permissions?.forEach((p: any) => {
+              next[p.id] = false;
+            });
+            break;
+          }
+        }
+      }
+
+      // If we enabled a permission, auto-enable its parent submodule and module
+      if (value) {
+        for (const m of PERMISSION_MODULES) {
+          let hasFound = false;
+          m.submodules?.forEach((sm: any) => {
+            const hasPerm = sm.permissions?.some((p: any) => p.id === id);
+            if (hasPerm) {
+              next[sm.id] = true;
+              next[m.id] = true;
+              hasFound = true;
+            }
+          });
+          if (!hasFound) {
+            const hasSubmod = m.submodules?.some((sm: any) => sm.id === id);
+            if (hasSubmod) {
+              next[m.id] = true;
+            }
+          }
+        }
+      }
+
+      return next;
+    });
   };
 
   const handleSelectAll = (modId: string) => {

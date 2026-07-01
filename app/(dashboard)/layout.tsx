@@ -15,6 +15,7 @@ import FloatingWhatsappWidget from '../components/FloatingWhatsappWidget';
 import CollaboratorTaskPopup from '../components/CollaboratorTaskPopup';
 import PriceChangesAlertPopup from '../components/PriceChangesAlertPopup';
 import { redirect } from 'next/navigation';
+import { hasPermission } from '@/app/config/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,11 +62,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
         const rawPermissions = (user as any).customRole?.permissions || user.permissions;
         if (rawPermissions) {
           const parsed = JSON.parse(rawPermissions);
+          const tempPermissions: Record<string, boolean> = {};
           if (Array.isArray(parsed)) {
-            parsed.forEach((p: string) => userPermissions[p] = true);
+            parsed.forEach((p: string) => tempPermissions[p] = true);
           } else {
-            userPermissions = parsed;
+            Object.keys(parsed).forEach((k) => { if (parsed[k]) tempPermissions[k] = true; });
           }
+          Object.keys(tempPermissions).forEach(p => {
+            if (hasPermission(tempPermissions, p)) {
+              userPermissions[p] = true;
+            }
+          });
         }
       } catch (e) {}
     }

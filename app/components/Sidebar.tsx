@@ -18,11 +18,25 @@ type MenuItem = {
 
 import { MenuNode, navStructure, footerNodes } from '../config/navigation';
 import { ShieldAlert } from 'lucide-react';
+import { hasNodeAccess } from '@/app/config/permissions';
 
 export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole = 'USER' }: { isSuperAdmin?: boolean; userPermissions?: Record<string, boolean>; userRole?: string }) {
   const pathname = usePathname();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const { isMobileMenuOpen, closeMenu } = useMobileMenu();
+
+  const hasNodeVisible = (node: MenuNode) => {
+    if (isSuperAdmin || userRole === 'OWNER' || userRole === 'ADMIN') {
+      return true;
+    }
+    if (node.path) {
+      return hasNodeAccess(userPermissions, node.requiredPermission, isSuperAdmin, userRole);
+    }
+    if (node.items) {
+      return node.items.some(item => hasNodeAccess(userPermissions, item.requiredPermission, isSuperAdmin, userRole));
+    }
+    return true;
+  };
 
   const renderMenuIcon = (icon: React.ReactNode) => {
     if (!icon) return null;
@@ -108,12 +122,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
       {/* Main Navigation */}
       <nav style={{ flex: 1, padding: '0.25rem 0.5rem 0.5rem 0.5rem', display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
         {navStructure.map((node) => {
-          // Check permissions
-          if (!isSuperAdmin && node.requiredPermission && userRole !== 'OWNER' && userRole !== 'ADMIN') {
-            const reqs = Array.isArray(node.requiredPermission) ? node.requiredPermission : [node.requiredPermission];
-            const hasAccess = reqs.some(req => userPermissions[req]);
-            if (!hasAccess) return null;
-          }
+          if (!hasNodeVisible(node)) return null;
 
           const NodeActive = isNodeActive(node);
           
@@ -196,6 +205,9 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
                 {isOpen && node.items && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingLeft: '3.6rem', marginTop: '0.3rem', marginBottom: '0.6rem' }}>
                     {node.items.map(item => {
+                      if (!hasNodeAccess(userPermissions, item.requiredPermission, isSuperAdmin, userRole)) {
+                        return null;
+                      }
                       const ItemActive = isItemActive(item.path);
                       return (
                         <Link 
@@ -242,11 +254,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
         {/* Footer Items Wrapper */}
         <div style={{ marginTop: 'auto' }}>
           {footerNodes.filter(node => {
-            if (!isSuperAdmin && node.requiredPermission && userRole !== 'OWNER' && userRole !== 'ADMIN') {
-              const reqs = Array.isArray(node.requiredPermission) ? node.requiredPermission : [node.requiredPermission];
-              return reqs.some(req => userPermissions[req]);
-            }
-            return true;
+            return hasNodeAccess(userPermissions, node.requiredPermission, isSuperAdmin, userRole);
           }).map(node => (
             <Link 
               key={node.title}

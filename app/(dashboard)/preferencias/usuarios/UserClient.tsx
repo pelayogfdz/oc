@@ -5,152 +5,8 @@ import { Users, Plus, Shield, Edit2, Trash2, CheckCircle2, ChevronDown, ChevronR
 import { createUser, updateUser, deleteUser } from '@/app/actions/user';
 import { createBranch } from '@/app/actions/branch';
 
-export const PERMISSION_MODULES = [
-  {
-    id: 'pos',
-    name: 'Punto de Venta (POS)',
-    submodules: [
-      {
-        id: 'pos_terminal',
-        name: 'Terminal',
-        permissions: [
-          { id: 'pos_access', label: 'Acceder a Punto de Venta' },
-          { id: 'pos_discount', label: 'Autorizar Descuentos' },
-          { id: 'pos_price_change', label: 'Modificar Precio en Caja' },
-          { id: 'pos_change_customer', label: 'Cambiar Cliente en Caja' },
-          { id: 'pos_manual_discount', label: 'Asignar Descuento Manual' },
-          { id: 'pos_price_list_change', label: 'Cambiar Lista de Precios' },
-          { id: 'pos_assign_promotions', label: 'Asignar/Modificar Promociones' },
-        ]
-      },
-      {
-        id: 'pos_tickets',
-        name: 'Tickets',
-        permissions: [
-          { id: 'pos_cancel', label: 'Cancelar Tickets' },
-          { id: 'pos_returns', label: 'Procesar Devoluciones' },
-          { id: 'pos_view_history', label: 'Ver Historial de Ventas' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'inventory',
-    name: 'Inventario',
-    submodules: [
-      {
-        id: 'inv_catalog',
-        name: 'Catálogo de Productos',
-        permissions: [
-          { id: 'inv_view', label: 'Ver Catálogo y Stock' },
-          { id: 'inv_edit', label: 'Crear / Editar Productos' },
-          { id: 'inv_delete', label: 'Eliminar Productos Permanentemente' },
-          { id: 'inv_cost', label: 'Ver Costos de Compra (Margen)' },
-          { id: 'inv_export', label: 'Exportar Inventario (CSV/Excel)' }
-        ]
-      },
-      {
-        id: 'inv_movements',
-        name: 'Movimientos',
-        permissions: [
-          { id: 'inv_adjust', label: 'Realizar Ajustes de Stock' },
-          { id: 'inv_transfer', label: 'Crear / Recibir Traspasos' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'cash',
-    name: 'Caja y Efectivo',
-    submodules: [
-      {
-        id: 'cash_ops',
-        name: 'Operaciones',
-        permissions: [
-          { id: 'cash_open_close', label: 'Abrir y Cerrar Caja' },
-          { id: 'cash_movements', label: 'Registrar Retiros / Depósitos' },
-          { id: 'cash_audit', label: 'Visualizar Arqueos de Otros' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'admin',
-    name: 'Administración Global',
-    submodules: [
-      {
-        id: 'admin_customers',
-        name: 'Clientes',
-        permissions: [
-          { id: 'admin_customers_view', label: 'Ver y Editar Clientes' }
-        ]
-      },
-      {
-        id: 'admin_purchases',
-        name: 'Compras y Proveedores',
-        permissions: [
-          { id: 'admin_purchases_access', label: 'Modulo de Compras y Proveedores' }
-        ]
-      },
-      {
-        id: 'admin_reports',
-        name: 'Reportes',
-        permissions: [
-          { id: 'admin_reports_access', label: 'Ver Reportes y Finanzas' }
-        ]
-      },
-      {
-        id: 'admin_quotes',
-        name: 'Cotizaciones',
-        permissions: [
-          { id: 'admin_quotes_access', label: 'Crear / Imprimir Cotizaciones' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'logistica',
-    name: 'Logística y Entregas',
-    submodules: [
-      {
-        id: 'log_manage',
-        name: 'Gestión',
-        permissions: [
-          { id: 'logistica_access', label: 'Ver y Gestionar Entregas (Choferes, Etiquetas)' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'panaderia',
-    name: 'Panadería (Fabricación)',
-    submodules: [
-      {
-        id: 'panaderia_ops',
-        name: 'Operaciones',
-        permissions: [
-          { id: 'panaderia_access', label: 'Ver Ordenes de Producción y Avanzar Pasos' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'sysadmin',
-    name: 'Preferencias (Sysadmin)',
-    submodules: [
-      {
-        id: 'sys_settings',
-        name: 'Ajustes',
-        permissions: [
-          { id: 'sys_settings_access', label: 'Modificar Configuraciones de Tienda' },
-          { id: 'sys_users', label: 'Administrar Usuarios y Permisos' },
-          { id: 'sys_branches', label: 'Administrar Múltiples Sucursales' },
-          { id: 'sys_integrations', label: 'Integraciones (MercadoLibre, Shopify)' }
-        ]
-      }
-    ]
-  }
-];
+import { PERMISSION_MODULES } from '@/app/config/permissions';
+export { PERMISSION_MODULES };
 
 export default function UserClient({ initialUsers, branches, hrLocations = [], customRoles = [] }: { initialUsers: any[], branches: any[], hrLocations?: any[], customRoles?: any[] }) {
   const [users, setUsers] = useState(initialUsers);
@@ -325,7 +181,58 @@ export default function UserClient({ initialUsers, branches, hrLocations = [], c
   ];
 
   const handlePermissionChange = (id: string, value: boolean) => {
-    setPerms(prev => ({ ...prev, [id]: value }));
+    setPerms(prev => {
+      const next = { ...prev, [id]: value };
+
+      // Find if we disabled a module
+      const mod = PERMISSION_MODULES.find(m => m.id === id);
+      if (mod && !value) {
+        next[mod.id] = false;
+        mod.submodules?.forEach((sm: any) => {
+          next[sm.id] = false;
+          sm.permissions?.forEach((p: any) => {
+            next[p.id] = false;
+          });
+        });
+      }
+
+      // Find if we disabled a submodule
+      if (!mod && !value) {
+        for (const m of PERMISSION_MODULES) {
+          const sm = m.submodules?.find((s: any) => s.id === id);
+          if (sm) {
+            next[sm.id] = false;
+            sm.permissions?.forEach((p: any) => {
+              next[p.id] = false;
+            });
+            break;
+          }
+        }
+      }
+
+      // If we enabled a permission, auto-enable its parent submodule and module
+      if (value) {
+        for (const m of PERMISSION_MODULES) {
+          let hasFound = false;
+          m.submodules?.forEach((sm: any) => {
+            const hasPerm = sm.permissions?.some((p: any) => p.id === id);
+            if (hasPerm) {
+              next[sm.id] = true;
+              next[m.id] = true;
+              hasFound = true;
+            }
+          });
+          if (!hasFound) {
+            const hasSubmod = m.submodules?.some((sm: any) => sm.id === id);
+            if (hasSubmod) {
+              next[m.id] = true;
+            }
+          }
+        }
+      }
+
+      return next;
+    });
   };
 
   const handleSelectAll = (modId: string) => {
