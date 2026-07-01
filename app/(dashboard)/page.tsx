@@ -70,7 +70,7 @@ export default async function DashboardPage(props: Props) {
     todayAggregate,
     recentSales,
     topCustomersGroup,
-    topProductsGroup,
+    todaySaleItems,
     lowStockProducts,
     chartSales
   ] = await Promise.all([
@@ -112,8 +112,7 @@ export default async function DashboardPage(props: Props) {
       },
       take: 10
     }),
-    prisma.saleItem.groupBy({
-      by: ['productId'],
+    prisma.saleItem.findMany({
       where: {
         sale: {
           ...branchFilter,
@@ -121,11 +120,9 @@ export default async function DashboardPage(props: Props) {
           status: { not: 'CANCELLED' }
         }
       },
-      _sum: { quantity: true },
-      orderBy: {
-        _sum: { quantity: 'desc' }
-      },
-      take: 10
+      include: {
+        product: true
+      }
     }),
     prisma.product.count({
       where: {
@@ -196,44 +193,17 @@ export default async function DashboardPage(props: Props) {
     }
   });
 
-  // Phase 2: Parallel Fetching of metadata for Top 10 Clientes and Top 10 Productos
+  // Phase 2: Fetching of metadata for Top 10 Clientes
   const customerIds = topCustomersGroup.map(g => g.customerId).filter(Boolean) as string[];
-  const productIds = topProductsGroup.map(g => g.productId).filter(Boolean) as string[];
 
-  const [customers, products, revenueItems] = await Promise.all([
+  const [customers] = await Promise.all([
     prisma.customer.findMany({
       where: { id: { in: customerIds } },
       select: { id: true, name: true, phone: true }
-    }),
-    prisma.product.findMany({
-      where: { id: { in: productIds } },
-      select: { id: true, name: true, sku: true }
-    }),
-    prisma.saleItem.findMany({
-      where: {
-        productId: { in: productIds },
-        sale: {
-          ...branchFilter,
-          createdAt: { gte: startOfDay, lte: endOfDay },
-          status: { not: 'CANCELLED' }
-        }
-      },
-      select: {
-        productId: true,
-        quantity: true,
-        price: true
-      }
     })
   ]);
 
   const customerLookup = new Map(customers.map(c => [c.id, c]));
-  const productLookup = new Map(products.map(p => [p.id, p]));
-
-  const productRevenueMap = new Map<string, number>();
-  revenueItems.forEach(item => {
-    const current = productRevenueMap.get(item.productId) || 0;
-    productRevenueMap.set(item.productId, current + (item.quantity * item.price));
-  });
 
   // Format topCustomers
   const topCustomers = topCustomersGroup.map(g => {
@@ -249,17 +219,37 @@ export default async function DashboardPage(props: Props) {
 
   const maxCustomerPurchased = topCustomers.length > 0 ? topCustomers[0].totalPurchased : 1;
 
-  // Format topProducts
-  const topProducts = topProductsGroup.map((g, idx) => {
-    const prod = productLookup.get(g.productId);
-    return {
-      id: g.productId,
-      name: prod?.name || "Producto Desconocido",
-      sku: prod?.sku || "S/K",
-      quantitySold: g._sum.quantity || 0,
-      totalRevenue: productRevenueMap.get(g.productId) || 0
+  // Format topProducts in-memory to group by SKU/barcode/name across branches
+  const productMap = new Map<string, any>();
+  todaySaleItems.forEach(item => {
+    const prod = item.product;
+    if (!prod) return;
+
+    const isGlobal = branch.id === 'GLOBAL';
+    const groupKey = isGlobal
+      ? ((prod.sku && prod.sku !== 'S/K')
+         ? `SKU_${prod.sku.trim().toUpperCase()}`
+         : ((prod.barcode)
+            ? `BC_${prod.barcode.trim().toUpperCase()}`
+            : `NAME_${prod.name.trim().toUpperCase()}_${prod.id}`))
+      : prod.id;
+
+    const existing = productMap.get(groupKey) || {
+      id: prod.id,
+      name: prod.name,
+      sku: prod.sku || 'S/K',
+      quantitySold: 0,
+      totalRevenue: 0
     };
+
+    existing.quantitySold += item.quantity;
+    existing.totalRevenue += item.quantity * item.price;
+    productMap.set(groupKey, existing);
   });
+
+  const topProducts = Array.from(productMap.values())
+    .sort((a, b) => b.quantitySold - a.quantitySold)
+    .slice(0, 10);
 
   const getInitials = (name: string) => {
     if (!name) return "C";

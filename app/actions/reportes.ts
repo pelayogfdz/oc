@@ -853,14 +853,20 @@ export async function getTopProductsReport(
 
   const productMap = new Map();
   saleItems.forEach(item => {
-    const id = item.productId;
     const name = item.product?.name || "Producto Desconocido";
     const sku = item.product?.sku || "S/K";
     const category = item.product?.category || "Sin Categoría";
     const cost = item.product?.cost || 0;
     const price = item.product?.price || 0;
-    const existing = productMap.get(id) || {
-      id,
+
+    const key = (item.product?.sku && item.product.sku !== 'S/K')
+      ? `SKU_${item.product.sku.trim().toUpperCase()}`
+      : ((item.product?.barcode)
+         ? `BC_${item.product.barcode.trim().toUpperCase()}`
+         : `NAME_${name.trim().toUpperCase()}_${item.productId}`);
+
+    const existing = productMap.get(key) || {
+      id: item.productId,
       name,
       sku,
       category,
@@ -873,8 +879,8 @@ export async function getTopProductsReport(
     };
     existing.quantitySold += item.quantity;
     existing.totalRevenue += (item.quantity * item.price);
-    existing.totalCost += (item.quantity * item.product.cost);
-    productMap.set(id, existing);
+    existing.totalCost += (item.quantity * (item.product?.cost || 0));
+    productMap.set(key, existing);
   });
 
   const result = Array.from(productMap.values())
