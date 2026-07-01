@@ -49,6 +49,7 @@ export interface OfflinePurchase extends DLQMetadata {
   freightCost?: number;
   notes?: string;
   supplierFolio?: string | null;
+  creditDays?: number;
 }
 
 // Estos son los catálogos espejo

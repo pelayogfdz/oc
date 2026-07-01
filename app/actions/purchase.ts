@@ -27,7 +27,8 @@ export async function createPurchase(
   freightCost: number = 0,
   purchaseId?: string,
   supplierFolio?: string | null,
-  purchaseOrderId?: string
+  purchaseOrderId?: string,
+  creditDays?: number
 ) {
   try {
     const branch = await getActiveBranch();
@@ -52,8 +53,9 @@ export async function createPurchase(
           throw new Error(`Excedes el límite de crédito con este proveedor. Límite disponible: $${(supplier.creditLimit - supplier.creditBalance).toFixed(2)}`);
         }
 
+        const days = creditDays !== undefined && creditDays !== null ? creditDays : supplier.creditDays;
         dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + supplier.creditDays);
+        dueDate.setDate(dueDate.getDate() + days);
         balanceDue = total;
 
         // Incrementar la deuda con el proveedor

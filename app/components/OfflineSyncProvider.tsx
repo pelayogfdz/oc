@@ -388,7 +388,9 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
               p.supplierId || null,
               p.freightCost || 0,
               p.id,
-              p.supplierFolio || null
+              p.supplierFolio || null,
+              undefined,
+              p.creditDays
             );
             if (res && !res.success) {
               if (res.error && (res.error.includes('Unique constraint') || res.error.includes('already exists') || res.error.includes('duplicate key'))) {

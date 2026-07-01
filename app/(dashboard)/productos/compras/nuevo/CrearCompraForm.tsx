@@ -11,6 +11,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
   const { isOnline, pushOfflinePurchase } = useOfflineSync();
   const [supplierId, setSupplierId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
+  const [creditDays, setCreditDays] = useState<number | ''>('');
   const [freightCost, setFreightCost] = useState(0);
   const [supplierFolio, setSupplierFolio] = useState('');
   const [notes, setNotes] = useState('');
@@ -50,6 +51,20 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
 
   const [availableProducts, setAvailableProducts] = useState(products || []);
   const [availableSuppliers, setAvailableSuppliers] = useState(suppliers || []);
+
+  // Pre-populate credit days when supplier or payment method changes
+  useEffect(() => {
+    if (paymentMethod === 'CREDIT' && supplierId) {
+      const selected = availableSuppliers.find(s => s.id === supplierId);
+      if (selected && selected.creditDays !== undefined) {
+        setCreditDays(selected.creditDays);
+      } else {
+        setCreditDays('');
+      }
+    } else {
+      setCreditDays('');
+    }
+  }, [supplierId, paymentMethod, availableSuppliers]);
 
   // Load preloaded order if available
   useEffect(() => {
@@ -100,6 +115,10 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
     }
   }, [isOnline, products, suppliers, branchId]);
 
+  const itemsSubtotal = items.reduce((sum, item) => sum + (item.quantity * item.cost), 0);
+  const iva = itemsSubtotal * 0.16;
+  const finalTotal = itemsSubtotal + iva + freightCost;
+
   const handlePutOnHold = () => {
     if (items.length === 0) {
       alert('La compra actual no tiene artículos.');
@@ -114,9 +133,10 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
       items,
       supplierId,
       paymentMethod,
+      creditDays: paymentMethod === 'CREDIT' ? (creditDays === '' ? undefined : creditDays) : undefined,
       freightCost,
       notes,
-      total,
+      total: finalTotal,
       timestamp: new Date().toLocaleString(),
     };
 
@@ -128,6 +148,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
     setItems([]);
     setSupplierId('');
     setPaymentMethod('CASH');
+    setCreditDays('');
     setFreightCost(0);
     setNotes('');
     alert('Compra guardada en espera.');
@@ -142,6 +163,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
     setItems(purchase.items);
     setSupplierId(purchase.supplierId || '');
     setPaymentMethod(purchase.paymentMethod || 'CASH');
+    setCreditDays(purchase.creditDays !== undefined ? purchase.creditDays : '');
     setFreightCost(purchase.freightCost || 0);
     setNotes(purchase.notes || '');
 
@@ -157,8 +179,6 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
     setOnHoldPurchases(updated);
     localStorage.setItem(`caanma_on_hold_purchases_${branchId}`, JSON.stringify(updated));
   };
-
-  const total = items.reduce((sum, item) => sum + (item.quantity * item.cost), 0);
 
   const handleAddItem = (product: any) => {
     if (!product || !product.id) return;
@@ -202,20 +222,22 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
           paymentMethod,
           freightCost,
           items,
-          total,
-          supplierFolio: supplierFolio || null
+          total: finalTotal,
+          supplierFolio: supplierFolio || null,
+          creditDays: paymentMethod === 'CREDIT' ? (creditDays === '' ? 0 : creditDays) : undefined
         });
         alert('Compra guardada en modo Offline. Se sincronizará al recuperar conexión.');
       } else {
         const res = await createPurchase(
           items, 
-          total, 
+          finalTotal, 
           paymentMethod, 
           supplierId || null, 
           freightCost, 
           undefined, 
           supplierFolio || null,
-          preloadedOrder?.id
+          preloadedOrder?.id,
+          paymentMethod === 'CREDIT' ? (creditDays === '' ? undefined : creditDays) : undefined
         );
         if (res && !res.success) {
           throw new Error(res.error);
@@ -687,11 +709,38 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
           </div>
 
           {/* BOTTOM SUMMARY ROW & REGISTER CTA */}
-          <div style={{ marginTop: '1.25rem', padding: '1.25rem 0 0 0', borderTop: '1px solid #cbd5e1' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', fontSize: '0.95rem', color: '#475569', fontWeight: '600' }}>
+          <div style={{ marginTop: '1.25rem', padding: '1.25rem 0 0 0', borderTop: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {/* Subtotal */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', color: '#475569', fontWeight: '600' }}>
               <span>Subtotal ({items.reduce((s, i) => s + i.quantity, 0)} artículos)</span>
-              <span style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a' }}>
-                ${(total + freightCost).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+              <span style={{ color: '#0f172a', fontWeight: '700' }}>
+                ${itemsSubtotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+
+            {/* IVA (16%) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', color: '#475569', fontWeight: '600' }}>
+              <span>I.V.A. (16%)</span>
+              <span style={{ color: '#0f172a', fontWeight: '700' }}>
+                ${iva.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+
+            {/* Freight/Envío */}
+            {freightCost > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', color: '#475569', fontWeight: '600' }}>
+                <span>Flete / Envío</span>
+                <span style={{ color: '#0f172a', fontWeight: '700' }}>
+                  ${freightCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            )}
+
+            {/* Total */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', fontSize: '1.05rem', color: '#0f172a', fontWeight: '800', borderTop: '1px dashed #cbd5e1', paddingTop: '0.5rem' }}>
+              <span>Total</span>
+              <span style={{ fontSize: '1.25rem', color: 'var(--caanma-primary)', fontWeight: '800' }}>
+                ${finalTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
               </span>
             </div>
 
@@ -704,7 +753,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
               {isSubmitting ? (
                 'Procesando...'
               ) : (
-                `Ingresar Compra $${(total + freightCost).toFixed(2)}`
+                `Ingresar Compra $${finalTotal.toFixed(2)}`
               )}
             </button>
           </div>
@@ -740,6 +789,35 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
               <option value="CREDIT">Crédito CxP (Pendiente de Pago)</option>
             </select>
           </div>
+
+          {/* Credit Days Input */}
+          {paymentMethod === 'CREDIT' && (
+            <div style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Días de Crédito</label>
+              <input 
+                type="number" 
+                min="0"
+                value={creditDays} 
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCreditDays(val === '' ? '' : parseInt(val) || 0);
+                }} 
+                placeholder="Ej. 30" 
+                style={{ 
+                  width: '100%', 
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontWeight: '600', 
+                  color: '#1e293b', 
+                  fontSize: '0.9rem', 
+                  height: '40px',
+                  outline: 'none',
+                  backgroundColor: 'white'
+                }}
+              />
+            </div>
+          )}
 
           {/* Folio Proveedor input */}
           <div style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
