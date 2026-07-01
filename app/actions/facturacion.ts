@@ -201,7 +201,7 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
     if (sale.folio) {
       const parsed = parseSaleFolio(sale.folio);
       if (parsed.series) invoicePayload.series = parsed.series;
-      if (parsed.folio !== undefined) invoicePayload.folio = parsed.folio;
+      if (parsed.folio !== undefined) invoicePayload.folio_number = parsed.folio;
     }
 
     if (customerData.tax_id === "XAXX010101000") {
@@ -213,7 +213,7 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
     }
 
     const invoice = await facturapi.invoices.create(invoicePayload);
-    const invoiceFolio = [(invoice as any).series, (invoice as any).folio].filter(Boolean).join('');
+    const invoiceFolio = [(invoice as any).series, (invoice as any).folio_number || (invoice as any).folio].filter(Boolean).join('');
 
     // Update the Sale record with the Invoice ID, Invoice Folio and link customer if provided
     await db.sale.update({
@@ -354,7 +354,7 @@ export async function stampGlobalInvoice(startDateStr?: string, endDateStr?: str
       }
     } as any);
 
-    const invoiceFolio = [(invoice as any).series, (invoice as any).folio].filter(Boolean).join('');
+    const invoiceFolio = [(invoice as any).series, (invoice as any).folio_number || (invoice as any).folio].filter(Boolean).join('');
     // Update sales with invoice Id and invoice Folio
     const saleIds = salesFiltered.map(s => s.id);
     await prisma.sale.updateMany({
@@ -671,7 +671,7 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
     if (firstSale && firstSale.folio) {
       const parsed = parseSaleFolio(firstSale.folio);
       if (parsed.series) invoicePayload.series = parsed.series;
-      if (parsed.folio !== undefined) invoicePayload.folio = parsed.folio;
+      if (parsed.folio !== undefined) invoicePayload.folio_number = parsed.folio;
     }
 
     if (customerData.tax_id === "XAXX010101000") {
@@ -685,7 +685,7 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
     const invoice = await facturapi.invoices.create(invoicePayload);
     
     // Construct DB invoiceFolio: first one and the rest in parentheses
-    let dbInvoiceFolio = [(invoice as any).series, (invoice as any).folio].filter(Boolean).join('');
+    let dbInvoiceFolio = [(invoice as any).series, (invoice as any).folio_number || (invoice as any).folio].filter(Boolean).join('');
     if (sortedSales.length > 1) {
       const restFolios = sortedSales.slice(1).map(s => {
         if (!s.folio) return '';
