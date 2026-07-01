@@ -71,11 +71,11 @@ export const navStructure: MenuNode[] = [
   },
   { 
     title: 'Facturas', icon: <FileText size={20} />, 
-    requiredPermission: ['pos_access', 'admin_reports_access'],
+    requiredPermission: ['facturacion'],
     items: [
-      { name: 'Facturación CFDI 4.0', path: '/facturas/ventas', requiredPermission: ['admin_reports_access'] },
-      { name: 'Factura Global (Público en General)', path: '/facturas/globales', requiredPermission: ['admin_reports_access'] },
-      { name: 'Complementos de Pago (REP)', path: '/facturas/complementos', badge: 'REP', requiredPermission: ['admin_reports_access'] },
+      { name: 'Facturación CFDI 4.0', path: '/facturas/ventas', requiredPermission: ['fact_cfdi_access'] },
+      { name: 'Factura Global (Público en General)', path: '/facturas/globales', requiredPermission: ['fact_global_access'] },
+      { name: 'Complementos de Pago (REP)', path: '/facturas/complementos', badge: 'REP', requiredPermission: ['fact_rep_access'] },
     ]
   },
   { 
@@ -122,34 +122,34 @@ export const navStructure: MenuNode[] = [
   },
   { 
     title: 'Recursos Humanos', icon: <Briefcase size={20} />, 
-    requiredPermission: ['admin_reports_access'],
+    requiredPermission: ['rh'],
     items: [
-      { name: 'Monitoreo de Asistencia', path: '/rh/monitoreo', requiredPermission: ['admin_reports_access'] },
-      { name: 'Calendario de Incidencias', path: '/rh/calendario', requiredPermission: ['admin_reports_access'] },
-      { name: 'Reportes Históricos', path: '/rh/reportes', requiredPermission: ['admin_reports_access'] },
-      { name: 'Ubicaciones GPS', path: '/rh/ubicaciones', badge: 'Nuevo', requiredPermission: ['admin_reports_access'] },
-      { name: 'Trámites y Avisos', path: '/rh/tramites', requiredPermission: ['admin_reports_access'] },
-      { name: 'Cálculo de Nómina', path: '/rh/nomina', badge: 'Nuevo', requiredPermission: ['admin_reports_access'] },
+      { name: 'Monitoreo de Asistencia', path: '/rh/monitoreo', requiredPermission: ['rh_monitoreo'] },
+      { name: 'Calendario de Incidencias', path: '/rh/calendario', requiredPermission: ['rh_calendario'] },
+      { name: 'Reportes Históricos', path: '/rh/reportes', requiredPermission: ['rh_reportes'] },
+      { name: 'Ubicaciones GPS', path: '/rh/gps', badge: 'Nuevo', requiredPermission: ['rh_gps'] },
+      { name: 'Trámites y Avisos', path: '/rh/tramites', requiredPermission: ['rh_tramites'] },
+      { name: 'Cálculo de Nómina', path: '/rh/nomina', badge: 'Nuevo', requiredPermission: ['rh_nomina'] },
     ]
   },
   { 
     title: 'Finanzas', icon: <Landmark size={20} />, 
-    requiredPermission: ['admin_reports_access'],
+    requiredPermission: ['finanzas'],
     items: [
-      { name: 'Conciliación Bancaria', path: '/finanzas/conciliacion', requiredPermission: ['admin_reports_access'] },
-      { name: 'Cuentas por Cobrar (CxC)', path: '/clientes/cobranza', badge: 'Activos', requiredPermission: ['admin_reports_access'] },
-      { name: 'Cuentas por Pagar (CxP)', path: '/proveedores/cuentas', badge: 'Pasivos', requiredPermission: ['admin_reports_access'] },
+      { name: 'Conciliación Bancaria', path: '/finanzas/conciliacion', requiredPermission: ['fin_conciliacion'] },
+      { name: 'Cuentas por Cobrar (CxC)', path: '/clientes/cobranza', badge: 'Activos', requiredPermission: ['fin_cxc'] },
+      { name: 'Cuentas por Pagar (CxP)', path: '/proveedores/cuentas', badge: 'Pasivos', requiredPermission: ['fin_cxp'] },
     ]
   },
   { 
     title: 'Ventas Online', icon: <MonitorSmartphone size={20} />, 
-    requiredPermission: ['sys_integrations'],
+    requiredPermission: ['ventas_online'],
     items: [
-      { name: 'Tu Catálogo en Línea B2C', path: '/catalogo', badge: 'Nuevo', requiredPermission: ['sys_integrations'] },
-      { name: 'Portal de Clientes B2B', path: '/clientes/b2b', requiredPermission: ['sys_integrations'] },
-      { name: 'Portal de Autofacturación', path: '/clientes/portal', requiredPermission: ['sys_integrations'] },
-      { name: 'Integraciones (Mercado Libre/Amazon)', path: '/integraciones', requiredPermission: ['sys_integrations'] },
-      { name: 'Órdenes Web', path: '/catalogo/ordenes', requiredPermission: ['sys_integrations'] },
+      { name: 'Tu Catálogo en Línea B2C', path: '/catalogo', badge: 'Nuevo', requiredPermission: ['online_b2c'] },
+      { name: 'Portal de Clientes B2B', path: '/clientes/b2b', requiredPermission: ['online_b2b'] },
+      { name: 'Portal de Autofacturación', path: '/clientes/portal', requiredPermission: ['online_autofact'] },
+      { name: 'Integraciones (Mercado Libre/Amazon)', path: '/integraciones', requiredPermission: ['online_integrations'] },
+      { name: 'Órdenes Web', path: '/catalogo/ordenes', requiredPermission: ['online_orders'] },
     ]
   },
   { 
@@ -169,7 +169,7 @@ export const navStructure: MenuNode[] = [
   },
   { 
     title: 'Asistencia', path: '/rh/kiosko', icon: <Clock size={20} />,
-    requiredPermission: ['admin_reports_access']
+    requiredPermission: ['kiosko_access']
   },
   { 
     title: 'Preferencias', path: '/preferencias/general', icon: <Settings size={20} />, 

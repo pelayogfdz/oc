@@ -142,6 +142,90 @@ export const PERMISSION_MODULES = [
         ]
       }
     ]
+  },
+  {
+    id: 'facturacion',
+    name: 'Facturas',
+    submodules: [
+      {
+        id: 'fact_cfdi',
+        name: 'Facturación Electrónica',
+        permissions: [
+          { id: 'fact_cfdi_access', label: 'Ver Facturación CFDI 4.0' },
+          { id: 'fact_global_access', label: 'Ver Factura Global' },
+          { id: 'fact_rep_access', label: 'Ver Complementos de Pago (REP)' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'rh',
+    name: 'Recursos Humanos',
+    submodules: [
+      {
+        id: 'rh_asistencia',
+        name: 'Control de Asistencia',
+        permissions: [
+          { id: 'rh_monitoreo', label: 'Ver Monitoreo de Asistencia' },
+          { id: 'rh_calendario', label: 'Ver Calendario de Incidencias' },
+          { id: 'rh_reportes', label: 'Ver Reportes Históricos' },
+          { id: 'rh_gps', label: 'Ver Ubicaciones GPS' }
+        ]
+      },
+      {
+        id: 'rh_payroll',
+        name: 'Nómina y Avisos',
+        permissions: [
+          { id: 'rh_tramites', label: 'Ver Trámites y Avisos' },
+          { id: 'rh_nomina', label: 'Ver Cálculo de Nómina' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'finanzas',
+    name: 'Finanzas',
+    submodules: [
+      {
+        id: 'fin_ops',
+        name: 'Operaciones Financieras',
+        permissions: [
+          { id: 'fin_conciliacion', label: 'Ver Conciliación Bancaria' },
+          { id: 'fin_cxc', label: 'Ver Cuentas por Cobrar (CxC)' },
+          { id: 'fin_cxp', label: 'Ver Cuentas por Pagar (CxP)' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'ventas_online',
+    name: 'Ventas Online',
+    submodules: [
+      {
+        id: 'online_ops',
+        name: 'Operaciones Online',
+        permissions: [
+          { id: 'online_b2c', label: 'Ver Catálogo en Línea B2C' },
+          { id: 'online_b2b', label: 'Ver Portal de Clientes B2B' },
+          { id: 'online_autofact', label: 'Ver Portal de Autofacturación' },
+          { id: 'online_integrations', label: 'Ver Integraciones (Mercado Libre/Amazon/Shopify)' },
+          { id: 'online_orders', label: 'Ver Órdenes Web' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'kiosko',
+    name: 'Asistencia (Kiosko)',
+    submodules: [
+      {
+        id: 'kiosko_ops',
+        name: 'Kiosko de Asistencia',
+        permissions: [
+          { id: 'kiosko_access', label: 'Acceso al Kiosko de Asistencia' }
+        ]
+      }
+    ]
   }
 ];
 
