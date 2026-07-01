@@ -97,8 +97,9 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
     <>
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
-          @page { size: letter portrait; margin: 1.2cm; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; margin: 0; padding: 0; }
+          @page { size: letter portrait; margin: 1cm; }
+          html, body { height: auto !important; overflow: visible !important; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; margin: 0; padding: 0; }
           .no-print { display: none !important; }
           .letter-container { width: 100% !important; max-width: none !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
         }
@@ -106,18 +107,22 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
         .letter-container { width: 21.59cm; min-height: 27.94cm; margin: 0 auto; background: white; padding: 1.5cm; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); position: relative; box-sizing: border-box; }
         
         /* Header styling matching reference */
-        .header-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; margin-bottom: 2rem; }
-        .title-box { background-color: #f1f5f9; padding: 1.5rem 2rem; border-radius: 8px; text-align: center; display: flex; align-items: center; justify-content: center; height: fit-content; }
-        .title-text { margin: 0; font-size: 1.5rem; font-weight: 800; color: #1e293b; letter-spacing: 1.5px; text-transform: uppercase; }
+        .header-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; margin-bottom: 1.5rem; border-bottom: 2px solid ${primaryColor}; padding-bottom: 1.5rem; }
+        .title-box { background-color: ${primaryColor}; padding: 1.25rem 2rem; border-radius: 8px; text-align: center; display: flex; align-items: center; justify-content: center; height: fit-content; color: white; }
+        .title-text { margin: 0; font-size: 1.4rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
         
-        .business-info { margin-top: 1rem; font-size: 0.9rem; line-height: 1.5; color: #475569; }
+        .business-info { margin-top: 1rem; font-size: 0.85rem; line-height: 1.5; color: #475569; }
         .business-name { font-size: 1.25rem; font-weight: 800; color: #0f172a; display: block; margin-bottom: 0.25rem; text-transform: uppercase; }
         
-        .metadata-section { margin-top: 2rem; font-size: 0.95rem; line-height: 1.6; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 1.5rem; }
+        /* Info Grid */
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; margin-top: 1.5rem; }
+        .info-card { background: #f8fafc; padding: 1.25rem; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .data-label { font-size: 0.75rem; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 0.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.25rem; }
+        .data-value { font-size: 1.05rem; font-weight: bold; color: #0f172a; margin-bottom: 0.35rem; }
         
         /* Items Table */
         .items-table { width: 100%; border-collapse: collapse; margin-top: 2rem; font-size: 0.9rem; }
-        .items-table th { border-bottom: 2px solid #cbd5e1; padding: 0.75rem 0.5rem; text-align: left; font-weight: 700; color: #475569; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; }
+        .items-table th { background-color: #f8fafc; border-top: 1px solid #cbd5e1; border-bottom: 2px solid #cbd5e1; padding: 0.75rem 0.5rem; text-align: left; font-weight: 700; color: #475569; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; }
         .items-table td { padding: 1rem 0.5rem; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
         
         /* Product column flex layout */
@@ -182,11 +187,60 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
           </div>
         </div>
 
-        {/* Metadata Section */}
-        <div className="metadata-section">
-          <div><strong>Cotización:</strong> #{quoteIdUpper}</div>
-          <div><strong>Válida desde:</strong> {new Date(quote.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-        </div>
+        {/* Info Grid with Client and Doc details */}
+        {(() => {
+          const clientAddress = [
+            quote.customer?.street,
+            [quote.customer?.exteriorNumber, quote.customer?.interiorNumber].filter(Boolean).join(' '),
+            quote.customer?.neighborhood,
+            quote.customer?.city,
+            quote.customer?.state,
+            quote.customer?.zipCode
+          ].filter(Boolean).join(', ');
+
+          return (
+            <div className="info-grid">
+              <div className="info-card">
+                <div className="data-label">Cotizado a:</div>
+                <div className="data-value">
+                  {quote.customer?.legalName || quote.customer?.name || 'Público en General'}
+                </div>
+                {quote.customer?.taxId && <div><strong style={{ fontSize: '0.8rem', color: '#64748b' }}>RFC:</strong> <span style={{ fontSize: '0.85rem' }}>{quote.customer.taxId}</span></div>}
+                {quote.customer?.taxRegime && <div><strong style={{ fontSize: '0.8rem', color: '#64748b' }}>Régimen:</strong> <span style={{ fontSize: '0.85rem' }}>{quote.customer.taxRegime}</span></div>}
+                {clientAddress && <div style={{ marginTop: '0.25rem' }}><strong style={{ fontSize: '0.8rem', color: '#64748b' }}>Dirección:</strong> <span style={{ fontSize: '0.85rem', lineHeight: '1.4', display: 'inline-block' }}>{clientAddress}</span></div>}
+                {quote.customer?.email && <div><strong style={{ fontSize: '0.8rem', color: '#64748b' }}>Email:</strong> <span style={{ fontSize: '0.85rem' }}>{quote.customer.email}</span></div>}
+                {quote.customer?.phone && <div><strong style={{ fontSize: '0.8rem', color: '#64748b' }}>Teléfono:</strong> <span style={{ fontSize: '0.85rem' }}>{quote.customer.phone}</span></div>}
+              </div>
+              <div className="info-card">
+                <div className="data-label">Detalles del Documento:</div>
+                <table style={{ width: '100%', fontSize: '0.85rem', borderCollapse: 'collapse' }}>
+                  <tbody>
+                    <tr>
+                      <td style={{ color: '#64748b', padding: '0.35rem 0', fontWeight: '500' }}>Folio Cotización:</td>
+                      <td style={{ fontWeight: '700', textAlign: 'right', color: '#0f172a' }}>#{quoteIdUpper}</td>
+                    </tr>
+                    <tr>
+                      <td style={{ color: '#64748b', padding: '0.35rem 0', fontWeight: '500' }}>Fecha Emisión:</td>
+                      <td style={{ fontWeight: '600', textAlign: 'right' }}>
+                        {new Date(quote.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style={{ color: '#64748b', padding: '0.35rem 0', fontWeight: '500' }}>Validez hasta:</td>
+                      <td style={{ fontWeight: '600', textAlign: 'right', color: '#b91c1c' }}>
+                        {new Date(new Date(quote.createdAt).getTime() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })} (15 días)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style={{ color: '#64748b', padding: '0.35rem 0', fontWeight: '500' }}>Elaboró:</td>
+                      <td style={{ fontWeight: '600', textAlign: 'right' }}>{quote.user?.name || 'Sistema'}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Items Table */}
         <table className="items-table">

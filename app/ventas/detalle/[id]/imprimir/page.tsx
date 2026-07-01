@@ -61,8 +61,9 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
     <>
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
-          @page { size: letter portrait; margin: 1.2cm; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; margin: 0; padding: 0; }
+          @page { size: letter portrait; margin: 1cm; }
+          html, body { height: auto !important; overflow: visible !important; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; margin: 0; padding: 0; }
           .no-print { display: none !important; }
           .letter-container { width: 100% !important; max-width: none !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
         }

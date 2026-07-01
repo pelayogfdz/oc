@@ -357,10 +357,14 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
             size: letter portrait; 
             margin: 0; 
           }
+          html, body { 
+            height: auto !important; 
+            overflow: visible !important; 
+          }
           body { 
             -webkit-print-color-adjust: exact; 
             print-color-adjust: exact; 
-            background: white; 
+            background: white !important; 
           }
           .no-print { 
             display: none !important; 
