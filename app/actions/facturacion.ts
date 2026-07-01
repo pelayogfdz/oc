@@ -658,9 +658,18 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
       use: cfdiUse
     };
 
+    // Sort sales by folio or ID to keep consistent first-and-rest ordering
+    const sortedSales = [...sales].sort((a, b) => {
+      if (a.folio && b.folio) {
+        return a.folio.localeCompare(b.folio, undefined, { numeric: true });
+      }
+      return a.id.localeCompare(b.id);
+    });
+
     // Marry the invoice series and folio with the first sale's folio prefix and number
-    if (sales[0] && sales[0].folio) {
-      const parsed = parseSaleFolio(sales[0].folio);
+    const firstSale = sortedSales[0];
+    if (firstSale && firstSale.folio) {
+      const parsed = parseSaleFolio(firstSale.folio);
       if (parsed.series) invoicePayload.series = parsed.series;
       if (parsed.folio !== undefined) invoicePayload.folio = parsed.folio;
     }
@@ -674,7 +683,24 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
     }
 
     const invoice = await facturapi.invoices.create(invoicePayload);
-    const invoiceFolio = [(invoice as any).series, (invoice as any).folio].filter(Boolean).join('');
+    
+    // Construct DB invoiceFolio: first one and the rest in parentheses
+    let dbInvoiceFolio = [(invoice as any).series, (invoice as any).folio].filter(Boolean).join('');
+    if (sortedSales.length > 1) {
+      const restFolios = sortedSales.slice(1).map(s => {
+        if (!s.folio) return '';
+        const parsed = parseSaleFolio(s.folio);
+        const parsedFirst = parseSaleFolio(firstSale.folio);
+        if (parsed.series === parsedFirst.series) {
+          return parsed.folio !== undefined ? String(parsed.folio) : s.folio;
+        }
+        return [parsed.series, parsed.folio].filter(Boolean).join('') || s.folio;
+      }).filter(Boolean);
+      
+      if (restFolios.length > 0) {
+        dbInvoiceFolio += ` (${restFolios.join(', ')})`;
+      }
+    }
 
     // Update all sales with the invoice ID and invoice Folio
     await prisma.sale.updateMany({
@@ -683,7 +709,7 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
       },
       data: {
         invoiceId: invoice.id,
-        invoiceFolio: invoiceFolio || null
+        invoiceFolio: dbInvoiceFolio || null
       }
     });
 
