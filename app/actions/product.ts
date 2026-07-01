@@ -626,7 +626,7 @@ export async function searchProducts(query: string, branchId: string) {
       },
       include: { variants: true, prices: true, branch: { select: { id: true, name: true } } },
       orderBy: { name: 'asc' },
-      take: 1000
+      take: 5000
     });
   }
 
