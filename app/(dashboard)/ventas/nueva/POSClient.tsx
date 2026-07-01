@@ -326,19 +326,17 @@ export default function POSClient({
   });
 
   useEffect(() => {
-    if (isOnline && userPermissions && Object.keys(userPermissions).length > 0) {
+    if (userPermissions && Object.keys(userPermissions).length > 0) {
       localStorage.setItem('caanma_user_permissions', JSON.stringify(userPermissions));
       setPermissions(userPermissions);
     }
-  }, [isOnline, userPermissions]);
+  }, [userPermissions]);
 
   useEffect(() => {
-    if (isOnline) {
-      const isAdmin = isSuperAdmin || userRole === 'ADMIN';
-      localStorage.setItem('caanma_user_is_admin', isAdmin ? 'true' : 'false');
-      setIsAdminOrSuper(isAdmin);
-    }
-  }, [isOnline, isSuperAdmin, userRole]);
+    const isAdmin = isSuperAdmin || userRole === 'ADMIN';
+    localStorage.setItem('caanma_user_is_admin', isAdmin ? 'true' : 'false');
+    setIsAdminOrSuper(isAdmin);
+  }, [isSuperAdmin, userRole]);
 
   const hasPermission = useCallback((permId: string) => {
     if (isAdminOrSuper) return true;
