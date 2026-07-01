@@ -81,10 +81,20 @@ export async function getGeneralAnalyticsData(startDate: Date, endDate: Date, br
         }
       } : {})
     },
-    include: {
+    select: {
+      id: true,
+      createdAt: true,
+      total: true,
       items: {
-        include: {
-          product: true
+        select: {
+          quantity: true,
+          price: true,
+          product: {
+            select: {
+              cost: true,
+              brand: true
+            }
+          }
         }
       }
     },
@@ -244,12 +254,32 @@ export async function getSalesDetailData(
         }
       ) : {})
     },
-    include: {
-      user: true,
-      customer: true,
+    select: {
+      id: true,
+      createdAt: true,
+      paymentMethod: true,
+      total: true,
+      invoiceId: true,
+      user: {
+        select: {
+          name: true
+        }
+      },
+      customer: {
+        select: {
+          name: true
+        }
+      },
       items: {
-        include: {
-          product: true
+        select: {
+          quantity: true,
+          price: true,
+          product: {
+            select: {
+              cost: true,
+              brand: true
+            }
+          }
         }
       }
     },
@@ -331,7 +361,7 @@ export async function getSalesDetailData(
   return { sales: mappedSales, pieData, chartData };
 }
 
-export async function getInventoryValuationData(branchIdFilter?: string, brandFilter?: string) {
+export async function getInventoryValuationData(branchIdFilter?: string, brandFilter?: string, searchQuery?: string) {
   const session = await getSession();
   const branch = await getActiveBranch();
   if (!branch) throw new Error('Unauthorized');
@@ -357,24 +387,68 @@ export async function getInventoryValuationData(branchIdFilter?: string, brandFi
     }
   }
 
+  // 1. Calculate totals on the DB side
+  let totalValue = 0;
+  let totalSellValue = 0;
+
+  if (branchCondition.branchId) {
+    if (typeof branchCondition.branchId === 'string') {
+      const result = await prisma.$queryRawUnsafe<any[]>(
+        `SELECT COALESCE(SUM(stock * cost), 0) as cost_val, COALESCE(SUM(stock * price), 0) as sell_val FROM "Product" WHERE "isActive" = true AND stock > 0 AND "branchId" = $1 ${brandFilter && brandFilter !== 'ALL' ? `AND brand = $2` : ''}`,
+        branchCondition.branchId,
+        ...(brandFilter && brandFilter !== 'ALL' ? [brandFilter] : [])
+      );
+      totalValue = Number(result[0]?.cost_val || 0);
+      totalSellValue = Number(result[0]?.sell_val || 0);
+    } else if (branchCondition.branchId.in && Array.isArray(branchCondition.branchId.in)) {
+      const branchIds = branchCondition.branchId.in;
+      if (branchIds.length > 0) {
+        const placeholders = branchIds.map((_: any, idx: number) => `$${idx + 1}`).join(', ');
+        const queryText = `SELECT COALESCE(SUM(stock * cost), 0) as cost_val, COALESCE(SUM(stock * price), 0) as sell_val FROM "Product" WHERE "isActive" = true AND stock > 0 AND "branchId" IN (${placeholders}) ${brandFilter && brandFilter !== 'ALL' ? `AND brand = $${branchIds.length + 1}` : ''}`;
+        const params = [...branchIds, ...(brandFilter && brandFilter !== 'ALL' ? [brandFilter] : [])];
+        const result = await prisma.$queryRawUnsafe<any[]>(queryText, ...params);
+        totalValue = Number(result[0]?.cost_val || 0);
+        totalSellValue = Number(result[0]?.sell_val || 0);
+      }
+    }
+  } else {
+    const result = await prisma.$queryRawUnsafe<any[]>(
+      `SELECT COALESCE(SUM(stock * cost), 0) as cost_val, COALESCE(SUM(stock * price), 0) as sell_val FROM "Product" WHERE "isActive" = true AND stock > 0 ${brandFilter && brandFilter !== 'ALL' ? `AND brand = $1` : ''}`,
+      ...(brandFilter && brandFilter !== 'ALL' ? [brandFilter] : [])
+    );
+    totalValue = Number(result[0]?.cost_val || 0);
+    totalSellValue = Number(result[0]?.sell_val || 0);
+  }
+
+  // 2. Fetch list of products limited to 1,000 to keep responses fast
   const products = await prisma.product.findMany({
     where: {
       ...branchCondition,
       stock: { gt: 0 },
-      ...(brandFilter && brandFilter !== 'ALL' ? { brand: brandFilter } : {})
+      ...(brandFilter && brandFilter !== 'ALL' ? { brand: brandFilter } : {}),
+      ...(searchQuery ? {
+        OR: [
+          { name: { contains: searchQuery, mode: 'insensitive' } },
+          { sku: { contains: searchQuery, mode: 'insensitive' } }
+        ]
+      } : {})
     },
-    orderBy: { stock: 'desc' }
+    select: {
+      id: true,
+      name: true,
+      sku: true,
+      imageUrl: true,
+      stock: true,
+      cost: true,
+      price: true
+    },
+    orderBy: { stock: 'desc' },
+    take: 1000
   });
-
-  let totalValue = 0;
-  let totalSellValue = 0;
 
   const mappedProducts = products.map(p => {
     const costValue = p.cost * p.stock;
     const sellValue = p.price * p.stock;
-    
-    totalValue += costValue;
-    totalSellValue += sellValue;
 
     return {
       id: p.id,
@@ -1189,7 +1263,16 @@ export async function getRestockReportData(
       isActive: true,
       isService: false
     },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      sku: true,
+      barcode: true,
+      imageUrl: true,
+      category: true,
+      stock: true,
+      cost: true,
+      price: true,
       supplier: {
         select: {
           id: true,
@@ -1200,7 +1283,7 @@ export async function getRestockReportData(
     orderBy: { name: 'asc' }
   });
 
-  // Fetch all purchase items for these branch IDs to determine the last supplier
+  // Fetch recent purchase items to determine the last supplier
   const purchaseItems = await prisma.purchaseItem.findMany({
     where: {
       product: branchCondition
@@ -1223,7 +1306,8 @@ export async function getRestockReportData(
       purchase: {
         createdAt: 'desc'
       }
-    }
+    },
+    take: 5000
   });
 
   const lastSupplierMap = new Map<string, { id: string; name: string }>();
@@ -1580,7 +1664,7 @@ export async function getInsumosReportData(
   return data;
 }
 
-export async function getCostAndPricesData(branchIdFilter?: string, brandFilter?: string) {
+export async function getCostAndPricesData(branchIdFilter?: string, brandFilter?: string, searchQuery?: string) {
   const session = await getSession();
   const branch = await getActiveBranch();
   if (!branch) throw new Error('Unauthorized');
@@ -1610,7 +1694,14 @@ export async function getCostAndPricesData(branchIdFilter?: string, brandFilter?
     where: {
       ...branchCondition,
       isActive: true,
-      ...(brandFilter && brandFilter !== 'ALL' ? { brand: brandFilter } : {})
+      ...(brandFilter && brandFilter !== 'ALL' ? { brand: brandFilter } : {}),
+      ...(searchQuery ? {
+        OR: [
+          { name: { contains: searchQuery, mode: 'insensitive' } },
+          { sku: { contains: searchQuery, mode: 'insensitive' } },
+          { barcode: { contains: searchQuery, mode: 'insensitive' } }
+        ]
+      } : {})
     },
     select: {
       id: true,
@@ -1632,7 +1723,8 @@ export async function getCostAndPricesData(branchIdFilter?: string, brandFilter?
         }
       }
     },
-    orderBy: { name: 'asc' }
+    orderBy: { name: 'asc' },
+    take: 1000
   });
 
   const priceLists = await prisma.priceList.findMany({

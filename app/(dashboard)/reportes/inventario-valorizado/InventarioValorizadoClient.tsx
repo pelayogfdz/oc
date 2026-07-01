@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
 import { Search, PackageOpen, TrendingDown, DollarSign, Loader2, Printer } from 'lucide-react';
@@ -11,18 +11,30 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
   const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedBranchId, setSelectedBranchId] = useState(initialBranchId);
+  const [selectedBrandId, setSelectedBrandId] = useState('ALL');
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const handleFilterChange = async (filters: ReportFilterState) => {
-    setLoading(true);
-    try {
-      const newData = await getInventoryValuationData(filters.branchId, filters.brandId);
-      setData(newData);
-    } catch (e) {
-      console.error(e);
-    }
-    setLoading(false);
+    setSelectedBranchId(filters.branchId);
+    setSelectedBrandId(filters.brandId || 'ALL');
   };
+
+  // Pre-load / filter search on the server side with a debounce
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const newData = await getInventoryValuationData(selectedBranchId, selectedBrandId, searchTerm);
+        setData(newData);
+      } catch (e) {
+        console.error(e);
+      }
+      setLoading(false);
+    }, 400);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, selectedBranchId, selectedBrandId]);
 
   const filteredInventory = data.inventory.filter((i: any) => 
     i.name.toLowerCase().includes(searchTerm.toLowerCase()) || 

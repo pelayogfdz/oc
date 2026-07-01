@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, Printer, Loader2, ArrowUpDown, ArrowUp, ArrowDown, TrendingUp, DollarSign, Package } from 'lucide-react';
 import ReportFilterBar, { ReportFilterState } from '@/components/ui/ReportFilterBar';
 import { getCostAndPricesData } from '@/app/actions/reportes';
@@ -18,6 +18,8 @@ export default function CostosPreciosClient({
   
   // Filters & Search states
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedBranchId, setSelectedBranchId] = useState(initialBranchId);
+  const [selectedBrandId, setSelectedBrandId] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [activePriceListKey, setActivePriceListKey] = useState('price');
   
@@ -33,15 +35,25 @@ export default function CostosPreciosClient({
 
   // Load new data on branch filter change
   const handleFilterChange = async (filters: ReportFilterState) => {
-    setLoading(true);
-    try {
-      const newData = await getCostAndPricesData(filters.branchId, filters.brandId);
-      setData(newData);
-    } catch (e) {
-      console.error(e);
-    }
-    setLoading(false);
+    setSelectedBranchId(filters.branchId);
+    setSelectedBrandId(filters.brandId || 'ALL');
   };
+
+  // Pre-load / filter search on the server side with a debounce
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const newData = await getCostAndPricesData(selectedBranchId, selectedBrandId, searchTerm);
+        setData(newData);
+      } catch (e) {
+        console.error(e);
+      }
+      setLoading(false);
+    }, 400);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, selectedBranchId, selectedBrandId]);
 
   // Combine standard and custom price lists
   const PRICE_LISTS = useMemo(() => {

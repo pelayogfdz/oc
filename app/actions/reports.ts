@@ -58,16 +58,31 @@ export async function getDashboardMetrics(branchId?: string) {
     const ticketsEmitidos = todaySales.length;
 
     // Inventario
-    const products = await prisma.product.findMany({
-      where: {
-        isActive: true,
-        stock: { gt: 0 },
-        ...resolvedBranchFilter
-      },
-      select: { stock: true, cost: true }
-    });
-
-    const valorInventario = products.reduce((acc, p) => acc + (p.stock * p.cost), 0);
+    let valorInventario = 0;
+    if (resolvedBranchFilter.branchId) {
+      if (typeof resolvedBranchFilter.branchId === 'string') {
+        const result = await prisma.$queryRawUnsafe<any[]>(
+          `SELECT COALESCE(SUM(stock * cost), 0) as total_val FROM "Product" WHERE "isActive" = true AND stock > 0 AND "branchId" = $1`,
+          resolvedBranchFilter.branchId
+        );
+        valorInventario = Number(result[0]?.total_val || 0);
+      } else if (resolvedBranchFilter.branchId.in && Array.isArray(resolvedBranchFilter.branchId.in)) {
+        const branchIds = resolvedBranchFilter.branchId.in;
+        if (branchIds.length > 0) {
+          const placeholders = branchIds.map((_: any, idx: number) => `$${idx + 1}`).join(', ');
+          const result = await prisma.$queryRawUnsafe<any[]>(
+            `SELECT COALESCE(SUM(stock * cost), 0) as total_val FROM "Product" WHERE "isActive" = true AND stock > 0 AND "branchId" IN (${placeholders})`,
+            ...branchIds
+          );
+          valorInventario = Number(result[0]?.total_val || 0);
+        }
+      }
+    } else {
+      const result = await prisma.$queryRawUnsafe<any[]>(
+        `SELECT COALESCE(SUM(stock * cost), 0) as total_val FROM "Product" WHERE "isActive" = true AND stock > 0`
+      );
+      valorInventario = Number(result[0]?.total_val || 0);
+    }
 
     return {
       ventasDelDia,
