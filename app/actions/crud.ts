@@ -33,7 +33,7 @@ export async function crudAction(entity: string, formData: FormData) {
 
   try {
      if (entity === 'supplier') {
-        const { id, branch: _, ...supplierData } = data;
+        const { id, branch: _, priceList: __, ...supplierData } = data;
         
         // Check if supplier already exists under this tenant by name or RFC (taxId)
         const existing = await prisma.supplier.findFirst({

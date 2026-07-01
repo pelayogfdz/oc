@@ -119,7 +119,7 @@ export default function NuevoProveedor() {
         {/* Cobranza */}
         <div className="card" style={{ padding: '1.5rem' }}>
           <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Crédito y Finanzas</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '1.5rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Límite de Crédito Autorizado ($)</label>
               <input type="number" step="0.01" name="creditLimit" defaultValue={0} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
@@ -127,14 +127,6 @@ export default function NuevoProveedor() {
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Días Máximos de Crédito</label>
               <input type="number" name="creditDays" defaultValue={0} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
-            </div>
-             <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Asignación de Precios</label>
-              <select name="priceList" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}>
-                 <option value="price">Precio Público (Default)</option>
-                 <option value="wholesalePrice">Precio Mayoreo</option>
-                 <option value="specialPrice">Precio Especial Comercial</option>
-              </select>
             </div>
           </div>
         </div>
