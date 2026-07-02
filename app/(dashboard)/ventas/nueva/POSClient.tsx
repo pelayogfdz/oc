@@ -9,6 +9,7 @@ import { getLoyaltySettings } from '@/app/actions/loyalty';
 import { createQuote, getQuoteForPOS, createQuickProductsForQuote } from '@/app/actions/quote';
 import { createConsignment, getConsignmentForPOS } from '@/app/actions/consignment';
 import { searchProducts, getProductBranchStocks } from '@/app/actions/product';
+import { getMergedUserPermissions } from '@/app/actions/permissions';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import ProductTableUI from '@/app/components/ProductTableUI';
@@ -325,6 +326,20 @@ export default function POSClient({
     }
     return isSuperAdmin || userRole === 'ADMIN';
   });
+
+  // Synchronize fresh permissions from server on mount to prevent stale PWA cache / stale local storage
+  useEffect(() => {
+    getMergedUserPermissions().then((res) => {
+      if (res && res.success && res.permissions) {
+        localStorage.setItem('caanma_user_permissions', JSON.stringify(res.permissions));
+        localStorage.setItem('caanma_user_is_admin', (res.isSuperAdmin || res.role === 'ADMIN') ? 'true' : 'false');
+        setPermissions(res.permissions);
+        setIsAdminOrSuper(res.isSuperAdmin || res.role === 'ADMIN');
+      }
+    }).catch((err) => {
+      console.error("Failed to sync fresh user permissions:", err);
+    });
+  }, []);
 
   useEffect(() => {
     if (userPermissions && Object.keys(userPermissions).length > 0) {
