@@ -198,7 +198,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
         <MoreVertical size={18} />
       </button>
       {openDropdownId === prod.id && (
-        <div style={{ position: 'absolute', right: '100%', top: '50%', transform: 'translateY(-50%)', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 50, width: '150px', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', right: '100%', left: 'auto', top: '50%', transform: 'translateY(-50%)', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 50, width: '150px', overflow: 'hidden' }}>
           <Link href={`/productos/nuevo?cloneId=${prod.id}`} style={{ display: 'block', padding: '0.75rem 1rem', textDecoration: 'none', color: '#1e293b', fontSize: '0.9rem', textAlign: 'left' } as any}>Clonar</Link>
           <Link href={`/productos/${prod.id}`} style={{ display: 'block', padding: '0.75rem 1rem', textDecoration: 'none', color: '#1e293b', fontSize: '0.9rem', textAlign: 'left' }}>Editar</Link>
           <button onClick={(e) => {

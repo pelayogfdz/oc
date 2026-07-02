@@ -182,7 +182,7 @@ const ProductTableUI = memo(function ProductTableUI({
         </div>
       )}
 
-      <div style={{ overflowX: 'auto' }}>
+      <div style={{ overflowX: 'auto', minHeight: '280px' }}>
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '#fafafa', color: '#1e293b' }}>
