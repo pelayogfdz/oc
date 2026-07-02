@@ -1,7 +1,7 @@
 export const PERMISSION_MODULES = [
   {
     id: 'pos',
-    name: 'Punto de Venta (POS)',
+    name: 'Ventas y Punto de Venta (POS)',
     submodules: [
       {
         id: 'pos_terminal',
@@ -79,24 +79,41 @@ export const PERMISSION_MODULES = [
         ]
       },
       {
-        id: 'admin_purchases',
-        name: 'Compras y Proveedores',
-        permissions: [
-          { id: 'admin_purchases_access', label: 'Modulo de Compras y Proveedores' }
-        ]
-      },
-      {
-        id: 'admin_reports',
-        name: 'Reportes',
-        permissions: [
-          { id: 'admin_reports_access', label: 'Ver Reportes y Finanzas' }
-        ]
-      },
-      {
         id: 'admin_quotes',
         name: 'Cotizaciones',
         permissions: [
           { id: 'admin_quotes_access', label: 'Crear / Imprimir Cotizaciones' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'compras_gastos',
+    name: 'Compras y Gastos',
+    submodules: [
+      {
+        id: 'purchases_ops',
+        name: 'Operaciones de Compras',
+        permissions: [
+          { id: 'admin_purchases_access', label: 'Acceso General a Compras' },
+          { id: 'purchases_requests', label: 'Ver y Gestionar Solicitudes de Compra' },
+          { id: 'purchases_orders', label: 'Ver y Gestionar Pedidos a Proveedores' },
+          { id: 'purchases_suppliers', label: 'Ver y Gestionar Directorio de Proveedores' }
+        ]
+      },
+      {
+        id: 'expenses_ops',
+        name: 'Operaciones de Gastos',
+        permissions: [
+          { id: 'expenses_view', label: 'Ver Registro de Gastos' },
+          { id: 'expenses_create', label: 'Registrar Nuevos Gastos' }
+        ]
+      },
+      {
+        id: 'purchases_alerts',
+        name: 'Alertas',
+        permissions: [
+          { id: 'purchases_expiration', label: 'Ver Control de Caducidades' }
         ]
       }
     ]
@@ -109,20 +126,82 @@ export const PERMISSION_MODULES = [
         id: 'log_manage',
         name: 'Gestión',
         permissions: [
-          { id: 'logistica_access', label: 'Ver y Gestionar Entregas (Choferes, Etiquetas)' }
+          { id: 'logistica_access', label: 'Acceso General a Logística' },
+          { id: 'logistica_rutas', label: 'Ver y Gestionar Entregas y Rutas' },
+          { id: 'logistica_chofer', label: 'Acceso a Mi Ruta (Portal de Chofer)' },
+          { id: 'logistica_combustibles', label: 'Ver y Gestionar Logística de Combustibles (Fletes)' }
         ]
       }
     ]
   },
   {
     id: 'panaderia',
-    name: 'Panadería (Fabricación)',
+    name: 'Procesos (Producción / Panadería)',
     submodules: [
       {
         id: 'panaderia_ops',
-        name: 'Operaciones',
+        name: 'Operaciones de Producción',
         permissions: [
-          { id: 'panaderia_access', label: 'Ver Ordenes de Producción y Avanzar Pasos' }
+          { id: 'panaderia_access', label: 'Ver y Gestionar Procesos / Órdenes de Producción' },
+          { id: 'procesos_tareas', label: 'Ver e Interactuar con Tareas' },
+          { id: 'procesos_formulas', label: 'Ver y Crear/Editar Fórmulas e Insumos' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'reports',
+    name: 'Centro de Reportes',
+    submodules: [
+      {
+        id: 'rep_general',
+        name: 'Acceso General',
+        permissions: [
+          { id: 'admin_reports_access', label: 'Acceso General a Reportes' }
+        ]
+      },
+      {
+        id: 'rep_sales',
+        name: 'Reportes de Ventas',
+        permissions: [
+          { id: 'report_sales_breakdown', label: 'Resumen / Desglose de Ventas' },
+          { id: 'report_sales_by_product', label: 'Ventas por Producto' },
+          { id: 'report_top_products', label: 'Top Productos' },
+          { id: 'report_top_clients', label: 'Top Clientes' },
+          { id: 'report_top_categories', label: 'Top Categorías' },
+          { id: 'report_sales_by_seller', label: 'Ventas por Vendedor' },
+          { id: 'report_seller_commissions', label: 'Comisiones de Vendedores' }
+        ]
+      },
+      {
+        id: 'rep_inventory',
+        name: 'Reportes de Inventario',
+        permissions: [
+          { id: 'report_valued_inventory', label: 'Inventario Valorizado' },
+          { id: 'report_costs_prices', label: 'Costos y Precios' },
+          { id: 'report_replenishment', label: 'Reporte de Resurtido' },
+          { id: 'report_inventory_log', label: 'Bitácora de Inventario' },
+          { id: 'report_consignments', label: 'Reporte de Consignaciones' }
+        ]
+      },
+      {
+        id: 'rep_production',
+        name: 'Reportes de Producción',
+        permissions: [
+          { id: 'report_supplies', label: 'Reporte de Insumos (Materia Prima)' },
+          { id: 'report_production', label: 'Reporte de Producción (Fabricación)' },
+          { id: 'report_tasks', label: 'Rendimiento de Tareas' }
+        ]
+      },
+      {
+        id: 'rep_finance',
+        name: 'Reportes Financieros y Operativos',
+        permissions: [
+          { id: 'report_utility', label: 'Utilidad y Márgenes de Ganancia' },
+          { id: 'report_taxes', label: 'Impuestos y Facturación' },
+          { id: 'report_expenses', label: 'Reporte de Gastos' },
+          { id: 'report_cash_cut', label: 'Corte de Caja' },
+          { id: 'report_shifts', label: 'Reporte de Turnos (Cortes)' }
         ]
       }
     ]

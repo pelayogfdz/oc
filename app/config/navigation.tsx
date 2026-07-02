@@ -80,15 +80,15 @@ export const navStructure: MenuNode[] = [
   },
   { 
     title: 'Compras y gastos', icon: <ShoppingCart size={20} />, 
-    requiredPermission: ['admin_purchases_access'],
+    requiredPermission: ['admin_purchases_access', 'purchases_requests', 'purchases_orders', 'purchases_suppliers', 'expenses_view', 'expenses_create', 'purchases_expiration'],
     items: [
       { name: 'Compras', path: '/productos/compras', requiredPermission: ['admin_purchases_access'] },
-      { name: 'Solicitudes', path: '/productos/solicitudes', badge: 'Nuevo', requiredPermission: ['admin_purchases_access'] },
-      { name: 'Pedidos a Proveedores', path: '/productos/pedidos', requiredPermission: ['admin_purchases_access'] },
-      { name: 'Nuevo Pedido / Sugerido', path: '/productos/pedidos/nuevo', badge: 'Nuevo', requiredPermission: ['admin_purchases_access'] },
-      { name: 'Registro de Gastos', path: '/productos/gastos', requiredPermission: ['admin_purchases_access'] },
-      { name: 'Directorio de Proveedores', path: '/proveedores', requiredPermission: ['admin_purchases_access'] },
-      { name: 'Control de Caducidades', path: '/productos/caducidades', badge: 'Alertas', requiredPermission: ['admin_purchases_access'] },
+      { name: 'Solicitudes', path: '/productos/solicitudes', badge: 'Nuevo', requiredPermission: ['purchases_requests'] },
+      { name: 'Pedidos a Proveedores', path: '/productos/pedidos', requiredPermission: ['purchases_orders'] },
+      { name: 'Nuevo Pedido / Sugerido', path: '/productos/pedidos/nuevo', badge: 'Nuevo', requiredPermission: ['purchases_orders'] },
+      { name: 'Registro de Gastos', path: '/productos/gastos', requiredPermission: ['expenses_view'] },
+      { name: 'Directorio de Proveedores', path: '/proveedores', requiredPermission: ['purchases_suppliers'] },
+      { name: 'Control de Caducidades', path: '/productos/caducidades', badge: 'Alertas', requiredPermission: ['purchases_expiration'] },
     ]
   },
   { 
@@ -104,20 +104,20 @@ export const navStructure: MenuNode[] = [
   // Grupo 2
   { 
     title: 'Logística', icon: <Truck size={20} />, 
-    requiredPermission: ['logistica_access'],
+    requiredPermission: ['logistica_access', 'logistica_rutas', 'logistica_chofer', 'logistica_combustibles'],
     items: [
-      { name: 'Entregas y Rutas', path: '/logistica', badge: 'Nuevo', requiredPermission: ['logistica_access'] },
-      { name: 'Mi Ruta (Chofer)', path: '/logistica/chofer', requiredPermission: ['logistica_access'] },
-      { name: 'Logística de Combustibles', path: '/logistica/combustibles', badge: 'Fletes', requiredPermission: ['logistica_access'] },
+      { name: 'Entregas y Rutas', path: '/logistica', badge: 'Nuevo', requiredPermission: ['logistica_rutas'] },
+      { name: 'Mi Ruta (Chofer)', path: '/logistica/chofer', requiredPermission: ['logistica_chofer'] },
+      { name: 'Logística de Combustibles', path: '/logistica/combustibles', badge: 'Fletes', requiredPermission: ['logistica_combustibles'] },
     ]
   },
   { 
     title: 'Procesos', icon: <ClipboardList size={20} />, 
-    requiredPermission: ['panaderia_access'],
+    requiredPermission: ['panaderia_access', 'procesos_tareas', 'procesos_formulas'],
     items: [
-      { name: 'Tareas', path: '/procesos/tareas', requiredPermission: ['panaderia_access'] },
+      { name: 'Tareas', path: '/procesos/tareas', requiredPermission: ['procesos_tareas'] },
       { name: 'Órdenes de Producción', path: '/procesos', badge: 'Activas', requiredPermission: ['panaderia_access'] },
-      { name: 'Fórmulas e Insumos', path: '/procesos/formulas', requiredPermission: ['panaderia_access'] },
+      { name: 'Fórmulas e Insumos', path: '/procesos/formulas', requiredPermission: ['procesos_formulas'] },
     ]
   },
   { 
@@ -154,11 +154,11 @@ export const navStructure: MenuNode[] = [
   },
   { 
     title: 'Reportes', icon: <BarChart3 size={20} />, 
-    requiredPermission: ['admin_reports_access'],
+    requiredPermission: ['admin_reports_access', 'report_sales_breakdown', 'report_sales_by_product', 'report_top_products', 'report_top_clients', 'report_top_categories', 'report_sales_by_seller', 'report_seller_commissions', 'report_valued_inventory', 'report_costs_prices', 'report_replenishment', 'report_inventory_log', 'report_consignments', 'report_supplies', 'report_production', 'report_tasks', 'report_utility', 'report_taxes', 'report_expenses', 'report_cash_cut', 'report_shifts'],
     items: [
-      { name: 'Panel de Reportes', path: '/reportes', requiredPermission: ['admin_reports_access'] },
-      { name: 'Facturación CFDI 4.0', path: '/reportes/facturacion', badge: 'Nuevo', requiredPermission: ['admin_reports_access'] },
-      { name: 'Desempeño de Consignaciones', path: '/reportes/consignaciones', badge: 'Nuevo', requiredPermission: ['admin_reports_access'] },
+      { name: 'Panel de Reportes', path: '/reportes', requiredPermission: ['admin_reports_access', 'report_sales_breakdown', 'report_sales_by_product', 'report_top_products', 'report_top_clients', 'report_top_categories', 'report_sales_by_seller', 'report_seller_commissions', 'report_valued_inventory', 'report_costs_prices', 'report_replenishment', 'report_inventory_log', 'report_consignments', 'report_supplies', 'report_production', 'report_tasks', 'report_utility', 'report_taxes', 'report_expenses', 'report_cash_cut', 'report_shifts'] },
+      { name: 'Facturación CFDI 4.0', path: '/reportes/facturacion', badge: 'Nuevo', requiredPermission: ['report_taxes'] },
+      { name: 'Desempeño de Consignaciones', path: '/reportes/consignaciones', badge: 'Nuevo', requiredPermission: ['report_consignments'] },
     ],
     hasDividerAfter: true
   },
