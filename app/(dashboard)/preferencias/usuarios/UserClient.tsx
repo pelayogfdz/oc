@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Users, Plus, Shield, Edit2, Trash2, CheckCircle2, ChevronDown, ChevronRight, X, Copy } from 'lucide-react';
+import { Users, Plus, Shield, Edit2, Trash2, CheckCircle2, ChevronDown, ChevronRight, X, Copy, Search } from 'lucide-react';
 import { createUser, updateUser, deleteUser } from '@/app/actions/user';
 import { createBranch } from '@/app/actions/branch';
 
@@ -10,6 +10,7 @@ export { PERMISSION_MODULES };
 
 export default function UserClient({ initialUsers, branches, hrLocations = [], customRoles = [] }: { initialUsers: any[], branches: any[], hrLocations?: any[], customRoles?: any[] }) {
   const [users, setUsers] = useState(initialUsers);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('branches');
@@ -536,6 +537,56 @@ export default function UserClient({ initialUsers, branches, hrLocations = [], c
         </div>
       </div>
 
+      {/* Buscador de Empleados */}
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem', alignItems: 'center' }}>
+        <div style={{ position: 'relative', width: '100%', maxWidth: '380px' }}>
+          <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--caanma-text-muted)', display: 'flex', alignItems: 'center' }}>
+            <Search size={18} />
+          </span>
+          <input 
+            type="text" 
+            placeholder="Buscar empleado por nombre o correo..." 
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.6rem 0.6rem 0.6rem 2.2rem',
+              border: '1px solid var(--caanma-border)',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+              backgroundColor: 'white',
+              color: 'var(--caanma-text)',
+              outline: 'none',
+              transition: 'all 0.15s ease'
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = 'var(--caanma-primary)';
+              e.target.style.boxShadow = '0 0 0 2px rgba(14, 165, 233, 0.15)';
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = 'var(--caanma-border)';
+              e.target.style.boxShadow = 'none';
+            }}
+          />
+        </div>
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            style={{
+              padding: '0.5rem 1rem',
+              fontSize: '0.825rem',
+              color: '#ef4444',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: '600'
+            }}
+          >
+            Limpiar
+          </button>
+        )}
+      </div>
+
       <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', marginBottom: '3rem' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--caanma-border)' }}>
@@ -548,120 +599,136 @@ export default function UserClient({ initialUsers, branches, hrLocations = [], c
           </tr>
         </thead>
         <tbody>
-          {users.map((u, i) => {
-            const hasCustomPerms = u.permissions && u.permissions !== '[]';
-            const isProtected = u.isSuperAdmin || u.id === oldestUser?.id;
-            return (
-            <tr key={u.id || i} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-              <td data-label="Nombre Empleado" style={{ padding: '1rem', fontWeight: 'bold' }}>{u.name}</td>
-              <td data-label="Correo (Login)" style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>{u.email}</td>
-              <td data-label="Nivel Base" style={{ padding: '1rem' }}>
-                <span style={{ 
-                  backgroundColor: u.role === 'ADMIN' ? '#fee2e2' : (u.role === 'MANAGER' ? '#fef3c7' : '#e0f2fe'), 
-                  color: u.role === 'ADMIN' ? '#991b1b' : (u.role === 'MANAGER' ? '#92400e' : '#075985'), 
-                  padding: '0.25rem 0.75rem', 
-                  borderRadius: '12px', 
-                  fontSize: '0.75rem', 
-                  fontWeight: 'bold',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.25rem'
-                }}>
-                  <Shield size={12} /> {u.role === 'ADMIN' ? 'Administrador' : (u.role === 'MANAGER' ? 'Encargado' : 'Empleado')}
-                </span>
-              </td>
-              <td data-label="Puesto Ventas" style={{ padding: '1rem' }}>
-                <span style={{ fontWeight: 'bold', color: 'var(--caanma-primary)', fontSize: '0.85rem' }}>
-                  {u.commissionRole || 'VENDEDOR'}
-                </span>
-              </td>
-              <td data-label="Permisos ACL" style={{ padding: '1rem' }}>
-                {u.customRole ? (
-                  <span style={{ fontSize: '0.75rem', backgroundColor: '#e0e7ff', color: '#3730a3', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>
-                    Rol: {u.customRole.name}
-                  </span>
-                ) : (
-                  <span style={{ fontSize: '0.75rem', backgroundColor: hasCustomPerms ? '#dcfce7' : '#f1f5f9', color: hasCustomPerms ? '#166534' : '#64748b', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>
-                    {hasCustomPerms ? 'Personalizados ✔️' : 'Por Defecto'}
-                  </span>
-                )}
-              </td>
-              <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'right' }}>
-                <button 
-                  type="button"
-                  onClick={() => cloneUserPermissions(u)} 
-                  style={{ 
-                    backgroundColor: 'rgba(14, 165, 233, 0.1)', 
-                    border: 'none', 
-                    borderRadius: '6px',
-                    padding: '0.4rem 0.6rem',
-                    cursor: 'pointer', 
-                    color: '#0284c7', 
-                    marginRight: '0.5rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(14, 165, 233, 0.2)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(14, 165, 233, 0.1)' }}
-                >
-                  <Copy size={14} /> Clonar
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => {
-                    openEditUser(u);
-                    document.getElementById('user-form')?.scrollIntoView({ behavior: 'smooth' });
-                  }} 
-                  style={{ 
-                    backgroundColor: 'rgba(99, 102, 241, 0.1)', 
-                    border: 'none', 
-                    borderRadius: '6px',
-                    padding: '0.4rem 0.6rem',
-                    cursor: 'pointer', 
-                    color: '#4f46e5', 
-                    marginRight: '0.5rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.2)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.1)' }}
-                >
-                  <Edit2 size={14} /> Editar
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => handleDelete(u.id)} 
-                  disabled={isProtected} 
-                  style={{ 
-                    backgroundColor: isProtected ? '#f1f5f9' : 'rgba(239, 68, 68, 0.1)', 
-                    border: 'none', 
-                    borderRadius: '6px',
-                    padding: '0.4rem 0.6rem',
-                    cursor: isProtected ? 'not-allowed' : 'pointer', 
-                    color: isProtected ? '#cbd5e1' : '#dc2626', 
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => { if (!isProtected) e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)' }}
-                  onMouseLeave={(e) => { if (!isProtected) e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)' }}
-                >
-                  <Trash2 size={14} /> Eliminar
-                </button>
-              </td>
-            </tr>
-          )})}
+          {(() => {
+            const filtered = users.filter(u => 
+              u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+              u.email.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            if (filtered.length === 0) {
+              return (
+                <tr>
+                  <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>
+                    No se encontraron empleados con el criterio de búsqueda.
+                  </td>
+                </tr>
+              );
+            }
+            return filtered.map((u, i) => {
+              const hasCustomPerms = u.permissions && u.permissions !== '[]';
+              const isProtected = u.isSuperAdmin || u.id === oldestUser?.id;
+              return (
+                <tr key={u.id || i} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
+                  <td data-label="Nombre Empleado" style={{ padding: '1rem', fontWeight: 'bold' }}>{u.name}</td>
+                  <td data-label="Correo (Login)" style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>{u.email}</td>
+                  <td data-label="Nivel Base" style={{ padding: '1rem' }}>
+                    <span style={{ 
+                      backgroundColor: u.role === 'ADMIN' ? '#fee2e2' : (u.role === 'MANAGER' ? '#fef3c7' : '#e0f2fe'), 
+                      color: u.role === 'ADMIN' ? '#991b1b' : (u.role === 'MANAGER' ? '#92400e' : '#075985'), 
+                      padding: '0.25rem 0.75rem', 
+                      borderRadius: '12px', 
+                      fontSize: '0.75rem', 
+                      fontWeight: 'bold',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
+                    }}>
+                      <Shield size={12} /> {u.role === 'ADMIN' ? 'Administrador' : (u.role === 'MANAGER' ? 'Encargado' : 'Empleado')}
+                    </span>
+                  </td>
+                  <td data-label="Puesto Ventas" style={{ padding: '1rem' }}>
+                    <span style={{ fontWeight: 'bold', color: 'var(--caanma-primary)', fontSize: '0.85rem' }}>
+                      {u.commissionRole || 'VENDEDOR'}
+                    </span>
+                  </td>
+                  <td data-label="Permisos ACL" style={{ padding: '1rem' }}>
+                    {u.customRole ? (
+                      <span style={{ fontSize: '0.75rem', backgroundColor: '#e0e7ff', color: '#3730a3', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>
+                        Rol: {u.customRole.name}
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.75rem', backgroundColor: hasCustomPerms ? '#dcfce7' : '#f1f5f9', color: hasCustomPerms ? '#166534' : '#64748b', padding: '0.25rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>
+                        {hasCustomPerms ? 'Personalizados ✔️' : 'Por Defecto'}
+                      </span>
+                    )}
+                  </td>
+                  <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'right' }}>
+                    <button 
+                      type="button"
+                      onClick={() => cloneUserPermissions(u)} 
+                      style={{ 
+                        backgroundColor: 'rgba(14, 165, 233, 0.1)', 
+                        border: 'none', 
+                        borderRadius: '6px',
+                        padding: '0.4rem 0.6rem',
+                        cursor: 'pointer', 
+                        color: '#0284c7', 
+                        marginRight: '0.5rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 'bold',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(14, 165, 233, 0.2)' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(14, 165, 233, 0.1)' }}
+                    >
+                      <Copy size={14} /> Clonar
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        openEditUser(u);
+                        document.getElementById('user-form')?.scrollIntoView({ behavior: 'smooth' });
+                      }} 
+                      style={{ 
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)', 
+                        border: 'none', 
+                        borderRadius: '6px',
+                        padding: '0.4rem 0.6rem',
+                        cursor: 'pointer', 
+                        color: '#4f46e5', 
+                        marginRight: '0.5rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 'bold',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.2)' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.1)' }}
+                    >
+                      <Edit2 size={14} /> Editar
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => handleDelete(u.id)} 
+                      disabled={isProtected} 
+                      style={{ 
+                        backgroundColor: isProtected ? '#f1f5f9' : 'rgba(239, 68, 68, 0.1)', 
+                        border: 'none', 
+                        borderRadius: '6px',
+                        padding: '0.4rem 0.6rem',
+                        cursor: isProtected ? 'not-allowed' : 'pointer', 
+                        color: isProtected ? '#cbd5e1' : '#dc2626', 
+                        fontSize: '0.75rem',
+                        fontWeight: 'bold',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => { if (!isProtected) e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)' }}
+                      onMouseLeave={(e) => { if (!isProtected) e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)' }}
+                    >
+                      <Trash2 size={14} /> Eliminar
+                    </button>
+                  </td>
+                </tr>
+              );
+            });
+          })()}
         </tbody>
       </table>
 
