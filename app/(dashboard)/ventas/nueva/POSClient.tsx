@@ -370,6 +370,7 @@ export default function POSClient({
   
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(initialCustomerId || null);
   const [customerSearchTerm, setCustomerSearchTerm] = useState(initialCustomer ? initialCustomer.name : '');
+  const [hasDefaultedCustomer, setHasDefaultedCustomer] = useState(false);
 
   const [isSearching, setIsSearching] = useState(false);
   const [displayedProducts, setDisplayedProducts] = useState<any[]>(initialProducts);
@@ -393,9 +394,9 @@ export default function POSClient({
     }
   }, [isOnline, customers, initialProducts, searchTerm, branchId]);
 
-  // Default to "Público en General"
+  // Default to "Público en General" on initial mount
   useEffect(() => {
-    if (!selectedCustomerId && activeCustomers.length > 0) {
+    if (!hasDefaultedCustomer && !selectedCustomerId && activeCustomers.length > 0) {
       const defaultCustomer = activeCustomers.find(c => 
         c.name.toLowerCase().includes('público en general') || 
         c.name.toLowerCase().includes('publico en general')
@@ -403,9 +404,10 @@ export default function POSClient({
       if (defaultCustomer) {
         setSelectedCustomerId(defaultCustomer.id);
         setCustomerSearchTerm(defaultCustomer.name);
+        setHasDefaultedCustomer(true);
       }
     }
-  }, [activeCustomers, selectedCustomerId]);
+  }, [activeCustomers, selectedCustomerId, hasDefaultedCustomer]);
 
   // Advanced POS State
   const [stockFilter, setStockFilter] = useState<'ALL' | 'IN_STOCK' | 'OUT_OF_STOCK'>('ALL');
