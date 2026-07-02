@@ -137,7 +137,7 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
                 <tr>
                   <td style={{ color: '#64748b', padding: '0.35rem 0', fontWeight: '500' }}>Método de Pago:</td>
                   <td style={{ fontWeight: '600', textAlign: 'right', color: '#0f172a' }}>
-                    {sale.paymentMethod === 'CASH' ? 'Efectivo' : sale.paymentMethod === 'CARD' ? 'Tarjeta' : sale.paymentMethod === 'CREDIT' ? 'Crédito' : sale.paymentMethod}
+                    {sale.paymentMethod === 'CASH' ? 'Efectivo' : sale.paymentMethod === 'CARD' ? 'Tarjeta' : sale.paymentMethod === 'CARD_CREDIT' ? 'Tarjeta de Crédito' : sale.paymentMethod === 'CARD_DEBIT' ? 'Tarjeta de Débito' : sale.paymentMethod === 'CREDIT' ? 'Crédito' : sale.paymentMethod}
                   </td>
                 </tr>
                 <tr>

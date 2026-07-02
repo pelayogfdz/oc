@@ -6,7 +6,8 @@ import { updateAdvancedJSONConfig } from '@/app/actions/settings';
 
 const STANDARD_METHODS = [
   { id: 'CASH', name: 'EFECTIVO', icon: <Banknote size={24} color="#16a34a" /> },
-  { id: 'CARD', name: 'TARJETA DE DÉBITO / CRÉDITO', icon: <CreditCard size={24} color="#0284c7" /> },
+  { id: 'CARD_CREDIT', name: 'TARJETA DE CRÉDITO', icon: <CreditCard size={24} color="#0284c7" /> },
+  { id: 'CARD_DEBIT', name: 'TARJETA DE DÉBITO', icon: <CreditCard size={24} color="#0284c7" /> },
   { id: 'TRANSFER', name: 'TRANSFERENCIA BANCARIA (SPEI)', icon: <Send size={24} color="#8b5cf6" /> },
   { id: 'CREDIT', name: 'CRÉDITO A CLIENTE / FIADO', icon: <ShieldAlert size={24} color="#d946ef" /> },
   { id: 'VALES', name: 'VALES DE DESPENSA', icon: <QrCode size={24} color="#f59e0b" /> },
@@ -14,17 +15,28 @@ const STANDARD_METHODS = [
 
 const standardMethodNames: Record<string, string> = {
   CASH: 'Efectivo',
-  CARD: 'Tarjeta',
+  CARD_CREDIT: 'Tarjeta de Crédito',
+  CARD_DEBIT: 'Tarjeta de Débito',
   TRANSFER: 'Transferencia',
   CREDIT: 'Crédito a Cliente',
   VALES: 'Vales de despensa'
 };
 
 export default function PaymentMethodsConfigClient({ initialConfig }: { initialConfig: any }) {
-  // If no config format exists, default to Cash, Card, Transfer enabled
-  const [enabledIds, setEnabledIds] = useState<string[]>(
-    initialConfig?.enabledIds ?? ['CASH', 'CARD', 'TRANSFER', 'CREDIT']
-  );
+  // If no config format exists, default to Cash, Card Credit, Card Debit, Transfer, Credit enabled
+  const [enabledIds, setEnabledIds] = useState<string[]>(() => {
+    const initialEnabled = initialConfig?.enabledIds;
+    if (initialEnabled && Array.isArray(initialEnabled)) {
+      let mapped = [...initialEnabled];
+      if (mapped.includes('CARD')) {
+        mapped = mapped.filter(x => x !== 'CARD');
+        if (!mapped.includes('CARD_CREDIT')) mapped.push('CARD_CREDIT');
+        if (!mapped.includes('CARD_DEBIT')) mapped.push('CARD_DEBIT');
+      }
+      return mapped;
+    }
+    return ['CASH', 'CARD_CREDIT', 'CARD_DEBIT', 'TRANSFER', 'CREDIT'];
+  });
   
   const [customMethods, setCustomMethods] = useState<{ id: string; name: string }[]>(
     initialConfig?.customMethods ?? []

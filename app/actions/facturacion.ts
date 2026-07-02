@@ -186,7 +186,9 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
     if (methodUpper === 'CREDIT') {
       payment_form = "99"; // Por definir
       payment_method = "PPD"; // Pago en Parcialidades o Diferido
-    } else if (methodUpper === 'CARD' || methodUpper.includes('TARJETA') || methodUpper.includes('CARD')) {
+    } else if (methodUpper === 'CARD_DEBIT' || methodUpper.includes('DEBITO') || methodUpper.includes('DEBIT')) {
+      payment_form = "28"; // Tarjeta de débito
+    } else if (methodUpper === 'CARD_CREDIT' || methodUpper === 'CARD' || methodUpper.includes('TARJETA') || methodUpper.includes('CARD')) {
       payment_form = "04"; // Tarjeta de crédito
     } else if (methodUpper === 'TRANSFER' || methodUpper.includes('TRANSFERENCIA') || methodUpper.includes('SPEI')) {
       payment_form = "03"; // Transferencia electrónica
@@ -657,7 +659,8 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
       // Find first sale with non-cash payment method to get a representative payment form
       const nonCashSale = sales.find(s => String(s.paymentMethod || '').toUpperCase() !== 'CASH');
       const pm = String(nonCashSale ? nonCashSale.paymentMethod : sales[0].paymentMethod || '').toUpperCase();
-      if (pm === 'CARD' || pm.includes('TARJETA') || pm.includes('CARD')) payment_form = "04";
+      if (pm === 'CARD_DEBIT' || pm.includes('DEBITO') || pm.includes('DEBIT')) payment_form = "28";
+      else if (pm === 'CARD_CREDIT' || pm === 'CARD' || pm.includes('TARJETA') || pm.includes('CARD')) payment_form = "04";
       else if (pm === 'TRANSFER' || pm.includes('TRANSFERENCIA') || pm.includes('SPEI')) payment_form = "03";
       else payment_form = "01";
     }

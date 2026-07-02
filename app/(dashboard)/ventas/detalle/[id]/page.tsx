@@ -84,7 +84,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
              <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{new Date(sale.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
              <div style={{ fontSize: '1rem', color: '#64748b', marginTop: '0.5rem' }}>Método de Pago</div>
              <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#0ea5e9' }}>
-               {sale.paymentMethod === 'CASH' ? 'Efectivo' : sale.paymentMethod === 'CARD' ? 'Tarjeta' : sale.paymentMethod === 'TRANSFER' ? 'Transferencia' : sale.paymentMethod}
+                {sale.paymentMethod === 'CASH' ? 'Efectivo' : sale.paymentMethod === 'CARD' ? 'Tarjeta' : sale.paymentMethod === 'CARD_CREDIT' ? 'Tarjeta de Crédito' : sale.paymentMethod === 'CARD_DEBIT' ? 'Tarjeta de Débito' : sale.paymentMethod === 'TRANSFER' ? 'Transferencia' : sale.paymentMethod}
              </div>
           </div>
         </div>

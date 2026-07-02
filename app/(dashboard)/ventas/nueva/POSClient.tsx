@@ -461,9 +461,21 @@ export default function POSClient({
   const [manualDiscountValue, setManualDiscountValue] = useState<number | ''>('');
 
   
-  const customMethods = (Array.isArray(metodosConfig?.methods) && metodosConfig.methods.length > 0) 
-     ? metodosConfig.methods.filter((m: any) => m.id !== 'CREDIT') 
-     : [{ id: 'CASH', name: 'Efectivo' }, { id: 'CARD', name: 'Tarjeta' }, { id: 'TRANSFER', name: 'Transferencia' }];
+  const methodsList = (Array.isArray(metodosConfig?.methods) && metodosConfig.methods.length > 0) 
+     ? metodosConfig.methods 
+     : [{ id: 'CASH', name: 'Efectivo' }, { id: 'CARD_CREDIT', name: 'Tarjeta de Crédito' }, { id: 'CARD_DEBIT', name: 'Tarjeta de Débito' }, { id: 'TRANSFER', name: 'Transferencia' }];
+
+  const finalMethods: any[] = [];
+  methodsList.forEach((m: any) => {
+    if (m.id === 'CARD') {
+      finalMethods.push({ id: 'CARD_CREDIT', name: 'Tarjeta de Crédito' });
+      finalMethods.push({ id: 'CARD_DEBIT', name: 'Tarjeta de Débito' });
+    } else {
+      finalMethods.push(m);
+    }
+  });
+
+  const customMethods = finalMethods.filter((m: any) => m.id !== 'CREDIT');
 
   const [paymentMethod, setPaymentMethod] = useState(customMethods[0]?.id || 'CASH');
   

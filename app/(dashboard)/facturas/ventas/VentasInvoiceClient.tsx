@@ -443,7 +443,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                       <span>RFC: {sale.customer?.taxId || 'XAXX010101000'}</span>
                       <span>•</span>
                       <span style={{ fontWeight: '500', color: '#2563eb' }}>
-                        {sale.paymentMethod === 'CASH' ? 'Efectivo' : sale.paymentMethod === 'CARD' ? 'Tarjeta' : sale.paymentMethod === 'TRANSFER' ? 'Transf' : sale.paymentMethod}
+                        {sale.paymentMethod === 'CASH' ? 'Efectivo' : sale.paymentMethod === 'CARD' ? 'Tarjeta' : sale.paymentMethod === 'CARD_CREDIT' ? 'Tarjeta C.' : sale.paymentMethod === 'CARD_DEBIT' ? 'Tarjeta D.' : sale.paymentMethod === 'TRANSFER' ? 'Transf' : sale.paymentMethod}
                       </span>
                     </div>
                   </td>

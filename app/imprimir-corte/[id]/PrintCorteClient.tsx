@@ -44,6 +44,8 @@ export default function PrintCorteClient({ session, branchName }: { session: any
     switch (id) {
       case 'CASH': return 'Efectivo';
       case 'CARD': return 'Tarjeta';
+      case 'CARD_CREDIT': return 'Tarj. Crédito';
+      case 'CARD_DEBIT': return 'Tarj. Débito';
       case 'TRANSFER': return 'Transf.';
       case 'CREDIT': return 'Crédito';
       case 'VALES': return 'Vales';

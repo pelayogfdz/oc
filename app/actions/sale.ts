@@ -282,12 +282,16 @@ export async function createSale(
 
         if (loyaltySettings && loyaltySettings.isActive) {
           const allowedMethods = loyaltySettings.paymentMethods.split(',');
-          if (allowedMethods.includes(paymentMethod)) {
+          const hasCardAllowed = allowedMethods.includes('CARD') || allowedMethods.includes('CARD_CREDIT') || allowedMethods.includes('CARD_DEBIT');
+          const isPaymentMethodAllowed = allowedMethods.includes(paymentMethod) || 
+            ((paymentMethod === 'CARD_CREDIT' || paymentMethod === 'CARD_DEBIT') && hasCardAllowed);
+
+          if (isPaymentMethodAllowed) {
             // Check payment-method points multiplier
             let pointsMultiplier = loyaltySettings.pointsPerAmount;
             if (paymentMethod === 'CASH') {
               pointsMultiplier = (loyaltySettings as any).pointsCash ?? loyaltySettings.pointsPerAmount;
-            } else if (paymentMethod === 'CARD') {
+            } else if (paymentMethod === 'CARD' || paymentMethod === 'CARD_CREDIT' || paymentMethod === 'CARD_DEBIT') {
               pointsMultiplier = (loyaltySettings as any).pointsCard ?? loyaltySettings.pointsPerAmount;
             } else if (paymentMethod === 'TRANSFER') {
               pointsMultiplier = (loyaltySettings as any).pointsTransfer ?? loyaltySettings.pointsPerAmount;

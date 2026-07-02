@@ -120,7 +120,7 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
              <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{new Date(purchase.createdAt).toLocaleString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
              <div style={{ fontSize: '1rem', color: '#64748b', marginTop: '0.5rem' }}>Método de Pago</div>
              <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#0ea5e9' }}>
-               {purchase.paymentMethod === 'CASH' ? 'Efectivo' : purchase.paymentMethod === 'CARD' ? 'Tarjeta' : purchase.paymentMethod === 'TRANSFER' ? 'Transferencia' : purchase.paymentMethod === 'CREDIT' ? 'Crédito CxP' : purchase.paymentMethod}
+                {purchase.paymentMethod === 'CASH' ? 'Efectivo' : purchase.paymentMethod === 'CARD' ? 'Tarjeta' : purchase.paymentMethod === 'CARD_CREDIT' ? 'Tarjeta de Crédito' : purchase.paymentMethod === 'CARD_DEBIT' ? 'Tarjeta de Débito' : purchase.paymentMethod === 'TRANSFER' ? 'Transferencia' : purchase.paymentMethod === 'CREDIT' ? 'Crédito CxP' : purchase.paymentMethod}
              </div>
           </div>
         </div>

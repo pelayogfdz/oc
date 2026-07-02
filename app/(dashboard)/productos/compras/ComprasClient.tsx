@@ -124,6 +124,8 @@ export default function ComprasClient({
                   {
                     purchase.paymentMethod === 'CASH' ? 'Efectivo' :
                     purchase.paymentMethod === 'CARD' ? 'Tarjeta' :
+                    purchase.paymentMethod === 'CARD_CREDIT' ? 'Tarjeta de Crédito' :
+                    purchase.paymentMethod === 'CARD_DEBIT' ? 'Tarjeta de Débito' :
                     purchase.paymentMethod === 'TRANSFER' ? 'Transferencia' :
                     purchase.paymentMethod === 'CREDIT' ? 'Crédito CxP' :
                     purchase.paymentMethod
@@ -242,6 +244,8 @@ export default function ComprasClient({
                       <CreditCard size={14}/> {
                         purchase.paymentMethod === 'CASH' ? 'Efectivo' :
                         purchase.paymentMethod === 'CARD' ? 'Tarjeta' :
+                        purchase.paymentMethod === 'CARD_CREDIT' ? 'Tarjeta de Crédito' :
+                        purchase.paymentMethod === 'CARD_DEBIT' ? 'Tarjeta de Débito' :
                         purchase.paymentMethod === 'TRANSFER' ? 'Transferencia' :
                         purchase.paymentMethod === 'CREDIT' ? 'Crédito CxP' :
                         purchase.paymentMethod

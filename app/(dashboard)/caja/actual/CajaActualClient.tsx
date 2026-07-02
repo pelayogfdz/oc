@@ -92,6 +92,8 @@ export default function CajaActualClient({
   const standardNames: Record<string, string> = {
     CASH: 'Efectivo',
     CARD: 'Tarjeta de Crédito / Débito',
+    CARD_CREDIT: 'Tarjeta de Crédito',
+    CARD_DEBIT: 'Tarjeta de Débito',
     TRANSFER: 'Transferencia',
     CREDIT: 'Crédito Cta.',
     VALES: 'Vales de despensa'
@@ -100,17 +102,32 @@ export default function CajaActualClient({
   // Base methods configured or enabled
   let configMethods: { id: string; name: string }[] = [];
   if (Array.isArray(metodosConfig?.methods) && metodosConfig.methods.length > 0) {
-    configMethods = metodosConfig.methods.map((m: any) => ({ id: m.id, name: m.name }));
+    metodosConfig.methods.forEach((m: any) => {
+      if (m.id === 'CARD') {
+        configMethods.push({ id: 'CARD_CREDIT', name: 'Tarjeta de Crédito' });
+        configMethods.push({ id: 'CARD_DEBIT', name: 'Tarjeta de Débito' });
+      } else {
+        configMethods.push({ id: m.id, name: m.name });
+      }
+    });
   } else if (Array.isArray(metodosConfig?.enabledIds) && metodosConfig.enabledIds.length > 0) {
-    configMethods = metodosConfig.enabledIds.map((id: string) => ({
-      id,
-      name: standardNames[id] || id
-    }));
+    metodosConfig.enabledIds.forEach((id: string) => {
+      if (id === 'CARD') {
+        configMethods.push({ id: 'CARD_CREDIT', name: 'Tarjeta de Crédito' });
+        configMethods.push({ id: 'CARD_DEBIT', name: 'Tarjeta de Débito' });
+      } else {
+        configMethods.push({
+          id,
+          name: standardNames[id] || id
+        });
+      }
+    });
   } else {
     // Default fallback
     configMethods = [
       { id: 'CASH', name: 'Efectivo' },
-      { id: 'CARD', name: 'Tarjeta de Crédito / Débito' },
+      { id: 'CARD_CREDIT', name: 'Tarjeta de Crédito' },
+      { id: 'CARD_DEBIT', name: 'Tarjeta de Débito' },
       { id: 'TRANSFER', name: 'Transferencia' }
     ];
   }
@@ -125,7 +142,8 @@ export default function CajaActualClient({
     if (s.paymentMethod) {
       if (s.paymentMethod === 'MIXTO') {
         usedMethodIds.add('CASH');
-        usedMethodIds.add('CARD');
+        usedMethodIds.add('CARD_CREDIT');
+        usedMethodIds.add('CARD_DEBIT');
       } else {
         usedMethodIds.add(s.paymentMethod);
       }
@@ -148,6 +166,8 @@ export default function CajaActualClient({
       case 'CASH':
         return <Banknote size={20} color="#16a34a" />;
       case 'CARD':
+      case 'CARD_CREDIT':
+      case 'CARD_DEBIT':
         return <CreditCard size={20} color="#0284c7" />;
       case 'TRANSFER':
         return <Send size={20} color="#8b5cf6" />;
@@ -169,11 +189,16 @@ export default function CajaActualClient({
       const totalIn = initialSession?.movements?.filter((m: any) => m.type === 'IN').reduce((acc: number, m: any) => acc + m.amount, 0) || 0;
       const totalOut = initialSession?.movements?.filter((m: any) => m.type === 'OUT').reduce((acc: number, m: any) => acc + m.amount, 0) || 0;
       return (initialSession?.initialAmount || 0) + totalSalesCash + totalSalesMixtoCash + totalIn - totalOut;
-    } else if (id === 'CARD') {
-      const cardSales = activeSales.filter((s: any) => s.paymentMethod === 'CARD');
+    } else if (id === 'CARD' || id === 'CARD_CREDIT' || id === 'CARD_DEBIT') {
+      let matchingSales = [];
+      if (id === 'CARD') {
+        matchingSales = activeSales.filter((s: any) => s.paymentMethod === 'CARD' || s.paymentMethod === 'CARD_CREDIT' || s.paymentMethod === 'CARD_DEBIT');
+      } else {
+        matchingSales = activeSales.filter((s: any) => s.paymentMethod === id);
+      }
       const mixtoSales = activeSales.filter((s: any) => s.paymentMethod === 'MIXTO');
-      const totalSalesCard = cardSales.reduce((acc: number, sale: any) => acc + sale.total, 0);
-      const totalSalesMixtoCard = mixtoSales.reduce((acc: number, sale: any) => acc + (sale.cardAmount || 0), 0);
+      const totalSalesCard = matchingSales.reduce((acc: number, sale: any) => acc + sale.total, 0);
+      const totalSalesMixtoCard = id === 'CARD_CREDIT' ? mixtoSales.reduce((acc: number, sale: any) => acc + (sale.cardAmount || 0), 0) : 0;
       return totalSalesCard + totalSalesMixtoCard;
     } else {
       const matchingSales = activeSales.filter((s: any) => s.paymentMethod === id);
