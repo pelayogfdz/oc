@@ -10,7 +10,7 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
   const isOrigin = transfer.branchId === branchId; // La sucursal que surte
   const isDestination = transfer.toBranchId === branchId; // La sucursal que recibe/pidió
   
-  const [isProcessing, startTransition] = useTransition();
+  const [isProcessing, setIsProcessing] = useState(false);
   const router = useRouter();
 
   // State for dispatching items (when origin is surtiendo)
@@ -22,68 +22,72 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
     return initial;
   });
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     if (!confirm('¿Aprobar y comenzar preparación de este traspaso?')) return;
-    startTransition(async () => {
-      try {
-        const res = await approveTransfer(transfer.id);
-        if (res && !res.success) {
-          throw new Error(res.error || 'Ocurrió un error');
-        }
-        alert('Traspaso en preparación.');
-        router.refresh();
-      } catch(err: any) {
-        alert(err.message || 'Ocurrió un error');
+    setIsProcessing(true);
+    try {
+      const res = await approveTransfer(transfer.id);
+      if (res && !res.success) {
+        throw new Error(res.error || 'Ocurrió un error');
       }
-    });
+      alert('Traspaso en preparación.');
+      router.refresh();
+    } catch(err: any) {
+      alert(err.message || 'Ocurrió un error');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const handleDispatch = () => {
+  const handleDispatch = async () => {
     if (!confirm('¿Confirmar envío? Los artículos faltantes generarán una Solicitud de Compra.')) return;
-    startTransition(async () => {
-      try {
-        const res = await dispatchTransfer(transfer.id, dispatchQuantities);
-        if (res && !res.success) {
-          throw new Error(res.error || 'Ocurrió un error');
-        }
-        alert('Traspaso surtido y en camino.');
-        router.refresh();
-      } catch(err: any) {
-        alert(err.message || 'Ocurrió un error');
+    setIsProcessing(true);
+    try {
+      const res = await dispatchTransfer(transfer.id, dispatchQuantities);
+      if (res && !res.success) {
+        throw new Error(res.error || 'Ocurrió un error');
       }
-    });
+      alert('Traspaso surtido y en camino.');
+      router.refresh();
+    } catch(err: any) {
+      alert(err.message || 'Ocurrió un error');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const handleReceive = () => {
+  const handleReceive = async () => {
     if (!confirm('¿Estás seguro de que deseas recibir este traspaso? El inventario será sumado a tu sucursal.')) return;
-    startTransition(async () => {
-      try {
-        const res = await receiveTransfer(transfer.id);
-        if (res && !res.success) {
-          throw new Error(res.error || 'Ocurrió un error');
-        }
-        alert('Traspaso recibido correctamente.');
-        router.refresh();
-      } catch(err: any) {
-        alert(err.message || 'Ocurrió un error');
+    setIsProcessing(true);
+    try {
+      const res = await receiveTransfer(transfer.id);
+      if (res && !res.success) {
+        throw new Error(res.error || 'Ocurrió un error');
       }
-    });
+      alert('Traspaso recibido correctamente.');
+      router.refresh();
+    } catch(err: any) {
+      alert(err.message || 'Ocurrió un error');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     if (!confirm('¿Estás seguro de que deseas cancelar este traspaso? Esto revertirá cualquier stock enviado y no se podrá deshacer.')) return;
-    startTransition(async () => {
-      try {
-        const res = await cancelTransfer(transfer.id);
-        if (res && !res.success) {
-          throw new Error(res.error || 'Ocurrió un error');
-        }
-        alert('Traspaso cancelado correctamente.');
-        router.refresh();
-      } catch(err: any) {
-        alert(err.message || 'Ocurrió un error');
+    setIsProcessing(true);
+    try {
+      const res = await cancelTransfer(transfer.id);
+      if (res && !res.success) {
+        throw new Error(res.error || 'Ocurrió un error');
       }
-    });
+      alert('Traspaso cancelado correctamente.');
+      router.refresh();
+    } catch(err: any) {
+      alert(err.message || 'Ocurrió un error');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const phases = [

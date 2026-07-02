@@ -73,6 +73,46 @@ export default function TraspasosClient({
 
   const hasActiveFilters = idFilter || fromBranchFilter || toBranchFilter || dateFilter || statusFilter || searchTerm;
 
+  const renderStatusBadge = (status: string) => {
+    let label = status;
+    let bgColor = '#f1f5f9';
+    let color = '#475569';
+
+    switch (status) {
+      case 'REQUESTED':
+        label = 'SOLICITADO';
+        bgColor = '#eff6ff';
+        color = '#1d4ed8';
+        break;
+      case 'CREATED':
+        label = 'PREPARANDO';
+        bgColor = '#f3e8ff';
+        color = '#6b21a8';
+        break;
+      case 'DISPATCHED':
+        label = 'EN TRÁNSITO';
+        bgColor = '#fef9c3';
+        color = '#854d0e';
+        break;
+      case 'RECEIVED':
+        label = 'RECIBIDO';
+        bgColor = '#dcfce7';
+        color = '#166534';
+        break;
+      case 'CANCELLED':
+        label = 'CANCELADO';
+        bgColor = '#fee2e2';
+        color = '#991b1b';
+        break;
+    }
+
+    return (
+      <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: '4px', backgroundColor: bgColor, color: color, fontWeight: 'bold' }}>
+        {label}
+      </span>
+    );
+  };
+
   return (
     <div style={{ fontFamily: 'var(--font-geist-sans)' }}>
       {/* Toolbar */}
@@ -256,8 +296,10 @@ export default function TraspasosClient({
             >
               <option value="">Todos</option>
               <option value="REQUESTED">Solicitado</option>
-              <option value="IN_TRANSIT">En Tránsito</option>
-              <option value="COMPLETED">Completado</option>
+              <option value="CREATED">En preparación</option>
+              <option value="DISPATCHED">En Tránsito</option>
+              <option value="RECEIVED">Recibido</option>
+              <option value="CANCELLED">Cancelado</option>
             </select>
           </div>
         </div>
@@ -299,16 +341,7 @@ export default function TraspasosClient({
                         <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: '4px', backgroundColor: isIncoming ? '#e0e7ff' : '#f1f5f9', color: isIncoming ? '#4338ca' : '#475569', fontWeight: 'bold' }}>
                           {isIncoming ? 'ENTRANTE' : 'SALIENTE'}
                         </span>
-                        <span style={{ 
-                          fontSize: '0.7rem', 
-                          padding: '0.2rem 0.5rem', 
-                          borderRadius: '4px', 
-                          backgroundColor: item.status === 'COMPLETED' ? '#dcfce7' : item.status === 'IN_TRANSIT' ? '#fef9c3' : '#f1f5f9', 
-                          color: item.status === 'COMPLETED' ? '#166534' : item.status === 'IN_TRANSIT' ? '#854d0e' : '#475569', 
-                          fontWeight: 'bold' 
-                        }}>
-                          {item.status === 'COMPLETED' ? 'COMPLETADO' : item.status === 'IN_TRANSIT' ? 'EN TRÁNSITO' : item.status}
-                        </span>
+                        {renderStatusBadge(item.status)}
                      </div>
                   </div>
                   <div style={{ position: 'relative' }}>
@@ -351,7 +384,7 @@ export default function TraspasosClient({
                   <Link href={`/productos/traspasos/${item.id}`} style={{ color: 'var(--caanma-primary)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold' }}>
                     Ver Detalle &rarr;
                   </Link>
-                  {isIncoming && item.status === 'IN_TRANSIT' && (
+                  {isIncoming && item.status === 'DISPATCHED' && (
                      <button onClick={async () => {
                        const t = await import('@/app/actions/transfer');
                        const res = await t.receiveTransfer(item.id);
@@ -405,16 +438,7 @@ export default function TraspasosClient({
                     {item.receivedBy && <div><span style={{fontWeight: 500}}>Recibido por:</span> {item.receivedBy.name}</div>}
                   </td>
                   <td data-label="Estado" style={{ padding: '1rem' }}>
-                    <span style={{ 
-                      backgroundColor: item.status === 'COMPLETED' ? '#dcfce7' : item.status === 'IN_TRANSIT' ? '#fef9c3' : '#f1f5f9', 
-                      color: item.status === 'COMPLETED' ? '#166534' : item.status === 'IN_TRANSIT' ? '#854d0e' : '#475569', 
-                      padding: '0.2rem 0.5rem', 
-                      borderRadius: '4px', 
-                      fontSize: '0.75rem', 
-                      fontWeight: 'bold' 
-                    }}>
-                      {item.status === 'COMPLETED' ? 'COMPLETADO' : item.status === 'IN_TRANSIT' ? 'EN TRÁNSITO' : item.status}
-                    </span>
+                    {renderStatusBadge(item.status)}
                   </td>
                     <td data-label="Acciones" style={{ padding: '1rem', display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                       <Link href={`/productos/traspasos/${item.id}/imprimir`} target="_blank" style={{ backgroundColor: 'white', color: 'var(--caanma-primary)', border: '1px solid var(--caanma-primary)', padding: '0.4rem 0.75rem', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
@@ -423,7 +447,7 @@ export default function TraspasosClient({
                       <Link href={`/productos/traspasos/${item.id}`} style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '0.4rem 0.75rem', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
                          Ver Detalle
                       </Link>
-                      {isIncoming && item.status === 'IN_TRANSIT' && (
+                      {isIncoming && item.status === 'DISPATCHED' && (
                          <button onClick={async () => {
                            const t = await import('@/app/actions/transfer');
                            const res = await t.receiveTransfer(item.id);
