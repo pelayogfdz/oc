@@ -124,8 +124,18 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
             <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
               Fecha Emisión: {new Date(transfer.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </div>
-            <div style={{ display: 'inline-block', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid', borderColor: transfer.status === 'COMPLETED' ? '#16a34a' : transfer.status === 'IN_TRANSIT' ? '#eab308' : '#cbd5e1', color: transfer.status === 'COMPLETED' ? '#16a34a' : transfer.status === 'IN_TRANSIT' ? '#ca8a04' : '#64748b', fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'uppercase' }}>
-              ESTADO: {transfer.status === 'COMPLETED' ? 'COMPLETADO' : transfer.status === 'IN_TRANSIT' ? 'EN TRÁNSITO' : transfer.status}
+            <div style={{ display: 'inline-block', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid', 
+              borderColor: transfer.status === 'RECEIVED' ? '#16a34a' : (transfer.status === 'DISPATCHED' || transfer.status === 'CREATED') ? '#eab308' : transfer.status === 'CANCELLED' ? '#dc2626' : '#cbd5e1', 
+              color: transfer.status === 'RECEIVED' ? '#16a34a' : (transfer.status === 'DISPATCHED' || transfer.status === 'CREATED') ? '#ca8a04' : transfer.status === 'CANCELLED' ? '#dc2626' : '#64748b', 
+              fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'uppercase' }}>
+              ESTADO: {
+                transfer.status === 'RECEIVED' ? 'RECIBIDO' : 
+                transfer.status === 'DISPATCHED' ? 'EN TRÁNSITO' : 
+                transfer.status === 'CREATED' ? 'EN PREPARACIÓN' : 
+                transfer.status === 'REQUESTED' ? 'SOLICITADO' : 
+                transfer.status === 'CANCELLED' ? 'CANCELADO' : 
+                transfer.status
+              }
             </div>
           </div>
         </div>
