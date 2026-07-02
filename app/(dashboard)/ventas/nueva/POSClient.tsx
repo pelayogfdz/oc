@@ -330,17 +330,18 @@ export default function POSClient({
         if (stored) return stored === 'true';
       }
     }
-    return isSuperAdmin || userRole === 'ADMIN';
+    return isSuperAdmin || userRole === 'ADMIN' || userRole === 'MANAGER';
   });
 
   // Synchronize fresh permissions from server on mount to prevent stale PWA cache / stale local storage
   useEffect(() => {
     getMergedUserPermissions().then((res) => {
       if (res && res.success && res.permissions) {
+        const isUserAdmin = res.isSuperAdmin || res.role === 'ADMIN' || res.role === 'MANAGER';
         localStorage.setItem('caanma_user_permissions', JSON.stringify(res.permissions));
-        localStorage.setItem('caanma_user_is_admin', (res.isSuperAdmin || res.role === 'ADMIN') ? 'true' : 'false');
+        localStorage.setItem('caanma_user_is_admin', isUserAdmin ? 'true' : 'false');
         setPermissions(res.permissions);
-        setIsAdminOrSuper(res.isSuperAdmin || res.role === 'ADMIN');
+        setIsAdminOrSuper(isUserAdmin);
       }
     }).catch((err) => {
       console.error("Failed to sync fresh user permissions:", err);
@@ -355,7 +356,7 @@ export default function POSClient({
   }, [userPermissions]);
 
   useEffect(() => {
-    const isAdmin = isSuperAdmin || userRole === 'ADMIN';
+    const isAdmin = isSuperAdmin || userRole === 'ADMIN' || userRole === 'MANAGER';
     localStorage.setItem('caanma_user_is_admin', isAdmin ? 'true' : 'false');
     setIsAdminOrSuper(isAdmin);
   }, [isSuperAdmin, userRole]);

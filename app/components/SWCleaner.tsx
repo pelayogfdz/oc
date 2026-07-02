@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react';
 
+const CURRENT_BUILD_VERSION = '2026-07-02-v1';
+
 export default function SWCleaner() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -12,33 +14,38 @@ export default function SWCleaner() {
         return;
       }
 
-      // 1. Desregistrar TODOS los service workers de forma inmediata
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then((registrations) => {
-          for (const reg of registrations) {
-            reg.unregister().then((success) => {
-              if (success) {
-                console.log('[PWA] Service Worker desregistrado con éxito.');
-              }
-            });
-          }
-        }).catch((err) => {
-          console.warn('[PWA] Error al desregistrar service workers:', err);
-        });
-      }
+      const storedVersion = localStorage.getItem('caanma_build_version');
+      if (storedVersion !== CURRENT_BUILD_VERSION) {
+        console.log('[PWA] Nueva versión detectada:', CURRENT_BUILD_VERSION, '. Limpiando cachés y desregistrando service workers...');
+        
+        // 1. Limpiar localStorage de permisos obsoletos
+        localStorage.removeItem('caanma_user_permissions');
+        localStorage.removeItem('caanma_user_is_admin');
+        
+        // 2. Desregistrar Service Workers
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then((registrations) => {
+            for (const reg of registrations) {
+              reg.unregister();
+            }
+          }).catch(err => console.warn('Error unregistering SW:', err));
+        }
 
-      // 2. Limpiar de forma agresiva todas las cachés del navegador
-      if (typeof caches !== 'undefined') {
-        caches.keys().then((keys) => {
-          Promise.all(keys.map(key => {
-            console.log('[PWA] Borrando caché:', key);
-            return caches.delete(key);
-          })).then(() => {
-            console.log('[PWA] Limpieza completa de todas las cachés finalizada.');
-          }).catch((err) => {
-            console.error('[PWA] Falló la limpieza de cachés:', err);
+        // 3. Limpiar todas las cachés de red y de la app
+        if (typeof caches !== 'undefined') {
+          caches.keys().then((keys) => {
+            Promise.all(keys.map(key => caches.delete(key))).finally(() => {
+              localStorage.setItem('caanma_build_version', CURRENT_BUILD_VERSION);
+              window.location.reload();
+            });
+          }).catch(() => {
+            localStorage.setItem('caanma_build_version', CURRENT_BUILD_VERSION);
+            window.location.reload();
           });
-        });
+        } else {
+          localStorage.setItem('caanma_build_version', CURRENT_BUILD_VERSION);
+          window.location.reload();
+        }
       }
     }
   }, []);
