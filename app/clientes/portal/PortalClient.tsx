@@ -995,12 +995,26 @@ export default function PortalClient() {
                                 >
                                   <option value="601">General de Ley Personas Morales (601)</option>
                                   <option value="603">Personas Morales con Fines no Lucrativos (603)</option>
-                                  <option value="605">Sueldos y Salarios (605)</option>
+                                  <option value="605">Sueldos y Salarios e Ingresos Asimilados a Salarios (605)</option>
                                   <option value="606">Arrendamiento (606)</option>
+                                  <option value="607">Régimen de Enajenación o Adquisición de Bienes (607)</option>
+                                  <option value="608">Demás ingresos (608)</option>
+                                  <option value="610">Residentes en el Extranjero sin Establecimiento Permanente (610)</option>
+                                  <option value="611">Ingresos por Dividendos (socios y accionistas) (611)</option>
                                   <option value="612">Actividades Empresariales y Profesionales (612)</option>
+                                  <option value="614">Ingresos por Intereses (614)</option>
+                                  <option value="615">Régimen de los ingresos por obtención de premios (615)</option>
                                   <option value="616">Sin obligaciones fiscales (616)</option>
-                                  <option value="621">Incorporación Fiscal (621)</option>
+                                  <option value="620">Sociedades Cooperativas de Producción que optan por diferir ingresos (620)</option>
+                                  <option value="621">Incorporación Fiscal (RIF) (621)</option>
+                                  <option value="622">Actividades Agrícolas, Ganaderas, Silvícolas y Pesqueras (AGAPES) (622)</option>
+                                  <option value="623">Opcional para Grupos de Sociedades (623)</option>
+                                  <option value="624">Coordinados (624)</option>
+                                  <option value="625">Actividades Empresariales con ingresos por Plataformas Tecnológicas (625)</option>
                                   <option value="626">RESICO (626)</option>
+                                  <option value="628">Hidrocarburos (628)</option>
+                                  <option value="629">De los Regímenes Fiscales Preferentes y Empresas Multinacionales (629)</option>
+                                  <option value="630">Enajenación de acciones en bolsa de valores (630)</option>
                                 </select>
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -1282,12 +1296,26 @@ export default function PortalClient() {
                           >
                             <option value="601">General de Ley Personas Morales (601)</option>
                             <option value="603">Personas Morales con Fines no Lucrativos (603)</option>
-                            <option value="605">Sueldos y Salarios (605)</option>
+                            <option value="605">Sueldos y Salarios e Ingresos Asimilados a Salarios (605)</option>
                             <option value="606">Arrendamiento (606)</option>
+                            <option value="607">Régimen de Enajenación o Adquisición de Bienes (607)</option>
+                            <option value="608">Demás ingresos (608)</option>
+                            <option value="610">Residentes en el Extranjero sin Establecimiento Permanente (610)</option>
+                            <option value="611">Ingresos por Dividendos (socios y accionistas) (611)</option>
                             <option value="612">Actividades Empresariales y Profesionales (612)</option>
+                            <option value="614">Ingresos por Intereses (614)</option>
+                            <option value="615">Régimen de los ingresos por obtención de premios (615)</option>
                             <option value="616">Sin obligaciones fiscales (616)</option>
-                            <option value="621">Incorporación Fiscal (621)</option>
+                            <option value="620">Sociedades Cooperativas de Producción que optan por diferir ingresos (620)</option>
+                            <option value="621">Incorporación Fiscal (RIF) (621)</option>
+                            <option value="622">Actividades Agrícolas, Ganaderas, Silvícolas y Pesqueras (AGAPES) (622)</option>
+                            <option value="623">Opcional para Grupos de Sociedades (623)</option>
+                            <option value="624">Coordinados (624)</option>
+                            <option value="625">Actividades Empresariales con ingresos por Plataformas Tecnológicas (625)</option>
                             <option value="626">RESICO (626)</option>
+                            <option value="628">Hidrocarburos (628)</option>
+                            <option value="629">De los Regímenes Fiscales Preferentes y Empresas Multinacionales (629)</option>
+                            <option value="630">Enajenación de acciones en bolsa de valores (630)</option>
                           </select>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
