@@ -23,7 +23,7 @@ const standardMethodNames: Record<string, string> = {
 export default function PaymentMethodsConfigClient({ initialConfig }: { initialConfig: any }) {
   // If no config format exists, default to Cash, Card, Transfer enabled
   const [enabledIds, setEnabledIds] = useState<string[]>(
-    initialConfig?.enabledIds ?? ['CASH', 'CARD', 'TRANSFER']
+    initialConfig?.enabledIds ?? ['CASH', 'CARD', 'TRANSFER', 'CREDIT']
   );
   
   const [customMethods, setCustomMethods] = useState<{ id: string; name: string }[]>(
