@@ -1400,6 +1400,26 @@ export default function POSClient({
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
+
+    if (documentType === 'FACTURA') {
+      const cleanRfc = (billRfc || '').trim();
+      const cleanZip = (billZipCode || '').trim();
+      const cleanName = (billName || '').trim();
+
+      if (!cleanRfc || cleanRfc.length < 12 || cleanRfc.length > 13) {
+        alert('⚠️ Error de Facturación: El RFC debe tener entre 12 y 13 caracteres.');
+        return;
+      }
+      if (!cleanZip || cleanZip.length !== 5 || !/^\d{5}$/.test(cleanZip)) {
+        alert('⚠️ Error de Facturación: El Código Postal debe tener exactamente 5 dígitos.');
+        return;
+      }
+      if (!cleanName) {
+        alert('⚠️ Error de Facturación: La Razón Social o Nombre completo es obligatoria.');
+        return;
+      }
+    }
+
     setIsProcessing(true);
     try {
       let finalCart = [...cart];
@@ -3156,6 +3176,14 @@ export default function POSClient({
                     </div>
                  </div>
               </div>
+            )}
+
+            {documentType === 'FACTURA' && (
+              (!billRfc.trim() || billRfc.trim().length < 12 || billRfc.trim().length > 13 || !billZipCode.trim() || billZipCode.trim().length !== 5 || !billName.trim()) && (
+                <div style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 'bold', marginTop: '0.75rem', padding: '0.5rem', backgroundColor: '#fef2f2', borderRadius: '4px', border: '1px solid #fee2e2', textAlign: 'center' }}>
+                  ⚠️ El RFC (12-13 caracteres), Razón Social y Código Postal (5 dígitos) son obligatorios para emitir factura.
+                </div>
+              )
             )}
 
             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>

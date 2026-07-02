@@ -18,23 +18,27 @@ export default async function NuevaConsignacionPage({ searchParams }: { searchPa
     );
   }
 
-  const [products, customers, promotions, settings, suppliers] = await Promise.all([
+  const [products, customers, promotions, settings, suppliers, dynamicPriceLists] = await Promise.all([
     prisma.product.findMany({
       where: { branchId: branch.id, isActive: true },
+      include: { prices: true, variants: true },
       orderBy: { name: 'asc' }
     }),
     prisma.customer.findMany({ orderBy: { name: 'asc' } }),
     prisma.promotion.findMany({ where: { branchId: branch.id, active: true } }),
     getBranchSettings(),
-    getTenantSuppliers()
+    getTenantSuppliers(),
+    prisma.priceList.findMany({ where: { branchId: branch.id } })
   ]);
 
   let ticketConfig: any = {};
+  let ventasConfig: any = {};
   if (settings?.configJson) {
     try {
       const parsed = JSON.parse(settings.configJson);
       ticketConfig = parsed.tickets || {};
       ticketConfig.globalLogo = parsed.global?.logoUrl || '';
+      ventasConfig = parsed.ventas || {};
     } catch(e) {}
   }
 
@@ -114,6 +118,8 @@ export default async function NuevaConsignacionPage({ searchParams }: { searchPa
         branchId={branch.id} 
         initialCustomerId={searchParams.customerId}
         ticketConfig={ticketConfig}
+        ventasConfig={ventasConfig}
+        dynamicPriceLists={dynamicPriceLists}
         userPermissions={userPermissions}
         userRole={userRole}
         isSuperAdmin={isSuperAdmin}

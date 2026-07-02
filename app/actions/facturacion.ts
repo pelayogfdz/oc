@@ -95,6 +95,15 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
       }
     }
 
+    if (finalCustomer) {
+      if (!finalCustomer.taxId || finalCustomer.taxId.trim() === "") {
+        throw new Error(`El cliente "${finalCustomer.name}" no tiene un RFC (taxId) configurado. Agrégalo desde la sección de clientes antes de facturar.`);
+      }
+      if (!finalCustomer.zipCode || finalCustomer.zipCode.trim() === "") {
+        throw new Error(`El cliente "${finalCustomer.name}" no tiene un Código Postal (zipCode) configurado. Agrégalo desde la sección de clientes antes de facturar.`);
+      }
+    }
+
     let customerData = {
       legal_name: "PUBLICO EN GENERAL",
       tax_id: "XAXX010101000",
@@ -542,6 +551,15 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
       const firstCustomerSale = sales.find(s => s.customer?.taxId);
       if (firstCustomerSale) {
         finalCustomer = firstCustomerSale.customer;
+      }
+    }
+
+    if (finalCustomer) {
+      if (!finalCustomer.taxId || finalCustomer.taxId.trim() === "") {
+        throw new Error(`El cliente "${finalCustomer.name}" no tiene un RFC (taxId) configurado. Agrégalo desde la sección de clientes antes de facturar.`);
+      }
+      if (!finalCustomer.zipCode || finalCustomer.zipCode.trim() === "") {
+        throw new Error(`El cliente "${finalCustomer.name}" no tiene un Código Postal (zipCode) configurado. Agrégalo desde la sección de clientes antes de facturar.`);
       }
     }
 
