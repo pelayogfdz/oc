@@ -308,21 +308,27 @@ export default function POSClient({
   }, [branchId, mode]);
   const [isMobileSearchActive, setIsMobileSearchActive] = useState(false);
 
-  // Load permissions and superadmin status
+  // Load permissions and superadmin status (prefer fresh server props if online, fallback to localStorage if offline)
   const [permissions, setPermissions] = useState<Record<string, boolean>>(() => {
     if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('caanma_user_permissions');
-        if (stored) return JSON.parse(stored);
-      } catch (e) {}
+      const isOnlineLoc = typeof navigator !== 'undefined' ? navigator.onLine : true;
+      if (!isOnlineLoc) {
+        try {
+          const stored = localStorage.getItem('caanma_user_permissions');
+          if (stored) return JSON.parse(stored);
+        } catch (e) {}
+      }
     }
     return userPermissions || {};
   });
 
   const [isAdminOrSuper, setIsAdminOrSuper] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('caanma_user_is_admin');
-      if (stored) return stored === 'true';
+      const isOnlineLoc = typeof navigator !== 'undefined' ? navigator.onLine : true;
+      if (!isOnlineLoc) {
+        const stored = localStorage.getItem('caanma_user_is_admin');
+        if (stored) return stored === 'true';
+      }
     }
     return isSuperAdmin || userRole === 'ADMIN';
   });

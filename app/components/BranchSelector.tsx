@@ -10,6 +10,10 @@ export default function BranchSelector({ branches, currentBranchId }: { branches
     const val = e.target.value;
     setIsLoading(true);
     try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('caanma_user_permissions');
+        localStorage.removeItem('caanma_user_is_admin');
+      }
       await setActiveBranch(val);
       window.location.reload();
     } catch (err) {
