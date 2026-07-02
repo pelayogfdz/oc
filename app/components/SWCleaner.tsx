@@ -7,13 +7,6 @@ const CURRENT_BUILD_VERSION = '2026-07-02-v1';
 export default function SWCleaner() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
-      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      if (isStandalone || isLocalhost) {
-        console.log('[PWA] Standalone or Localhost mode: skipping SWCleaner.');
-        return;
-      }
-
       const storedVersion = localStorage.getItem('caanma_build_version');
       if (storedVersion !== CURRENT_BUILD_VERSION) {
         console.log('[PWA] Nueva versión detectada:', CURRENT_BUILD_VERSION, '. Limpiando cachés y desregistrando service workers...');
