@@ -470,7 +470,8 @@ export default function POSClient({
   const selectedCust = activeCustomers.find((c: any) => c.id === selectedCustomerId);
   const allowedMethods = [...customMethods];
   const isCreditEnabled = metodosConfig?.enabledIds ? metodosConfig.enabledIds.includes('CREDIT') : true;
-  if (isCreditEnabled && selectedCust && selectedCust.creditLimit > 0) {
+  const isDefaultCust = !selectedCust || selectedCust.name.toLowerCase().includes('público en general') || selectedCust.name.toLowerCase().includes('publico en general');
+  if (isCreditEnabled && selectedCust && !isDefaultCust) {
     allowedMethods.push({ id: 'CREDIT', name: 'Crédito Cta.' });
   }
   allowedMethods.push({ id: 'MIXTO', name: 'Mixto' });
@@ -3043,16 +3044,24 @@ export default function POSClient({
               </div>
             )}
 
-            {mode !== 'QUOTE' && paymentMethod === 'CREDIT' && selectedCust && selectedCust.creditLimit > 0 && (
+            {mode !== 'QUOTE' && paymentMethod === 'CREDIT' && selectedCust && (
               <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#fef3c7', borderRadius: '8px', border: '1px solid #fde68a' }}>
                 <div style={{ fontWeight: 'bold', color: '#b45309', marginBottom: '0.2rem', fontSize: '1rem' }}>Venta a Crédito</div>
-                <div style={{ color: '#d97706', fontSize: '0.9rem' }}>
-                  Límite disp.: ${ (selectedCust.creditLimit - (selectedCust.creditBalance || 0)).toFixed(2) } | Días máx.: {selectedCust.creditDays}
-                </div>
-                {total > (selectedCust.creditLimit - (selectedCust.creditBalance || 0)) && (
-                  <div style={{ marginTop: '0.4rem', color: 'red', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                    ⚠️ El total excede el límite de crédito disponible.
+                {selectedCust.creditLimit <= 0 ? (
+                  <div style={{ color: 'red', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                    ⚠️ El cliente no tiene una línea de crédito autorizada (Límite: $0.00). Configura su límite en la sección de Clientes.
                   </div>
+                ) : (
+                  <>
+                    <div style={{ color: '#d97706', fontSize: '0.9rem' }}>
+                      Límite disp.: ${ (selectedCust.creditLimit - (selectedCust.creditBalance || 0)).toFixed(2) } | Días máx.: {selectedCust.creditDays}
+                    </div>
+                    {total > (selectedCust.creditLimit - (selectedCust.creditBalance || 0)) && (
+                      <div style={{ marginTop: '0.4rem', color: 'red', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                        ⚠️ El total excede el límite de crédito disponible.
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -3197,7 +3206,9 @@ export default function POSClient({
                     isProcessing || 
                     (mode === 'SALE' && paymentMethod === 'CASH' && (typeof amountReceived !== 'number' || amountReceived < finalTotalWithTip)) ||
                     (mode === 'SALE' && paymentMethod === 'MIXTO' && (typeof amountReceived !== 'number' || typeof cardAmount !== 'number' || (amountReceived + cardAmount) < finalTotalWithTip)) ||
-                    (mode === 'SALE' && cart.some((item: any) => item.isFastItem))
+                    (mode === 'SALE' && cart.some((item: any) => item.isFastItem)) ||
+                    (documentType === 'FACTURA' && (!billRfc.trim() || billRfc.trim().length < 12 || billRfc.trim().length > 13 || !billZipCode.trim() || billZipCode.trim().length !== 5 || !billName.trim())) ||
+                    (mode === 'SALE' && paymentMethod === 'CREDIT' && (!selectedCust || selectedCust.creditLimit <= 0 || total > (selectedCust.creditLimit - (selectedCust.creditBalance || 0))))
                   }
                   className="btn-primary" 
                   style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem', opacity: isProcessing ? 0.5 : 1 }}
