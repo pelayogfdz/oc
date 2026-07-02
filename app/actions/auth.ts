@@ -52,19 +52,38 @@ export const getActiveBranch = cache(async () => {
   if (user) {
     isGlobal = user.role === 'ADMIN' || user.email?.toLowerCase() === 'pelayogfdz@gmail.com';
     
-    const rawPermissions = user.customRole?.permissions || user.permissions;
-    if (rawPermissions) {
+    const rolePermissions = user.customRole?.permissions;
+    const userPermissionsRaw = user.permissions;
+    const mergedList: string[] = [];
+
+    if (rolePermissions) {
       try {
-        const parsed = JSON.parse(rawPermissions);
-        const permArr = Array.isArray(parsed) ? parsed : Object.keys(parsed).filter(k => parsed[k]);
-        
-        if (permArr.includes('GLOBAL_VIEW')) {
+        const parsed = JSON.parse(rolePermissions);
+        if (Array.isArray(parsed)) mergedList.push(...parsed);
+        else Object.keys(parsed).forEach((k) => { if (parsed[k]) mergedList.push(k); });
+      } catch (e) {}
+    }
+
+    if (userPermissionsRaw) {
+      try {
+        const parsed = JSON.parse(userPermissionsRaw);
+        if (Array.isArray(parsed)) mergedList.push(...parsed);
+        else Object.keys(parsed).forEach((k) => { if (parsed[k]) mergedList.push(k); });
+      } catch (e) {}
+    }
+
+    if (mergedList.length > 0) {
+      try {
+        if (mergedList.includes('GLOBAL_VIEW')) {
           isGlobal = true;
         }
         
-        permArr.forEach((p: string) => {
+        mergedList.forEach((p: string) => {
           if (p.startsWith('__BRANCH_')) {
-            allowedBranchIds.push(p.replace('__BRANCH_', ''));
+            const branchId = p.replace('__BRANCH_', '');
+            if (!allowedBranchIds.includes(branchId)) {
+              allowedBranchIds.push(branchId);
+            }
           }
         });
       } catch (e) {

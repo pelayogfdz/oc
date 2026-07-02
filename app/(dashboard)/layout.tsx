@@ -59,15 +59,30 @@ export default async function DashboardLayout({ children }: { children: React.Re
       }
       isSuperAdmin = user.email?.toLowerCase() === 'pelayogfdz@gmail.com';
       try {
-        const rawPermissions = (user as any).customRole?.permissions || user.permissions;
-        if (rawPermissions) {
-          const parsed = JSON.parse(rawPermissions);
+        const rolePermissions = (user as any).customRole?.permissions;
+        const userPermissionsRaw = user.permissions;
+        const mergedList: string[] = [];
+
+        if (rolePermissions) {
+          try {
+            const parsed = JSON.parse(rolePermissions);
+            if (Array.isArray(parsed)) mergedList.push(...parsed);
+            else Object.keys(parsed).forEach((k) => { if (parsed[k]) mergedList.push(k); });
+          } catch (e) {}
+        }
+
+        if (userPermissionsRaw) {
+          try {
+            const parsed = JSON.parse(userPermissionsRaw);
+            if (Array.isArray(parsed)) mergedList.push(...parsed);
+            else Object.keys(parsed).forEach((k) => { if (parsed[k]) mergedList.push(k); });
+          } catch (e) {}
+        }
+
+        if (mergedList.length > 0) {
           const tempPermissions: Record<string, boolean> = {};
-          if (Array.isArray(parsed)) {
-            parsed.forEach((p: string) => tempPermissions[p] = true);
-          } else {
-            Object.keys(parsed).forEach((k) => { if (parsed[k]) tempPermissions[k] = true; });
-          }
+          mergedList.forEach((p: string) => tempPermissions[p] = true);
+
           Object.keys(tempPermissions).forEach(p => {
             if (hasPermission(tempPermissions, p)) {
               userPermissions[p] = true;
