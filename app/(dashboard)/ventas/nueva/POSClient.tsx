@@ -689,18 +689,33 @@ export default function POSClient({
       
       setLoadedQuoteId(quote.id);
       
-      // Load cart
+      // Load cart preserving variantId, cartItemId and customPrice
       const newCart = quote.items.map((item: any) => ({
         ...item.product,
-        cartItemId: Math.random().toString(36).substr(2, 9),
+        cartItemId: item.variantId ? `v_${item.variantId}` : item.product.id,
         quantity: item.quantity,
-        cartPrice: item.price
+        customPrice: item.price,
+        cartPrice: item.price,
+        variantId: item.variantId || null
       }));
       setCart(newCart);
       
       // Load Customer
       if (quote.customerId) {
-        handleCustomerChange(quote.customerId);
+        await handleCustomerChange(quote.customerId);
+      } else {
+        await handleCustomerChange('');
+      }
+
+      // Re-calculate and set manual discount if there was a difference between subtotal of items and quote total
+      const subTotalOfLoadedItems = newCart.reduce((sum: number, item: any) => sum + (item.customPrice * item.quantity), 0);
+      const discountDiff = subTotalOfLoadedItems - quote.total;
+      if (discountDiff > 0.01) {
+        setManualDiscountType('$');
+        setManualDiscountValue(Number(discountDiff.toFixed(2)));
+      } else {
+        setManualDiscountType('$');
+        setManualDiscountValue('');
       }
       
       setIsQuoteModalOpen(false);
