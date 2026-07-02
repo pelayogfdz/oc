@@ -182,9 +182,14 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
     let payment_method = "PUE";
     let cfdiUse = "S01";
 
-    if (sale.paymentMethod === 'CREDIT') {
+    const methodUpper = String(sale.paymentMethod || '').toUpperCase();
+    if (methodUpper === 'CREDIT') {
       payment_form = "99"; // Por definir
       payment_method = "PPD"; // Pago en Parcialidades o Diferido
+    } else if (methodUpper === 'CARD' || methodUpper.includes('TARJETA') || methodUpper.includes('CARD')) {
+      payment_form = "04"; // Tarjeta de crédito
+    } else if (methodUpper === 'TRANSFER' || methodUpper.includes('TRANSFERENCIA') || methodUpper.includes('SPEI')) {
+      payment_form = "03"; // Transferencia electrónica
     }
 
     if (customerData.tax_id === "XAXX010101000") {
@@ -644,16 +649,16 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
     let payment_method = "PUE";
     let cfdiUse = "S01";
 
-    const hasCredit = sales.some(s => s.paymentMethod === 'CREDIT');
+    const hasCredit = sales.some(s => String(s.paymentMethod || '').toUpperCase() === 'CREDIT');
     if (hasCredit) {
       payment_form = "99";
       payment_method = "PPD";
     } else {
       // Find first sale with non-cash payment method to get a representative payment form
-      const nonCashSale = sales.find(s => s.paymentMethod !== 'CASH');
-      const pm = nonCashSale ? nonCashSale.paymentMethod : sales[0].paymentMethod;
-      if (pm === 'CARD') payment_form = "04";
-      else if (pm === 'TRANSFER') payment_form = "03";
+      const nonCashSale = sales.find(s => String(s.paymentMethod || '').toUpperCase() !== 'CASH');
+      const pm = String(nonCashSale ? nonCashSale.paymentMethod : sales[0].paymentMethod || '').toUpperCase();
+      if (pm === 'CARD' || pm.includes('TARJETA') || pm.includes('CARD')) payment_form = "04";
+      else if (pm === 'TRANSFER' || pm.includes('TRANSFERENCIA') || pm.includes('SPEI')) payment_form = "03";
       else payment_form = "01";
     }
 

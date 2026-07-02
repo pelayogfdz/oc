@@ -23,8 +23,12 @@ export async function addCustomerPaymentBatch(
   
   let currentSession = null;
   if (paymentMethod === 'CASH') {
+    const sessionQuery: any = { userId: user.id, status: 'OPEN' };
+    if (branch.id !== 'GLOBAL') {
+      sessionQuery.branchId = branch.id;
+    }
     currentSession = await prisma.cashSession.findFirst({
-      where: { userId: user.id, branchId: branch.id, status: 'OPEN' }
+      where: sessionQuery
     });
     if (!currentSession) throw new Error("Debes abrir una caja para recibir abonos en efectivo.");
   }
@@ -40,6 +44,21 @@ export async function addCustomerPaymentBatch(
               : `Depósito Saldo a Favor: ${customer.name}`
         }
      });
+  }
+
+  // Fallback branch if user is in GLOBAL branch view
+  let paymentBranchId = branch.id;
+  if (paymentBranchId === 'GLOBAL') {
+    if (customer.branchId && customer.branchId !== 'GLOBAL') {
+      paymentBranchId = customer.branchId;
+    } else {
+      const firstRealBranch = await prisma.branch.findFirst({
+        where: { tenantId: user.tenantId, isActive: true }
+      });
+      if (firstRealBranch) {
+        paymentBranchId = firstRealBranch.id;
+      }
+    }
   }
 
   let remainingAmount = totalAmount;
@@ -72,7 +91,7 @@ export async function addCustomerPaymentBatch(
              amount: deduct,
              reason: `Abono a Ticket #${sale.id.slice(0,8)} (${paymentMethod})`,
              userId: user.id,
-             branchId: branch.id,
+             branchId: sale.branchId || paymentBranchId,
              saleId: sale.id,
              paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
              cfdiStatus: requestCfdi ? "REQUESTED" : "NONE"
@@ -88,7 +107,7 @@ export async function addCustomerPaymentBatch(
              amount: remainingAmount,
              reason: `Depósito a Saldo a Favor (${paymentMethod})`,
              userId: user.id,
-             branchId: branch.id,
+             branchId: paymentBranchId,
              saleId: null,
              cfdiStatus: "NONE"
           }
@@ -141,8 +160,13 @@ export async function deleteCustomerPayment(paymentId: string) {
   }
   
   if (payment.reason?.includes('CASH') || payment.reason?.includes('Efectivo')) {
+     const targetBranchId = (payment.branchId && payment.branchId !== 'GLOBAL') ? payment.branchId : branch.id;
+     const sessionQuery: any = { userId: user.id, status: 'OPEN' };
+     if (targetBranchId !== 'GLOBAL') {
+       sessionQuery.branchId = targetBranchId;
+     }
      const currentSession = await prisma.cashSession.findFirst({
-        where: { userId: user.id, branchId: branch.id, status: 'OPEN' }
+        where: sessionQuery
      });
      
      if (currentSession) {
