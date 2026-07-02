@@ -2898,52 +2898,52 @@ export default function POSClient({
       {/* Checkout Modal */}
       {isCheckoutOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', width: '500px', maxWidth: '90%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', textAlign: 'center' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '8px', width: '460px', maxWidth: '90%', maxHeight: '92vh', overflowY: 'auto', boxSizing: 'border-box', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem', textAlign: 'center' }}>
                {mode === 'QUOTE' ? 'Finalizar Cotización' : mode === 'CONSIGNMENT' ? 'Finalizar Consignación' : 'Finalizar Venta'}
             </h2>
             
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.75rem' }}>
                <button 
                  onClick={() => setDocumentType('TICKET')} 
-                 style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: 'none', backgroundColor: documentType === 'TICKET' ? 'var(--caanma-primary)' : '#f1f5f9', color: documentType === 'TICKET' ? 'white' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}
+                 style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: 'none', backgroundColor: documentType === 'TICKET' ? 'var(--caanma-primary)' : '#f1f5f9', color: documentType === 'TICKET' ? 'white' : '#64748b', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}
                >
                   Emitir Ticket
                </button>
                <button 
                  onClick={() => setDocumentType('FACTURA')} 
-                 style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: 'none', backgroundColor: documentType === 'FACTURA' ? '#10b981' : '#f1f5f9', color: documentType === 'FACTURA' ? 'white' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}
+                 style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: 'none', backgroundColor: documentType === 'FACTURA' ? '#10b981' : '#f1f5f9', color: documentType === 'FACTURA' ? 'white' : '#64748b', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem' }}
                >
                   Emitir Factura
                </button>
             </div>
             
-            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: '1rem', color: 'var(--caanma-text-muted)' }}>{mode === 'QUOTE' ? 'Total Presupuestado' : mode === 'CONSIGNMENT' ? 'Total Consignado' : 'Total a Pagar'}</div>
-              <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>${finalTotalWithTip.toFixed(2)}</div>
+            <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>{mode === 'QUOTE' ? 'Total Presupuestado' : mode === 'CONSIGNMENT' ? 'Total Consignado' : 'Total a Pagar'}</div>
+              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>${finalTotalWithTip.toFixed(2)}</div>
             </div>
 
             {/* Monedero Electrónico */}
             {mode === 'SALE' && selectedCust && loyaltySettings && loyaltySettings.isActive && selectedCust.pointsBalance > 0 && (
-              <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#eff6ff', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', color: '#1e40af', marginBottom: '0.5rem', fontSize: '1.05rem' }}>
-                  <Star size={18} fill="#1e40af" color="#1e40af" />
+              <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 'bold', color: '#1e40af', marginBottom: '0.4rem', fontSize: '0.95rem' }}>
+                  <Star size={16} fill="#1e40af" color="#1e40af" />
                   <span>Monedero Electrónico</span>
                 </div>
-                <div style={{ fontSize: '0.95rem', color: '#1e3a8a', display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <div style={{ fontSize: '0.85rem', color: '#1e3a8a', display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                   <span>Puntos Disponibles:</span>
-                  <strong style={{ fontSize: '1.1rem' }}>{selectedCust.pointsBalance} pts</strong>
+                  <strong style={{ fontSize: '0.95rem' }}>{selectedCust.pointsBalance} pts</strong>
                 </div>
-                <div style={{ fontSize: '0.95rem', color: '#1e3a8a', display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <div style={{ fontSize: '0.85rem', color: '#1e3a8a', display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                   <span>Equivalencia en Pesos:</span>
                   <strong>${(selectedCust.pointsBalance * (loyaltySettings.pointValueInPesos || 1.0)).toFixed(2)} MXN</strong>
                 </div>
 
-                <div style={{ marginTop: '0.75rem', borderTop: '1px dashed #bfdbfe', paddingTop: '0.75rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#1e40af', marginBottom: '0.5rem' }}>
+                <div style={{ marginTop: '0.5rem', borderTop: '1px dashed #bfdbfe', paddingTop: '0.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#1e40af', marginBottom: '0.35rem' }}>
                     Redimir Puntos para esta compra (Máx: {Math.min(selectedCust.pointsBalance, Math.floor((total + tipAmount) / (loyaltySettings.pointValueInPesos || 1.0)))}):
                   </label>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                     <input 
                       type="number"
                       min="0"
@@ -2954,8 +2954,8 @@ export default function POSClient({
                         const maxVal = Math.min(selectedCust.pointsBalance, Math.floor((total + tipAmount) / (loyaltySettings.pointValueInPesos || 1.0)));
                         setPointsRedeemed(Math.min(maxVal, Math.max(0, val)));
                       }}
-                      placeholder="Cantidad de puntos"
-                      style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid #bfdbfe', outline: 'none' }}
+                      placeholder="Puntos"
+                      style={{ flex: 1, padding: '0.4rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #bfdbfe', outline: 'none' }}
                     />
                     <button 
                       type="button"
@@ -2963,13 +2963,13 @@ export default function POSClient({
                         const maxVal = Math.min(selectedCust.pointsBalance, Math.floor((total + tipAmount) / (loyaltySettings.pointValueInPesos || 1.0)));
                         setPointsRedeemed(maxVal);
                       }}
-                      style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', backgroundColor: '#2563eb', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.85rem' }}
+                      style={{ padding: '0.4rem 0.8rem', borderRadius: '6px', border: 'none', backgroundColor: '#2563eb', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem' }}
                     >
                       Usar Todos
                     </button>
                   </div>
                   {pointsRedeemed > 0 && (
-                    <div style={{ fontSize: '0.9rem', color: '#16a34a', marginTop: '0.5rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: '0.8rem', color: '#16a34a', marginTop: '0.4rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
                       <span>Descuento aplicado:</span>
                       <span>-${(pointsRedeemed * (loyaltySettings.pointValueInPesos || 1.0)).toFixed(2)} MXN</span>
                     </div>
@@ -2979,16 +2979,16 @@ export default function POSClient({
             )}
 
             {mode !== 'QUOTE' && mode !== 'CONSIGNMENT' && ventasConfig.solicitarPropinas && (
-               <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '1.5rem' }}>
-                 <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>Añadir Propina</label>
-                 <div style={{ display: 'flex', gap: '0.5rem' }}>
+               <div style={{ marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '1rem' }}>
+                 <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', marginBottom: '0.4rem' }}>Añadir Propina</label>
+                 <div style={{ display: 'flex', gap: '0.4rem' }}>
                    {[10, 15, 20].map(pct => {
                      const amt = total * (pct / 100);
                      return (
                        <button
                          key={pct}
                          onClick={() => setTipAmount(tipAmount === amt ? 0 : amt)}
-                         style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: '1px solid', borderColor: tipAmount === amt ? '#10b981' : 'var(--caanma-border)', backgroundColor: tipAmount === amt ? '#d1fae5' : 'white', cursor: 'pointer', fontWeight: tipAmount === amt ? 'bold' : 'normal' }}
+                         style={{ flex: 1, padding: '0.4rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid', borderColor: tipAmount === amt ? '#10b981' : 'var(--caanma-border)', backgroundColor: tipAmount === amt ? '#d1fae5' : 'white', cursor: 'pointer', fontWeight: tipAmount === amt ? 'bold' : 'normal' }}
                        >
                          {pct}% (${amt.toFixed(2)})
                        </button>
@@ -2999,19 +2999,20 @@ export default function POSClient({
             )}
 
             {mode !== 'QUOTE' && (
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>Método de Pago</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '0.5rem' }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', marginBottom: '0.4rem' }}>Método de Pago</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: '0.4rem' }}>
                   {allowedMethods.map(method => (
                     <button 
                       key={method.id}
                       onClick={() => setPaymentMethod(method.id)}
                       style={{ 
-                        padding: '0.75rem', borderRadius: '4px', border: '1px solid', 
+                        padding: '0.5rem', borderRadius: '4px', border: '1px solid', 
                         borderColor: paymentMethod === method.id ? 'var(--caanma-primary)' : 'var(--caanma-border)',
                         backgroundColor: paymentMethod === method.id ? '#eff6ff' : 'white',
                         color: paymentMethod === method.id ? 'var(--caanma-primary)' : 'inherit',
                         fontWeight: paymentMethod === method.id ? 'bold' : 'normal',
+                        fontSize: '0.85rem',
                         cursor: 'pointer'
                       }}
                     >
@@ -3023,13 +3024,13 @@ export default function POSClient({
             )}
 
             {mode !== 'QUOTE' && paymentMethod === 'CREDIT' && selectedCust && selectedCust.creditLimit > 0 && (
-              <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#fef3c7', borderRadius: '8px', border: '1px solid #fde68a' }}>
-                <div style={{ fontWeight: 'bold', color: '#b45309', marginBottom: '0.25rem', fontSize: '1.2rem' }}>Venta a Crédito</div>
-                <div style={{ color: '#d97706', fontSize: '1.1rem' }}>
+              <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#fef3c7', borderRadius: '8px', border: '1px solid #fde68a' }}>
+                <div style={{ fontWeight: 'bold', color: '#b45309', marginBottom: '0.2rem', fontSize: '1rem' }}>Venta a Crédito</div>
+                <div style={{ color: '#d97706', fontSize: '0.9rem' }}>
                   Límite disp.: ${ (selectedCust.creditLimit - (selectedCust.creditBalance || 0)).toFixed(2) } | Días máx.: {selectedCust.creditDays}
                 </div>
                 {total > (selectedCust.creditLimit - (selectedCust.creditBalance || 0)) && (
-                  <div style={{ marginTop: '0.5rem', color: 'red', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                  <div style={{ marginTop: '0.4rem', color: 'red', fontWeight: 'bold', fontSize: '0.9rem' }}>
                     ⚠️ El total excede el límite de crédito disponible.
                   </div>
                 )}
@@ -3037,18 +3038,18 @@ export default function POSClient({
             )}
 
             {mode !== 'QUOTE' && (paymentMethod === 'CASH' || paymentMethod.toLowerCase().includes('efectivo')) && (
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>Efectivo Recibido</label>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', marginBottom: '0.4rem' }}>Efectivo Recibido</label>
                 <input 
                   type="number" 
                   autoFocus
                   value={amountReceived}
                   onChange={e => setAmountReceived(e.target.value === '' ? '' : parseFloat(e.target.value))}
                   placeholder={`Mínimo $${finalTotalWithTip.toFixed(2)}`}
-                  style={{ width: '100%', padding: '1rem', fontSize: '1.25rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', textAlign: 'right' }}
+                  style={{ width: '100%', padding: '0.75rem', fontSize: '1.1rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', textAlign: 'right' }}
                 />
                 {(typeof amountReceived === 'number' && amountReceived >= finalTotalWithTip) && (
-                  <div style={{ marginTop: '0.5rem', textAlign: 'right', fontSize: '1.1rem', color: '#16a34a', fontWeight: 'bold' }}>
+                  <div style={{ marginTop: '0.4rem', textAlign: 'right', fontSize: '0.95rem', color: '#16a34a', fontWeight: 'bold' }}>
                     Cambio a entregar: ${change.toFixed(2)}
                   </div>
                 )}
@@ -3056,9 +3057,9 @@ export default function POSClient({
             )}
             
             {paymentMethod === 'MIXTO' && (
-              <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem' }}>
+              <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.75rem' }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>Pago en Tarjeta</label>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '0.35rem' }}>Pago en Tarjeta</label>
                   <input 
                     type="number" 
                     value={cardAmount}
@@ -3068,40 +3069,40 @@ export default function POSClient({
                        if (typeof v === 'number' && v <= finalTotalWithTip) setAmountReceived(finalTotalWithTip - v);
                     }}
                     placeholder={`Monto`}
-                    style={{ width: '100%', padding: '1rem', fontSize: '1.25rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', textAlign: 'right' }}
+                    style={{ width: '100%', padding: '0.75rem', fontSize: '1.1rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', textAlign: 'right' }}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>Pago en Efectivo</label>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '0.35rem' }}>Pago en Efectivo</label>
                   <input 
                     type="number" 
                     value={amountReceived}
                     onChange={e => setAmountReceived(e.target.value === '' ? '' : parseFloat(e.target.value))}
                     placeholder={`Restante`}
-                    style={{ width: '100%', padding: '1rem', fontSize: '1.25rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', textAlign: 'right' }}
+                    style={{ width: '100%', padding: '0.75rem', fontSize: '1.1rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', textAlign: 'right' }}
                   />
                 </div>
               </div>
             )}
 
-            <div style={{ marginBottom: '1.5rem' }}>
-               <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem' }}>Notas del Ticket (Opcional)</label>
+            <div style={{ marginBottom: '1rem' }}>
+               <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', marginBottom: '0.4rem' }}>Notas del Ticket (Opcional)</label>
                <input 
                   type="text" 
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                   placeholder="Ej. Entregar pedido especial..."
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
+                  style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
                />
             </div>
 
             {documentType === 'FACTURA' && (
-              <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-                 <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#166534', marginBottom: '1rem' }}>Datos de Facturación CFDI 4.0</h3>
+              <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                 <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#166534', marginBottom: '0.75rem' }}>Datos de Facturación CFDI 4.0</h3>
                  
-                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.85rem', color: '#166534', fontWeight: 'bold', marginBottom: '0.25rem' }}>RFC *</label>
+                      <label style={{ display: 'block', fontSize: '0.8rem', color: '#166534', fontWeight: 'bold', marginBottom: '0.2rem' }}>RFC *</label>
                       <input 
                          type="text" 
                          value={billRfc} 
@@ -3118,36 +3119,36 @@ export default function POSClient({
                            });
                          }} 
                          placeholder="XAXX010101000" 
-                         style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #bbf7d0' }} 
+                         style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #bbf7d0' }} 
                        />
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.85rem', color: '#166534', fontWeight: 'bold', marginBottom: '0.25rem' }}>Cód. Postal *</label>
-                      <input type="text" value={billZipCode} onChange={e => setBillZipCode(e.target.value)} placeholder="Ej: 76000" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #bbf7d0' }} />
+                      <label style={{ display: 'block', fontSize: '0.8rem', color: '#166534', fontWeight: 'bold', marginBottom: '0.2rem' }}>Cód. Postal *</label>
+                      <input type="text" value={billZipCode} onChange={e => setBillZipCode(e.target.value)} placeholder="Ej: 76000" style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #bbf7d0' }} />
                     </div>
                  </div>
 
-                 <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.85rem', color: '#166534', fontWeight: 'bold', marginBottom: '0.25rem' }}>Razón Social *</label>
-                    <input type="text" value={billName} onChange={e => setBillName(e.target.value.toUpperCase())} placeholder="NOMBRE COMPLETO S.A. DE C.V." style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #bbf7d0' }} />
+                 <div style={{ marginBottom: '0.75rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#166534', fontWeight: 'bold', marginBottom: '0.2rem' }}>Razón Social *</label>
+                    <input type="text" value={billName} onChange={e => setBillName(e.target.value.toUpperCase())} placeholder="NOMBRE COMPLETO S.A. DE C.V." style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #bbf7d0' }} />
                  </div>
 
-                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.85rem', color: '#166534', fontWeight: 'bold', marginBottom: '0.25rem' }}>Régimen Fiscal</label>
-                      <select value={billRegime} onChange={e => setBillRegime(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #bbf7d0', backgroundColor: 'white' }}>
-                        <option value="601">601 - General de Ley Personas Morales</option>
-                        <option value="603">603 - Personas Morales con Fines no Lucrativos</option>
-                        <option value="612">612 - Personas Físicas con Actividades Empresariales</option>
+                      <label style={{ display: 'block', fontSize: '0.8rem', color: '#166534', fontWeight: 'bold', marginBottom: '0.2rem' }}>Régimen Fiscal</label>
+                      <select value={billRegime} onChange={e => setBillRegime(e.target.value)} style={{ width: '100%', padding: '0.4rem', fontSize: '0.8rem', borderRadius: '4px', border: '1px solid #bbf7d0', backgroundColor: 'white' }}>
+                        <option value="601">601 - Gral. Morales</option>
+                        <option value="603">603 - Sin Fines Lucrativos</option>
+                        <option value="612">612 - P.F. Activ. Empresariales</option>
                         <option value="616">616 - Sin obligaciones fiscales</option>
                         <option value="621">621 - Incorporación Fiscal</option>
-                        <option value="626">626 - Régimen Simplificado de Confianza (RESICO)</option>
+                        <option value="626">626 - RESICO</option>
                       </select>
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.85rem', color: '#166534', fontWeight: 'bold', marginBottom: '0.25rem' }}>Uso de CFDI</label>
-                      <select value={billUse} onChange={e => setBillUse(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #bbf7d0', backgroundColor: 'white' }}>
-                        <option value="G01">G01 - Adquisición de mercancias</option>
+                      <label style={{ display: 'block', fontSize: '0.8rem', color: '#166534', fontWeight: 'bold', marginBottom: '0.2rem' }}>Uso de CFDI</label>
+                      <select value={billUse} onChange={e => setBillUse(e.target.value)} style={{ width: '100%', padding: '0.4rem', fontSize: '0.8rem', borderRadius: '4px', border: '1px solid #bbf7d0', backgroundColor: 'white' }}>
+                        <option value="G01">G01 - Adquisición mercancías</option>
                         <option value="G03">G03 - Gastos en general</option>
                         <option value="P01">P01 - Por definir</option>
                         <option value="D01">D01 - Honorarios médicos</option>
@@ -3157,8 +3158,8 @@ export default function POSClient({
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-              <button onClick={() => setIsCheckoutOpen(false)} style={{ flex: 1, padding: '1rem', border: '1px solid var(--caanma-border)', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', background: 'white' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+              <button onClick={() => setIsCheckoutOpen(false)} style={{ flex: 1, padding: '0.75rem', fontSize: '0.95rem', border: '1px solid var(--caanma-border)', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', background: 'white' }}>
                 Cancelar
               </button>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -3171,12 +3172,12 @@ export default function POSClient({
                     (mode === 'SALE' && cart.some((item: any) => item.isFastItem))
                   }
                   className="btn-primary" 
-                  style={{ width: '100%', padding: '1rem', fontSize: '1.1rem', opacity: isProcessing ? 0.5 : 1 }}
+                  style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem', opacity: isProcessing ? 0.5 : 1 }}
                 >
                   {isProcessing ? 'Guardando...' : (mode === 'QUOTE' ? 'Guardar Cotización' : mode === 'CONSIGNMENT' ? 'Confirmar Consignación' : 'Confirmar Pago')}
                 </button>
                 {mode === 'SALE' && cart.some((item: any) => item.isFastItem) && (
-                  <div style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '0.5rem', fontWeight: 'bold', textAlign: 'center' }}>
+                  <div style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.4rem', fontWeight: 'bold', textAlign: 'center' }}>
                     ⚠️ No se puede cerrar la venta porque incluye un artículo rápido. Regístralo en el catálogo primero.
                   </div>
                 )}

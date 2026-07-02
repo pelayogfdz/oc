@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { getActiveBranch } from "@/app/actions/auth";
@@ -81,8 +83,9 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
         }
         body { font-family: 'Inter', system-ui, sans-serif; background: #f1f5f9; margin: 0; padding: 2rem 0; color: #1e293b; }
         .letter-container { width: 21.59cm; min-height: 27.94cm; margin: 0 auto; background: white; padding: 1.5cm; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); position: relative; box-sizing: border-box; }
-        .header-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; margin-bottom: 1.5rem; border-bottom: 2px solid ${primaryColor}; padding-bottom: 1.5rem; }
-        .invoice-title { font-size: 2rem; font-weight: 900; color: ${primaryColor}; margin: 0 0 0.5rem 0; text-transform: uppercase; line-height: 1.1; }
+        .header-grid { display: grid; grid-template-columns: 2fr 1.2fr; gap: 2rem; margin-bottom: 1.5rem; border-bottom: 2px solid ${primaryColor}; padding-bottom: 1.5rem; }
+        .title-box { background-color: ${primaryColor}; padding: 1rem 1.5rem; border-radius: 8px; text-align: center; display: flex; align-items: center; justify-content: center; height: fit-content; color: white; }
+        .title-text { margin: 0; font-size: 1.1rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
         .info-card { background: #f8fafc; padding: 1.25rem; border-radius: 8px; border: 1px solid #e2e8f0; }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; margin-top: 1.5rem; }
         .data-label { font-size: 0.75rem; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 0.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.25rem; }
@@ -106,19 +109,22 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
               </h1>
             )}
             <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.5' }}>
-              <strong>DOCUMENTO INTERNO</strong><br/>
-              Emisión desde: {transfer.branch?.name || 'Bodega Central'}
+              <strong>DOCUMENTO DE CONTROL INTERNO</strong><br/>
+              Sucursal Emisora: {transfer.branch?.name || 'Bodega Central'}<br/>
+              {transfer.branch?.location && <>{transfer.branch.location.replace(/\\n/g, ', ')}<br/></>}
             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <h2 className="invoice-title">REMISIÓN DE TRASPASO</h2>
-            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#334155' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+            <div className="title-box" style={{ width: '100%', boxSizing: 'border-box' }}>
+              <h2 className="title-text">Remisión Traspaso</h2>
+            </div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#334155', marginTop: '0.25rem' }}>
               Folio: #{transfer.folio || "TR-" + transfer.id.slice(0, 8).toUpperCase()}
             </div>
-            <div style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.5rem' }}>
-              Fecha Emisión: {new Date(transfer.createdAt).toLocaleString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+              Fecha Emisión: {new Date(transfer.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </div>
-            <div style={{ display: 'inline-block', marginTop: '0.5rem', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid', borderColor: transfer.status === 'COMPLETED' ? '#16a34a' : transfer.status === 'IN_TRANSIT' ? '#eab308' : '#cbd5e1', color: transfer.status === 'COMPLETED' ? '#16a34a' : transfer.status === 'IN_TRANSIT' ? '#ca8a04' : '#64748b', fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'uppercase' }}>
+            <div style={{ display: 'inline-block', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid', borderColor: transfer.status === 'COMPLETED' ? '#16a34a' : transfer.status === 'IN_TRANSIT' ? '#eab308' : '#cbd5e1', color: transfer.status === 'COMPLETED' ? '#16a34a' : transfer.status === 'IN_TRANSIT' ? '#ca8a04' : '#64748b', fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'uppercase' }}>
               ESTADO: {transfer.status === 'COMPLETED' ? 'COMPLETADO' : transfer.status === 'IN_TRANSIT' ? 'EN TRÁNSITO' : transfer.status}
             </div>
           </div>
@@ -131,7 +137,8 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
             <div className="data-value">
               {transfer.branch?.name || 'Bodega Central'}
             </div>
-            <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.35rem' }}>
+            {transfer.branch?.location && <div style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '0.5rem' }}>{transfer.branch.location.replace(/\\n/g, ', ')}</div>}
+            <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.35rem' }}>
               <strong>Enviado por:</strong> {transfer.createdBy?.name || 'N/A'}
             </div>
           </div>
@@ -141,7 +148,8 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
             <div className="data-value">
               {transfer.toBranch?.name || 'N/A'}
             </div>
-            <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.35rem' }}>
+            {transfer.toBranch?.location && <div style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '0.5rem' }}>{transfer.toBranch.location.replace(/\\n/g, ', ')}</div>}
+            <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.35rem' }}>
               <strong>Recibido por:</strong> {transfer.receivedBy?.name || 'Pendiente de Recepción'}
             </div>
           </div>
