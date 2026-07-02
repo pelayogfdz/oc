@@ -4064,16 +4064,7 @@ export default function POSClient({
           </div>
         </div>
       )}
-      
-      {/* TEMP DIAGNOSTIC BANNER FOR DEBUGGING */}
-      <div style={{ position: 'fixed', bottom: '10px', left: '10px', backgroundColor: 'rgba(0,0,0,0.85)', color: 'white', padding: '10px 15px', borderRadius: '8px', zIndex: 9999, fontSize: '11px', fontFamily: 'monospace', maxWidth: '350px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', pointerEvents: 'none' }}>
-        <div><strong>Diagnostic User Info:</strong></div>
-        <div>Role: {userRole}</div>
-        <div>IsAdminOrSuper: {isAdminOrSuper ? 'TRUE' : 'FALSE'}</div>
-        <div>hasPriceChange: {hasPermission('pos_price_change') ? 'YES' : 'NO'}</div>
-        <div>hasChangeCust: {hasPermission('pos_change_customer') ? 'YES' : 'NO'}</div>
-        <div>Permissions Keys Count: {Object.keys(permissions).length}</div>
-      </div>
+
     </div>
   );
 }
