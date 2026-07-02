@@ -862,18 +862,6 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
           {/* Action Cards Panel */}
           <div className="compra-action-grid">
             
-            {/* Card 1: Crear Producto Rápido */}
-            <button 
-              type="button"
-              onClick={() => alert('Para añadir productos, puedes usar el buscador principal al tope de la pantalla.')}
-              className="compra-action-card"
-            >
-              <div className="compra-action-icon-wrapper" style={{ backgroundColor: '#ccfbf1', color: '#0d9488' }}>
-                <Plus size={20} />
-              </div>
-              <span className="compra-action-label">Crear Producto Rápido</span>
-            </button>
-
             {/* Card 2: Pausar Compra */}
             <button 
               type="button"
