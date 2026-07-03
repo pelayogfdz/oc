@@ -529,3 +529,174 @@ export async function getBranchStocksForTransfer(sourceBranchId: string) {
   }
 }
 
+export async function updateTransfer(
+  transferId: string,
+  payload: {
+    fromBranchId: string;
+    items: { productId: string; variantId?: string | null; quantity: number }[];
+  }
+) {
+  try {
+    const branchActive = await getActiveBranch();
+    if (!branchActive) throw new Error("No hay sucursal activa");
+
+    const transfer = await prisma.transfer.findUnique({
+      where: { id: transferId },
+      include: { items: { include: { product: true, variant: true } } }
+    });
+
+    if (!transfer) throw new Error("Traspaso no encontrado");
+    if (transfer.status === 'RECEIVED') throw new Error("No se puede editar un traspaso que ya ha sido recibido.");
+    if (transfer.status === 'CANCELLED') throw new Error("No se puede editar un traspaso cancelado.");
+
+    if (transfer.status === 'DISPATCHED' && transfer.branchId !== payload.fromBranchId) {
+      throw new Error("No se puede cambiar la sucursal de origen de un traspaso que ya ha sido surtido/enviado. Cancela el traspaso y crea uno nuevo.");
+    }
+
+    if (payload.items.length === 0) throw new Error("No hay artículos en la solicitud");
+
+    const authUser = await getActiveUser();
+
+    await prisma.$transaction(async (tx) => {
+      // 1. If DISPATCHED, temporarily restore old stock to the origin branch
+      if (transfer.status === 'DISPATCHED') {
+        for (const item of transfer.items) {
+          if (item.quantity <= 0) continue;
+          const originProduct = await tx.product.findFirst({
+            where: { sku: item.product.sku, branchId: transfer.branchId! }
+          });
+          if (originProduct) {
+            await tx.product.update({
+              where: { id: originProduct.id },
+              data: { stock: { increment: item.quantity } }
+            });
+            if (item.variant) {
+              const originVariant = await tx.productVariant.findFirst({
+                where: { productId: originProduct.id, sku: item.variant.sku, attribute: item.variant.attribute }
+              });
+              if (originVariant) {
+                await tx.productVariant.update({
+                  where: { id: originVariant.id },
+                  data: { stock: { increment: item.quantity } }
+                });
+              }
+            }
+            // Reversion movement
+            await tx.inventoryMovement.create({
+              data: {
+                productId: originProduct.id,
+                variantId: item.variant ? (await tx.productVariant.findFirst({
+                  where: { productId: originProduct.id, sku: item.variant.sku, attribute: item.variant.attribute }
+                }))?.id || null : null,
+                type: 'IN',
+                quantity: item.quantity,
+                reason: `Reversión por edición de traspaso ID: ${transfer.id}`,
+                userId: authUser.id
+              }
+            });
+          }
+        }
+      }
+
+      // 2. Delete old transfer items
+      await tx.transferItem.deleteMany({ where: { transferId: transfer.id } });
+
+      // 3. Process new items and deduct stock if DISPATCHED
+      for (const item of payload.items) {
+        const destProduct = await tx.product.findUnique({
+          where: { id: item.productId }
+        });
+        if (!destProduct) throw new Error("Producto destino no encontrado");
+
+        let destVariant = null;
+        if (item.variantId) {
+          destVariant = await tx.productVariant.findUnique({
+            where: { id: item.variantId }
+          });
+        }
+
+        let cost = 0;
+        let averageCost = 0;
+
+        if (transfer.status === 'DISPATCHED') {
+          // Find origin product
+          const originProduct = await tx.product.findFirst({
+            where: { sku: destProduct.sku, branchId: transfer.branchId! }
+          });
+          if (!originProduct) throw new Error(`Producto SKU: ${destProduct.sku} no existe en origen.`);
+
+          let originVariantId = null;
+          if (destVariant) {
+            const originVariant = await tx.productVariant.findFirst({
+              where: { productId: originProduct.id, sku: destVariant.sku, attribute: destVariant.attribute }
+            });
+            if (!originVariant) throw new Error(`Variante ${destVariant.attribute} no encontrada en origen.`);
+            originVariantId = originVariant.id;
+
+            if (originVariant.stock < item.quantity) {
+              throw new Error(`Stock insuficiente en origen para variante ${destVariant.attribute} (Disp: ${originVariant.stock}, Req: ${item.quantity})`);
+            }
+
+            await tx.productVariant.update({
+              where: { id: originVariant.id },
+              data: { stock: { decrement: item.quantity } }
+            });
+          } else {
+            if (originProduct.stock < item.quantity) {
+              throw new Error(`Stock insuficiente en origen para producto SKU: ${destProduct.sku} (Disp: ${originProduct.stock}, Req: ${item.quantity})`);
+            }
+          }
+
+          // Deduct stock
+          await tx.product.update({
+            where: { id: originProduct.id },
+            data: { stock: { decrement: item.quantity } }
+          });
+
+          // Log movement
+          await tx.inventoryMovement.create({
+            data: {
+              productId: originProduct.id,
+              variantId: originVariantId,
+              type: 'OUT',
+              quantity: -item.quantity,
+              reason: `Traspaso editado/surtido hacia sucursal ID: ${transfer.toBranchId}`,
+              userId: authUser.id
+            }
+          });
+
+          cost = originProduct.cost;
+          averageCost = originProduct.averageCost;
+        }
+
+        // Create the new transfer item
+        await tx.transferItem.create({
+          data: {
+            transferId: transfer.id,
+            productId: destProduct.id,
+            variantId: destVariant ? destVariant.id : null,
+            quantity: item.quantity,
+            cost,
+            averageCost
+          }
+        });
+      }
+
+      // 4. Update the transfer metadata
+      await tx.transfer.update({
+        where: { id: transfer.id },
+        data: {
+          branchId: payload.fromBranchId
+        }
+      });
+    });
+
+    revalidatePath('/productos');
+    revalidatePath('/productos/traspasos');
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error al actualizar traspaso:", error);
+    return { success: false, error: error.message || "Error desconocido al actualizar el traspaso." };
+  }
+}
+

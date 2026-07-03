@@ -240,11 +240,32 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
             Artículos {transfer.status === 'REQUESTED' || transfer.status === 'CREATED' ? 'Solicitados' : 'Traspasados'}
           </h2>
           
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             {transfer.status !== 'RECEIVED' && transfer.status !== 'CANCELLED' && (
-              <button onClick={handleCancel} disabled={isProcessing} className="btn-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: isProcessing ? 0.7 : 1, backgroundColor: '#ef4444', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', fontWeight: 500, border: 'none', cursor: 'pointer' }}>
-                Cancelar Traspaso
-              </button>
+              <>
+                <Link 
+                  href={`/productos/traspasos/${transfer.id}/editar`}
+                  style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '0.5rem', 
+                    backgroundColor: 'white', 
+                    color: '#475569', 
+                    border: '1px solid #cbd5e1',
+                    padding: '0.5rem 1rem', 
+                    borderRadius: '6px', 
+                    fontWeight: 500, 
+                    textDecoration: 'none',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Editar Traspaso
+                </Link>
+                <button onClick={handleCancel} disabled={isProcessing} className="btn-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: isProcessing ? 0.7 : 1, backgroundColor: '#ef4444', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', fontWeight: 500, border: 'none', cursor: 'pointer' }}>
+                  Cancelar Traspaso
+                </button>
+              </>
             )}
             {isOrigin && transfer.status === 'REQUESTED' && (
               <button onClick={handleApprove} disabled={isProcessing} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: isProcessing ? 0.7 : 1 }}>
