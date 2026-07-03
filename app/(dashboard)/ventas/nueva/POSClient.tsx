@@ -2518,40 +2518,159 @@ export default function POSClient({
                         {item.sku && <span>SKU: <strong style={{ color: '#334155' }}>{item.sku}</strong></span>}
                         {item.barcode && <span>| Código: <strong style={{ color: '#334155' }}>{item.barcode}</strong></span>}
                       </div>
-                      {hasPermission('pos_price_change') ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
-                          <span style={{ color: '#64748b', fontSize: '0.85rem' }}>$</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={item.customPrice !== undefined ? item.customPrice : itemPrice}
-                            onChange={e => {
-                              const val = e.target.value;
-                              if (val === '') {
-                                handleUpdatePrice(item.cartItemId, '' as any);
-                              } else {
-                                const parsed = parseFloat(val);
-                                if (!isNaN(parsed)) {
-                                  handleUpdatePrice(item.cartItemId, parsed);
-                                }
-                              }
-                            }}
-                            style={{
-                              width: '85px',
-                              padding: '0.15rem 0.35rem',
-                              border: '1px solid #cbd5e1',
-                              borderRadius: '4px',
-                              fontSize: '0.9rem',
-                              fontWeight: 'bold',
-                              color: '#1e293b',
-                              outline: 'none',
-                              backgroundColor: 'white'
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <div className="pos-cart-item-price">${itemPrice.toFixed(2)}</div>
+                      {mode === 'QUOTE' ? (() => {
+                        const taxRate = item.taxRate ?? 16.0;
+                        const taxFactor = 1 + (taxRate / 100);
+                        const priceWithIvaVal = item.customPrice !== undefined ? item.customPrice : itemPrice;
+                        const priceWithIva = priceWithIvaVal !== '' && priceWithIvaVal !== null ? parseFloat(priceWithIvaVal as any) : 0;
+                        const priceBeforeIva = priceWithIva / taxFactor;
+                        const ivaAmount = priceWithIva - priceBeforeIva;
+                        
+                        return (
+                          <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                            {/* Inputs Row */}
+                            {hasPermission('pos_price_change') ? (
+                              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                {/* Antes de IVA Input */}
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '500' }}>Antes de IVA:</span>
+                                  <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+                                    <span style={{ position: 'absolute', left: '0.35rem', color: '#64748b', fontSize: '0.85rem' }}>$</span>
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      value={priceWithIvaVal !== '' && priceWithIvaVal !== null ? Number(priceBeforeIva.toFixed(2)) : ''}
+                                      onChange={e => {
+                                        const val = e.target.value;
+                                        if (val === '') {
+                                          handleUpdatePrice(item.cartItemId, '' as any);
+                                        } else {
+                                          const parsed = parseFloat(val);
+                                          if (!isNaN(parsed)) {
+                                            const withIva = parsed * taxFactor;
+                                            handleUpdatePrice(item.cartItemId, Number(withIva.toFixed(2)));
+                                          }
+                                        }
+                                      }}
+                                      style={{
+                                        width: '95px',
+                                        padding: '0.2rem 0.35rem 0.2rem 1rem',
+                                        border: '1px solid #cbd5e1',
+                                        borderRadius: '6px',
+                                        fontSize: '0.85rem',
+                                        fontWeight: '600',
+                                        color: '#475569',
+                                        outline: 'none',
+                                        backgroundColor: '#f8fafc'
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Con IVA Input */}
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                                  <span style={{ fontSize: '0.75rem', color: '#1e293b', fontWeight: 'bold' }}>Con IVA:</span>
+                                  <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+                                    <span style={{ position: 'absolute', left: '0.35rem', color: '#64748b', fontSize: '0.85rem' }}>$</span>
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      value={priceWithIvaVal !== '' && priceWithIvaVal !== null ? priceWithIvaVal : ''}
+                                      onChange={e => {
+                                        const val = e.target.value;
+                                        if (val === '') {
+                                          handleUpdatePrice(item.cartItemId, '' as any);
+                                        } else {
+                                          const parsed = parseFloat(val);
+                                          if (!isNaN(parsed)) {
+                                            handleUpdatePrice(item.cartItemId, parsed);
+                                          }
+                                        }
+                                      }}
+                                      style={{
+                                        width: '95px',
+                                        padding: '0.2rem 0.35rem 0.2rem 1rem',
+                                        border: '1px solid #cbd5e1',
+                                        borderRadius: '6px',
+                                        fontSize: '0.85rem',
+                                        fontWeight: '700',
+                                        color: '#1e293b',
+                                        outline: 'none',
+                                        backgroundColor: 'white'
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b' }}>
+                                  ${priceWithIva.toFixed(2)}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Breakdown Row */}
+                            <div style={{ 
+                              display: 'flex', 
+                              gap: '0.65rem', 
+                              fontSize: '0.725rem', 
+                              color: '#475569', 
+                              backgroundColor: '#f8fafc', 
+                              padding: '0.25rem 0.5rem', 
+                              borderRadius: '6px', 
+                              border: '1px solid #e2e8f0', 
+                              width: 'fit-content',
+                              marginTop: '0.15rem' 
+                            }}>
+                              <span>Subtotal (sin IVA): <strong>${(priceBeforeIva * item.quantity).toFixed(2)}</strong></span>
+                              <span style={{ color: '#cbd5e1' }}>|</span>
+                              <span>IVA ({taxRate}%): <strong>${(ivaAmount * item.quantity).toFixed(2)}</strong></span>
+                              <span style={{ color: '#cbd5e1' }}>|</span>
+                              <span>Total: <strong style={{ color: '#0f172a' }}>${(priceWithIva * item.quantity).toFixed(2)}</strong></span>
+                            </div>
+                          </div>
+                        );
+                      })() : (
+                        <>
+                          {hasPermission('pos_price_change') ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                              <span style={{ color: '#64748b', fontSize: '0.85rem' }}>$</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={item.customPrice !== undefined ? item.customPrice : itemPrice}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  if (val === '') {
+                                    handleUpdatePrice(item.cartItemId, '' as any);
+                                  } else {
+                                    const parsed = parseFloat(val);
+                                    if (!isNaN(parsed)) {
+                                      handleUpdatePrice(item.cartItemId, parsed);
+                                    }
+                                  }
+                                }}
+                                style={{
+                                  width: '85px',
+                                  padding: '0.15rem 0.35rem',
+                                  border: '1px solid #cbd5e1',
+                                  borderRadius: '4px',
+                                  fontSize: '0.9rem',
+                                  fontWeight: 'bold',
+                                  color: '#1e293b',
+                                  outline: 'none',
+                                  backgroundColor: 'white'
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <div className="pos-cart-item-price">${itemPrice.toFixed(2)}</div>
+                          )}
+                        </>
                       )}
                       {itemDiscounts[item.cartItemId] > 0 && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#db2777', fontSize: '0.8rem', fontWeight: 'bold', marginTop: '0.25rem' }}>
