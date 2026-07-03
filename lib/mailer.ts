@@ -451,3 +451,101 @@ export const sendInvoiceNotificationEmail = async (
     return { success: false, error: error.message || error };
   }
 };
+
+export const sendPurchaseOrderEmail = async (
+  to: string,
+  purchase: any
+) => {
+  const { transporter: customTransporter, fromEmail, fromName, isCustom, configured } = await getTransporterAndSender(purchase.branchId);
+  const finalFromName = isCustom ? fromName : "CAANMA Compras";
+
+  if (!configured) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('❌ Error: SMTP credentials are not configured in production environment.');
+      return { success: false, error: 'SMTP credentials not configured' };
+    }
+    console.warn('⚠️ SMTP credentials not set. Simulating purchase order email sending.');
+    console.log(`[EMAIL SIMULADO ORDEN DE COMPRA] Destino: ${to} | Folio: ${purchase.folio || purchase.id.slice(0, 8)}`);
+    return { success: true, simulated: true };
+  }
+
+  try {
+    const itemsListHtml = purchase.items.map((item: any) => `
+      <tr>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea;">${item.product?.name || 'Artículo'} (SKU: ${item.product?.sku || 'N/A'})</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: center;">${item.quantity}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: right;">$${item.cost.toFixed(2)} MXN</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: right;">$${(item.quantity * item.cost).toFixed(2)} MXN</td>
+      </tr>
+    `).join('');
+
+    const displayFolio = purchase.folio || "OC-" + purchase.id.slice(0, 8).toUpperCase();
+    const branchName = purchase.branch?.name || '';
+
+    // Generate PDF attachment
+    let attachments: any[] = [];
+    try {
+      const { generatePurchasePdfBuffer } = await import('./purchasePdf');
+      const pdfBuffer = await generatePurchasePdfBuffer(purchase);
+      attachments.push({
+        filename: `OrdenCompra_${displayFolio}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      });
+    } catch (e) {
+      console.error("Failed to generate purchase PDF for email attachment:", e);
+    }
+
+    const info = await customTransporter.sendMail({
+      from: `"${finalFromName}" <${fromEmail}>`,
+      to,
+      subject: `Nueva Orden de Compra - Folio #${displayFolio}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px;">
+          <div style="text-align: center; border-bottom: 2px solid #eab308; padding-bottom: 20px;">
+            <h1 style="color: #eab308; margin: 0; font-size: 28px;">Orden de Compra</h1>
+            <p style="color: #666; margin: 5px 0 0 0;">Folio #${displayFolio}</p>
+          </div>
+          
+          <p>Estimado proveedor <strong>${purchase.supplier?.name || 'Proveedor'}</strong>,</p>
+          <p>Le compartimos los detalles de la orden de compra generada por la sucursal <strong>${branchName}</strong>.</p>
+          <p>Adjunto a este correo encontrará la versión formal en formato PDF de esta Orden de Compra.</p>
+          
+          <h3 style="color: #333; border-bottom: 1px solid #eaeaea; padding-bottom: 8px;">Resumen del Pedido</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+            <thead>
+              <tr style="background-color: #f8fafc;">
+                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: left;">Artículo</th>
+                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: center;">Cant.</th>
+                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: right;">Costo Unit.</th>
+                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: right;">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsListHtml}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" style="padding: 10px 8px; text-align: right; font-weight: bold; font-size: 16px;">Total:</td>
+                <td style="padding: 10px 8px; text-align: right; font-weight: bold; font-size: 16px; color: #eab308;">$${purchase.total.toFixed(2)} MXN</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; text-align: center; font-size: 12px; color: #888;">
+            <p>Se adjunta la versión formal en PDF a este correo para su descarga.</p>
+            <p>Este es un correo automático de CAANMA, por favor no responda directamente.</p>
+            <p><strong>CAANMA ERP</strong></p>
+          </div>
+        </div>
+      `,
+      attachments
+    });
+
+    console.log('Correo de orden de compra enviado: %s', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error: any) {
+    console.error('Error al enviar el correo de orden de compra:', error);
+    return { success: false, error: error.message || error };
+  }
+};

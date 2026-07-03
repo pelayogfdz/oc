@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { decrypt } from '@/lib/session-crypto';
 
 export async function middleware(req: NextRequest) {
+  const pathname = req.nextUrl.pathname;
+  const cleanPath = pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+
   const publicRoutes = ['/login', '/api/auth', '/api/cron', '/api/mercadolibre/webhooks', '/api/ping', '/_next', '/clientes/portal', '/sw.js'];
-  const isPublicRoute = publicRoutes.some(route => req.nextUrl.pathname === route || req.nextUrl.pathname.startsWith(`${route}/`))
-    || (req.nextUrl.pathname.startsWith('/ventas/detalle/') && (
-        req.nextUrl.pathname.endsWith('/imprimir') || 
-        req.nextUrl.pathname.endsWith('/imprimir-cotizacion') || 
-        req.nextUrl.pathname.endsWith('/imprimir-ticket')
+  const isPublicRoute = publicRoutes.some(route => cleanPath === route || cleanPath.startsWith(`${route}/`))
+    || (cleanPath.startsWith('/ventas/detalle/') && (
+        cleanPath.endsWith('/imprimir') || 
+        cleanPath.endsWith('/imprimir-cotizacion') || 
+        cleanPath.endsWith('/imprimir-ticket')
     ));
   
   if (!isPublicRoute) {

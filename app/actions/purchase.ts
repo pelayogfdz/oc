@@ -545,3 +545,38 @@ export async function updatePurchase(
   }
 }
 
+export async function sendPurchaseByEmail(purchaseId: string, email: string) {
+  try {
+    const user = await getActiveUser();
+    if (!user) throw new Error("No autenticado");
+
+    const purchase = await prisma.purchase.findUnique({
+      where: { id: purchaseId },
+      include: {
+        branch: {
+          include: { settings: true, tenant: true }
+        },
+        supplier: true,
+        user: true,
+        items: {
+          include: { product: true }
+        }
+      }
+    });
+
+    if (!purchase) throw new Error("Compra no encontrada");
+
+    const { sendPurchaseOrderEmail } = await import('@/lib/mailer');
+    const result = await sendPurchaseOrderEmail(email, purchase);
+
+    if (!result.success) {
+      throw new Error(typeof result.error === 'string' ? result.error : 'Fallo SMTP');
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error al enviar compra por correo:", error);
+    return { success: false, error: error.message || "Error al enviar el correo" };
+  }
+}
+

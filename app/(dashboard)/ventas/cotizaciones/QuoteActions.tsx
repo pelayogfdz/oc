@@ -196,9 +196,8 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
 
       {/* Download Quote */}
       <a
-        href={`/ventas/detalle/${quoteId}/imprimir-cotizacion`}
-        target="_blank"
-        rel="noopener noreferrer"
+        href={`/api/ventas/cotizaciones/download?quoteId=${quoteId}`}
+        download={`cotizacion_${quoteFolio || quoteId.slice(0, 8).toUpperCase()}.pdf`}
         title="Descargar PDF"
         style={{
           display: 'inline-flex',

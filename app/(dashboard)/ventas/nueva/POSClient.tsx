@@ -1206,7 +1206,102 @@ export default function POSClient({
 
   const change = (typeof amountReceived === 'number' ? amountReceived : 0) - finalTotalWithTip;
 
+  const scaledTaxBreakdown = useMemo(() => {
+    let totalIva = 0;
+    let totalIeps = 0;
+    let totalExento = 0;
+    let totalSubtotal = 0;
+
+    cart.forEach(item => {
+      const itemPrice = getProductPrice(item);
+      const itemQty = item.quantity;
+      const itemTotal = itemPrice * itemQty;
+      
+      const taxType = item.taxType || 'IVA';
+      const taxRate = item.taxRate ?? 16.0;
+      const iepsRate = item.iepsRate ?? 0.0;
+
+      let basePrice = 0;
+      let ivaAmt = 0;
+      let iepsAmt = 0;
+
+      if (taxType === 'IVA') {
+        basePrice = itemTotal / (1 + taxRate / 100);
+        ivaAmt = itemTotal - basePrice;
+      } else if (taxType === 'IEPS') {
+        basePrice = itemTotal / (1 + iepsRate / 100);
+        iepsAmt = itemTotal - basePrice;
+      } else if (taxType === 'IVA_IEPS') {
+        basePrice = itemTotal / ((1 + iepsRate / 100) * (1 + taxRate / 100));
+        iepsAmt = basePrice * (iepsRate / 100);
+        ivaAmt = (basePrice + iepsAmt) * (taxRate / 100);
+      } else {
+        basePrice = itemTotal;
+        totalExento += itemTotal;
+      }
+
+      totalIva += ivaAmt;
+      totalIeps += iepsAmt;
+      totalSubtotal += basePrice;
+    });
+
+    const factor = subTotal > 0 ? (total / subTotal) : 1;
+
+    return {
+      iva: totalIva * factor,
+      ieps: totalIeps * factor,
+      exento: totalExento * factor,
+      subtotal: totalSubtotal * factor
+    };
+  }, [cart, subTotal, total, priceList]);
+
   const printTicket = async (cartItems: any[], tTotal: number, tChange: number, tDiscount: number, saleId?: string, folio?: string) => {
+    let ticketIva = 0;
+    let ticketIeps = 0;
+    let ticketExento = 0;
+    let ticketBaseSubtotal = 0;
+    
+    const ticketSubtotalSum = cartItems.reduce((sum, item) => sum + (getProductPrice(item) * item.quantity), 0);
+    const ticketFactor = ticketSubtotalSum > 0 ? (tTotal / ticketSubtotalSum) : 1;
+
+    cartItems.forEach(item => {
+      const itemPrice = getProductPrice(item);
+      const itemQty = item.quantity;
+      const itemTotal = itemPrice * itemQty;
+      
+      const taxType = item.taxType || 'IVA';
+      const taxRate = item.taxRate ?? 16.0;
+      const iepsRate = item.iepsRate ?? 0.0;
+
+      let basePrice = 0;
+      let ivaAmt = 0;
+      let iepsAmt = 0;
+
+      if (taxType === 'IVA') {
+        basePrice = itemTotal / (1 + taxRate / 100);
+        ivaAmt = itemTotal - basePrice;
+      } else if (taxType === 'IEPS') {
+        basePrice = itemTotal / (1 + iepsRate / 100);
+        iepsAmt = itemTotal - basePrice;
+      } else if (taxType === 'IVA_IEPS') {
+        basePrice = itemTotal / ((1 + iepsRate / 100) * (1 + taxRate / 100));
+        iepsAmt = basePrice * (iepsRate / 100);
+        ivaAmt = (basePrice + iepsAmt) * (taxRate / 100);
+      } else {
+        basePrice = itemTotal;
+        ticketExento += itemTotal;
+      }
+
+      ticketIva += ivaAmt;
+      ticketIeps += iepsAmt;
+      ticketBaseSubtotal += basePrice;
+    });
+
+    ticketIva *= ticketFactor;
+    ticketIeps *= ticketFactor;
+    ticketExento *= ticketFactor;
+    ticketBaseSubtotal *= ticketFactor;
+
     const itemDiscountsMap = getItemDiscounts(cartItems);
     // Generate inner styling for the ticket
     const paperWidth = ticketConfig.anchoTicket === '58mm' || impresorasConfig.receiptWidth === '58mm' ? '58mm' : '80mm';
@@ -1314,10 +1409,14 @@ export default function POSClient({
           </div>
           <div class="t-divider"></div>
           <div class="totals">
-            ${tDiscount > 0 ? `<div class="total-row"><span>Subtotal:</span><span>$${(tTotal + tDiscount).toFixed(2)}</span></div>
+            ${tDiscount > 0 ? `<div class="total-row"><span>Subtotal bruto:</span><span>$${(tTotal + tDiscount).toFixed(2)}</span></div>
             <div class="total-row" style="color: red;"><span>Descuento:</span><span>-$${tDiscount.toFixed(2)}</span></div>` : ''}
+            <div class="total-row" style="font-weight: normal; font-size: ${is58 ? '9px' : '11px'}; border-top: 1px dotted #000; padding-top: 4px; margin-top: 4px;"><span>Subtotal Base:</span><span>$${ticketBaseSubtotal.toFixed(2)}</span></div>
+            ${ticketIva > 0 ? `<div class="total-row" style="font-weight: normal; font-size: ${is58 ? '9px' : '11px'};"><span>IVA Desglosado:</span><span>$${ticketIva.toFixed(2)}</span></div>` : ''}
+            ${ticketIeps > 0 ? `<div class="total-row" style="font-weight: normal; font-size: ${is58 ? '9px' : '11px'};"><span>IEPS Desglosado:</span><span>$${ticketIeps.toFixed(2)}</span></div>` : ''}
+            ${ticketExento > 0 ? `<div class="total-row" style="font-weight: normal; font-size: ${is58 ? '9px' : '11px'};"><span>Sin Impuestos:</span><span>$${ticketExento.toFixed(2)}</span></div>` : ''}
             ${tipAmount > 0 ? `<div class="total-row"><span>Propina:</span><span>+$${tipAmount.toFixed(2)}</span></div>` : ''}
-            <div class="total-row" style="font-size: 16px;"><span>TOTAL:</span><span>$${(tTotal + tipAmount).toFixed(2)}</span></div>
+            <div class="total-row" style="font-size: 16px; border-top: 1px solid #000; padding-top: 4px; margin-top: 4px;"><span>TOTAL:</span><span>$${(tTotal + tipAmount).toFixed(2)}</span></div>
             ${tChange > 0 && typeof amountReceived === 'number' ? `
             <div class="total-row"><span>Recibido:</span><span>$${amountReceived.toFixed(2)}</span></div>
             <div class="total-row"><span>Cambio:</span><span>$${tChange.toFixed(2)}</span></div>

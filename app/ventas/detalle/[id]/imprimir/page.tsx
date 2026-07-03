@@ -53,8 +53,48 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
     })();
   `;
 
-  const subtotal = (sale.total || 0) / 1.16;
-  const iva = (sale.total || 0) - subtotal;
+  let tIva = 0;
+  let tIeps = 0;
+  let tExento = 0;
+  let tBaseSubtotal = 0;
+
+  const itemsTotal = sale.items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
+  const saleFactor = itemsTotal > 0 ? (sale.total || 0) / itemsTotal : 1;
+
+  sale.items.forEach(item => {
+    const itemTotal = (item.price || 0) * (item.quantity || 0);
+    const taxType = item.product?.taxType || 'IVA';
+    const taxRate = item.product?.taxRate ?? 16.0;
+    const iepsRate = item.product?.iepsRate ?? 0.0;
+
+    let basePrice = 0;
+    let ivaAmt = 0;
+    let iepsAmt = 0;
+
+    if (taxType === 'IVA') {
+      basePrice = itemTotal / (1 + taxRate / 100);
+      ivaAmt = itemTotal - basePrice;
+    } else if (taxType === 'IEPS') {
+      basePrice = itemTotal / (1 + iepsRate / 100);
+      iepsAmt = itemTotal - basePrice;
+    } else if (taxType === 'IVA_IEPS') {
+      basePrice = itemTotal / ((1 + iepsRate / 100) * (1 + taxRate / 100));
+      iepsAmt = basePrice * (iepsRate / 100);
+      ivaAmt = (basePrice + iepsAmt) * (taxRate / 100);
+    } else {
+      basePrice = itemTotal;
+      tExento += itemTotal;
+    }
+
+    tIva += ivaAmt;
+    tIeps += iepsAmt;
+    tBaseSubtotal += basePrice;
+  });
+
+  tIva *= saleFactor;
+  tIeps *= saleFactor;
+  tExento *= saleFactor;
+  tBaseSubtotal *= saleFactor;
 
 
   return (
@@ -182,8 +222,10 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
         <div className="totals-box">
           {showTaxBreakdown ? (
             <>
-              <div className="total-row"><span>Subtotal:</span><span>${(subtotal || 0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
-              <div className="total-row"><span>IVA (16%):</span><span>${(iva || 0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
+              <div className="total-row"><span>Subtotal Base:</span><span>${tBaseSubtotal.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
+              {tIva > 0 && <div className="total-row"><span>IVA Desglosado:</span><span>${tIva.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>}
+              {tIeps > 0 && <div className="total-row"><span>IEPS Desglosado:</span><span>${tIeps.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>}
+              {tExento > 0 && <div className="total-row"><span>Sin Impuestos:</span><span>${tExento.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>}
             </>
           ) : (
             <div className="total-row"><span>Subtotal:</span><span>${(sale.total || 0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>

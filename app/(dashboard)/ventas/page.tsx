@@ -48,6 +48,7 @@ export default async function VentasPage() {
     branchId: s.branchId,
     total: s.total,
     status: s.status,
+    paymentMethod: s.paymentMethod,
     invoiceId: s.invoiceId,
     invoiceFolio: s.invoiceFolio,
     customer: s.customer ? {

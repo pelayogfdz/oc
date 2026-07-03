@@ -192,9 +192,19 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
           product_key: item.product.satKey,
           price: Number(item.price),
           tax_included: true,
-          taxes: [
-             { type: "IVA", rate: (item.product.taxRate || 16.0) / 100 } 
-          ],
+          taxes: (() => {
+            const taxType = item.product.taxType || 'IVA';
+            const taxesList: any[] = [];
+            if (taxType === 'IVA' || taxType === 'IVA_IEPS') {
+              const rate = (item.product.taxRate ?? 16.0) / 100;
+              if (rate > 0) taxesList.push({ type: "IVA", rate });
+            }
+            if (taxType === 'IEPS' || taxType === 'IVA_IEPS') {
+              const rate = (item.product.iepsRate ?? 0) / 100;
+              if (rate > 0) taxesList.push({ type: "IEPS", rate });
+            }
+            return taxesList;
+          })(),
           unit_key: item.product.satUnit
         },
         quantity: Number(item.quantity),
@@ -378,9 +388,19 @@ export async function stampGlobalInvoice(startDateStr?: string, endDateStr?: str
               product_key: item.product.satKey,
               price: Number(item.price),
               tax_included: true,
-              taxes: [
-                 { type: "IVA", rate: (item.product.taxRate || 16.0) / 100 } 
-              ],
+              taxes: (() => {
+               const taxType = item.product.taxType || 'IVA';
+               const taxesList: any[] = [];
+               if (taxType === 'IVA' || taxType === 'IVA_IEPS') {
+                 const rate = (item.product.taxRate ?? 16.0) / 100;
+                 if (rate > 0) taxesList.push({ type: "IVA", rate });
+               }
+               if (taxType === 'IEPS' || taxType === 'IVA_IEPS') {
+                 const rate = (item.product.iepsRate ?? 0) / 100;
+                 if (rate > 0) taxesList.push({ type: "IEPS", rate });
+               }
+               return taxesList;
+             })(),
               unit_key: item.product.satUnit
             },
             quantity: Number(item.quantity),
@@ -686,9 +706,19 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
             product_key: item.product.satKey,
             price: Number(item.price),
             tax_included: true,
-            taxes: [
-               { type: "IVA", rate: (item.product.taxRate || 16.0) / 100 } 
-            ],
+            taxes: (() => {
+             const taxType = item.product.taxType || 'IVA';
+             const taxesList: any[] = [];
+             if (taxType === 'IVA' || taxType === 'IVA_IEPS') {
+               const rate = (item.product.taxRate ?? 16.0) / 100;
+               if (rate > 0) taxesList.push({ type: "IVA", rate });
+             }
+             if (taxType === 'IEPS' || taxType === 'IVA_IEPS') {
+               const rate = (item.product.iepsRate ?? 0) / 100;
+               if (rate > 0) taxesList.push({ type: "IEPS", rate });
+             }
+             return taxesList;
+           })(),
             unit_key: item.product.satUnit
           },
           quantity: Number(item.quantity),

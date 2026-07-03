@@ -6,6 +6,21 @@ import { Eye, Printer, RotateCcw, Calendar, User, MapPin, Tag, Receipt, Send, Sh
 import { sendSaleByEmail } from '@/app/actions/sale';
 import { formatCurrency } from '@/lib/utils';
 
+const getPaymentMethodLabel = (method: string) => {
+  const mapping: Record<string, string> = {
+    'CASH': 'Efectivo',
+    'CARD': 'Tarjeta',
+    'TRANSFER': 'Transferencia',
+    'SPEI': 'SPEI',
+    'MIXED': 'Mixto',
+    'CREDIT': 'Crédito',
+    'VALES': 'Vales',
+    'DEPOSIT': 'Depósito',
+    'OTHER': 'Otro'
+  };
+  return mapping[method] || method || 'Efectivo';
+};
+
 export default function VentasHistoryClient({
   initialSales,
   branches,
@@ -25,6 +40,7 @@ export default function VentasHistoryClient({
   const [filterStatus, setFilterStatus] = useState('');
   const [filterClient, setFilterClient] = useState('');
   const [filterCfdi, setFilterCfdi] = useState('');
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState('');
 
   // WhatsApp Share States
   const [isWhatsappOpen, setIsWhatsappOpen] = useState(false);
@@ -216,11 +232,16 @@ export default function VentasHistoryClient({
         }
       }
 
+      // Payment Method filter
+      if (filterPaymentMethod && sale.paymentMethod !== filterPaymentMethod) {
+        return false;
+      }
+
       return true;
     });
-  }, [initialSales, filterDate, filterUser, filterBranch, filterStatus, filterClient, filterCfdi]);
+  }, [initialSales, filterDate, filterUser, filterBranch, filterStatus, filterClient, filterCfdi, filterPaymentMethod]);
 
-  const hasActiveFilters = filterDate || filterUser || (currentBranch.id === 'GLOBAL' && filterBranch) || filterStatus || filterClient || filterCfdi;
+  const hasActiveFilters = filterDate || filterUser || (currentBranch.id === 'GLOBAL' && filterBranch) || filterStatus || filterClient || filterCfdi || filterPaymentMethod;
 
   const handleClearFilters = () => {
     setFilterDate('');
@@ -229,6 +250,7 @@ export default function VentasHistoryClient({
     setFilterStatus('');
     setFilterClient('');
     setFilterCfdi('');
+    setFilterPaymentMethod('');
   };
 
   return (
@@ -356,6 +378,29 @@ export default function VentasHistoryClient({
             ))}
           </select>
         </div>
+
+        {/* Payment Method Filter */}
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
+            <Receipt size={14} /> Método de Pago
+          </label>
+          <select 
+            value={filterPaymentMethod} 
+            onChange={(e) => setFilterPaymentMethod(e.target.value)} 
+            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }}
+          >
+            <option value="">Todos los métodos</option>
+            <option value="CASH">Efectivo</option>
+            <option value="CARD">Tarjeta</option>
+            <option value="TRANSFER">Transferencia</option>
+            <option value="SPEI">SPEI</option>
+            <option value="MIXED">Mixto</option>
+            <option value="CREDIT">Crédito</option>
+            <option value="VALES">Vales</option>
+            <option value="DEPOSIT">Depósito</option>
+            <option value="OTHER">Otro</option>
+          </select>
+        </div>
       </div>
 
       {/* Clear Filters Button */}
@@ -439,7 +484,10 @@ export default function VentasHistoryClient({
                     {new Intl.NumberFormat('es-MX').format(qtySum)} Pzas
                   </td>
                   <td data-label="Total" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>
-                    {formatCurrency(sale.total)}
+                    <div>{formatCurrency(sale.total)}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', fontWeight: 'normal', marginTop: '0.15rem' }}>
+                      {getPaymentMethodLabel(sale.paymentMethod)}
+                    </div>
                   </td>
                   <td data-label="Estado" style={{ padding: '1rem', textAlign: 'center' }}>
                     <span style={{ 
