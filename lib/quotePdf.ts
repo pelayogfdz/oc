@@ -111,22 +111,36 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
       });
 
       // 4. Totals Box
-      const subtotal = quote.total / 1.16;
-      const iva = quote.total - subtotal;
+      const originalListTotalWithIva = quote.items.reduce((sum: number, item: any) => sum + ((item.product?.price || item.price) * item.quantity), 0);
+      const finalTotalWithIva = quote.total;
+      const discountWithIva = Math.max(0, originalListTotalWithIva - finalTotalWithIva);
+
+      const subtotalExcludingIva = originalListTotalWithIva / 1.16;
+      const discountExcludingIva = discountWithIva / 1.16;
+      const finalTotalExcludingIva = finalTotalWithIva / 1.16;
+      const iva = finalTotalWithIva - finalTotalExcludingIva;
 
       const totalsY = currentY + 20;
       doc.strokeColor('#cbd5e1').lineWidth(1).moveTo(350, totalsY).lineTo(562, totalsY).stroke();
 
       doc.font('Helvetica').fontSize(9).fillColor('#475569');
       doc.text('Subtotal:', 350, totalsY + 8, { width: 100, align: 'left' });
-      doc.text(`$${subtotal.toFixed(2)} MXN`, 450, totalsY + 8, { width: 105, align: 'right' });
+      doc.text(`$${subtotalExcludingIva.toFixed(2)}`, 450, totalsY + 8, { width: 105, align: 'right' });
 
-      doc.text('IVA (16%):', 350, totalsY + 22, { width: 100, align: 'left' });
-      doc.text(`$${iva.toFixed(2)} MXN`, 450, totalsY + 22, { width: 105, align: 'right' });
+      doc.fillColor('#ef4444'); // Red color for discounts
+      doc.text('Descuentos:', 350, totalsY + 22, { width: 100, align: 'left' });
+      doc.text(`-$${discountExcludingIva.toFixed(2)}`, 450, totalsY + 22, { width: 105, align: 'right' });
 
-      doc.font('Helvetica-Bold').fontSize(11).fillColor(primaryColor);
-      doc.text('TOTAL:', 350, totalsY + 40, { width: 100, align: 'left' });
-      doc.text(`$${quote.total.toFixed(2)} MXN`, 450, totalsY + 40, { width: 105, align: 'right' });
+      doc.fillColor('#475569');
+      doc.text('IVA 16%:', 350, totalsY + 36, { width: 100, align: 'left' });
+      doc.text(`$${iva.toFixed(2)}`, 450, totalsY + 36, { width: 105, align: 'right' });
+
+      // Border line before total
+      doc.strokeColor('#0f172a').lineWidth(1.5).moveTo(350, totalsY + 52).lineTo(562, totalsY + 52).stroke();
+
+      doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a');
+      doc.text('Total:', 350, totalsY + 60, { width: 100, align: 'left' });
+      doc.text(`$${finalTotalWithIva.toFixed(2)}`, 450, totalsY + 60, { width: 105, align: 'right' });
 
       // 5. Footer Notes
       const footerY = 700;
