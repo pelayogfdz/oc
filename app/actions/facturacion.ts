@@ -162,9 +162,19 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
         }
       }
 
+      let description = item.product.name;
+      const sku = item.product.sku;
+      const barcode = item.product.barcode;
+      const parts: string[] = [];
+      if (sku) parts.push(`SKU: ${sku}`);
+      if (barcode) parts.push(`Cod: ${barcode}`);
+      if (parts.length > 0) {
+        description += ` (${parts.join(" - ")})`;
+      }
+
       return {
         product: {
-          description: item.product.name,
+          description: description,
           product_key: item.product.satKey,
           price: Number(item.price),
           tax_included: true,
@@ -212,6 +222,10 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
       payment_method: payment_method,
       use: cfdiUse
     };
+
+    if (sale.notes && sale.notes.trim() !== "") {
+      invoicePayload.conditions = sale.notes.trim();
+    }
 
     // Marry the invoice series and folio with the sale folio prefix and number
     if (sale.folio) {
@@ -331,9 +345,19 @@ export async function stampGlobalInvoice(startDateStr?: string, endDateStr?: str
             }
           }
 
+          let description = item.product.name;
+          const sku = item.product.sku;
+          const barcode = item.product.barcode;
+          const parts: string[] = [];
+          if (sku) parts.push(`SKU: ${sku}`);
+          if (barcode) parts.push(`Cod: ${barcode}`);
+          if (parts.length > 0) {
+            description += ` (${parts.join(" - ")})`;
+          }
+
           globalItems.push({
             product: {
-              description: item.product.name,
+              description: description,
               product_key: item.product.satKey,
               price: Number(item.price),
               tax_included: true,
@@ -629,9 +653,19 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
           }
         }
 
+        let description = item.product.name;
+        const sku = item.product.sku;
+        const barcode = item.product.barcode;
+        const parts: string[] = [];
+        if (sku) parts.push(`SKU: ${sku}`);
+        if (barcode) parts.push(`Cod: ${barcode}`);
+        if (parts.length > 0) {
+          description += ` (${parts.join(" - ")})`;
+        }
+
         items.push({
           product: {
-            description: item.product.name,
+            description: description,
             product_key: item.product.satKey,
             price: Number(item.price),
             tax_included: true,
@@ -683,6 +717,11 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
       payment_method: payment_method,
       use: cfdiUse
     };
+
+    const allNotes = sales.map(s => s.notes).filter(Boolean).map(n => n!.trim()).filter(n => n !== "");
+    if (allNotes.length > 0) {
+      invoicePayload.conditions = allNotes.join(" | ");
+    }
 
     // Sort sales by folio or ID to keep consistent first-and-rest ordering
     const sortedSales = [...sales].sort((a, b) => {
