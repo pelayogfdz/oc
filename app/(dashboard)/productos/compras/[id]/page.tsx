@@ -61,7 +61,12 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
                    Editar Compra
                 </Link>
              )}
-             <PurchaseActionsClient purchaseId={purchase.id} status={purchase.status} />
+             <PurchaseActionsClient 
+               purchaseId={purchase.id} 
+               status={purchase.status} 
+               supplierEmail={purchase.supplier?.email}
+               supplierName={purchase.supplier?.name}
+             />
           </div>
       </div>
 

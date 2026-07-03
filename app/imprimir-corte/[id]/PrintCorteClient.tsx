@@ -25,6 +25,29 @@ export default function PrintCorteClient({ session, branchName }: { session: any
     console.error("Failed to parse detailsJson:", e);
   }
 
+  // Merge legacy 'CARD' method into 'CARD_CREDIT' (Tarj. Crédito) to prevent duplicates in printed tickets
+  const mergedDetailsMap = new Map<string, { id: string; actual: number; expected: number; difference: number }>();
+  for (const m of details) {
+    let methodId = m.id;
+    if (methodId === 'CARD') {
+      methodId = 'CARD_CREDIT';
+    }
+    const existing = mergedDetailsMap.get(methodId);
+    if (existing) {
+      existing.actual += m.actual || 0;
+      existing.expected += m.expected || 0;
+      existing.difference = existing.actual - existing.expected;
+    } else {
+      mergedDetailsMap.set(methodId, {
+        id: methodId,
+        actual: m.actual || 0,
+        expected: m.expected || 0,
+        difference: (m.actual || 0) - (m.expected || 0)
+      });
+    }
+  }
+  const processedDetails = Array.from(mergedDetailsMap.values());
+
   // Calculate totals
   const totalSales = session.sales.reduce((sum: number, s: any) => sum + s.total, 0);
   const totalIn = session.movements.filter((m: any) => m.type === 'IN').reduce((sum: number, m: any) => sum + m.amount, 0);
@@ -43,7 +66,7 @@ export default function PrintCorteClient({ session, branchName }: { session: any
   const getMethodShortName = (id: string) => {
     switch (id) {
       case 'CASH': return 'Efectivo';
-      case 'CARD': return 'Tarjeta';
+      case 'CARD': return 'Tarj. Crédito';
       case 'CARD_CREDIT': return 'Tarj. Crédito';
       case 'CARD_DEBIT': return 'Tarj. Débito';
       case 'TRANSFER': return 'Transf.';
@@ -183,7 +206,7 @@ export default function PrintCorteClient({ session, branchName }: { session: any
         </div>
 
         {/* Method Breakdown */}
-        {details.length > 0 && (
+        {processedDetails.length > 0 && (
           <div style={{ marginBottom: '1rem', fontSize: '0.8rem' }}>
             <div style={{ fontWeight: 'bold', marginBottom: '0.4rem', fontSize: '0.85rem' }}>DESGLOSE MÉTODOS</div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -196,7 +219,7 @@ export default function PrintCorteClient({ session, branchName }: { session: any
                 </tr>
               </thead>
               <tbody>
-                {details.map((m: any) => (
+                {processedDetails.map((m: any) => (
                   <tr key={m.id} style={{ borderBottom: '1px dashed #eee' }}>
                     <td style={{ padding: '0.25rem 0' }}>{getMethodShortName(m.id)}</td>
                     <td style={{ textAlign: 'right' }}>{formatCurrency(m.actual)}</td>
