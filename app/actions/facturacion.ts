@@ -42,6 +42,20 @@ function parseSaleFolio(saleFolio: string | null | undefined): { series?: string
   return {};
 }
 
+function cleanConditions(str: string | null | undefined): string | undefined {
+  if (!str) return undefined;
+  // Replace pipes with a hyphen/dash (pipes are strictly forbidden in CFDI attributes)
+  let cleaned = str.replace(/\|/g, '-');
+  // Replace consecutive spaces with a single space
+  cleaned = cleaned.replace(/\s+/g, ' ');
+  // Trim leading and trailing spaces (XML schema pattern excludes start/end spaces)
+  cleaned = cleaned.trim();
+  // Limit to 1000 characters
+  cleaned = cleaned.slice(0, 1000);
+  
+  return cleaned !== "" ? cleaned : undefined;
+}
+
 export async function stampInvoice(saleId: string, customerId?: string | null) {
   try {
     const resolved = await resolveClientForSale(saleId);
@@ -223,8 +237,11 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
       use: cfdiUse
     };
 
-    if (sale.notes && sale.notes.trim() !== "") {
-      invoicePayload.conditions = sale.notes.trim();
+    if (sale.notes) {
+      const cleanedConditions = cleanConditions(sale.notes);
+      if (cleanedConditions) {
+        invoicePayload.conditions = cleanedConditions;
+      }
     }
 
     // Marry the invoice series and folio with the sale folio prefix and number
@@ -718,9 +735,9 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
       use: cfdiUse
     };
 
-    const allNotes = sales.map(s => s.notes).filter(Boolean).map(n => n!.trim()).filter(n => n !== "");
+    const allNotes = sales.map(s => s.notes).filter(Boolean).map(n => cleanConditions(n)).filter(Boolean);
     if (allNotes.length > 0) {
-      invoicePayload.conditions = allNotes.join(" | ");
+      invoicePayload.conditions = allNotes.join(" - ").slice(0, 1000);
     }
 
     // Sort sales by folio or ID to keep consistent first-and-rest ordering
