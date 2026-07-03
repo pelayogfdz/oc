@@ -22,9 +22,22 @@ async function getTransporterAndSender(branchId?: string | null) {
   let pass = process.env.SMTP_PASS;
   let fromName = '';
   let isCustom = false;
+  let tenantName = 'CAANMA';
+  let branchName = '';
 
   if (branchId) {
     try {
+      const branch = await prisma.branch.findUnique({
+        where: { id: branchId },
+        include: { tenant: true }
+      });
+      if (branch) {
+        branchName = branch.name;
+        if (branch.tenant) {
+          tenantName = branch.tenant.name;
+        }
+      }
+
       const settings = await prisma.branchSettings.findUnique({
         where: { branchId }
       });
@@ -62,6 +75,8 @@ async function getTransporterAndSender(branchId?: string | null) {
     fromEmail: user,
     fromName,
     isCustom,
+    tenantName,
+    branchName,
     configured: !!(user && pass)
   };
 }
@@ -268,8 +283,8 @@ export const sendQuoteNotificationEmail = async (
   to: string,
   quote: any
 ) => {
-  const { transporter: customTransporter, fromEmail, fromName, isCustom, configured } = await getTransporterAndSender(quote.branchId);
-  const finalFromName = isCustom ? fromName : "CAANMA Cotizaciones";
+  const { transporter: customTransporter, fromEmail, fromName, isCustom, tenantName, configured } = await getTransporterAndSender(quote.branchId);
+  const finalFromName = isCustom ? fromName : `${tenantName} Cotizaciones`;
 
   if (!configured) {
     if (process.env.NODE_ENV === 'production') {
@@ -352,8 +367,8 @@ export const sendQuoteNotificationEmail = async (
 
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; text-align: center; font-size: 12px; color: #888;">
             <p>Se adjunta la versión formal en PDF a este correo para su conveniencia.</p>
-            <p>Este es un correo automático de CAANMA, por favor no responda directamente.</p>
-            <p><strong>CAANMA ERP</strong></p>
+            <p>Este es un correo automático de ${tenantName}, por favor no responda directamente.</p>
+            <p><strong>${tenantName} ERP</strong></p>
           </div>
         </div>
       `,
@@ -374,8 +389,8 @@ export const sendInvoiceNotificationEmail = async (
   pdfBuffer: Buffer,
   xmlBuffer?: Buffer
 ) => {
-  const { transporter: customTransporter, fromEmail, fromName, isCustom, configured } = await getTransporterAndSender(sale.branchId);
-  const brandName = isCustom ? fromName : "CAANMA Facturación";
+  const { transporter: customTransporter, fromEmail, fromName, isCustom, tenantName, configured } = await getTransporterAndSender(sale.branchId);
+  const brandName = isCustom ? fromName : `${tenantName} Facturación`;
 
   if (!configured) {
     if (process.env.NODE_ENV === 'production') {
@@ -436,8 +451,8 @@ export const sendInvoiceNotificationEmail = async (
           </table>
 
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; text-align: center; font-size: 12px; color: #888;">
-            <p>Este es un correo automático de CAANMA, por favor no responda directamente.</p>
-            <p><strong>CAANMA ERP</strong></p>
+            <p>Este es un correo automático de ${tenantName}, por favor no responda directamente.</p>
+            <p><strong>${tenantName} ERP</strong></p>
           </div>
         </div>
       `,
@@ -456,8 +471,8 @@ export const sendPurchaseOrderEmail = async (
   to: string,
   purchase: any
 ) => {
-  const { transporter: customTransporter, fromEmail, fromName, isCustom, configured } = await getTransporterAndSender(purchase.branchId);
-  const finalFromName = isCustom ? fromName : "CAANMA Compras";
+  const { transporter: customTransporter, fromEmail, fromName, isCustom, tenantName, configured } = await getTransporterAndSender(purchase.branchId);
+  const finalFromName = isCustom ? fromName : `${tenantName} Compras`;
 
   if (!configured) {
     if (process.env.NODE_ENV === 'production') {
@@ -534,8 +549,8 @@ export const sendPurchaseOrderEmail = async (
 
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; text-align: center; font-size: 12px; color: #888;">
             <p>Se adjunta la versión formal en PDF a este correo para su descarga.</p>
-            <p>Este es un correo automático de CAANMA, por favor no responda directamente.</p>
-            <p><strong>CAANMA ERP</strong></p>
+            <p>Este es un correo automático de ${tenantName}, por favor no responda directamente.</p>
+            <p><strong>${tenantName} ERP</strong></p>
           </div>
         </div>
       `,

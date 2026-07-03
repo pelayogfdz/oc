@@ -699,6 +699,12 @@ export async function sendSaleByEmail(saleId: string, email: string) {
 
     if (!sale) throw new Error("Venta no encontrada.");
 
+    // If the sale has an active CFDI invoice, send the invoice PDF + XML instead of the generic ticket
+    if (sale.invoiceId) {
+      const { sendInvoiceByEmail } = await import('@/app/actions/facturacion');
+      return await sendInvoiceByEmail(saleId, email);
+    }
+
     const { sendSaleNotificationEmail } = await import('@/lib/mailer');
     const result = await sendSaleNotificationEmail(email, sale, false, null);
     return result;
