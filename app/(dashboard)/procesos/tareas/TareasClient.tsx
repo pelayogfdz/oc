@@ -104,6 +104,7 @@ export default function TareasClient({
     }
 
     setIsSubmitting(true);
+    const isoDueDate = dueDate ? new Date(dueDate).toISOString() : undefined;
     try {
       if (editingTask) {
         const res = await updateCollaboratorTask(editingTask.id, {
@@ -111,7 +112,7 @@ export default function TareasClient({
           instructions,
           assignedToId,
           recurrence,
-          dueDate: dueDate || undefined
+          dueDate: isoDueDate
         });
 
         if (res.success && res.task) {
@@ -134,7 +135,7 @@ export default function TareasClient({
           instructions,
           assignedToId,
           recurrence,
-          dueDate: dueDate || undefined
+          dueDate: isoDueDate
         });
 
         if (res.success && res.task) {

@@ -284,6 +284,8 @@ model Product {
   specialPrice        Float?
   cost                Float                @default(0)
   taxRate             Float                @default(16.0)
+  taxType             String               @default("IVA")
+  iepsRate            Float                @default(0.0)
   category            String?
   brand               String?
   imageUrl            String?

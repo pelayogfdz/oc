@@ -205,21 +205,84 @@ export default function CollaboratorTaskPopup({ userId }: { userId: string }) {
     return () => clearInterval(interval);
   }, [currentTask]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1024;
+          const MAX_HEIGHT = 1024;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(event.target?.result as string);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          resolve(dataUrl);
+        };
+        img.onerror = () => {
+          resolve('');
+        };
+      };
+      reader.onerror = () => {
+        resolve('');
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setErrorMsg('');
     setEvidenceFile(file);
+    setIsSubmitting(true);
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setEvidenceBase64(reader.result as string);
-    };
-    reader.onerror = () => {
-      setErrorMsg('Error al leer el archivo. Intenta con otro.');
-    };
-    reader.readAsDataURL(file);
+    try {
+      if (file.type.startsWith('image/')) {
+        const compressed = await compressImage(file);
+        if (compressed) {
+          setEvidenceBase64(compressed);
+        } else {
+          setErrorMsg('Error al procesar la imagen.');
+        }
+      } else {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setEvidenceBase64(reader.result as string);
+        };
+        reader.onerror = () => {
+          setErrorMsg('Error al leer el archivo. Intenta con otro.');
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (err) {
+      setErrorMsg('Error al procesar el archivo.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
