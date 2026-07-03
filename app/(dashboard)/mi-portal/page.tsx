@@ -42,28 +42,48 @@ export default async function MiPortalPage() {
     redirect("/login");
   }
 
-  const calculateVacationDays = (hireDate: Date | null) => {
+  const getLawDaysForYear = (year: number): number => {
+    if (year < 1) return 0;
+    if (year === 1) return 12;
+    if (year === 2) return 14;
+    if (year === 3) return 16;
+    if (year === 4) return 18;
+    if (year === 5) return 20;
+    if (year >= 6 && year <= 10) return 22;
+    if (year >= 11 && year <= 15) return 24;
+    if (year >= 16 && year <= 20) return 26;
+    if (year >= 21 && year <= 25) return 28;
+    if (year >= 26 && year <= 30) return 30;
+    if (year >= 31 && year <= 35) return 32;
+    return 32 + Math.floor((year - 35) / 5) * 2;
+  };
+
+  const calculateAccruedVacationDays = (hireDate: Date | null, vacationStartDate: Date | null): number => {
     if (!hireDate) return 0;
     const now = new Date();
-    let years = now.getFullYear() - hireDate.getFullYear();
-    const m = now.getMonth() - hireDate.getMonth();
-    if (m < 0 || (m === 0 && now.getDate() < hireDate.getDate())) {
-      years--;
-    }
-    if (years < 1) return 0;
-    if (years === 1) return 12;
-    if (years === 2) return 14;
-    if (years === 3) return 16;
-    if (years === 4) return 18;
-    if (years === 5) return 20;
-    if (years > 5) {
-      return 20 + Math.floor((years - 5) / 5) * 2;
-    }
-    return 12; // Fallback
-  }
+    let totalAccrued = 0;
 
-  const startCalculatingFrom = user.vacationStartDate || user.hireDate;
-  const lawVacationDays = calculateVacationDays(startCalculatingFrom);
+    let anniversaryYear = 1;
+    while (true) {
+      const anniversaryDate = new Date(hireDate);
+      anniversaryDate.setFullYear(hireDate.getFullYear() + anniversaryYear);
+
+      if (anniversaryDate > now) {
+        break;
+      }
+
+      // Only count this anniversary if it happens AFTER the vacationStartDate baseline
+      if (!vacationStartDate || anniversaryDate > vacationStartDate) {
+        totalAccrued += getLawDaysForYear(anniversaryYear);
+      }
+
+      anniversaryYear++;
+    }
+
+    return totalAccrued;
+  };
+
+  const lawVacationDays = calculateAccruedVacationDays(user.hireDate, user.vacationStartDate);
   const totalVacationDays = (user.initialVacationDays || 0) + lawVacationDays;
   const usedVacationDays = user.leaveRequests
     .filter(req => req.status === 'APPROVED' && req.type === 'VACATION')
