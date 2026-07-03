@@ -92,8 +92,36 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
         {/* Customer Info */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3rem', gap: '2rem' }}>
           <div style={{ flex: 1 }}>
-             <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase' }}>Cliente:</h3>
-             <p style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold', fontSize: '1.2rem' }}>{sale.customer?.name || 'Venta al Público en General'}</p>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <h3 style={{ margin: 0, fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase' }}>Cliente:</h3>
+                {sale.customer && (
+                  <Link 
+                    href={`/clientes/${sale.customer.id}/editar`}
+                    style={{ 
+                      fontSize: '0.8rem', 
+                      color: 'var(--caanma-primary, #8b5cf6)', 
+                      fontWeight: 'bold', 
+                      textDecoration: 'none',
+                      backgroundColor: '#f5f3ff',
+                      padding: '0.15rem 0.5rem',
+                      borderRadius: '4px',
+                      border: '1px solid #ddd6fe'
+                    }}
+                    className="hover:underline"
+                  >
+                    Editar Cliente / Facturación
+                  </Link>
+                )}
+             </div>
+             <p style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold', fontSize: '1.2rem' }}>
+                {sale.customer ? (
+                  <Link href={`/clientes/${sale.customer.id}`} style={{ color: '#0f172a', textDecoration: 'none' }} className="hover:underline">
+                    {sale.customer.name}
+                  </Link>
+                ) : (
+                  'Venta al Público en General'
+                )}
+             </p>
              {sale.customer?.email && <p style={{ margin: 0, fontSize: '0.9rem', color: '#475569' }}>{sale.customer.email}</p>}
              {sale.customer?.phone && <p style={{ margin: 0, fontSize: '0.9rem', color: '#475569' }}>Tel: {sale.customer.phone}</p>}
           </div>
