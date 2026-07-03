@@ -45,7 +45,11 @@ export default async function MiPortalPage() {
   const calculateVacationDays = (hireDate: Date | null) => {
     if (!hireDate) return 0;
     const now = new Date();
-    const years = now.getFullYear() - hireDate.getFullYear();
+    let years = now.getFullYear() - hireDate.getFullYear();
+    const m = now.getMonth() - hireDate.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < hireDate.getDate())) {
+      years--;
+    }
     if (years < 1) return 0;
     if (years === 1) return 12;
     if (years === 2) return 14;
@@ -58,7 +62,9 @@ export default async function MiPortalPage() {
     return 12; // Fallback
   }
 
-  const totalVacationDays = calculateVacationDays(user.hireDate);
+  const startCalculatingFrom = user.vacationStartDate || user.hireDate;
+  const lawVacationDays = calculateVacationDays(startCalculatingFrom);
+  const totalVacationDays = (user.initialVacationDays || 0) + lawVacationDays;
   const usedVacationDays = user.leaveRequests
     .filter(req => req.status === 'APPROVED' && req.type === 'VACATION')
     .reduce((acc, req) => {

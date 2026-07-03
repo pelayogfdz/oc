@@ -33,6 +33,10 @@ export async function createUser(formData: FormData) {
     const hireDate = hireDateRaw ? new Date(hireDateRaw) : null;
     const birthDate = birthDateRaw ? new Date(birthDateRaw) : null;
     
+    const initialVacationDays = parseInt(formData.get('initialVacationDays') as string || '0', 10);
+    const vacationStartDateRaw = formData.get('vacationStartDate') as string;
+    const vacationStartDate = vacationStartDateRaw ? new Date(vacationStartDateRaw) : null;
+    
     const payrollType = formData.get('payrollType') as string;
     const dailySalary = parseFloat(formData.get('dailySalary') as string || '0');
     const bankName = formData.get('bankName') as string;
@@ -86,6 +90,7 @@ export async function createUser(formData: FormData) {
         name, email, password, role, commissionRole, commissionPct, monthlyGoal, bonusAmount, teamBonusAmount, managerId,
         branchId: targetBranchId, tenantId: branch.tenantId, permissions, customRoleId,
         rfc, curp, nss, taxRegime, address, phone, hireDate, birthDate,
+        initialVacationDays, vacationStartDate,
         payrollType, dailySalary, bankName, bankAccount,
         bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus, deductLunchHour,
         reqGps, flexibleGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto, strictCheckinTime,
@@ -132,6 +137,10 @@ export async function updateUser(id: string, formData: FormData) {
     const birthDateRaw = formData.get('birthDate') as string;
     const hireDate = hireDateRaw ? new Date(hireDateRaw) : null;
     const birthDate = birthDateRaw ? new Date(birthDateRaw) : null;
+    
+    const initialVacationDays = parseInt(formData.get('initialVacationDays') as string || '0', 10);
+    const vacationStartDateRaw = formData.get('vacationStartDate') as string;
+    const vacationStartDate = vacationStartDateRaw ? new Date(vacationStartDateRaw) : null;
     
     const payrollType = formData.get('payrollType') as string;
     const dailySalary = parseFloat(formData.get('dailySalary') as string || '0');
@@ -187,6 +196,7 @@ export async function updateUser(id: string, formData: FormData) {
     const updateData: any = { 
       name, email, role, branchId: targetBranchId, commissionRole, commissionPct, monthlyGoal, bonusAmount, teamBonusAmount, managerId, permissions, customRoleId,
       rfc, curp, nss, taxRegime, address, phone, hireDate, birthDate,
+      initialVacationDays, vacationStartDate,
       payrollType, dailySalary, bankName, bankAccount,
       bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus, deductLunchHour,
       reqGps, flexibleGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto, strictCheckinTime,

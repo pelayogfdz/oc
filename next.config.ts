@@ -15,6 +15,7 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   typescript: { ignoreBuildErrors: true },
   // @ts-ignore
   eslint: { ignoreDuringBuilds: true },

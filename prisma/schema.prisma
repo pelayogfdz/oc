@@ -71,6 +71,8 @@ model User {
   faceDescriptor            String?
   groceryBonus              Float                    @default(0)
   hireDate                  DateTime?
+  initialVacationDays       Int                      @default(0)
+  vacationStartDate         DateTime?
   nss                       String?
   overtimeBonus             Float                    @default(0)
   payrollType               String?

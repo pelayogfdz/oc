@@ -1188,6 +1188,14 @@ export default function UserClient({ initialUsers, branches, hrLocations = [], c
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Fecha de Contratación</label>
                 <input type="date" name="hireDate" defaultValue={editingUser?.hireDate ? new Date(editingUser.hireDate).toISOString().split('T')[0] : ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
               </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Días de Vacaciones Iniciales</label>
+                <input type="number" name="initialVacationDays" defaultValue={editingUser?.initialVacationDays || 0} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Fecha Inicio Vacaciones</label>
+                <input type="date" name="vacationStartDate" defaultValue={editingUser?.vacationStartDate ? new Date(editingUser.vacationStartDate).toISOString().split('T')[0] : ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
+              </div>
             </div>
           </div>
 
