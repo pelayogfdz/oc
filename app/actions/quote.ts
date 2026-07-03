@@ -18,6 +18,8 @@ export async function createQuote(
   
   if (items.length === 0) throw new Error("Quote is empty");
 
+  let quote: any;
+
   if (quoteId) {
     // Delete existing items for this quote
     await prisma.quoteItem.deleteMany({
@@ -25,7 +27,7 @@ export async function createQuote(
     });
 
     // Update the quote
-    const quote = await prisma.quote.update({
+    quote = await prisma.quote.update({
       where: { id: quoteId },
       data: {
         total,
@@ -42,33 +44,47 @@ export async function createQuote(
         }
       }
     });
+  } else {
+    const { getNextFolio } = await import('./folios');
+    const folio = await getNextFolio(branch.id, 'quote');
 
-    revalidatePath('/ventas/cotizaciones');
-    return quote;
+    quote = await prisma.quote.create({
+      data: {
+        folio,
+        total,
+        paymentMethod,
+        customerId,
+        branchId: branch.id,
+        userId: user.id,
+        items: {
+          create: items.map(item => ({
+            quantity: item.quantity,
+            price: item.price,
+            productId: item.productId
+          }))
+        }
+      }
+    });
   }
 
-  const { getNextFolio } = await import('./folios');
-  const folio = await getNextFolio(branch.id, 'quote');
-
-  const quote = await prisma.quote.create({
-    data: {
-      folio,
-      total,
-      paymentMethod,
-      customerId,
-      branchId: branch.id,
-      userId: user.id,
-      items: {
-        create: items.map(item => ({
-          quantity: item.quantity,
-          price: item.price,
-          productId: item.productId
-        }))
-      }
-    }
-  });
-
   revalidatePath('/ventas/cotizaciones');
+
+  // Send email to customer automatically if customer has email configured
+  if (quote.customerId) {
+    try {
+      const dbCustomer = await prisma.customer.findUnique({
+        where: { id: quote.customerId }
+      });
+      if (dbCustomer && dbCustomer.email && dbCustomer.email.trim() !== "") {
+        sendQuoteByEmail(quote.id, dbCustomer.email.trim()).catch(e => {
+          console.error("Auto email quote sending failed:", e);
+        });
+      }
+    } catch (e) {
+      console.error("Failed to auto send quote email:", e);
+    }
+  }
+
   return quote;
 }
 
