@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { getActiveBranch } from "@/app/actions/auth";
 import Link from "next/link";
-import { Printer, ArrowLeft, ShoppingCart } from "lucide-react";
+import { Printer, ArrowLeft, ShoppingCart, Download } from "lucide-react";
 import PurchaseActionsClient from "./PurchaseActionsClient";
 
 export default async function PurchaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -49,17 +49,20 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
          <Link href="/productos/compras" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--caanma-text-muted)', textDecoration: 'none', fontWeight: 'bold' }}>
             <ArrowLeft size={20} /> Volver a Compras
          </Link>
-         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <Link target="_blank" href={`/productos/compras/${purchase.id}/imprimir`} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px' }}>
-               <Printer size={20} /> Imprimir Orden
-            </Link>
-            {purchase.status !== 'CANCELLED' && (
-               <Link href={`/productos/compras/${purchase.id}/editar`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', fontWeight: 'bold' }} className="hover:bg-slate-50">
-                  Editar Compra
-               </Link>
-            )}
-            <PurchaseActionsClient purchaseId={purchase.id} status={purchase.status} />
-         </div>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+             <Link target="_blank" href={`/productos/compras/${purchase.id}/imprimir`} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px' }}>
+                <Printer size={20} /> Imprimir Orden
+             </Link>
+             <a href={`/api/productos/compras/download?purchaseId=${purchase.id}`} download className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px', backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', fontWeight: 'bold' }}>
+                <Download size={20} /> Descargar PDF
+             </a>
+             {purchase.status !== 'CANCELLED' && (
+                <Link href={`/productos/compras/${purchase.id}/editar`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', fontWeight: 'bold' }} className="hover:bg-slate-50">
+                   Editar Compra
+                </Link>
+             )}
+             <PurchaseActionsClient purchaseId={purchase.id} status={purchase.status} />
+          </div>
       </div>
 
       <div className="card" style={{ padding: '2rem' }}>

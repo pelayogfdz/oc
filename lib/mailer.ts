@@ -295,6 +295,20 @@ export const sendQuoteNotificationEmail = async (
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || 'https://caanma.com';
     const link = `${baseUrl}/ventas/detalle/${quote.id}/imprimir-cotizacion`;
 
+    // Generate PDF attachment
+    let attachments: any[] = [];
+    try {
+      const { generateQuotePdfBuffer } = await import('./quotePdf');
+      const pdfBuffer = await generateQuotePdfBuffer(quote);
+      attachments.push({
+        filename: `cotizacion_${displayFolio}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      });
+    } catch (e) {
+      console.error("Failed to generate quote PDF for email attachment:", e);
+    }
+
     const info = await customTransporter.sendMail({
       from: `"${finalFromName}" <${fromEmail}>`,
       to,
@@ -337,11 +351,13 @@ export const sendQuoteNotificationEmail = async (
           </table>
 
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; text-align: center; font-size: 12px; color: #888;">
+            <p>Se adjunta la versión formal en PDF a este correo para su conveniencia.</p>
             <p>Este es un correo automático de CAANMA, por favor no responda directamente.</p>
             <p><strong>CAANMA ERP</strong></p>
           </div>
         </div>
       `,
+      attachments
     });
 
     console.log('Correo de cotización enviado: %s', info.messageId);

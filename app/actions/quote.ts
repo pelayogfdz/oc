@@ -184,6 +184,9 @@ export async function sendQuoteByEmail(quoteId: string, email: string) {
     where: { id: quoteId },
     include: {
       customer: true,
+      branch: {
+        include: { settings: true, tenant: true }
+      },
       items: {
         include: { product: true }
       }
