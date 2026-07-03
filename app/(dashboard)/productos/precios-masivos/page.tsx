@@ -22,9 +22,7 @@ export default async function PreciosMasivosPage() {
   });
   const categories = categoryList.map(c => c.category).filter(Boolean) as string[];
 
-  const dynamicPriceLists = await prisma.priceList.findMany({
-    where: { branchId: branch.id }
-  });
+  const dynamicPriceLists = await prisma.priceList.findMany();
 
   const initialProducts = await prisma.product.findMany({
     where: { branchId: branch.id, isActive: true },

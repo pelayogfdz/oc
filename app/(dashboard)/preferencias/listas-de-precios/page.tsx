@@ -6,7 +6,6 @@ import { List, Plus, Trash2, Edit2, Info } from 'lucide-react';
 export default async function PriceListsPage() {
   const branch = await getActiveBranch();
   const priceLists = await prisma.priceList.findMany({
-    where: { branchId: branch.id },
     orderBy: { createdAt: 'asc' }
   });
 

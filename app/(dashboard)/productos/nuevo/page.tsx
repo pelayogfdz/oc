@@ -20,9 +20,7 @@ export default async function NuevoProductoPage({ searchParams }: { searchParams
   }
 
   const suppliers = await getTenantSuppliers();
-  const priceLists = await prisma.priceList.findMany({
-    where: { branchId: branch?.id }
-  });
+  const priceLists = await prisma.priceList.findMany();
 
   // Fetch distinct categories for the current branch
   const categoriesData = await prisma.product.findMany({

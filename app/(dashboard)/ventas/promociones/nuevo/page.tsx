@@ -41,7 +41,6 @@ export default async function NuevoPromocion() {
   });
 
   const priceLists = await prisma.priceList.findMany({
-    where: { branchId: { in: activeBranches.map(b => b.id) } },
     select: { id: true, name: true, branchId: true }
   });
 

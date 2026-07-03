@@ -11,7 +11,7 @@ export async function createPriceList(formData: FormData) {
   if (!name) throw new Error("Name is required");
 
   // Límite de 10 listas máximo solicitado por el usuario
-  const count = await prisma.priceList.count({ where: { branchId: branch.id } });
+  const count = await prisma.priceList.count();
   if (count >= 10) throw new Error("Límite máximo de 10 listas de precios alcanzado.");
 
   const priceList = await prisma.priceList.create({

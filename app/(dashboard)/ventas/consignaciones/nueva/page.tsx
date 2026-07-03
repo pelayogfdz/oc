@@ -28,7 +28,7 @@ export default async function NuevaConsignacionPage({ searchParams }: { searchPa
     prisma.promotion.findMany({ where: { branchId: branch.id, active: true } }),
     getBranchSettings(),
     getTenantSuppliers(),
-    prisma.priceList.findMany({ where: { branchId: branch.id } })
+    prisma.priceList.findMany()
   ]);
 
   let ticketConfig: any = {};
