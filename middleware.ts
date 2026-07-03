@@ -3,7 +3,12 @@ import { decrypt } from '@/lib/session-crypto';
 
 export async function middleware(req: NextRequest) {
   const publicRoutes = ['/login', '/api/auth', '/api/cron', '/api/mercadolibre/webhooks', '/api/ping', '/_next', '/clientes/portal', '/sw.js'];
-  const isPublicRoute = publicRoutes.some(route => req.nextUrl.pathname === route || req.nextUrl.pathname.startsWith(`${route}/`));
+  const isPublicRoute = publicRoutes.some(route => req.nextUrl.pathname === route || req.nextUrl.pathname.startsWith(`${route}/`))
+    || (req.nextUrl.pathname.startsWith('/ventas/detalle/') && (
+        req.nextUrl.pathname.endsWith('/imprimir') || 
+        req.nextUrl.pathname.endsWith('/imprimir-cotizacion') || 
+        req.nextUrl.pathname.endsWith('/imprimir-ticket')
+    ));
   
   if (!isPublicRoute) {
     const sessionCookie = req.cookies.get('session')?.value;
