@@ -144,6 +144,8 @@ export default function CajaActualClient({
         usedMethodIds.add('CASH');
         usedMethodIds.add('CARD_CREDIT');
         usedMethodIds.add('CARD_DEBIT');
+      } else if (s.paymentMethod === 'CARD') {
+        usedMethodIds.add('CARD_CREDIT');
       } else {
         usedMethodIds.add(s.paymentMethod);
       }
@@ -191,8 +193,8 @@ export default function CajaActualClient({
       return (initialSession?.initialAmount || 0) + totalSalesCash + totalSalesMixtoCash + totalIn - totalOut;
     } else if (id === 'CARD' || id === 'CARD_CREDIT' || id === 'CARD_DEBIT') {
       let matchingSales = [];
-      if (id === 'CARD') {
-        matchingSales = activeSales.filter((s: any) => s.paymentMethod === 'CARD' || s.paymentMethod === 'CARD_CREDIT' || s.paymentMethod === 'CARD_DEBIT');
+      if (id === 'CARD_CREDIT') {
+        matchingSales = activeSales.filter((s: any) => s.paymentMethod === 'CARD_CREDIT' || s.paymentMethod === 'CARD');
       } else {
         matchingSales = activeSales.filter((s: any) => s.paymentMethod === id);
       }
