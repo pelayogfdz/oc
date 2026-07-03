@@ -427,6 +427,8 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
           formData.append('cost', p.cost.toString());
           formData.append('price', p.price.toString());
           formData.append('taxRate', p.taxRate.toString());
+          if (p.taxType) formData.append('taxType', p.taxType);
+          if (p.iepsRate !== undefined) formData.append('iepsRate', p.iepsRate.toString());
           formData.append('category', p.category);
           formData.append('brand', p.brand);
           formData.append('unit', p.unit);

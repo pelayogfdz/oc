@@ -38,6 +38,8 @@ export async function exportProductsAction(selectedIds?: string[]) {
       specialPrice: p.specialPrice || '',
       cost: p.cost || 0,
       taxRate: p.taxRate || 16.0,
+      taxType: p.taxType || 'IVA',
+      iepsRate: p.iepsRate || 0.0,
       category: p.category || '',
       brand: p.brand || '',
       unit: p.unit || 'Pza',

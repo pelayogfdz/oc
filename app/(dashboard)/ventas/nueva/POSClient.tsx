@@ -306,6 +306,91 @@ export default function POSClient({
       }
     }
   }, [branchId, mode]);
+
+  const handleActionError = (e: any): boolean => {
+    const errStr = String(e);
+    if (
+      errStr.includes('UnrecognizedActionError') ||
+      errStr.includes('was not found on the server') ||
+      errStr.includes('failed-to-find-server-action') ||
+      errStr.includes('Server Action')
+    ) {
+      const recoveryState = {
+        cart,
+        selectedCustomerId,
+        customerSearchTerm,
+        priceList,
+        manualDiscountType,
+        manualDiscountValue,
+        pointsRedeemed,
+        tipAmount,
+        paymentMethod,
+        amountReceived,
+        cardAmount,
+        notes,
+        documentType,
+        transactionType,
+        appliedPromotionIds,
+        loadedQuoteId,
+        loadedConsignmentId
+      };
+      localStorage.setItem(`caanma_pos_recovery_${branchId}_${mode}`, JSON.stringify(recoveryState));
+      alert('Se ha detectado una nueva actualización en el servidor. La página se recargará automáticamente para aplicar la actualización sin perder los artículos de tu carrito actual.');
+      window.location.reload();
+      return true;
+    }
+    return false;
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const recovery = localStorage.getItem(`caanma_pos_recovery_${branchId}_${mode}`);
+      if (recovery) {
+        try {
+          const state = JSON.parse(recovery);
+          if (state.cart && state.cart.length > 0) {
+            setCart(state.cart);
+            setSelectedCustomerId(state.selectedCustomerId || null);
+            setCustomerSearchTerm(state.customerSearchTerm || '');
+            setPriceList(state.priceList || 'price');
+            setManualDiscountType(state.manualDiscountType || '$');
+            setManualDiscountValue(state.manualDiscountValue || '');
+            setPointsRedeemed(state.pointsRedeemed || 0);
+            setTipAmount(state.tipAmount || 0);
+            setPaymentMethod(state.paymentMethod || 'CASH');
+            setAmountReceived(state.amountReceived || '');
+            setCardAmount(state.cardAmount || '');
+            setNotes(state.notes || '');
+            setDocumentType(state.documentType || 'TICKET');
+            setTransactionType(state.transactionType || 'VENTA');
+            setAppliedPromotionIds(state.appliedPromotionIds || null);
+            setLoadedQuoteId(state.loadedQuoteId || null);
+            setLoadedConsignmentId(state.loadedConsignmentId || null);
+
+            setTabs(prev => prev.map(t => t.id === '1' ? {
+              ...t,
+              cart: state.cart || [],
+              selectedCustomerId: state.selectedCustomerId || null,
+              customerSearchTerm: state.customerSearchTerm || '',
+              priceList: state.priceList || 'price',
+              manualDiscountType: state.manualDiscountType || '$',
+              manualDiscountValue: state.manualDiscountValue || '',
+              notes: state.notes || '',
+              documentType: state.documentType || 'TICKET',
+              transactionType: state.transactionType || 'VENTA',
+              loadedQuoteId: state.loadedQuoteId || null,
+              loadedConsignmentId: state.loadedConsignmentId || null
+            } : t));
+          }
+        } catch (e) {
+          console.error('Failed to restore recovery state:', e);
+        } finally {
+          localStorage.removeItem(`caanma_pos_recovery_${branchId}_${mode}`);
+        }
+      }
+    }
+  }, [branchId, mode]);
+
   const [isMobileSearchActive, setIsMobileSearchActive] = useState(false);
 
   // Load permissions and superadmin status (prefer fresh server props if online, fallback to localStorage if offline)
@@ -710,6 +795,7 @@ export default function POSClient({
 
       alert('¡Cliente creado y seleccionado con éxito!');
     } catch (e: any) {
+      if (handleActionError(e)) return;
       alert('Error al crear cliente: ' + (e.message || String(e)));
     } finally {
       setIsSavingCustomer(false);
@@ -759,6 +845,7 @@ export default function POSClient({
       setQuoteSearchId('');
       if (!incomingId) alert("Cotización cargada correctamente.");
     } catch (e: any) {
+      if (handleActionError(e)) return;
       alert("Error al cargar la cotización: " + e.message);
     } finally {
       setIsLoadingQuote(false);
@@ -791,6 +878,7 @@ export default function POSClient({
       
       alert("Consignación cargada correctamente.");
     } catch (e: any) {
+      if (handleActionError(e)) return;
       alert("Error al cargar la consignación: " + e.message);
     } finally {
       setIsLoadingQuote(false);
@@ -1616,6 +1704,7 @@ export default function POSClient({
       }
 
     } catch (e) {
+      if (handleActionError(e)) return;
       alert('Error en la venta: ' + String(e));
       setIsProcessing(false);
     }

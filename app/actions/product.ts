@@ -20,6 +20,8 @@ export async function createProduct(prevState: any, formData: FormData) {
     const price = parseFloat(formData.get('price') as string) || 0;
     const cost = parseFloat(formData.get('cost') as string) || 0;
     const taxRate = parseFloat(formData.get('taxRate') as string) || 16.0;
+    const taxType = (formData.get('taxType') as string) || 'IVA';
+    const iepsRate = parseFloat(formData.get('iepsRate') as string) || 0.0;
   
   const category = formData.get('category') as string;
   const brand = formData.get('brand') as string;
@@ -127,6 +129,8 @@ export async function createProduct(prevState: any, formData: FormData) {
       price,
       cost,
       taxRate,
+      taxType,
+      iepsRate,
       brand,
       imageUrl,
       youtubeUrl,
@@ -372,6 +376,12 @@ export async function updateProduct(productId: string, formData: FormData) {
 
     const taxRate = formData.get('taxRate');
     if (taxRate !== null) data.taxRate = parseFloat(taxRate as string) || 16.0;
+
+    const taxType = formData.get('taxType');
+    if (taxType !== null) data.taxType = (taxType as string) || 'IVA';
+
+    const iepsRate = formData.get('iepsRate');
+    if (iepsRate !== null) data.iepsRate = parseFloat(iepsRate as string) || 0.0;
 
     const category = formData.get('category');
     if (category !== null) data.category = (category as string) || null;

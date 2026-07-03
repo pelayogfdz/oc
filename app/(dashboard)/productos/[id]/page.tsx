@@ -356,6 +356,8 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
               initialCost={product.cost}
               initialPrice={product.price}
               initialTaxRate={product.taxRate}
+              initialTaxType={product.taxType}
+              initialIepsRate={product.iepsRate}
               initialWholesalePrice={product.wholesalePrice}
               initialSpecialPrice={product.specialPrice}
               priceLists={dynamicPriceLists}

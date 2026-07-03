@@ -17,6 +17,8 @@ interface ProductFinanceSectionProps {
   initialCost: number;
   initialPrice: number;
   initialTaxRate?: number;
+  initialTaxType?: string;
+  initialIepsRate?: number;
   initialWholesalePrice?: number | null;
   initialSpecialPrice?: number | null;
   priceLists: PriceList[];
@@ -27,6 +29,8 @@ export default function ProductFinanceSection({
   initialCost,
   initialPrice,
   initialTaxRate = 16.0,
+  initialTaxType = 'IVA',
+  initialIepsRate = 0.0,
   initialWholesalePrice,
   initialSpecialPrice,
   priceLists = [],
@@ -36,6 +40,8 @@ export default function ProductFinanceSection({
   const [cost, setCost] = useState<string | number>(initialCost);
   const [price, setPrice] = useState<string | number>(initialPrice);
   const [taxRate, setTaxRate] = useState<number>(initialTaxRate);
+  const [taxType, setTaxType] = useState<string>(initialTaxType);
+  const [iepsRate, setIepsRate] = useState<number>(initialIepsRate);
   const [wholesalePrice, setWholesalePrice] = useState<string>(
     initialWholesalePrice != null ? String(initialWholesalePrice) : ''
   );
@@ -236,17 +242,58 @@ export default function ProductFinanceSection({
         {/* Impuesto / IVA */}
         <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem', color: '#1e293b' }}>
-            Impuesto / IVA (%)
+            Impuestos Causados
           </label>
-          <input
-            type="number"
-            step="0.01"
-            name="taxRate"
-            value={taxRate}
-            onChange={e => setTaxRate(parseFloat(e.target.value) || 0)}
-            style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', outline: 'none' }}
-          />
+          <select
+            value={taxType}
+            onChange={e => setTaxType(e.target.value)}
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.85rem' }}
+          >
+            <option value="IVA">IVA</option>
+            <option value="IEPS">IEPS</option>
+            <option value="IVA_IEPS">IVA + IEPS</option>
+            <option value="NONE">Exento / Ninguno</option>
+          </select>
+          <input type="hidden" name="taxType" value={taxType} />
         </div>
+
+        {(taxType === 'IVA' || taxType === 'IVA_IEPS') && (
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem', color: '#1e293b' }}>
+              IVA (%)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              name="taxRate"
+              value={taxRate}
+              onChange={e => setTaxRate(parseFloat(e.target.value) || 0)}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', outline: 'none' }}
+            />
+          </div>
+        )}
+        {!(taxType === 'IVA' || taxType === 'IVA_IEPS') && (
+          <input type="hidden" name="taxRate" value={0} />
+        )}
+
+        {(taxType === 'IEPS' || taxType === 'IVA_IEPS') && (
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem', color: '#1e293b' }}>
+              IEPS (%)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              name="iepsRate"
+              value={iepsRate}
+              onChange={e => setIepsRate(parseFloat(e.target.value) || 0)}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', outline: 'none' }}
+            />
+          </div>
+        )}
+        {!(taxType === 'IEPS' || taxType === 'IVA_IEPS') && (
+          <input type="hidden" name="iepsRate" value={0} />
+        )}
       </div>
 
       {/* Precio Mayoreo y Precio Especial */}

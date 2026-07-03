@@ -41,6 +41,8 @@ export async function importProducts(records: any[]) {
     // Extra fields
     const description = row.description?.trim() || null;
     const taxRate = parseFloat(row.taxRate) || 16.0;
+    const taxType = row.taxType?.trim() || 'IVA';
+    const iepsRate = parseFloat(row.iepsRate) || 0.0;
     const category = row.category?.trim() || 'General';
     const brand = row.brand?.trim() || 'Genérica';
     const imageUrl = row.imageUrl?.trim() || null;
@@ -170,6 +172,8 @@ export async function importProducts(records: any[]) {
           specialPrice,
           description,
           taxRate,
+          taxType,
+          iepsRate,
           category,
           brand,
           imageUrl,
@@ -200,6 +204,8 @@ export async function importProducts(records: any[]) {
             specialPrice,
             description,
             taxRate,
+            taxType,
+            iepsRate,
             category,
             brand,
             imageUrl,
@@ -247,6 +253,8 @@ export async function importProducts(records: any[]) {
           specialPrice,
           description,
           taxRate,
+          taxType,
+          iepsRate,
           category,
           brand,
           imageUrl,
@@ -282,6 +290,8 @@ export async function importProducts(records: any[]) {
               specialPrice,
               description,
               taxRate,
+              taxType,
+              iepsRate,
               category,
               brand,
               imageUrl,
@@ -307,6 +317,8 @@ export async function importProducts(records: any[]) {
               specialPrice,
               description,
               taxRate,
+              taxType,
+              iepsRate,
               category,
               brand,
               imageUrl,

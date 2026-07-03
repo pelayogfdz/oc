@@ -292,6 +292,8 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
           initialCost={parseFloat(cloneProduct?.cost || "0")}
           initialPrice={parseFloat(cloneProduct?.price || "0")}
           initialTaxRate={parseFloat(cloneProduct?.taxRate || "16.0")}
+          initialTaxType={cloneProduct?.taxType}
+          initialIepsRate={cloneProduct?.iepsRate ? parseFloat(cloneProduct.iepsRate) : 0.0}
           initialWholesalePrice={cloneProduct?.wholesalePrice}
           initialSpecialPrice={cloneProduct?.specialPrice}
           priceLists={priceLists}

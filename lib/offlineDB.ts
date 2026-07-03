@@ -140,6 +140,8 @@ export interface OfflinePendingProduct extends DLQMetadata {
   cost: number;
   price: number;
   taxRate: number;
+  taxType?: string;
+  iepsRate?: number;
   category: string;
   brand: string;
   unit: string;
