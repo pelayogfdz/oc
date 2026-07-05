@@ -59,9 +59,9 @@ export const navStructure: MenuNode[] = [
     requiredPermission: ['pos_access', 'pos_discount', 'pos_cancel', 'pos_returns'],
     items: [
       { name: 'Historial de Ventas', path: '/ventas', requiredPermission: ['pos_view_history'] },
-      { name: 'Bandeja WhatsApp', path: '/ventas/whatsapp', badge: 'Admin', desktopOnly: true, requiredPermission: ['pos_access'] },
-      { name: 'Conexión WhatsApp', path: '/configuracion/whatsapp', badge: 'CRM', desktopOnly: true, requiredPermission: ['pos_access'] },
-      { name: 'Prospección (CRM)', path: '/ventas/prospeccion', badge: 'Kanban', desktopOnly: true, requiredPermission: ['pos_access'] },
+      { name: 'Bandeja WhatsApp', path: '/ventas/whatsapp', badge: 'Admin', desktopOnly: true, requiredPermission: ['whatsapp_bandeja'] },
+      { name: 'Conexión WhatsApp', path: '/configuracion/whatsapp', badge: 'CRM', desktopOnly: true, requiredPermission: ['whatsapp_config'] },
+      { name: 'Prospección (CRM)', path: '/ventas/prospeccion', badge: 'Kanban', desktopOnly: true, requiredPermission: ['whatsapp_kanban'] },
       { name: 'Promociones y Descuentos', path: '/ventas/promociones', requiredPermission: ['pos_assign_promotions'] },
       { name: 'Devoluciones', path: '/ventas/devoluciones', requiredPermission: ['pos_returns'] },
       { name: 'Cotizaciones', path: '/ventas/cotizaciones', requiredPermission: ['admin_quotes_access'] },

@@ -15,7 +15,7 @@ import FloatingWhatsappWidget from '../components/FloatingWhatsappWidget';
 import CollaboratorTaskPopup from '../components/CollaboratorTaskPopup';
 import PriceChangesAlertPopup from '../components/PriceChangesAlertPopup';
 import { redirect } from 'next/navigation';
-import { hasPermission } from '@/app/config/permissions';
+import { hasPermission, hasNodeAccess } from '@/app/config/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,7 +111,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
         <MobileGridMenu isSuperAdmin={isSuperAdmin} userPermissions={userPermissions} userRole={userRole} />
         <MobileBottomNav />
-        {user && <FloatingWhatsappWidget />}
+        {user && hasNodeAccess(userPermissions, 'whatsapp_widget', isSuperAdmin, userRole) && <FloatingWhatsappWidget />}
         {user && <CollaboratorTaskPopup userId={user.id} />}
         {user && <PriceChangesAlertPopup />}
       </MobileMenuProvider>

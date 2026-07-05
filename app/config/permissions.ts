@@ -305,6 +305,34 @@ export const PERMISSION_MODULES = [
         ]
       }
     ]
+  },
+  {
+    id: 'whatsapp',
+    name: 'WhatsApp y CRM',
+    submodules: [
+      {
+        id: 'whatsapp_chat',
+        name: 'Bandeja y Chat',
+        permissions: [
+          { id: 'whatsapp_bandeja', label: 'Acceder a Bandeja de WhatsApp' },
+          { id: 'whatsapp_widget', label: 'Ver Widget de WhatsApp Flotante' }
+        ]
+      },
+      {
+        id: 'whatsapp_kanban_crm',
+        name: 'Prospección y CRM',
+        permissions: [
+          { id: 'whatsapp_kanban', label: 'Acceder a Prospección (Tablero Kanban)' }
+        ]
+      },
+      {
+        id: 'whatsapp_admin_config',
+        name: 'Configuración',
+        permissions: [
+          { id: 'whatsapp_config', label: 'Acceder a Configuración / Conexión de WhatsApp' }
+        ]
+      }
+    ]
   }
 ];
 

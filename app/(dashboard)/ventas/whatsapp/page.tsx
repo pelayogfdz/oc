@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getActiveUser, getActiveBranch } from "@/app/actions/auth";
 import BandejaClient from "./BandejaClient";
+import { hasPermission, hasNodeAccess } from "@/app/config/permissions";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,45 @@ export default async function WhatsappBandejaPage() {
   const user = await getActiveUser();
   
   if (!user || !branch) return null;
+
+  // Securing page access
+  const isSuperAdmin = user.email?.toLowerCase() === 'pelayogfdz@gmail.com';
+  let userPermissions: Record<string, boolean> = {};
+  const rolePermissions = (user as any).customRole?.permissions;
+  const userPermissionsRaw = user.permissions;
+  const mergedList: string[] = [];
+
+  if (rolePermissions) {
+    try {
+      const parsed = JSON.parse(rolePermissions);
+      if (Array.isArray(parsed)) mergedList.push(...parsed);
+      else Object.keys(parsed).forEach((k) => { if (parsed[k]) mergedList.push(k); });
+    } catch (e) {}
+  }
+
+  if (userPermissionsRaw) {
+    try {
+      const parsed = JSON.parse(userPermissionsRaw);
+      if (Array.isArray(parsed)) mergedList.push(...parsed);
+      else Object.keys(parsed).forEach((k) => { if (parsed[k]) mergedList.push(k); });
+    } catch (e) {}
+  }
+
+  if (mergedList.length > 0) {
+    const tempPermissions: Record<string, boolean> = {};
+    mergedList.forEach((p: string) => tempPermissions[p] = true);
+
+    Object.keys(tempPermissions).forEach(p => {
+      if (hasPermission(tempPermissions, p)) {
+        userPermissions[p] = true;
+      }
+    });
+  }
+
+  const hasAccess = hasNodeAccess(userPermissions, 'whatsapp_bandeja', isSuperAdmin, user.role);
+  if (!hasAccess) {
+    redirect('/');
+  }
 
   // Solo administradores o coordinadores deberían ver esta bandeja global
   // Si quieres que los vendedores la vean, puedes quitar esta restricción

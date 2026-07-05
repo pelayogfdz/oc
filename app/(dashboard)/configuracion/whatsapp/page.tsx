@@ -1,19 +1,54 @@
 import { prisma } from "@/lib/prisma";
 import WhatsAppConfigClient from "./WhatsAppConfigClient";
-import { getActiveBranch } from "@/app/actions/auth";
+import { getActiveUser, getActiveBranch } from "@/app/actions/auth";
+import { hasPermission, hasNodeAccess } from "@/app/config/permissions";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function WhatsAppConfigPage() {
   const branch = await getActiveBranch();
+  const user = await getActiveUser();
   
-  if (!branch) {
-    return (
-      <div>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Configuracion de WhatsApp</h1>
-        <p style={{ color: 'red' }}>Error: No se pudo determinar la sucursal activa.</p>
-      </div>
-    );
+  if (!user || !branch) return null;
+
+  // Securing page access
+  const isSuperAdmin = user.email?.toLowerCase() === 'pelayogfdz@gmail.com';
+  let userPermissions: Record<string, boolean> = {};
+  const rolePermissions = (user as any).customRole?.permissions;
+  const userPermissionsRaw = user.permissions;
+  const mergedList: string[] = [];
+
+  if (rolePermissions) {
+    try {
+      const parsed = JSON.parse(rolePermissions);
+      if (Array.isArray(parsed)) mergedList.push(...parsed);
+      else Object.keys(parsed).forEach((k) => { if (parsed[k]) mergedList.push(k); });
+    } catch (e) {}
+  }
+
+  if (userPermissionsRaw) {
+    try {
+      const parsed = JSON.parse(userPermissionsRaw);
+      if (Array.isArray(parsed)) mergedList.push(...parsed);
+      else Object.keys(parsed).forEach((k) => { if (parsed[k]) mergedList.push(k); });
+    } catch (e) {}
+  }
+
+  if (mergedList.length > 0) {
+    const tempPermissions: Record<string, boolean> = {};
+    mergedList.forEach((p: string) => tempPermissions[p] = true);
+
+    Object.keys(tempPermissions).forEach(p => {
+      if (hasPermission(tempPermissions, p)) {
+        userPermissions[p] = true;
+      }
+    });
+  }
+
+  const hasAccess = hasNodeAccess(userPermissions, 'whatsapp_config', isSuperAdmin, user.role);
+  if (!hasAccess) {
+    redirect('/');
   }
 
   const firstBranch = await prisma.branch.findFirst({
