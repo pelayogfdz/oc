@@ -39,8 +39,41 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
     );
   }
 
-  const subtotal = purchase.total / 1.16;
-  const iva = purchase.total - subtotal;
+  let calculatedSubtotal = 0;
+  let calculatedIva = 0;
+  let calculatedIeps = 0;
+
+  purchase.items.forEach(item => {
+    const itemTotal = item.quantity * item.cost;
+    calculatedSubtotal += itemTotal;
+
+    const taxType = item.product?.taxType || 'IVA';
+    const taxRate = item.product?.taxRate ?? 16.0;
+    const iepsRate = item.product?.iepsRate ?? 0.0;
+
+    if (taxType === 'IVA') {
+      calculatedIva += itemTotal * (taxRate / 100);
+    } else if (taxType === 'IEPS') {
+      calculatedIeps += itemTotal * (iepsRate / 100);
+    } else if (taxType === 'IVA_IEPS') {
+      const iepsAmt = itemTotal * (iepsRate / 100);
+      calculatedIeps += iepsAmt;
+      calculatedIva += (itemTotal + iepsAmt) * (taxRate / 100);
+    }
+  });
+
+  const freight = purchase.freightCost || 0;
+  const expectedTotal = calculatedSubtotal + calculatedIva + calculatedIeps + freight;
+
+  let subtotal = calculatedSubtotal;
+  let iva = calculatedIva;
+  let ieps = calculatedIeps;
+
+  if (Math.abs(expectedTotal - purchase.total) > 0.05) {
+    subtotal = (purchase.total - freight) / 1.16;
+    iva = (purchase.total - freight) - subtotal;
+    ieps = 0;
+  }
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', fontFamily: 'sans-serif', color: 'black' }}>
@@ -276,13 +309,19 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
           </div>
           <div style={{ width: '300px' }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #e2e8f0' }}>
-                <span style={{ color: '#64748b' }}>Subtotal (sin IVA):</span>
+                <span style={{ color: '#64748b' }}>Subtotal (sin imp.):</span>
                 <span style={{ color: '#0f172a' }}>${subtotal.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
              </div>
              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #e2e8f0' }}>
-                <span style={{ color: '#64748b' }}>IVA (16%):</span>
+                <span style={{ color: '#64748b' }}>I.V.A.:</span>
                 <span style={{ color: '#0f172a' }}>${iva.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
              </div>
+             {ieps > 0 && (
+               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #e2e8f0' }}>
+                  <span style={{ color: '#64748b' }}>I.E.P.S.:</span>
+                  <span style={{ color: '#0f172a' }}>${ieps.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+               </div>
+             )}
              {purchase.freightCost ? (
                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #e2e8f0' }}>
                   <span style={{ color: '#64748b' }}>Flete / Envío:</span>
@@ -291,7 +330,7 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
              ) : null}
              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0', fontWeight: 'bold', fontSize: '1.5rem', color: 'var(--caanma-primary)' }}>
                 <span>Total Compra:</span>
-                <span>${(purchase.total + (purchase.freightCost || 0)).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                <span>${purchase.total.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
              </div>
           </div>
         </div>

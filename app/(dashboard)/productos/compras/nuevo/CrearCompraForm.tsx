@@ -33,7 +33,10 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
     temperature?: number,
     octane?: number,
     volume20c?: number,
-    certNumber?: string
+    certNumber?: string,
+    taxRate?: number,
+    taxType?: string,
+    iepsRate?: number
   }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
@@ -82,7 +85,10 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
         quantity: item.quantity,
         cost: item.cost,
         sku: item.product?.sku || '',
-        hasTraceability: item.product?.hasTraceability || false
+        hasTraceability: item.product?.hasTraceability || false,
+        taxRate: item.product?.taxRate ?? 16.0,
+        taxType: item.product?.taxType || 'IVA',
+        iepsRate: item.product?.iepsRate ?? 0.0,
       }));
       setItems(mappedItems);
     }
@@ -116,8 +122,29 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
   }, [isOnline, products, suppliers, branchId]);
 
   const itemsSubtotal = items.reduce((sum, item) => sum + (item.quantity * item.cost), 0);
-  const iva = itemsSubtotal * 0.16;
-  const finalTotal = itemsSubtotal + iva + freightCost;
+  
+  let totalIva = 0;
+  let totalIeps = 0;
+  items.forEach(item => {
+    const itemTotal = item.quantity * item.cost;
+    const taxType = item.taxType || 'IVA';
+    const taxRate = item.taxRate ?? 16.0;
+    const iepsRate = item.iepsRate ?? 0.0;
+
+    if (taxType === 'IVA') {
+      totalIva += itemTotal * (taxRate / 100);
+    } else if (taxType === 'IEPS') {
+      totalIeps += itemTotal * (iepsRate / 100);
+    } else if (taxType === 'IVA_IEPS') {
+      const iepsAmt = itemTotal * (iepsRate / 100);
+      totalIeps += iepsAmt;
+      totalIva += (itemTotal + iepsAmt) * (taxRate / 100);
+    }
+  });
+
+  const iva = totalIva;
+  const ieps = totalIeps;
+  const finalTotal = itemsSubtotal + totalIva + totalIeps + freightCost;
 
   const handlePutOnHold = () => {
     if (items.length === 0) {
@@ -199,7 +226,10 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
       temperature: undefined,
       octane: undefined,
       volume20c: undefined,
-      certNumber: ''
+      certNumber: '',
+      taxRate: product.taxRate ?? 16.0,
+      taxType: product.taxType || 'IVA',
+      iepsRate: product.iepsRate ?? 0.0
     }]);
   };
 
@@ -718,13 +748,23 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
               </span>
             </div>
 
-            {/* IVA (16%) */}
+            {/* IVA */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', color: '#475569', fontWeight: '600' }}>
-              <span>I.V.A. (16%)</span>
+              <span>I.V.A.</span>
               <span style={{ color: '#0f172a', fontWeight: '700' }}>
                 ${iva.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
               </span>
             </div>
+
+            {/* IEPS */}
+            {ieps > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', color: '#475569', fontWeight: '600' }}>
+                <span>I.E.P.S.</span>
+                <span style={{ color: '#0f172a', fontWeight: '700' }}>
+                  ${ieps.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            )}
 
             {/* Freight/Envío */}
             {freightCost > 0 && (

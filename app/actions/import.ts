@@ -40,7 +40,8 @@ export async function importProducts(records: any[]) {
 
     // Extra fields
     const description = row.description?.trim() || null;
-    const taxRate = parseFloat(row.taxRate) || 16.0;
+    const taxRateRaw = parseFloat(row.taxRate);
+    const taxRate = isNaN(taxRateRaw) ? 16.0 : taxRateRaw;
     const taxType = row.taxType?.trim() || 'IVA';
     const iepsRate = parseFloat(row.iepsRate) || 0.0;
     const category = row.category?.trim() || 'General';

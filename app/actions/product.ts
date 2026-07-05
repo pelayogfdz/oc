@@ -19,7 +19,8 @@ export async function createProduct(prevState: any, formData: FormData) {
     
     const price = parseFloat(formData.get('price') as string) || 0;
     const cost = parseFloat(formData.get('cost') as string) || 0;
-    const taxRate = parseFloat(formData.get('taxRate') as string) || 16.0;
+    const taxRateRaw = parseFloat(formData.get('taxRate') as string);
+    const taxRate = isNaN(taxRateRaw) ? 16.0 : taxRateRaw;
     const taxType = (formData.get('taxType') as string) || 'IVA';
     const iepsRate = parseFloat(formData.get('iepsRate') as string) || 0.0;
   
@@ -375,7 +376,10 @@ export async function updateProduct(productId: string, formData: FormData) {
     if (cost !== null) data.cost = parseFloat(cost as string) || 0;
 
     const taxRate = formData.get('taxRate');
-    if (taxRate !== null) data.taxRate = parseFloat(taxRate as string) || 16.0;
+    if (taxRate !== null) {
+      const parsedTax = parseFloat(taxRate as string);
+      data.taxRate = isNaN(parsedTax) ? 16.0 : parsedTax;
+    }
 
     const taxType = formData.get('taxType');
     if (taxType !== null) data.taxType = (taxType as string) || 'IVA';

@@ -37,7 +37,10 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
       temperature: item.fuelTraceability?.temperature !== null && item.fuelTraceability?.temperature !== undefined ? item.fuelTraceability.temperature : undefined,
       octane: item.fuelTraceability?.octane !== null && item.fuelTraceability?.octane !== undefined ? item.fuelTraceability.octane : undefined,
       volume20c: item.fuelTraceability?.volume20c !== null && item.fuelTraceability?.volume20c !== undefined ? item.fuelTraceability.volume20c : undefined,
-      certNumber: item.fuelTraceability?.certNumber || ""
+      certNumber: item.fuelTraceability?.certNumber || "",
+      taxRate: item.product?.taxRate ?? 16.0,
+      taxType: item.product?.taxType || 'IVA',
+      iepsRate: item.product?.iepsRate ?? 0.0
     }));
   });
 
@@ -49,7 +52,30 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
   const [availableProducts] = useState(products || []);
   const [availableSuppliers] = useState(suppliers || []);
 
-  const total = items.reduce((sum, item) => sum + item.quantity * item.cost, 0);
+  const itemsSubtotal = items.reduce((sum, item) => sum + item.quantity * item.cost, 0);
+
+  let totalIva = 0;
+  let totalIeps = 0;
+  items.forEach(item => {
+    const itemTotal = item.quantity * item.cost;
+    const taxType = item.taxType || 'IVA';
+    const taxRate = item.taxRate ?? 16.0;
+    const iepsRate = item.iepsRate ?? 0.0;
+
+    if (taxType === 'IVA') {
+      totalIva += itemTotal * (taxRate / 100);
+    } else if (taxType === 'IEPS') {
+      totalIeps += itemTotal * (iepsRate / 100);
+    } else if (taxType === 'IVA_IEPS') {
+      const iepsAmt = itemTotal * (iepsRate / 100);
+      totalIeps += iepsAmt;
+      totalIva += (itemTotal + iepsAmt) * (taxRate / 100);
+    }
+  });
+
+  const iva = totalIva;
+  const ieps = totalIeps;
+  const finalTotal = itemsSubtotal + totalIva + totalIeps + freightCost;
 
   const handleAddItem = (product: any) => {
     if (!product || !product.id) return;
@@ -72,7 +98,10 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
         temperature: undefined,
         octane: undefined,
         volume20c: undefined,
-        certNumber: ""
+        certNumber: "",
+        taxRate: product.taxRate ?? 16.0,
+        taxType: product.taxType || 'IVA',
+        iepsRate: product.iepsRate ?? 0.0
       }
     ]);
   };
@@ -92,7 +121,7 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
       const res = await updatePurchase(
         purchase.id,
         items,
-        total,
+        finalTotal,
         paymentMethod,
         supplierId || null,
         freightCost,
@@ -508,11 +537,48 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
           </div>
 
           {/* BOTTOM SUMMARY ROW & UPDATE CTA */}
-          <div style={{ marginTop: "1.25rem", padding: "1.25rem 0 0 0", borderTop: "1px solid #cbd5e1" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", fontSize: "0.95rem", color: "#475569", fontWeight: "600" }}>
-              <span>Total ({items.reduce((s, i) => s + i.quantity, 0)} artículos)</span>
-              <span style={{ fontSize: "1.15rem", fontWeight: "800", color: "#0f172a" }}>
-                ${(total + freightCost).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+          <div style={{ marginTop: "1.25rem", padding: "1.25rem 0 0 0", borderTop: "1px solid #cbd5e1", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            {/* Subtotal */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.9rem", color: "#475569", fontWeight: "600" }}>
+              <span>Subtotal ({items.reduce((s, i) => s + i.quantity, 0)} artículos)</span>
+              <span style={{ color: "#0f172a", fontWeight: "700" }}>
+                ${itemsSubtotal.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+
+            {/* IVA */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.9rem", color: "#475569", fontWeight: "600" }}>
+              <span>I.V.A.</span>
+              <span style={{ color: "#0f172a", fontWeight: "700" }}>
+                ${iva.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+
+            {/* IEPS */}
+            {ieps > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.9rem", color: "#475569", fontWeight: "600" }}>
+                <span>I.E.P.S.</span>
+                <span style={{ color: "#0f172a", fontWeight: "700" }}>
+                  ${ieps.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            )}
+
+            {/* Flete */}
+            {freightCost > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.9rem", color: "#475569", fontWeight: "600" }}>
+                <span>Flete / Envío</span>
+                <span style={{ color: "#0f172a", fontWeight: "700" }}>
+                  ${freightCost.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            )}
+
+            {/* Total */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", fontSize: "1.05rem", color: "#0f172a", fontWeight: "800", borderTop: "1px dashed #cbd5e1", paddingTop: "0.5rem" }}>
+              <span>Total</span>
+              <span style={{ fontSize: "1.25rem", color: "var(--caanma-primary)", fontWeight: "800" }}>
+                ${finalTotal.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
               </span>
             </div>
 
@@ -522,7 +588,7 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
               disabled={isSubmitting || items.length === 0} 
               className="compra-checkout-btn"
             >
-              {isSubmitting ? "Procesando..." : `Guardar Cambios $${(total + freightCost).toFixed(2)}`}
+              {isSubmitting ? "Procesando..." : `Guardar Cambios $${finalTotal.toFixed(2)}`}
             </button>
           </div>
 

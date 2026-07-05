@@ -148,8 +148,41 @@ export function generatePurchasePdfBuffer(purchase: any): Promise<Buffer> {
       // 4. Totals Box
       const finalTotalWithIva = purchase.total;
 
-      const subtotalExcludingIva = showTaxBreakdown ? finalTotalWithIva / 1.16 : finalTotalWithIva;
-      const iva = showTaxBreakdown ? finalTotalWithIva - subtotalExcludingIva : 0;
+      let computedSubtotal = 0;
+      let computedIva = 0;
+      let computedIeps = 0;
+
+      purchase.items.forEach((item: any) => {
+        const itemTotal = item.cost * item.quantity;
+        computedSubtotal += itemTotal;
+
+        const taxType = item.product?.taxType || 'IVA';
+        const taxRate = item.product?.taxRate ?? 16.0;
+        const iepsRate = item.product?.iepsRate ?? 0.0;
+
+        if (taxType === 'IVA') {
+          computedIva += itemTotal * (taxRate / 100);
+        } else if (taxType === 'IEPS') {
+          computedIeps += itemTotal * (iepsRate / 100);
+        } else if (taxType === 'IVA_IEPS') {
+          const iepsAmt = itemTotal * (iepsRate / 100);
+          computedIeps += iepsAmt;
+          computedIva += (itemTotal + iepsAmt) * (taxRate / 100);
+        }
+      });
+
+      const freight = purchase.freightCost || 0;
+      const expectedTotal = computedSubtotal + computedIva + computedIeps + freight;
+      
+      let subtotalExcludingIva = computedSubtotal;
+      let iva = computedIva;
+      let ieps = computedIeps;
+
+      if (Math.abs(expectedTotal - purchase.total) > 0.05) {
+        subtotalExcludingIva = (purchase.total - freight) / 1.16;
+        iva = (purchase.total - freight) - subtotalExcludingIva;
+        ieps = 0;
+      }
 
       const totalsY = currentY + 20;
       doc.strokeColor('#cbd5e1').lineWidth(1).moveTo(350, totalsY).lineTo(562, totalsY).stroke();
@@ -158,20 +191,35 @@ export function generatePurchasePdfBuffer(purchase: any): Promise<Buffer> {
       doc.text('Subtotal:', 350, totalsY + 8, { width: 100, align: 'left' });
       doc.text(`$${subtotalExcludingIva.toFixed(2)}`, 450, totalsY + 8, { width: 105, align: 'right' });
 
-      if (showTaxBreakdown) {
-        doc.text('IVA 16%:', 350, totalsY + 22, { width: 100, align: 'left' });
-        doc.text(`$${iva.toFixed(2)}`, 450, totalsY + 22, { width: 105, align: 'right' });
+      let currentOffset = totalsY + 22;
+
+      if (showTaxBreakdown && iva > 0) {
+        doc.text('IVA:', 350, currentOffset, { width: 100, align: 'left' });
+        doc.text(`$${iva.toFixed(2)}`, 450, currentOffset, { width: 105, align: 'right' });
+        currentOffset += 14;
+      }
+
+      if (showTaxBreakdown && ieps > 0) {
+        doc.text('IEPS:', 350, currentOffset, { width: 100, align: 'left' });
+        doc.text(`$${ieps.toFixed(2)}`, 450, currentOffset, { width: 105, align: 'right' });
+        currentOffset += 14;
+      }
+
+      if (freight > 0) {
+        doc.text('Flete / Envío:', 350, currentOffset, { width: 100, align: 'left' });
+        doc.text(`$${freight.toFixed(2)}`, 450, currentOffset, { width: 105, align: 'right' });
+        currentOffset += 14;
       }
 
       // Border line before total
-      doc.strokeColor('#0f172a').lineWidth(1.5).moveTo(350, totalsY + (showTaxBreakdown ? 38 : 24)).lineTo(562, totalsY + (showTaxBreakdown ? 38 : 24)).stroke();
+      doc.strokeColor('#0f172a').lineWidth(1.5).moveTo(350, currentOffset + 2).lineTo(562, currentOffset + 2).stroke();
 
       doc.font(fontBold).fontSize(11).fillColor('#0f172a');
-      doc.text('Total:', 350, totalsY + (showTaxBreakdown ? 46 : 32), { width: 100, align: 'left' });
-      doc.text(`$${finalTotalWithIva.toFixed(2)}`, 450, totalsY + (showTaxBreakdown ? 46 : 32), { width: 105, align: 'right' });
+      doc.text('Total:', 350, currentOffset + 10, { width: 100, align: 'left' });
+      doc.text(`$${finalTotalWithIva.toFixed(2)}`, 450, currentOffset + 10, { width: 105, align: 'right' });
 
       // Signatures
-      const sigsY = totalsY + 80;
+      const sigsY = currentOffset + 50;
       doc.strokeColor('#cbd5e1').lineWidth(1).moveTo(70, sigsY + 30).lineTo(230, sigsY + 30).stroke();
       doc.strokeColor('#cbd5e1').lineWidth(1).moveTo(330, sigsY + 30).lineTo(490, sigsY + 30).stroke();
 
