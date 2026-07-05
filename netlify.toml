@@ -2,8 +2,8 @@
   command = "node run_build_safely.js"
 
 [functions]
-  # Configures all functions to include the Prisma engine
-  included_files = ["node_modules/.prisma/client/**/*", "node_modules/@prisma/client/**/*", "prisma/**/*", "node_modules/pdfkit/js/data/*.afm"]
+  # Configures all functions to include the Prisma engine and custom TrueType fonts
+  included_files = ["node_modules/.prisma/client/**/*", "node_modules/@prisma/client/**/*", "prisma/**/*", "node_modules/pdfkit/js/data/*.afm", "lib/fonts/**/*"]
 
 [[headers]]
   for = "/sw.js"

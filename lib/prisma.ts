@@ -260,7 +260,7 @@ export const prisma = new Proxy({} as PrismaClient, {
         return async function (...args: any[]) {
           const client = await getClientForRequest();
           const isWrite = writeMethods.has(method);
-          const isUserOrTenant = prop === 'user' || prop === 'tenant' || prop === 'customRole';
+          const isUserOrTenant = prop === 'user' || prop === 'tenant' || prop === 'customRole' || prop === 'branch' || prop === 'hrLocation';
 
           if (isWrite && isUserOrTenant) {
             // Write to master database first
@@ -296,6 +296,10 @@ export const prisma = new Proxy({} as PrismaClient, {
                     targetTenantId = data.tenantId || (args[0].where && args[0].where.tenantId);
                   } else if (prop === 'customRole') {
                     targetTenantId = data.tenantId || (args[0].where && args[0].where.tenantId);
+                  } else if (prop === 'branch') {
+                    targetTenantId = data.tenantId || (args[0].where && args[0].where.tenantId);
+                  } else if (prop === 'hrLocation') {
+                    targetTenantId = data.tenantId || (args[0].where && args[0].where.tenantId);
                   }
                 }
               }
@@ -319,6 +323,22 @@ export const prisma = new Proxy({} as PrismaClient, {
                     });
                     if (dbRole) {
                       targetTenantId = dbRole.tenantId;
+                    }
+                  } else if (prop === 'branch') {
+                    const dbBranch = await masterClient.branch.findUnique({
+                      where: { id: args[0].where.id },
+                      select: { tenantId: true }
+                    });
+                    if (dbBranch) {
+                      targetTenantId = dbBranch.tenantId;
+                    }
+                  } else if (prop === 'hrLocation') {
+                    const dbLoc = await masterClient.hrLocation.findUnique({
+                      where: { id: args[0].where.id },
+                      select: { tenantId: true }
+                    });
+                    if (dbLoc) {
+                      targetTenantId = dbLoc.tenantId;
                     }
                   }
                 } catch (e) {

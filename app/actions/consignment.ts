@@ -121,7 +121,11 @@ export async function getConsignmentForPOS(consignmentId: string) {
     include: { 
       items: {
         include: { 
-          product: true,
+          product: {
+            include: {
+              prices: true
+            }
+          },
           variant: true
         }
       } 

@@ -192,6 +192,43 @@ export default function VentasHistoryClient({
     return Array.from(sSet);
   }, [initialSales]);
 
+  // Extract unique sellers present in sales
+  const salesUsers = useMemo(() => {
+    const userMap = new Map<string, string>();
+    initialSales.forEach(s => {
+      if (s.userId && s.user?.name) {
+        userMap.set(s.userId, s.user.name);
+      }
+    });
+    return Array.from(userMap.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [initialSales]);
+
+  // Extract unique branches present in sales
+  const salesBranches = useMemo(() => {
+    const branchMap = new Map<string, string>();
+    initialSales.forEach(s => {
+      if (s.branchId && s.branch?.name) {
+        branchMap.set(s.branchId, s.branch.name);
+      }
+    });
+    return Array.from(branchMap.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [initialSales]);
+
+  // Extract unique payment methods present in sales
+  const salesPaymentMethods = useMemo(() => {
+    const pmSet = new Set<string>();
+    initialSales.forEach(s => {
+      if (s.paymentMethod) pmSet.add(s.paymentMethod);
+    });
+    return Array.from(pmSet).sort((a, b) => 
+      getPaymentMethodLabel(a).localeCompare(getPaymentMethodLabel(b))
+    );
+  }, [initialSales]);
+
   // Filter logic
   const filteredSales = useMemo(() => {
     return initialSales.filter(sale => {
@@ -330,7 +367,7 @@ export default function VentasHistoryClient({
             style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }}
           >
             <option value="">Todos los vendedores</option>
-            {users.map((u: any) => (
+            {salesUsers.map((u) => (
               <option key={u.id} value={u.id}>{u.name}</option>
             ))}
           </select>
@@ -350,7 +387,7 @@ export default function VentasHistoryClient({
             {currentBranch.id === 'GLOBAL' ? (
               <>
                 <option value="">Todas las sucursales</option>
-                {branches.map((b: any) => (
+                {salesBranches.map((b) => (
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
               </>
@@ -390,15 +427,9 @@ export default function VentasHistoryClient({
             style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }}
           >
             <option value="">Todos los métodos</option>
-            <option value="CASH">Efectivo</option>
-            <option value="CARD">Tarjeta</option>
-            <option value="TRANSFER">Transferencia</option>
-            <option value="SPEI">SPEI</option>
-            <option value="MIXED">Mixto</option>
-            <option value="CREDIT">Crédito</option>
-            <option value="VALES">Vales</option>
-            <option value="DEPOSIT">Depósito</option>
-            <option value="OTHER">Otro</option>
+            {salesPaymentMethods.map((pm) => (
+              <option key={pm} value={pm}>{getPaymentMethodLabel(pm)}</option>
+            ))}
           </select>
         </div>
       </div>

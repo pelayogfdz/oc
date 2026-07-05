@@ -93,7 +93,13 @@ export async function getQuoteForPOS(quoteId: string) {
     where: { id: quoteId },
     include: { 
       items: {
-        include: { product: true }
+        include: { 
+          product: {
+            include: {
+              prices: true
+            }
+          }
+        }
       } 
     }
   });

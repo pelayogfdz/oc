@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
   // @ts-ignore
   eslint: { ignoreDuringBuilds: true },
   turbopack: {},
-  serverExternalPackages: ['@prisma/client', 'bcryptjs', 'bcrypt'],
+  serverExternalPackages: ['@prisma/client', 'bcryptjs', 'bcrypt', 'pdfkit'],
   experimental: {
     serverActions: {
       bodySizeLimit: '5mb'

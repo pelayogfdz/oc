@@ -735,13 +735,20 @@ export default function POSClient({
     }
   };
 
-  const handleCustomerChange = async (customerId: string) => {
+  const handleCustomerChange = async (customerId: string, isProgrammatic = false) => {
     setSelectedCustomerId(customerId);
     const customer = activeCustomers.find((c: any) => c.id === customerId);
     if (customer && customer.priceList) {
       setPriceList(customer.priceList || 'price');
     } else {
       setPriceList('price');
+    }
+    
+    if (!isProgrammatic) {
+      setCart(prev => prev.map(item => {
+        const { customPrice, ...rest } = item;
+        return rest;
+      }));
     }
     
     // Auto-fill billing data if available
@@ -825,9 +832,9 @@ export default function POSClient({
       
       // Load Customer
       if (quote.customerId) {
-        await handleCustomerChange(quote.customerId);
+        await handleCustomerChange(quote.customerId, true);
       } else {
-        await handleCustomerChange('');
+        await handleCustomerChange('', true);
       }
 
       // Re-calculate and set manual discount if there was a difference between subtotal of items and quote total
@@ -873,7 +880,7 @@ export default function POSClient({
       
       // Load Customer
       if (consignment.customerId) {
-        handleCustomerChange(consignment.customerId);
+        handleCustomerChange(consignment.customerId, true);
       }
       
       alert("Consignación cargada correctamente.");
@@ -2402,7 +2409,14 @@ export default function POSClient({
                 <select 
                   value={priceList} 
                   disabled={!hasPermission('pos_price_list_change')}
-                  onChange={e => setPriceList(e.target.value)} 
+                  onChange={e => {
+                    const newPL = e.target.value;
+                    setPriceList(newPL);
+                    setCart(prev => prev.map(item => {
+                      const { customPrice, ...rest } = item;
+                      return rest;
+                    }));
+                  }} 
                   style={{ 
                     border: 'none', 
                     background: 'transparent', 
