@@ -1,6 +1,9 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+# Install build dependencies for Prisma client
+RUN apk add --no-cache libc6-compat openssl
+
 COPY package.json package-lock.json ./
 RUN npm ci
 
