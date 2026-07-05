@@ -59,7 +59,7 @@ export default async function EditarCompraPage({ params }: PageProps) {
   const query = branch.id === "GLOBAL" ? {} : { branchId: branch.id };
   const products = await prisma.product.findMany({
     where: query,
-    select: { id: true, name: true, stock: true, cost: true, hasTraceability: true, sku: true, imageUrl: true },
+    select: { id: true, name: true, stock: true, cost: true, hasTraceability: true, sku: true, imageUrl: true, taxRate: true, taxType: true, iepsRate: true },
   });
 
   const suppliers = await getTenantSuppliers();
