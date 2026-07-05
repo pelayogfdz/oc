@@ -151,3 +151,24 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
   3. **Queries de Productos en Compras (`page.tsx`)**: Los listados de productos en `/compras/nuevo/page.tsx` y `/compras/[id]/editar/page.tsx` omitían `taxRate`, `taxType`, y `iepsRate` de los campos seleccionados, provocando que el cliente de React usara valores predeterminados. Se agregaron estos campos a los selectores de Prisma.
   4. **Detalle de Compra y Exportación a PDF (`page.tsx` y `purchasePdf.ts`)**: Se sustituyó la lógica de desglose rígida (`/ 1.16`) por bucles dinámicos a nivel de ítem. Se implementó una lógica de retrocompatibilidad que compara el total esperado con el total real guardado en la base de datos: si difieren por más de $0.05 (compras antiguas), el sistema cae automáticamente en el cálculo histórico para no romper facturas anteriores.
 * **Resultado**: Los productos marcados como Exentos (0% de IVA) se calculan y guardan con impuestos de $0.00 tanto en el Punto de Venta como en la sección de Compras y PDFs.
+
+---
+
+## 16. Módulo de Permisos de WhatsApp y CRM
+* **Requerimiento**: Poder asignar permisos individuales a los usuarios para el uso de WhatsApp y CRM, de forma que solo les aparezca el módulo de Kanban (Prospección), la Bandeja de WhatsApp (Inbox) y/o el Widget flotante a quienes se les decida asignar.
+* **Solución e Implementación**:
+  1. **Configuración de Permisos (`permissions.ts`)**: Agregamos un nuevo módulo de permisos llamado `WhatsApp y CRM` (`whatsapp`) con tres subgrupos diferenciados:
+     * **Bandeja y Chat (`whatsapp_chat`)**: Permisos para acceder a la bandeja (`whatsapp_bandeja`) y ver el widget flotante (`whatsapp_widget`).
+     * **Prospección y CRM (`whatsapp_kanban_crm`)**: Permiso para ver el tablero Kanban (`whatsapp_kanban`).
+     * **Configuración (`whatsapp_admin_config`)**: Permiso para gestionar la conexión y escaneo QR de WhatsApp (`whatsapp_config`).
+  2. **Menú de Navegación (`navigation.tsx`)**: Reemplazamos el requisito anterior (`pos_access`) por los nuevos permisos específicos para cada enlace del menú lateral:
+     * *Bandeja WhatsApp* -> requiere `whatsapp_bandeja`
+     * *Conexión WhatsApp* -> requiere `whatsapp_config`
+     * *Prospección (CRM)* -> requiere `whatsapp_kanban`
+  3. **Seguridad y Guards en Páginas**: Implementamos la verificación de permisos en el lado del servidor para las tres rutas principales:
+     * `/ventas/whatsapp/page.tsx`
+     * `/ventas/prospeccion/page.tsx`
+     * `/configuracion/whatsapp/page.tsx`
+     * Si un usuario intenta ingresar manualmente escribiendo la URL sin contar con el permiso asignado, el servidor lo redirige automáticamente a la página de inicio (`/`).
+  4. **Widget Flotante de WhatsApp (`layout.tsx`)**: Protegimos el renderizado del componente `<FloatingWhatsappWidget />` en el layout del dashboard. Ahora solo se renderiza si el usuario cuenta con el permiso `whatsapp_widget` (o es un superusuario/administrador).
+* **Resultado**: El administrador ahora puede habilitar o deshabilitar de forma independiente la bandeja, el tablero kanban y el widget flotante a cualquier usuario desde la pantalla de edición de usuarios en preferencias.
