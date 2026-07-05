@@ -44,14 +44,17 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
 
   const downloadExcel = () => {
     const headers = ["SKU", "Producto", "Stock", "Costo U.", "Capital Det.", "Margen %"];
-    const rows = filteredInventory.map((i: any) => [
-      i.sku || 'N/A',
-      i.name,
-      i.stock,
-      i.cost,
-      i.costValue,
-      `${i.margin.toFixed(1)}%`
-    ]);
+    const rows = filteredInventory.map((i: any) => {
+      const marginVal = typeof i.margin === 'number' && !isNaN(i.margin) ? i.margin : 0;
+      return [
+        i.sku || 'N/A',
+        i.name,
+        i.stock,
+        i.cost,
+        i.costValue,
+        `${marginVal.toFixed(1)}%`
+      ];
+    });
     exportToExcel(headers, rows, 'Reporte_Inventario_Valorizado');
   };
 
@@ -211,9 +214,14 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
                     <td data-label="Costo U." style={{ padding: '1rem 0.5rem', textAlign: 'right', color: 'var(--caanma-text-muted)' }}>{formatCurrency(i.cost)}</td>
                     <td data-label="Capital Det." style={{ padding: '1rem 0.5rem', textAlign: 'right', fontWeight: 'bold', color: '#ef4444' }}>{formatCurrency(i.costValue)}</td>
                     <td data-label="Margen %" style={{ padding: '1rem 0.5rem', textAlign: 'center' }}>
-                      <span style={{ color: i.margin < 15 ? '#ef4444' : i.margin > 40 ? '#16a34a' : '#f59e0b', fontWeight: 'bold' }}>
-                        {i.margin.toFixed(1)}%
-                      </span>
+                      {(() => {
+                        const marginVal = typeof i.margin === 'number' && !isNaN(i.margin) ? i.margin : 0;
+                        return (
+                          <span style={{ color: marginVal < 15 ? '#ef4444' : marginVal > 40 ? '#16a34a' : '#f59e0b', fontWeight: 'bold' }}>
+                            {marginVal.toFixed(1)}%
+                          </span>
+                        );
+                      })()}
                     </td>
                   </tr>
                 ))}
