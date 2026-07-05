@@ -146,6 +146,31 @@ export default async function Header() {
           </div>
         </div>
       </div>
+      <style>{`
+        @media (max-width: 768px) {
+          .header-user-info {
+            display: none !important;
+          }
+          .header-module-title {
+            font-size: 1.05rem !important;
+          }
+          .header-right-section {
+            gap: 0.5rem !important;
+          }
+          .header-user-controls {
+            gap: 0.5rem !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .header-branch-selector-wrapper {
+            max-width: 90px !important;
+            overflow: hidden;
+          }
+          .dashboard-header {
+            padding: 0 0.5rem !important;
+          }
+        }
+      `}</style>
     </header>
   );
 }

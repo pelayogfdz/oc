@@ -79,7 +79,8 @@ export default function HeaderNetworkStatus() {
         <button
           onClick={handleSyncClick}
           disabled={isSyncActive}
-          title={lastSyncTime ? `Última sincronización: ${new Date(lastSyncTime).toLocaleString()}` : 'Aún sin descargar'}
+          title={lastSyncTime ? `Última Sincronización: ${new Date(lastSyncTime).toLocaleString()}` : 'Aún sin descargar'}
+          className="sync-status-btn"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -112,17 +113,17 @@ export default function HeaderNetworkStatus() {
           {isSyncActive ? (
             <>
               <RefreshCw size={14} style={{ animation: 'spin-anim 2s linear infinite' }} />
-              <span>{syncMessage || 'Descargando base de datos local...'}</span>
+              <span className="sync-status-text">{syncMessage || 'Descargando base de datos local...'}</span>
             </>
           ) : !lastSyncTime ? (
             <>
               <AlertTriangle size={14} />
-              <span>Descargar Base de Datos Local</span>
+              <span className="sync-status-text">Descargar Base de Datos Local</span>
             </>
           ) : (
             <>
               <Check size={14} />
-              <span>Listo Offline ({formatLastSync(lastSyncTime)})</span>
+              <span className="sync-status-text">Listo Offline ({formatLastSync(lastSyncTime)})</span>
             </>
           )}
         </button>
@@ -136,6 +137,19 @@ export default function HeaderNetworkStatus() {
         @keyframes spin-anim {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+        @media (max-width: 768px) {
+          .sync-status-text {
+            display: none !important;
+          }
+          .sync-status-btn {
+            padding: 6px !important;
+            border-radius: 50% !important;
+            width: 32px !important;
+            height: 32px !important;
+            justify-content: center !important;
+            gap: 0 !important;
+          }
         }
       `}} />
     </div>

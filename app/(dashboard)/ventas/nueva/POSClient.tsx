@@ -2146,6 +2146,61 @@ export default function POSClient({
           .desktop-only {
             display: none !important;
           }
+          /* Reduce layout padding/gap */
+          .pos-layout {
+            gap: 0.75rem !important;
+            padding: 0 !important;
+          }
+          /* Adjust row below tabs */
+          .pos-actions-bar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0.75rem !important;
+            padding: 0.75rem !important;
+          }
+          .pos-actions-bar > div {
+            width: 100% !important;
+            justify-content: space-between !important;
+          }
+          /* Make price list dropdown select take full width */
+          .pos-price-list-container {
+            flex: 1 !important;
+            width: 100% !important;
+          }
+          .pos-price-list-select {
+            flex: 1 !important;
+          }
+          /* Grid container padding */
+          .pos-grid-container {
+            gap: 0.75rem !important;
+          }
+          /* Action sidebar cards */
+          .pos-action-grid {
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+            gap: 0.5rem !important;
+          }
+          .pos-action-card {
+            padding: 1rem 0.5rem !important;
+            gap: 0.4rem !important;
+          }
+          .pos-action-label {
+            font-size: 0.75rem !important;
+          }
+          /* Search results items for mobile */
+          .search-result-item {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.5rem !important;
+          }
+          .search-result-right {
+            width: 100% !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            border-top: 1px dashed #e2e8f0;
+            padding-top: 0.4rem;
+            margin-top: 0.2rem;
+          }
         }
       `}</style>
 
@@ -2374,7 +2429,7 @@ export default function POSClient({
           </div>
 
           {/* ROW BELOW TABS: Pill toggles, Price List, trash, options */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', padding: '0.85rem 1rem', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc' }}>
+          <div className="pos-actions-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', padding: '0.85rem 1rem', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc' }}>
             
             {/* Pill Toggle for Venta vs Pedido */}
             {mode === 'SALE' ? (
@@ -2404,9 +2459,10 @@ export default function POSClient({
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               
               {/* Price lists select */}
-              <div style={{ display: 'flex', alignItems: 'center', border: 'none', borderRadius: '6px', backgroundColor: hasPermission('pos_price_list_change') ? '#78716c' : '#a8a29e', padding: '0 0.75rem', height: '36px', color: 'white' }}>
+              <div className="pos-price-list-container" style={{ display: 'flex', alignItems: 'center', border: 'none', borderRadius: '6px', backgroundColor: hasPermission('pos_price_list_change') ? '#78716c' : '#a8a29e', padding: '0 0.75rem', height: '36px', color: 'white' }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 'bold', marginRight: '0.35rem' }}>Listas de Precios:</span>
                 <select 
+                  className="pos-price-list-select"
                   value={priceList} 
                   disabled={!hasPermission('pos_price_list_change')}
                   onChange={e => {
@@ -4229,6 +4285,7 @@ export default function POSClient({
                         setSearchTerm('');
                         setIsSearchModalOpen(false);
                       }}
+                      className="search-result-item"
                       style={{
                         padding: '0.75rem 1rem',
                         borderBottom: '1px solid #f1f5f9',
@@ -4276,7 +4333,7 @@ export default function POSClient({
                           );
                         })()}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div className="search-result-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         {hasActivePromotion(p) && (
                           <span style={{ fontSize: '0.75rem', backgroundColor: '#fce7f3', color: '#db2777', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>Promoción</span>
                         )}
