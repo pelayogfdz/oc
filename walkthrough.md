@@ -139,4 +139,15 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
 
 ## 14. Despliegue y Validación
 * **Compilación**: El proyecto compila limpiamente sin errores de TypeScript (`npx tsc --noEmit` exitoso).
-* **Despliegue a Producción**: El cambio ha sido subido e impactado a producción en Netlify (Commit `80297570`, estado `ready`).
+* **Despliegue a Producción**: Los cambios han sido subidos y desplegados a producción en la instancia de AWS Lightsail reconstruyendo la imagen Docker limpia y liberando memoria swap.
+
+---
+
+## 15. Corrección de Impuestos en Compras y Edición (Exento/Ninguno)
+* **Identificación del Problema**: Al registrar productos sin IVA (Exentos, 0%), el sistema recalculaba e imponía un IVA del 16% automáticamente tanto en Compras como en el Punto de Venta.
+* **Causas Identificadas y Soluciones**:
+  1. **Servidor (Acciones de Producto)**: El guardado e importado de productos utilizaba un chequeo falsy (`parseFloat(val) || 16.0`) que convertía `0` (Exento) de vuelta en `16.0`. Se corrigió en [product.ts](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/actions/product.ts) e [import.ts](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/actions/import.ts) usando comprobaciones `isNaN` estrictas.
+  2. **Vistas de Compra (`CrearCompraForm.tsx` y `EditarCompraForm.tsx`)**: Las vistas calculaban impuestos en bloque sobre el total final aplicando multiplicaciones directas por `0.16` o divisiones por `1.16`. Se rediseñó para calcular subtotal, IVA e IEPS de forma granular y dinámica por cada producto individual del carrito.
+  3. **Queries de Productos en Compras (`page.tsx`)**: Los listados de productos en `/compras/nuevo/page.tsx` y `/compras/[id]/editar/page.tsx` omitían `taxRate`, `taxType`, y `iepsRate` de los campos seleccionados, provocando que el cliente de React usara valores predeterminados. Se agregaron estos campos a los selectores de Prisma.
+  4. **Detalle de Compra y Exportación a PDF (`page.tsx` y `purchasePdf.ts`)**: Se sustituyó la lógica de desglose rígida (`/ 1.16`) por bucles dinámicos a nivel de ítem. Se implementó una lógica de retrocompatibilidad que compara el total esperado con el total real guardado en la base de datos: si difieren por más de $0.05 (compras antiguas), el sistema cae automáticamente en el cálculo histórico para no romper facturas anteriores.
+* **Resultado**: Los productos marcados como Exentos (0% de IVA) se calculan y guardan con impuestos de $0.00 tanto en el Punto de Venta como en la sección de Compras y PDFs.
