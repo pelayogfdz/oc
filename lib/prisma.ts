@@ -12,8 +12,20 @@ const tenantDbNames: Record<string, string> = {
 };
 
 const masterUrl = process.env.DATABASE_URL!;
+
+function getPooledUrl(urlStr: string): string {
+  try {
+    const urlObj = new URL(urlStr);
+    urlObj.searchParams.set('pgbouncer', 'true');
+    urlObj.searchParams.set('connection_limit', '15');
+    return urlObj.toString();
+  } catch (e) {
+    return urlStr;
+  }
+}
+
 export const masterClient = new PrismaClient({
-  datasources: { db: { url: masterUrl } }
+  datasources: { db: { url: getPooledUrl(masterUrl) } }
 });
 
 // Cache for tenant Prisma clients
@@ -30,6 +42,8 @@ export function getClientForTenant(tenantId: string): PrismaClient {
   }
   const urlObj = new URL(masterUrl);
   urlObj.pathname = `/${dbName}`;
+  urlObj.searchParams.set('pgbouncer', 'true');
+  urlObj.searchParams.set('connection_limit', '15');
   const tenantUrl = urlObj.toString();
   
   const client = new PrismaClient({
@@ -152,6 +166,8 @@ export async function syncTenantDataToTenantDb(tenantId: string) {
   if (!dbName) return;
   const urlObj = new URL(masterUrl);
   urlObj.pathname = `/${dbName}`;
+  urlObj.searchParams.set('pgbouncer', 'true');
+  urlObj.searchParams.set('connection_limit', '15');
   const tenantUrl = urlObj.toString();
   const tenantPrisma = new PrismaClient({ datasources: { db: { url: tenantUrl } } });
   
