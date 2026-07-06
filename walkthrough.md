@@ -172,3 +172,20 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
      * Si un usuario intenta ingresar manualmente escribiendo la URL sin contar con el permiso asignado, el servidor lo redirige automáticamente a la página de inicio (`/`).
   4. **Widget Flotante de WhatsApp (`layout.tsx`)**: Protegimos el renderizado del componente `<FloatingWhatsappWidget />` en el layout del dashboard. Ahora solo se renderiza si el usuario cuenta con el permiso `whatsapp_widget` (o es un superusuario/administrador).
 * **Resultado**: El administrador ahora puede habilitar o deshabilitar de forma independiente la bandeja, el tablero kanban y el widget flotante a cualquier usuario desde la pantalla de edición de usuarios en preferencias.
+
+---
+
+## 17. Gestión de Estatus de Solicitudes y Carga a Pedidos de Proveedor
+* **Requerimiento**: Permitir cambiar el estatus de las solicitudes de compra (de `Pendiente` a `Solicitado a Proveedor` y `Recibido`) desde la pantalla de solicitudes y poder cargar solicitudes directamente a un pedido pre-llenando sus artículos.
+* **Solución e Implementación**:
+  1. **Acciones de Servidor (`purchaseRequest.ts`)**: Implementamos la lógica de actualización individual `updatePurchaseRequestStatus` y las acciones en lote `batchUpdatePurchaseRequestStatus` y `batchDeletePurchaseRequests`.
+  2. **Control de Estatus y Selección en Lista de Solicitudes (`SolicitudesClient.tsx`)**:
+     * Sustituimos la etiqueta de estado estática por un elemento `<select>` interactivo y estilizado para cambiar el estatus en una sola interacción (Pendiente, Solicitado, Recibido).
+     * Agregamos checkboxes de selección de fila y selección múltiple global.
+     * Diseñamos una barra flotante de acciones masivas cuando hay elementos seleccionados, permitiendo: Cargar a pedido con proveedor, marcar lote como Solicitado, marcar lote como Recibido, o eliminar lote de forma conjunta.
+     * Añadimos un botón individual "Cargar a Pedido" en cada fila para facilitar el flujo uno a uno.
+  3. **Carga en Nuevo Pedido (`page.tsx` y `CrearPedidoForm.tsx`)**:
+     * Habilitamos que la página `/productos/pedidos/nuevo` lea los parámetros de búsqueda `requestId` y `requestIds`.
+     * El servidor busca automáticamente esas solicitudes y mapea sus productos y cantidades correspondientes en un arreglo pre-cargado.
+     * El formulario `CrearPedidoForm` inicializa los artículos del pedido pre-llenándolos con las solicitudes indicadas, permitiendo que el usuario guarde el pedido a proveedor sin tener que digitar los ítems manualmente.
+* **Resultado**: Los directivos e inspectores de compras ahora pueden gestionar, cambiar el estatus y cargar masiva o individualmente las solicitudes de compras a sus pedidos con proveedores con un solo clic.
