@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { prisma } from "@/lib/prisma";
+import { resolveClientForSale } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import PrintActions from "@/app/components/PrintActions";
 import { headers } from "next/headers";
@@ -8,21 +8,9 @@ import { headers } from "next/headers";
 export default async function PrintVentaTicketPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const sale = await prisma.sale.findUnique({
-    where: { id: id },
-    include: {
-      user: true,
-      customer: true,
-      branch: {
-        include: { settings: true, tenant: true }
-      },
-      items: {
-        include: { product: true, variant: true }
-      }
-    }
-  });
-
-  if (!sale) return notFound();
+  const result = await resolveClientForSale(id);
+  if (!result) return notFound();
+  const { client, sale } = result;
 
   let ticketConfig: any = {};
   let impresorasConfig: any = {};
@@ -39,7 +27,7 @@ export default async function PrintVentaTicketPage({ params }: { params: Promise
 
   // Fallback: If no logo is configured on this branch, try to fetch the logo from any branch settings of the same tenant
   if (!ticketConfig.globalLogo && sale.branch?.tenantId) {
-    const siblingSettings = await prisma.branchSettings.findFirst({
+    const siblingSettings = await client.branchSettings.findFirst({
       where: {
         branch: {
           tenantId: sale.branch.tenantId
@@ -137,10 +125,10 @@ export default async function PrintVentaTicketPage({ params }: { params: Promise
   let tExento = 0;
   let tBaseSubtotal = 0;
 
-  const itemsTotal = sale.items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
+  const itemsTotal = sale.items.reduce((sum: number, item: any) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
   const saleFactor = itemsTotal > 0 ? (sale.total || 0) / itemsTotal : 1;
 
-  sale.items.forEach(item => {
+  sale.items.forEach((item: any) => {
     const itemTotal = (item.price || 0) * (item.quantity || 0);
     const taxType = item.product?.taxType || 'IVA';
     const taxRate = item.product?.taxRate ?? 16.0;
@@ -237,7 +225,7 @@ export default async function PrintVentaTicketPage({ params }: { params: Promise
             <span className="col-desc">DESCRIPCIÓN</span>
             <span className="col-price">IMPORTE</span>
           </div>
-          {sale.items.map(item => (
+          {sale.items.map((item: any) => (
             <div key={item.id} style={{ marginBottom: '6px' }}>
               <div className="item-row" style={{ marginBottom: '1px' }}>
                 <span className="col-cant">{item.quantity}</span>

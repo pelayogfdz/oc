@@ -5,7 +5,7 @@ export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   const cleanPath = pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
 
-  const publicRoutes = ['/login', '/api/auth', '/api/cron', '/api/mercadolibre/webhooks', '/api/ping', '/_next', '/clientes/portal', '/sw.js'];
+  const publicRoutes = ['/login', '/api/auth', '/api/cron', '/api/mercadolibre/webhooks', '/api/ping', '/_next', '/clientes/portal', '/sw.js', '/api/facturacion/download'];
   const isPublicRoute = publicRoutes.some(route => cleanPath === route || cleanPath.startsWith(`${route}/`))
     || (cleanPath.startsWith('/ventas/detalle/') && (
         cleanPath.endsWith('/imprimir') || 

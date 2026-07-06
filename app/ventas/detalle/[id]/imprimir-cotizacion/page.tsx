@@ -1,16 +1,13 @@
 export const dynamic = 'force-dynamic';
 
-import { prisma } from "@/lib/prisma";
+import { resolveClientForQuote } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import PrintActions from "@/app/components/PrintActions";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const quote = await prisma.quote.findUnique({
-    where: { id },
-    select: { folio: true }
-  });
-  const displayFolio = quote?.folio || id.slice(0, 8).toUpperCase();
+  const result = await resolveClientForQuote(id);
+  const displayFolio = result?.quote?.folio || id.slice(0, 8).toUpperCase();
   return {
     title: `Cotizacion_${displayFolio}`,
   };
@@ -27,21 +24,9 @@ function getShortDescription(text: string | null): string {
 export default async function ImprimirCotizacionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   
-  const quote = await prisma.quote.findUnique({
-    where: { id: id },
-    include: {
-      user: true,
-      customer: true,
-      branch: {
-        include: { settings: true, tenant: true }
-      },
-      items: {
-        include: { product: true }
-      }
-    }
-  });
-
-  if (!quote) return notFound();
+  const result = await resolveClientForQuote(id);
+  if (!result) return notFound();
+  const { quote } = result;
 
   let config: any = {};
   if (quote.branch?.settings?.configJson) {
@@ -75,7 +60,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
   let totalSinDescuento = 0;
   let totalDescuentos = 0;
 
-  const processedItems = quote.items.map(item => {
+  const processedItems = quote.items.map((item: any) => {
     const originalPrice = item.product?.price || item.price;
     const finalPrice = item.price;
     const discountPerUnit = originalPrice - finalPrice;
@@ -253,7 +238,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
             </tr>
           </thead>
           <tbody>
-            {processedItems.map((item) => (
+            {processedItems.map((item: any) => (
               <tr key={item.id}>
                 <td>
                   <div className="prod-cell">

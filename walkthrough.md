@@ -189,3 +189,18 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
      * El servidor busca automáticamente esas solicitudes y mapea sus productos y cantidades correspondientes en un arreglo pre-cargado.
      * El formulario `CrearPedidoForm` inicializa los artículos del pedido pre-llenándolos con las solicitudes indicadas, permitiendo que el usuario guarde el pedido a proveedor sin tener que digitar los ítems manualmente.
 * **Resultado**: Los directivos e inspectores de compras ahora pueden gestionar, cambiar el estatus y cargar masiva o individualmente las solicitudes de compras a sus pedidos con proveedores con un solo clic.
+
+---
+
+## 18. Configuración Global de Correo Saliente (SMTP)
+* **Requerimiento**: Solucionar el error `SMTP credentials not configured` que impedía enviar tickets de venta por correo electrónico a los clientes.
+* **Solución**:
+  * Identificamos que las credenciales SMTP de Zoho (`soporte@caanma.com`) estaban configuradas en las variables de entorno de Netlify pero no en el servidor de producción AWS Lightsail.
+  * Agregamos y configuramos las variables SMTP correspondientes en el archivo `/home/ubuntu/oc/.env` del servidor Lightsail:
+    * `SMTP_HOST="smtp.zoho.com"`
+    * `SMTP_PORT="465"`
+    * `SMTP_USER="soporte@caanma.com"`
+    * `SMTP_PASS="Queretaro00."`
+  * Reiniciamos el contenedor de Docker (`caanma-app`) para que Next.js cargue y utilice las nuevas variables de entorno en tiempo de ejecución.
+* **Resultado**: El envío de correos salientes queda habilitado de forma global en producción. Las ventas, cotizaciones y facturas electrónicas ahora se envían de forma exitosa mediante la cuenta `soporte@caanma.com` (a menos que una sucursal configure una cuenta de correo SMTP personalizada propia en su panel de preferencias).
+

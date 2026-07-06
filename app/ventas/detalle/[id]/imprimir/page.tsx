@@ -1,27 +1,15 @@
 export const dynamic = 'force-dynamic';
 
-import { prisma } from "@/lib/prisma";
+import { resolveClientForSale } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import PrintActions from "@/app/components/PrintActions";
 
 export default async function PrintVentaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   
-  const sale = await prisma.sale.findUnique({
-    where: { id: id },
-    include: {
-      user: true,
-      customer: true,
-      branch: {
-        include: { settings: true, tenant: true }
-      },
-      items: {
-        include: { product: true, variant: true }
-      }
-    }
-  });
-
-  if (!sale) return notFound();
+  const result = await resolveClientForSale(id);
+  if (!result) return notFound();
+  const { sale } = result;
 
   let config: any = {};
   if (sale.branch?.settings?.configJson) {
@@ -58,10 +46,10 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
   let tExento = 0;
   let tBaseSubtotal = 0;
 
-  const itemsTotal = sale.items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
+  const itemsTotal = sale.items.reduce((sum: number, item: any) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
   const saleFactor = itemsTotal > 0 ? (sale.total || 0) / itemsTotal : 1;
 
-  sale.items.forEach(item => {
+  sale.items.forEach((item: any) => {
     const itemTotal = (item.price || 0) * (item.quantity || 0);
     const taxType = item.product?.taxType || 'IVA';
     const taxRate = item.product?.taxRate ?? 16.0;
@@ -200,7 +188,7 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
             </tr>
           </thead>
           <tbody>
-            {sale.items.map((item) => (
+            {sale.items.map((item: any) => (
               <tr key={item.id}>
                 <td style={{ fontWeight: 'bold', textAlign: 'center' }}>{item.quantity}</td>
                 <td>

@@ -446,12 +446,57 @@ export async function resolveClientForSale(saleIdOrFolio: string): Promise<{ cli
           ]
         },
         include: {
+          user: true,
           customer: true,
-          items: { include: { product: true } }
+          branch: {
+            include: { settings: true, tenant: true }
+          },
+          items: {
+            include: { product: true, variant: true }
+          }
         }
       });
       if (sale) {
         return { client, sale };
+      }
+    } catch (e) {
+      // Ignore query errors for individual databases
+    }
+  }
+  return null;
+}
+
+export async function resolveClientForQuote(quoteIdOrFolio: string): Promise<{ client: PrismaClient; quote: any } | null> {
+  const cleanId = quoteIdOrFolio.trim();
+  const clients = getAllTenantClients();
+
+  for (const client of clients) {
+    try {
+      const quote = await client.quote.findFirst({
+        where: {
+          OR: [
+            { id: cleanId },
+            { id: { endsWith: cleanId.toLowerCase() } },
+            { id: { endsWith: cleanId } },
+            { folio: cleanId },
+            { folio: { equals: cleanId, mode: 'insensitive' } },
+            { folio: { endsWith: `-${cleanId}` } },
+            { folio: { endsWith: `#${cleanId}` } }
+          ]
+        },
+        include: {
+          user: true,
+          customer: true,
+          branch: {
+            include: { settings: true, tenant: true }
+          },
+          items: {
+            include: { product: true }
+          }
+        }
+      });
+      if (quote) {
+        return { client, quote };
       }
     } catch (e) {
       // Ignore query errors for individual databases
