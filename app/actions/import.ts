@@ -22,6 +22,9 @@ export async function importProducts(records: any[]) {
   });
   const sisterBranchIds = tenantBranches.map(b => b.id);
 
+  // Fetch all PriceList records for this tenant to match CSV columns
+  const tenantPriceLists = await prisma.priceList.findMany();
+
   let importedCount = 0;
   let updatedCount = 0;
 
@@ -411,6 +414,71 @@ export async function importProducts(records: any[]) {
         where: { id: productObj.id },
         data: { stock: totalBatchStock }
       });
+    }
+
+    // Process dynamic price lists from CSV columns
+    if (productObj) {
+      for (const key of Object.keys(row)) {
+        const cleanKey = key.replace(/[\s\u00a0]+/g, ' ').trim().toLowerCase();
+        if (!cleanKey) continue;
+        const matchingPL = tenantPriceLists.find(pl => {
+          const plName = pl.name.replace(/[\s\u00a0]+/g, ' ').trim().toLowerCase();
+          return cleanKey === plName || 
+                 cleanKey === `precio ${plName}` ||
+                 cleanKey === pl.id.toLowerCase() ||
+                 cleanKey.includes(plName) ||
+                 plName.includes(cleanKey);
+        });
+
+        if (matchingPL) {
+          const plPrice = parseFloat(row[key]);
+          if (!isNaN(plPrice)) {
+            // Upsert for current branch product
+            await prisma.productPrice.upsert({
+              where: {
+                productId_priceListId: {
+                  productId: productObj.id,
+                  priceListId: matchingPL.id
+                }
+              },
+              create: {
+                productId: productObj.id,
+                priceListId: matchingPL.id,
+                price: plPrice
+              },
+              update: {
+                price: plPrice
+              }
+            });
+
+            // Replicate to sister branch products
+            if (sisterBranchIds.length > 0) {
+              const sisterProducts = await prisma.product.findMany({
+                where: { sku: productObj.sku, branchId: { in: sisterBranchIds } },
+                select: { id: true }
+              });
+              for (const sp of sisterProducts) {
+                await prisma.productPrice.upsert({
+                  where: {
+                    productId_priceListId: {
+                      productId: sp.id,
+                      priceListId: matchingPL.id
+                    }
+                  },
+                  create: {
+                    productId: sp.id,
+                    priceListId: matchingPL.id,
+                    price: plPrice
+                  },
+                  update: {
+                    price: plPrice
+                  }
+                });
+              }
+            }
+          }
+        }
+      }
     }
   }
 
