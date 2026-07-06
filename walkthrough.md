@@ -222,6 +222,20 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
      * **Corrección:** Agregamos el endpoint `/api/facturacion/download` a la lista de rutas públicas (`publicRoutes`) en el middleware de autenticación [middleware.ts](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/middleware.ts).
      * **Resultado:** Los clientes que reciban sus enlaces de factura por WhatsApp podrán descargarlos directamente en formato PDF o XML binario y abrirlos perfectamente en cualquier dispositivo.
   3. **Habilitación y Carga de SMTP en Producción (Docker):**
-     * Detuvimos y recreamos el contenedor de producción (`docker compose down && docker compose up -d`) para forzar la carga correcta de las variables SMTP definidas en el archivo `.env` del host. Verificamos mediante pruebas en la consola de Node que las credenciales de `soporte@caanma.com` ahora se resuelven y los correos electrónicos se envían adjuntando los buffers binarios del PDF y XML descargados de Facturapi en perfectas condiciones.
+      * Detuvimos y recreamos el contenedor de producción (`docker compose down && docker compose up -d`) para forzar la carga correcta de las variables SMTP definidas en el archivo `.env` del host. Verificamos mediante pruebas en la consola de Node que las credenciales de `soporte@caanma.com` ahora se resuelven y los correos electrónicos se envían adjuntando los buffers binarios del PDF y XML descargados de Facturapi en perfectas condiciones.
 
+---
 
+## 20. Corrección y Prevención de Sucursales Duplicadas
+* **Requerimiento**: Solucionar el problema de la sucursal duplicada `"IGNACIO PEREZ"` en el selector del panel principal, y evitar que se puedan registrar locaciones con nombres idénticos.
+* **Acciones Tomadas**:
+  1. **Diagnóstico e Identificación de Datos:**
+     * Consultamos la base de datos master (`neondb`) y la base de datos específica del inquilino (`neondb_officecity`), encontrando dos registros activos con el nombre de sucursal `"IGNACIO PEREZ"` y coordenadas/direcciones idénticas.
+     * Evaluamos el uso de cada registro en la base de datos (conteo de ventas, usuarios, cotizaciones, traspasos y solicitudes) y corroboramos que ambos registros estaban vacíos (0 ventas, 0 usuarios, y 10 productos de catálogo inicial con 0 stock).
+  2. **Resolución de Duplicidad (Desactivación):**
+     * Desactivamos el registro duplicado (ID `6bc6920e-bc8e-48ac-a8d3-6c480c70539c`) estableciendo `isActive: false` tanto en la base de datos master como en la de inquilinos. Esto eliminó de forma inmediata el elemento repetido del menú desplegable del sistema.
+  3. **Prevención de Duplicados (Reglas de Validación):**
+     * **Acciones de Backend (`branch.ts`):** Modificamos `createBranch` y `updateBranch` en [branch.ts](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/actions/branch.ts) para realizar una validación de duplicidad (case-insensitive y limpia de espacios en blanco). Si ya existe una sucursal activa para el inquilino con ese mismo nombre, el servidor aborta la operación y retorna un mensaje de error descriptivo: *"Ya existe una sucursal activa con este nombre."*
+     * **Interfaz de Sucursales (`page.tsx` y `BranchClient.tsx`):**
+       * Reemplazamos el formulario básico de servidor de [page.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/preferencias/sucursales/page.tsx) por una integración interactiva dentro del componente cliente [BranchClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/preferencias/sucursales/BranchClient.tsx).
+       * El nuevo formulario cliente captura la respuesta del servidor action, maneja estados de carga (`isProcessing`), limpia los inputs al crearse con éxito, y despliega notificaciones de error tipo `alert` en pantalla en caso de que se intente crear una sucursal duplicada.
