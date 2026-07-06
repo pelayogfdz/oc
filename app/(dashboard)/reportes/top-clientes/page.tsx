@@ -17,7 +17,7 @@ export default async function TopClientesPage() {
   const data = await getTopCustomersReport(startDate, endDate, initialBranchId, 'ALL', 'ALL');
   
   // Get filter values
-  const filters = await getAvailableFilters();
+  const filters = await getAvailableFilters({ includeCustomers: true });
 
   const safeData = JSON.parse(JSON.stringify(data));
   const safeFilters = JSON.parse(JSON.stringify(filters));

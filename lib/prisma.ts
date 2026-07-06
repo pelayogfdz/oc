@@ -17,19 +17,32 @@ function getPooledUrl(urlStr: string): string {
   try {
     const urlObj = new URL(urlStr);
     urlObj.searchParams.set('pgbouncer', 'true');
-    urlObj.searchParams.set('connection_limit', '15');
+    urlObj.searchParams.set('connection_limit', '3'); // Reduced from 15 to prevent serverless pool exhaustion
     return urlObj.toString();
   } catch (e) {
     return urlStr;
   }
 }
 
-export const masterClient = new PrismaClient({
+declare const globalThis: {
+  prismaMasterClient?: PrismaClient;
+  prismaClientCache?: Record<string, PrismaClient>;
+} & typeof global;
+
+export const masterClient = globalThis.prismaMasterClient ?? new PrismaClient({
   datasources: { db: { url: getPooledUrl(masterUrl) } }
 });
 
+if (process.env.NODE_ENV !== 'production') {
+  globalThis.prismaMasterClient = masterClient;
+}
+
 // Cache for tenant Prisma clients
-const clientCache: Record<string, PrismaClient> = {};
+const clientCache: Record<string, PrismaClient> = globalThis.prismaClientCache ?? {};
+
+if (process.env.NODE_ENV !== 'production') {
+  globalThis.prismaClientCache = clientCache;
+}
 
 export function getClientForTenant(tenantId: string): PrismaClient {
   if (clientCache[tenantId]) {
@@ -43,7 +56,7 @@ export function getClientForTenant(tenantId: string): PrismaClient {
   const urlObj = new URL(masterUrl);
   urlObj.pathname = `/${dbName}`;
   urlObj.searchParams.set('pgbouncer', 'true');
-  urlObj.searchParams.set('connection_limit', '15');
+  urlObj.searchParams.set('connection_limit', '3'); // Reduced from 15 to prevent serverless pool exhaustion
   const tenantUrl = urlObj.toString();
   
   const client = new PrismaClient({
@@ -233,13 +246,15 @@ export const prisma = new Proxy({} as PrismaClient, {
       if (prop === '$transaction') {
         return async function (arg1: any, arg2: any) {
           const client = await getClientForRequest();
+          const defaultOptions = { maxWait: 8000, timeout: 15000 };
+          const txOptions = { ...defaultOptions, ...arg2 };
           let result: any;
           if (typeof arg1 === 'function') {
             result = await client.$transaction(async (tx) => {
               return arg1(tx);
-            }, arg2);
+            }, txOptions);
           } else {
-            result = await client.$transaction(arg1, arg2);
+            result = await client.$transaction(arg1, txOptions);
           }
 
           // Check if a Tenant was created inside the transaction (e.g. registration flow)

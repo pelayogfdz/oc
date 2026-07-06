@@ -480,7 +480,8 @@ export async function getInventoryValuationData(branchIdFilter?: string, brandFi
   };
 }
 
-export async function getAvailableFilters() {
+export async function getAvailableFilters(options?: { includeCustomers?: boolean }) {
+  const includeCustomers = options?.includeCustomers ?? false;
   const session = await getSession();
   const branch = await getActiveBranch();
   if (!branch) throw new Error('Unauthorized');
@@ -512,49 +513,46 @@ export async function getAvailableFilters() {
   });
   const branchIds = tenantBranches.map(b => b.id);
 
-  // Fetch unique categories of products
-  const products = await prisma.product.findMany({
-    where: {
-      branchId: { in: branchIds }
-    },
-    select: { category: true },
-    distinct: ['category']
-  });
-  const categories = products
-    .map(p => p.category)
+  if (branchIds.length === 0) {
+    return { branches, users, categories: [], customers: [], brands: [], paymentMethods: [] };
+  }
+
+  const placeholders = branchIds.map((_, idx) => `$${idx + 1}`).join(', ');
+
+  // Fetch unique categories of products using highly optimized raw SQL
+  const categoriesResult = await prisma.$queryRawUnsafe<any[]>(
+    `SELECT DISTINCT category FROM "Product" WHERE "branchId" IN (${placeholders}) AND category IS NOT NULL AND category != ''`,
+    ...branchIds
+  );
+  const categories = categoriesResult
+    .map(r => r.category)
     .filter((cat): cat is string => !!cat && cat.trim() !== '');
 
-  // Fetch unique brands of products
-  const productsWithBrands = await prisma.product.findMany({
-    where: {
-      branchId: { in: branchIds }
-    },
-    select: { brand: true },
-    distinct: ['brand']
-  });
-  const brands = productsWithBrands
-    .map(p => p.brand)
+  // Fetch unique brands of products using highly optimized raw SQL
+  const brandsResult = await prisma.$queryRawUnsafe<any[]>(
+    `SELECT DISTINCT brand FROM "Product" WHERE "branchId" IN (${placeholders}) AND brand IS NOT NULL AND brand != ''`,
+    ...branchIds
+  );
+  const brands = brandsResult
+    .map(r => r.brand)
     .filter((b): b is string => !!b && b.trim() !== '');
 
-  // Fetch customers
-  const customers = await prisma.customer.findMany({
+  // Fetch customers conditionally to avoid massive performance penalties on pages that don't need them
+  const customers = includeCustomers ? await prisma.customer.findMany({
     where: {
       branchId: { in: branchIds }
     },
-    select: { id: true, name: true, phone: true, email: true },
+    select: { id: true, name: true }, // Select only what's needed for select options
     orderBy: { name: 'asc' }
-  });
+  }) : [];
 
-  // Fetch unique payment methods
-  const salesWithPaymentMethods = await prisma.sale.findMany({
-    where: {
-      branchId: { in: branchIds }
-    },
-    select: { paymentMethod: true },
-    distinct: ['paymentMethod']
-  });
-  const paymentMethods = salesWithPaymentMethods
-    .map(s => s.paymentMethod)
+  // Fetch unique payment methods using highly optimized raw SQL
+  const pmResult = await prisma.$queryRawUnsafe<any[]>(
+    `SELECT DISTINCT "paymentMethod" FROM "Sale" WHERE "branchId" IN (${placeholders}) AND "paymentMethod" IS NOT NULL AND "paymentMethod" != ''`,
+    ...branchIds
+  );
+  const paymentMethods = pmResult
+    .map(r => r.paymentMethod)
     .filter((pm): pm is string => !!pm && pm.trim() !== '');
 
   return { branches, users, categories, customers, brands, paymentMethods };
