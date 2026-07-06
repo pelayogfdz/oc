@@ -7,14 +7,17 @@ import { getTenantSuppliers } from "@/app/actions/supplier";
 
 export const dynamic = 'force-dynamic';
 
-export default async function NuevoPedidoPage() {
+export default async function NuevoPedidoPage({ searchParams }: { searchParams: Promise<{ requestId?: string; requestIds?: string }> }) {
   const branch = await getActiveBranch();
+  const resolvedSearchParams = await searchParams;
+  const requestId = resolvedSearchParams.requestId;
+  const requestIds = resolvedSearchParams.requestIds;
   
   // Data for the form
   const query = branch?.id === 'GLOBAL' ? {} : { branchId: branch?.id || '' };
   const products = await prisma.product.findMany({
     where: query,
-    select: { id: true, name: true, stock: true, minStock: true, cost: true }
+    select: { id: true, name: true, stock: true, minStock: true, cost: true, sku: true, barcode: true, imageUrl: true }
   });
   
   const suppliers = await getTenantSuppliers();
@@ -26,6 +29,31 @@ export default async function NuevoPedidoPage() {
       product: true
     }
   });
+
+  // Load preselected items from searchParams
+  let initialItems: any[] = [];
+  if (requestId || requestIds) {
+    const ids = (requestIds || requestId || '').split(',').filter(Boolean);
+    const preselectedRequests = await prisma.purchaseRequest.findMany({
+      where: { id: { in: ids } },
+      include: { product: true }
+    });
+    initialItems = preselectedRequests.map(req => {
+      if (req.product) {
+        return {
+          productId: req.product.id,
+          name: req.product.name,
+          sku: req.product.sku,
+          barcode: req.product.barcode,
+          quantity: req.quantity,
+          cost: req.product.cost,
+          requestId: req.id,
+          imageUrl: req.product.imageUrl
+        };
+      }
+      return null;
+    }).filter(Boolean);
+  }
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
@@ -47,7 +75,13 @@ export default async function NuevoPedidoPage() {
         </div>
       </div>
 
-      <CrearPedidoForm products={products} suppliers={suppliers} pendingRequests={pendingRequests} branchId={branch?.id || ''} />
+      <CrearPedidoForm 
+        products={products} 
+        suppliers={suppliers} 
+        pendingRequests={pendingRequests} 
+        branchId={branch?.id || ''} 
+        initialItems={initialItems}
+      />
     </div>
   );
 }

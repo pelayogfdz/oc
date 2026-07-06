@@ -48,3 +48,28 @@ export async function deletePurchaseRequest(id: string) {
   });
   revalidatePath('/productos/solicitudes');
 }
+
+export async function updatePurchaseRequestStatus(id: string, status: string) {
+  await prisma.purchaseRequest.update({
+    where: { id },
+    data: { status }
+  });
+  revalidatePath('/productos/solicitudes');
+  revalidatePath('/productos/pedidos');
+}
+
+export async function batchUpdatePurchaseRequestStatus(ids: string[], status: string) {
+  await prisma.purchaseRequest.updateMany({
+    where: { id: { in: ids } },
+    data: { status }
+  });
+  revalidatePath('/productos/solicitudes');
+  revalidatePath('/productos/pedidos');
+}
+
+export async function batchDeletePurchaseRequests(ids: string[]) {
+  await prisma.purchaseRequest.deleteMany({
+    where: { id: { in: ids } }
+  });
+  revalidatePath('/productos/solicitudes');
+}

@@ -7,13 +7,25 @@ import { createPurchaseOrder } from '@/app/actions/pedidos';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 
-export default function CrearPedidoForm({ suppliers, products, pendingRequests, branchId }: { suppliers: any[], products: any[], pendingRequests?: any[], branchId: string }) {
+export default function CrearPedidoForm({ 
+  suppliers, 
+  products, 
+  pendingRequests, 
+  branchId,
+  initialItems
+}: { 
+  suppliers: any[], 
+  products: any[], 
+  pendingRequests?: any[], 
+  branchId: string,
+  initialItems?: any[]
+}) {
   const router = useRouter();
   const { isOnline, pushOfflinePurchase } = useOfflineSync();
   
   // Tab management states
-  const [tabs, setTabs] = useState<any[]>([
-    { id: '1', name: 'Pedido #1', items: [], supplierId: '', notes: '' }
+  const [tabs, setTabs] = useState<any[]>(() => [
+    { id: '1', name: 'Pedido #1', items: initialItems || [], supplierId: '', notes: '' }
   ]);
   const [activeTabId, setActiveTabId] = useState('1');
 
