@@ -1,8 +1,7 @@
 import { getActiveBranch, getSession } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
-import { Store, Plus } from 'lucide-react';
+import { Store } from 'lucide-react';
 import { redirect } from "next/navigation";
-import { createBranch } from "@/app/actions/branch";
 
 import BranchClient from './BranchClient';
 
@@ -39,21 +38,6 @@ export default async function SucursalesPage() {
       </div>
 
       <BranchClient branches={branches} currentBranchId={currentBranch?.id || ''} />
-
-      <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Aperturar Nueva Sucursal</h3>
-      <form action={async (formData) => { 'use server'; await createBranch(formData); }} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '8px', border: '1px dashed var(--caanma-border)' }}>
-        <div style={{ flex: 1 }}>
-          <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Nombre de la Sucursal (Ej. SUC Norte 1)</label>
-          <input type="text" name="name" required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)' }} />
-        </div>
-        <div style={{ flex: 2 }}>
-          <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Ubicación / Dirección Corta</label>
-          <input type="text" name="location" required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)' }} />
-        </div>
-        <button type="submit" className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', height: '42px' }}>
-          <Plus size={18} /> Crear Locación
-        </button>
-      </form>
     </div>
   );
 }

@@ -6,12 +6,32 @@ import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/session';
 
 export async function createBranch(formData: FormData) {
-  const name = formData.get('name') as string;
-  const location = formData.get('location') as string;
+  const name = (formData.get('name') as string || '').trim();
+  const location = (formData.get('location') as string || '').trim();
   
+  if (!name) {
+    return { success: false, error: 'El nombre de la sucursal es obligatorio.' };
+  }
+
   const sessionCookie = (await cookies()).get('session')?.value;
   const session = await decrypt(sessionCookie);
   const tenantId = session?.tenantId || null;
+
+  // Check for duplicate active branch names under this tenant
+  const existingBranch = await prisma.branch.findFirst({
+    where: {
+      tenantId,
+      name: {
+        equals: name,
+        mode: 'insensitive'
+      },
+      isActive: true
+    }
+  });
+
+  if (existingBranch) {
+    return { success: false, error: 'Ya existe una sucursal activa con este nombre.' };
+  }
 
   const newBranch = await prisma.branch.create({
     data: {
@@ -43,6 +63,25 @@ export async function updateBranch(id: string, name: string, location: string, f
     throw new Error('Unauthorized');
   }
 
+  const trimmedName = name.trim();
+
+  // Check for duplicate active branch names under this tenant (excluding this branch itself)
+  const existingBranch = await prisma.branch.findFirst({
+    where: {
+      tenantId: session.tenantId,
+      name: {
+        equals: trimmedName,
+        mode: 'insensitive'
+      },
+      isActive: true,
+      id: { not: id }
+    }
+  });
+
+  if (existingBranch) {
+    throw new Error('Ya existe una sucursal activa con este nombre.');
+  }
+
   // Verificar pertenencia al tenant
   const branch = await prisma.branch.findFirst({
     where: { id, tenantId: session.tenantId }
@@ -53,7 +92,7 @@ export async function updateBranch(id: string, name: string, location: string, f
 
   await prisma.branch.update({
     where: { id },
-    data: { name, location }
+    data: { name: trimmedName, location }
   });
 
   if (lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)) {

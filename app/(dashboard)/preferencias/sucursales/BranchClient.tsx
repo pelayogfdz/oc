@@ -1,13 +1,33 @@
 'use client';
 
 import { useState } from 'react';
-import { MapPin, Edit, Trash2 } from 'lucide-react';
-import { updateBranch, deleteBranch } from '@/app/actions/branch';
+import { MapPin, Edit, Trash2, Plus } from 'lucide-react';
+import { createBranch, updateBranch, deleteBranch } from '@/app/actions/branch';
 
 export default function BranchClient({ branches, currentBranchId }: { branches: any[], currentBranchId: string }) {
   const [editingBranch, setEditingBranch] = useState<any>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newLocation, setNewLocation] = useState('');
+
+  const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    const formData = new FormData(e.currentTarget);
+    try {
+      const res = await createBranch(formData);
+      if (res.success) {
+        setNewName('');
+        setNewLocation('');
+      } else {
+        alert(res.error || 'Error al crear la sucursal.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error al crear la sucursal.');
+    }
+    setIsProcessing(false);
+  };
 
   const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -26,7 +46,7 @@ export default function BranchClient({ branches, currentBranchId }: { branches: 
       );
       setEditingBranch(null);
     } catch (err: any) {
-      alert("Error al actualizar la sucursal.");
+      alert(err.message || "Error al actualizar la sucursal.");
     }
     setIsProcessing(false);
   };
@@ -178,6 +198,36 @@ export default function BranchClient({ branches, currentBranchId }: { branches: 
           </div>
         </div>
       )}
+
+      {/* Aperturar Nueva Sucursal */}
+      <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginTop: '2rem', marginBottom: '1rem' }}>Aperturar Nueva Sucursal</h3>
+      <form onSubmit={handleCreate} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '8px', border: '1px dashed var(--caanma-border)', marginBottom: '1rem' }}>
+        <div style={{ flex: 1 }}>
+          <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Nombre de la Sucursal (Ej. SUC Norte 1)</label>
+          <input 
+            type="text" 
+            name="name" 
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            required 
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white', color: 'black' }} 
+          />
+        </div>
+        <div style={{ flex: 2 }}>
+          <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Ubicación / Dirección Corta</label>
+          <input 
+            type="text" 
+            name="location" 
+            value={newLocation}
+            onChange={(e) => setNewLocation(e.target.value)}
+            required 
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white', color: 'black' }} 
+          />
+        </div>
+        <button type="submit" disabled={isProcessing} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', height: '42px', opacity: isProcessing ? 0.7 : 1 }}>
+          <Plus size={18} /> {isProcessing ? 'Creando...' : 'Crear Locación'}
+        </button>
+      </form>
     </>
   );
 }
