@@ -204,3 +204,24 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
   * Reiniciamos el contenedor de Docker (`caanma-app`) para que Next.js cargue y utilice las nuevas variables de entorno en tiempo de ejecución.
 * **Resultado**: El envío de correos salientes queda habilitado de forma global en producción. Las ventas, cotizaciones y facturas electrónicas ahora se envían de forma exitosa mediante la cuenta `soporte@caanma.com` (a menos que una sucursal configure una cuenta de correo SMTP personalizada propia en su panel de preferencias).
 
+---
+
+## 19. Corrección de Enlaces Públicos (Cotizaciones y Facturas Compartidas)
+* **Requerimiento**: Solucionar el problema por el cual los clientes no podían abrir los enlaces de cotizaciones compartidos por WhatsApp, y resolver el problema por el cual las facturas adjuntas no se podían abrir (o se descargaban corruptas).
+* **Soluciones Aplicadas**:
+  1. **Acceso Sin Sesión a Cotizaciones y Ventas (`prisma.ts`):**
+     * **Problema:** Al no estar autenticados, los clientes que hacían clic en los enlaces de cotizaciones o notas de venta no tenían una cookie de sesión activa. La capa multitenant de Prisma caía al cliente de base de datos *master* (que no contiene las cotizaciones/ventas de las sucursales), retornando un error `404 Not Found`.
+     * **Corrección:** Implementamos las funciones utilitarias `resolveClientForQuote` y mejoramos `resolveClientForSale` en [prisma.ts](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/lib/prisma.ts) para realizar búsquedas seguras en todas las bases de datos de inquilinos (tenants). 
+     * **Integración:** Actualizamos los archivos de carga del cliente:
+       * [/ventas/detalle/[id]/imprimir-cotizacion/page.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/ventas/detalle/[id]/imprimir-cotizacion/page.tsx)
+       * [/ventas/detalle/[id]/imprimir/page.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/ventas/detalle/[id]/imprimir/page.tsx)
+       * [/ventas/detalle/[id]/imprimir-ticket/page.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/ventas/detalle/[id]/imprimir-ticket/page.tsx)
+       * Ahora estas páginas públicas resuelven el inquilino correcto y muestran la cotización o venta de manera instantánea a los clientes sin pedirles iniciar sesión.
+  2. **Acceso Público a Descarga de Facturas (`middleware.ts`):**
+     * **Problema:** El enlace de descarga `/api/facturacion/download?invoiceId=...` enviado por WhatsApp a los clientes externos estaba bloqueado por el middleware de seguridad. Al intentar abrirlo, el cliente era redirigido a `/login`. La descarga recibía el código HTML de la página de inicio de sesión en lugar del archivo binario del PDF de Facturapi, resultando en un archivo PDF corrupto que no se podía abrir.
+     * **Corrección:** Agregamos el endpoint `/api/facturacion/download` a la lista de rutas públicas (`publicRoutes`) en el middleware de autenticación [middleware.ts](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/middleware.ts).
+     * **Resultado:** Los clientes que reciban sus enlaces de factura por WhatsApp podrán descargarlos directamente en formato PDF o XML binario y abrirlos perfectamente en cualquier dispositivo.
+  3. **Habilitación y Carga de SMTP en Producción (Docker):**
+     * Detuvimos y recreamos el contenedor de producción (`docker compose down && docker compose up -d`) para forzar la carga correcta de las variables SMTP definidas en el archivo `.env` del host. Verificamos mediante pruebas en la consola de Node que las credenciales de `soporte@caanma.com` ahora se resuelven y los correos electrónicos se envían adjuntando los buffers binarios del PDF y XML descargados de Facturapi en perfectas condiciones.
+
+
