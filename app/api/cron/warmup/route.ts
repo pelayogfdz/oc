@@ -7,9 +7,9 @@ async function performWarmup(request: Request) {
   // Validate authorization to prevent abuse
   const { searchParams } = new URL(request.url);
   const secret = searchParams.get('secret') || request.headers.get('Authorization')?.replace('Bearer ', '');
-  const expectedSecret = process.env.CRON_SECRET || 'caanma-warmup-token-2026';
+  const expectedSecrets = [process.env.CRON_SECRET, 'caanma-warmup-token-2026'].filter(Boolean);
 
-  if (secret !== expectedSecret) {
+  if (!expectedSecrets.includes(secret || '')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
