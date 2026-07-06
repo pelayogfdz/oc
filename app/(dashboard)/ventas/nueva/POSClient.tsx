@@ -393,6 +393,8 @@ export default function POSClient({
 
   const [isMobileSearchActive, setIsMobileSearchActive] = useState(false);
 
+  const [hasSyncedPermissions, setHasSyncedPermissions] = useState(false);
+
   // Load permissions and superadmin status (prefer fresh server props if online, fallback to localStorage if offline)
   const [permissions, setPermissions] = useState<Record<string, boolean>>(() => {
     if (typeof window !== 'undefined') {
@@ -427,6 +429,7 @@ export default function POSClient({
         localStorage.setItem('caanma_user_is_admin', isUserAdmin ? 'true' : 'false');
         setPermissions(res.permissions);
         setIsAdminOrSuper(isUserAdmin);
+        setHasSyncedPermissions(true);
       }
     }).catch((err) => {
       console.error("Failed to sync fresh user permissions:", err);
@@ -434,11 +437,12 @@ export default function POSClient({
   }, []);
 
   useEffect(() => {
+    if (hasSyncedPermissions) return;
     if (userPermissions && Object.keys(userPermissions).length > 0) {
       localStorage.setItem('caanma_user_permissions', JSON.stringify(userPermissions));
       setPermissions(userPermissions);
     }
-  }, [userPermissions]);
+  }, [userPermissions, hasSyncedPermissions]);
 
   useEffect(() => {
     const isAdmin = isSuperAdmin || userRole === 'ADMIN' || userRole === 'MANAGER';
