@@ -2492,8 +2492,6 @@ export default function POSClient({
                   {dynamicPriceLists.map(pl => (
                     <option key={pl.id} value={`priceList_${pl.id}`} style={{ color: '#1e293b' }}>{pl.name}</option>
                   ))}
-                  {ventasConfig.wholesalePriceActive && <option value="wholesalePrice" style={{ color: '#1e293b' }}>Mayoreo</option>}
-                  {ventasConfig.specialPriceActive && <option value="specialPrice" style={{ color: '#1e293b' }}>Precio Especial</option>}
                 </select>
               </div>
 
