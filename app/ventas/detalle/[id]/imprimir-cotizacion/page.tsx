@@ -57,22 +57,41 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
   `;
 
   // Calculations for dynamic original prices, discounts and totals
-  let totalSinDescuento = 0;
-  let totalDescuentos = 0;
+  let grossSubtotalExcludingIva = 0;
+  let totalDiscountExcludingIva = 0;
+  let netSubtotalExcludingIva = 0;
+  let totalIva = 0;
 
   const processedItems = quote.items.map((item: any) => {
-    const originalPrice = item.product?.price || item.price;
-    const finalPrice = item.price;
-    const discountPerUnit = originalPrice - finalPrice;
-    
-    totalSinDescuento += originalPrice * item.quantity;
-    totalDescuentos += (discountPerUnit > 0 ? discountPerUnit : 0) * item.quantity;
+    const originalPriceIncludingIva = item.product?.price || item.price;
+    const finalPriceIncludingIva = item.price;
+    const discountPerUnitIncludingIva = originalPriceIncludingIva - finalPriceIncludingIva;
+
+    const taxRate = item.product?.taxRate ?? 16.0;
+    const taxType = item.product?.taxType || 'IVA';
+    const isIva = taxType === 'IVA' || taxType === 'IVA_IEPS';
+    const rate = isIva ? taxRate : 0;
+
+    const originalPriceExcludingIva = originalPriceIncludingIva / (1 + rate / 100);
+    const finalPriceExcludingIva = finalPriceIncludingIva / (1 + rate / 100);
+    const discountPerUnitExcludingIva = Math.max(0, originalPriceExcludingIva - finalPriceExcludingIva);
+
+    grossSubtotalExcludingIva += originalPriceExcludingIva * item.quantity;
+    totalDiscountExcludingIva += discountPerUnitExcludingIva * item.quantity;
+    netSubtotalExcludingIva += finalPriceExcludingIva * item.quantity;
+
+    const rowIva = (finalPriceIncludingIva - finalPriceExcludingIva) * item.quantity;
+    totalIva += rowIva;
 
     return {
       ...item,
-      originalPrice,
-      finalPrice,
-      discountPerUnit
+      originalPriceExcludingIva,
+      finalPriceExcludingIva,
+      discountPerUnitExcludingIva,
+      discountPerUnitIncludingIva,
+      taxRate: rate,
+      rowIva,
+      rowSubtotalExcludingIva: finalPriceExcludingIva * item.quantity
     };
   });
 
@@ -231,10 +250,11 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
         <table className="items-table">
           <thead>
             <tr>
-              <th style={{ width: '50%' }}>Producto</th>
-              <th style={{ width: '15%', textAlign: 'center' }}>Cantidad</th>
-              <th style={{ width: '18%', textAlign: 'right' }}>Precio Unitario</th>
-              <th style={{ width: '17%', textAlign: 'right' }}>Subtotal</th>
+              <th style={{ width: '40%' }}>Producto</th>
+              <th style={{ width: '12%', textAlign: 'center' }}>Cantidad</th>
+              <th style={{ width: '16%', textAlign: 'right' }}>Precio Unitario</th>
+              <th style={{ width: '16%', textAlign: 'right' }}>IVA</th>
+              <th style={{ width: '16%', textAlign: 'right' }}>Subtotal</th>
             </tr>
           </thead>
           <tbody>
@@ -274,17 +294,20 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
                   {item.quantity} {item.product?.unit || 'unidad'}
                 </td>
                 <td style={{ textAlign: 'right', verticalAlign: 'top' }}>
-                  {item.discountPerUnit > 0 ? (
+                  {item.originalPriceExcludingIva > item.finalPriceExcludingIva ? (
                     <>
-                      <span className="original-price">${item.originalPrice.toFixed(2)}</span>
-                      <span className="final-price">${item.finalPrice.toFixed(2)}</span>
+                      <span className="original-price">${item.originalPriceExcludingIva.toFixed(2)}</span>
+                      <span className="final-price">${item.finalPriceExcludingIva.toFixed(2)}</span>
                     </>
                   ) : (
-                    <span className="final-price">${item.finalPrice.toFixed(2)}</span>
+                    <span className="final-price">${item.finalPriceExcludingIva.toFixed(2)}</span>
                   )}
                 </td>
+                <td style={{ textAlign: 'right', verticalAlign: 'top', color: '#64748b', fontSize: '0.85rem' }}>
+                  {item.taxRate}% (${item.rowIva.toFixed(2)})
+                </td>
                 <td style={{ textAlign: 'right', fontWeight: '700', color: '#0f172a', verticalAlign: 'top' }}>
-                  ${(item.finalPrice * item.quantity).toFixed(2)}
+                  ${item.rowSubtotalExcludingIva.toFixed(2)}
                 </td>
               </tr>
             ))}
@@ -295,19 +318,23 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
         <div className="totals-box">
           <div className="total-row">
             <span>Subtotal</span>
-            <span>${totalSinDescuento.toFixed(2)}</span>
+            <span>${grossSubtotalExcludingIva.toFixed(2)}</span>
           </div>
           <div className="total-row discount-row">
-            <span>Descuentos</span>
-            <span>-${totalDescuentos.toFixed(2)}</span>
+            <span>Descuento</span>
+            <span>-${totalDiscountExcludingIva.toFixed(2)}</span>
           </div>
-          <div className="total-final">
+          <div className="total-row" style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '0.25rem', marginTop: '0.25rem', fontWeight: '600' }}>
+            <span>Subtotal</span>
+            <span>${netSubtotalExcludingIva.toFixed(2)}</span>
+          </div>
+          <div className="total-row">
+            <span>IVA 16%</span>
+            <span>${totalIva.toFixed(2)}</span>
+          </div>
+          <div className="total-final" style={{ borderTop: '2px solid #1e293b', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
             <span>Total</span>
             <span>${quote.total.toFixed(2)}</span>
-          </div>
-          <div className="total-row" style={{ fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic', marginTop: '0.25rem' }}>
-            <span>IVA 16% Incluido</span>
-            <span>${(quote.total - (quote.total / 1.16)).toFixed(2)}</span>
           </div>
         </div>
 

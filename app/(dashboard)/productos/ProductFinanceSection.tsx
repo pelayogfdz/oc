@@ -296,39 +296,9 @@ export default function ProductFinanceSection({
         )}
       </div>
 
-      {/* Precio Mayoreo y Precio Especial */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
-        <div></div>
-        <div></div>
-        <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem', color: 'var(--caanma-text-muted)' }}>
-            Precio Mayoreo ($)
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            name="wholesalePrice"
-            value={wholesalePrice}
-            onChange={e => setWholesalePrice(e.target.value)}
-            placeholder="Opcional"
-            style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', outline: 'none' }}
-          />
-        </div>
-        <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem', color: 'var(--caanma-text-muted)' }}>
-            Precio Especial ($)
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            name="specialPrice"
-            value={specialPrice}
-            onChange={e => setSpecialPrice(e.target.value)}
-            placeholder="Opcional"
-            style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', outline: 'none' }}
-          />
-        </div>
-      </div>
+      {/* Deprecated static wholesale and special price fields (replaced by dynamic price lists) */}
+      <input type="hidden" name="wholesalePrice" value={wholesalePrice} />
+      <input type="hidden" name="specialPrice" value={specialPrice} />
 
       {/* Dynamic Price Lists Grid */}
       {priceLists.length > 0 && (

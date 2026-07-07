@@ -1,6 +1,20 @@
 version: '3.8'
 
 services:
+  db:
+    image: postgres:17-alpine
+    container_name: caanma-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: caanma_postgres_secure_2026
+      POSTGRES_DB: neondb
+    ports:
+      # Expose only to localhost so it is NOT accessible from the public internet!
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   web:
     build:
       context: .
@@ -8,9 +22,14 @@ services:
     container_name: caanma-app
     restart: always
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     env_file:
       - .env
     environment:
       - NODE_ENV=production
       - PORT=3000
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:

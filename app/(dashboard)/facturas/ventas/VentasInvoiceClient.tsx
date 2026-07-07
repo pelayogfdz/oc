@@ -26,6 +26,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
   const [customerSearch, setCustomerSearch] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // WhatsApp Share States for Invoices
   const [isWhatsappOpen, setIsWhatsappOpen] = useState(false);
@@ -185,10 +186,27 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
     (c.taxId && c.taxId.toLowerCase().includes(customerSearch.toLowerCase()))
   );
 
+  const filteredSales = sales.filter((sale) => {
+    const query = searchQuery.toLowerCase();
+    const folio = (sale.folio || sale.id.substring(0, 8)).toLowerCase();
+    const clientName = (sale.customer?.name || '').toLowerCase();
+    const clientLegalName = (sale.customer?.legalName || '').toLowerCase();
+    const clientTaxId = (sale.customer?.taxId || '').toLowerCase();
+    const sellerName = (sale.user?.name || '').toLowerCase();
+
+    return (
+      folio.includes(query) ||
+      clientName.includes(query) ||
+      clientLegalName.includes(query) ||
+      clientTaxId.includes(query) ||
+      sellerName.includes(query)
+    );
+  });
+
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      // Select all Completed sales that don't have an invoiceId yet
-      const uninvoicedIds = sales.filter(s => !s.invoiceId).map(s => s.id);
+      // Select all filtered Completed sales that don't have an invoiceId yet
+      const uninvoicedIds = filteredSales.filter(s => !s.invoiceId).map(s => s.id);
       setSelectedSaleIds(uninvoicedIds);
     } else {
       setSelectedSaleIds([]);
@@ -381,6 +399,29 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
         </div>
       )}
 
+      {/* Search Input Bar */}
+      <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
+        <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={20} />
+        <input 
+          type="text" 
+          placeholder="Buscar ventas por folio, cliente, RFC, razón social o vendedor..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          style={{ 
+            width: '100%', 
+            padding: '0.85rem 1rem 0.85rem 2.75rem', 
+            border: '1px solid var(--caanma-border)', 
+            borderRadius: '12px', 
+            fontSize: '0.95rem',
+            backgroundColor: 'white',
+            color: '#1e293b',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)',
+            outline: 'none',
+            transition: 'all 0.2s'
+          }}
+        />
+      </div>
+
       {/* Sales list Table Card */}
       <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--caanma-border)' }}>
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -390,7 +431,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                 <input 
                   type="checkbox" 
                   onChange={handleSelectAll}
-                  checked={selectedSaleIds.length > 0 && selectedSaleIds.length === sales.filter(s => !s.invoiceId).length}
+                  checked={selectedSaleIds.length > 0 && filteredSales.filter(s => !s.invoiceId).length > 0 && filteredSales.filter(s => !s.invoiceId).every(s => selectedSaleIds.includes(s.id))}
                   style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                 />
               </th>
@@ -402,7 +443,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
             </tr>
           </thead>
           <tbody>
-            {sales.map((sale) => {
+            {filteredSales.map((sale) => {
               const isSelected = selectedSaleIds.includes(sale.id);
               const isSaleInvoiced = !!sale.invoiceId;
 

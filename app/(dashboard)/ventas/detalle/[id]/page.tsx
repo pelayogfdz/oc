@@ -95,22 +95,45 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <h3 style={{ margin: 0, fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase' }}>Cliente:</h3>
                 {sale.customer && (
-                  <Link 
-                    href={`/clientes/${sale.customer.id}/editar`}
-                    style={{ 
-                      fontSize: '0.8rem', 
-                      color: 'var(--caanma-primary, #8b5cf6)', 
-                      fontWeight: 'bold', 
-                      textDecoration: 'none',
-                      backgroundColor: '#f5f3ff',
-                      padding: '0.15rem 0.5rem',
-                      borderRadius: '4px',
-                      border: '1px solid #ddd6fe'
-                    }}
-                    className="hover:underline"
-                  >
-                    Editar Cliente / Facturación
-                  </Link>
+                  (() => {
+                    const isGenericPublic = 
+                      (sale.customer.name.toLowerCase().includes('publico') && sale.customer.name.toLowerCase().includes('general')) ||
+                      sale.customer.taxId === 'XAXX010101000';
+                    return isGenericPublic ? (
+                      <span 
+                        style={{ 
+                          fontSize: '0.75rem', 
+                          color: '#b45309', 
+                          fontWeight: 'bold', 
+                          backgroundColor: '#fef3c7',
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '4px',
+                          border: '1px solid #fde68a',
+                          cursor: 'help'
+                        }}
+                        title="Este es un registro genérico. Para facturar a un cliente específico, edita la venta arriba a la derecha."
+                      >
+                        Cliente Genérico (No editable)
+                      </span>
+                    ) : (
+                      <Link 
+                        href={`/clientes/${sale.customer.id}/editar`}
+                        style={{ 
+                          fontSize: '0.8rem', 
+                          color: 'var(--caanma-primary, #8b5cf6)', 
+                          fontWeight: 'bold', 
+                          textDecoration: 'none',
+                          backgroundColor: '#f5f3ff',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '4px',
+                          border: '1px solid #ddd6fe'
+                        }}
+                        className="hover:underline"
+                      >
+                        Editar Cliente / Facturación
+                      </Link>
+                    );
+                  })()
                 )}
              </div>
              <p style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold', fontSize: '1.2rem' }}>

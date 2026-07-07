@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Share2, AlertTriangle, Send, Loader2, CheckCircle, Edit3, FileText } from 'lucide-react';
 import { cancelSale, updateSale } from '@/app/actions/sale';
 import { cancelInvoice, stampInvoice } from '@/app/actions/facturacion';
+import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 
 interface VentaActionsClientProps {
   saleId: string;
@@ -34,6 +35,7 @@ export default function VentaActionsClient({
   customers = []
 }: VentaActionsClientProps) {
   const router = useRouter();
+  const { refreshCatalogs } = useOfflineSync();
   const [isPending, startTransition] = useTransition();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [phone, setPhone] = useState(customerPhone || '');
@@ -168,6 +170,15 @@ export default function VentaActionsClient({
         const formData = new FormData();
         formData.append('saleId', saleId);
         await cancelSale(formData);
+        
+        try {
+          if (refreshCatalogs) {
+            await refreshCatalogs(true);
+          }
+        } catch (syncErr) {
+          console.error("Local catalog sync failed after cancellation:", syncErr);
+        }
+
         alert('Venta cancelada exitosamente.');
         router.refresh();
       } catch (err: any) {

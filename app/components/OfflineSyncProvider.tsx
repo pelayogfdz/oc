@@ -521,18 +521,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       const pageSize = 1500;
       const totalPages = Math.ceil(totalProducts / pageSize);
       
-      const allNewProducts: any[] = [];
-      for (let i = 1; i <= totalPages; i++) {
-        if (!isBackground) {
-          setSyncMessage(`Sincronizando Catálogo... (${i}/${totalPages})`);
-        }
-        const productsChunk = await syncProductsPage(i, pageSize);
-        if (productsChunk && productsChunk.length > 0) {
-          allNewProducts.push(...productsChunk);
-        }
-      }
-
-      // Perform a single Dexie transaction to rewrite all local tables atomically
+      // Perform a transaction to clear and update basic tables first, including clearing products
       await db.transaction('rw', [db.customers, db.suppliers, db.branches, db.settings, db.users, db.products], async () => {
         await db.customers.clear();
         await db.customers.bulkAdd(basicData.customers);
@@ -557,8 +546,18 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
         }
 
         await db.products.clear();
-        await db.products.bulkAdd(allNewProducts);
       });
+
+      // Fetch and write products page by page outside the transaction to yield to the browser's thread!
+      for (let i = 1; i <= totalPages; i++) {
+        if (!isBackground) {
+          setSyncMessage(`Sincronizando Catálogo... (${i}/${totalPages})`);
+        }
+        const productsChunk = await syncProductsPage(i, pageSize);
+        if (productsChunk && productsChunk.length > 0) {
+          await db.products.bulkAdd(productsChunk);
+        }
+      }
 
       localStorage.setItem('last_catalog_sync_timestamp', Date.now().toString());
       setLastSyncTime(Date.now());

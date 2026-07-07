@@ -1,0 +1,8 @@
+.git
+node_modules
+.next
+out
+build
+.netlify
+.wwebjs_cache
+*.log

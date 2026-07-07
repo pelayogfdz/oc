@@ -1,0 +1,36 @@
+FROM node:20-slim
+
+# Install Chromium and fonts for Puppeteer
+RUN apt-get update && apt-get install -y \
+    chromium \
+    fonts-ipafont-gothic \
+    fonts-wqy-zenhei \
+    fonts-thai-tlwg \
+    fonts-kacst \
+    fonts-freefont-ttf \
+    libxss1 \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+# Tell Puppeteer to skip downloading Chromium and use the system package
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
+WORKDIR /app
+
+# Copy root dependencies
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
+# Copy Prisma schema and code
+COPY prisma ./prisma
+RUN npx prisma generate
+
+# Copy source code and files
+COPY . .
+
+EXPOSE 3001
+ENV PORT=3001
+ENV NODE_ENV=production
+
+CMD ["node", "whatsapp-service/index.js"]

@@ -2,8 +2,9 @@
 
 import { prisma, resolveClientForSale } from "@/lib/prisma";
 import Facturapi from "facturapi";
-import { getActiveBranch } from "./auth";
+import { getActiveBranch, getActiveUser } from "./auth";
 import { revalidatePath } from "next/cache";
+import { cancelSaleInternal } from "./sale";
 
 function getFacturapiApiKey(config: any): string | null {
   if (!config || !config.facturacion) return null;
@@ -247,10 +248,16 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
       use: cfdiUse
     };
 
+    if (methodUpper === 'CREDIT') {
+      invoicePayload.conditions = "Crédito";
+    } else {
+      invoicePayload.conditions = "Contado";
+    }
+
     if (sale.notes) {
       const cleanedConditions = cleanConditions(sale.notes);
       if (cleanedConditions) {
-        invoicePayload.conditions = cleanedConditions;
+        invoicePayload.pdf_custom_section = `<div><strong>Comentarios / Notas de entrega:</strong><br/><span>${cleanedConditions.replace(/\n/g, '<br/>')}</span></div>`;
       }
     }
 
@@ -533,7 +540,11 @@ export async function cancelInvoice(saleId: string) {
     // Cancel invoice in Facturapi with motive "02" (Comprobante emitido con errores sin relación)
     await facturapi.invoices.cancel(sale.invoiceId, { motive: "02" as any });
 
-    // Clear invoice ID and folio in database to allow re-stamping if needed
+    // Cancel the sale itself (returns stock, credit balance, updates status)
+    const user = await getActiveUser();
+    await cancelSaleInternal(saleId, user.id);
+
+    // Clear invoice ID and folio in database
     await prisma.sale.update({
       where: { id: saleId },
       data: { 
@@ -765,9 +776,11 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
       use: cfdiUse
     };
 
+    invoicePayload.conditions = "Contado";
+
     const allNotes = sales.map(s => s.notes).filter(Boolean).map(n => cleanConditions(n)).filter(Boolean);
     if (allNotes.length > 0) {
-      invoicePayload.conditions = allNotes.join(" - ").slice(0, 1000);
+      invoicePayload.pdf_custom_section = `<div><strong>Comentarios / Notas de entrega:</strong><br/><span>${allNotes.join(" - ").slice(0, 1000).replace(/\n/g, '<br/>')}</span></div>`;
     }
 
     // Sort sales by folio or ID to keep consistent first-and-rest ordering

@@ -147,24 +147,43 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
             <div>
               <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: customer.isBlocked ? '#ef4444' : '#0f172a', margin: '0 0 0.5rem 0' }}>{customer.name}</h1>
               {customer.taxId && <div style={{ display: 'inline-block', backgroundColor: '#eef2ff', color: '#4f46e5', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '1rem' }}>RFC: {customer.taxId}</div>}
+              {(() => {
+                const isGenericPublic = 
+                  (customer.name.toLowerCase().includes('publico') && customer.name.toLowerCase().includes('general')) ||
+                  customer.taxId === 'XAXX010101000';
+                return isGenericPublic && (
+                  <div style={{ backgroundColor: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', padding: '0.75rem 1rem', borderRadius: '8px', marginTop: '0.5rem', fontSize: '0.9rem', fontWeight: '500' }}>
+                    ⚠️ **Registro Genérico de Público en General:** Este registro no debe ser editado ni reasignado para representar a un cliente específico.
+                  </div>
+                );
+              })()}
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button 
-                onClick={handleToggleBlock}
-                className={customer.isBlocked ? "btn-secondary" : "btn-danger"}
-                style={{ 
-                   display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                   backgroundColor: customer.isBlocked ? '#f1f5f9' : '#fee2e2', 
-                   color: customer.isBlocked ? '#0f172a' : '#ef4444', 
-                   border: customer.isBlocked ? '1px solid #e2e8f0' : '1px solid #fca5a5', 
-                   padding: '0.5rem 1rem', borderRadius: '6px', fontWeight: '500', cursor: 'pointer' 
-                }}
-              >
-                <AlertTriangle size={16} /> {customer.isBlocked ? 'Desbloquear' : 'Bloquear'}
-              </button>
-              <Link href={`/clientes/${customer.id}/editar`} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
-                <Edit size={16} /> Editar Perfil
-              </Link>
+              {(() => {
+                const isGenericPublic = 
+                  (customer.name.toLowerCase().includes('publico') && customer.name.toLowerCase().includes('general')) ||
+                  customer.taxId === 'XAXX010101000';
+                return !isGenericPublic && (
+                  <>
+                    <button 
+                      onClick={handleToggleBlock}
+                      className={customer.isBlocked ? "btn-secondary" : "btn-danger"}
+                      style={{ 
+                         display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                         backgroundColor: customer.isBlocked ? '#f1f5f9' : '#fee2e2', 
+                         color: customer.isBlocked ? '#0f172a' : '#ef4444', 
+                         border: customer.isBlocked ? '1px solid #e2e8f0' : '1px solid #fca5a5', 
+                         padding: '0.5rem 1rem', borderRadius: '6px', fontWeight: '500', cursor: 'pointer' 
+                      }}
+                    >
+                      <AlertTriangle size={16} /> {customer.isBlocked ? 'Desbloquear' : 'Bloquear'}
+                    </button>
+                    <Link href={`/clientes/${customer.id}/editar`} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
+                      <Edit size={16} /> Editar Perfil
+                    </Link>
+                  </>
+                );
+              })()}
             </div>
           </div>
           

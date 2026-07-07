@@ -12,6 +12,7 @@ export default async function Page() {
       description="Asocia las cuentas bancarias corporativas."
       initialConfig={config}
       fields={[
+        { name: 'bancoPrincipal', label: 'Banco', type: 'text', placeholder: 'Ej. BBVA, Banorte, Santander...' },
         { name: 'clabePrincipal', label: 'CLABE Principal', type: 'text', placeholder: '' }
       ]}
     />

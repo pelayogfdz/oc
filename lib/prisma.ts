@@ -17,7 +17,7 @@ function getPooledUrl(urlStr: string): string {
   try {
     const urlObj = new URL(urlStr);
     urlObj.searchParams.set('pgbouncer', 'true');
-    urlObj.searchParams.set('connection_limit', '3'); // Reduced from 15 to prevent serverless pool exhaustion
+    urlObj.searchParams.set('connection_limit', '10'); // Prevent pool timeouts under concurrent load
     return urlObj.toString();
   } catch (e) {
     return urlStr;
@@ -33,16 +33,12 @@ export const masterClient = globalThis.prismaMasterClient ?? new PrismaClient({
   datasources: { db: { url: getPooledUrl(masterUrl) } }
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.prismaMasterClient = masterClient;
-}
+globalThis.prismaMasterClient = masterClient;
 
 // Cache for tenant Prisma clients
 const clientCache: Record<string, PrismaClient> = globalThis.prismaClientCache ?? {};
 
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.prismaClientCache = clientCache;
-}
+globalThis.prismaClientCache = clientCache;
 
 export function getClientForTenant(tenantId: string): PrismaClient {
   if (clientCache[tenantId]) {
@@ -56,7 +52,7 @@ export function getClientForTenant(tenantId: string): PrismaClient {
   const urlObj = new URL(masterUrl);
   urlObj.pathname = `/${dbName}`;
   urlObj.searchParams.set('pgbouncer', 'true');
-  urlObj.searchParams.set('connection_limit', '3'); // Reduced from 15 to prevent serverless pool exhaustion
+  urlObj.searchParams.set('connection_limit', '10'); // Prevent pool timeouts under concurrent load
   const tenantUrl = urlObj.toString();
   
   const client = new PrismaClient({

@@ -283,7 +283,19 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                 {quote.status === 'PENDING' ? (
                   <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#fef9c3', color: '#854d0e', borderRadius: '12px' }}>PENDIENTE</span>
                 ) : (
-                  <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '12px' }}>CONVERTIDA A VENTA</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '12px' }}>CONVERTIDA A VENTA</span>
+                    {quote.status.includes(':') && (
+                      <Link 
+                        href={`/ventas/detalle/${quote.status.split(':')[1]}`}
+                        style={{ fontSize: '0.725rem', color: '#4f46e5', fontWeight: '600', textDecoration: 'underline', transition: 'color 0.15s' }}
+                        onMouseEnter={e => e.currentTarget.style.color = '#3730a3'}
+                        onMouseLeave={e => e.currentTarget.style.color = '#4f46e5'}
+                      >
+                        Ver Venta
+                      </Link>
+                    )}
+                  </div>
                 )}
               </td>
               <td data-label="Acción" style={{ padding: '1rem', textAlign: 'right' }}>

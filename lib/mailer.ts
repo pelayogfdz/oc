@@ -1,12 +1,11 @@
 import nodemailer from 'nodemailer';
 import { prisma } from './prisma';
 
-// Configure Nodemailer with environment variables
-// Expects: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS
+const portGlobal = parseInt(process.env.SMTP_PORT || '465', 10);
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.zoho.com',
-  port: parseInt(process.env.SMTP_PORT || '465', 10),
-  secure: true, // true for 465, false for other ports
+  port: portGlobal,
+  secure: portGlobal === 465, // true for 465, false for other ports
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
@@ -17,7 +16,7 @@ async function getTransporterAndSender(branchId?: string | null) {
   // Default values from environment variables
   let host = process.env.SMTP_HOST || 'smtp.zoho.com';
   let port = parseInt(process.env.SMTP_PORT || '465', 10);
-  let secure = true;
+  let secure = port === 465;
   let user = process.env.SMTP_USER;
   let pass = process.env.SMTP_PASS;
   let fromName = '';

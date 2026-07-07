@@ -105,7 +105,8 @@ export async function getQuoteForPOS(quoteId: string) {
   });
   
   if (!quote) throw new Error("Cotización no encontrada.");
-  if (quote.status === "CONVERTED") throw new Error("Esta cotización ya fue convertida a venta.");
+  // Allow converting quote to sale multiple times as requested by user
+  // if (quote.status === "CONVERTED") throw new Error("Esta cotización ya fue convertida a venta.");
   
   return quote;
 }
@@ -117,7 +118,8 @@ export async function convertQuoteToSale(quoteId: string) {
   });
 
   if (!quote) throw new Error("Cotización no encontrada.");
-  if (quote.status === "CONVERTED") throw new Error("Ya fue convertida a venta.");
+  // Allow converting quote to sale multiple times as requested by user
+  // if (quote.status === "CONVERTED") throw new Error("Ya fue convertida a venta.");
 
   const { getCurrentSession } = await import('./caja');
   const currentSession = await getCurrentSession();
@@ -166,7 +168,7 @@ export async function convertQuoteToSale(quoteId: string) {
 
   await prisma.quote.update({
     where: { id: quoteId },
-    data: { status: "CONVERTED" }
+    data: { status: `CONVERTED:${sale.id}` }
   });
 
   revalidatePath('/ventas');

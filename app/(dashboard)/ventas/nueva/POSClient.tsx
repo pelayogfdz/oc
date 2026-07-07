@@ -103,7 +103,9 @@ export default function POSClient({
         notes,
         documentType,
         transactionType,
-        appliedPromotionIds
+        appliedPromotionIds,
+        loadedQuoteId,
+        loadedConsignmentId
       } : t);
       
       const target = updated.find(t => t.id === targetTabId);
@@ -123,6 +125,8 @@ export default function POSClient({
         setDocumentType((target.documentType || 'TICKET') as 'TICKET' | 'FACTURA');
         setTransactionType((target.transactionType || 'VENTA') as 'VENTA' | 'PEDIDO');
         setAppliedPromotionIds(target.appliedPromotionIds !== undefined ? target.appliedPromotionIds : null);
+        setLoadedQuoteId(target.loadedQuoteId || null);
+        setLoadedConsignmentId(target.loadedConsignmentId || null);
         setActiveTabId(targetTabId);
       }
       return updated;
@@ -164,7 +168,9 @@ export default function POSClient({
       notes: '',
       documentType: 'TICKET',
       transactionType: 'VENTA',
-      appliedPromotionIds: null
+      appliedPromotionIds: null,
+      loadedQuoteId: null,
+      loadedConsignmentId: null
     };
 
     setTabs(prev => {
@@ -184,7 +190,9 @@ export default function POSClient({
         notes,
         documentType,
         transactionType,
-        appliedPromotionIds
+        appliedPromotionIds,
+        loadedQuoteId,
+        loadedConsignmentId
       } : t);
       
       setCart(newTab.cart);
@@ -202,6 +210,8 @@ export default function POSClient({
       setDocumentType(newTab.documentType as 'TICKET' | 'FACTURA');
       setTransactionType(newTab.transactionType as 'VENTA' | 'PEDIDO');
       setAppliedPromotionIds(null);
+      setLoadedQuoteId(null);
+      setLoadedConsignmentId(null);
       setActiveTabId(newId);
 
       return [...updated, newTab];
@@ -231,6 +241,8 @@ export default function POSClient({
         setDocumentType((lastTab.documentType || 'TICKET') as 'TICKET' | 'FACTURA');
         setTransactionType((lastTab.transactionType || 'VENTA') as 'VENTA' | 'PEDIDO');
         setAppliedPromotionIds(lastTab.appliedPromotionIds !== undefined ? lastTab.appliedPromotionIds : null);
+        setLoadedQuoteId(lastTab.loadedQuoteId || null);
+        setLoadedConsignmentId(lastTab.loadedConsignmentId || null);
         setActiveTabId(lastTab.id);
       }
       return remaining;
@@ -487,6 +499,10 @@ export default function POSClient({
   useEffect(() => {
     if (!hasDefaultedCustomer && !selectedCustomerId && activeCustomers.length > 0) {
       const defaultCustomer = activeCustomers.find(c => 
+        (c.name.toLowerCase().includes('público en general') || 
+         c.name.toLowerCase().includes('publico en general')) &&
+        (c.branchId === branchId)
+      ) || activeCustomers.find(c => 
         c.name.toLowerCase().includes('público en general') || 
         c.name.toLowerCase().includes('publico en general')
       );
@@ -496,7 +512,7 @@ export default function POSClient({
         setHasDefaultedCustomer(true);
       }
     }
-  }, [activeCustomers, selectedCustomerId, hasDefaultedCustomer]);
+  }, [activeCustomers, selectedCustomerId, hasDefaultedCustomer, branchId]);
 
   // Advanced POS State
   const [stockFilter, setStockFilter] = useState<'ALL' | 'IN_STOCK' | 'OUT_OF_STOCK'>('ALL');
@@ -947,16 +963,16 @@ export default function POSClient({
     if (prod.customPrice !== undefined && prod.customPrice !== null && prod.customPrice !== '') {
       return prod.customPrice;
     }
-    // Dynamic price lists check
+    // Dynamic price lists check (fallback to base price if price is 0 or undefined)
     if (priceList.startsWith('priceList_')) {
       const plId = priceList.replace('priceList_', '');
       const dynamicPrice = prod.prices?.find((p: any) => p.priceListId === plId);
-      if (dynamicPrice) return dynamicPrice.price;
+      if (dynamicPrice && dynamicPrice.price > 0) return dynamicPrice.price;
     }
     
     // Legacy fallback (optional since we're using dynamic mostly)
-    if (priceList === 'wholesalePrice' && prod.wholesalePrice) return prod.wholesalePrice;
-    if (priceList === 'specialPrice' && prod.specialPrice) return prod.specialPrice;
+    if (priceList === 'wholesalePrice' && prod.wholesalePrice && prod.wholesalePrice > 0) return prod.wholesalePrice;
+    if (priceList === 'specialPrice' && prod.specialPrice && prod.specialPrice > 0) return prod.specialPrice;
     
     return prod.price;
   }, [priceList]);
@@ -2270,10 +2286,12 @@ export default function POSClient({
                 value={customerSearchTerm}
                 disabled={!hasPermission('pos_change_customer')}
                 onChange={e => {
-                  setCustomerSearchTerm(e.target.value);
-                  const matched = customers.find((c: any) => c.id === e.target.value || c.name.toLowerCase() === e.target.value.toLowerCase());
-                  if (matched) handleCustomerChange(matched.id);
-                  else handleCustomerChange('');
+                  const val = e.target.value;
+                  setCustomerSearchTerm(val);
+                  // Only reset the customer if the input is explicitly cleared
+                  if (val.trim() === '') {
+                    handleCustomerChange('');
+                  }
                 }}
                 style={{ 
                   width: '100%', 
@@ -2501,6 +2519,8 @@ export default function POSClient({
                 onClick={() => {
                   if (cart.length > 0 && confirm('¿Deseas vaciar el carrito actual?')) {
                     setCart([]);
+                    setLoadedQuoteId(null);
+                    setLoadedConsignmentId(null);
                   }
                 }}
                 style={{
@@ -2864,7 +2884,12 @@ export default function POSClient({
                             <button
                               type="button"
                               onClick={() => {
-                                setCart(cart.filter(c => c.cartItemId !== item.cartItemId));
+                                const newCart = cart.filter(c => c.cartItemId !== item.cartItemId);
+                                setCart(newCart);
+                                if (newCart.length === 0) {
+                                  setLoadedQuoteId(null);
+                                  setLoadedConsignmentId(null);
+                                }
                                 setActiveItemMenuId(null);
                               }}
                               style={{ display: 'flex', width: '100%', padding: '8px 12px', fontSize: '0.85rem', color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', borderRadius: '4px' }}

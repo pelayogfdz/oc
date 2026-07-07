@@ -373,7 +373,7 @@ export async function createSale(
     if (quoteIdToConvert) {
        await prisma.quote.update({
           where: { id: quoteIdToConvert },
-          data: { status: 'CONVERTED' }
+          data: { status: `CONVERTED:${sale.id}` }
        });
        revalidatePath('/ventas/cotizaciones');
     }
@@ -466,10 +466,7 @@ export async function refundSale(formData: FormData) {
   revalidatePath('/productos');
 }
 
-export async function cancelSale(formData: FormData) {
-  const saleId = formData.get('saleId') as string;
-  const user = await getActiveUser();
-  
+export async function cancelSaleInternal(saleId: string, userId: string) {
   const sale = await prisma.sale.findUnique({
     where: { id: saleId },
     include: { items: true, cashSession: true }
@@ -520,16 +517,16 @@ export async function cancelSale(formData: FormData) {
         type: 'IN',
         quantity: item.quantity,
         reason: `Cancelación de Venta #${sale.id.slice(0, 8)}`,
-        userId: user.id
+        userId
       }
     });
   }
 
-  // Revert customer credit if credit sale
-  if (sale.paymentMethod === 'CREDIT' && sale.customerId) {
+  // Revert customer credit by the actual remaining balance due of this sale (to avoid mismatch if they made payments)
+  if (sale.customerId && sale.balanceDue > 0) {
     await prisma.customer.update({
       where: { id: sale.customerId },
-      data: { creditBalance: { decrement: sale.total } }
+      data: { creditBalance: { decrement: sale.balanceDue } }
     });
   }
 
@@ -605,11 +602,32 @@ export async function cancelSale(formData: FormData) {
 
   await prisma.sale.update({
     where: { id: sale.id },
-    data: { status: 'CANCELLED' }
+    data: { 
+      status: 'CANCELLED',
+      balanceDue: 0
+    }
   });
 
   revalidatePath('/ventas');
   revalidatePath('/productos');
+}
+
+export async function cancelSale(formData: FormData) {
+  const saleId = formData.get('saleId') as string;
+  const user = await getActiveUser();
+
+  const sale = await prisma.sale.findUnique({
+    where: { id: saleId }
+  });
+
+  if (!sale) throw new Error("Venta no encontrada");
+  if (sale.status === 'CANCELLED') throw new Error("Venta ya cancelada");
+
+  if (sale.invoiceId) {
+    throw new Error("No se puede cancelar directamente una venta con factura activa. Por favor, cancela la factura (SAT) primero.");
+  }
+
+  await cancelSaleInternal(saleId, user.id);
 }
 
 export async function updateSale(

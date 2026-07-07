@@ -132,8 +132,30 @@ export function generatePurchasePdfBuffer(purchase: any): Promise<Buffer> {
       // Table Rows
       let currentY = tableTop + 20;
       purchase.items.forEach((item: any) => {
+        const textHeight = doc.heightOfString(item.product?.name || 'Artículo sin nombre', { width: 200 });
+        const rowHeight = Math.max(22, textHeight + 10); // 10 points padding
+
+        // Check if we need to add a new page before drawing this row
+        if (currentY + rowHeight > 650) {
+          doc.addPage();
+          currentY = 50; // top margin on new page
+
+          // Redraw table header on the new page
+          doc.fillColor('#f8fafc').rect(50, currentY, 512, 20).fill();
+          doc.strokeColor('#e2e8f0').lineWidth(1).rect(50, currentY, 512, 20).stroke();
+
+          doc.font(fontBold).fontSize(8).fillColor('#475569');
+          doc.text('Cant', 55, currentY + 6, { width: 30, align: 'center' });
+          doc.text('Código/SKU', 90, currentY + 6, { width: 90, align: 'left' });
+          doc.text('Descripción del Artículo', 190, currentY + 6, { width: 200, align: 'left' });
+          doc.text('Costo Unit.', 400, currentY + 6, { width: 70, align: 'right' });
+          doc.text('Importe', 480, currentY + 6, { width: 75, align: 'right' });
+
+          currentY += 20;
+        }
+
         // Draw row bottom line
-        doc.strokeColor('#f1f5f9').lineWidth(1).moveTo(50, currentY + 20).lineTo(562, currentY + 20).stroke();
+        doc.strokeColor('#f1f5f9').lineWidth(1).moveTo(50, currentY + rowHeight).lineTo(562, currentY + rowHeight).stroke();
 
         doc.font(fontRegular).fontSize(9).fillColor('#1e293b');
         doc.text(String(item.quantity), 55, currentY + 6, { width: 30, align: 'center' });
@@ -142,7 +164,7 @@ export function generatePurchasePdfBuffer(purchase: any): Promise<Buffer> {
         doc.text(`$${item.cost.toFixed(2)}`, 400, currentY + 6, { width: 70, align: 'right' });
         doc.text(`$${(item.cost * item.quantity).toFixed(2)}`, 480, currentY + 6, { width: 75, align: 'right' });
 
-        currentY += 20;
+        currentY += rowHeight;
       });
 
       // 4. Totals Box
@@ -184,7 +206,11 @@ export function generatePurchasePdfBuffer(purchase: any): Promise<Buffer> {
         ieps = 0;
       }
 
-      const totalsY = currentY + 20;
+      let totalsY = currentY + 20;
+      if (totalsY + 120 > 680) {
+        doc.addPage();
+        totalsY = 50;
+      }
       doc.strokeColor('#cbd5e1').lineWidth(1).moveTo(350, totalsY).lineTo(562, totalsY).stroke();
 
       doc.font(fontRegular).fontSize(9).fillColor('#475569');

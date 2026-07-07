@@ -1,0 +1,177 @@
+version: '3.8'
+
+services:
+  # Database Service (PostgreSQL 16)
+  postgres-db:
+    image: postgres:17-alpine
+    container_name: caanma-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_ROOT_PASSWORD:-caanma_prod_password}
+      POSTGRES_DB: neondb
+    ports:
+      - "127.0.0.1:5432:5432" # Safe local access only
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache Service (optional future caching/sessions)
+  redis-cache:
+    image: redis:7-alpine
+    container_name: caanma-redis
+    restart: always
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # Next.js Web App
+  nextjs-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: caanma-web
+    restart: always
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    env_file:
+      - .env.production
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://postgres:${DB_ROOT_PASSWORD:-caanma_prod_password}@postgres-db:5432/neondb?sslmode=disable
+
+  # WhatsApp microservice (headless Puppeteer)
+  whatsapp-worker:
+    build:
+      context: .
+      dockerfile: whatsapp-service/Dockerfile.whatsapp
+    container_name: caanma-whatsapp
+    restart: always
+    ports:
+      - "127.0.0.1:3001:3001"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    env_file:
+      - .env.production
+    environment:
+      - PORT=3001
+      - DATABASE_URL=postgresql://postgres:${DB_ROOT_PASSWORD:-caanma_prod_password}@postgres-db:5432/neondb?sslmode=disable
+    volumes:
+      - whatsapp_session_cache:/app/.wwebjs_cache
+
+  # Nginx Reverse Proxy
+  reverse-proxy:
+    image: nginx:alpine
+    container_name: caanma-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - nextjs-app
+      - whatsapp-worker
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/lib/letsencrypt:/var/lib/letsencrypt:ro
+
+  # Prometheus Metrics Server
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: caanma-prometheus
+    restart: always
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "127.0.0.1:9090:9090"
+
+  # Grafana Dashboard Visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: caanma-grafana
+    restart: always
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=Sequent00000.
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3002:3000"
+
+  # Node Exporter (Host Metrics)
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: caanma-node-exporter
+    restart: always
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+
+  # cAdvisor (Docker Container Metrics)
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: caanma-cadvisor
+    restart: always
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    devices:
+      - /dev/kmsg
+
+  # Loki (Log Aggregation Server)
+  loki:
+    image: grafana/loki:latest
+    container_name: caanma-loki
+    restart: always
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml:ro
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "127.0.0.1:3100:3100"
+
+  # Promtail (Logs Scraper Agent)
+  promtail:
+    image: grafana/promtail:latest
+    container_name: caanma-promtail
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  whatsapp_session_cache:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local

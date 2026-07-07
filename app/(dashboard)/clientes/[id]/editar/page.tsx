@@ -18,8 +18,15 @@ export default async function EditarClientePage({ params }: { params: Promise<{ 
     return <div>Cliente no encontrado.</div>;
   }
 
+  const isGenericPublic = 
+    (customer.name.toLowerCase().includes('publico') && customer.name.toLowerCase().includes('general')) ||
+    customer.taxId === 'XAXX010101000';
+
   const saveAction = async (formData: FormData) => {
     'use server';
+    if (isGenericPublic) {
+      throw new Error("No se permite modificar el cliente genérico de Público en General.");
+    }
     await updateCustomer(id, formData);
   };
 
@@ -30,6 +37,18 @@ export default async function EditarClientePage({ params }: { params: Promise<{ 
         <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Editar Cliente: {customer.name}</h1>
       </div>
 
+      {isGenericPublic && (
+        <div style={{ padding: '1.25rem', backgroundColor: '#fffbeb', color: '#b45309', border: '1px solid #fef3c7', borderRadius: '8px', marginBottom: '2rem', lineHeight: '1.5' }}>
+          <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold', fontSize: '1.1rem' }}>⚠️ Registro de Público en General No Modificable</h3>
+          <p style={{ margin: 0, fontSize: '0.95rem' }}>
+            Este es el cliente genérico del sistema. Modificar sus datos cambiaría el nombre del cliente en todas las ventas pasadas y futuras que se hayan hecho al público en general.
+          </p>
+          <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.95rem' }}>
+            Si deseas facturar una venta a un cliente específico, debes registrar un nuevo cliente en el catálogo y luego editar la venta desde el historial para asignarla al nuevo cliente.
+          </p>
+        </div>
+      )}
+
       <form action={saveAction} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         
         {/* Identificación */}
@@ -38,19 +57,19 @@ export default async function EditarClientePage({ params }: { params: Promise<{ 
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '1.5rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Nombre Comercial o Identificador *</label>
-              <input type="text" name="name" required defaultValue={customer.name} placeholder="Ej. Abarrotes Lupita" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+              <input type="text" name="name" required defaultValue={customer.name} disabled={isGenericPublic} placeholder="Ej. Abarrotes Lupita" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: isGenericPublic ? '#f1f5f9' : 'white' }} />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Teléfono de Contacto</label>
-              <input type="tel" name="phone" defaultValue={customer.phone || ''} placeholder="10 dígitos" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+              <input type="tel" name="phone" defaultValue={customer.phone || ''} disabled={isGenericPublic} placeholder="10 dígitos" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: isGenericPublic ? '#f1f5f9' : 'white' }} />
             </div>
             <div style={{ gridColumn: 'span 2' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Correo Electrónico Principal</label>
-              <input type="email" name="email" defaultValue={customer.email || ''} placeholder="cliente@correo.com" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+              <input type="email" name="email" defaultValue={customer.email || ''} disabled={isGenericPublic} placeholder="cliente@correo.com" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: isGenericPublic ? '#f1f5f9' : 'white' }} />
             </div>
             <div style={{ gridColumn: 'span 2' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Correos Adicionales (Separados por coma, máx 5)</label>
-              <input type="text" name="additionalEmails" defaultValue={customer.additionalEmails || ''} placeholder="conta@correo.com, pagos@correo.com" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+              <input type="text" name="additionalEmails" defaultValue={customer.additionalEmails || ''} disabled={isGenericPublic} placeholder="conta@correo.com, pagos@correo.com" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: isGenericPublic ? '#f1f5f9' : 'white' }} />
             </div>
           </div>
         </div>
@@ -61,29 +80,29 @@ export default async function EditarClientePage({ params }: { params: Promise<{ 
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(0,1fr) minmax(0,1fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Calle</label>
-              <input type="text" name="street" defaultValue={customer.street || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+              <input type="text" name="street" defaultValue={customer.street || ''} disabled={isGenericPublic} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: isGenericPublic ? '#f1f5f9' : 'white' }} />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Núm Ext</label>
-              <input type="text" name="exteriorNumber" defaultValue={customer.exteriorNumber || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+              <input type="text" name="exteriorNumber" defaultValue={customer.exteriorNumber || ''} disabled={isGenericPublic} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: isGenericPublic ? '#f1f5f9' : 'white' }} />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Núm Int</label>
-              <input type="text" name="interiorNumber" defaultValue={customer.interiorNumber || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+              <input type="text" name="interiorNumber" defaultValue={customer.interiorNumber || ''} disabled={isGenericPublic} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: isGenericPublic ? '#f1f5f9' : 'white' }} />
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: '1.5rem' }}>
              <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Colonia</label>
-              <input type="text" name="neighborhood" defaultValue={customer.neighborhood || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+              <input type="text" name="neighborhood" defaultValue={customer.neighborhood || ''} disabled={isGenericPublic} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: isGenericPublic ? '#f1f5f9' : 'white' }} />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Ciudad / Municipio</label>
-              <input type="text" name="city" defaultValue={customer.city || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+              <input type="text" name="city" defaultValue={customer.city || ''} disabled={isGenericPublic} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: isGenericPublic ? '#f1f5f9' : 'white' }} />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Estado</label>
-              <input type="text" name="state" defaultValue={customer.state || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+              <input type="text" name="state" defaultValue={customer.state || ''} disabled={isGenericPublic} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: isGenericPublic ? '#f1f5f9' : 'white' }} />
             </div>
           </div>
         </div>
@@ -97,21 +116,21 @@ export default async function EditarClientePage({ params }: { params: Promise<{ 
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,2fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>RFC</label>
-              <input type="text" name="taxId" defaultValue={customer.taxId || ''} placeholder="XAXX010101000" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+              <input type="text" name="taxId" defaultValue={customer.taxId || ''} disabled={isGenericPublic} placeholder="XAXX010101000" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: isGenericPublic ? '#f1f5f9' : 'white' }} />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Razón Social Fiel (tal cual Constancia)</label>
-              <input type="text" name="legalName" defaultValue={customer.legalName || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+              <input type="text" name="legalName" defaultValue={customer.legalName || ''} disabled={isGenericPublic} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: isGenericPublic ? '#f1f5f9' : 'white' }} />
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: '1.5rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Código Postal Fiscal</label>
-              <input type="text" name="zipCode" defaultValue={customer.zipCode || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+              <input type="text" name="zipCode" defaultValue={customer.zipCode || ''} disabled={isGenericPublic} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: isGenericPublic ? '#f1f5f9' : 'white' }} />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Régimen Fiscal</label>
-              <select name="taxRegime" defaultValue={customer.taxRegime || '601'} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}>
+              <select name="taxRegime" defaultValue={customer.taxRegime || '601'} disabled={isGenericPublic} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: isGenericPublic ? '#f1f5f9' : 'white' }}>
                  <option value="601">601 - General de Ley Personas Morales</option>
                  <option value="603">603 - Personas Morales con Fines no Lucrativos</option>
                  <option value="605">605 - Sueldos y Salarios e Ingresos Asimilados a Salarios</option>
@@ -138,7 +157,7 @@ export default async function EditarClientePage({ params }: { params: Promise<{ 
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Uso de CFDI frecuente</label>
-              <select name="cfdiUse" defaultValue={customer.cfdiUse || 'G03'} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}>
+              <select name="cfdiUse" defaultValue={customer.cfdiUse || 'G03'} disabled={isGenericPublic} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: isGenericPublic ? '#f1f5f9' : 'white' }}>
                  <option value="G03">G03 - Gastos en general</option>
                  <option value="G01">G01 - Adquisición de mercancias</option>
                  <option value="P01">P01 - Por definir</option>
@@ -154,15 +173,15 @@ export default async function EditarClientePage({ params }: { params: Promise<{ 
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: '1.5rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Límite de Crédito Autorizado ($)</label>
-              <input type="number" step="0.01" name="creditLimit" defaultValue={customer.creditLimit || 0} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+              <input type="number" step="0.01" name="creditLimit" defaultValue={customer.creditLimit || 0} disabled={isGenericPublic} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: isGenericPublic ? '#f1f5f9' : 'white' }} />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Días Máximos de Crédito</label>
-              <input type="number" name="creditDays" defaultValue={customer.creditDays || 0} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+              <input type="number" name="creditDays" defaultValue={customer.creditDays || 0} disabled={isGenericPublic} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: isGenericPublic ? '#f1f5f9' : 'white' }} />
             </div>
              <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Asignación de Precios</label>
-              <select name="priceList" defaultValue={customer.priceList || 'price'} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}>
+              <select name="priceList" defaultValue={customer.priceList || 'price'} disabled={isGenericPublic} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: isGenericPublic ? '#f1f5f9' : 'white' }}>
                  <option value="price">Precio Público (Default)</option>
                  <option value="wholesalePrice">Precio Mayoreo</option>
                  <option value="specialPrice">Precio Especial Comercial</option>
@@ -175,8 +194,12 @@ export default async function EditarClientePage({ params }: { params: Promise<{ 
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-           <Link href={`/clientes/${id}`} style={{ padding: '0.75rem 2rem', textDecoration: 'none', color: 'var(--caanma-text)', border: '1px solid var(--caanma-border)', borderRadius: '4px', fontWeight: 'bold' }}>Cancelar</Link>
-           <button className="btn-primary" type="submit" style={{ padding: '0.75rem 3rem', fontSize: '1.1rem' }}>Guardar Cambios</button>
+           <Link href={`/clientes/${id}`} style={{ padding: '0.75rem 2rem', textDecoration: 'none', color: 'var(--caanma-text)', border: '1px solid var(--caanma-border)', borderRadius: '4px', fontWeight: 'bold' }}>
+             {isGenericPublic ? 'Volver al Perfil' : 'Cancelar'}
+           </Link>
+           {!isGenericPublic && (
+             <button className="btn-primary" type="submit" style={{ padding: '0.75rem 3rem', fontSize: '1.1rem' }}>Guardar Cambios</button>
+           )}
         </div>
       </form>
     </div>
