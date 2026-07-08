@@ -452,15 +452,15 @@ export default function VentasHistoryClient({
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
-              <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>ID Venta</th>
-              <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Fecha / Hora</th>
-              <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Cliente</th>
-              <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Folio CFDI</th>
-              <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Sucursal / Vendedor</th>
-              <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right' }}>Artículos</th>
-              <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right' }}>Total</th>
-              <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'center' }}>Estado</th>
-              <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'center' }}>Acciones</th>
+              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>ID Venta</th>
+              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Fecha / Hora</th>
+              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Cliente</th>
+              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Folio CFDI</th>
+              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Sucursal / Vendedor</th>
+              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right' }}>Artículos</th>
+              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right' }}>Total</th>
+              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'center' }}>Estado</th>
+              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'center' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -468,20 +468,21 @@ export default function VentasHistoryClient({
               const qtySum = sale.items.reduce((sum: number, item: any) => sum + item.quantity, 0);
               return (
                 <tr key={sale.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-                  <td data-label="ID Venta" style={{ padding: '1rem', fontFamily: 'monospace', fontWeight: 'bold' }}>
+                  <td data-label="ID Venta" style={{ padding: '0.4rem 0.75rem', fontFamily: 'monospace', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
                     {sale.folio || sale.id.slice(0, 8).toUpperCase()}
                   </td>
-                  <td data-label="Fecha / Hora" style={{ padding: '1rem' }}>
+                  <td data-label="Fecha / Hora" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
                     {new Date(sale.createdAt).toLocaleString('es-MX', { timeZone: timezone })}
                   </td>
-                  <td data-label="Cliente" style={{ padding: '1rem' }}>
-                    {sale.customer ? (
-                      <div style={{ fontWeight: '500' }}>{sale.customer.name}</div>
-                    ) : (
-                      <div style={{ color: 'var(--caanma-text-muted)', fontStyle: 'italic' }}>Público General</div>
-                    )}
+                  <td data-label="Cliente" style={{ padding: '0.4rem 0.75rem' }}>
+                    <div 
+                      title={sale.customer ? sale.customer.name : 'Público General'} 
+                      style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' }}
+                    >
+                      {sale.customer ? sale.customer.name : 'Público General'}
+                    </div>
                   </td>
-                  <td data-label="Folio CFDI" style={{ padding: '1rem' }}>
+                  <td data-label="Folio CFDI" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
                     {sale.invoiceId ? (
                       <a 
                         href={`/api/facturacion/download?invoiceId=${sale.invoiceId}&format=pdf`}
@@ -507,20 +508,30 @@ export default function VentasHistoryClient({
                       <span style={{ color: 'var(--caanma-text-muted)' }}>-</span>
                     )}
                   </td>
-                  <td data-label="Sucursal / Vendedor" style={{ padding: '1rem' }}>
-                    <div style={{ fontWeight: '500' }}>{sale.branch?.name || currentBranch.name}</div>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--caanma-text-muted)' }}>Vendió: {sale.user.name}</div>
+                  <td data-label="Sucursal / Vendedor" style={{ padding: '0.4rem 0.75rem' }}>
+                    <div 
+                      title={sale.branch?.name || currentBranch.name} 
+                      style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}
+                    >
+                      {sale.branch?.name || currentBranch.name}
+                    </div>
+                    <div 
+                      title={`Vendió: ${sale.user.name}`} 
+                      style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}
+                    >
+                      Vendió: {sale.user.name}
+                    </div>
                   </td>
-                  <td data-label="Artículos" style={{ padding: '1rem', textAlign: 'right', color: 'var(--caanma-text-muted)' }}>
+                  <td data-label="Artículos" style={{ padding: '0.4rem 0.75rem', textAlign: 'right', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap' }}>
                     {new Intl.NumberFormat('es-MX').format(qtySum)} Pzas
                   </td>
-                  <td data-label="Total" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>
-                    <div>{formatCurrency(sale.total)}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', fontWeight: 'normal', marginTop: '0.15rem' }}>
+                  <td data-label="Total" style={{ padding: '0.4rem 0.75rem', textAlign: 'right', fontWeight: 'bold' }}>
+                    <div style={{ whiteSpace: 'nowrap' }}>{formatCurrency(sale.total)}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', fontWeight: 'normal', marginTop: '0.15rem', whiteSpace: 'nowrap' }}>
                       {getPaymentMethodLabel(sale.paymentMethod)}
                     </div>
                   </td>
-                  <td data-label="Estado" style={{ padding: '1rem', textAlign: 'center' }}>
+                  <td data-label="Estado" style={{ padding: '0.4rem 0.75rem', textAlign: 'center' }}>
                     <span style={{ 
                       padding: '0.25rem 0.5rem', 
                       borderRadius: '12px', 
@@ -532,7 +543,7 @@ export default function VentasHistoryClient({
                       {sale.status === 'COMPLETED' ? 'Completado' : sale.status === 'CANCELLED' ? 'Cancelado' : sale.status}
                     </span>
                   </td>
-                  <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }}>
+                  <td data-label="Acciones" style={{ padding: '0.4rem 0.75rem', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
                       {/* Detalle */}
                       <Link
