@@ -477,19 +477,20 @@ export default function VentasHistoryClient({
       )}
 
       {/* Table Section */}
-      <div className="card">
-        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead>
+      <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto', width: '100%' }}>
+          <table className="responsive-table" style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
             <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
-              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>ID Venta</th>
-              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Fecha / Hora</th>
-              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Cliente</th>
-              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Folio CFDI</th>
-              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Sucursal / Vendedor</th>
-              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right' }}>Artículos</th>
-              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right' }}>Total</th>
-              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'center' }}>Estado</th>
-              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'center' }}>Acciones</th>
+              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', whiteSpace: 'nowrap' }}>ID Venta</th>
+              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', whiteSpace: 'nowrap' }}>Fecha / Hora</th>
+              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', whiteSpace: 'nowrap' }}>Cliente</th>
+              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', whiteSpace: 'nowrap' }}>Folio CFDI</th>
+              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', whiteSpace: 'nowrap' }}>Sucursal / Vendedor</th>
+              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right', whiteSpace: 'nowrap' }}>Artículos</th>
+              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right', whiteSpace: 'nowrap' }}>Total</th>
+              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'center', whiteSpace: 'nowrap' }}>Estado</th>
+              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'center', whiteSpace: 'nowrap' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -503,7 +504,7 @@ export default function VentasHistoryClient({
                   <td data-label="Fecha / Hora" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
                     {new Date(sale.createdAt).toLocaleString('es-MX', { timeZone: timezone })}
                   </td>
-                  <td data-label="Cliente" style={{ padding: '0.4rem 0.75rem' }}>
+                  <td data-label="Cliente" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
                     <div 
                       title={sale.customer ? sale.customer.name : 'Público General'} 
                       style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' }}
@@ -537,7 +538,7 @@ export default function VentasHistoryClient({
                       <span style={{ color: 'var(--caanma-text-muted)' }}>-</span>
                     )}
                   </td>
-                  <td data-label="Sucursal / Vendedor" style={{ padding: '0.4rem 0.75rem' }}>
+                  <td data-label="Sucursal / Vendedor" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
                     <div 
                       title={sale.branch?.name || currentBranch.name} 
                       style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}
@@ -554,13 +555,13 @@ export default function VentasHistoryClient({
                   <td data-label="Artículos" style={{ padding: '0.4rem 0.75rem', textAlign: 'right', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap' }}>
                     {new Intl.NumberFormat('es-MX').format(qtySum)} Pzas
                   </td>
-                  <td data-label="Total" style={{ padding: '0.4rem 0.75rem', textAlign: 'right', fontWeight: 'bold' }}>
+                  <td data-label="Total" style={{ padding: '0.4rem 0.75rem', textAlign: 'right', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
                     <div style={{ whiteSpace: 'nowrap' }}>{formatCurrency(sale.total)}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', fontWeight: 'normal', marginTop: '0.15rem', whiteSpace: 'nowrap' }}>
                       {getPaymentMethodLabel(sale.paymentMethod)}
                     </div>
                   </td>
-                  <td data-label="Estado" style={{ padding: '0.4rem 0.75rem', textAlign: 'center' }}>
+                  <td data-label="Estado" style={{ padding: '0.4rem 0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                     <span style={{ 
                       padding: '0.25rem 0.5rem', 
                       borderRadius: '12px', 
@@ -572,7 +573,7 @@ export default function VentasHistoryClient({
                       {sale.status === 'COMPLETED' ? 'Completado' : sale.status === 'CANCELLED' ? 'Cancelado' : sale.status}
                     </span>
                   </td>
-                  <td data-label="Acciones" style={{ padding: '0.4rem 0.75rem', textAlign: 'center' }}>
+                  <td data-label="Acciones" style={{ padding: '0.4rem 0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center', flexWrap: 'wrap' }}>
                       {/* Detalle */}
                       <Link
@@ -740,6 +741,7 @@ export default function VentasHistoryClient({
           </tbody>
         </table>
       </div>
+    </div>
 
       {/* Modern Share Modal */}
       {isWhatsappOpen && activeSale && (
