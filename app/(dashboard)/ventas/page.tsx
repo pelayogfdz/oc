@@ -21,23 +21,47 @@ export default async function VentasPage() {
     orderBy: { name: 'asc' }
   });
   
-  const sales = await prisma.sale.findMany({
-    where: branch.id === 'GLOBAL'
-      ? { branch: { tenantId: session?.tenantId } }
-      : { branchId: branch.id },
-    include: {
-      user: true,
-      branch: true,
-      customer: true,
-      items: {
-        include: {
-          product: true
-        }
+  const commonInclude = {
+    user: true,
+    branch: true,
+    customer: true,
+    items: {
+      include: {
+        product: true
       }
+    }
+  };
+
+  const baseWhere = branch.id === 'GLOBAL'
+    ? { branch: { tenantId: session?.tenantId || undefined } }
+    : { branchId: branch.id };
+
+  // Obtener las últimas 450 ventas activas (no canceladas)
+  const activeSales = await prisma.sale.findMany({
+    where: {
+      ...baseWhere,
+      status: { not: 'CANCELLED' }
     },
+    include: commonInclude,
     orderBy: { createdAt: 'desc' },
-    take: 500
+    take: 450
   });
+
+  // Obtener las últimas 100 ventas canceladas para garantizar su visibilidad en el cliente
+  const cancelledSales = await prisma.sale.findMany({
+    where: {
+      ...baseWhere,
+      status: 'CANCELLED'
+    },
+    include: commonInclude,
+    orderBy: { createdAt: 'desc' },
+    take: 100
+  });
+
+  // Unir ambas listas y ordenar por fecha de forma descendente
+  const sales = [...activeSales, ...cancelledSales].sort(
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+  );
 
   // Safe mapping to serialize data and avoid RSC warnings
   const serializedSales = sales.map(s => ({
