@@ -190,6 +190,8 @@ export default function VentasHistoryClient({
     initialSales.forEach(s => {
       if (s.status) sSet.add(s.status);
     });
+    sSet.add('COMPLETED');
+    sSet.add('CANCELLED');
     return Array.from(sSet);
   }, [initialSales]);
 
