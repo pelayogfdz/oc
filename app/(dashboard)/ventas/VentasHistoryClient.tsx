@@ -21,6 +21,24 @@ const getPaymentMethodLabel = (method: string) => {
   return mapping[method] || method || 'Efectivo';
 };
 
+const formatDateCompact = (dateStr: string, timezone: string) => {
+  try {
+    const date = new Date(dateStr);
+    const options: Intl.DateTimeFormatOptions = {
+      timeZone: timezone,
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    };
+    return new Intl.DateTimeFormat('es-MX', options).format(date);
+  } catch (e) {
+    return dateStr;
+  }
+};
+
 export default function VentasHistoryClient({
   initialSales,
   branches,
@@ -478,21 +496,20 @@ export default function VentasHistoryClient({
         </div>
       )}
 
-      {/* Table Section */}
-      <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto', width: '100%' }}>
-          <table className="responsive-table" style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse', textAlign: 'left' }}>
+      <div className="card" style={{ padding: '0', overflow: 'visible', width: '100%', maxWidth: '100%', height: 'auto' }}>
+        <div className="table-responsive">
+          <table className="responsive-table" style={{ width: '100%', minWidth: '950px', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
             <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
-              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', whiteSpace: 'nowrap' }}>ID Venta</th>
-              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', whiteSpace: 'nowrap' }}>Fecha / Hora</th>
-              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', whiteSpace: 'nowrap' }}>Cliente</th>
-              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', whiteSpace: 'nowrap' }}>Folio CFDI</th>
-              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', whiteSpace: 'nowrap' }}>Sucursal / Vendedor</th>
-              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right', whiteSpace: 'nowrap' }}>Artículos</th>
-              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right', whiteSpace: 'nowrap' }}>Total</th>
-              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'center', whiteSpace: 'nowrap' }}>Estado</th>
-              <th style={{ padding: '0.5rem 0.75rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'center', whiteSpace: 'nowrap' }}>Acciones</th>
+              <th style={{ padding: '0.4rem 0.5rem', color: 'var(--caanma-text-muted)', fontWeight: '500', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>ID Venta</th>
+              <th style={{ padding: '0.4rem 0.5rem', color: 'var(--caanma-text-muted)', fontWeight: '500', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>Fecha / Hora</th>
+              <th style={{ padding: '0.4rem 0.5rem', color: 'var(--caanma-text-muted)', fontWeight: '500', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>Cliente</th>
+              <th style={{ padding: '0.4rem 0.5rem', color: 'var(--caanma-text-muted)', fontWeight: '500', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>Folio CFDI</th>
+              <th style={{ padding: '0.4rem 0.5rem', color: 'var(--caanma-text-muted)', fontWeight: '500', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>Sucursal / Vendedor</th>
+              <th style={{ padding: '0.4rem 0.5rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>Artículos</th>
+              <th style={{ padding: '0.4rem 0.5rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>Total</th>
+              <th style={{ padding: '0.4rem 0.5rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'center', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>Estado</th>
+              <th style={{ padding: '0.4rem 0.5rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'center', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -500,21 +517,21 @@ export default function VentasHistoryClient({
               const qtySum = sale.items.reduce((sum: number, item: any) => sum + item.quantity, 0);
               return (
                 <tr key={sale.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-                  <td data-label="ID Venta" style={{ padding: '0.4rem 0.75rem', fontFamily: 'monospace', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                  <td data-label="ID Venta" style={{ padding: '0.3rem 0.45rem', fontFamily: 'monospace', fontWeight: 'bold', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
                     {sale.folio || sale.id.slice(0, 8).toUpperCase()}
                   </td>
-                  <td data-label="Fecha / Hora" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
-                    {new Date(sale.createdAt).toLocaleString('es-MX', { timeZone: timezone })}
+                  <td data-label="Fecha / Hora" style={{ padding: '0.3rem 0.45rem', whiteSpace: 'nowrap', fontSize: '0.82rem', color: '#475569' }}>
+                    {formatDateCompact(sale.createdAt, timezone)}
                   </td>
-                  <td data-label="Cliente" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
+                  <td data-label="Cliente" style={{ padding: '0.3rem 0.45rem', whiteSpace: 'nowrap' }}>
                     <div 
                       title={sale.customer ? sale.customer.name : 'Público General'} 
-                      style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' }}
+                      style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '130px', fontSize: '0.82rem' }}
                     >
                       {sale.customer ? sale.customer.name : 'Público General'}
                     </div>
                   </td>
-                  <td data-label="Folio CFDI" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
+                  <td data-label="Folio CFDI" style={{ padding: '0.3rem 0.45rem', whiteSpace: 'nowrap' }}>
                     {sale.invoiceId ? (
                       <a 
                         href={`/api/facturacion/download?invoiceId=${sale.invoiceId}&format=pdf`}
@@ -522,12 +539,12 @@ export default function VentasHistoryClient({
                         rel="noopener noreferrer"
                         style={{ 
                           fontFamily: 'monospace', 
-                          fontSize: '0.85rem', 
+                          fontSize: '0.78rem', 
                           fontWeight: 'bold', 
                           color: '#1d4ed8', 
                           backgroundColor: '#eff6ff', 
                           border: '1px solid #bfdbfe',
-                          padding: '0.2rem 0.4rem', 
+                          padding: '0.15rem 0.35rem', 
                           borderRadius: '4px',
                           textDecoration: 'none',
                           display: 'inline-block'
@@ -537,37 +554,37 @@ export default function VentasHistoryClient({
                         {sale.invoiceFolio || sale.invoiceId.substring(0, 8).toUpperCase()}
                       </a>
                     ) : (
-                      <span style={{ color: 'var(--caanma-text-muted)' }}>-</span>
+                      <span style={{ color: 'var(--caanma-text-muted)', fontSize: '0.82rem' }}>-</span>
                     )}
                   </td>
-                  <td data-label="Sucursal / Vendedor" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
+                  <td data-label="Sucursal / Vendedor" style={{ padding: '0.3rem 0.45rem', whiteSpace: 'nowrap' }}>
                     <div 
                       title={sale.branch?.name || currentBranch.name} 
-                      style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}
+                      style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '110px', fontSize: '0.82rem' }}
                     >
                       {sale.branch?.name || currentBranch.name}
                     </div>
                     <div 
                       title={`Vendió: ${sale.user.name}`} 
-                      style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}
+                      style={{ fontSize: '0.72rem', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '110px' }}
                     >
                       Vendió: {sale.user.name}
                     </div>
                   </td>
-                  <td data-label="Artículos" style={{ padding: '0.4rem 0.75rem', textAlign: 'right', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap' }}>
+                  <td data-label="Artículos" style={{ padding: '0.3rem 0.45rem', textAlign: 'right', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
                     {new Intl.NumberFormat('es-MX').format(qtySum)} Pzas
                   </td>
-                  <td data-label="Total" style={{ padding: '0.4rem 0.75rem', textAlign: 'right', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                  <td data-label="Total" style={{ padding: '0.3rem 0.45rem', textAlign: 'right', fontWeight: 'bold', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
                     <div style={{ whiteSpace: 'nowrap' }}>{formatCurrency(sale.total)}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', fontWeight: 'normal', marginTop: '0.15rem', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--caanma-text-muted)', fontWeight: 'normal', marginTop: '0.1rem', whiteSpace: 'nowrap' }}>
                       {getPaymentMethodLabel(sale.paymentMethod)}
                     </div>
                   </td>
-                  <td data-label="Estado" style={{ padding: '0.4rem 0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                  <td data-label="Estado" style={{ padding: '0.3rem 0.45rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                     <span style={{ 
-                      padding: '0.25rem 0.5rem', 
+                      padding: '0.15rem 0.35rem', 
                       borderRadius: '12px', 
-                      fontSize: '0.75rem',
+                      fontSize: '0.7rem',
                       fontWeight: 'bold',
                       backgroundColor: sale.status === 'COMPLETED' ? '#dcfce7' : sale.status === 'CANCELLED' ? '#fee2e2' : '#f1f5f9',
                       color: sale.status === 'COMPLETED' ? '#166534' : sale.status === 'CANCELLED' ? '#991b1b' : '#334155'
@@ -575,8 +592,8 @@ export default function VentasHistoryClient({
                       {sale.status === 'COMPLETED' ? 'Completado' : sale.status === 'CANCELLED' ? 'Cancelado' : sale.status}
                     </span>
                   </td>
-                  <td data-label="Acciones" style={{ padding: '0.4rem 0.75rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                    <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <td data-label="Acciones" style={{ padding: '0.3rem 0.45rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'flex', gap: '0.2rem', justifyContent: 'center', flexWrap: 'nowrap', alignItems: 'center' }}>
                       {/* Detalle */}
                       <Link
                         href={`/ventas/detalle/${sale.id}`}
@@ -585,8 +602,8 @@ export default function VentasHistoryClient({
                           display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          width: '32px',
-                          height: '32px',
+                          width: '26px',
+                          height: '26px',
                           backgroundColor: '#f1f5f9',
                           border: '1px solid #cbd5e1',
                           borderRadius: '6px',
@@ -604,10 +621,10 @@ export default function VentasHistoryClient({
                           e.currentTarget.style.borderColor = '#cbd5e1';
                         }}
                       >
-                        <Eye size={15} />
+                        <Eye size={13} />
                       </Link>
 
-                      {/* Imprimir */}
+                      {/* Imprimir A4 */}
                       <a
                         href={`/ventas/detalle/${sale.id}/imprimir`}
                         target="_blank"
@@ -617,8 +634,8 @@ export default function VentasHistoryClient({
                           display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          width: '32px',
-                          height: '32px',
+                          width: '26px',
+                          height: '26px',
                           backgroundColor: '#f8fafc',
                           border: '1px solid #e2e8f0',
                           borderRadius: '6px',
@@ -636,7 +653,7 @@ export default function VentasHistoryClient({
                           e.currentTarget.style.borderColor = '#e2e8f0';
                         }}
                       >
-                        <Printer size={15} />
+                        <Printer size={13} />
                       </a>
 
                       {/* Ticket */}
@@ -649,8 +666,8 @@ export default function VentasHistoryClient({
                           display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          width: '32px',
-                          height: '32px',
+                          width: '26px',
+                          height: '26px',
                           backgroundColor: '#f1f5f9',
                           border: '1px solid #cbd5e1',
                           borderRadius: '6px',
@@ -668,7 +685,7 @@ export default function VentasHistoryClient({
                           e.currentTarget.style.borderColor = '#cbd5e1';
                         }}
                       >
-                        <Receipt size={15} />
+                        <Receipt size={13} />
                       </a>
 
                       {/* WhatsApp */}
@@ -679,14 +696,15 @@ export default function VentasHistoryClient({
                           display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          width: '32px',
-                          height: '32px',
+                          width: '26px',
+                          height: '26px',
                           backgroundColor: '#e6f4ea',
                           border: '1px solid #c2e7cc',
                           borderRadius: '6px',
                           cursor: 'pointer',
                           color: '#137333',
                           transition: 'all 0.15s ease',
+                          padding: 0
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = '#d2e3d6';
@@ -697,7 +715,7 @@ export default function VentasHistoryClient({
                           e.currentTarget.style.borderColor = '#c2e7cc';
                         }}
                       >
-                        <Share2 size={15} />
+                        <Share2 size={13} />
                       </button>
 
                       {/* Enviar por mail */}
@@ -708,14 +726,15 @@ export default function VentasHistoryClient({
                           display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          width: '32px',
-                          height: '32px',
+                          width: '26px',
+                          height: '26px',
                           backgroundColor: '#eff6ff',
                           border: '1px solid #bfdbfe',
                           borderRadius: '6px',
                           cursor: 'pointer',
                           color: '#1d4ed8',
                           transition: 'all 0.15s ease',
+                          padding: 0
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = '#dbeafe';
@@ -726,7 +745,7 @@ export default function VentasHistoryClient({
                           e.currentTarget.style.borderColor = '#bfdbfe';
                         }}
                       >
-                        <Mail size={15} />
+                        <Mail size={13} />
                       </button>
                     </div>
                   </td>

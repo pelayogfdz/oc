@@ -48,8 +48,9 @@ export default async function ConsignacionesPage() {
         </Link>
       </div>
 
-      <div className="card" style={{ padding: '0', overflow: 'hidden', border: '1px solid var(--caanma-border)', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+      <div className="card" style={{ padding: '0', overflow: 'hidden', border: '1px solid var(--caanma-border)', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', width: '100%', maxWidth: '100%', height: 'auto' }}>
+        <div className="table-responsive">
+          <table className="responsive-table" style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f8fafc' }}>
               <th style={{ padding: '0.5rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>ID Consignación</th>
@@ -122,6 +123,7 @@ export default async function ConsignacionesPage() {
           </tbody>
         </table>
       </div>
+    </div>
     </div>
   );
 }

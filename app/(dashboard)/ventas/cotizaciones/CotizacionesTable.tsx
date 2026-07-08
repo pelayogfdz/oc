@@ -28,7 +28,7 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
   });
 
   return (
-    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+    <div className="card" style={{ padding: 0, overflow: 'hidden', width: '100%', maxWidth: '100%', height: 'auto' }}>
       {/* Premium Tooltip CSS */}
       <style dangerouslySetInnerHTML={{ __html: `
         .quote-id-wrapper {
@@ -194,7 +194,8 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
         )}
       </div>
 
-      <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+      <div className="table-responsive">
+        <table className="responsive-table" style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse', textAlign: 'left' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
             <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap' }}>ID Cotización</th>
@@ -336,7 +337,8 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
             </tr>
           )}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 }
