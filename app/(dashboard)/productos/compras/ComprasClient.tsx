@@ -134,7 +134,7 @@ export default function ComprasClient({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
                   {(() => {
                     const isCancelled = purchase.status === 'CANCELLED';
-                    const hasDebt = purchase.status !== 'CANCELLED' && (purchase.balanceDue || 0) > 0;
+                    const hasDebt = purchase.status !== 'CANCELLED' && (purchase.balanceDue || 0) >= 0.01;
                     if (isCancelled) {
                       return (
                         <span style={{ 
@@ -255,7 +255,7 @@ export default function ComprasClient({
                   <td data-label="Estatus" style={{ padding: '1rem' }}>
                     {(() => {
                       const isCancelled = purchase.status === 'CANCELLED';
-                      const hasDebt = purchase.status !== 'CANCELLED' && (purchase.balanceDue || 0) > 0;
+                      const hasDebt = purchase.status !== 'CANCELLED' && (purchase.balanceDue || 0) >= 0.01;
                       if (isCancelled) {
                         return (
                           <span style={{ 

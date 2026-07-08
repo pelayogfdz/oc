@@ -16,7 +16,7 @@ export default async function CaducidadesPage() {
     },
     include: {
       product: {
-        select: { id: true, name: true, sku: true, imageUrl: true }
+        select: { id: true, name: true, sku: true, barcode: true, imageUrl: true }
       }
     },
     orderBy: { expirationDate: 'asc' }

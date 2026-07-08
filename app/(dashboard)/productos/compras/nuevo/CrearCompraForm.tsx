@@ -13,6 +13,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [creditDays, setCreditDays] = useState<number | ''>('');
   const [freightCost, setFreightCost] = useState(0);
+  const [discount, setDiscount] = useState(0);
   const [supplierFolio, setSupplierFolio] = useState('');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<{ 
@@ -24,6 +25,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
     batchNumber?: string, 
     expirationDate?: string,
     sku?: string,
+    barcode?: string,
     hasTraceability?: boolean,
     pedimento?: string,
     pedimentoDate?: string,
@@ -123,10 +125,13 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
 
   const itemsSubtotal = items.reduce((sum, item) => sum + (item.quantity * item.cost), 0);
   
+  // Proportional discount factor to apply to item bases for tax calculation
+  const discountFactor = itemsSubtotal > 0 ? Math.max(0, itemsSubtotal - discount) / itemsSubtotal : 1;
+
   let totalIva = 0;
   let totalIeps = 0;
   items.forEach(item => {
-    const itemTotal = item.quantity * item.cost;
+    const itemTotal = (item.quantity * item.cost) * discountFactor;
     const taxType = item.taxType || 'IVA';
     const taxRate = item.taxRate ?? 16.0;
     const iepsRate = item.iepsRate ?? 0.0;
@@ -142,9 +147,11 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
     }
   });
 
-  const iva = totalIva;
+  // Costo del flete es antes de IVA, por lo tanto genera 16% de IVA
+  const freightIva = freightCost * 0.16;
+  const iva = totalIva + freightIva;
   const ieps = totalIeps;
-  const finalTotal = itemsSubtotal + totalIva + totalIeps + freightCost;
+  const finalTotal = Math.max(0, itemsSubtotal - discount) + freightCost + iva + ieps;
 
   const handlePutOnHold = () => {
     if (items.length === 0) {
@@ -162,6 +169,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
       paymentMethod,
       creditDays: paymentMethod === 'CREDIT' ? (creditDays === '' ? undefined : creditDays) : undefined,
       freightCost,
+      discount,
       notes,
       total: finalTotal,
       timestamp: new Date().toLocaleString(),
@@ -177,6 +185,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
     setPaymentMethod('CASH');
     setCreditDays('');
     setFreightCost(0);
+    setDiscount(0);
     setNotes('');
     alert('Compra guardada en espera.');
   };
@@ -192,6 +201,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
     setPaymentMethod(purchase.paymentMethod || 'CASH');
     setCreditDays(purchase.creditDays !== undefined ? purchase.creditDays : '');
     setFreightCost(purchase.freightCost || 0);
+    setDiscount(purchase.discount || 0);
     setNotes(purchase.notes || '');
 
     // Remove from list
@@ -210,7 +220,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
   const handleAddItem = (product: any) => {
     if (!product || !product.id) return;
     if (items.some(i => i.productId === product.id)) return;
-    setItems([...items, { 
+    setItems([{ 
       productId: product.id, 
       name: product.name, 
       quantity: 1, 
@@ -218,6 +228,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
       imageUrl: product.imageUrl,
       hasTraceability: product.hasTraceability || false,
       sku: product.sku || '',
+      barcode: product.barcode || '',
       pedimento: '',
       pedimentoDate: '',
       crePermitSupplier: '',
@@ -230,7 +241,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
       taxRate: product.taxRate ?? 16.0,
       taxType: product.taxType || 'IVA',
       iepsRate: product.iepsRate ?? 0.0
-    }]);
+    }, ...items]);
   };
 
   const handleUpdateItem = (index: number, field: string, value: any) => {
@@ -251,6 +262,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
           supplierId: supplierId || null,
           paymentMethod,
           freightCost,
+          discount,
           items,
           total: finalTotal,
           supplierFolio: supplierFolio || null,
@@ -264,6 +276,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
           paymentMethod, 
           supplierId || null, 
           freightCost, 
+          discount, 
           undefined, 
           supplierFolio || null,
           preloadedOrder?.id,
@@ -544,7 +557,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
                     {/* Name and SKU */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                       <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '0.9rem', lineHeight: '1.2' }}>{item.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>SKU: {item.sku || 'S/N'}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>SKU: {item.sku || '-'} | Código: {item.barcode || '-'}</div>
                     </div>
 
                     {/* Quantity field */}
@@ -748,6 +761,16 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
               </span>
             </div>
 
+            {/* Descuento */}
+            {discount > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', color: '#e11d48', fontWeight: '600' }}>
+                <span>Descuento</span>
+                <span style={{ fontWeight: '700' }}>
+                  -${discount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            )}
+
             {/* IVA */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', color: '#475569', fontWeight: '600' }}>
               <span>I.V.A.</span>
@@ -899,6 +922,23 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
             </div>
           </div>
 
+          {/* Descuento input */}
+          <div style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Descuento Global</label>
+            <div style={{ display: 'flex', alignItems: 'center', height: '40px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: 'white', padding: '0 0.5rem' }}>
+               <span style={{ color: '#64748b', fontSize: '0.9rem', marginRight: '0.25rem' }}>$</span>
+               <input 
+                 type="number" 
+                 step="0.01" 
+                 min="0" 
+                 value={discount || ''} 
+                 onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)} 
+                 style={{ width: '100%', border: 'none', outline: 'none', fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }} 
+                 placeholder="0.00" 
+               />
+            </div>
+          </div>
+
           {/* Action Cards Panel */}
           <div className="compra-action-grid">
             
@@ -1039,7 +1079,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
                       <div>
                         <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b' }}>{p.name}</div>
                         <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
-                          SKU: {p.sku || 'N/A'} | Categoría: {p.category || 'General'}
+                          SKU: {p.sku || '-'} | Código: {p.barcode || '-'} | Categoría: {p.category || 'General'}
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

@@ -25,6 +25,7 @@ export async function createPurchase(
   paymentMethod: string = 'CASH',
   supplierId: string | null = null,
   freightCost: number = 0,
+  discount: number = 0,
   purchaseId?: string,
   supplierFolio?: string | null,
   purchaseOrderId?: string,
@@ -77,6 +78,7 @@ export async function createPurchase(
           paymentMethod,
           supplierId,
           freightCost,
+          discount,
           branchId: branch.id,
           userId: user.id,
           dueDate,
@@ -239,7 +241,7 @@ export async function cancelPurchase(purchaseId: string) {
     if (purchase.paymentMethod === 'CREDIT' && purchase.supplierId) {
       await tx.supplier.update({
         where: { id: purchase.supplierId },
-        data: { creditBalance: { decrement: purchase.total } }
+        data: { creditBalance: { decrement: purchase.balanceDue } }
       });
     }
 
@@ -322,6 +324,7 @@ export async function updatePurchase(
   paymentMethod: string = 'CASH',
   supplierId: string | null = null,
   freightCost: number = 0,
+  discount: number = 0,
   supplierFolio?: string | null
 ) {
   try {
@@ -344,7 +347,7 @@ export async function updatePurchase(
       if (purchase.paymentMethod === 'CREDIT' && purchase.supplierId) {
         await tx.supplier.update({
           where: { id: purchase.supplierId },
-          data: { creditBalance: { decrement: purchase.total } }
+          data: { creditBalance: { decrement: purchase.balanceDue } }
         });
       }
 
@@ -406,12 +409,18 @@ export async function updatePurchase(
 
         dueDate = new Date();
         dueDate.setDate(dueDate.getDate() + supplier.creditDays);
-        balanceDue = total;
+        
+        // Sum up payments already made to this purchase
+        const payments = await tx.supplierPayment.findMany({
+          where: { purchaseId }
+        });
+        const totalPaid = payments.reduce((acc, p) => acc + p.amount, 0);
+        balanceDue = Math.max(0, total - totalPaid);
 
         // Increment new supplier balance
         await tx.supplier.update({
           where: { id: supplierId },
-          data: { creditBalance: { increment: total } }
+          data: { creditBalance: { increment: balanceDue } }
         });
       }
 
@@ -423,6 +432,7 @@ export async function updatePurchase(
           paymentMethod,
           supplierId,
           freightCost,
+          discount,
           dueDate,
           balanceDue,
           supplierFolio

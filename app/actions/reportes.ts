@@ -437,6 +437,7 @@ export async function getInventoryValuationData(branchIdFilter?: string, brandFi
       id: true,
       name: true,
       sku: true,
+      barcode: true,
       imageUrl: true,
       stock: true,
       cost: true,
@@ -454,6 +455,7 @@ export async function getInventoryValuationData(branchIdFilter?: string, brandFi
       id: p.id,
       name: p.name,
       sku: p.sku || 'N/A',
+      barcode: p.barcode || 'N/A',
       imageUrl: p.imageUrl || null,
       stock: p.stock,
       cost: p.cost,
@@ -664,7 +666,7 @@ export async function getConsignmentReportData(
   let convertedCount = 0;
 
   // Track product performance
-  const productSummary: Record<string, { name: string; sku: string; consignedQty: number; activeQty: number; billedQty: number; totalValue: number }> = {};
+  const productSummary: Record<string, { name: string; sku: string; barcode: string; consignedQty: number; activeQty: number; billedQty: number; totalValue: number }> = {};
   // Track customer performance
   const customerSummary: Record<string, { name: string; consignedAmt: number; activeAmt: number; billedAmt: number; count: number }> = {};
 
@@ -695,9 +697,10 @@ export async function getConsignmentReportData(
     c.items.forEach(item => {
       const pName = item.variant ? `${item.product.name} (${item.variant.attribute})` : item.product.name;
       const sku = item.variant?.sku || item.product.sku || 'N/A';
+      const barcode = item.product.barcode || '';
       
       if (!productSummary[pName]) {
-        productSummary[pName] = { name: pName, sku, consignedQty: 0, activeQty: 0, billedQty: 0, totalValue: 0 };
+        productSummary[pName] = { name: pName, sku, barcode, consignedQty: 0, activeQty: 0, billedQty: 0, totalValue: 0 };
       }
       
       productSummary[pName].consignedQty += item.quantity;
@@ -941,6 +944,7 @@ export async function getTopProductsReport(
       id: item.productId,
       name,
       sku,
+      barcode: item.product?.barcode || "N/A",
       category,
       cost,
       price,

@@ -235,9 +235,9 @@ export default function CostosPreciosClient({
   };
 
   const downloadExcel = () => {
-    const headers = ["SKU", "Producto", "Stock", "Costo U.", "Precio Venta", "Margen"];
+    const headers = ["SKU / Código", "Producto", "Stock", "Costo U.", "Precio Venta", "Margen"];
     const rows = processedProducts.map((p: any) => [
-      p.sku || 'N/A',
+      `${p.sku || '-'} | ${p.barcode || '-'}`,
       p.name,
       p.stock,
       p.cost,
@@ -551,7 +551,7 @@ export default function CostosPreciosClient({
                 
                 <th style={{ padding: '0.75rem 0.5rem', cursor: 'pointer' }} onClick={() => handleSort('sku')}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    SKU {renderSortIcon('sku')}
+                    SKU / Código {renderSortIcon('sku')}
                   </div>
                 </th>
                 
@@ -597,8 +597,8 @@ export default function CostosPreciosClient({
                 processedProducts.map((p: any) => (
                   <tr key={p.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                     
-                    <td data-label="SKU" style={{ padding: '0.85rem 0.5rem', fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontFamily: 'monospace' }}>
-                      {p.sku || 'N/A'}
+                    <td data-label="SKU / Código" style={{ padding: '0.85rem 0.5rem', fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontFamily: 'monospace' }}>
+                      {p.sku || '-'} | {p.barcode || '-'}
                     </td>
                     
                     <td data-label="Producto" style={{ padding: '0.85rem 0.5rem', fontWeight: '600' }}>

@@ -1,20 +1,11 @@
 import { getBranchSettings } from "@/app/actions/settings";
-import SettingsFormClient from "../SettingsFormClient";
+import BancosClient from "./BancosClient";
 
 export default async function Page() {
   const settings = await getBranchSettings();
   const config = settings.configJson ? JSON.parse(settings.configJson)['bancos'] || {} : {};
 
   return (
-    <SettingsFormClient 
-      moduleKey="bancos"
-      title="Conciliación Bancaria"
-      description="Asocia las cuentas bancarias corporativas."
-      initialConfig={config}
-      fields={[
-        { name: 'bancoPrincipal', label: 'Banco', type: 'text', placeholder: 'Ej. BBVA, Banorte, Santander...' },
-        { name: 'clabePrincipal', label: 'CLABE Principal', type: 'text', placeholder: '' }
-      ]}
-    />
+    <BancosClient initialConfig={config} />
   );
 }

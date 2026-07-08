@@ -307,7 +307,9 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
               })),
               sale.total,
               sale.paymentMethod,
-              sale.customerId
+              sale.customerId,
+              undefined,
+              sale.breakdownDiscounts
             );
           } else if (sale.type === 'CONSIGNMENT') {
             const { createConsignment } = await import('../actions/consignment');
@@ -338,7 +340,8 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
               undefined,
               undefined,
               0,
-              sale.branchId
+              sale.branchId,
+              sale.breakdownDiscounts
             );
           }
           await db.pendingSales.delete(sale.id);
@@ -387,6 +390,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
               p.paymentMethod || 'CASH',
               p.supplierId || null,
               p.freightCost || 0,
+              p.discount || 0,
               p.id,
               p.supplierFolio || null,
               undefined,

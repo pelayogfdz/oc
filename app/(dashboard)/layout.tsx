@@ -14,7 +14,7 @@ import { prisma } from '@/lib/prisma';
 import FloatingWhatsappWidget from '../components/FloatingWhatsappWidget';
 import CollaboratorTaskPopup from '../components/CollaboratorTaskPopup';
 import PriceChangesAlertPopup from '../components/PriceChangesAlertPopup';
-import { redirect } from 'next/navigation';
+import { redirect, unstable_rethrow } from 'next/navigation';
 import { hasPermission, hasNodeAccess } from '@/app/config/permissions';
 
 export const dynamic = 'force-dynamic';
@@ -28,6 +28,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   try {
     user = await getActiveUser();
   } catch (err: any) {
+    unstable_rethrow(err);
     activeUserError = err.message || 'Session error';
   }
 

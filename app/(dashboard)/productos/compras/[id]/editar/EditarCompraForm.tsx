@@ -17,6 +17,7 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
   const [supplierId, setSupplierId] = useState(purchase.supplierId || "");
   const [paymentMethod, setPaymentMethod] = useState(purchase.paymentMethod || "CASH");
   const [freightCost, setFreightCost] = useState(purchase.freightCost || 0);
+  const [discount, setDiscount] = useState(purchase.discount || 0);
   const [supplierFolio, setSupplierFolio] = useState(purchase.supplierFolio || "");
   const [items, setItems] = useState<any[]>(() => {
     return purchase.items.map((item: any) => ({
@@ -26,6 +27,7 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
       cost: item.cost,
       imageUrl: item.product.imageUrl || undefined,
       sku: item.product.sku || "",
+      barcode: item.product.barcode || "",
       hasTraceability: item.product.hasTraceability || false,
       batchNumber: item.batch?.batchNumber || "",
       expirationDate: item.batch?.expirationDate ? new Date(item.batch.expirationDate).toISOString().split("T")[0] : "",
@@ -54,10 +56,13 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
 
   const itemsSubtotal = items.reduce((sum, item) => sum + item.quantity * item.cost, 0);
 
+  // Proportional discount factor to apply to item bases for tax calculation
+  const discountFactor = itemsSubtotal > 0 ? Math.max(0, itemsSubtotal - discount) / itemsSubtotal : 1;
+
   let totalIva = 0;
   let totalIeps = 0;
   items.forEach(item => {
-    const itemTotal = item.quantity * item.cost;
+    const itemTotal = (item.quantity * item.cost) * discountFactor;
     const taxType = item.taxType || 'IVA';
     const taxRate = item.taxRate ?? 16.0;
     const iepsRate = item.iepsRate ?? 0.0;
@@ -73,15 +78,16 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
     }
   });
 
-  const iva = totalIva;
+  // Costo del flete es antes de IVA, por lo tanto genera 16% de IVA
+  const freightIva = freightCost * 0.16;
+  const iva = totalIva + freightIva;
   const ieps = totalIeps;
-  const finalTotal = itemsSubtotal + totalIva + totalIeps + freightCost;
+  const finalTotal = Math.max(0, itemsSubtotal - discount) + freightCost + iva + ieps;
 
   const handleAddItem = (product: any) => {
     if (!product || !product.id) return;
     if (items.some((i) => i.productId === product.id)) return;
     setItems([
-      ...items,
       {
         productId: product.id,
         name: product.name,
@@ -90,6 +96,7 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
         imageUrl: product.imageUrl,
         hasTraceability: product.hasTraceability || false,
         sku: product.sku || "",
+        barcode: product.barcode || "",
         pedimento: "",
         pedimentoDate: "",
         crePermitSupplier: "",
@@ -102,7 +109,8 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
         taxRate: product.taxRate ?? 16.0,
         taxType: product.taxType || 'IVA',
         iepsRate: product.iepsRate ?? 0.0
-      }
+      },
+      ...items
     ]);
   };
 
@@ -125,6 +133,7 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
         paymentMethod,
         supplierId || null,
         freightCost,
+        discount,
         supplierFolio || null
       );
 
@@ -340,9 +349,9 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
                     </div>
 
                     {/* Name and SKU */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                      <div style={{ fontWeight: "700", color: "#1e293b", fontSize: "0.9rem", lineHeight: "1.2" }}>{item.name}</div>
-                      <div style={{ fontSize: "0.75rem", color: "#64748b" }}>SKU: {item.sku || "S/N"}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '0.9rem', lineHeight: '1.2' }}>{item.name}</div>
+                      <div style={{ fontSize: "0.75rem", color: "#64748b" }}>SKU: {item.sku || "-"} | Código: {item.barcode || "-"}</div>
                     </div>
 
                     {/* Quantity */}
@@ -546,6 +555,16 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
               </span>
             </div>
 
+            {/* Descuento */}
+            {discount > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.9rem", color: "#e11d48", fontWeight: "600" }}>
+                <span>Descuento</span>
+                <span style={{ fontWeight: "700" }}>
+                  -${discount.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            )}
+
             {/* IVA */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.9rem", color: "#475569", fontWeight: "600" }}>
               <span>I.V.A.</span>
@@ -664,6 +683,23 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
             </div>
           </div>
 
+          {/* Descuento input */}
+          <div style={{ backgroundColor: "white", padding: "1.25rem", borderRadius: "12px", border: "1px solid #cbd5e1", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <label style={{ fontSize: "0.85rem", fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em" }}>Descuento Global</label>
+            <div style={{ display: "flex", alignItems: "center", height: "40px", border: "1px solid #cbd5e1", borderRadius: "8px", backgroundColor: "white", padding: "0 0.5rem" }}>
+               <span style={{ color: "#64748b", fontSize: "0.9rem", marginRight: "0.25rem" }}>$</span>
+               <input 
+                 type="number" 
+                 step="0.01" 
+                 min="0" 
+                 value={discount || ""} 
+                 onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)} 
+                 style={{ width: "100%", border: "none", outline: "none", fontSize: "0.95rem", fontWeight: "600", color: "#1e293b" }} 
+                 placeholder="0.00" 
+               />
+            </div>
+          </div>
+
         </div>
 
       </div>
@@ -737,7 +773,7 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
                       <div>
                         <div style={{ fontWeight: "bold", fontSize: "0.95rem", color: "#1e293b" }}>{p.name}</div>
                         <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "0.15rem" }}>
-                          SKU: {p.sku || "N/A"}
+                          SKU: {p.sku || "-"} | Código: {p.barcode || "-"}
                         </div>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>

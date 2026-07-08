@@ -22,8 +22,8 @@ export default async function ProductosPage() {
     branchCondition = { in: tenantBranchIds };
   }
 
-  // Fetch a subset of products for displaying (paginated/limited) and categories
-  const [displayedProductsRaw, categoriesData] = await Promise.all([
+  // Fetch a subset of products for displaying (paginated/limited), categories and brands
+  const [displayedProductsRaw, categoriesData, brandsData] = await Promise.all([
     prisma.product.findMany({
       where: { branchId: branchCondition, isActive: true },
       include: { variants: true, prices: true, branch: { select: { id: true, name: true } } },
@@ -34,6 +34,11 @@ export default async function ProductosPage() {
       where: { branchId: branchCondition, isActive: true },
       select: { category: true },
       distinct: ['category']
+    }),
+    prisma.product.findMany({
+      where: { branchId: branchCondition, isActive: true },
+      select: { brand: true },
+      distinct: ['brand']
     })
   ]);
 
@@ -141,7 +146,8 @@ export default async function ProductosPage() {
   }
 
   const safeProducts = JSON.parse(JSON.stringify(displayedProducts));
-  const categories = categoriesData.map(c => c.category).filter(Boolean) as string[];
+  const categories = Array.from(new Set(categoriesData.map(c => c.category?.trim()).filter(Boolean))) as string[];
+  const brands = Array.from(new Set(brandsData.map(b => b.brand?.trim()).filter(Boolean))) as string[];
 
   return (
     <div>
@@ -149,6 +155,7 @@ export default async function ProductosPage() {
         initialProducts={safeProducts} 
         branchId={branchId} 
         categories={categories} 
+        brands={brands}
       />
     </div>
   );

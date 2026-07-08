@@ -83,6 +83,7 @@ export default function BitacoraInventarioClient({ initialData, initialBranchId,
       return (
         (m.product?.name && m.product.name.toLowerCase().includes(term)) ||
         (m.product?.sku && m.product.sku.toLowerCase().includes(term)) ||
+        (m.product?.barcode && m.product.barcode.toLowerCase().includes(term)) ||
         (m.reason && m.reason.toLowerCase().includes(term))
       );
     });
@@ -109,10 +110,10 @@ export default function BitacoraInventarioClient({ initialData, initialBranchId,
   };
 
   const downloadExcel = () => {
-    const headers = ["Fecha", "SKU", "Producto", "Tipo Movimiento", "Cantidad", "Motivo", "Registrado por"];
+    const headers = ["Fecha", "SKU / Código", "Producto", "Tipo Movimiento", "Cantidad", "Motivo", "Registrado por"];
     const rows = filteredMovements.map((m: any) => [
       new Date(m.createdAt).toLocaleString(),
-      m.product?.sku || "N/A",
+      `${m.product?.sku || '-'} | ${m.product?.barcode || '-'}`,
       m.product?.name || "Desconocido",
       getBadgeStyle(m.type).text,
       m.quantity,
@@ -311,7 +312,7 @@ export default function BitacoraInventarioClient({ initialData, initialBranchId,
               <thead>
                 <tr style={{ borderBottom: '2px solid #f1f5f9', color: '#475569', fontSize: '0.8rem', fontWeight: 'bold' }}>
                   <th style={{ padding: '1rem 0.75rem' }}>Fecha y Hora</th>
-                  <th style={{ padding: '1rem 0.75rem' }}>SKU</th>
+                  <th style={{ padding: '1rem 0.75rem' }}>SKU / Código</th>
                   <th style={{ padding: '1rem 0.75rem' }}>Producto</th>
                   <th style={{ padding: '1rem 0.75rem', textAlign: 'center' }}>Tipo</th>
                   <th style={{ padding: '1rem 0.75rem', textAlign: 'center' }}>Cantidad</th>
@@ -326,7 +327,7 @@ export default function BitacoraInventarioClient({ initialData, initialBranchId,
                     return (
                       <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.15s' }} onMouseOver={e => e.currentTarget.style.backgroundColor='#f8fafc'} onMouseOut={e => e.currentTarget.style.backgroundColor='transparent'}>
                         <td style={{ padding: '0.85rem 0.75rem', color: '#64748b' }}>{new Date(m.createdAt).toLocaleString()}</td>
-                        <td style={{ padding: '0.85rem 0.75rem', fontFamily: 'monospace', fontSize: '0.8rem' }}>{m.product?.sku || "Sin SKU"}</td>
+                        <td style={{ padding: '0.85rem 0.75rem', fontFamily: 'monospace', fontSize: '0.8rem' }}>{m.product?.sku || "-"} | {m.product?.barcode || "-"}</td>
                         <td style={{ padding: '0.85rem 0.75rem', fontWeight: 'bold', color: '#0f172a' }}>{m.product?.name || "Desconocido"}</td>
                         <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center' }}>
                           <span style={{ backgroundColor: badge.bg, color: badge.color, padding: '0.25rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>

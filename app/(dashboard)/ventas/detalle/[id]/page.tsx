@@ -185,7 +185,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
                     <div style={{ fontWeight: 'bold', color: '#0f172a' }}>Desconocido</div>
                   )}
                   {item.variant && <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Var: {item.variant.attribute}</div>}
-                  <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>SKU: {item.product?.sku || '--'}</div>
+                  <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>SKU: {item.product?.sku || '-'} | Código: {item.product?.barcode || '-'}</div>
                 </td>
                 <td data-label="Cant." style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'center', color: '#0f172a' }}>{item.quantity}</td>
                 <td data-label="Precio Unit." style={{ padding: '1rem', textAlign: 'right', color: '#0f172a' }}>${item.price.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>

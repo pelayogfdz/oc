@@ -181,6 +181,7 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
       });
 
       // 4. Totals Box
+      const breakdownDiscounts = quote.breakdownDiscounts ?? false;
       let originalListTotalWithIva = 0;
       let finalTotalWithIva = quote.total;
       let subtotalExcludingIva = 0;
@@ -193,7 +194,7 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
         const isIva = taxType === 'IVA' || taxType === 'IVA_IEPS';
         const rate = isIva ? taxRate : 0;
 
-        const originalPrice = item.product?.price || item.price;
+        const originalPrice = breakdownDiscounts ? (item.product?.price || item.price) : item.price;
         const finalPrice = item.price;
 
         originalListTotalWithIva += originalPrice * item.quantity;
@@ -217,28 +218,38 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
 
       doc.strokeColor('#cbd5e1').lineWidth(1).moveTo(350, totalsY).lineTo(562, totalsY).stroke();
 
+      let currentOffset = totalsY + 8;
+
       doc.font(fontRegular).fontSize(9).fillColor('#475569');
-      doc.text('Subtotal:', 350, totalsY + 8, { width: 100, align: 'left' });
-      doc.text(`$${subtotalExcludingIva.toFixed(2)}`, 450, totalsY + 8, { width: 105, align: 'right' });
+      doc.text('Subtotal:', 350, currentOffset, { width: 100, align: 'left' });
+      doc.text(`$${subtotalExcludingIva.toFixed(2)}`, 450, currentOffset, { width: 105, align: 'right' });
+      currentOffset += 14;
 
-      doc.fillColor('#ef4444'); // Red color for discounts
-      doc.text('Descuento:', 350, totalsY + 22, { width: 100, align: 'left' });
-      doc.text(`-$${discountExcludingIva.toFixed(2)}`, 450, totalsY + 22, { width: 105, align: 'right' });
+      if (breakdownDiscounts && discountExcludingIva > 0.01) {
+        doc.fillColor('#ef4444'); // Red color for discounts
+        doc.text('Descuento:', 350, currentOffset, { width: 100, align: 'left' });
+        doc.text(`-$${discountExcludingIva.toFixed(2)}`, 450, currentOffset, { width: 105, align: 'right' });
+        currentOffset += 14;
 
-      doc.fillColor('#475569');
-      doc.font(fontBold).text('Subtotal:', 350, totalsY + 36, { width: 100, align: 'left' });
-      const netExcludingIva = subtotalExcludingIva - discountExcludingIva;
-      doc.text(`$${netExcludingIva.toFixed(2)}`, 450, totalsY + 36, { width: 105, align: 'right' });
+        doc.fillColor('#475569');
+        doc.font(fontBold).text('Subtotal:', 350, currentOffset, { width: 100, align: 'left' });
+        const netExcludingIva = subtotalExcludingIva - discountExcludingIva;
+        doc.text(`$${netExcludingIva.toFixed(2)}`, 450, currentOffset, { width: 105, align: 'right' });
+        doc.font(fontRegular);
+        currentOffset += 14;
+      }
 
-      doc.font(fontRegular).text('IVA:', 350, totalsY + 50, { width: 100, align: 'left' });
-      doc.text(`$${totalIva.toFixed(2)}`, 450, totalsY + 50, { width: 105, align: 'right' });
+      doc.font(fontRegular).fillColor('#475569').text('IVA:', 350, currentOffset, { width: 100, align: 'left' });
+      doc.text(`$${totalIva.toFixed(2)}`, 450, currentOffset, { width: 105, align: 'right' });
+      currentOffset += 16;
 
       // Border line before total
-      doc.strokeColor('#0f172a').lineWidth(1.5).moveTo(350, totalsY + 66).lineTo(562, totalsY + 66).stroke();
+      doc.strokeColor('#0f172a').lineWidth(1.5).moveTo(350, currentOffset).lineTo(562, currentOffset).stroke();
+      currentOffset += 8;
 
       doc.font(fontBold).fontSize(11).fillColor('#0f172a');
-      doc.text('Total:', 350, totalsY + 74, { width: 100, align: 'left' });
-      doc.text(`$${finalTotalWithIva.toFixed(2)}`, 450, totalsY + 74, { width: 105, align: 'right' });
+      doc.text('Total:', 350, currentOffset, { width: 100, align: 'left' });
+      doc.text(`$${finalTotalWithIva.toFixed(2)}`, 450, currentOffset, { width: 105, align: 'right' });
 
       // 5. Footer Notes
       const footerY = 700;

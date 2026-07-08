@@ -382,6 +382,7 @@ model Sale {
   cardAmount    Float?
   invoiceId     String?
   invoiceFolio  String?
+  breakdownDiscounts Boolean @default(false)
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   satCreditNote String?
@@ -464,6 +465,7 @@ model Quote {
   branch        Branch?     @relation(fields: [branchId], references: [id])
   customer      Customer?   @relation(fields: [customerId], references: [id])
   user          User        @relation(fields: [userId], references: [id])
+  breakdownDiscounts Boolean @default(false)
   items         QuoteItem[]
 }
 
@@ -604,6 +606,7 @@ model Purchase {
   status        String            @default("COMPLETED")
   createdAt     DateTime          @default(now())
   freightCost   Float?            @default(0)
+  discount      Float?            @default(0)
   balanceDue    Float             @default(0)
   dueDate       DateTime?
   branch        Branch?           @relation(fields: [branchId], references: [id])

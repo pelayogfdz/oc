@@ -319,7 +319,9 @@ const ProductTableUI = memo(function ProductTableUI({
                              {prod.name}
                            </Link>
                         )}
-                        <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>{prod.sku || prod.barcode || 'Sin SKU'}</div>
+                        <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>
+                          SKU: {prod.sku || '-'} | Código: {prod.barcode || '-'}
+                        </div>
                       </div>
                     </div>
                   </td>

@@ -72,7 +72,7 @@ export default async function Page() {
                       </div>
                       <div>
                         <div style={{ fontWeight: 'bold', color: '#0f172a' }}>{item.product?.name || 'Stock'}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)' }}>SKU: {item.product?.sku}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)' }}>SKU: {item.product?.sku || '-'} | Código: {item.product?.barcode || '-'}</div>
                       </div>
                     </div>
                   </td>

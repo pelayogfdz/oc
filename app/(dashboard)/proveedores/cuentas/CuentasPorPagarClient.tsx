@@ -96,14 +96,14 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
                 <div style={{ borderRight: '1px solid #e2e8f0', paddingRight: '1.5rem' }}>
                    <h4 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem', color: '#334155' }}>Cuentas por Pagar</h4>
                    
-                   {selectedSupplier.purchases?.filter((p:any) => p.paymentMethod === 'CREDIT' && p.balanceDue > 0).length === 0 ? (
+                   {selectedSupplier.purchases?.filter((p:any) => p.paymentMethod === 'CREDIT' && p.balanceDue >= 0.01).length === 0 ? (
                       <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
                         <HandCoins size={32} style={{ margin: '0 auto 0.5rem', opacity: 0.5 }} />
                         <p>No tienes cuentas pendientes con este proveedor</p>
                       </div>
                    ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '5px' }}>
-                        {selectedSupplier.purchases?.filter((p:any) => p.paymentMethod === 'CREDIT' && p.balanceDue > 0)
+                        {selectedSupplier.purchases?.filter((p:any) => p.paymentMethod === 'CREDIT' && p.balanceDue >= 0.01)
                            .sort((a:any, b:any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
                            .map((purchase: any) => {
                              const overdue = isOverdue(purchase.dueDate);
@@ -238,7 +238,7 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
         </thead>
         <tbody>
           {suppliers.map((s: any) => {
-            const overduePurchases = s.purchases?.filter((p:any) => p.paymentMethod === 'CREDIT' && p.balanceDue > 0 && isOverdue(p.dueDate)) || [];
+            const overduePurchases = s.purchases?.filter((p:any) => p.paymentMethod === 'CREDIT' && p.balanceDue >= 0.01 && isOverdue(p.dueDate)) || [];
             
             return (
               <tr key={s.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
@@ -251,7 +251,7 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
                      Plazo Acordado: {s.creditDays} días
                   </div>
                 </td>
-                <td data-label="Deuda Total" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: s.creditBalance > 0 ? '#dc2626' : '#22c55e' }}>
+                <td data-label="Deuda Total" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: s.creditBalance >= 0.01 ? '#dc2626' : '#22c55e' }}>
                   ${(s.creditBalance || 0).toFixed(2)}
                 </td>
                 <td data-label="Estado" style={{ padding: '1rem', textAlign: 'center' }}>
@@ -259,7 +259,7 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
                       <span style={{ padding: '0.25rem 0.5rem', backgroundColor: '#fef2f2', color: '#ef4444', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                         <AlertTriangle size={14} /> {overduePurchases.length} Vencida(s)
                       </span>
-                   ) : s.creditBalance > 0 ? (
+                   ) : s.creditBalance >= 0.01 ? (
                      <span style={{ padding: '0.25rem 0.5rem', backgroundColor: '#eef2ff', color: '#4f46e5', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 'bold' }}>
                         Al Corriente
                       </span>

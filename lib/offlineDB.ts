@@ -21,6 +21,7 @@ export interface OfflineSale extends DLQMetadata {
   synced: boolean;
   branchId?: string;
   type?: 'SALE' | 'QUOTE' | 'CONSIGNMENT';
+  breakdownDiscounts?: boolean;
 }
 
 export interface OfflineTransfer extends DLQMetadata {
@@ -47,6 +48,7 @@ export interface OfflinePurchase extends DLQMetadata {
   total?: number;
   paymentMethod?: string;
   freightCost?: number;
+  discount?: number;
   notes?: string;
   supplierFolio?: string | null;
   creditDays?: number;

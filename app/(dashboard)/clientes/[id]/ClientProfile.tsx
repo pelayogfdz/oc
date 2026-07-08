@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { 
   UserCircle, ShoppingBag, HandCoins, History, Edit, 
   MapPin, Mail, Phone, Building, Briefcase, FileText, CheckCircle, Square, AlertTriangle, CheckSquare, Trash2,
-  Star
+  Star, Send, Download, Loader2, Share2, Printer, ExternalLink
 } from 'lucide-react';
 import { addCustomerPaymentBatch, deleteCustomerPayment } from '@/app/actions/customerPayment';
-import { toggleCustomerBlock } from '@/app/actions/customer';
+import { toggleCustomerBlock, sendCustomerAccountStatementEmail } from '@/app/actions/customer';
+import { stampCustomerPayment } from '@/app/actions/facturacion';
 import { formatCurrency } from '@/lib/utils';
 import { getGoogleWalletSettings, generateGoogleWalletPassUrl } from '@/app/actions/loyalty';
 
@@ -23,6 +24,47 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
   const [requestCfdi, setRequestCfdi] = useState(false);
   const [paymentDate, setPaymentDate] = useState('');
   const [loading, setLoading] = useState(false);
+  const [stampingId, setStampingId] = useState<string | null>(null);
+  
+  // Estado de Cuenta Email state
+  const [emailLoading, setEmailLoading] = useState(false);
+
+  const handleSendStatementEmail = async () => {
+    const destEmail = prompt("Ingresa el correo al que deseas enviar el Estado de Cuenta:", customer.email || "");
+    if (destEmail === null) return;
+    if (!destEmail.trim()) return alert("El correo es requerido");
+
+    setEmailLoading(true);
+    try {
+      const res = await sendCustomerAccountStatementEmail(customer.id, destEmail.trim());
+      if (res.success) {
+        alert("Estado de cuenta enviado con éxito.");
+      } else {
+        alert("Error al enviar: " + res.error);
+      }
+    } catch (e: any) {
+      alert("Error: " + e.message);
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  const handleStampPayment = async (paymentId: string) => {
+    if (!confirm('¿Estás seguro de timbrar este abono ante el SAT?')) return;
+    setStampingId(paymentId);
+    try {
+      const response = await stampCustomerPayment(paymentId);
+      if (response.success) {
+        alert('Recibo de pago (REP) timbrado exitosamente');
+      } else {
+        alert('Error al timbrar abono: ' + response.error);
+      }
+    } catch (err: any) {
+      alert('Excepción: ' + err.message);
+    } finally {
+      setStampingId(null);
+    }
+  };
 
   // Google Wallet Integration State
   const [googleWalletEnabled, setGoogleWalletEnabled] = useState(false);
@@ -537,9 +579,72 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
                         <td style={{ padding: '1rem' }}>{p.reason}</td>
                         <td style={{ padding: '1rem', fontWeight: 'bold', color: '#10b981' }}>+{formatCurrency(p.amount)}</td>
                         <td style={{ padding: '1rem' }}>
-                           <button onClick={() => handleDeletePayment(p.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }}>
-                              <Trash2 size={16} /> Revertir Pago
-                           </button>
+                           {p.cfdiStatus === 'INVOICED' ? (
+                              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                 <span style={{ fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: '#dcfce7', color: '#15803d', padding: '0.25rem 0.5rem', borderRadius: '6px' }}>
+                                    Timbrado ✓
+                                 </span>
+                                 {p.cfdiUrlPdf && (
+                                    <a 
+                                       href={p.cfdiUrlPdf} 
+                                       target="_blank" 
+                                       rel="noopener noreferrer"
+                                       style={{ 
+                                          fontSize: '0.75rem', 
+                                          fontWeight: 'bold', 
+                                          backgroundColor: '#e0f2fe', 
+                                          color: '#0369a1', 
+                                          padding: '0.25rem 0.5rem', 
+                                          borderRadius: '6px', 
+                                          textDecoration: 'none',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '0.25rem'
+                                       }}
+                                    >
+                                       <Download size={12} /> PDF
+                                    </a>
+                                 )}
+                              </div>
+                           ) : (
+                              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                 {p.saleId && (
+                                    <button 
+                                       onClick={() => handleStampPayment(p.id)} 
+                                       disabled={stampingId === p.id}
+                                       style={{ 
+                                          background: 'none', 
+                                          border: 'none', 
+                                          color: 'var(--caanma-primary)', 
+                                          cursor: stampingId === p.id ? 'not-allowed' : 'pointer', 
+                                          display: 'flex', 
+                                          alignItems: 'center', 
+                                          gap: '0.25rem', 
+                                          fontWeight: 'bold' 
+                                       }}
+                                    >
+                                       {stampingId === p.id ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                                       Timbrar Pago
+                                    </button>
+                                 )}
+                                 <button 
+                                    onClick={() => handleDeletePayment(p.id)} 
+                                    style={{ 
+                                       background: 'none', 
+                                       border: 'none', 
+                                       color: '#ef4444', 
+                                       cursor: 'pointer', 
+                                       display: 'flex', 
+                                       alignItems: 'center', 
+                                       gap: '0.25rem', 
+                                       fontWeight: 'bold' 
+                                    }}
+                                    disabled={stampingId === p.id}
+                                 >
+                                    <Trash2 size={16} /> Revertir Pago
+                                 </button>
+                              </div>
+                           )}
                         </td>
                      </tr>
                   ))}
@@ -550,6 +655,211 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
             </table>
          </div>
       )}
+
+      {activeTab === 'estado' && (() => {
+        const activeSales = sales.filter((s: any) => s.status !== 'CANCELLED' && s.balanceDue >= 0.01);
+        
+        const facturasVencidas = activeSales
+          .filter((s: any) => s.invoiceId && s.dueDate && new Date(s.dueDate) < new Date())
+          .reduce((sum: number, s: any) => sum + s.balanceDue, 0);
+
+        const facturasVigentes = activeSales
+          .filter((s: any) => s.invoiceId && (!s.dueDate || new Date(s.dueDate) >= new Date()))
+          .reduce((sum: number, s: any) => sum + s.balanceDue, 0);
+          
+        const notasDeVentaPendientes = activeSales
+          .filter((s: any) => !s.invoiceId)
+          .reduce((sum: number, s: any) => sum + s.balanceDue, 0);
+          
+        const anticipos = customer.storeCredit || 0;
+        const saldoTotalPendiente = (facturasVencidas + facturasVigentes + notasDeVentaPendientes) - anticipos;
+
+        // WhatsApp message
+        const waMessageText = `Hola, le compartimos su Estado de Cuenta. Su saldo total pendiente es ${formatCurrency(saldoTotalPendiente)}. Puede consultarlo e imprimirlo en el siguiente enlace: ${window.location.origin}/api/clientes/${customer.id}/estado-de-cuenta`;
+        const waUrl = `https://api.whatsapp.com/send?phone=${customer.phone ? customer.phone.replace(/\D/g, '') : ''}&text=${encodeURIComponent(waMessageText)}`;
+
+        // Web Share function
+        const handleNativeShare = async () => {
+          if (navigator.share) {
+            try {
+              await navigator.share({
+                title: `Estado de Cuenta - ${customer.legalName || customer.name}`,
+                text: `Estado de Cuenta de ${customer.legalName || customer.name}. Saldo total pendiente: ${formatCurrency(saldoTotalPendiente)}`,
+                url: `${window.location.origin}/api/clientes/${customer.id}/estado-de-cuenta`
+              });
+            } catch (err) {
+              console.error("Error sharing:", err);
+            }
+          } else {
+            // copy to clipboard fallback
+            try {
+              await navigator.clipboard.writeText(`${window.location.origin}/api/clientes/${customer.id}/estado-de-cuenta`);
+              alert("El enlace del Estado de Cuenta se copió al portapapeles.");
+            } catch (err) {
+              alert(`Enlace: ${window.location.origin}/api/clientes/${customer.id}/estado-de-cuenta`);
+            }
+          }
+        };
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            
+            {/* Action Bar */}
+            <div className="card" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', backgroundColor: '#f8fafc', padding: '1rem 1.5rem' }}>
+              <h4 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#334155', margin: 0, marginRight: 'auto' }}>Acciones de Estado de Cuenta</h4>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                
+                {/* Print/Download PDF */}
+                <a 
+                  href={`/api/clientes/${customer.id}/estado-de-cuenta`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="btn-secondary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.6rem 1rem', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.85rem' }}
+                >
+                  <Printer size={16} /> Imprimir / PDF
+                </a>
+
+                {/* Email */}
+                <button 
+                  onClick={handleSendStatementEmail}
+                  disabled={emailLoading}
+                  className="btn-secondary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1rem', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.85rem', cursor: 'pointer' }}
+                >
+                  {emailLoading ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
+                  Enviar por Correo
+                </button>
+
+                {/* WhatsApp */}
+                <a 
+                  href={waUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="btn-secondary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.6rem 1rem', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.85rem', backgroundColor: '#e8f5e9', color: '#2e7d32', border: '1px solid #c8e6c9' }}
+                >
+                  <Send size={16} /> Enviar por WhatsApp
+                </a>
+
+                {/* Share */}
+                <button 
+                  onClick={handleNativeShare}
+                  className="btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1rem', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.85rem', cursor: 'pointer' }}
+                >
+                  <Share2 size={16} /> Compartir Enlace
+                </button>
+
+              </div>
+            </div>
+
+            {/* Account Summary Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+              
+              <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #ef4444' }}>
+                <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.25rem' }}>(+) Facturas Vencidas</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444' }}>
+                  {formatCurrency(facturasVencidas)}
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #3b82f6' }}>
+                <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.25rem' }}>(+) Facturas Vigentes</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e293b' }}>
+                  {formatCurrency(facturasVigentes)}
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #f59e0b' }}>
+                <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.25rem' }}>(+) Notas de Venta (Por Facturar)</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e293b' }}>
+                  {formatCurrency(notasDeVentaPendientes)}
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #10b981' }}>
+                <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.25rem' }}>(-) Anticipos / Saldo a Favor</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>
+                  -{formatCurrency(anticipos)}
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: '1.25rem', backgroundColor: '#e0f2fe', borderLeft: '4px solid #0284c7', gridColumn: '1 / -1' }}>
+                <div style={{ color: '#0369a1', fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.25rem' }}>(=) Saldo Total Pendiente</div>
+                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#0369a1' }}>
+                  {formatCurrency(saldoTotalPendiente)}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Pending Movements Table */}
+            <div className="card" style={{ padding: 0 }}>
+              <h4 style={{ fontSize: '1.1rem', fontWeight: 'bold', padding: '1.5rem 1.5rem 1rem', color: '#334155', margin: 0 }}>Detalle de Movimientos Pendientes</h4>
+              <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead style={{ backgroundColor: '#f8fafc' }}>
+                  <tr>
+                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem' }}>F. Emisión</th>
+                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem' }}>F. Vence</th>
+                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem' }}>Tipo Documento</th>
+                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem' }}>Folio / Ref.</th>
+                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem', textAlign: 'right' }}>Importe Original</th>
+                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem', textAlign: 'right' }}>Total Pendiente</th>
+                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem', textAlign: 'center' }}>Días Vencidos</th>
+                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem', textAlign: 'center' }}>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeSales.map((sale: any) => {
+                    const overdue = sale.dueDate ? new Date(sale.dueDate) < new Date() : false;
+                    const daysOverdue = sale.dueDate && new Date() > new Date(sale.dueDate)
+                      ? Math.floor((new Date().getTime() - new Date(sale.dueDate).getTime()) / (1000 * 60 * 60 * 24))
+                      : 0;
+
+                    return (
+                      <tr key={sale.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
+                        <td style={{ padding: '1rem' }}>{new Date(sale.createdAt).toLocaleDateString()}</td>
+                        <td style={{ padding: '1rem' }}>{sale.dueDate ? new Date(sale.dueDate).toLocaleDateString() : 'N/A'}</td>
+                        <td style={{ padding: '1rem', color: '#64748b' }}>
+                          {sale.invoiceId ? '📄 Factura' : '📝 Nota de Venta'}
+                        </td>
+                        <td style={{ padding: '1rem', fontWeight: 'bold' }}>
+                          {sale.invoiceFolio || sale.folio || sale.id.slice(0, 8).toUpperCase()}
+                        </td>
+                        <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '500' }}>
+                          {formatCurrency(sale.total)}
+                        </td>
+                        <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: overdue ? '#ef4444' : '#1e293b' }}>
+                          {formatCurrency(sale.balanceDue)}
+                        </td>
+                        <td style={{ padding: '1rem', textAlign: 'center', fontWeight: '500', color: overdue ? '#ef4444' : '#64748b' }}>
+                          {daysOverdue > 0 ? `${daysOverdue} días` : '0 días'}
+                        </td>
+                        <td style={{ padding: '1rem', textAlign: 'center' }}>
+                          {overdue ? (
+                            <span style={{ padding: '0.2rem 0.5rem', backgroundColor: '#fee2e2', color: '#ef4444', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>VENCIDO</span>
+                          ) : (
+                            <span style={{ padding: '0.2rem 0.5rem', backgroundColor: '#e0f2fe', color: '#0369a1', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>VIGENTE</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {activeSales.length === 0 && (
+                    <tr>
+                      <td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                        No hay facturas o cuentas pendientes para este cliente.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        );
+      })()}
 
     </div>
   );

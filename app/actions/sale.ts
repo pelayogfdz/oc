@@ -17,7 +17,8 @@ export async function createSale(
   quoteIdToConvert?: string,
   consignmentIdToConvert?: string,
   pointsRedeemed: number = 0,
-  branchId?: string
+  branchId?: string,
+  breakdownDiscounts: boolean = false
 ) {
   try {
     const activeBranch = await getActiveBranch();
@@ -177,6 +178,7 @@ export async function createSale(
         userId: user.id,
         dueDate,
         balanceDue,
+        breakdownDiscounts,
         items: {
           create: items.map(item => ({
             quantity: item.quantity,

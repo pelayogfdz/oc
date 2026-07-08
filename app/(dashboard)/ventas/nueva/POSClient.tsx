@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star, X, Clock, FolderOpen, Trash2, ShoppingBag, Plus, Percent, Tag, PlusCircle, MoreVertical } from 'lucide-react';
 import QRCode from 'qrcode';
 import { createSale, sendSaleByEmail } from '@/app/actions/sale';
@@ -81,7 +81,8 @@ export default function POSClient({
       notes: '',
       documentType: 'TICKET',
       transactionType: 'VENTA',
-      appliedPromotionIds: null
+      appliedPromotionIds: null,
+      breakdownDiscounts: false
     }
   ]);
 
@@ -105,7 +106,8 @@ export default function POSClient({
         transactionType,
         appliedPromotionIds,
         loadedQuoteId,
-        loadedConsignmentId
+        loadedConsignmentId,
+        breakdownDiscounts
       } : t);
       
       const target = updated.find(t => t.id === targetTabId);
@@ -127,6 +129,7 @@ export default function POSClient({
         setAppliedPromotionIds(target.appliedPromotionIds !== undefined ? target.appliedPromotionIds : null);
         setLoadedQuoteId(target.loadedQuoteId || null);
         setLoadedConsignmentId(target.loadedConsignmentId || null);
+        setBreakdownDiscounts(target.breakdownDiscounts || false);
         setActiveTabId(targetTabId);
       }
       return updated;
@@ -170,7 +173,8 @@ export default function POSClient({
       transactionType: 'VENTA',
       appliedPromotionIds: null,
       loadedQuoteId: null,
-      loadedConsignmentId: null
+      loadedConsignmentId: null,
+      breakdownDiscounts: false
     };
 
     setTabs(prev => {
@@ -192,7 +196,8 @@ export default function POSClient({
         transactionType,
         appliedPromotionIds,
         loadedQuoteId,
-        loadedConsignmentId
+        loadedConsignmentId,
+        breakdownDiscounts
       } : t);
       
       setCart(newTab.cart);
@@ -212,6 +217,7 @@ export default function POSClient({
       setAppliedPromotionIds(null);
       setLoadedQuoteId(null);
       setLoadedConsignmentId(null);
+      setBreakdownDiscounts(newTab.breakdownDiscounts);
       setActiveTabId(newId);
 
       return [...updated, newTab];
@@ -243,6 +249,7 @@ export default function POSClient({
         setAppliedPromotionIds(lastTab.appliedPromotionIds !== undefined ? lastTab.appliedPromotionIds : null);
         setLoadedQuoteId(lastTab.loadedQuoteId || null);
         setLoadedConsignmentId(lastTab.loadedConsignmentId || null);
+        setBreakdownDiscounts(lastTab.breakdownDiscounts || false);
         setActiveTabId(lastTab.id);
       }
       return remaining;
@@ -278,6 +285,10 @@ export default function POSClient({
     setCardAmount('');
     setDocumentType('TICKET');
     setTransactionType('VENTA');
+    setBreakdownDiscounts(false);
+    
+    lastQuoteIdRef.current = null;
+    lastConsignmentIdRef.current = null;
 
     setTabs(prev => prev.map(t => t.id === activeTabId ? {
       ...t,
@@ -295,7 +306,10 @@ export default function POSClient({
       notes: '',
       documentType: 'TICKET',
       transactionType: 'VENTA',
-      appliedPromotionIds: null
+      appliedPromotionIds: null,
+      loadedQuoteId: null,
+      loadedConsignmentId: null,
+      breakdownDiscounts: false
     } : t));
   };
   
@@ -344,7 +358,8 @@ export default function POSClient({
         transactionType,
         appliedPromotionIds,
         loadedQuoteId,
-        loadedConsignmentId
+        loadedConsignmentId,
+        breakdownDiscounts
       };
       localStorage.setItem(`caanma_pos_recovery_${branchId}_${mode}`, JSON.stringify(recoveryState));
       alert('Se ha detectado una nueva actualización en el servidor. La página se recargará automáticamente para aplicar la actualización sin perder los artículos de tu carrito actual.');
@@ -378,6 +393,7 @@ export default function POSClient({
             setAppliedPromotionIds(state.appliedPromotionIds || null);
             setLoadedQuoteId(state.loadedQuoteId || null);
             setLoadedConsignmentId(state.loadedConsignmentId || null);
+            setBreakdownDiscounts(state.breakdownDiscounts || false);
 
             setTabs(prev => prev.map(t => t.id === '1' ? {
               ...t,
@@ -391,7 +407,8 @@ export default function POSClient({
               documentType: state.documentType || 'TICKET',
               transactionType: state.transactionType || 'VENTA',
               loadedQuoteId: state.loadedQuoteId || null,
-              loadedConsignmentId: state.loadedConsignmentId || null
+              loadedConsignmentId: state.loadedConsignmentId || null,
+              breakdownDiscounts: state.breakdownDiscounts || false
             } : t));
           }
         } catch (e) {
@@ -564,6 +581,9 @@ export default function POSClient({
   // Manual Discount State
   const [manualDiscountType, setManualDiscountType] = useState<'$' | '%'>('$');
   const [manualDiscountValue, setManualDiscountValue] = useState<number | ''>('');
+
+  // Breakdown discounts checkbox state
+  const [breakdownDiscounts, setBreakdownDiscounts] = useState<boolean>(false);
 
   
   const methodsList = (Array.isArray(metodosConfig?.methods) && metodosConfig.methods.length > 0) 
@@ -838,6 +858,7 @@ export default function POSClient({
       const quote = await getQuoteForPOS(idToLoad);
       
       setLoadedQuoteId(quote.id);
+      setBreakdownDiscounts(quote.breakdownDiscounts || false);
       
       // Load cart preserving variantId, cartItemId and customPrice
       const newCart = quote.items.map((item: any) => ({
@@ -912,17 +933,36 @@ export default function POSClient({
     }
   };
 
+  const lastQuoteIdRef = useRef<string | null>(null);
+  const lastConsignmentIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     const qId = searchParams.get('quoteId');
     if (qId) {
-      handleLoadQuote(qId);
+      if (qId !== lastQuoteIdRef.current) {
+        lastQuoteIdRef.current = qId;
+        handleLoadQuote(qId);
+      }
+    } else {
+      if (lastQuoteIdRef.current) {
+        lastQuoteIdRef.current = null;
+        resetActiveTab();
+      }
     }
   }, [searchParams]);
 
   useEffect(() => {
     const cId = searchParams.get('consignmentId');
     if (cId) {
-      handleLoadConsignment(cId);
+      if (cId !== lastConsignmentIdRef.current) {
+        lastConsignmentIdRef.current = cId;
+        handleLoadConsignment(cId);
+      }
+    } else {
+      if (lastConsignmentIdRef.current) {
+        lastConsignmentIdRef.current = null;
+        resetActiveTab();
+      }
     }
   }, [searchParams]);
 
@@ -1288,11 +1328,18 @@ export default function POSClient({
     let ticketExento = 0;
     let ticketBaseSubtotal = 0;
     
-    const ticketSubtotalSum = cartItems.reduce((sum, item) => sum + (getProductPrice(item) * item.quantity), 0);
+    const ticketSubtotalSum = cartItems.reduce((sum, item) => {
+      const basePrice = getProductPrice(item);
+      const itemDisc = breakdownDiscounts ? 0 : (getItemDiscounts([item])[item.cartItemId] || 0);
+      const p = breakdownDiscounts ? basePrice : (basePrice - itemDisc / item.quantity);
+      return sum + (p * item.quantity);
+    }, 0);
     const ticketFactor = ticketSubtotalSum > 0 ? (tTotal / ticketSubtotalSum) : 1;
 
     cartItems.forEach(item => {
-      const itemPrice = getProductPrice(item);
+      const basePrice = getProductPrice(item);
+      const itemDisc = breakdownDiscounts ? 0 : (getItemDiscounts([item])[item.cartItemId] || 0);
+      const itemPrice = breakdownDiscounts ? basePrice : (basePrice - itemDisc / item.quantity);
       const itemQty = item.quantity;
       const itemTotal = itemPrice * itemQty;
       
@@ -1300,28 +1347,28 @@ export default function POSClient({
       const taxRate = item.taxRate ?? 16.0;
       const iepsRate = item.iepsRate ?? 0.0;
 
-      let basePrice = 0;
+      let basePriceEx = 0;
       let ivaAmt = 0;
       let iepsAmt = 0;
 
       if (taxType === 'IVA') {
-        basePrice = itemTotal / (1 + taxRate / 100);
-        ivaAmt = itemTotal - basePrice;
+        basePriceEx = itemTotal / (1 + taxRate / 100);
+        ivaAmt = itemTotal - basePriceEx;
       } else if (taxType === 'IEPS') {
-        basePrice = itemTotal / (1 + iepsRate / 100);
-        iepsAmt = itemTotal - basePrice;
+        basePriceEx = itemTotal / (1 + iepsRate / 100);
+        iepsAmt = itemTotal - basePriceEx;
       } else if (taxType === 'IVA_IEPS') {
-        basePrice = itemTotal / ((1 + iepsRate / 100) * (1 + taxRate / 100));
-        iepsAmt = basePrice * (iepsRate / 100);
-        ivaAmt = (basePrice + iepsAmt) * (taxRate / 100);
+        basePriceEx = itemTotal / ((1 + iepsRate / 100) * (1 + taxRate / 100));
+        iepsAmt = basePriceEx * (iepsRate / 100);
+        ivaAmt = (basePriceEx + iepsAmt) * (taxRate / 100);
       } else {
-        basePrice = itemTotal;
+        basePriceEx = itemTotal;
         ticketExento += itemTotal;
       }
 
       ticketIva += ivaAmt;
       ticketIeps += iepsAmt;
-      ticketBaseSubtotal += basePrice;
+      ticketBaseSubtotal += basePriceEx;
     });
 
     ticketIva *= ticketFactor;
@@ -1329,7 +1376,8 @@ export default function POSClient({
     ticketExento *= ticketFactor;
     ticketBaseSubtotal *= ticketFactor;
 
-    const itemDiscountsMap = getItemDiscounts(cartItems);
+    const itemDiscountsMap = breakdownDiscounts ? getItemDiscounts(cartItems) : {};
+    const effectiveDiscount = breakdownDiscounts ? tDiscount : 0;
     // Generate inner styling for the ticket
     const paperWidth = ticketConfig.anchoTicket === '58mm' || impresorasConfig.receiptWidth === '58mm' ? '58mm' : '80mm';
     const is58 = paperWidth === '58mm';
@@ -1424,11 +1472,15 @@ export default function POSClient({
             ${cartItems.map(item => {
               const itemDisc = itemDiscountsMap[item.cartItemId] || 0;
               const discLabel = itemDisc > 0 ? `<div style="font-size: 0.85em; color: #555; padding-left: 25px; margin-top: -2px; margin-bottom: 4px;">* Promo desc: -$${itemDisc.toFixed(2)}</div>` : '';
+              const basePrice = getProductPrice(item);
+              const displayedPrice = breakdownDiscounts 
+                ? basePrice 
+                : (basePrice - (getItemDiscounts([item])[item.cartItemId] || 0) / item.quantity);
               return `
                 <div class="item-row">
                   <span class="col-cant">${item.quantity}</span>
                   <span class="col-desc">${item.name}</span>
-                  <span class="col-price">$${(getProductPrice(item) * item.quantity).toFixed(2)}</span>
+                  <span class="col-price">$${(displayedPrice * item.quantity).toFixed(2)}</span>
                 </div>
                 ${discLabel}
               `;
@@ -1436,8 +1488,8 @@ export default function POSClient({
           </div>
           <div class="t-divider"></div>
           <div class="totals">
-            ${tDiscount > 0 ? `<div class="total-row"><span>Subtotal bruto:</span><span>$${(tTotal + tDiscount).toFixed(2)}</span></div>
-            <div class="total-row" style="color: red;"><span>Descuento:</span><span>-$${tDiscount.toFixed(2)}</span></div>` : ''}
+            ${effectiveDiscount > 0 ? `<div class="total-row"><span>Subtotal bruto:</span><span>$${(tTotal + effectiveDiscount).toFixed(2)}</span></div>
+            <div class="total-row" style="color: red;"><span>Descuento:</span><span>-$${effectiveDiscount.toFixed(2)}</span></div>` : ''}
             <div class="total-row" style="font-weight: normal; font-size: ${is58 ? '9px' : '11px'}; border-top: 1px dotted #000; padding-top: 4px; margin-top: 4px;"><span>Subtotal Base:</span><span>$${ticketBaseSubtotal.toFixed(2)}</span></div>
             ${ticketIva > 0 ? `<div class="total-row" style="font-weight: normal; font-size: ${is58 ? '9px' : '11px'};"><span>IVA Desglosado:</span><span>$${ticketIva.toFixed(2)}</span></div>` : ''}
             ${ticketIeps > 0 ? `<div class="total-row" style="font-weight: normal; font-size: ${is58 ? '9px' : '11px'};"><span>IEPS Desglosado:</span><span>$${ticketIeps.toFixed(2)}</span></div>` : ''}
@@ -1672,12 +1724,18 @@ export default function POSClient({
         });
       }
 
-      const items = finalCart.map(item => ({ 
-        productId: item.id, 
-        variantId: item.variantId || null,
-        quantity: item.quantity, 
-        price: getProductPrice(item) 
-      }));
+      const items = finalCart.map(item => {
+        const basePrice = getProductPrice(item);
+        const savedPrice = breakdownDiscounts
+          ? basePrice
+          : (subTotal > 0 ? (basePrice * (total / subTotal)) : 0);
+        return { 
+          productId: item.id, 
+          variantId: item.variantId || null,
+          quantity: item.quantity, 
+          price: Number(savedPrice.toFixed(2)) 
+        };
+      });
       
       const cartBackup = [...finalCart];
       const totalBackup = total;
@@ -1700,11 +1758,12 @@ export default function POSClient({
              type: 'QUOTE',
              branchId,
              retryCount: 0,
-             failed: false
+             failed: false,
+             breakdownDiscounts
           } as any);
           saleId = `OFFLINE-QUOTE-${Date.now()}`;
         } else {
-          const quote = await createQuote(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null, loadedQuoteId || undefined);
+          const quote = await createQuote(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null, loadedQuoteId || undefined, breakdownDiscounts);
           saleId = quote?.id;
           responseSale = quote;
         }
@@ -1761,7 +1820,8 @@ export default function POSClient({
                 cardValue,
                 billingData,
                 branchId,
-                type: 'SALE'
+                type: 'SALE',
+                breakdownDiscounts
              },
              retryCount: 0,
              failed: false
@@ -1769,7 +1829,7 @@ export default function POSClient({
           saleId = `OFFLINE-${Date.now()}`;
         } else {
           // ONLINE MODE
-          const response = await createSale(items, total + tipAmount, paymentMethod, selectedCustomerId || null, sessionId, finalNotes, cashValue, cardValue, billingData, loadedQuoteId || undefined, loadedConsignmentId || undefined, pointsRedeemed, branchId);
+          const response = await createSale(items, total + tipAmount, paymentMethod, selectedCustomerId || null, sessionId, finalNotes, cashValue, cardValue, billingData, loadedQuoteId || undefined, loadedConsignmentId || undefined, pointsRedeemed, branchId, breakdownDiscounts);
           if (!response.success) {
             throw new Error(response.error);
           }
@@ -2482,7 +2542,7 @@ export default function POSClient({
               
               {/* Price lists select */}
               <div className="pos-price-list-container" style={{ display: 'flex', alignItems: 'center', border: 'none', borderRadius: '6px', backgroundColor: hasPermission('pos_price_list_change') ? '#78716c' : '#a8a29e', padding: '0 0.75rem', height: '36px', color: 'white' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', marginRight: '0.35rem' }}>Listas de Precios:</span>
+                <span className="pos-price-list-label" style={{ fontSize: '0.8rem', fontWeight: 'bold', marginRight: '0.35rem' }}>Listas de Precios:</span>
                 <select 
                   className="pos-price-list-select"
                   value={priceList} 
@@ -2521,6 +2581,8 @@ export default function POSClient({
                     setCart([]);
                     setLoadedQuoteId(null);
                     setLoadedConsignmentId(null);
+                    lastQuoteIdRef.current = null;
+                    lastConsignmentIdRef.current = null;
                   }
                 }}
                 style={{
@@ -2607,8 +2669,8 @@ export default function POSClient({
                     <div className="pos-cart-item-info">
                       <div className="pos-cart-item-title">{item.name}</div>
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.15rem', fontSize: '0.725rem', color: '#64748b' }}>
-                        {item.sku && <span>SKU: <strong style={{ color: '#334155' }}>{item.sku}</strong></span>}
-                        {item.barcode && <span>| Código: <strong style={{ color: '#334155' }}>{item.barcode}</strong></span>}
+                        <span>SKU: <strong style={{ color: '#334155' }}>{item.sku || '-'}</strong></span>
+                        <span>| Código: <strong style={{ color: '#334155' }}>{item.barcode || '-'}</strong></span>
                       </div>
                       {mode === 'QUOTE' ? (() => {
                         const taxRate = item.taxRate ?? 16.0;
@@ -2760,11 +2822,16 @@ export default function POSClient({
                               />
                             </div>
                           ) : (
-                            <div className="pos-cart-item-price">${itemPrice.toFixed(2)}</div>
+                            <div className="pos-cart-item-price">
+                              ${(breakdownDiscounts 
+                                ? itemPrice 
+                                : (itemPrice - (itemDiscounts[item.cartItemId] || 0) / item.quantity)
+                              ).toFixed(2)}
+                            </div>
                           )}
                         </>
                       )}
-                      {itemDiscounts[item.cartItemId] > 0 && (
+                      {breakdownDiscounts && itemDiscounts[item.cartItemId] > 0 && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#db2777', fontSize: '0.8rem', fontWeight: 'bold', marginTop: '0.25rem' }}>
                           <Percent size={14} />
                           <span>Promoción: -${itemDiscounts[item.cartItemId].toFixed(2)}</span>
@@ -2821,7 +2888,7 @@ export default function POSClient({
 
                     {/* Subtotal */}
                     <div className="pos-cart-item-subtotal" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
-                      {itemDiscounts[item.cartItemId] > 0 ? (
+                      {breakdownDiscounts && itemDiscounts[item.cartItemId] > 0 ? (
                         <>
                           <span style={{ fontSize: '0.8rem', color: '#94a3b8', textDecoration: 'line-through' }}>
                             ${itemSubtotal.toFixed(2)}
@@ -2831,7 +2898,7 @@ export default function POSClient({
                           </span>
                         </>
                       ) : (
-                        `$${itemSubtotal.toFixed(2)}`
+                        `$${(itemSubtotal - itemDiscounts[item.cartItemId]).toFixed(2)}`
                       )}
                     </div>
 
@@ -2889,6 +2956,8 @@ export default function POSClient({
                                 if (newCart.length === 0) {
                                   setLoadedQuoteId(null);
                                   setLoadedConsignmentId(null);
+                                  lastQuoteIdRef.current = null;
+                                  lastConsignmentIdRef.current = null;
                                 }
                                 setActiveItemMenuId(null);
                               }}
@@ -2911,10 +2980,24 @@ export default function POSClient({
 
           {/* PAYMENT SUMMARY AND CHECKOUT CTA */}
           <div className="pos-footer-section">
+            {cart.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', paddingBottom: '0.5rem', borderBottom: '1px solid #f1f5f9' }}>
+                <input 
+                  type="checkbox" 
+                  id="breakdownDiscounts" 
+                  checked={breakdownDiscounts} 
+                  onChange={(e) => setBreakdownDiscounts(e.target.checked)} 
+                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                />
+                <label htmlFor="breakdownDiscounts" style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', cursor: 'pointer', userSelect: 'none' }}>
+                  Desglosar descuentos
+                </label>
+              </div>
+            )}
             
             <div className="pos-subtotal-row">
               <span>Subtotal ({cart.reduce((s, i) => s + i.quantity, 0)} artículos)</span>
-              <span className="pos-subtotal-value">${subTotal.toFixed(2)}</span>
+              <span className="pos-subtotal-value">${(breakdownDiscounts ? subTotal : (subTotal - discount)).toFixed(2)}</span>
             </div>
 
             {mode === 'QUOTE' && cart.length > 0 && (() => {
@@ -2946,7 +3029,7 @@ export default function POSClient({
               );
             })()}
 
-            {discount > 0 && (
+            {breakdownDiscounts && discount > 0 && (
               <div className="pos-subtotal-row" style={{ color: '#16a34a', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
                 <span>Descuento aplicado</span>
                 <span>-${discount.toFixed(2)}</span>
@@ -4329,7 +4412,7 @@ export default function POSClient({
                       <div>
                         <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b' }}>{p.name}</div>
                         <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
-                          SKU: {p.sku || 'N/A'}{p.barcode ? ` | Código: ${p.barcode}` : ''} | {p.isService ? (
+                          SKU: {p.sku || '-'} | Código: {p.barcode || '-'} | {p.isService ? (
                             <span style={{ color: '#2563eb', fontWeight: 'bold', backgroundColor: '#dbeafe', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>Servicio</span>
                           ) : (
                             <>Stock: <span style={{ color: p.stock > 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>{p.stock}</span></>

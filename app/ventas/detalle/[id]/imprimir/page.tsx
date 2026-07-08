@@ -111,6 +111,16 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
         .total-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.95rem; }
         .total-final { display: flex; justify-content: space-between; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 2px solid #cbd5e1; font-size: 1.25rem; font-weight: bold; color: ${primaryColor}; }
         .qr-section { margin-top: 2rem; display: flex; align-items: center; gap: 1rem; background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px dashed #cbd5e1; }
+        
+        @media (max-width: 768px) {
+          body { padding: 0.5rem 0 !important; background: white !important; }
+          .letter-container { width: 100% !important; max-width: 100% !important; padding: 1rem !important; box-shadow: none !important; margin: 0 !important; border-radius: 0 !important; }
+          .header-grid { grid-template-columns: 1fr !important; gap: 1rem !important; margin-bottom: 1rem !important; }
+          .info-grid { grid-template-columns: 1fr !important; gap: 1rem !important; margin-bottom: 1rem !important; }
+          .items-table { display: block; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; }
+          .totals-box { width: 100% !important; margin-top: 1.5rem !important; box-sizing: border-box !important; }
+          .qr-section { flex-direction: column !important; text-align: center !important; align-items: center !important; gap: 1rem !important; }
+        }
       `}} />
       <script dangerouslySetInnerHTML={{ __html: printScript }} />
       

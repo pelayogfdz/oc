@@ -312,7 +312,7 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
                 <tr key={item.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                   <td data-label="Producto" style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: 'bold', color: '#0f172a' }}>{productName}</div>
-                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>SKU: {sku || 'N/A'}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>SKU: {sku || '-'} | Código: {item.product.barcode || '-'}</div>
                   </td>
                   <td data-label="Solicitados" style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', fontSize: '1.1rem' }}>
                      {/* Solicitados (or dispatched if status > CREATED) */}

@@ -1012,4 +1012,97 @@ export async function sendInvoiceByEmail(saleId: string, email: string) {
   }
 }
 
+export async function stampCustomerPayment(paymentId: string) {
+  try {
+    const payment = await prisma.customerPayment.findUnique({
+      where: { id: paymentId },
+      include: {
+        sale: true,
+        customer: true
+      }
+    });
+
+    if (!payment) {
+      throw new Error("El abono especificado no existe.");
+    }
+
+    if (payment.cfdiStatus === 'INVOICED') {
+      throw new Error("Este abono ya fue timbrado.");
+    }
+
+    if (!payment.saleId || !payment.sale) {
+      throw new Error("Este abono no está asociado a ninguna venta/ticket.");
+    }
+
+    if (!payment.sale.invoiceId) {
+      throw new Error("La venta asociada a este pago aún no ha sido facturada (debe ser timbrada como PPD primero).");
+    }
+
+    const branchId = payment.branchId || payment.sale.branchId;
+    if (!branchId) {
+      throw new Error("El abono no está asociado a ninguna sucursal.");
+    }
+
+    const branchSettings = await prisma.branchSettings.findUnique({
+      where: { branchId }
+    });
+
+    if (!branchSettings || !branchSettings.configJson) {
+      throw new Error("La sucursal no tiene configuraciones establecidas.");
+    }
+
+    const config = JSON.parse(branchSettings.configJson);
+    const apiKey = getFacturapiApiKey(config);
+
+    if (!apiKey) {
+      throw new Error("No hay llaves de Facturapi configuradas en las preferencias de esta Sucursal.");
+    }
+
+    const facturapi = new Facturapi(apiKey);
+
+    // Map paymentMethod to SAT Payment Form (from customerPayment method or reason)
+    let paymentForm = "03"; // Default Transferencia (03)
+    const reasonUpper = (payment.reason || "").toUpperCase();
+    if (reasonUpper.includes("CASH") || reasonUpper.includes("EFECTIVO")) {
+      paymentForm = "01";
+    } else if (reasonUpper.includes("TRANSFER") || reasonUpper.includes("TRANSFERENCIA")) {
+      paymentForm = "03";
+    } else if (reasonUpper.includes("CARD") || reasonUpper.includes("TARJETA")) {
+      paymentForm = "28";
+    } else if (reasonUpper.includes("CHECK") || reasonUpper.includes("CHEQUE")) {
+      paymentForm = "02";
+    }
+
+    // Call Facturapi to create the payment receipt (REP)
+    const receipt = await facturapi.receipts.create({
+      payment_form: paymentForm,
+      date: payment.paymentDate || payment.createdAt,
+      invoices: [
+        {
+          id: payment.sale.invoiceId,
+          amount: payment.amount
+        }
+      ]
+    });
+
+    const receiptPdf = `/api/facturacion/download?receiptId=${receipt.id}&format=pdf`;
+
+    // Update payment record in database
+    await prisma.customerPayment.update({
+      where: { id: paymentId },
+      data: {
+        cfdiStatus: "INVOICED",
+        cfdiUrlPdf: receiptPdf,
+        cfdiUrlXml: ""
+      }
+    });
+
+    revalidatePath(`/clientes/${payment.customerId}`);
+    return { success: true, receiptId: receipt.id };
+  } catch (error: any) {
+    console.error("Error al timbrar abono:", error);
+    return { success: false, error: error.message || "Error desconocido al timbrar abono." };
+  }
+}
+
 

@@ -18,6 +18,32 @@ export async function addSupplierPaymentBatch(
   if (!supplier) throw new Error("Supplier not found.");
   
   if (totalAmount <= 0) throw new Error("Amount must be greater than zero.");
+
+  // Resolve targetBranchId if active branch is GLOBAL to prevent foreign key constraint violation
+  let targetBranchId: string | null = branch.id;
+  if (targetBranchId === 'GLOBAL') {
+    if (purchaseIds.length > 0) {
+      const firstPurchase = await prisma.purchase.findFirst({
+        where: { id: { in: purchaseIds } },
+        select: { branchId: true }
+      });
+      if (firstPurchase) {
+        targetBranchId = firstPurchase.branchId;
+      }
+    }
+
+    if (targetBranchId === 'GLOBAL') {
+      const realBranch = await prisma.branch.findFirst({
+        where: { tenantId: branch.tenantId, isActive: true },
+        select: { id: true }
+      });
+      if (realBranch) {
+        targetBranchId = realBranch.id;
+      } else {
+        throw new Error("No se encontró una sucursal activa para registrar el pago.");
+      }
+    }
+  }
   
   // Make sure we have an open session before we can take cash
   let currentSession = null;
@@ -71,7 +97,7 @@ export async function addSupplierPaymentBatch(
              amount: deduct,
              reason: `Abono a Factura de Compra #${purchase.id.slice(0,8)} (${paymentMethod})`,
              userId: user.id,
-             branchId: branch.id,
+             branchId: targetBranchId,
              purchaseId: purchase.id,
              cfdiStatus: requestCfdi ? "REQUESTED" : "NONE"
           }
@@ -87,7 +113,7 @@ export async function addSupplierPaymentBatch(
              amount: remainingAmount,
              reason: `Anticipo/Saldo a Favor con Proveedor (${paymentMethod})`,
              userId: user.id,
-             branchId: branch.id,
+             branchId: targetBranchId,
              purchaseId: null,
              cfdiStatus: "NONE"
           }

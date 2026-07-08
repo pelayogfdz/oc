@@ -11,7 +11,7 @@ import ExportButton from './ExportButton';
 
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 
-export default function ProductListClient({ initialProducts, branchId, categories }: { initialProducts: any[], branchId: string, categories: string[] }) {
+export default function ProductListClient({ initialProducts, branchId, categories, brands }: { initialProducts: any[], branchId: string, categories: string[], brands: string[] }) {
   const { isOnline } = useOfflineSync();
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -26,6 +26,8 @@ export default function ProductListClient({ initialProducts, branchId, categorie
   const [filterStatus, setFilterStatus] = useState('ACTIVE');
   const [filterStock, setFilterStock] = useState('ALL');
   const [filterImage, setFilterImage] = useState('ALL');
+  const [filterBrand, setFilterBrand] = useState('ALL');
+  const [filterType, setFilterType] = useState('ALL');
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -42,6 +44,8 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       const persistedStatus = sessionStorage.getItem('products_filterStatus');
       const persistedStock = sessionStorage.getItem('products_filterStock');
       const persistedImage = sessionStorage.getItem('products_filterImage');
+      const persistedBrand = sessionStorage.getItem('products_filterBrand');
+      const persistedType = sessionStorage.getItem('products_filterType');
       const persistedPage = sessionStorage.getItem('products_currentPage');
       const persistedPageSize = sessionStorage.getItem('products_pageSize');
 
@@ -50,6 +54,8 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       if (persistedStatus !== null) setFilterStatus(persistedStatus);
       if (persistedStock !== null) setFilterStock(persistedStock);
       if (persistedImage !== null) setFilterImage(persistedImage);
+      if (persistedBrand !== null) setFilterBrand(persistedBrand);
+      if (persistedType !== null) setFilterType(persistedType);
       if (persistedPageSize !== null) setPageSize(Number(persistedPageSize));
       if (persistedPage !== null) setCurrentPage(Number(persistedPage));
       
@@ -65,10 +71,12 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       sessionStorage.setItem('products_filterStatus', filterStatus);
       sessionStorage.setItem('products_filterStock', filterStock);
       sessionStorage.setItem('products_filterImage', filterImage);
+      sessionStorage.setItem('products_filterBrand', filterBrand);
+      sessionStorage.setItem('products_filterType', filterType);
       sessionStorage.setItem('products_currentPage', String(currentPage));
       sessionStorage.setItem('products_pageSize', String(pageSize));
     }
-  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, currentPage, pageSize, isInitialized]);
+  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, currentPage, pageSize, isInitialized]);
 
   useEffect(() => {
     setDisplayedProducts(initialProducts);
@@ -150,15 +158,22 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     if (filterImage === 'WITH_IMAGE' && (!p.imageUrl || p.imageUrl.trim() === '')) return false;
     if (filterImage === 'WITHOUT_IMAGE' && (p.imageUrl && p.imageUrl.trim() !== '')) return false;
 
+    // Brand Filter
+    if (filterBrand !== 'ALL' && p.brand !== filterBrand) return false;
+
+    // Type Filter (Product vs Service)
+    if (filterType === 'PRODUCT' && p.isService) return false;
+    if (filterType === 'SERVICE' && !p.isService) return false;
+
     return true;
-  }), [displayedProducts, filterCategory, filterStatus, filterStock, filterImage]);
+  }), [displayedProducts, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType]);
 
   // Reset page when filters change (only AFTER initialization is complete)
   useEffect(() => {
     if (isInitialized) {
       setCurrentPage(1);
     }
-  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, isInitialized]);
+  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, isInitialized]);
 
   const totalPages = Math.ceil(filteredProducts.length / pageSize) || 1;
   const startRange = filteredProducts.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
@@ -360,8 +375,25 @@ export default function ProductListClient({ initialProducts, branchId, categorie
               <option value="WITHOUT_IMAGE">Sin imagen</option>
             </select>
           </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Filtrar por Marca</label>
+            <select value={filterBrand} onChange={e => setFilterBrand(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
+              <option value="ALL">Todas las marcas</option>
+              {brands.map((brand: string) => (
+                <option key={brand} value={brand}>{brand}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Tipo</label>
+            <select value={filterType} onChange={e => setFilterType(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
+              <option value="ALL">Productos y Servicios</option>
+              <option value="PRODUCT">Solo Productos</option>
+              <option value="SERVICE">Solo Servicios</option>
+            </select>
+          </div>
           <div style={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end' }}>
-             <button onClick={() => { setSearchTerm(''); setFilterCategory('ALL'); setFilterStatus('ACTIVE'); setFilterStock('ALL'); setFilterImage('ALL'); }} style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '500' }}>
+             <button onClick={() => { setSearchTerm(''); setFilterCategory('ALL'); setFilterStatus('ACTIVE'); setFilterStock('ALL'); setFilterImage('ALL'); setFilterBrand('ALL'); setFilterType('ALL'); }} style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '500' }}>
                Limpiar Filtros
              </button>
           </div>

@@ -129,11 +129,11 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
 
   // Download CSV report
   const downloadExcel = () => {
-    const headers = ["Lugar", "Nombre del Producto", "SKU", "Categoría", "Costo Unit.", "Precio Unit.", "Uds Vendidas", "Ventas Totales", "Costo Total", "Ganancia Bruta", "Margen %"];
+    const headers = ["Lugar", "Nombre del Producto", "SKU / Código", "Categoría", "Costo Unit.", "Precio Unit.", "Uds Vendidas", "Ventas Totales", "Costo Total", "Ganancia Bruta", "Margen %"];
     const rows = filteredData.map((p, idx) => [
       idx + 1,
       p.name,
-      p.sku || "N/A",
+      `${p.sku || '-'} | ${p.barcode || '-'}`,
       p.category || "General",
       p.cost,
       p.price,
@@ -374,10 +374,10 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
-                <tr style={{ borderBottom: '2px solid #f1f5f9', color: '#475569', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                <tr style={{ borderBottom: '2px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#475569', fontSize: '0.85rem' }}>
                   <th style={{ padding: '1rem 0.75rem' }}>Lugar</th>
                   <th style={{ padding: '1rem 0.75rem' }}>Nombre del Producto</th>
-                  <th style={{ padding: '1rem 0.75rem' }}>SKU</th>
+                  <th style={{ padding: '1rem 0.75rem' }}>SKU / Código</th>
                   <th style={{ padding: '1rem 0.75rem' }}>Categoría</th>
                   <th style={{ padding: '1rem 0.75rem', textAlign: 'right' }}>Costo</th>
                   <th style={{ padding: '1rem 0.75rem', textAlign: 'right' }}>Precio Venta</th>
@@ -392,7 +392,7 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
                 {filteredData.length > 0 ? (
                   filteredData.map((p, idx) => {
                     return (
-                      <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.15s' }} onMouseOver={e => e.currentTarget.style.backgroundColor='#f8fafc'} onMouseOut={e => e.currentTarget.style.backgroundColor='transparent'}>
+                      <tr key={p.id} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseOver={e => e.currentTarget.style.backgroundColor='#f8fafc'} onMouseOut={e => e.currentTarget.style.backgroundColor='transparent'}>
                         <td style={{ padding: '0.85rem 0.75rem', fontWeight: 'bold', color: '#64748b' }}>#{idx + 1}</td>
                         <td style={{ padding: '0.85rem 0.75rem', fontWeight: 'bold', color: '#0f172a' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -421,7 +421,7 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
                             <span>{p.name}</span>
                           </div>
                         </td>
-                        <td style={{ padding: '0.85rem 0.75rem', fontFamily: 'monospace', fontSize: '0.8rem' }}>{p.sku || "Sin SKU"}</td>
+                        <td style={{ padding: '0.85rem 0.75rem', fontFamily: 'monospace', fontSize: '0.8rem' }}>{p.sku || "-"} | {p.barcode || "-"}</td>
                         <td style={{ padding: '0.85rem 0.75rem', color: '#64748b' }}>{p.category || "General"}</td>
                         <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', color: '#64748b' }}>{formatter.format(p.cost)}</td>
                         <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', color: '#64748b' }}>{formatter.format(p.price)}</td>

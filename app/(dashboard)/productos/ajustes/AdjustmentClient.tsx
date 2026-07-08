@@ -37,7 +37,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
 
   const toggleItem = (prod: any) => {
     if (items.find(i => i.id === prod.id)) return;
-    setItems([{ id: prod.id, name: prod.name, sku: prod.sku, imageUrl: prod.imageUrl, oldStock: prod.stock, newStock: prod.stock }, ...items]);
+    setItems([{ id: prod.id, name: prod.name, sku: prod.sku, barcode: prod.barcode, imageUrl: prod.imageUrl, oldStock: prod.stock, newStock: prod.stock }, ...items]);
   };
 
   const updateNewStock = (id: string, val: string) => {
@@ -167,7 +167,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
                       {prod.name}
                     </div>
                     <div style={{ color: 'var(--caanma-text-muted)', fontSize: '0.8rem' }}>
-                      SKU: {prod.sku || '--'}
+                      SKU: {prod.sku || '-'} | Código: {prod.barcode || '-'}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -223,7 +223,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
                     <tr key={item.id} style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: isModified ? '#f0fdf4' : 'transparent', transition: 'background-color 0.2s' }}>
                       <td data-label="Producto" style={{ padding: '1rem' }}>
                         <div style={{ fontWeight: 'bold', color: '#0f172a' }}>{item.name}</div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>{item.sku || 'Sin SKU'}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>SKU: {item.sku || '-'} | Código: {item.barcode || '-'}</div>
                       </td>
                       <td data-label="Stock Actual" style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', color: '#64748b', fontSize: '1.1rem' }}>
                         {item.oldStock}

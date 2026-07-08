@@ -229,7 +229,7 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
           <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f8fafc', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', zIndex: 10 }}>
             <tr>
               <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--caanma-border)' }}>Producto</th>
-              <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--caanma-border)' }}>SKU</th>
+              <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--caanma-border)' }}>SKU / Código</th>
               
               {!isPhase1 && !isCompleted && (
                  <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b', fontSize: '0.85rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'center' }}>
@@ -280,7 +280,7 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
               return (
                 <tr key={p.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                   <td style={{ padding: '1rem', fontWeight: 'bold', color: '#0f172a' }}>{p.name}</td>
-                  <td style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>{p.sku}</td>
+                  <td style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>{p.sku || '-'} | {p.barcode || '-'}</td>
                   
                   {!isPhase1 && !isCompleted && (
                      <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', color: '#cbd5e1' }}>

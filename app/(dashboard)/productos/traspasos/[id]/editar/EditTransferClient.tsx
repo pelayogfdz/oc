@@ -26,6 +26,7 @@ export default function EditTransferClient({ transfer, otherBranches, inventory,
       name: item.variant ? `${item.product.name} (${item.variant.attribute})` : item.product.name,
       sku: item.variant?.sku || item.product.sku,
       productSku: item.product.sku,
+      barcode: item.product.barcode || "",
       variantAttribute: item.variant ? item.variant.attribute : null,
       maxStock: 9999, // Will load from origin stocks
       quantity: item.quantity,
@@ -185,6 +186,7 @@ export default function EditTransferClient({ transfer, otherBranches, inventory,
         name,
         sku,
         productSku: product.sku,
+        barcode: product.barcode || "",
         variantAttribute: variant ? variant.attribute : null,
         maxStock,
         quantity: 1,
@@ -440,7 +442,7 @@ export default function EditTransferClient({ transfer, otherBranches, inventory,
                     </div>
                     <div>
                       <div style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.95rem' }}>{item.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem', fontFamily: 'monospace' }}>SKU: {item.sku || 'N/A'}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem', fontFamily: 'monospace' }}>SKU: {item.sku || '-'} | Código: {item.barcode || '-'}</div>
                       {sourceStocks && (
                         <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', fontWeight: 'bold', color: item.maxStock > 0 ? '#16a34a' : '#dc2626' }}>
                           Stock origen: {item.maxStock} disp.
@@ -639,7 +641,7 @@ export default function EditTransferClient({ transfer, otherBranches, inventory,
                       <div>
                         <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b' }}>{p.name}</div>
                         <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
-                          SKU: {p.sku || 'N/A'} | Stock en origen: <span style={{ color: sourceStock > 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>{sourceStock}</span>
+                          SKU: {p.sku || '-'} | Código: {p.barcode || '-'} | Stock en origen: <span style={{ color: sourceStock > 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>{sourceStock}</span>
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -709,7 +711,7 @@ export default function EditTransferClient({ transfer, otherBranches, inventory,
                   >
                     <div>
                       <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{v.attribute}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.1rem' }}>SKU: {v.sku || 'N/A'}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.1rem' }}>SKU: {v.sku || '-'} | Código: {selectedProductForVariant.barcode || '-'}</div>
                     </div>
                     <div style={{ fontSize: '0.85rem', fontWeight: '600', color: sourceVStock > 0 ? '#16a34a' : '#dc2626' }}>
                       {sourceVStock} disp. en origen

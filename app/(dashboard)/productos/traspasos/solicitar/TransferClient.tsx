@@ -238,6 +238,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
         name,
         sku,
         productSku: product.sku,
+        barcode: product.barcode || "",
         variantAttribute: variant ? variant.attribute : null,
         maxStock,
         quantity: 1,
@@ -486,7 +487,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
                       {item.name}
                     </div>
                     <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.1rem' }}>
-                      SKU: {item.sku || 'S/N'}
+                      SKU: {item.sku || '-'} | Código: {item.barcode || '-'}
                     </div>
                   </div>
 
@@ -792,7 +793,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
                       <div>
                         <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b' }}>{p.name}</div>
                         <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
-                          SKU: {p.sku || 'N/A'} | Stock en origen: <span style={{ color: sourceStock > 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>{sourceStock}</span>
+                          SKU: {p.sku || '-'} | Código: {p.barcode || '-'} | Stock en origen: <span style={{ color: sourceStock > 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>{sourceStock}</span>
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -862,7 +863,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
                   >
                     <div>
                       <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{v.attribute}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.1rem' }}>SKU: {v.sku || 'N/A'}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.1rem' }}>SKU: {v.sku || '-'} | Código: {selectedProductForVariant.barcode || '-'}</div>
                     </div>
                     <div style={{ fontSize: '0.85rem', fontWeight: '600', color: sourceVStock > 0 ? '#16a34a' : '#dc2626' }}>
                       {sourceVStock} disp. en origen

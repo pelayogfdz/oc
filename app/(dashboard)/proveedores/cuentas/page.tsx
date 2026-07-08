@@ -12,13 +12,13 @@ export default async function CuentasPorPagarPage() {
           tenantId: branch.tenantId
        },
        OR: [
-          { creditBalance: { gt: 0 } },
-          { purchases: { some: { paymentMethod: 'CREDIT', balanceDue: { gt: 0 } } } }
+          { creditBalance: { gte: 0.01 } },
+          { purchases: { some: { paymentMethod: 'CREDIT', balanceDue: { gte: 0.01 } } } }
        ]
     },
     include: {
       purchases: {
-        where: { paymentMethod: 'CREDIT', balanceDue: { gt: 0 } },
+        where: { paymentMethod: 'CREDIT', balanceDue: { gte: 0.01 } },
         orderBy: { dueDate: 'asc' }
       }
     }

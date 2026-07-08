@@ -204,7 +204,7 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
       </div>
 
       {/* Gráficas Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 450px), 1fr))', gap: '1.5rem' }}>
         
         {/* Gráfica 1: Número de Ventas */}
         <div style={{

@@ -43,11 +43,11 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
   );
 
   const downloadExcel = () => {
-    const headers = ["SKU", "Producto", "Stock", "Costo U.", "Capital Det.", "Margen %"];
+    const headers = ["SKU / Código", "Producto", "Stock", "Costo U.", "Capital Det.", "Margen %"];
     const rows = filteredInventory.map((i: any) => {
       const marginVal = typeof i.margin === 'number' && !isNaN(i.margin) ? i.margin : 0;
       return [
-        i.sku || 'N/A',
+        `${i.sku || '-'} | ${i.barcode || '-'}`,
         i.name,
         i.stock,
         i.cost,
@@ -160,7 +160,7 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
             <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead style={{ position: 'sticky', top: 0, backgroundColor: 'white' }}>
                 <tr style={{ borderBottom: '2px solid var(--caanma-border)', color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>
-                  <th style={{ padding: '0.75rem 0.5rem' }}>SKU</th>
+                  <th style={{ padding: '0.75rem 0.5rem' }}>SKU / Código</th>
                   <th style={{ padding: '0.75rem 0.5rem' }}>Producto</th>
                   <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>Stock</th>
                   <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Costo U.</th>
@@ -171,7 +171,7 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
               <tbody>
                 {filteredInventory.map((i: any) => (
                   <tr key={i.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-                    <td data-label="SKU" style={{ padding: '1rem 0.5rem', fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontFamily: 'monospace' }}>{i.sku}</td>
+                    <td data-label="SKU / Código" style={{ padding: '1rem 0.5rem', fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontFamily: 'monospace' }}>{i.sku || '-'} | {i.barcode || '-'}</td>
                     <td data-label="Producto" style={{ padding: '1rem 0.5rem', fontWeight: '500' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <div 

@@ -533,7 +533,7 @@ export default function VentasHistoryClient({
                     </span>
                   </td>
                   <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
                       {/* Detalle */}
                       <Link
                         href={`/ventas/detalle/${sale.id}`}
@@ -541,14 +541,13 @@ export default function VentasHistoryClient({
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '0.35rem',
-                          padding: '0.4rem 0.8rem',
+                          justifyContent: 'center',
+                          width: '32px',
+                          height: '32px',
                           backgroundColor: '#f1f5f9',
                           border: '1px solid #cbd5e1',
                           borderRadius: '6px',
                           cursor: 'pointer',
-                          fontWeight: '600',
-                          fontSize: '0.825rem',
                           color: '#334155',
                           textDecoration: 'none',
                           transition: 'all 0.15s ease',
@@ -563,7 +562,6 @@ export default function VentasHistoryClient({
                         }}
                       >
                         <Eye size={15} />
-                        Detalle
                       </Link>
 
                       {/* Imprimir */}
@@ -575,14 +573,13 @@ export default function VentasHistoryClient({
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '0.35rem',
-                          padding: '0.4rem 0.8rem',
+                          justifyContent: 'center',
+                          width: '32px',
+                          height: '32px',
                           backgroundColor: '#f8fafc',
                           border: '1px solid #e2e8f0',
                           borderRadius: '6px',
                           cursor: 'pointer',
-                          fontWeight: '600',
-                          fontSize: '0.825rem',
                           color: '#475569',
                           textDecoration: 'none',
                           transition: 'all 0.15s ease',
@@ -597,7 +594,6 @@ export default function VentasHistoryClient({
                         }}
                       >
                         <Printer size={15} />
-                        Imprimir
                       </a>
 
                       {/* Ticket */}
@@ -609,14 +605,13 @@ export default function VentasHistoryClient({
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '0.35rem',
-                          padding: '0.4rem 0.8rem',
+                          justifyContent: 'center',
+                          width: '32px',
+                          height: '32px',
                           backgroundColor: '#f1f5f9',
                           border: '1px solid #cbd5e1',
                           borderRadius: '6px',
                           cursor: 'pointer',
-                          fontWeight: '600',
-                          fontSize: '0.825rem',
                           color: '#334155',
                           textDecoration: 'none',
                           transition: 'all 0.15s ease',
@@ -631,8 +626,7 @@ export default function VentasHistoryClient({
                         }}
                       >
                         <Receipt size={15} />
-                        Ticket
-                      </a >
+                      </a>
 
                       {/* WhatsApp */}
                       <button
@@ -641,14 +635,13 @@ export default function VentasHistoryClient({
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '0.35rem',
-                          padding: '0.4rem 0.8rem',
+                          justifyContent: 'center',
+                          width: '32px',
+                          height: '32px',
                           backgroundColor: '#e6f4ea',
                           border: '1px solid #c2e7cc',
                           borderRadius: '6px',
                           cursor: 'pointer',
-                          fontWeight: '600',
-                          fontSize: '0.825rem',
                           color: '#137333',
                           transition: 'all 0.15s ease',
                         }}
@@ -662,7 +655,6 @@ export default function VentasHistoryClient({
                         }}
                       >
                         <Share2 size={15} />
-                        WhatsApp
                       </button>
 
                       {/* Enviar por mail */}
@@ -672,14 +664,13 @@ export default function VentasHistoryClient({
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '0.35rem',
-                          padding: '0.4rem 0.8rem',
+                          justifyContent: 'center',
+                          width: '32px',
+                          height: '32px',
                           backgroundColor: '#eff6ff',
                           border: '1px solid #bfdbfe',
                           borderRadius: '6px',
                           cursor: 'pointer',
-                          fontWeight: '600',
-                          fontSize: '0.825rem',
                           color: '#1d4ed8',
                           transition: 'all 0.15s ease',
                         }}
@@ -693,7 +684,6 @@ export default function VentasHistoryClient({
                         }}
                       >
                         <Mail size={15} />
-                        Enviar por mail
                       </button>
                     </div>
                   </td>

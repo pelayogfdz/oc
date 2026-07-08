@@ -177,7 +177,14 @@ export function generatePurchasePdfBuffer(purchase: any): Promise<Buffer> {
       purchase.items.forEach((item: any) => {
         const itemTotal = item.cost * item.quantity;
         computedSubtotal += itemTotal;
+      });
 
+      const discount = purchase.discount || 0;
+      const freight = purchase.freightCost || 0;
+      const discountFactor = computedSubtotal > 0 ? Math.max(0, computedSubtotal - discount) / computedSubtotal : 1;
+
+      purchase.items.forEach((item: any) => {
+        const itemTotal = (item.cost * item.quantity) * discountFactor;
         const taxType = item.product?.taxType || 'IVA';
         const taxRate = item.product?.taxRate ?? 16.0;
         const iepsRate = item.product?.iepsRate ?? 0.0;
@@ -193,11 +200,11 @@ export function generatePurchasePdfBuffer(purchase: any): Promise<Buffer> {
         }
       });
 
-      const freight = purchase.freightCost || 0;
-      const expectedTotal = computedSubtotal + computedIva + computedIeps + freight;
+      const freightIva = freight * 0.16;
+      const expectedTotal = Math.max(0, computedSubtotal - discount) + freight + (computedIva + freightIva) + computedIeps;
       
       let subtotalExcludingIva = computedSubtotal;
-      let iva = computedIva;
+      let iva = computedIva + freightIva;
       let ieps = computedIeps;
 
       if (Math.abs(expectedTotal - purchase.total) > 0.05) {
@@ -218,6 +225,12 @@ export function generatePurchasePdfBuffer(purchase: any): Promise<Buffer> {
       doc.text(`$${subtotalExcludingIva.toFixed(2)}`, 450, totalsY + 8, { width: 105, align: 'right' });
 
       let currentOffset = totalsY + 22;
+
+      if (discount > 0) {
+        doc.text('Descuento:', 350, currentOffset, { width: 100, align: 'left' });
+        doc.text(`-$${discount.toFixed(2)}`, 450, currentOffset, { width: 105, align: 'right' });
+        currentOffset += 14;
+      }
 
       if (showTaxBreakdown && iva > 0) {
         doc.text('IVA:', 350, currentOffset, { width: 100, align: 'left' });

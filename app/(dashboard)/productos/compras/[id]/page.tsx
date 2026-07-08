@@ -44,9 +44,15 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
   let calculatedIeps = 0;
 
   purchase.items.forEach(item => {
-    const itemTotal = item.quantity * item.cost;
-    calculatedSubtotal += itemTotal;
+    calculatedSubtotal += item.quantity * item.cost;
+  });
 
+  const discount = purchase.discount || 0;
+  const freight = purchase.freightCost || 0;
+  const discountFactor = calculatedSubtotal > 0 ? Math.max(0, calculatedSubtotal - discount) / calculatedSubtotal : 1;
+
+  purchase.items.forEach(item => {
+    const itemTotal = (item.quantity * item.cost) * discountFactor;
     const taxType = item.product?.taxType || 'IVA';
     const taxRate = item.product?.taxRate ?? 16.0;
     const iepsRate = item.product?.iepsRate ?? 0.0;
@@ -62,11 +68,11 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
     }
   });
 
-  const freight = purchase.freightCost || 0;
-  const expectedTotal = calculatedSubtotal + calculatedIva + calculatedIeps + freight;
+  const freightIva = freight * 0.16;
+  const expectedTotal = Math.max(0, calculatedSubtotal - discount) + freight + (calculatedIva + freightIva) + calculatedIeps;
 
   let subtotal = calculatedSubtotal;
-  let iva = calculatedIva;
+  let iva = calculatedIva + freightIva;
   let ieps = calculatedIeps;
 
   if (Math.abs(expectedTotal - purchase.total) > 0.05) {
@@ -267,7 +273,7 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
               <tr key={item.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                 <td data-label="Artículo" style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: 'bold', color: '#0f172a' }}>{item.product?.name || 'Desconocido'}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>SKU: {item.product?.sku || '--'}</div>
+                  <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>SKU: {item.product?.sku || '-'} | Código: {item.product?.barcode || '-'}</div>
                   
                   {item.fuelTraceability && (
                     <div style={{ marginTop: '0.5rem', padding: '0.75rem', backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '8px', fontSize: '0.8rem', color: '#0369a1', maxWidth: '600px' }}>
@@ -312,6 +318,12 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
                 <span style={{ color: '#64748b' }}>Subtotal (sin imp.):</span>
                 <span style={{ color: '#0f172a' }}>${subtotal.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
              </div>
+             {purchase.discount ? (
+               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #e2e8f0', color: '#e11d48' }}>
+                  <span>Descuento:</span>
+                  <span>-${purchase.discount.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+               </div>
+             ) : null}
              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #e2e8f0' }}>
                 <span style={{ color: '#64748b' }}>I.V.A.:</span>
                 <span style={{ color: '#0f172a' }}>${iva.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>

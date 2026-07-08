@@ -69,8 +69,28 @@ async function getTransporterAndSender(branchId?: string | null) {
     },
   });
 
+  const safeSendMail = async (options: any) => {
+    try {
+      return await transporterInstance.sendMail(options);
+    } catch (err: any) {
+      if (isCustom && process.env.SMTP_USER && process.env.SMTP_PASS) {
+        console.warn(`⚠️ Custom SMTP failed (${user}@${host}): ${err.message || err}. Falling back to CAANMA default SMTP.`);
+        const fallbackOptions = { ...options };
+        if (typeof fallbackOptions.from === 'string') {
+          fallbackOptions.from = fallbackOptions.from.replace(/<[^>]+>/, `<${process.env.SMTP_USER}>`);
+        } else {
+          fallbackOptions.from = process.env.SMTP_USER;
+        }
+        return await transporter.sendMail(fallbackOptions);
+      }
+      throw err;
+    }
+  };
+
   return {
-    transporter: transporterInstance,
+    transporter: {
+      sendMail: safeSendMail
+    } as any,
     fromEmail: user,
     fromName,
     isCustom,
@@ -298,10 +318,10 @@ export const sendQuoteNotificationEmail = async (
   try {
     const itemsListHtml = quote.items.map((item: any) => `
       <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #eaeaea;">${item.product?.name || 'Artículo'} (SKU: ${item.product?.sku || 'N/A'})</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: center;">${item.quantity}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: right;">$${item.price.toFixed(2)} MXN</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: right;">$${(item.quantity * item.price).toFixed(2)} MXN</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; font-size: 13px;">${item.product?.name || 'Artículo'} (SKU: ${item.product?.sku || 'N/A'})</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: center; font-size: 13px;">${item.quantity}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: right; font-size: 13px;">$${item.price.toFixed(2)}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: right; font-size: 13px;">$${(item.quantity * item.price).toFixed(2)}</td>
       </tr>
     `).join('');
 
@@ -328,7 +348,7 @@ export const sendQuoteNotificationEmail = async (
       to,
       subject: `Nueva Cotización Realizada - Folio #${displayFolio}`,
       html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px;">
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px; box-sizing: border-box;">
           <div style="text-align: center; border-bottom: 2px solid #0ea5e9; padding-bottom: 20px;">
             <h1 style="color: #0ea5e9; margin: 0; font-size: 28px;">Cotización de Venta</h1>
             <p style="color: #666; margin: 5px 0 0 0;">Folio #${displayFolio}</p>
@@ -344,25 +364,27 @@ export const sendQuoteNotificationEmail = async (
           </div>
 
           <h3 style="color: #333; border-bottom: 1px solid #eaeaea; padding-bottom: 8px;">Resumen del Pedido</h3>
-          <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
-            <thead>
-              <tr style="background-color: #f8fafc;">
-                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: left;">Producto</th>
-                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: center;">Cant.</th>
-                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: right;">Precio Unit.</th>
-                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: right;">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsListHtml}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colspan="3" style="padding: 10px 8px; text-align: right; font-weight: bold; font-size: 16px;">Total:</td>
-                <td style="padding: 10px 8px; text-align: right; font-weight: bold; font-size: 16px; color: #0ea5e9;">$${quote.total.toFixed(2)} MXN</td>
-              </tr>
-            </tfoot>
-          </table>
+          <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 15px 0;">
+            <table style="width: 100%; min-width: 500px; border-collapse: collapse; font-size: 13px;">
+              <thead>
+                <tr style="background-color: #f8fafc;">
+                  <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: left;">Producto</th>
+                  <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: center; width: 60px;">Cant.</th>
+                  <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: right; width: 110px;">Precio U. (MXN)</th>
+                  <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: right; width: 110px;">Subtotal (MXN)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsListHtml}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="3" style="padding: 10px 8px; text-align: right; font-weight: bold; font-size: 15px;">Total:</td>
+                  <td style="padding: 10px 8px; text-align: right; font-weight: bold; font-size: 15px; color: #0ea5e9;">$${quote.total.toFixed(2)} MXN</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
 
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; text-align: center; font-size: 12px; color: #888;">
             <p>Se adjunta la versión formal en PDF a este correo para su conveniencia.</p>
@@ -486,10 +508,10 @@ export const sendPurchaseOrderEmail = async (
   try {
     const itemsListHtml = purchase.items.map((item: any) => `
       <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #eaeaea;">${item.product?.name || 'Artículo'} (SKU: ${item.product?.sku || 'N/A'})</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: center;">${item.quantity}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: right;">$${item.cost.toFixed(2)} MXN</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: right;">$${(item.quantity * item.cost).toFixed(2)} MXN</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; font-size: 13px;">${item.product?.name || 'Artículo'} (SKU: ${item.product?.sku || 'N/A'})</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: center; font-size: 13px;">${item.quantity}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: right; font-size: 13px;">$${item.cost.toFixed(2)}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eaeaea; text-align: right; font-size: 13px;">$${(item.quantity * item.cost).toFixed(2)}</td>
       </tr>
     `).join('');
 
@@ -515,7 +537,7 @@ export const sendPurchaseOrderEmail = async (
       to,
       subject: `Nueva Orden de Compra - Folio #${displayFolio}`,
       html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px;">
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px; box-sizing: border-box;">
           <div style="text-align: center; border-bottom: 2px solid #eab308; padding-bottom: 20px;">
             <h1 style="color: #eab308; margin: 0; font-size: 28px;">Orden de Compra</h1>
             <p style="color: #666; margin: 5px 0 0 0;">Folio #${displayFolio}</p>
@@ -526,25 +548,27 @@ export const sendPurchaseOrderEmail = async (
           <p>Adjunto a este correo encontrará la versión formal en formato PDF de esta Orden de Compra.</p>
           
           <h3 style="color: #333; border-bottom: 1px solid #eaeaea; padding-bottom: 8px;">Resumen del Pedido</h3>
-          <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
-            <thead>
-              <tr style="background-color: #f8fafc;">
-                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: left;">Artículo</th>
-                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: center;">Cant.</th>
-                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: right;">Costo Unit.</th>
-                <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: right;">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsListHtml}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colspan="3" style="padding: 10px 8px; text-align: right; font-weight: bold; font-size: 16px;">Total:</td>
-                <td style="padding: 10px 8px; text-align: right; font-weight: bold; font-size: 16px; color: #eab308;">$${purchase.total.toFixed(2)} MXN</td>
-              </tr>
-            </tfoot>
-          </table>
+          <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 15px 0;">
+            <table style="width: 100%; min-width: 500px; border-collapse: collapse; font-size: 13px;">
+              <thead>
+                <tr style="background-color: #f8fafc;">
+                  <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: left;">Artículo</th>
+                  <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: center; width: 60px;">Cant.</th>
+                  <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: right; width: 120px;">Costo U. (MXN)</th>
+                  <th style="padding: 8px; border-bottom: 2px solid #eaeaea; text-align: right; width: 120px;">Subtotal (MXN)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsListHtml}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="3" style="padding: 10px 8px; text-align: right; font-weight: bold; font-size: 15px;">Total:</td>
+                  <td style="padding: 10px 8px; text-align: right; font-weight: bold; font-size: 15px; color: #eab308;">$${purchase.total.toFixed(2)} MXN</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
 
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; text-align: center; font-size: 12px; color: #888;">
             <p>Se adjunta la versión formal en PDF a este correo para su descarga.</p>
@@ -560,6 +584,71 @@ export const sendPurchaseOrderEmail = async (
     return { success: true, messageId: info.messageId };
   } catch (error: any) {
     console.error('Error al enviar el correo de orden de compra:', error);
+    return { success: false, error: error.message || error };
+  }
+};
+
+export const sendAccountStatementEmail = async (
+  to: string,
+  customer: any,
+  pdfBuffer: Buffer
+) => {
+  const { transporter: customTransporter, fromEmail, fromName, isCustom, tenantName, configured } = await getTransporterAndSender(customer.branchId);
+  const finalFromName = isCustom ? fromName : `${tenantName} Finanzas`;
+
+  if (!configured) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('❌ Error: SMTP credentials are not configured in production environment.');
+      return { success: false, error: 'SMTP credentials not configured' };
+    }
+    console.warn('⚠️ SMTP credentials not set. Simulating account statement email sending.');
+    console.log(`[EMAIL SIMULADO ESTADO CUENTA] Destino: ${to} | Cliente: ${customer.name}`);
+    return { success: true, simulated: true };
+  }
+
+  const safeName = (customer.legalName || customer.name)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '_')
+    .slice(0, 30);
+  const filename = `estado_de_cuenta_${safeName}.pdf`;
+
+  const attachments = [
+    {
+      filename,
+      content: pdfBuffer,
+      contentType: 'application/pdf'
+    }
+  ];
+
+  try {
+    const info = await customTransporter.sendMail({
+      from: `"${finalFromName}" <${fromEmail}>`,
+      to,
+      subject: `Estado de Cuenta - ${customer.legalName || customer.name}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px;">
+          <div style="text-align: center; border-bottom: 2px solid #0ea5e9; padding-bottom: 20px;">
+            <h1 style="color: #0ea5e9; margin: 0; font-size: 28px;">Estado de Cuenta</h1>
+            <p style="color: #666; margin: 5px 0 0 0;">Cliente: ${customer.legalName || customer.name}</p>
+          </div>
+          
+          <p>Estimado(a) cliente,</p>
+          <p>Le compartimos el Estado de Cuenta detallado con sus movimientos vigentes y saldos pendientes.</p>
+          <p>Adjunto a este correo encontrará el archivo <strong>PDF</strong> de su estado de cuenta para su descarga e impresión.</p>
+          
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; text-align: center; font-size: 12px; color: #888;">
+            <p>Este es un correo automático de ${tenantName}, por favor no responda directamente.</p>
+            <p><strong>${tenantName} ERP</strong></p>
+          </div>
+        </div>
+      `,
+      attachments
+    });
+
+    console.log('Correo de estado de cuenta enviado: %s', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error: any) {
+    console.error('Error al enviar el correo de estado de cuenta:', error);
     return { success: false, error: error.message || error };
   }
 };

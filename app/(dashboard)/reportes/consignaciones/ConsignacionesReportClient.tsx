@@ -299,7 +299,7 @@ export default function ConsignacionesReportClient({ initialData, initialBranchI
                       <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '0.75rem 0.5rem', fontWeight: '500' }}>
                           <div>{p.name}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', fontFamily: 'monospace' }}>SKU: {p.sku}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', fontFamily: 'monospace' }}>SKU: {p.sku || '-'} | Código: {p.barcode || '-'}</div>
                         </td>
                         <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 'bold' }}>{p.consignedQty}</td>
                         <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center', color: '#d97706' }}>{p.activeQty}</td>

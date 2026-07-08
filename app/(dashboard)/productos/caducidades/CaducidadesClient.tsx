@@ -27,6 +27,7 @@ export default function CaducidadesClient({ initialBatches }: { initialBatches: 
   const filteredBatches = initialBatches.filter(b => 
     b.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (b.product.sku && b.product.sku.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (b.product.barcode && b.product.barcode.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (b.batchNumber && b.batchNumber.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
@@ -115,7 +116,9 @@ export default function CaducidadesClient({ initialBatches }: { initialBatches: 
                         </div>
                         <div>
                           <div style={{ fontWeight: 500, color: '#1e293b' }}>{batch.product.name}</div>
-                          {batch.product.sku && <div style={{ fontSize: '0.8rem', color: '#64748b' }}>SKU: {batch.product.sku}</div>}
+                          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                            SKU: {batch.product.sku || '-'} | Código: {batch.product.barcode || '-'}
+                          </div>
                         </div>
                       </div>
                     </td>

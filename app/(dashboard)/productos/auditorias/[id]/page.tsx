@@ -21,7 +21,7 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
 
   const products = await prisma.product.findMany({
     where: { branchId: branch.id, isActive: true },
-    select: { id: true, name: true, sku: true, stock: true }
+    select: { id: true, name: true, sku: true, barcode: true, stock: true }
   });
 
   return (

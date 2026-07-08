@@ -298,7 +298,7 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                   </div>
                 )}
               </td>
-              <td data-label="Acción" style={{ padding: '1rem', textAlign: 'right' }}>
+              <td data-label="Acción" className="full-width no-label" style={{ padding: '1rem', textAlign: 'right' }}>
                 <QuoteActions 
                   quoteId={quote.id} 
                   quoteFolio={quote.folio}

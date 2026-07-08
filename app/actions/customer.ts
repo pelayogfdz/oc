@@ -151,3 +151,105 @@ export async function createCustomerBilling(data: {
   return customer;
 }
 
+export async function sendCustomerAccountStatementEmail(customerId: string, customEmail?: string) {
+  try {
+    const customer = await prisma.customer.findUnique({
+      where: { id: customerId },
+      include: {
+        branch: {
+          include: {
+            tenant: true
+          }
+        }
+      }
+    });
+
+    if (!customer) {
+      throw new Error('Cliente no encontrado');
+    }
+
+    const email = customEmail?.trim() || customer.email?.trim();
+    if (!email) {
+      throw new Error('El cliente no tiene un correo electrónico registrado.');
+    }
+
+    // Get all sales for this customer
+    const sales = await prisma.sale.findMany({
+      where: { customerId },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    // Resolve branch settings config
+    let config: any = {};
+    const branchId = customer.branchId;
+    if (branchId) {
+      const settings = await prisma.branchSettings.findUnique({
+        where: { branchId }
+      });
+      if (settings && settings.configJson) {
+        try {
+          config = JSON.parse(settings.configJson);
+        } catch (e) {}
+      }
+    }
+
+    // Fallback if no config loaded
+    if (!config || !config.formatos_factura) {
+      const settings = await prisma.branchSettings.findFirst({
+        where: { configJson: { not: null } }
+      });
+      if (settings && settings.configJson) {
+        try {
+          const fallbackConfig = JSON.parse(settings.configJson);
+          config = { ...fallbackConfig, ...config };
+        } catch (e) {}
+      }
+    }
+
+    // Fallback search for bancos settings
+    if (!config.bancos) {
+      const allSettings = await prisma.branchSettings.findMany({
+        where: { configJson: { not: null } }
+      });
+      for (const s of allSettings) {
+        if (s.configJson) {
+          try {
+            const parsed = JSON.parse(s.configJson);
+            if (parsed.bancos && (parsed.bancos.accounts?.length > 0 || parsed.bancos.bancoPrincipal)) {
+              config.bancos = parsed.bancos;
+              break;
+            }
+          } catch (e) {}
+        }
+      }
+    }
+
+    // Dynamic imports to avoid issues
+    const { generateAccountStatementPdfBuffer } = await import('@/lib/accountStatementPdf');
+    const { sendAccountStatementEmail } = await import('@/lib/mailer');
+
+    // Generate PDF Buffer
+    const pdfBuffer = await generateAccountStatementPdfBuffer(customer, sales, config);
+
+    // Send email
+    await sendAccountStatementEmail(email, customer, pdfBuffer);
+
+    // Also send to additional emails if registered
+    if (customer.additionalEmails) {
+      const extraEmails = customer.additionalEmails.split(',').map((e: string) => e.trim()).filter((e: string) => e);
+      for (const extraEmail of extraEmails) {
+        try {
+          await sendAccountStatementEmail(extraEmail, customer, pdfBuffer);
+        } catch (e) {
+          console.error(`Failed to send statement email to additional email ${extraEmail}:`, e);
+        }
+      }
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error sending account statement email:', error);
+    return { success: false, error: error.message || 'Error al enviar correo' };
+  }
+}
+

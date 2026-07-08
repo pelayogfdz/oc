@@ -384,8 +384,8 @@ export function ProductDetailClient({
             {product.name}
           </h2>
           <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', fontSize: '0.9rem', color: '#64748b', marginTop: '0.25rem' }}>
-            <span><strong>SKU:</strong> {product.sku}</span>
-            {product.barcode && <span><strong>Código de Barras:</strong> {product.barcode}</span>}
+            <span><strong>SKU:</strong> {product.sku || '-'}</span>
+            <span><strong>Código de Barras:</strong> {product.barcode || '-'}</span>
             <span><strong>Existencia:</strong> {product.isService ? (
               <span style={{ color: '#2563eb', fontWeight: '600', backgroundColor: '#dbeafe', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>Servicio</span>
             ) : (

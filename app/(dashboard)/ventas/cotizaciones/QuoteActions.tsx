@@ -159,7 +159,7 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
   };
 
   return (
-    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+    <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end', alignItems: 'center' }}>
       {/* Print Quote */}
       <a
         href={`/ventas/detalle/${quoteId}/imprimir-cotizacion`}
@@ -169,14 +169,13 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: '0.35rem',
-          padding: '0.4rem 0.8rem',
+          justifyContent: 'center',
+          width: '32px',
+          height: '32px',
           backgroundColor: '#f8fafc',
           border: '1px solid #e2e8f0',
           borderRadius: '6px',
           cursor: 'pointer',
-          fontWeight: '600',
-          fontSize: '0.825rem',
           color: '#475569',
           textDecoration: 'none',
           transition: 'all 0.15s ease',
@@ -191,7 +190,6 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
         }}
       >
         <Printer size={15} />
-        Imprimir
       </a>
 
       {/* Download Quote */}
@@ -202,14 +200,13 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: '0.35rem',
-          padding: '0.4rem 0.8rem',
+          justifyContent: 'center',
+          width: '32px',
+          height: '32px',
           backgroundColor: '#f1f5f9',
           border: '1px solid #cbd5e1',
           borderRadius: '6px',
           cursor: 'pointer',
-          fontWeight: '600',
-          fontSize: '0.825rem',
           color: '#334155',
           textDecoration: 'none',
           transition: 'all 0.15s ease',
@@ -224,8 +221,7 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
         }}
       >
         <Download size={15} />
-        Descargar
-      </a >
+      </a>
 
       {/* Share Quote WhatsApp */}
       <button
@@ -234,14 +230,13 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: '0.35rem',
-          padding: '0.4rem 0.8rem',
+          justifyContent: 'center',
+          width: '32px',
+          height: '32px',
           backgroundColor: '#e6f4ea',
           border: '1px solid #c2e7cc',
           borderRadius: '6px',
           cursor: 'pointer',
-          fontWeight: '600',
-          fontSize: '0.825rem',
           color: '#137333',
           transition: 'all 0.15s ease',
         }}
@@ -255,7 +250,6 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
         }}
       >
         <Share2 size={15} />
-        WhatsApp
       </button>
 
       {/* Send via Email */}
@@ -265,14 +259,13 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: '0.35rem',
-          padding: '0.4rem 0.8rem',
+          justifyContent: 'center',
+          width: '32px',
+          height: '32px',
           backgroundColor: '#eff6ff',
           border: '1px solid #bfdbfe',
           borderRadius: '6px',
           cursor: 'pointer',
-          fontWeight: '600',
-          fontSize: '0.825rem',
           color: '#1d4ed8',
           transition: 'all 0.15s ease',
         }}
@@ -286,7 +279,6 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
         }}
       >
         <Mail size={15} />
-        Enviar por mail
       </button>
 
       {/* Edit Quote Button (If Pending) */}
@@ -297,14 +289,13 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.35rem',
-            padding: '0.4rem 0.8rem',
+            justifyContent: 'center',
+            width: '32px',
+            height: '32px',
             backgroundColor: '#e0f2fe',
             border: '1px solid #bae6fd',
             borderRadius: '6px',
             cursor: 'pointer',
-            fontWeight: '600',
-            fontSize: '0.825rem',
             color: '#0369a1',
             transition: 'all 0.15s ease',
           }}
@@ -318,7 +309,6 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
           }}
         >
           <Pencil size={15} />
-          Editar
         </button>
       )}
 
@@ -326,11 +316,14 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
       {status === 'PENDING' && (
         <button
           onClick={handleConvert}
+          title="Convertir a Venta"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
+            justifyContent: 'center',
             gap: '0.35rem',
-            padding: '0.4rem 0.8rem',
+            padding: '0 0.75rem',
+            height: '32px',
             backgroundColor: 'var(--caanma-primary, #6366f1)',
             border: 'none',
             borderRadius: '6px',

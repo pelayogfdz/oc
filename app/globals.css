@@ -719,6 +719,55 @@ img[data-header-img="true"]::after {
     grid-template-columns: 1fr !important;
     gap: 1rem !important;
   }
+
+  /* POS Client Mobile Overrides */
+  .pos-actions-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+    padding: 0.75rem !important;
+  }
+  .pos-actions-bar > div {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+  .pos-price-list-container {
+    flex: 1 !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  .pos-price-list-select {
+    flex: 1 !important;
+    width: 100% !important;
+  }
+  .pos-action-grid {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+    gap: 0.5rem !important;
+  }
+  .pos-action-card {
+    padding: 1rem 0.5rem !important;
+    gap: 0.4rem !important;
+  }
+  .pos-action-label {
+    font-size: 0.75rem !important;
+  }
+  .search-result-item {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+  }
+  .search-result-right {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-top: 1px dashed #e2e8f0 !important;
+    padding-top: 0.4rem !important;
+    margin-top: 0.2rem !important;
+  }
 }
 
 @media (max-width: 480px) {
@@ -727,11 +776,39 @@ img[data-header-img="true"]::after {
   }
 
   .header-module-title {
-    font-size: 1rem !important;
-    max-width: 120px !important;
+    font-size: 0.95rem !important;
+    max-width: 100px !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
   }
+
+  .header-branch-selector-wrapper {
+    max-width: 95px !important;
+  }
+  
+  .header-branch-selector-wrapper select {
+    max-width: 95px !important;
+    font-size: 0.7rem !important;
+    padding-left: 0.4rem !important;
+    padding-right: 1.1rem !important;
+    background-position: right 0.2rem center !important;
+    background-size: 0.7rem !important;
+  }
+
+  /* POS Price List selector improvements on mobile */
+  .pos-price-list-label {
+    display: none !important;
+  }
+}
+
+.estado-cuenta-btn {
+  transition: all 0.2s ease-in-out;
+}
+
+.estado-cuenta-btn:hover {
+  background-color: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: var(--caanma-primary) !important;
 }
 
