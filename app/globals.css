@@ -100,7 +100,9 @@ button {
 
 .table-responsive {
   width: 100%;
-  overflow-x: auto;
+  max-width: 100%;
+  overflow-x: auto !important;
+  display: block;
   -webkit-overflow-scrolling: touch;
 }
 

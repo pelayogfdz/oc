@@ -24,8 +24,9 @@ export default async function Page() {
         </Link>
       </div>
 
-      <div className="card" style={{ padding: 0 }}>
-        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+      <div className="card" style={{ padding: 0, width: '100%', maxWidth: '100%', height: 'auto', overflow: 'hidden' }}>
+        <div className="table-responsive">
+          <table className="responsive-table" style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead style={{ backgroundColor: '#f8fafc' }}>
             <tr>
               <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--caanma-border)', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Ticket Original</th>
@@ -64,5 +65,6 @@ export default async function Page() {
         </table>
       </div>
     </div>
+  </div>
   );
 }

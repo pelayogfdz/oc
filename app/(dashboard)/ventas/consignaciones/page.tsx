@@ -124,6 +124,6 @@ export default async function ConsignacionesPage() {
         </table>
       </div>
     </div>
-    </div>
+  </div>
   );
 }

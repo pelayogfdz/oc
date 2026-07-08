@@ -66,8 +66,9 @@ export default function PromotionsClient({ initialPromos }: { initialPromos: any
         </form>
       </div>
 
-      <div className="card" style={{ padding: '0' }}>
-        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+      <div className="card" style={{ padding: '0', width: '100%', maxWidth: '100%', height: 'auto', overflow: 'hidden' }}>
+        <div className="table-responsive">
+          <table className="responsive-table" style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
               <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Nombre</th>
@@ -118,5 +119,6 @@ export default function PromotionsClient({ initialPromos }: { initialPromos: any
         </table>
       </div>
     </div>
+  </div>
   );
 }
