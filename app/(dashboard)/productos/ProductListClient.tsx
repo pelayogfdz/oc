@@ -337,10 +337,28 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             }}>
             <ArrowDownUp size={18} /> Ordenar
           </button>
+
+          <button 
+            type="button"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: '0.5rem', 
+              backgroundColor: showAdvancedFilters ? '#eff6ff' : 'white', 
+              border: `1px solid ${showAdvancedFilters ? 'var(--caanma-primary)' : '#cbd5e1'}`, 
+              color: showAdvancedFilters ? 'var(--caanma-primary)' : 'var(--caanma-text)',
+              padding: '0.75rem 1rem', 
+              borderRadius: '8px', 
+              fontWeight: '500', 
+              cursor: 'pointer',
+              fontSize: '0.95rem'
+            }}>
+            <Filter size={18} /> {showAdvancedFilters ? 'Ocultar Filtros' : 'Filtros'}
+          </button>
         </div>
 
         {/* Filters Row */}
-        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
+        {showAdvancedFilters && (
+          <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Categoría</label>
             <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
@@ -398,6 +416,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
              </button>
           </div>
         </div>
+        )}
       </div>
 
       <div style={{ opacity: isSearching ? 0.5 : 1, transition: 'opacity 0.2s' }}>

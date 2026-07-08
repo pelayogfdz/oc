@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { Eye, Printer, RotateCcw, Calendar, User, MapPin, Tag, Receipt, Send, Share2, Loader2, CheckCircle, Mail, Download, X, AlertTriangle } from 'lucide-react';
+import { Eye, Printer, RotateCcw, Calendar, User, MapPin, Tag, Receipt, Send, Share2, Loader2, CheckCircle, Mail, Download, X, AlertTriangle, Filter } from 'lucide-react';
 import { sendSaleByEmail } from '@/app/actions/sale';
 import { formatCurrency } from '@/lib/utils';
 
@@ -41,6 +41,7 @@ export default function VentasHistoryClient({
   const [filterClient, setFilterClient] = useState('');
   const [filterCfdi, setFilterCfdi] = useState('');
   const [filterPaymentMethod, setFilterPaymentMethod] = useState('');
+  const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
   // WhatsApp Share States
   const [isWhatsappOpen, setIsWhatsappOpen] = useState(false);
@@ -304,17 +305,45 @@ export default function VentasHistoryClient({
         </div>
       </div>
 
+      {/* Mobile Filters Toggle Button */}
+      <button
+        onClick={() => setShowFiltersMobile(!showFiltersMobile)}
+        className="mobile-filters-toggle-btn"
+        style={{
+          width: '100%',
+          padding: '0.75rem',
+          borderRadius: '8px',
+          backgroundColor: '#f1f5f9',
+          border: '1px solid #cbd5e1',
+          color: '#334155',
+          fontWeight: '600',
+          display: 'none', // Shown on mobile via CSS
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem',
+          marginBottom: '1rem',
+          cursor: 'pointer',
+          outline: 'none'
+        }}
+      >
+        <Filter size={16} />
+        {showFiltersMobile ? 'Ocultar Filtros' : 'Mostrar Filtros'}
+      </button>
+
       {/* Filters Section */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
-        gap: '1rem', 
-        marginBottom: '1.5rem', 
-        padding: '1.25rem', 
-        backgroundColor: '#f8fafc', 
-        borderRadius: '12px', 
-        border: '1px solid var(--caanma-border)' 
-      }}>
+      <div 
+        className={`filters-section-grid ${showFiltersMobile ? 'mobile-show' : ''}`}
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
+          gap: '1rem', 
+          marginBottom: '1.5rem', 
+          padding: '1.25rem', 
+          backgroundColor: '#f8fafc', 
+          borderRadius: '12px', 
+          border: '1px solid var(--caanma-border)' 
+        }}
+      >
         {/* Date Filter */}
         <div>
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>

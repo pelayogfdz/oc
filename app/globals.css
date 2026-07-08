@@ -677,6 +677,32 @@ img[data-header-img="true"]::after {
     box-shadow: none !important;
   }
 
+  .sync-status-btn {
+    padding: 6px !important;
+    gap: 0 !important;
+    border-radius: 50% !important;
+    min-width: 32px !important;
+    height: 32px !important;
+    justify-content: center !important;
+  }
+
+  .header-user-avatar {
+    display: none !important;
+  }
+
+  .mobile-filters-toggle-btn {
+    display: flex !important;
+  }
+
+  .filters-section-grid {
+    display: none !important;
+  }
+
+  .filters-section-grid.mobile-show {
+    display: grid !important;
+  }
+
+
   /* Page Headers and Action Toolbars */
   .page-header-container {
     flex-direction: column !important;
