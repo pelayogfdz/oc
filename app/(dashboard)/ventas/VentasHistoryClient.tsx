@@ -573,7 +573,7 @@ export default function VentasHistoryClient({
                     </span>
                   </td>
                   <td data-label="Acciones" style={{ padding: '0.4rem 0.75rem', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center', flexWrap: 'wrap' }}>
                       {/* Detalle */}
                       <Link
                         href={`/ventas/detalle/${sale.id}`}

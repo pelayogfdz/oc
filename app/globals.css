@@ -702,6 +702,13 @@ img[data-header-img="true"]::after {
     display: grid !important;
   }
 
+  /* Prevent clipping of action dropdowns and tooltips in responsive tables */
+  div:has(> table.responsive-table),
+  .table-responsive,
+  .card {
+    overflow: visible !important;
+    overflow-x: visible !important;
+  }
 
   /* Page Headers and Action Toolbars */
   .page-header-container {

@@ -159,7 +159,7 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
   };
 
   return (
-    <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+    <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
       {/* Print Quote */}
       <a
         href={`/ventas/detalle/${quoteId}/imprimir-cotizacion`}
