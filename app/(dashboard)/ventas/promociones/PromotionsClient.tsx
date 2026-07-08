@@ -70,22 +70,22 @@ export default function PromotionsClient({ initialPromos }: { initialPromos: any
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
-              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Nombre</th>
-              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Mecánica</th>
-              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--caanma-text-muted)', textAlign: 'center' }}>Estado</th>
-              <th style={{ padding: '1rem', fontWeight: '500', color: 'var(--caanma-text-muted)', textAlign: 'right' }}>Eliminar</th>
+              <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Nombre</th>
+              <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Mecánica</th>
+              <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)', textAlign: 'center' }}>Estado</th>
+              <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)', textAlign: 'right' }}>Eliminar</th>
             </tr>
           </thead>
           <tbody>
             {initialPromos.map(promo => (
               <tr key={promo.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-                <td data-label="Nombre" style={{ padding: '1rem', fontWeight: 'bold' }}>{promo.name}</td>
-                <td data-label="Mecánica" style={{ padding: '1rem' }}>
+                <td data-label="Nombre" style={{ padding: '0.4rem 0.75rem', fontWeight: 'bold' }}>{promo.name}</td>
+                <td data-label="Mecánica" style={{ padding: '0.4rem 0.75rem' }}>
                   <span style={{ color: 'var(--caanma-primary)', fontWeight: 'bold' }}>
                     {promo.type === 'PERCENTAGE' ? `Descuento ${promo.value}%` : `Descuento $${promo.value}`}
                   </span>
                 </td>
-                <td data-label="Estado" style={{ padding: '1rem', textAlign: 'center' }}>
+                <td data-label="Estado" style={{ padding: '0.4rem 0.75rem', textAlign: 'center' }}>
                   <button 
                     onClick={() => togglePromotion(promo.id, !promo.active)}
                     style={{ 
@@ -102,7 +102,7 @@ export default function PromotionsClient({ initialPromos }: { initialPromos: any
                     {promo.active ? 'ACTIVA' : 'INACTIVA'}
                   </button>
                 </td>
-                <td data-label="Eliminar" style={{ padding: '1rem', textAlign: 'right' }}>
+                <td data-label="Eliminar" style={{ padding: '0.4rem 0.75rem', textAlign: 'right' }}>
                   <button onClick={() => deletePromotion(promo.id)} style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}>
                      <Trash2 size={20} />
                   </button>

@@ -561,6 +561,30 @@ button {
 }
 
 /* ==========================================================================
+   Compact Table Layout - Desktop (all responsive-table instances)
+   ========================================================================== */
+@media (min-width: 769px) {
+  table.responsive-table th {
+    padding: 0.5rem 0.75rem !important;
+    white-space: nowrap;
+    font-weight: 500;
+    font-size: 0.82rem;
+    color: var(--caanma-text-muted);
+  }
+  table.responsive-table td {
+    padding: 0.4rem 0.75rem !important;
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+  table.responsive-table tbody tr {
+    transition: background-color 0.12s ease;
+  }
+  table.responsive-table tbody tr:hover {
+    background-color: #f8fafc;
+  }
+}
+
+/* ==========================================================================
    Universal Broken Image Suppression and Initial Fallbacks
    ========================================================================== */
 img[data-table-img="true"],

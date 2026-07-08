@@ -197,19 +197,19 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
       <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
-            <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>ID Cotización</th>
-            <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Fecha</th>
-            <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Cliente</th>
-            <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Creado por</th>
-            <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Total</th>
-            <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Estado</th>
-            <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)', textAlign: 'right' }}>Acción</th>
+            <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap' }}>ID Cotización</th>
+            <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap' }}>Fecha</th>
+            <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap' }}>Cliente</th>
+            <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap' }}>Creado por</th>
+            <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap' }}>Total</th>
+            <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap' }}>Estado</th>
+            <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)', textAlign: 'right', whiteSpace: 'nowrap' }}>Acción</th>
           </tr>
         </thead>
         <tbody>
           {filteredQuotes.map((quote) => (
             <tr key={quote.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-              <td data-label="ID Cotización" style={{ padding: '0.4rem 0.75rem' }}>
+              <td data-label="ID Cotización" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
                 <div className="quote-id-wrapper">
                   <span className="quote-id-text">#{quote.folio || quote.id.slice(0, 8).toUpperCase()}</span>
                   <div className="quote-preview-tooltip">
@@ -274,7 +274,7 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
               <td data-label="Fecha" style={{ padding: '0.4rem 0.75rem', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap' }}>
                 {new Date(quote.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}
               </td>
-              <td data-label="Cliente" style={{ padding: '0.4rem 0.75rem' }}>
+              <td data-label="Cliente" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
                 <div 
                   title={quote.customer?.name || 'Público en General'} 
                   style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' }}
@@ -282,7 +282,7 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                   {quote.customer?.name || 'Público en General'}
                 </div>
               </td>
-              <td data-label="Creado por" style={{ padding: '0.4rem 0.75rem' }}>
+              <td data-label="Creado por" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
                 <div 
                   title={quote.user?.name || ''} 
                   style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }}
@@ -293,7 +293,7 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
               <td data-label="Total" style={{ padding: '0.4rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-primary)', whiteSpace: 'nowrap' }}>
                 ${quote.total.toFixed(2)}
               </td>
-              <td data-label="Estado" style={{ padding: '0.4rem 0.75rem' }}>
+              <td data-label="Estado" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
                 {quote.status === 'PENDING' ? (
                   <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#fef9c3', color: '#854d0e', borderRadius: '12px' }}>PENDIENTE</span>
                 ) : (
@@ -312,7 +312,7 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                   </div>
                 )}
               </td>
-              <td data-label="Acción" className="full-width no-label" style={{ padding: '0.4rem 0.75rem', textAlign: 'right' }}>
+              <td data-label="Acción" className="full-width no-label" style={{ padding: '0.4rem 0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
                 <QuoteActions 
                   quoteId={quote.id} 
                   quoteFolio={quote.folio}

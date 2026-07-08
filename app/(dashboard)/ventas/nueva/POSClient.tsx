@@ -216,6 +216,7 @@ export default function POSClient({
       setTransactionType(newTab.transactionType as 'VENTA' | 'PEDIDO');
       setAppliedPromotionIds(null);
       setLoadedQuoteId(null);
+      setLoadedQuoteTotal(null);
       setLoadedConsignmentId(null);
       setBreakdownDiscounts(newTab.breakdownDiscounts);
       setActiveTabId(newId);
@@ -280,6 +281,7 @@ export default function POSClient({
     setPointsRedeemed(0);
     setManualDiscountValue('');
     setLoadedQuoteId(null);
+    setLoadedQuoteTotal(null);
     setLoadedConsignmentId(null);
     setAmountReceived('');
     setCardAmount('');
@@ -617,6 +619,7 @@ export default function POSClient({
   const [cardAmount, setCardAmount] = useState<number | ''>(''); // Used for MIXED
   const [notes, setNotes] = useState<string>('');
   const [loadedQuoteId, setLoadedQuoteId] = useState<string | null>(null);
+  const [loadedQuoteTotal, setLoadedQuoteTotal] = useState<number | null>(null);
 
   // Loyalty / Points state
   const [loyaltySettings, setLoyaltySettings] = useState<any>(null);
@@ -858,6 +861,7 @@ export default function POSClient({
       const quote = await getQuoteForPOS(idToLoad);
       
       setLoadedQuoteId(quote.id);
+      setLoadedQuoteTotal(quote.total);
       setBreakdownDiscounts(quote.breakdownDiscounts || false);
       
       // Load cart preserving variantId, cartItemId and customPrice
@@ -1154,6 +1158,9 @@ export default function POSClient({
       discountsMap[item.cartItemId] = 0;
     });
 
+    // When a quote is loaded for conversion, skip all promotions to preserve original quote prices
+    if (loadedQuoteId) return discountsMap;
+
     if (!promotions || promotions.length === 0) return discountsMap;
 
     promotions.forEach((promo: any) => {
@@ -1240,7 +1247,7 @@ export default function POSClient({
     });
 
     return discountsMap;
-  }, [promotions, priceList, getProductPrice, appliedPromotionIds]);
+  }, [promotions, priceList, getProductPrice, appliedPromotionIds, loadedQuoteId]);
 
   const itemDiscounts = useMemo(() => getItemDiscounts(cart), [cart, getItemDiscounts]);
 
@@ -1726,9 +1733,12 @@ export default function POSClient({
 
       const items = finalCart.map(item => {
         const basePrice = getProductPrice(item);
-        const savedPrice = breakdownDiscounts
+        // When converting a quote to sale, use the exact quote prices without any proration
+        const savedPrice = loadedQuoteId
           ? basePrice
-          : (subTotal > 0 ? (basePrice * (total / subTotal)) : 0);
+          : (breakdownDiscounts
+            ? basePrice
+            : (subTotal > 0 ? (basePrice * (total / subTotal)) : 0));
         return { 
           productId: item.id, 
           variantId: item.variantId || null,
@@ -1829,7 +1839,9 @@ export default function POSClient({
           saleId = `OFFLINE-${Date.now()}`;
         } else {
           // ONLINE MODE
-          const response = await createSale(items, total + tipAmount, paymentMethod, selectedCustomerId || null, sessionId, finalNotes, cashValue, cardValue, billingData, loadedQuoteId || undefined, loadedConsignmentId || undefined, pointsRedeemed, branchId, breakdownDiscounts);
+          // When converting a quote, use the original quote total to ensure exact value preservation
+          const saleTotal = (loadedQuoteId && loadedQuoteTotal !== null) ? loadedQuoteTotal + tipAmount : total + tipAmount;
+          const response = await createSale(items, saleTotal, paymentMethod, selectedCustomerId || null, sessionId, finalNotes, cashValue, cardValue, billingData, loadedQuoteId || undefined, loadedConsignmentId || undefined, pointsRedeemed, branchId, breakdownDiscounts);
           if (!response.success) {
             throw new Error(response.error);
           }
@@ -2580,6 +2592,7 @@ export default function POSClient({
                   if (cart.length > 0 && confirm('¿Deseas vaciar el carrito actual?')) {
                     setCart([]);
                     setLoadedQuoteId(null);
+                    setLoadedQuoteTotal(null);
                     setLoadedConsignmentId(null);
                     lastQuoteIdRef.current = null;
                     lastConsignmentIdRef.current = null;
@@ -2955,6 +2968,7 @@ export default function POSClient({
                                 setCart(newCart);
                                 if (newCart.length === 0) {
                                   setLoadedQuoteId(null);
+                                  setLoadedQuoteTotal(null);
                                   setLoadedConsignmentId(null);
                                   lastQuoteIdRef.current = null;
                                   lastConsignmentIdRef.current = null;

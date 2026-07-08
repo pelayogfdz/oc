@@ -540,13 +540,23 @@ export async function cancelInvoice(saleId: string) {
     // Cancel invoice in Facturapi with motive "02" (Comprobante emitido con errores sin relación)
     await facturapi.invoices.cancel(sale.invoiceId, { motive: "02" as any });
 
-    // Cancel the sale itself (returns stock, credit balance, updates status)
-    const user = await getActiveUser();
-    await cancelSaleInternal(saleId, user.id);
+    // Buscar todas las ventas asociadas a este invoiceId
+    const associatedSales = await prisma.sale.findMany({
+      where: { invoiceId: sale.invoiceId }
+    });
 
-    // Clear invoice ID and folio in database
-    await prisma.sale.update({
-      where: { id: saleId },
+    const user = await getActiveUser();
+
+    // Cancelar internamente cada una de las ventas (esto retorna stock y maneja caja/crédito)
+    for (const assocSale of associatedSales) {
+      if (assocSale.status !== 'CANCELLED') {
+        await cancelSaleInternal(assocSale.id, user.id);
+      }
+    }
+
+    // Limpiar el ID y folio de factura en todas las ventas asociadas
+    await prisma.sale.updateMany({
+      where: { invoiceId: sale.invoiceId },
       data: { 
         invoiceId: null,
         invoiceFolio: null

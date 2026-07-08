@@ -28,26 +28,26 @@ export default async function Page() {
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead style={{ backgroundColor: '#f8fafc' }}>
             <tr>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Ticket Original</th>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Método de Pago</th>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Total Devuelto</th>
-              <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Estado</th>
+              <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--caanma-border)', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Ticket Original</th>
+              <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--caanma-border)', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Método de Pago</th>
+              <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--caanma-border)', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Total Devuelto</th>
+              <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--caanma-border)', fontWeight: '500', color: 'var(--caanma-text-muted)' }}>Estado</th>
             </tr>
           </thead>
           <tbody>
             {data.map((item: any) => (
               <tr key={item.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-                <td data-label="Ticket Original" style={{ padding: '1rem' }}>
+                <td data-label="Ticket Original" style={{ padding: '0.4rem 0.75rem' }}>
                   <div style={{ fontWeight: '500' }}>Venta #{item.id.substring(0,8).toUpperCase()}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)' }}>{new Date(item.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}</div>
                 </td>
-                <td data-label="Método de Pago" style={{ padding: '1rem' }}>
+                <td data-label="Método de Pago" style={{ padding: '0.4rem 0.75rem' }}>
                   <span style={{ fontSize: '0.85rem', fontWeight: '500', color: '#64748b' }}>{item.paymentMethod === 'MIXTO' ? 'Mixto (Efectivo/Tarjeta)' : item.paymentMethod === 'CASH' ? 'Efectivo' : 'Tarjeta/Otro'}</span>
                 </td>
-                <td data-label="Total Devuelto" style={{ padding: '1rem', fontWeight: 'bold', color: '#f43f5e' }}>
+                <td data-label="Total Devuelto" style={{ padding: '0.4rem 0.75rem', fontWeight: 'bold', color: '#f43f5e' }}>
                    - ${item.total.toFixed(2)}
                 </td>
-                <td data-label="Estado" style={{ padding: '1rem' }}>
+                <td data-label="Estado" style={{ padding: '0.4rem 0.75rem' }}>
                   <span style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>DEVUELTO</span>
                 </td>
               </tr>

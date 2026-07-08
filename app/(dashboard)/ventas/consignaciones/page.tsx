@@ -52,32 +52,32 @@ export default async function ConsignacionesPage() {
         <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f8fafc' }}>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>ID Consignación</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>Fecha</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>Cliente</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>Entregado por</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>Productos</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>Total Consignado</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>Estado</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem', textAlign: 'right' }}>Acciones</th>
+              <th style={{ padding: '0.5rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>ID Consignación</th>
+              <th style={{ padding: '0.5rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>Fecha</th>
+              <th style={{ padding: '0.5rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>Cliente</th>
+              <th style={{ padding: '0.5rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>Entregado por</th>
+              <th style={{ padding: '0.5rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>Productos</th>
+              <th style={{ padding: '0.5rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>Total Consignado</th>
+              <th style={{ padding: '0.5rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>Estado</th>
+              <th style={{ padding: '0.5rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem', textAlign: 'right' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {consignments.map(consignment => (
               <tr key={consignment.id} style={{ borderBottom: '1px solid var(--caanma-border)', transition: 'background-color 0.15s' }}>
-                <td data-label="ID Consignación" style={{ padding: '1.25rem 1rem', fontWeight: 'bold', fontSize: '0.9rem', fontFamily: 'monospace' }}>
+                <td data-label="ID Consignación" style={{ padding: '0.4rem 0.75rem', fontWeight: 'bold', fontSize: '0.9rem', fontFamily: 'monospace' }}>
                   #{consignment.folio || consignment.id.slice(0, 8).toUpperCase()}
                 </td>
-                <td data-label="Fecha" style={{ padding: '1.25rem 1rem', color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>
+                <td data-label="Fecha" style={{ padding: '0.4rem 0.75rem', color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>
                   {new Date(consignment.createdAt).toLocaleString('es-MX', { timeZone: timezone })}
                 </td>
-                <td data-label="Cliente" style={{ padding: '1.25rem 1rem', fontSize: '0.9rem', fontWeight: '500' }}>
+                <td data-label="Cliente" style={{ padding: '0.4rem 0.75rem', fontSize: '0.9rem', fontWeight: '500' }}>
                   {consignment.customer?.name || 'Público en General'}
                 </td>
-                <td data-label="Entregado por" style={{ padding: '1.25rem 1rem', fontSize: '0.9rem' }}>
+                <td data-label="Entregado por" style={{ padding: '0.4rem 0.75rem', fontSize: '0.9rem' }}>
                   {consignment.user.name}
                 </td>
-                <td data-label="Productos" style={{ padding: '1.25rem 1rem', fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>
+                <td data-label="Productos" style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                     {consignment.items.map((item, idx) => (
                       <span key={idx}>
@@ -86,10 +86,10 @@ export default async function ConsignacionesPage() {
                     ))}
                   </div>
                 </td>
-                <td data-label="Total" style={{ padding: '1.25rem 1rem', fontWeight: 'bold', color: '#4f46e5', fontSize: '0.95rem' }}>
+                <td data-label="Total" style={{ padding: '0.4rem 0.75rem', fontWeight: 'bold', color: '#4f46e5', fontSize: '0.95rem' }}>
                   ${consignment.total.toFixed(2)}
                 </td>
-                <td data-label="Estado" style={{ padding: '1.25rem 1rem' }}>
+                <td data-label="Estado" style={{ padding: '0.4rem 0.75rem' }}>
                   {consignment.status === 'ACTIVE' ? (
                     <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.3rem 0.6rem', backgroundColor: '#e0e7ff', color: '#3730a3', borderRadius: '12px', display: 'inline-block' }}>
                       CONSIGNADO
@@ -100,7 +100,7 @@ export default async function ConsignacionesPage() {
                     </span>
                   )}
                 </td>
-                <td data-label="Acciones" style={{ padding: '1.25rem 1rem', textAlign: 'right' }}>
+                <td data-label="Acciones" style={{ padding: '0.4rem 0.75rem', textAlign: 'right' }}>
                   {consignment.status === 'ACTIVE' ? (
                     <ConvertButton consignmentId={consignment.id} />
                   ) : (
