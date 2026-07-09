@@ -7,6 +7,23 @@ import { bulkUpdatePrices } from '@/app/actions/bulkPrice';
 // Utility: round to nearest whole peso (no cents)
 const roundPeso = (n: number) => Math.round(n);
 
+// Round to special endings (19, 29, 49, 69, 89, 99) for prices > 49 (always rounding up)
+const roundToSpecialEnding = (price: number): number => {
+  if (price <= 49) {
+    return Math.round(price);
+  }
+  const intPrice = Math.ceil(price);
+  const endings = [19, 29, 49, 69, 89, 99];
+  const baseCentena = Math.floor(intPrice / 100) * 100;
+  for (const ending of endings) {
+    const candidate = baseCentena + ending;
+    if (candidate >= intPrice) {
+      return candidate;
+    }
+  }
+  return baseCentena + 100 + endings[0];
+};
+
 type BasePriceList = 'price' | 'wholesalePrice' | 'specialPrice';
 
 type NormalizedPriceList = {
@@ -119,7 +136,7 @@ export default function PreciosMasivosClient({
     setProducts(prev => prev.map(p => {
       if (!filteredIds.has(p.id) || p.cost <= 0) return p;
       const newPriceRaw = p.cost / factor;
-      const newPriceRounded = roundPeso(newPriceRaw);
+      const newPriceRounded = roundToSpecialEnding(newPriceRaw);
 
       const updatedField = activeList.newKey;
       const originalField = activeList.isDynamic ? `dynamic_${activeList.key}` : activeList.key;
