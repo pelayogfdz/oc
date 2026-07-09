@@ -382,10 +382,19 @@ export default function EditarPedidoForm({
                       onClick={() => router.push(`/productos/compras/nuevo?orderId=${order.id}`)}
                       style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.75rem', borderRadius: '8px', border: 'none', backgroundColor: '#10b981', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
                     >
-                      <ArrowRight size={18} /> Jalar a Compras
+                      <ArrowRight size={18} /> Convertir a Compra
                     </button>
                   )}
                   
+                  <a
+                    href={`/api/productos/pedidos/download?orderId=${order.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.75rem', borderRadius: '8px', border: 'none', backgroundColor: '#0f172a', color: 'white', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'none', boxSizing: 'border-box' }}
+                  >
+                    <FileText size={18} /> Exportar a PDF
+                  </a>
+
                   {order.status === 'PENDING' && (
                     <button
                       type="button"
