@@ -116,6 +116,19 @@ button {
   -moz-appearance: textfield;
 }
 
+/* Responsive Table Min-Widths (Desktop Only) */
+@media (min-width: 769px) {
+  .min-w-800 {
+    min-width: 800px !important;
+  }
+  .min-w-950 {
+    min-width: 950px !important;
+  }
+  .min-w-1000 {
+    min-width: 1000px !important;
+  }
+}
+
 /* App-like Mobile Layout */
 .mobile-bottom-nav, .mobile-grid-overlay, .mobile-menu-toggle {
   display: none;
@@ -742,9 +755,7 @@ img[data-header-img="true"]::after {
   }
 
   /* Prevent clipping of action dropdowns and tooltips in responsive tables */
-  div:has(> table.responsive-table),
-  .table-responsive,
-  .card {
+  div:has(> table.responsive-table) {
     overflow: visible !important;
     overflow-x: visible !important;
   }

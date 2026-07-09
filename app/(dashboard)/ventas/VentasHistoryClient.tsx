@@ -498,7 +498,7 @@ export default function VentasHistoryClient({
 
       <div className="card" style={{ padding: '0', overflow: 'visible', width: '100%', maxWidth: '100%', height: 'auto' }}>
         <div className="table-responsive">
-          <table className="responsive-table" style={{ width: '100%', minWidth: '950px', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <table className="responsive-table min-w-950" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
             <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
               <th style={{ padding: '0.4rem 0.5rem', color: 'var(--caanma-text-muted)', fontWeight: '500', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>ID Venta</th>

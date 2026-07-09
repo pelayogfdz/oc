@@ -195,7 +195,7 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
       </div>
 
       <div className="table-responsive">
-        <table className="responsive-table" style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <table className="responsive-table min-w-1000" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
             <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap' }}>ID Cotización</th>

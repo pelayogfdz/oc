@@ -41,7 +41,7 @@ export default async function PurchaseOrdersPage() {
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="table-responsive">
-          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
+          <table className="responsive-table min-w-800" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ backgroundColor: 'var(--caanma-bg)' }}>
               <tr>
                 <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Folio / Fecha</th>
