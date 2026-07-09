@@ -273,12 +273,12 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                 </div>
               </td>
               <td data-label="Fecha" style={{ padding: '0.4rem 0.75rem', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap' }}>
-                {new Date(quote.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}
+                <span style={{ fontSize: '0.825rem' }}>{new Date(quote.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}</span>
               </td>
               <td data-label="Cliente" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
                 <div 
                   title={quote.customer?.name || 'Público en General'} 
-                  style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' }}
+                  style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px', fontSize: '0.825rem', display: 'inline-block' }}
                 >
                   {quote.customer?.name || 'Público en General'}
                 </div>
@@ -286,24 +286,24 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
               <td data-label="Creado por" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
                 <div 
                   title={quote.user?.name || ''} 
-                  style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }}
+                  style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px', fontSize: '0.825rem', display: 'inline-block' }}
                 >
                   {quote.user?.name || ''}
                 </div>
               </td>
               <td data-label="Total" style={{ padding: '0.4rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-primary)', whiteSpace: 'nowrap' }}>
-                ${quote.total.toFixed(2)}
+                <span style={{ fontSize: '0.875rem' }}>${quote.total.toFixed(2)}</span>
               </td>
               <td data-label="Estado" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
                 {quote.status === 'PENDING' ? (
-                  <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#fef9c3', color: '#854d0e', borderRadius: '12px' }}>PENDIENTE</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#fef9c3', color: '#854d0e', borderRadius: '12px', display: 'inline-block' }}>PENDIENTE</span>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '12px' }}>CONVERTIDA A VENTA</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end', minWidth: 0 }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '12px', display: 'inline-block', textAlign: 'center' }}>CONVERTIDA A VENTA</span>
                     {quote.status.includes(':') && (
                       <Link 
                         href={`/ventas/detalle/${quote.status.split(':')[1]}`}
-                        style={{ fontSize: '0.725rem', color: '#4f46e5', fontWeight: '600', textDecoration: 'underline', transition: 'color 0.15s' }}
+                        style={{ fontSize: '0.725rem', color: '#4f46e5', fontWeight: '600', textDecoration: 'underline', transition: 'color 0.15s', display: 'inline-block' }}
                         onMouseEnter={e => e.currentTarget.style.color = '#3730a3'}
                         onMouseLeave={e => e.currentTarget.style.color = '#4f46e5'}
                       >

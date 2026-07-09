@@ -518,15 +518,15 @@ export default function VentasHistoryClient({
               return (
                 <tr key={sale.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                   <td data-label="ID Venta" style={{ padding: '0.3rem 0.45rem', fontFamily: 'monospace', fontWeight: 'bold', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
-                    {sale.folio || sale.id.slice(0, 8).toUpperCase()}
+                    <span style={{ display: 'inline-block' }}>{sale.folio || sale.id.slice(0, 8).toUpperCase()}</span>
                   </td>
                   <td data-label="Fecha / Hora" style={{ padding: '0.3rem 0.45rem', whiteSpace: 'nowrap', fontSize: '0.82rem', color: '#475569' }}>
-                    {formatDateCompact(sale.createdAt, timezone)}
+                    <span style={{ display: 'inline-block' }}>{formatDateCompact(sale.createdAt, timezone)}</span>
                   </td>
                   <td data-label="Cliente" style={{ padding: '0.3rem 0.45rem', whiteSpace: 'nowrap' }}>
                     <div 
                       title={sale.customer ? sale.customer.name : 'Público General'} 
-                      style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '130px', fontSize: '0.82rem' }}
+                      style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '130px', fontSize: '0.82rem', display: 'inline-block' }}
                     >
                       {sale.customer ? sale.customer.name : 'Público General'}
                     </div>
@@ -554,30 +554,34 @@ export default function VentasHistoryClient({
                         {sale.invoiceFolio || sale.invoiceId.substring(0, 8).toUpperCase()}
                       </a>
                     ) : (
-                      <span style={{ color: 'var(--caanma-text-muted)', fontSize: '0.82rem' }}>-</span>
+                      <span style={{ color: 'var(--caanma-text-muted)', fontSize: '0.82rem', display: 'inline-block' }}>-</span>
                     )}
                   </td>
                   <td data-label="Sucursal / Vendedor" style={{ padding: '0.3rem 0.45rem', whiteSpace: 'nowrap' }}>
-                    <div 
-                      title={sale.branch?.name || currentBranch.name} 
-                      style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '110px', fontSize: '0.82rem' }}
-                    >
-                      {sale.branch?.name || currentBranch.name}
-                    </div>
-                    <div 
-                      title={`Vendió: ${sale.user.name}`} 
-                      style={{ fontSize: '0.72rem', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '110px' }}
-                    >
-                      Vendió: {sale.user.name}
+                    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 0 }}>
+                      <div 
+                        title={sale.branch?.name || currentBranch.name} 
+                        style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '110px', fontSize: '0.82rem' }}
+                      >
+                        {sale.branch?.name || currentBranch.name}
+                      </div>
+                      <div 
+                        title={`Vendió: ${sale.user.name}`} 
+                        style={{ fontSize: '0.72rem', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '110px' }}
+                      >
+                        Vendió: {sale.user.name}
+                      </div>
                     </div>
                   </td>
                   <td data-label="Artículos" style={{ padding: '0.3rem 0.45rem', textAlign: 'right', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
-                    {new Intl.NumberFormat('es-MX').format(qtySum)} Pzas
+                    <span style={{ display: 'inline-block' }}>{new Intl.NumberFormat('es-MX').format(qtySum)} Pzas</span>
                   </td>
                   <td data-label="Total" style={{ padding: '0.3rem 0.45rem', textAlign: 'right', fontWeight: 'bold', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
-                    <div style={{ whiteSpace: 'nowrap' }}>{formatCurrency(sale.total)}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--caanma-text-muted)', fontWeight: 'normal', marginTop: '0.1rem', whiteSpace: 'nowrap' }}>
-                      {getPaymentMethodLabel(sale.paymentMethod)}
+                    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 0 }}>
+                      <div style={{ whiteSpace: 'nowrap' }}>{formatCurrency(sale.total)}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--caanma-text-muted)', fontWeight: 'normal', marginTop: '0.1rem', whiteSpace: 'nowrap' }}>
+                        {getPaymentMethodLabel(sale.paymentMethod)}
+                      </div>
                     </div>
                   </td>
                   <td data-label="Estado" style={{ padding: '0.3rem 0.45rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
@@ -587,7 +591,8 @@ export default function VentasHistoryClient({
                       fontSize: '0.7rem',
                       fontWeight: 'bold',
                       backgroundColor: sale.status === 'COMPLETED' ? '#dcfce7' : sale.status === 'CANCELLED' ? '#fee2e2' : '#f1f5f9',
-                      color: sale.status === 'COMPLETED' ? '#166534' : sale.status === 'CANCELLED' ? '#991b1b' : '#334155'
+                      color: sale.status === 'COMPLETED' ? '#166534' : sale.status === 'CANCELLED' ? '#991b1b' : '#334155',
+                      display: 'inline-block'
                     }}>
                       {sale.status === 'COMPLETED' ? 'Completado' : sale.status === 'CANCELLED' ? 'Cancelado' : sale.status}
                     </span>

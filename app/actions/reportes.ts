@@ -17,7 +17,14 @@ function formatDateString(d: Date, timezone: string): string {
   return `${year}-${month}-${day}`;
 }
 
-export async function getGeneralAnalyticsData(startDate: Date, endDate: Date, branchIdFilter?: string, userIdFilter?: string, brandFilter?: string) {
+export async function getGeneralAnalyticsData(
+  startDate: Date, 
+  endDate: Date, 
+  branchIdFilter?: string, 
+  userIdFilter?: string, 
+  brandFilter?: string,
+  paymentMethodFilter?: string
+) {
   const session = await getSession();
   const branch = await getActiveBranch();
   if (!branch) throw new Error('Unauthorized');
@@ -79,6 +86,9 @@ export async function getGeneralAnalyticsData(startDate: Date, endDate: Date, br
             }
           }
         }
+      } : {}),
+      ...(paymentMethodFilter && paymentMethodFilter !== 'ALL' ? {
+        paymentMethod: paymentMethodFilter
       } : {})
     },
     select: {
@@ -1053,7 +1063,8 @@ export async function getSalesBySellerReport(
   startDate: Date,
   endDate: Date,
   branchIdFilter?: string,
-  brandFilter?: string
+  brandFilter?: string,
+  paymentMethodFilter?: string
 ) {
   const session = await getSession();
   const branch = await getActiveBranch();
@@ -1088,6 +1099,9 @@ export async function getSalesBySellerReport(
             }
           }
         }
+      } : {}),
+      ...(paymentMethodFilter && paymentMethodFilter !== 'ALL' ? {
+        paymentMethod: paymentMethodFilter
       } : {})
     },
     include: {

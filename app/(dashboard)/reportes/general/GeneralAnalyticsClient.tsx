@@ -38,7 +38,8 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
         filters.dateRange.endDate, 
         filters.branchId, 
         filters.userId,
-        filters.brandId
+        filters.brandId,
+        filters.paymentMethod
       );
       setData(newData);
     } catch (error) {
@@ -80,6 +81,7 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
           onFilterChange={handleFilterChange} 
           disabled={isLoading} 
           showUser={true}
+          showPaymentMethod={true}
           initialBranchId={initialBranchId}
         />
       </div>

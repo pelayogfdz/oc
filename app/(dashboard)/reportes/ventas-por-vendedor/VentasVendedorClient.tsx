@@ -10,6 +10,7 @@ export default function VentasVendedorClient({ initialData, initialBranchId, ava
   const [data, setData] = useState<any[]>(initialData);
   const [branchId, setBranchId] = useState(initialBranchId);
   const [brand, setBrand] = useState('ALL');
+  const [paymentMethod, setPaymentMethod] = useState('ALL');
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -53,13 +54,13 @@ export default function VentasVendedorClient({ initialData, initialBranchId, ava
 
     setStartDateStr(start.toISOString().split('T')[0]);
     setEndDateStr(end.toISOString().split('T')[0]);
-    triggerUpdate(start, end, branchId, brand);
+    triggerUpdate(start, end, branchId, brand, paymentMethod);
   };
 
-  const triggerUpdate = async (start: Date, end: Date, bId: string, brnd: string) => {
+  const triggerUpdate = async (start: Date, end: Date, bId: string, brnd: string, pMethod: string) => {
     setIsLoading(true);
     try {
-      const res = await getSalesBySellerReport(start, end, bId, brnd);
+      const res = await getSalesBySellerReport(start, end, bId, brnd, pMethod);
       setData(res || []);
     } catch (error) {
       console.error("Error updating seller report:", error);
@@ -71,7 +72,7 @@ export default function VentasVendedorClient({ initialData, initialBranchId, ava
   const handleApplyFilters = () => {
     const start = new Date(startDateStr + 'T00:00:00');
     const end = new Date(endDateStr + 'T23:59:59');
-    triggerUpdate(start, end, branchId, brand);
+    triggerUpdate(start, end, branchId, brand, paymentMethod);
   };
 
   const formatter = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
@@ -218,6 +219,28 @@ export default function VentasVendedorClient({ initialData, initialBranchId, ava
               {availableFilters.brands?.map((b: string) => (
                 <option key={b} value={b}>{b}</option>
               ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.4rem' }}>Método de Pago</label>
+            <select 
+              value={paymentMethod} 
+              onChange={e => setPaymentMethod(e.target.value)}
+              style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem', outline: 'none' }}
+            >
+              <option value="ALL">Todos los Métodos</option>
+              <option value="CASH">Efectivo</option>
+              <option value="CARD">Tarjeta</option>
+              <option value="TRANSFER">Transferencia</option>
+              <option value="CREDIT">Crédito</option>
+              <option value="MIXTO">Mixto</option>
+              {availableFilters.paymentMethods
+                ?.filter((pm: string) => !['CASH', 'CARD', 'TRANSFER', 'CREDIT', 'MIXTO'].includes(pm))
+                .map((pm: string) => (
+                  <option key={pm} value={pm}>{pm}</option>
+                ))
+              }
             </select>
           </div>
 

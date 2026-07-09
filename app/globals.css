@@ -325,6 +325,7 @@ button {
     padding: 0.5rem 0 !important;
     border-bottom: 1px solid #f8fafc !important;
     text-align: right !important;
+    min-width: 0;
   }
   table.responsive-table td:last-child {
     border-bottom: none !important;
@@ -336,6 +337,14 @@ button {
     font-size: 0.85rem;
     text-align: left;
     margin-right: 1rem;
+    flex-shrink: 0;
+  }
+  /* Style all direct children of td (the values) to align right, not collapse, and handle text overflow */
+  table.responsive-table td > :not(::before) {
+    margin-left: auto;
+    text-align: right;
+    min-width: 0;
+    flex-shrink: 1;
   }
   /* Don't show data-label for specific cells if they are pure actions */
   table.responsive-table td.no-label::before {
