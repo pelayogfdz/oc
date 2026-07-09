@@ -12,7 +12,7 @@ import {
 
 export default function SolicitudesClient({ initialRequests }: { initialRequests: any[] }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'ALL' | 'PENDING' | 'ORDERED' | 'RECEIVED'>('PENDING');
+  const [filterStatus, setFilterStatus] = useState<'ALL' | 'PENDING' | 'ORDERED' | 'DISPATCHED' | 'RECEIVED'>('PENDING');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -110,8 +110,15 @@ export default function SolicitudesClient({ initialRequests }: { initialRequests
           </button>
           <button 
             type="button"
+            onClick={() => setFilterStatus('DISPATCHED')}
+            style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: filterStatus === 'DISPATCHED' ? 'white' : 'transparent', color: filterStatus === 'DISPATCHED' ? '#0369a1' : 'var(--caanma-text-muted)', fontWeight: filterStatus === 'DISPATCHED' ? 'bold' : 'normal', boxShadow: filterStatus === 'DISPATCHED' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+          >
+            Despachadas
+          </button>
+          <button 
+            type="button"
             onClick={() => setFilterStatus('RECEIVED')}
-            style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: filterStatus === 'RECEIVED' ? 'white' : 'transparent', color: filterStatus === 'RECEIVED' ? '#0284c7' : 'var(--caanma-text-muted)', fontWeight: filterStatus === 'RECEIVED' ? 'bold' : 'normal', boxShadow: filterStatus === 'RECEIVED' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+            style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: filterStatus === 'RECEIVED' ? 'white' : 'transparent', color: filterStatus === 'RECEIVED' ? '#166534' : 'var(--caanma-text-muted)', fontWeight: filterStatus === 'RECEIVED' ? 'bold' : 'normal', boxShadow: filterStatus === 'RECEIVED' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
           >
             Recibidas
           </button>
@@ -180,9 +187,9 @@ export default function SolicitudesClient({ initialRequests }: { initialRequests
             <button
               type="button"
               onClick={async () => {
-                if (!confirm('¿Marcar las solicitudes seleccionadas como Recibidas?')) return;
+                if (!confirm('¿Marcar las solicitudes seleccionadas como Despachadas?')) return;
                 try {
-                  await batchUpdatePurchaseRequestStatus(selectedIds, 'RECEIVED');
+                  await batchUpdatePurchaseRequestStatus(selectedIds, 'DISPATCHED');
                   setSelectedIds([]);
                 } catch (e: any) {
                   alert(e.message);
@@ -195,6 +202,30 @@ export default function SolicitudesClient({ initialRequests }: { initialRequests
                 backgroundColor: '#e0f2fe',
                 border: '1px solid #bae6fd',
                 color: '#0369a1',
+                borderRadius: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              Marcar como Despachado
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!confirm('¿Marcar las solicitudes seleccionadas como Recibidas?')) return;
+                try {
+                  await batchUpdatePurchaseRequestStatus(selectedIds, 'RECEIVED');
+                  setSelectedIds([]);
+                } catch (e: any) {
+                  alert(e.message);
+                }
+              }}
+              style={{
+                padding: '0.4rem 0.8rem',
+                fontSize: '0.8rem',
+                fontWeight: 'bold',
+                backgroundColor: '#e1f5fe',
+                border: '1px solid #b3e5fc',
+                color: '#0288d1',
                 borderRadius: '6px',
                 cursor: 'pointer'
               }}
@@ -271,7 +302,12 @@ export default function SolicitudesClient({ initialRequests }: { initialRequests
                     <Package size={18} color="var(--caanma-primary)" />
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       {req.product ? (
-                        <span>{req.product.name}</span>
+                        <>
+                          <span>{req.product.name}</span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--caanma-text-muted)', marginTop: '0.15rem' }}>
+                            SKU: {req.product.sku || '-'} | Código: {req.product.barcode || '-'}
+                          </span>
+                        </>
                       ) : (
                         <span>{req.preProductName} <span style={{ fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: '#f1f5f9', padding: '0.15rem 0.4rem', borderRadius: '4px', marginLeft: '0.5rem' }}>FUERA DE CATÁLOGO</span></span>
                       )}
@@ -304,12 +340,13 @@ export default function SolicitudesClient({ initialRequests }: { initialRequests
                       border: '1px solid transparent',
                       cursor: 'pointer',
                       outline: 'none',
-                      backgroundColor: req.status === 'PENDING' ? '#fef3c7' : req.status === 'ORDERED' ? '#dcfce7' : '#f1f5f9',
-                      color: req.status === 'PENDING' ? '#d97706' : req.status === 'ORDERED' ? '#16a34a' : '#64748b'
+                      backgroundColor: req.status === 'PENDING' ? '#fef3c7' : req.status === 'ORDERED' ? '#dcfce7' : req.status === 'DISPATCHED' ? '#e0f9ff' : '#f1f5f9',
+                      color: req.status === 'PENDING' ? '#d97706' : req.status === 'ORDERED' ? '#16a34a' : req.status === 'DISPATCHED' ? '#0369a1' : '#64748b'
                     }}
                   >
                     <option value="PENDING">🕒 PENDIENTE</option>
                     <option value="ORDERED">🚚 SOLICITADO</option>
+                    <option value="DISPATCHED">📦 DESPACHADO</option>
                     <option value="RECEIVED">✅ RECIBIDO</option>
                   </select>
                 </td>
