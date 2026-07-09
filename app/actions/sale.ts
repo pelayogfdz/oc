@@ -48,308 +48,331 @@ export async function createSale(
     
     if (items.length === 0) throw new Error("Ticket is empty");
 
-    if (!customerId) {
-      let publicCustomer = await prisma.customer.findFirst({
-        where: {
-          name: { equals: 'Público General', mode: 'insensitive' },
-          branchId: finalBranchId
-        }
-      });
-      if (!publicCustomer) {
-        publicCustomer = await prisma.customer.create({
-          data: {
-            name: 'Público General',
+    // Ejecutar todas las operaciones de escritura y lectura Críticas en una sola transacción Prisma
+    const { sale, finalSaleTotal, resolvedCustomerId } = await prisma.$transaction(async (tx) => {
+      let resolvedCustId = customerId;
+      if (!resolvedCustId) {
+        let publicCustomer = await tx.customer.findFirst({
+          where: {
+            name: { equals: 'Público General', mode: 'insensitive' },
             branchId: finalBranchId
           }
         });
-      }
-      customerId = publicCustomer.id;
-    }
-
-    if (customerId) {
-      const customerCheck = await prisma.customer.findUnique({ where: { id: customerId } });
-      if (customerCheck?.isBlocked) {
-        throw new Error("OPERACIÓN RECHAZADA: Este cliente está bloqueado por administración y no puede realizar compras.");
-      }
-    }
-    // Load preferences
-    const branchSettings = await prisma.branchSettings.findUnique({ where: { branchId: finalBranchId } });
-    const config = branchSettings?.configJson ? JSON.parse(branchSettings.configJson)['ventas'] || {} : {};
-    const permitirVenderSinStock = config.venderSinStock === true;
-    const permitirVenderBajoCosto = config.venderBajoCosto === true;
-    // Validate items against preferences
-    for (const item of items) {
-      let product = await prisma.product.findUnique({ where: { id: item.productId } });
-      if (!product) throw new Error("Producto no encontrado");
-
-      // Auto-activate temporary products when sold
-      if (!product.isActive && product.sku.startsWith('TEMP-')) {
-        product = await prisma.product.update({
-          where: { id: item.productId },
-          data: { isActive: true }
-        });
-      }
-
-      let isService = product.isService === true;
-      let currentStock = product.stock;
-      if (item.variantId) {
-        const variant = await prisma.productVariant.findUnique({ where: { id: item.variantId } });
-        if (variant) currentStock = variant.stock;
-      }
-
-      if (!isService && !permitirVenderSinStock && currentStock - item.quantity < 0) {
-        throw new Error(`Inventario insuficiente para: ${product.name}`);
-      }
-
-      if (!permitirVenderBajoCosto && item.price < product.cost) {
-        throw new Error(`Precio por debajo del costo para: ${product.name}`);
-      }
-    }
-
-    let dueDate = null;
-    let balanceDue = 0;
-
-    // Points redemption logic
-    let pointsDiscount = 0;
-    if (pointsRedeemed > 0 && customerId) {
-      const loyaltySettings = await prisma.loyaltySettings.findUnique({
-        where: { branchId: finalBranchId }
-      });
-      const pointValue = loyaltySettings?.pointValueInPesos ?? 1.0;
-      pointsDiscount = pointsRedeemed * pointValue;
-
-      const customer = await prisma.customer.findUnique({ where: { id: customerId } });
-      if (!customer || customer.pointsBalance < pointsRedeemed) {
-        throw new Error("El cliente no tiene suficientes puntos en su monedero electrónico.");
-      }
-
-      // Deduct points from customer
-      await prisma.customer.update({
-        where: { id: customerId },
-        data: { pointsBalance: { decrement: pointsRedeemed } }
-      });
-
-      const pointsNote = `[Monedero Electrónico] Redimidos ${pointsRedeemed} puntos (equivalente a un descuento de $${pointsDiscount.toFixed(2)} pesos).`;
-      notes = notes ? `${notes}\n${pointsNote}` : pointsNote;
-    }
-
-    const finalSaleTotal = Math.max(0, total - pointsDiscount);
-
-    // CxC Validation
-    if (paymentMethod === 'CREDIT' && customerId) {
-      const customer = await prisma.customer.findUnique({ where: { id: customerId } });
-      if (!customer) throw new Error("Cliente no encontrado para la venta a crédito.");
-      if (customer.creditLimit <= 0) throw new Error("El cliente no tiene línea de crédito autorizada.");
-      
-      if ((customer.creditBalance + finalSaleTotal) > customer.creditLimit) {
-        throw new Error(`El cliente excede su límite de crédito. Disponible: $${(customer.creditLimit - customer.creditBalance).toFixed(2)}`);
-      }
-
-      const overdueSales = await prisma.sale.findFirst({
-        where: {
-           customerId,
-           balanceDue: { gt: 0 },
-           dueDate: { lt: new Date() }
+        if (!publicCustomer) {
+          publicCustomer = await tx.customer.create({
+            data: {
+              name: 'Público General',
+              branchId: finalBranchId
+            }
+          });
         }
-      });
-      if (overdueSales) {
-        throw new Error("El cliente tiene facturas vencidas. No se puede otorgar nuevo crédito hasta liquidar.");
+        resolvedCustId = publicCustomer.id;
       }
 
-      dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + customer.creditDays);
-      balanceDue = finalSaleTotal;
-    }
-
-    const { getNextFolio } = await import('./folios');
-    const folio = await getNextFolio(finalBranchId, 'sale');
-
-    const sale = await prisma.sale.create({
-      data: {
-        folio,
-        total: finalSaleTotal,
-        paymentMethod,
-        customerId,
-        cashSessionId,
-        notes,
-        cashAmount,
-        cardAmount,
-        branchId: finalBranchId,
-        userId: user.id,
-        dueDate,
-        balanceDue,
-        breakdownDiscounts,
-        items: {
-          create: items.map(item => ({
-            quantity: item.quantity,
-            price: item.price,
-            productId: item.productId,
-            variantId: item.variantId || null
-          }))
+      if (resolvedCustId) {
+        const customerCheck = await tx.customer.findUnique({ where: { id: resolvedCustId } });
+        if (customerCheck?.isBlocked) {
+          throw new Error("OPERACIÓN RECHAZADA: Este cliente está bloqueado por administración y no puede realizar compras.");
         }
       }
-    });
 
-    // Deduct stock & Register Kardex Movement (only if NOT converting from a consignment)
-    if (!consignmentIdToConvert) {
+      // Load preferences
+      const branchSettings = await tx.branchSettings.findUnique({ where: { branchId: finalBranchId } });
+      const config = branchSettings?.configJson ? JSON.parse(branchSettings.configJson)['ventas'] || {} : {};
+      const permitirVenderSinStock = config.venderSinStock === true;
+      const permitirVenderBajoCosto = config.venderBajoCosto === true;
+
+      // Validate items against preferences
       for (const item of items) {
-        const product = await prisma.product.findUnique({ where: { id: item.productId } });
-        if (product?.isService) continue;
+        let product = await tx.product.findUnique({ where: { id: item.productId } });
+        if (!product) throw new Error("Producto no encontrado");
 
-        await prisma.product.update({
-          where: { id: item.productId },
-          data: { stock: { decrement: item.quantity } }
-        });
-        
+        // Auto-activate temporary products when sold
+        if (!product.isActive && product.sku.startsWith('TEMP-')) {
+          product = await tx.product.update({
+            where: { id: item.productId },
+            data: { isActive: true }
+          });
+        }
+
+        let isService = product.isService === true;
+        let currentStock = product.stock;
         if (item.variantId) {
-          await prisma.productVariant.update({
-            where: { id: item.variantId },
+          const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } });
+          if (variant) currentStock = variant.stock;
+        }
+
+        if (!isService && !permitirVenderSinStock && currentStock - item.quantity < 0) {
+          throw new Error(`Inventario insuficiente para: ${product.name}`);
+        }
+
+        if (!permitirVenderBajoCosto && item.price < product.cost) {
+          throw new Error(`Precio por debajo del costo para: ${product.name}`);
+        }
+      }
+
+      let dueDate = null;
+      let balanceDue = 0;
+
+      // Points redemption logic
+      let pointsDiscount = 0;
+      let notesAccumulated = notes;
+      if (pointsRedeemed > 0 && resolvedCustId) {
+        const loyaltySettings = await tx.loyaltySettings.findUnique({
+          where: { branchId: finalBranchId }
+        });
+        const pointValue = loyaltySettings?.pointValueInPesos ?? 1.0;
+        pointsDiscount = pointsRedeemed * pointValue;
+
+        const customer = await tx.customer.findUnique({ where: { id: resolvedCustId } });
+        if (!customer || customer.pointsBalance < pointsRedeemed) {
+          throw new Error("El cliente no tiene suficientes puntos en su monedero electrónico.");
+        }
+
+        // Deduct points from customer
+        await tx.customer.update({
+          where: { id: resolvedCustId },
+          data: { pointsBalance: { decrement: pointsRedeemed } }
+        });
+
+        const pointsNote = `[Monedero Electrónico] Redimidos ${pointsRedeemed} puntos (equivalente a un descuento de $${pointsDiscount.toFixed(2)} pesos).`;
+        notesAccumulated = notesAccumulated ? `${notesAccumulated}\n${pointsNote}` : pointsNote;
+      }
+
+      const finalSaleTotal = Math.max(0, total - pointsDiscount);
+
+      // CxC Validation
+      if (paymentMethod === 'CREDIT' && resolvedCustId) {
+        const customer = await tx.customer.findUnique({ where: { id: resolvedCustId } });
+        if (!customer) throw new Error("Cliente no encontrado para la venta a crédito.");
+        if (customer.creditLimit <= 0) throw new Error("El cliente no tiene línea de crédito autorizada.");
+        
+        if ((customer.creditBalance + finalSaleTotal) > customer.creditLimit) {
+          throw new Error(`El cliente excede su límite de crédito. Disponible: $${(customer.creditLimit - customer.creditBalance).toFixed(2)}`);
+        }
+
+        const overdueSales = await tx.sale.findFirst({
+          where: {
+             customerId: resolvedCustId,
+             balanceDue: { gt: 0 },
+             dueDate: { lt: new Date() }
+          }
+        });
+        if (overdueSales) {
+          throw new Error("El cliente tiene facturas vencidas. No se puede otorgar nuevo crédito hasta liquidar.");
+        }
+
+        dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + customer.creditDays);
+        balanceDue = finalSaleTotal;
+      }
+
+      const { getNextFolio } = await import('./folios');
+      const folio = await getNextFolio(finalBranchId, 'sale', tx);
+
+      const createdSale = await tx.sale.create({
+        data: {
+          folio,
+          total: finalSaleTotal,
+          paymentMethod,
+          customerId: resolvedCustId,
+          cashSessionId,
+          notes: notesAccumulated,
+          cashAmount,
+          cardAmount,
+          branchId: finalBranchId,
+          userId: user.id,
+          dueDate,
+          balanceDue,
+          breakdownDiscounts,
+          items: {
+            create: items.map(item => ({
+              quantity: item.quantity,
+              price: item.price,
+              productId: item.productId,
+              variantId: item.variantId || null
+            }))
+          }
+        }
+      });
+
+      // Deduct stock & Register Kardex Movement (only if NOT converting from a consignment)
+      if (!consignmentIdToConvert) {
+        for (const item of items) {
+          const product = await tx.product.findUnique({ where: { id: item.productId } });
+          if (product?.isService) continue;
+
+          await tx.product.update({
+            where: { id: item.productId },
             data: { stock: { decrement: item.quantity } }
           });
-        }
-        
-        // FEFO Batch Deduction
-        let remainingToDeduct = item.quantity;
-        const availableBatches = await prisma.productBatch.findMany({
-          where: { productId: item.productId, stock: { gt: 0 } },
-          orderBy: { expirationDate: 'asc' } // oldest expires first
-        });
+          
+          if (item.variantId) {
+            await tx.productVariant.update({
+              where: { id: item.variantId },
+              data: { stock: { decrement: item.quantity } }
+            });
+          }
+          
+          // FEFO Batch Deduction
+          let remainingToDeduct = item.quantity;
+          const availableBatches = await tx.productBatch.findMany({
+            where: { productId: item.productId, stock: { gt: 0 } },
+            orderBy: { expirationDate: 'asc' } // oldest expires first
+          });
 
-        for (const batch of availableBatches) {
-          if (remainingToDeduct <= 0) break;
-          const deductAmount = Math.min(batch.stock, remainingToDeduct);
-          
-          await prisma.productBatch.update({
-            where: { id: batch.id },
-            data: { stock: { decrement: deductAmount } }
-          });
-          
-          await prisma.inventoryMovement.create({
-            data: {
-              productId: item.productId,
-              variantId: item.variantId || null,
-              batchId: batch.id,
-              type: 'OUT',
-              quantity: -deductAmount,
-              reason: `Venta #${sale.id.slice(0, 8)} (FEFO Lote)`,
-              userId: user.id
-            }
-          });
-          
-          remainingToDeduct -= deductAmount;
-        }
+          for (const batch of availableBatches) {
+            if (remainingToDeduct <= 0) break;
+            const deductAmount = Math.min(batch.stock, remainingToDeduct);
+            
+            await tx.productBatch.update({
+              where: { id: batch.id },
+              data: { stock: { decrement: deductAmount } }
+            });
+            
+            await tx.inventoryMovement.create({
+              data: {
+                productId: item.productId,
+                variantId: item.variantId || null,
+                batchId: batch.id,
+                type: 'OUT',
+                quantity: -deductAmount,
+                reason: `Venta #${createdSale.id.slice(0, 8)} (FEFO Lote)`,
+                userId: user.id
+              }
+            });
+            
+            remainingToDeduct -= deductAmount;
+          }
 
-        // If sold without stock or items not assigned to any batch
-        if (remainingToDeduct > 0) {
-          await prisma.inventoryMovement.create({
-            data: {
-              productId: item.productId,
-              variantId: item.variantId || null,
-              type: 'OUT',
-              quantity: -remainingToDeduct,
-              reason: `Venta #${sale.id.slice(0, 8)} (Sin Lote)`,
-              userId: user.id
-            }
-          });
+          // If sold without stock or items not assigned to any batch
+          if (remainingToDeduct > 0) {
+            await tx.inventoryMovement.create({
+              data: {
+                productId: item.productId,
+                variantId: item.variantId || null,
+                type: 'OUT',
+                quantity: -remainingToDeduct,
+                reason: `Venta #${createdSale.id.slice(0, 8)} (Sin Lote)`,
+                userId: user.id
+              }
+            });
+          }
         }
       }
-    }
 
-    // Si fue a crédito, actualizar la deuda. Adicionalmente, Loyalty Points Engine o Cashback Fallback
-    if (customerId) {
-      if (paymentMethod === 'CREDIT') {
-         await prisma.customer.update({
-            where: { id: customerId },
-            data: { creditBalance: { increment: finalSaleTotal } }
+      // Si fue a crédito, actualizar la deuda. Adicionalmente, Loyalty Points Engine o Cashback Fallback
+      if (resolvedCustId) {
+        if (paymentMethod === 'CREDIT') {
+           await tx.customer.update({
+              where: { id: resolvedCustId },
+              data: { creditBalance: { increment: finalSaleTotal } }
+           });
+        }
+
+        // Log point redemption transaction if any
+        if (pointsRedeemed > 0) {
+          await tx.loyaltyTransaction.create({
+            data: {
+              customerId: resolvedCustId,
+              type: 'REDEEMED',
+              points: pointsRedeemed,
+              reason: `Redención de puntos en Venta #${createdSale.id.slice(0, 8)}`,
+              saleId: createdSale.id
+            }
+          });
+        }
+
+        try {
+          const loyaltySettings = await tx.loyaltySettings.findUnique({
+            where: { branchId: finalBranchId }
+          });
+
+          if (loyaltySettings && loyaltySettings.isActive) {
+            const allowedMethods = loyaltySettings.paymentMethods.split(',');
+            const hasCardAllowed = allowedMethods.includes('CARD') || allowedMethods.includes('CARD_CREDIT') || allowedMethods.includes('CARD_DEBIT');
+            const isPaymentMethodAllowed = allowedMethods.includes(paymentMethod) || 
+              ((paymentMethod === 'CARD_CREDIT' || paymentMethod === 'CARD_DEBIT') && hasCardAllowed);
+
+            if (isPaymentMethodAllowed) {
+              // Check payment-method points multiplier
+              let pointsMultiplier = loyaltySettings.pointsPerAmount;
+              if (paymentMethod === 'CASH') {
+                pointsMultiplier = (loyaltySettings as any).pointsCash ?? loyaltySettings.pointsPerAmount;
+              } else if (paymentMethod === 'CARD' || paymentMethod === 'CARD_CREDIT' || paymentMethod === 'CARD_DEBIT') {
+                pointsMultiplier = (loyaltySettings as any).pointsCard ?? loyaltySettings.pointsPerAmount;
+              } else if (paymentMethod === 'TRANSFER') {
+                pointsMultiplier = (loyaltySettings as any).pointsTransfer ?? loyaltySettings.pointsPerAmount;
+              } else if (paymentMethod === 'CREDIT') {
+                pointsMultiplier = (loyaltySettings as any).pointsCredit ?? 0.0;
+              } else if (paymentMethod === 'MIXTO') {
+                pointsMultiplier = (loyaltySettings as any).pointsMixto ?? loyaltySettings.pointsPerAmount;
+              }
+
+              const calculatedPoints = Math.floor(finalSaleTotal / loyaltySettings.amountStep) * pointsMultiplier;
+              
+              if (calculatedPoints > 0) {
+                const expiryDate = new Date();
+                expiryDate.setDate(expiryDate.getDate() + loyaltySettings.validityDays);
+
+                await tx.customer.update({
+                  where: { id: resolvedCustId },
+                  data: {
+                    pointsBalance: { increment: calculatedPoints },
+                    pointsExpiryDate: expiryDate
+                  }
+                });
+
+                await tx.loyaltyTransaction.create({
+                  data: {
+                    customerId: resolvedCustId,
+                    type: 'EARNED',
+                    points: calculatedPoints,
+                    reason: `Compra Venta #${createdSale.id.slice(0, 8)}`,
+                    saleId: createdSale.id
+                  }
+                });
+                console.log(`[Loyalty Engine] Recompensado ${calculatedPoints} puntos a cliente ${resolvedCustId}. Expira: ${expiryDate.toLocaleDateString()}`);
+              }
+            }
+          } else {
+            // Fallback al motor anterior de Cashback si no hay fidelización de puntos configurada
+            if (paymentMethod !== 'CREDIT') {
+                const rewardPoints = parseFloat((finalSaleTotal * 0.03).toFixed(2));
+                await tx.customer.update({
+                  where: { id: resolvedCustId },
+                  data: { storeCredit: { increment: rewardPoints } }
+                });
+                console.log(`[Loyalty Fallback] Recompensado $${rewardPoints} a cliente ${resolvedCustId}`);
+            }
+          }
+        } catch (err) {
+          console.error("[Loyalty Engine Error] Error calculating points: ", err);
+        }
+      }
+
+      if (quoteIdToConvert) {
+         await tx.quote.update({
+            where: { id: quoteIdToConvert },
+            data: { status: `CONVERTED:${createdSale.id}` }
          });
       }
 
-      // Log point redemption transaction if any
-      if (pointsRedeemed > 0) {
-        await prisma.loyaltyTransaction.create({
-          data: {
-            customerId,
-            type: 'REDEEMED',
-            points: pointsRedeemed,
-            reason: `Redención de puntos en Venta #${sale.id.slice(0, 8)}`,
-            saleId: sale.id
-          }
-        });
+      if (consignmentIdToConvert) {
+         await tx.consignment.update({
+            where: { id: consignmentIdToConvert },
+            data: { status: 'CONVERTED' }
+         });
       }
 
-      try {
-        const loyaltySettings = await prisma.loyaltySettings.findUnique({
-          where: { branchId: finalBranchId }
-        });
+      return { sale: createdSale, finalSaleTotal, resolvedCustomerId: resolvedCustId };
+    }, { timeout: 35000, maxWait: 15000 });
 
-        if (loyaltySettings && loyaltySettings.isActive) {
-          const allowedMethods = loyaltySettings.paymentMethods.split(',');
-          const hasCardAllowed = allowedMethods.includes('CARD') || allowedMethods.includes('CARD_CREDIT') || allowedMethods.includes('CARD_DEBIT');
-          const isPaymentMethodAllowed = allowedMethods.includes(paymentMethod) || 
-            ((paymentMethod === 'CARD_CREDIT' || paymentMethod === 'CARD_DEBIT') && hasCardAllowed);
-
-          if (isPaymentMethodAllowed) {
-            // Check payment-method points multiplier
-            let pointsMultiplier = loyaltySettings.pointsPerAmount;
-            if (paymentMethod === 'CASH') {
-              pointsMultiplier = (loyaltySettings as any).pointsCash ?? loyaltySettings.pointsPerAmount;
-            } else if (paymentMethod === 'CARD' || paymentMethod === 'CARD_CREDIT' || paymentMethod === 'CARD_DEBIT') {
-              pointsMultiplier = (loyaltySettings as any).pointsCard ?? loyaltySettings.pointsPerAmount;
-            } else if (paymentMethod === 'TRANSFER') {
-              pointsMultiplier = (loyaltySettings as any).pointsTransfer ?? loyaltySettings.pointsPerAmount;
-            } else if (paymentMethod === 'CREDIT') {
-              pointsMultiplier = (loyaltySettings as any).pointsCredit ?? 0.0;
-            } else if (paymentMethod === 'MIXTO') {
-              pointsMultiplier = (loyaltySettings as any).pointsMixto ?? loyaltySettings.pointsPerAmount;
-            }
-
-            const calculatedPoints = Math.floor(finalSaleTotal / loyaltySettings.amountStep) * pointsMultiplier;
-            
-            if (calculatedPoints > 0) {
-              const expiryDate = new Date();
-              expiryDate.setDate(expiryDate.getDate() + loyaltySettings.validityDays);
-
-              await prisma.customer.update({
-                where: { id: customerId },
-                data: {
-                  pointsBalance: { increment: calculatedPoints },
-                  pointsExpiryDate: expiryDate
-                }
-              });
-
-              await prisma.loyaltyTransaction.create({
-                data: {
-                  customerId,
-                  type: 'EARNED',
-                  points: calculatedPoints,
-                  reason: `Compra Venta #${sale.id.slice(0, 8)}`,
-                  saleId: sale.id
-                }
-              });
-              console.log(`[Loyalty Engine] Recompensado ${calculatedPoints} puntos a cliente ${customerId}. Expira: ${expiryDate.toLocaleDateString()}`);
-            }
-          }
-        } else {
-          // Fallback al motor anterior de Cashback si no hay fidelización de puntos configurada
-          if (paymentMethod !== 'CREDIT') {
-              const rewardPoints = parseFloat((finalSaleTotal * 0.03).toFixed(2));
-              await prisma.customer.update({
-                where: { id: customerId },
-                data: { storeCredit: { increment: rewardPoints } }
-              });
-              console.log(`[Loyalty Fallback] Recompensado $${rewardPoints} a cliente ${customerId}`);
-          }
-        }
-      } catch (err) {
-        console.error("[Loyalty Engine Error] Error calculating points: ", err);
-      }
-    }
-
-    // Si se solicitó factura, actualizar datos fiscales del cliente si existe y timbrar la factura
+    // Si se solicitó factura, actualizar datos fiscales del cliente si existe y timbrar la factura (fuera de la transacción)
     let invoiceError: string | undefined = undefined;
-    if (billingData && customerId) {
+    if (billingData && resolvedCustomerId) {
        await prisma.customer.update({
-          where: { id: customerId },
+          where: { id: resolvedCustomerId },
           data: {
              taxId: billingData.rfc,
              legalName: billingData.name,
@@ -361,7 +384,7 @@ export async function createSale(
 
        try {
          const { stampInvoice } = await import('./facturacion');
-         const stampRes = await stampInvoice(sale.id, customerId);
+         const stampRes = await stampInvoice(sale.id, resolvedCustomerId);
          if (!stampRes.success) {
            invoiceError = stampRes.error;
            console.error("Auto-stamping invoice failed during createSale:", stampRes.error);
@@ -373,18 +396,10 @@ export async function createSale(
     }
 
     if (quoteIdToConvert) {
-       await prisma.quote.update({
-          where: { id: quoteIdToConvert },
-          data: { status: `CONVERTED:${sale.id}` }
-       });
        revalidatePath('/ventas/cotizaciones');
     }
 
     if (consignmentIdToConvert) {
-       await prisma.consignment.update({
-          where: { id: consignmentIdToConvert },
-          data: { status: 'CONVERTED' }
-       });
        revalidatePath('/ventas/consignaciones');
     }
 

@@ -21,54 +21,56 @@ export async function createQuote(
 
   let quote: any;
 
-  if (quoteId) {
-    // Delete existing items for this quote
-    await prisma.quoteItem.deleteMany({
-      where: { quoteId }
-    });
+  quote = await prisma.$transaction(async (tx) => {
+    if (quoteId) {
+      // Delete existing items for this quote
+      await tx.quoteItem.deleteMany({
+        where: { quoteId }
+      });
 
-    // Update the quote
-    quote = await prisma.quote.update({
-      where: { id: quoteId },
-      data: {
-        total,
-        paymentMethod,
-        customerId,
-        branchId: branch.id,
-        userId: user.id,
-        breakdownDiscounts,
-        items: {
-          create: items.map(item => ({
-            quantity: item.quantity,
-            price: item.price,
-            productId: item.productId
-          }))
+      // Update the quote
+      return await tx.quote.update({
+        where: { id: quoteId },
+        data: {
+          total,
+          paymentMethod,
+          customerId,
+          branchId: branch.id,
+          userId: user.id,
+          breakdownDiscounts,
+          items: {
+            create: items.map(item => ({
+              quantity: item.quantity,
+              price: item.price,
+              productId: item.productId
+            }))
+          }
         }
-      }
-    });
-  } else {
-    const { getNextFolio } = await import('./folios');
-    const folio = await getNextFolio(branch.id, 'quote');
+      });
+    } else {
+      const { getNextFolio } = await import('./folios');
+      const folio = await getNextFolio(branch.id, 'quote', tx);
 
-    quote = await prisma.quote.create({
-      data: {
-        folio,
-        total,
-        paymentMethod,
-        customerId,
-        branchId: branch.id,
-        userId: user.id,
-        breakdownDiscounts,
-        items: {
-          create: items.map(item => ({
-            quantity: item.quantity,
-            price: item.price,
-            productId: item.productId
-          }))
+      return await tx.quote.create({
+        data: {
+          folio,
+          total,
+          paymentMethod,
+          customerId,
+          branchId: branch.id,
+          userId: user.id,
+          breakdownDiscounts,
+          items: {
+            create: items.map(item => ({
+              quantity: item.quantity,
+              price: item.price,
+              productId: item.productId
+            }))
+          }
         }
-      }
-    });
-  }
+      });
+    }
+  }, { timeout: 35000, maxWait: 15000 });
 
   revalidatePath('/ventas/cotizaciones');
 
