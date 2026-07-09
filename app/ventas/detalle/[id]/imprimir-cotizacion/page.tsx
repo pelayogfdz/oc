@@ -280,8 +280,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <h3 className="prod-name">{item.product?.name || 'Artículo'}</h3>
                       <span className="prod-meta">
-                        SKU: {item.product?.sku || '--'}
-                        {item.product?.barcode ? ` | EAN: ${item.product.barcode}` : ''}
+                        SKU: {item.product?.sku || '-'} | Código: {item.product?.barcode || '-'}
                       </span>
                       
                       {/* Discount Badge if applicable */}

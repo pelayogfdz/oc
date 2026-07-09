@@ -133,8 +133,10 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
       // Table Rows
       let currentY = tableTop + 20;
       quote.items.forEach((item: any) => {
-        const textHeight = doc.heightOfString(item.product?.name || 'Artículo sin nombre', { width: 145 });
-        const rowHeight = Math.max(22, textHeight + 10); // 10 points padding
+        const skuText = `SKU: ${item.product?.sku || '-'} | UPC: ${item.product?.barcode || '-'}`;
+        const nameHeight = doc.heightOfString(item.product?.name || 'Artículo sin nombre', { width: 145 });
+        const skuHeight = doc.heightOfString(skuText, { width: 145 });
+        const rowHeight = Math.max(26, nameHeight + skuHeight + 10);
 
         // Check if we need to add a new page before drawing this row
         if (currentY + rowHeight > 650) {
@@ -172,7 +174,12 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
         doc.font(fontRegular).fontSize(9).fillColor('#1e293b');
         doc.text(String(item.quantity), 55, currentY + 6, { width: 30, align: 'center' });
         doc.text(item.product?.sku || '--', 90, currentY + 6, { width: 90, align: 'left' });
-        doc.text(item.product?.name || 'Artículo sin nombre', 185, currentY + 6, { width: 145, align: 'left' });
+        
+        // Product Name and SKU/UPC underneath
+        doc.text(item.product?.name || 'Artículo sin nombre', 185, currentY + 4, { width: 145, align: 'left' });
+        doc.font(fontRegular).fontSize(7).fillColor('#64748b').text(skuText, 185, currentY + 16, { width: 145, align: 'left' });
+        doc.font(fontRegular).fontSize(9).fillColor('#1e293b'); // Restore
+
         doc.text(`$${finalPriceExcludingIva.toFixed(2)}`, 335, currentY + 6, { width: 75, align: 'right' });
         doc.text(`${rate}% ($${rowIva.toFixed(2)})`, 415, currentY + 6, { width: 65, align: 'right' });
         doc.text(`$${rowImporteExcludingIva.toFixed(2)}`, 485, currentY + 6, { width: 77, align: 'right' });

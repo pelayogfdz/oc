@@ -142,8 +142,10 @@ export function generateOrderPdfBuffer(order: any): Promise<Buffer> {
       // Table Rows
       let currentY = tableTop + 20;
       order.items.forEach((item: any) => {
-        const textHeight = doc.heightOfString(item.product?.name || 'Artículo sin nombre', { width: 185 });
-        const rowHeight = Math.max(22, textHeight + 10);
+        const skuText = `SKU: ${item.product?.sku || '-'} | UPC: ${item.product?.barcode || '-'}`;
+        const nameHeight = doc.heightOfString(item.product?.name || 'Artículo sin nombre', { width: 185 });
+        const skuHeight = doc.heightOfString(skuText, { width: 185 });
+        const rowHeight = Math.max(26, nameHeight + skuHeight + 10);
 
         if (currentY + rowHeight > 650) {
           doc.addPage();
@@ -170,7 +172,12 @@ export function generateOrderPdfBuffer(order: any): Promise<Buffer> {
         doc.font(fontRegular).fontSize(8).fillColor('#334155');
         doc.text(`${item.quantity} pzas`, 55, currentY + 6, { width: 35, align: 'center' });
         doc.text(item.product?.sku || item.product?.barcode || '-', 95, currentY + 6, { width: 100 });
-        doc.text(item.product?.name || 'Artículo sin nombre', 200, currentY + 6, { width: 185 });
+        
+        // Product Name and SKU/UPC underneath
+        doc.text(item.product?.name || 'Artículo sin nombre', 200, currentY + 4, { width: 185 });
+        doc.font(fontRegular).fontSize(7).fillColor('#64748b').text(skuText, 200, currentY + 16, { width: 185 });
+        doc.font(fontRegular).fontSize(8).fillColor('#334155'); // Restore
+
         doc.text(`$${item.cost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 390, currentY + 6, { width: 80, align: 'right' });
         
         const rowTotal = item.quantity * item.cost;

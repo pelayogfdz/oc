@@ -179,6 +179,9 @@ export default async function PrintPurchasePage({ params }: { params: Promise<{ 
                 <td style={{ fontFamily: 'monospace', color: '#475569' }}>{item.product?.sku || '--'}</td>
                 <td style={{ fontWeight: '500', color: '#1e293b' }}>
                   <div>{item.product?.name || 'Desconocido'}</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.1rem', fontWeight: 'normal' }}>
+                    SKU: {item.product?.sku || '-'} | Código: {item.product?.barcode || '-'}
+                  </div>
                   {item.fuelTraceability && (
                     <div style={{ marginTop: '0.4rem', padding: '0.4rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem', color: '#475569', backgroundColor: '#f8fafc' }}>
                       <span style={{ fontWeight: 'bold', display: 'block', color: '#1e293b', marginBottom: '0.2rem' }}>Trazabilidad de Combustible:</span>

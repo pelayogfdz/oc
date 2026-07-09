@@ -204,9 +204,8 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
                 <td>
                   <div style={{ fontWeight: '600', color: '#1e293b' }}>{item.product?.name || 'Desconocido'}</div>
                   {item.variant && <div style={{ fontSize: '0.85em', color: '#64748b', marginTop: '0.1rem' }}>Var: {item.variant.attribute}</div>}
-                  <div style={{ fontSize: '0.85em', color: '#64748b', marginTop: '0.1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    {item.product?.sku && <span>SKU: {item.product.sku}</span>}
-                    {item.product?.barcode && <span>| Código: {item.product.barcode}</span>}
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.1rem', fontWeight: 'normal' }}>
+                    SKU: {item.product?.sku || '-'} | Código: {item.product?.barcode || '-'}
                   </div>
                 </td>
                 <td style={{ textAlign: 'right' }}>${(item.price || 0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>

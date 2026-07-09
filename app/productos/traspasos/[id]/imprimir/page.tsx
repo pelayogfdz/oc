@@ -179,7 +179,12 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
               <tr key={item.id}>
                 <td style={{ fontWeight: 'bold', textAlign: 'center', fontSize: '1.1rem' }}>{item.quantity}</td>
                 <td style={{ fontFamily: 'monospace', color: '#475569' }}>{item.product?.sku || '--'}</td>
-                <td style={{ fontWeight: '500', color: '#1e293b' }}>{item.product?.name || 'Desconocido'}</td>
+                <td style={{ fontWeight: '500', color: '#1e293b' }}>
+                  <div>{item.product?.name || 'Desconocido'}</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.1rem', fontWeight: 'normal' }}>
+                    SKU: {item.product?.sku || '-'} | Código: {item.product?.barcode || '-'}
+                  </div>
+                </td>
               </tr>
             ))}
             {transfer.items.length === 0 && (
