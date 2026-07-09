@@ -37,71 +37,73 @@ export default async function CortesCajaPage() {
         </Link>
       </div>
 
-      <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
-        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
-            <tr>
-              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>TURNO</th>
-              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>CAJERO</th>
-              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>INICIAL</th>
-              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>ESPERADO (SISTEMA)</th>
-              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>FÍSICO (REAL)</th>
-              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>SOBRANTE/FALTANTE</th>
-              <th style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem', textAlign: 'center' }}>ACCIONES</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sessions.map((session, i) => (
-              <tr key={session.id} style={{ borderBottom: i === sessions.length - 1 ? 'none' : '1px solid var(--caanma-border)' }}>
-                <td data-label="Turno" style={{ padding: '1rem' }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
-                    {format(new Date(session.closedAt!), "dd MMM yyyy", { locale: es })}
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>
-                    {format(new Date(session.closedAt!), "HH:mm a", { locale: es })}
-                  </div>
-                </td>
-                <td data-label="Cajero" style={{ padding: '1rem', fontSize: '0.9rem' }}>{session.user.name}</td>
-                <td data-label="Inicial" style={{ padding: '1rem', fontSize: '0.9rem' }}>{formatCurrency(session.initialAmount)}</td>
-                <td data-label="Esperado (Sistema)" style={{ padding: '1rem', fontSize: '0.9rem', fontWeight: 'bold' }}>{formatCurrency(session.expectedAmount || 0)}</td>
-                <td data-label="Físico (Real)" style={{ padding: '1rem', fontSize: '0.9rem', fontWeight: 'bold', color: '#a21caf' }}>{formatCurrency(session.actualAmount || 0)}</td>
-                <td data-label="Sobrante/Faltante" style={{ padding: '1rem', fontSize: '1rem', fontWeight: 'bold', color: (session.difference || 0) < 0 ? '#ef4444' : (session.difference || 0) > 0 ? '#10b981' : '#64748b' }}>
-                  {(session.difference || 0) > 0 ? '+' : ''}{formatCurrency(session.difference || 0)}
-                </td>
-                <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }}>
-                  <a 
-                    href={`/imprimir-corte/${session.id}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    style={{ 
-                      display: 'inline-flex', 
-                      alignItems: 'center', 
-                      gap: '0.25rem', 
-                      color: 'var(--caanma-primary)', 
-                      textDecoration: 'none', 
-                      fontWeight: 'bold', 
-                      fontSize: '0.85rem',
-                      border: '1px solid var(--caanma-primary)',
-                      padding: '0.35rem 0.75rem',
-                      borderRadius: '6px',
-                      backgroundColor: 'transparent'
-                    }}
-                  >
-                    <Printer size={14} /> Imprimir
-                  </a>
-                </td>
-              </tr>
-            ))}
-            {sessions.length === 0 && (
+      <div className="card" style={{ padding: 0, width: '100%', maxWidth: '100%', height: 'auto', overflow: 'hidden' }}>
+        <div className="table-responsive">
+          <table className="responsive-table" style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
               <tr>
-                <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
-                  <Calculator size={32} style={{ margin: '0 auto 1rem auto', opacity: 0.5 }} />
-                  No hay cortes de caja registrados en esta sucursal.
-                </td>
+                <th style={{ padding: '0.5rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>TURNO</th>
+                <th style={{ padding: '0.5rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>CAJERO</th>
+                <th style={{ padding: '0.5rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>INICIAL</th>
+                <th style={{ padding: '0.5rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>ESPERADO (SISTEMA)</th>
+                <th style={{ padding: '0.5rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>FÍSICO (REAL)</th>
+                <th style={{ padding: '0.5rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem' }}>SOBRANTE/FALTANTE</th>
+                <th style={{ padding: '0.5rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', fontSize: '0.85rem', textAlign: 'center' }}>ACCIONES</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {sessions.map((session, i) => (
+                <tr key={session.id} style={{ borderBottom: i === sessions.length - 1 ? 'none' : '1px solid var(--caanma-border)' }}>
+                  <td data-label="Turno" style={{ padding: '0.4rem 0.75rem' }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
+                      {format(new Date(session.closedAt!), "dd MMM yyyy", { locale: es })}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>
+                      {format(new Date(session.closedAt!), "HH:mm a", { locale: es })}
+                    </div>
+                  </td>
+                  <td data-label="Cajero" style={{ padding: '0.4rem 0.75rem', fontSize: '0.9rem' }}>{session.user.name}</td>
+                  <td data-label="Inicial" style={{ padding: '0.4rem 0.75rem', fontSize: '0.9rem' }}>{formatCurrency(session.initialAmount)}</td>
+                  <td data-label="Esperado (Sistema)" style={{ padding: '0.4rem 0.75rem', fontSize: '0.9rem', fontWeight: 'bold' }}>{formatCurrency(session.expectedAmount || 0)}</td>
+                  <td data-label="Físico (Real)" style={{ padding: '0.4rem 0.75rem', fontSize: '0.9rem', fontWeight: 'bold', color: '#a21caf' }}>{formatCurrency(session.actualAmount || 0)}</td>
+                  <td data-label="Sobrante/Faltante" style={{ padding: '0.4rem 0.75rem', fontSize: '1rem', fontWeight: 'bold', color: (session.difference || 0) < 0 ? '#ef4444' : (session.difference || 0) > 0 ? '#10b981' : '#64748b' }}>
+                    {(session.difference || 0) > 0 ? '+' : ''}{formatCurrency(session.difference || 0)}
+                  </td>
+                  <td data-label="Acciones" style={{ padding: '0.4rem 0.75rem', textAlign: 'center' }}>
+                    <a 
+                      href={`/imprimir-corte/${session.id}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: '0.25rem', 
+                        color: 'var(--caanma-primary)', 
+                        textDecoration: 'none', 
+                        fontWeight: 'bold', 
+                        fontSize: '0.85rem',
+                        border: '1px solid var(--caanma-primary)',
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '6px',
+                        backgroundColor: 'transparent'
+                      }}
+                    >
+                      <Printer size={14} /> Imprimir
+                    </a>
+                  </td>
+                </tr>
+              ))}
+              {sessions.length === 0 && (
+                <tr>
+                  <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
+                    <Calculator size={32} style={{ margin: '0 auto 1rem auto', opacity: 0.5 }} />
+                    No hay cortes de caja registrados en esta sucursal.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

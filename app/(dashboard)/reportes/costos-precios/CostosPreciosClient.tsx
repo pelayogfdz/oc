@@ -366,9 +366,10 @@ export default function CostosPreciosClient({
       </div>
 
       {/* Main Table Card */}
-      <div style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.2s', backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
-        {/* Table Filters Panel */}
-        <div className="no-print" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div className="card" style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.2s', padding: 0, width: '100%', maxWidth: '100%', height: 'auto', overflow: 'hidden' }}>
+        <div style={{ padding: '1.5rem 1.5rem 0 1.5rem' }}>
+          {/* Table Filters Panel */}
+          <div className="no-print" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', flex: 1 }}>
             {/* Search Box */}
@@ -542,10 +543,11 @@ export default function CostosPreciosClient({
             </button>
           )}
         </div>
+      </div>
 
         {/* Data Table */}
-        <div style={{ overflowX: 'auto', maxHeight: '600px' }}>
-          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <div className="table-responsive" style={{ maxHeight: '600px' }}>
+          <table className="responsive-table" style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10 }}>
               <tr style={{ borderBottom: '2px solid var(--caanma-border)', color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>
                 
