@@ -339,8 +339,12 @@ button {
     margin-right: 1rem;
     flex-shrink: 0;
   }
-  /* Style all direct children of td (the values) to align right, not collapse, and handle text overflow */
-  table.responsive-table td > * {
+  table.responsive-table td > div,
+  table.responsive-table td > span,
+  table.responsive-table td > a,
+  table.responsive-table td > button,
+  table.responsive-table td > input,
+  table.responsive-table td > select {
     margin-left: auto;
     text-align: right;
     min-width: 0;
