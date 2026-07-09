@@ -203,6 +203,95 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
     );
   });
 
+  // Format payment methods for summaries
+  const formatPaymentMethod = (method: string) => {
+    switch (method) {
+      case 'CASH': return 'Efectivo';
+      case 'CARD': return 'Tarjeta';
+      case 'CARD_CREDIT': return 'Tarjeta C.';
+      case 'CARD_DEBIT': return 'Tarjeta D.';
+      case 'TRANSFER': return 'Transferencia';
+      default: return method;
+    }
+  };
+
+  // Grouped by Payment Method
+  const paymentMethodSummary = filteredSales.reduce((acc: Record<string, { total: number; invoiced: number; count: number; invoicedCount: number }>, sale) => {
+    const method = formatPaymentMethod(sale.paymentMethod);
+    if (!acc[method]) {
+      acc[method] = { total: 0, invoiced: 0, count: 0, invoicedCount: 0 };
+    }
+    acc[method].total += sale.total;
+    acc[method].count += 1;
+    if (sale.invoiceId) {
+      acc[method].invoiced += sale.total;
+      acc[method].invoicedCount += 1;
+    }
+    return acc;
+  }, {});
+
+  // Grouped by Branch
+  const branchSummary = filteredSales.reduce((acc: Record<string, { total: number; invoiced: number; count: number; invoicedCount: number }>, sale) => {
+    const branchName = sale.branch?.name || 'Matriz / Central';
+    if (!acc[branchName]) {
+      acc[branchName] = { total: 0, invoiced: 0, count: 0, invoicedCount: 0 };
+    }
+    acc[branchName].total += sale.total;
+    acc[branchName].count += 1;
+    if (sale.invoiceId) {
+      acc[branchName].invoiced += sale.total;
+      acc[branchName].invoicedCount += 1;
+    }
+    return acc;
+  }, {});
+
+  const handleExportCSV = () => {
+    const headers = [
+      'Folio',
+      'Fecha',
+      'Cliente',
+      'RFC',
+      'Metodo de Pago',
+      'Sucursal',
+      'Total',
+      'Estado SAT',
+      'UUID Factura'
+    ];
+
+    const rows = filteredSales.map(sale => {
+      const displayFolio = sale.folio || sale.id.substring(0, 8);
+      const date = new Date(sale.createdAt).toLocaleString('es-MX');
+      const clientName = sale.customer?.name || 'Público General';
+      const rfc = sale.customer?.taxId || '';
+      const method = formatPaymentMethod(sale.paymentMethod);
+      const branchName = sale.branch?.name || 'Matriz / Central';
+      const status = sale.invoiceId ? 'Facturado' : 'Pendiente';
+      const uuid = sale.invoiceId || '';
+
+      return [
+        `"${displayFolio}"`,
+        `"${date}"`,
+        `"${clientName.replace(/"/g, '""')}"`,
+        `"${rfc}"`,
+        `"${method}"`,
+        `"${branchName.replace(/"/g, '""')}"`,
+        sale.total,
+        `"${status}"`,
+        `"${uuid}"`
+      ];
+    });
+
+    const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `facturas_ventas_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
       // Select all filtered Completed sales that don't have an invoiceId yet
@@ -399,27 +488,112 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
         </div>
       )}
 
-      {/* Search Input Bar */}
-      <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
-        <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={20} />
-        <input 
-          type="text" 
-          placeholder="Buscar ventas por folio, cliente, RFC, razón social o vendedor..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          style={{ 
-            width: '100%', 
-            padding: '0.85rem 1rem 0.85rem 2.75rem', 
-            border: '1px solid var(--caanma-border)', 
-            borderRadius: '12px', 
+      {/* Summaries Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+        
+        {/* Payment Methods Card */}
+        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--caanma-border)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ width: '8px', height: '16px', backgroundColor: 'var(--caanma-primary)', borderRadius: '999px', display: 'inline-block' }}></span>
+            Monto por Método de Pago
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {Object.entries(paymentMethodSummary).map(([method, stats]) => (
+              <div key={method} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem', borderBottom: '1px dashed #f1f5f9' }}>
+                <span style={{ fontSize: '0.9rem', color: '#475569', fontWeight: '500' }}>{method}</span>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#0f172a' }}>
+                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(stats.total)}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: '500' }}>
+                    Facturado: {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(stats.invoiced)} ({stats.invoicedCount} de {stats.count})
+                  </div>
+                </div>
+              </div>
+            ))}
+            {Object.keys(paymentMethodSummary).length === 0 && (
+              <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>
+                Sin ventas completadas en el periodo.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Branches Card */}
+        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--caanma-border)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ width: '8px', height: '16px', backgroundColor: '#0ea5e9', borderRadius: '999px', display: 'inline-block' }}></span>
+            Monto por Sucursal (Sucursales)
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {Object.entries(branchSummary).map(([branchName, stats]) => (
+              <div key={branchName} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem', borderBottom: '1px dashed #f1f5f9' }}>
+                <span style={{ fontSize: '0.9rem', color: '#475569', fontWeight: '500' }}>{branchName}</span>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#0f172a' }}>
+                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(stats.total)}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: '500' }}>
+                    Facturado: {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(stats.invoiced)} ({stats.invoicedCount} de {stats.count})
+                  </div>
+                </div>
+              </div>
+            ))}
+            {Object.keys(branchSummary).length === 0 && (
+              <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>
+                Sin ventas completadas en el periodo.
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Search & Export Action Bar */}
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: '280px' }}>
+          <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={20} />
+          <input 
+            type="text" 
+            placeholder="Buscar ventas por folio, cliente, RFC, razón social o vendedor..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{ 
+              width: '100%', 
+              padding: '0.85rem 1rem 0.85rem 2.75rem', 
+              border: '1px solid var(--caanma-border)', 
+              borderRadius: '12px', 
+              fontSize: '0.95rem',
+              backgroundColor: 'white',
+              color: '#1e293b',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)',
+              outline: 'none',
+              transition: 'all 0.2s'
+            }}
+          />
+        </div>
+        <button 
+          onClick={handleExportCSV}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            backgroundColor: '#10b981',
+            color: 'white',
+            border: 'none',
+            padding: '0.85rem 1.5rem',
+            borderRadius: '12px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
             fontSize: '0.95rem',
-            backgroundColor: 'white',
-            color: '#1e293b',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)',
-            outline: 'none',
+            boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.15)',
             transition: 'all 0.2s'
           }}
-        />
+          onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#059669'; }}
+          onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#10b981'; }}
+        >
+          <FileDown size={20} /> Exportar CSV
+        </button>
       </div>
 
       {/* Sales list Table Card */}
@@ -480,11 +654,15 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                     <div style={{ fontWeight: '500', color: '#1e293b' }}>
                       {sale.customer?.legalName || sale.customer?.name || 'Público en General'}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', display: 'flex', gap: '0.5rem', marginTop: '0.2rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', display: 'flex', gap: '0.5rem', marginTop: '0.2rem', flexWrap: 'wrap', alignItems: 'center' }}>
                       <span>RFC: {sale.customer?.taxId || 'XAXX010101000'}</span>
                       <span>•</span>
                       <span style={{ fontWeight: '500', color: '#2563eb' }}>
                         {sale.paymentMethod === 'CASH' ? 'Efectivo' : sale.paymentMethod === 'CARD' ? 'Tarjeta' : sale.paymentMethod === 'CARD_CREDIT' ? 'Tarjeta C.' : sale.paymentMethod === 'CARD_DEBIT' ? 'Tarjeta D.' : sale.paymentMethod === 'TRANSFER' ? 'Transf' : sale.paymentMethod}
+                      </span>
+                      <span>•</span>
+                      <span style={{ fontWeight: '500', color: '#0ea5e9' }}>
+                        {sale.branch?.name || 'Matriz / Central'}
                       </span>
                     </div>
                   </td>

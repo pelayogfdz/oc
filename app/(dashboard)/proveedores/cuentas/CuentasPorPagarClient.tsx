@@ -12,6 +12,7 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
   const [requestCfdi, setRequestCfdi] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isGeneralPayment, setIsGeneralPayment] = useState(false);
+  const [folioSearch, setFolioSearch] = useState('');
 
   useEffect(() => {
      if (isGeneralPayment) {
@@ -73,18 +74,50 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
            <div style={{ backgroundColor: 'white', borderRadius: '8px', width: '850px', maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
              
              {/* HEADER */}
-             <div style={{ padding: '1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: '8px 8px 0 0' }}>
-               <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Truck size={24} /> {selectedSupplier.name}
-                  </h3>
-                  <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem', display: 'flex', gap: '1rem' }}>
-                    <span>Límite Crédito: ${selectedSupplier.creditLimit.toFixed(2)}</span>
-                    <span>Plazo: {selectedSupplier.creditDays} días</span>
-                    <span style={{ color: selectedSupplier.storeCredit > 0 ? '#16a34a' : 'inherit', fontWeight: selectedSupplier.storeCredit > 0 ? 'bold' : 'normal' }}>Saldo a Favor: ${selectedSupplier.storeCredit.toFixed(2)}</span>
+             <div style={{ padding: '1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: '8px 8px 0 0', flexWrap: 'wrap', gap: '1rem' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap', flex: 1 }}>
+                  <div>
+                     <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                       <Truck size={24} /> {selectedSupplier.name}
+                     </h3>
+                     <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem', display: 'flex', gap: '1rem' }}>
+                       <span>Límite Crédito: ${selectedSupplier.creditLimit.toFixed(2)}</span>
+                       <span>Plazo: {selectedSupplier.creditDays} días</span>
+                       <span style={{ color: selectedSupplier.storeCredit > 0 ? '#16a34a' : 'inherit', fontWeight: selectedSupplier.storeCredit > 0 ? 'bold' : 'normal' }}>Saldo a Favor: ${selectedSupplier.storeCredit.toFixed(2)}</span>
+                     </div>
                   </div>
+                  
+                  {/* Buscador de Folio de Factura */}
+                  {selectedSupplier.purchases?.filter((p:any) => p.paymentMethod === 'CREDIT' && p.balanceDue >= 0.01).length > 0 && (
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', minWidth: '220px' }}>
+                      <Search size={16} color="#64748b" style={{ position: 'absolute', left: '10px' }} />
+                      <input
+                        type="text"
+                        placeholder="Buscar folio factura o nota..."
+                        value={folioSearch}
+                        onChange={e => setFolioSearch(e.target.value)}
+                        style={{
+                          padding: '0.5rem 2.2rem 0.5rem 2.2rem',
+                          fontSize: '0.875rem',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          width: '100%',
+                          outline: 'none',
+                          backgroundColor: 'white'
+                        }}
+                      />
+                      {folioSearch && (
+                        <X
+                          size={16}
+                          color="#64748b"
+                          onClick={() => setFolioSearch('')}
+                          style={{ position: 'absolute', right: '10px', cursor: 'pointer' }}
+                        />
+                      )}
+                    </div>
+                  )}
                </div>
-               <button onClick={() => { setSelectedSupplier(null); setSelectedPurchases([]); setIsGeneralPayment(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem' }}>
+               <button onClick={() => { setSelectedSupplier(null); setSelectedPurchases([]); setIsGeneralPayment(false); setFolioSearch(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem' }}>
                  <X size={24} color="#64748b" />
                </button>
              </div>
@@ -103,47 +136,78 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
                       </div>
                    ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '5px' }}>
-                        {selectedSupplier.purchases?.filter((p:any) => p.paymentMethod === 'CREDIT' && p.balanceDue >= 0.01)
-                           .sort((a:any, b:any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-                           .map((purchase: any) => {
-                             const overdue = isOverdue(purchase.dueDate);
-                             const isSelected = !!selectedPurchases.find(s => s.id === purchase.id);
-                             
-                             return (
-                               <div 
-                                 key={purchase.id}
-                                 onClick={() => togglePurchase(purchase)}
-                                 style={{ 
-                                   border: `2px solid ${isSelected ? '#6366f1' : '#e2e8f0'}`, 
-                                   borderRadius: '8px', padding: '1rem', 
-                                   cursor: 'pointer',
-                                   backgroundColor: isSelected ? '#eef2ff' : 'white',
-                                   transition: 'all 0.2s',
-                                   display: 'flex',
-                                   gap: '1rem',
-                                   alignItems: 'center'
-                                 }}
-                               >
-                                  <div>
-                                     {isSelected ? <CheckSquare size={24} color="#6366f1" /> : <Square size={24} color="#cbd5e1" />}
-                                  </div>
-                                  <div style={{ flex: 1 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                                      <span style={{ fontWeight: 'bold', color: '#334155' }}>Nota: #{purchase.id.slice(0,8).toUpperCase()}</span>
-                                      <span style={{ fontWeight: 'bold', color: '#dc2626' }}>${purchase.balanceDue.toFixed(2)}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
-                                      <span style={{ color: '#64748b' }}>C: {new Date(purchase.createdAt).toLocaleDateString()}</span>
-                                      {purchase.dueDate && (
-                                        <span style={{ color: overdue ? '#ef4444' : '#16a34a', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                          {overdue && <AlertTriangle size={14} />} V: {new Date(purchase.dueDate).toLocaleDateString()}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                               </div>
-                             );
-                           })}
+                        {(() => {
+                          const filtered = (selectedSupplier.purchases || [])
+                            .filter((p: any) => p.paymentMethod === 'CREDIT' && p.balanceDue >= 0.01)
+                            .filter((p: any) => {
+                              if (!folioSearch) return true;
+                              const term = folioSearch.trim().toLowerCase();
+                              return (
+                                p.supplierFolio?.toLowerCase().includes(term) ||
+                                p.folio?.toLowerCase().includes(term) ||
+                                p.id.toLowerCase().includes(term)
+                              );
+                            })
+                            .sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+
+                          if (filtered.length === 0) {
+                            return (
+                              <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                                <Search size={32} style={{ margin: '0 auto 0.5rem', opacity: 0.5 }} />
+                                <p>No se encontraron folios que coincidan con la búsqueda.</p>
+                              </div>
+                            );
+                          }
+
+                          return filtered.map((purchase: any) => {
+                            const overdue = isOverdue(purchase.dueDate);
+                            const isSelected = !!selectedPurchases.find(s => s.id === purchase.id);
+                            
+                            return (
+                              <div 
+                                key={purchase.id}
+                                onClick={() => togglePurchase(purchase)}
+                                style={{ 
+                                  border: `2px solid ${isSelected ? '#6366f1' : '#e2e8f0'}`, 
+                                  borderRadius: '8px', padding: '1rem', 
+                                  cursor: 'pointer',
+                                  backgroundColor: isSelected ? '#eef2ff' : 'white',
+                                  transition: 'all 0.2s',
+                                  display: 'flex',
+                                  gap: '1rem',
+                                  alignItems: 'center'
+                                }}
+                              >
+                                 <div>
+                                    {isSelected ? <CheckSquare size={24} color="#6366f1" /> : <Square size={24} color="#cbd5e1" />}
+                                 </div>
+                                 <div style={{ flex: 1 }}>
+                                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                       <span style={{ fontWeight: 'bold', color: '#334155' }}>
+                                         Nota: #{purchase.folio || purchase.id.slice(0,8).toUpperCase()}
+                                       </span>
+                                       {purchase.supplierFolio && (
+                                         <span style={{ fontSize: '0.78rem', color: '#4f46e5', fontWeight: 'bold' }}>
+                                           Factura Prov: {purchase.supplierFolio}
+                                         </span>
+                                       )}
+                                     </div>
+                                     <span style={{ fontWeight: 'bold', color: '#dc2626' }}>${purchase.balanceDue.toFixed(2)}</span>
+                                   </div>
+                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                                     <span style={{ color: '#64748b' }}>C: {new Date(purchase.createdAt).toLocaleDateString()}</span>
+                                     {purchase.dueDate && (
+                                       <span style={{ color: overdue ? '#ef4444' : '#16a34a', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                         {overdue && <AlertTriangle size={14} />} V: {new Date(purchase.dueDate).toLocaleDateString()}
+                                       </span>
+                                     )}
+                                   </div>
+                                 </div>
+                              </div>
+                            );
+                          });
+                        })()}
                       </div>
                    )}
                 </div>
@@ -277,7 +341,7 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
                 </td>
                 <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }}>
                   <button 
-                     onClick={() => { setSelectedSupplier(s); setSelectedPurchases([]); setAmount(''); setIsGeneralPayment(false); }} 
+                     onClick={() => { setSelectedSupplier(s); setSelectedPurchases([]); setAmount(''); setIsGeneralPayment(false); setFolioSearch(''); }} 
                      style={{ backgroundColor: 'white', color: '#475569', padding: '0.5rem 1rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
                   >
                     <FileText size={16} /> Ver Cuentas por Pagar

@@ -1,26 +1,31 @@
-import { getActiveBranch } from "@/app/actions/auth";
+import { getActiveBranch, getSession } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import VentasInvoiceClient from "./VentasInvoiceClient";
 
 export default async function FacturasVentasPage() {
   const branch = await getActiveBranch();
+  const session = await getSession();
   
+  const baseWhere = branch.id === 'GLOBAL'
+    ? { branch: { tenantId: session?.tenantId || undefined } }
+    : { branchId: branch.id };
+
   // Completed sales
   const sales = await prisma.sale.findMany({ 
     where: { 
-      branchId: branch.id, 
+      ...baseWhere,
       status: "COMPLETED" 
     },
-    include: { customer: true, user: true },
+    include: { customer: true, user: true, branch: true },
     orderBy: { createdAt: 'desc' },
-    take: 100 // Fetch up to 100 recent sales
+    take: 300 // Fetch up to 300 recent sales
   });
 
   // Customers of this tenant
   const customers = await prisma.customer.findMany({
     where: {
       branch: {
-        tenantId: branch.tenantId
+        tenantId: session?.tenantId || branch.tenantId
       }
     },
     orderBy: { name: 'asc' }
