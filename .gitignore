@@ -44,8 +44,8 @@ next-env.d.ts
 
 .wwebjs_auth
 
-# Local Netlify folder
-.netlify
+# Local Hetzner folder
+.hetzner
 
 # scratch and logs
 /scratch

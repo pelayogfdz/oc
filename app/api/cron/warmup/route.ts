@@ -21,7 +21,7 @@ async function performWarmup(request: Request) {
     const label = i === 0 ? 'Master' : `Tenant-${i}`;
     try {
       const start = Date.now();
-      // Run a simple lightweight raw query to wake up Neon compute and keep pool active
+      // Run a simple lightweight raw query to keep database pool active
       await client.$queryRawUnsafe('SELECT 1');
       const duration = Date.now() - start;
       results.push({ label, success: true, durationMs: duration });

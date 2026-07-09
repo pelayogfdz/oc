@@ -110,5 +110,5 @@ El comando descarga los últimos cambios del repositorio de Git, re-construye la
 ## 5. Plan de Rollback (Reversibilidad DNS)
 En caso de fallo crítico irrecuperable en el servidor de Hetzner, el rollback se realiza a nivel DNS:
 1. Ir al administrador de DNS de `caanma.com` (Cloudflare/GoDaddy).
-2. Revertir el valor del registro **A** apuntándolo de vuelta a la IP de AWS Lightsail: `18.222.99.200`.
+2. Revertir el valor del registro **A** apuntándolo de vuelta a la IP de Hetzner anterior: `18.222.99.200`.
 3. Esto reconectará inmediatamente a los clientes al servidor antiguo sin pérdida de continuidad.

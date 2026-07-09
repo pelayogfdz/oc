@@ -51,7 +51,7 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
 ---
 
 ## 6. Solución al Problema de Factura a "Público en General" y Corrección para Agustín Paulin Mendoza (Folio SAT SAN-1040)
-* **Identificación del Problema**: El cliente "AGUSTIN PAULIN MENDOZA" (ID `65584c35-8a92-42f5-bc60-8c7860d9835a`) no tenía su RFC (`taxId`) ni Código Postal (`zipCode`) configurados en su perfil de base de datos de producción (`neondb_officecity`). Como el Punto de Venta no validaba la ausencia de estos datos al emitir factura, la venta se guardó con datos de facturación vacíos y el backend de timbrado cayó en la cláusula de fallback a "PÚBLICO EN GENERAL" (RFC genérico `XAXX010101000` y CP `01000`) en Facturapi.
+* **Identificación del Problema**: El cliente "AGUSTIN PAULIN MENDOZA" (ID `65584c35-8a92-42f5-bc60-8c7860d9835a`) no tenía su RFC (`taxId`) ni Código Postal (`zipCode`) configurados en su perfil de base de datos de producción (`officecity_db`). Como el Punto de Venta no validaba la ausencia de estos datos al emitir factura, la venta se guardó con datos de facturación vacíos y el backend de timbrado cayó en la cláusula de fallback a "PÚBLICO EN GENERAL" (RFC genérico `XAXX010101000` y CP `01000`) en Facturapi.
 * **Acciones Correctivas Ejecutadas**:
   1. **Cancelación**: Se canceló exitosamente la factura incorrecta `6a46905f046cbe81f82e4ef8` en Facturapi con el motivo de cancelación SAT `"02" (Comprobante emitido con errores sin relación)`.
   2. **Actualización de Perfil**: Se actualizaron en base de datos de producción los campos fiscales de Agustín Paulin Mendoza con los datos reales (`taxId: PAMA6308285V5`, `zipCode: 76000`).
@@ -85,7 +85,7 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
 ---
 
 ## 9. Registro de Límite de Crédito en Producción para Olivia Barrera Montiel
-* **Acción Realizada**: Actualizamos directamente en la base de datos de producción (`neondb`) el registro de la clienta `OLIVIA BARRERA MONTIEL` (ID `01b99184-5b3f-4972-8497-ee3cff1b5ec1`), asignándole un **Límite de Crédito de $100,000.00** con un plazo de **30 días**.
+* **Acción Realizada**: Actualizamos directamente en la base de datos de producción (`production_db`) el registro de la clienta `OLIVIA BARRERA MONTIEL` (ID `01b99184-5b3f-4972-8497-ee3cff1b5ec1`), asignándole un **Límite de Crédito de $100,000.00** con un plazo de **30 días**.
 * **Resultado**: Olivia Barrera Montiel ahora tiene habilitado el crédito en caja por hasta $100,000.00 de manera inmediata.
 
 ---
@@ -130,7 +130,7 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
 
 ## 13. Habilitación de Ventas a Crédito en Todas las Sucursales (Office City)
 * **Acciones Ejecutadas**:
-  * Actualizamos las configuraciones de las 14 sucursales del cliente en la base de datos de producción (`neondb_officecity`).
+  * Actualizamos las configuraciones de las 14 sucursales del cliente en la base de datos de producción (`officecity_db`).
   * Para cada una de las sucursales, nos aseguramos de que el método `"CREDIT"` esté registrado y habilitado por defecto dentro del objeto `metodos` en el `configJson`.
   * Modificamos el estado inicial de la preferencia de métodos de pago en [PaymentMethodsConfigClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/preferencias/metodos/PaymentMethodsConfigClient.tsx) para incluir `"CREDIT"` por defecto para futuras sucursales.
 * **Resultado**: La venta a crédito ahora está totalmente activa y disponible en las 14 sucursales del sistema de forma uniforme e inmediata.
@@ -139,7 +139,7 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
 
 ## 14. Despliegue y Validación
 * **Compilación**: El proyecto compila limpiamente sin errores de TypeScript (`npx tsc --noEmit` exitoso).
-* **Despliegue a Producción**: Los cambios han sido subidos y desplegados a producción en la instancia de AWS Lightsail reconstruyendo la imagen Docker limpia y liberando memoria swap.
+* **Despliegue a Producción**: Los cambios han sido subidos y desplegados a producción en la instancia de Hetzner reconstruyendo la imagen Docker limpia y liberando memoria swap.
 
 ---
 
@@ -195,8 +195,8 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
 ## 18. Configuración Global de Correo Saliente (SMTP)
 * **Requerimiento**: Solucionar el error `SMTP credentials not configured` que impedía enviar tickets de venta por correo electrónico a los clientes.
 * **Solución**:
-  * Identificamos que las credenciales SMTP de Zoho (`soporte@caanma.com`) estaban configuradas en las variables de entorno de Netlify pero no en el servidor de producción AWS Lightsail.
-  * Agregamos y configuramos las variables SMTP correspondientes en el archivo `/home/ubuntu/oc/.env` del servidor Lightsail:
+  * Identificamos que las credenciales SMTP de Zoho (`soporte@caanma.com`) estaban configuradas en las variables de entorno de Hetzner pero no en el servidor de producción Hetzner.
+  * Agregamos y configuramos las variables SMTP correspondientes en el archivo `/home/ubuntu/oc/.env` del servidor Hetzner:
     * `SMTP_HOST="smtp.zoho.com"`
     * `SMTP_PORT="465"`
     * `SMTP_USER="soporte@caanma.com"`
@@ -230,7 +230,7 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
 * **Requerimiento**: Solucionar el problema de la sucursal duplicada `"IGNACIO PEREZ"` en el selector del panel principal, y evitar que se puedan registrar locaciones con nombres idénticos.
 * **Acciones Tomadas**:
   1. **Diagnóstico e Identificación de Datos:**
-     * Consultamos la base de datos master (`neondb`) y la base de datos específica del inquilino (`neondb_officecity`), encontrando dos registros activos con el nombre de sucursal `"IGNACIO PEREZ"` y coordenadas/direcciones idénticas.
+     * Consultamos la base de datos master (`master_db`) y la base de datos específica del inquilino (`officecity_db`), encontrando dos registros activos con el nombre de sucursal `"IGNACIO PEREZ"` y coordenadas/direcciones idénticas.
      * Evaluamos el uso de cada registro en la base de datos (conteo de ventas, usuarios, cotizaciones, traspasos y solicitudes) y corroboramos que ambos registros estaban vacíos (0 ventas, 0 usuarios, y 10 productos de catálogo inicial con 0 stock).
   2. **Resolución de Duplicidad (Desactivación):**
      * Desactivamos el registro duplicado (ID `6bc6920e-bc8e-48ac-a8d3-6c480c70539c`) estableciendo `isActive: false` tanto en la base de datos master como en la de inquilinos. Esto eliminó de forma inmediata el elemento repetido del menú desplegable del sistema.

@@ -20,7 +20,7 @@ async function main() {
     res.on('end', () => {
       try {
         const env = JSON.parse(data);
-        console.log("Netlify Environment Variables:");
+        console.log("Hetzner Environment Variables:");
         console.log(JSON.stringify(env, null, 2));
       } catch (err) {
         console.error("Parse error:", err);

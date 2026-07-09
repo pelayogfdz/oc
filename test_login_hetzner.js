@@ -1,8 +1,8 @@
 const https = require('https');
 
-async function testNetlify() {
-  console.log("1. Logging into Netlify live site...");
-  const loginRes = await fetch('https://caanma.netlify.app/api/auth/login', {
+async function testHetzner() {
+  console.log("1. Logging into Hetzner live site...");
+  const loginRes = await fetch('https://caanma.com/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: 'testagent123@example.com', password: 'testpass' })
@@ -17,7 +17,7 @@ async function testNetlify() {
   
   if (cookies) {
     console.log("\n2. Fetching /ventas with session...");
-    const ventasRes = await fetch('https://caanma.netlify.app/ventas', {
+    const ventasRes = await fetch('https://caanma.com/ventas', {
       headers: {
         'Cookie': cookies
       }
@@ -31,4 +31,4 @@ async function testNetlify() {
   }
 }
 
-testNetlify();
+testHetzner();

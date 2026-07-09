@@ -3,6 +3,6 @@ node_modules
 .next
 out
 build
-.netlify
+.hetzner
 .wwebjs_cache
 *.log

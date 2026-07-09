@@ -70,7 +70,7 @@ async function main() {
 }
 
 async function handleFailure(result) {
-  // Mock the minimum .next directory structure so Netlify Next.js plugin doesn't crash
+  // Mock the minimum .next directory structure so Hetzner Next.js plugin doesn't crash
   const nextDir = path.join(__dirname, '.next');
   if (!fs.existsSync(nextDir)) {
     fs.mkdirSync(nextDir, { recursive: true });
@@ -88,7 +88,7 @@ async function handleFailure(result) {
   </style>
 </head>
 <body>
-  <h1>Netlify Build Error Log</h1>
+  <h1>Hetzner Build Error Log</h1>
   <p>The build step failed. Here is the output:</p>
   <pre>${escapeHtml(result.output)}</pre>
 </body>
@@ -124,7 +124,7 @@ async function handleFailure(result) {
     }
   }
 
-  console.log("Mocked .next files successfully to prevent Netlify plugin crashes.");
+  console.log("Mocked .next files successfully to prevent Hetzner plugin crashes.");
   console.log("Exiting with 0 to allow deploying the build log...");
   process.exit(0);
 }

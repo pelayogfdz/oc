@@ -11,12 +11,12 @@ Para cualquier desarrollo, cambio o mejora en el proyecto CAANMA, se debe respet
 1. **Trabajo estrictamente Local**:
    - Todos los cambios, optimizaciones, correcciones o características nuevas se deben desarrollar y probar en el entorno local (`localhost`).
 
-2. **Ventana de Despliegue a Netlify**:
-   - El empuje (push/deploy) a Netlify de los cambios acumulados durante el día se realizará **únicamente a las 11:50 PM** de ese mismo día.
+2. **Ventana de Despliegue a Hetzner**:
+   - El empuje (push/deploy) a Hetzner de los cambios acumulados durante el día se realizará **únicamente a las 11:50 PM** de ese mismo día.
    - Antes de realizar el despliegue a las 11:50 PM, se debe llevar a cabo una suite completa de pruebas locales para verificar que la aplicación funcione a la perfección.
 
 3. **Excepción de Publicación Inmediata**:
-   - La única manera de omitir esta restricción horaria y publicar de inmediato en Netlify es si el usuario introduce explícitamente el comando: **`PUBLICAAHORA`**.
+   - La única manera de omitir esta restricción horaria y publicar de inmediato en Hetzner es si el usuario introduce explícitamente el comando: **`PUBLICAAHORA`**.
 
 ---
 

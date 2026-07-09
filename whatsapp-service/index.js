@@ -409,7 +409,7 @@ async function syncRecentChatsHistory(branchId, client) {
                     }
                 }
                 
-                // Add a small 150ms throttle to prevent PostgreSQL Neon connection spikes
+                // Add a small 150ms throttle to prevent PostgreSQL connection spikes
                 await new Promise(resolve => setTimeout(resolve, 150));
             } catch (chatErr) {
                 console.error(`[WHATSAPP] Failed to sync messages for chat ${chat.id?._serialized} under branch ${branchId}:`, chatErr.message);

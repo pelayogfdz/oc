@@ -82,7 +82,7 @@ export async function GET(
       });
     }
 
-    // Wait and poll Neon database for status changes (up to 15 seconds)
+    // Wait and poll database for status changes (up to 15 seconds)
     let attempts = 0;
     const maxAttempts = 15;
     while (mediaRequest && mediaRequest.status === "PENDING" && attempts < maxAttempts) {
