@@ -500,6 +500,9 @@ export default function VentasHistoryClient({
         <div className="table-responsive">
           <style dangerouslySetInnerHTML={{__html: `
             @media (min-width: 769px) {
+              .desktop-compact-table {
+                min-width: 950px !important;
+              }
               .desktop-compact-table td {
                 white-space: nowrap !important;
                 padding: 0.3rem 0.45rem !important;
@@ -512,7 +515,7 @@ export default function VentasHistoryClient({
               }
             }
           `}} />
-          <table className="responsive-table min-w-950 desktop-compact-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <table className="responsive-table desktop-compact-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
             <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
               <th style={{ padding: '0.4rem 0.5rem', color: 'var(--caanma-text-muted)', fontWeight: '500', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>ID Venta</th>
