@@ -498,7 +498,21 @@ export default function VentasHistoryClient({
 
       <div className="card" style={{ padding: '0', overflow: 'visible', width: '100%', maxWidth: '100%', height: 'auto' }}>
         <div className="table-responsive">
-          <table className="responsive-table min-w-950" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <style dangerouslySetInnerHTML={{__html: `
+            @media (min-width: 769px) {
+              .desktop-compact-table td {
+                white-space: nowrap !important;
+                padding: 0.3rem 0.45rem !important;
+              }
+              .desktop-compact-inline {
+                display: inline-block !important;
+              }
+              .desktop-compact-flex {
+                display: inline-flex !important;
+              }
+            }
+          `}} />
+          <table className="responsive-table min-w-950 desktop-compact-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
             <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
               <th style={{ padding: '0.4rem 0.5rem', color: 'var(--caanma-text-muted)', fontWeight: '500', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>ID Venta</th>
@@ -517,26 +531,28 @@ export default function VentasHistoryClient({
               const qtySum = sale.items.reduce((sum: number, item: any) => sum + item.quantity, 0);
               return (
                 <tr key={sale.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-                  <td data-label="ID Venta" style={{ padding: '0.3rem 0.45rem', fontFamily: 'monospace', fontWeight: 'bold', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
-                    <span style={{ display: 'inline-block' }}>{sale.folio || sale.id.slice(0, 8).toUpperCase()}</span>
+                  <td data-label="ID Venta" style={{ padding: '0.3rem 0.45rem', fontFamily: 'monospace', fontWeight: 'bold', fontSize: '0.82rem' }}>
+                    <span>{sale.folio || sale.id.slice(0, 8).toUpperCase()}</span>
                   </td>
-                  <td data-label="Fecha / Hora" style={{ padding: '0.3rem 0.45rem', whiteSpace: 'nowrap', fontSize: '0.82rem', color: '#475569' }}>
-                    <span style={{ display: 'inline-block' }}>{formatDateCompact(sale.createdAt, timezone)}</span>
+                  <td data-label="Fecha / Hora" style={{ padding: '0.3rem 0.45rem', fontSize: '0.82rem', color: '#475569' }}>
+                    <span>{formatDateCompact(sale.createdAt, timezone)}</span>
                   </td>
-                  <td data-label="Cliente" style={{ padding: '0.3rem 0.45rem', whiteSpace: 'nowrap' }}>
+                  <td data-label="Cliente" style={{ padding: '0.3rem 0.45rem' }}>
                     <div 
                       title={sale.customer ? sale.customer.name : 'Público General'} 
-                      style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '130px', fontSize: '0.82rem', display: 'inline-block' }}
+                      className="desktop-compact-inline"
+                      style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '130px', fontSize: '0.82rem' }}
                     >
                       {sale.customer ? sale.customer.name : 'Público General'}
                     </div>
                   </td>
-                  <td data-label="Folio CFDI" style={{ padding: '0.3rem 0.45rem', whiteSpace: 'nowrap' }}>
+                  <td data-label="Folio CFDI" style={{ padding: '0.3rem 0.45rem' }}>
                     {sale.invoiceId ? (
                       <a 
                         href={`/api/facturacion/download?invoiceId=${sale.invoiceId}&format=pdf`}
                         target="_blank"
                         rel="noopener noreferrer"
+                        className="desktop-compact-inline"
                         style={{ 
                           fontFamily: 'monospace', 
                           fontSize: '0.78rem', 
@@ -546,19 +562,18 @@ export default function VentasHistoryClient({
                           border: '1px solid #bfdbfe',
                           padding: '0.15rem 0.35rem', 
                           borderRadius: '4px',
-                          textDecoration: 'none',
-                          display: 'inline-block'
+                          textDecoration: 'none'
                         }} 
                         title="Ver PDF de la Factura (CFDI)"
                       >
                         {sale.invoiceFolio || sale.invoiceId.substring(0, 8).toUpperCase()}
                       </a>
                     ) : (
-                      <span style={{ color: 'var(--caanma-text-muted)', fontSize: '0.82rem', display: 'inline-block' }}>-</span>
+                      <span style={{ color: 'var(--caanma-text-muted)', fontSize: '0.82rem' }}>-</span>
                     )}
                   </td>
-                  <td data-label="Sucursal / Vendedor" style={{ padding: '0.3rem 0.45rem', whiteSpace: 'nowrap' }}>
-                    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 0 }}>
+                  <td data-label="Sucursal / Vendedor" style={{ padding: '0.3rem 0.45rem' }}>
+                    <div className="desktop-compact-flex" style={{ flexDirection: 'column', alignItems: 'flex-end', minWidth: 0 }}>
                       <div 
                         title={sale.branch?.name || currentBranch.name} 
                         style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '110px', fontSize: '0.82rem' }}
@@ -573,31 +588,30 @@ export default function VentasHistoryClient({
                       </div>
                     </div>
                   </td>
-                  <td data-label="Artículos" style={{ padding: '0.3rem 0.45rem', textAlign: 'right', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
-                    <span style={{ display: 'inline-block' }}>{new Intl.NumberFormat('es-MX').format(qtySum)} Pzas</span>
+                  <td data-label="Artículos" style={{ padding: '0.3rem 0.45rem', textAlign: 'right', color: 'var(--caanma-text-muted)', fontSize: '0.82rem' }}>
+                    <span>{new Intl.NumberFormat('es-MX').format(qtySum)} Pzas</span>
                   </td>
-                  <td data-label="Total" style={{ padding: '0.3rem 0.45rem', textAlign: 'right', fontWeight: 'bold', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
-                    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 0 }}>
+                  <td data-label="Total" style={{ padding: '0.3rem 0.45rem', textAlign: 'right', fontWeight: 'bold', fontSize: '0.82rem' }}>
+                    <div className="desktop-compact-flex" style={{ flexDirection: 'column', alignItems: 'flex-end', minWidth: 0 }}>
                       <div style={{ whiteSpace: 'nowrap' }}>{formatCurrency(sale.total)}</div>
                       <div style={{ fontSize: '0.72rem', color: 'var(--caanma-text-muted)', fontWeight: 'normal', marginTop: '0.1rem', whiteSpace: 'nowrap' }}>
                         {getPaymentMethodLabel(sale.paymentMethod)}
                       </div>
                     </div>
                   </td>
-                  <td data-label="Estado" style={{ padding: '0.3rem 0.45rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                  <td data-label="Estado" style={{ padding: '0.3rem 0.45rem', textAlign: 'center' }}>
                     <span style={{ 
                       padding: '0.15rem 0.35rem', 
                       borderRadius: '12px', 
                       fontSize: '0.7rem',
                       fontWeight: 'bold',
                       backgroundColor: sale.status === 'COMPLETED' ? '#dcfce7' : sale.status === 'CANCELLED' ? '#fee2e2' : '#f1f5f9',
-                      color: sale.status === 'COMPLETED' ? '#166534' : sale.status === 'CANCELLED' ? '#991b1b' : '#334155',
-                      display: 'inline-block'
+                      color: sale.status === 'COMPLETED' ? '#166534' : sale.status === 'CANCELLED' ? '#991b1b' : '#334155'
                     }}>
                       {sale.status === 'COMPLETED' ? 'Completado' : sale.status === 'CANCELLED' ? 'Cancelado' : sale.status}
                     </span>
                   </td>
-                  <td data-label="Acciones" style={{ padding: '0.3rem 0.45rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                  <td data-label="Acciones" style={{ padding: '0.3rem 0.45rem', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '0.2rem', justifyContent: 'center', flexWrap: 'nowrap', alignItems: 'center' }}>
                       {/* Detalle */}
                       <Link
