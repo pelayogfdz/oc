@@ -195,7 +195,24 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
       </div>
 
       <div className="table-responsive">
-        <table className="responsive-table min-w-1000" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <style dangerouslySetInnerHTML={{__html: `
+          @media (min-width: 769px) {
+            .desktop-compact-table {
+              min-width: 1000px !important;
+            }
+            .desktop-compact-table td {
+              white-space: nowrap !important;
+              padding: 0.4rem 0.75rem !important;
+            }
+            .desktop-compact-inline {
+              display: inline-block !important;
+            }
+            .desktop-compact-flex {
+              display: inline-flex !important;
+            }
+          }
+        `}} />
+        <table className="responsive-table desktop-compact-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
             <th style={{ padding: '0.5rem 0.75rem', fontWeight: '500', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap' }}>ID Cotización</th>
@@ -210,7 +227,7 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
         <tbody>
           {filteredQuotes.map((quote) => (
             <tr key={quote.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-              <td data-label="ID Cotización" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
+              <td data-label="ID Cotización" style={{ padding: '0.4rem 0.75rem' }}>
                 <div className="quote-id-wrapper">
                   <span className="quote-id-text">#{quote.folio || quote.id.slice(0, 8).toUpperCase()}</span>
                   <div className="quote-preview-tooltip">
@@ -272,38 +289,41 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                   </div>
                 </div>
               </td>
-              <td data-label="Fecha" style={{ padding: '0.4rem 0.75rem', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap' }}>
+              <td data-label="Fecha" style={{ padding: '0.4rem 0.75rem', color: 'var(--caanma-text-muted)' }}>
                 <span style={{ fontSize: '0.825rem' }}>{new Date(quote.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}</span>
               </td>
-              <td data-label="Cliente" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
+              <td data-label="Cliente" style={{ padding: '0.4rem 0.75rem' }}>
                 <div 
                   title={quote.customer?.name || 'Público en General'} 
-                  style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px', fontSize: '0.825rem', display: 'inline-block' }}
+                  className="desktop-compact-inline"
+                  style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px', fontSize: '0.825rem' }}
                 >
                   {quote.customer?.name || 'Público en General'}
                 </div>
               </td>
-              <td data-label="Creado por" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
+              <td data-label="Creado por" style={{ padding: '0.4rem 0.75rem' }}>
                 <div 
                   title={quote.user?.name || ''} 
-                  style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px', fontSize: '0.825rem', display: 'inline-block' }}
+                  className="desktop-compact-inline"
+                  style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px', fontSize: '0.825rem' }}
                 >
                   {quote.user?.name || ''}
                 </div>
               </td>
-              <td data-label="Total" style={{ padding: '0.4rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-primary)', whiteSpace: 'nowrap' }}>
+              <td data-label="Total" style={{ padding: '0.4rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>
                 <span style={{ fontSize: '0.875rem' }}>${quote.total.toFixed(2)}</span>
               </td>
-              <td data-label="Estado" style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }}>
+              <td data-label="Estado" style={{ padding: '0.4rem 0.75rem' }}>
                 {quote.status === 'PENDING' ? (
-                  <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#fef9c3', color: '#854d0e', borderRadius: '12px', display: 'inline-block' }}>PENDIENTE</span>
+                  <span className="desktop-compact-inline" style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#fef9c3', color: '#854d0e', borderRadius: '12px' }}>PENDIENTE</span>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end', minWidth: 0 }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '12px', display: 'inline-block', textAlign: 'center' }}>CONVERTIDA A VENTA</span>
+                  <div className="desktop-compact-flex" style={{ flexDirection: 'column', gap: '4px', alignItems: 'flex-end', minWidth: 0 }}>
+                    <span className="desktop-compact-inline" style={{ fontSize: '0.75rem', fontWeight: 'bold', padding: '0.25rem 0.5rem', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '12px', textAlign: 'center' }}>CONVERTIDA A VENTA</span>
                     {quote.status.includes(':') && (
                       <Link 
                         href={`/ventas/detalle/${quote.status.split(':')[1]}`}
-                        style={{ fontSize: '0.725rem', color: '#4f46e5', fontWeight: '600', textDecoration: 'underline', transition: 'color 0.15s', display: 'inline-block' }}
+                        className="desktop-compact-inline"
+                        style={{ fontSize: '0.725rem', color: '#4f46e5', fontWeight: '600', textDecoration: 'underline', transition: 'color 0.15s' }}
                         onMouseEnter={e => e.currentTarget.style.color = '#3730a3'}
                         onMouseLeave={e => e.currentTarget.style.color = '#4f46e5'}
                       >
@@ -313,7 +333,7 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                   </div>
                 )}
               </td>
-              <td data-label="Acción" className="full-width no-label" style={{ padding: '0.4rem 0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+              <td data-label="Acción" className="full-width no-label" style={{ padding: '0.4rem 0.75rem', textAlign: 'right' }}>
                 <QuoteActions 
                   quoteId={quote.id} 
                   quoteFolio={quote.folio}
