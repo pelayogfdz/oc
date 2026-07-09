@@ -167,8 +167,9 @@ export default async function PrintVentaTicketPage({ params }: { params: Promise
     <>
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
-          html, body { height: auto !important; overflow: visible !important; }
+          html, body { height: auto !important; overflow: visible !important; margin: 0 !important; padding: 0 !important; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; }
+          .ticket-outer-container { padding: 0 !important; margin: 0 !important; box-shadow: none !important; border-radius: 0 !important; width: 100% !important; }
           .no-print { display: none !important; }
         }
         body { background: #f1f5f9; display: flex; flex-direction: column; align-items: center; padding: 2rem 0; }
