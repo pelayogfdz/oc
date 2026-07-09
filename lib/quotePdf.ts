@@ -130,62 +130,63 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
       doc.text('IVA', 415, tableTop + 6, { width: 65, align: 'right' });
       doc.text('Importe', 485, tableTop + 6, { width: 77, align: 'right' });
 
-      // Table Rows
-      let currentY = tableTop + 20;
-      quote.items.forEach((item: any) => {
-        const skuText = `SKU: ${item.product?.sku || '-'} | UPC: ${item.product?.barcode || '-'}`;
-        const nameHeight = doc.heightOfString(item.product?.name || 'Artículo sin nombre', { width: 145 });
-        const skuHeight = doc.heightOfString(skuText, { width: 145 });
-        const rowHeight = Math.max(26, nameHeight + skuHeight + 10);
-
-        // Check if we need to add a new page before drawing this row
-        if (currentY + rowHeight > 650) {
-          doc.addPage();
-          currentY = 50; // top margin on new page
-
-          // Redraw table header on the new page
-          doc.fillColor('#f8fafc').rect(50, currentY, 512, 20).fill();
-          doc.strokeColor('#e2e8f0').lineWidth(1).rect(50, currentY, 512, 20).stroke();
-
-          doc.font(fontBold).fontSize(8).fillColor('#475569');
-          doc.text('Cant', 55, currentY + 6, { width: 30, align: 'center' });
-          doc.text('Código/SKU', 90, currentY + 6, { width: 90, align: 'left' });
-          doc.text('Descripción del Artículo', 185, currentY + 6, { width: 145, align: 'left' });
-          doc.text('Precio Unit.', 335, currentY + 6, { width: 75, align: 'right' });
-          doc.text('IVA', 415, currentY + 6, { width: 65, align: 'right' });
-          doc.text('Importe', 485, currentY + 6, { width: 77, align: 'right' });
-
-          currentY += 20;
-        }
-
-        // Draw row bottom line
-        doc.strokeColor('#f1f5f9').lineWidth(1).moveTo(50, currentY + rowHeight).lineTo(562, currentY + rowHeight).stroke();
-
-        const taxRate = item.product?.taxRate ?? 16.0;
-        const taxType = item.product?.taxType || 'IVA';
-        const isIva = taxType === 'IVA' || taxType === 'IVA_IEPS';
-        const rate = isIva ? taxRate : 0;
-
-        const finalPriceIncludingIva = item.price;
-        const finalPriceExcludingIva = finalPriceIncludingIva / (1 + rate / 100);
-        const rowImporteExcludingIva = finalPriceExcludingIva * item.quantity;
-        const rowIva = (finalPriceIncludingIva - finalPriceExcludingIva) * item.quantity;
-
-        doc.font(fontRegular).fontSize(9).fillColor('#1e293b');
-        doc.text(String(item.quantity), 55, currentY + 6, { width: 30, align: 'center' });
-        doc.text(item.product?.sku || '--', 90, currentY + 6, { width: 90, align: 'left' });
-        
-        // Product Name and SKU/UPC underneath
-        doc.text(item.product?.name || 'Artículo sin nombre', 185, currentY + 4, { width: 145, align: 'left' });
-        doc.font(fontRegular).fontSize(7).fillColor('#64748b').text(skuText, 185, currentY + 16, { width: 145, align: 'left' });
-        doc.font(fontRegular).fontSize(9).fillColor('#1e293b'); // Restore
-
-        doc.text(`$${finalPriceExcludingIva.toFixed(2)}`, 335, currentY + 6, { width: 75, align: 'right' });
-        doc.text(`${rate}% ($${rowIva.toFixed(2)})`, 415, currentY + 6, { width: 65, align: 'right' });
-        doc.text(`$${rowImporteExcludingIva.toFixed(2)}`, 485, currentY + 6, { width: 77, align: 'right' });
-
-        currentY += rowHeight;
-      });
+       // Table Rows
+       let currentY = tableTop + 20;
+       quote.items.forEach((item: any) => {
+         const nameHeight = doc.heightOfString(item.product?.name || 'Artículo sin nombre', { width: 145 });
+         const rowHeight = Math.max(28, nameHeight + 8);
+ 
+         // Check if we need to add a new page before drawing this row
+         if (currentY + rowHeight > 650) {
+           doc.addPage();
+           currentY = 50; // top margin on new page
+ 
+           // Redraw table header on the new page
+           doc.fillColor('#f8fafc').rect(50, currentY, 512, 20).fill();
+           doc.strokeColor('#e2e8f0').lineWidth(1).rect(50, currentY, 512, 20).stroke();
+ 
+           doc.font(fontBold).fontSize(8).fillColor('#475569');
+           doc.text('Cant', 55, currentY + 6, { width: 30, align: 'center' });
+           doc.text('Código/SKU', 90, currentY + 6, { width: 90, align: 'left' });
+           doc.text('Descripción del Artículo', 185, currentY + 6, { width: 145, align: 'left' });
+           doc.text('Precio Unit.', 335, currentY + 6, { width: 75, align: 'right' });
+           doc.text('IVA', 415, currentY + 6, { width: 65, align: 'right' });
+           doc.text('Importe', 485, currentY + 6, { width: 77, align: 'right' });
+ 
+           currentY += 20;
+         }
+ 
+         // Draw row bottom line
+         doc.strokeColor('#f1f5f9').lineWidth(1).moveTo(50, currentY + rowHeight).lineTo(562, currentY + rowHeight).stroke();
+ 
+         const taxRate = item.product?.taxRate ?? 16.0;
+         const taxType = item.product?.taxType || 'IVA';
+         const isIva = taxType === 'IVA' || taxType === 'IVA_IEPS';
+         const rate = isIva ? taxRate : 0;
+ 
+         const finalPriceIncludingIva = item.price;
+         const finalPriceExcludingIva = finalPriceIncludingIva / (1 + rate / 100);
+         const rowImporteExcludingIva = finalPriceExcludingIva * item.quantity;
+         const rowIva = (finalPriceIncludingIva - finalPriceExcludingIva) * item.quantity;
+ 
+         doc.font(fontRegular).fontSize(9).fillColor('#1e293b');
+         doc.text(String(item.quantity), 55, currentY + 6, { width: 30, align: 'center' });
+         
+         // Código/SKU Column (SKU and UPC)
+         doc.font(fontRegular).fontSize(8).fillColor('#1e293b');
+         doc.text(`SKU: ${item.product?.sku || '-'}`, 90, currentY + 4, { width: 90, align: 'left' });
+         doc.font(fontRegular).fontSize(7).fillColor('#64748b').text(`UPC: ${item.product?.barcode || '-'}`, 90, currentY + 14, { width: 90, align: 'left' });
+         
+         // Product Name (Description)
+         doc.font(fontRegular).fontSize(9).fillColor('#1e293b');
+         doc.text(item.product?.name || 'Artículo sin nombre', 185, currentY + 4, { width: 145, align: 'left' });
+ 
+         doc.text(`$${finalPriceExcludingIva.toFixed(2)}`, 335, currentY + 6, { width: 75, align: 'right' });
+         doc.text(`${rate}% ($${rowIva.toFixed(2)})`, 415, currentY + 6, { width: 65, align: 'right' });
+         doc.text(`$${rowImporteExcludingIva.toFixed(2)}`, 485, currentY + 6, { width: 77, align: 'right' });
+ 
+         currentY += rowHeight;
+       });
 
       // 4. Totals Box
       const breakdownDiscounts = quote.breakdownDiscounts ?? false;

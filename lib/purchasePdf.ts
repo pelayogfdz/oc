@@ -132,10 +132,8 @@ export function generatePurchasePdfBuffer(purchase: any): Promise<Buffer> {
       // Table Rows
       let currentY = tableTop + 20;
       purchase.items.forEach((item: any) => {
-        const skuText = `SKU: ${item.product?.sku || '-'} | UPC: ${item.product?.barcode || '-'}`;
         const nameHeight = doc.heightOfString(item.product?.name || 'Artículo sin nombre', { width: 200 });
-        const skuHeight = doc.heightOfString(skuText, { width: 200 });
-        const rowHeight = Math.max(26, nameHeight + skuHeight + 10);
+        const rowHeight = Math.max(28, nameHeight + 8);
 
         // Check if we need to add a new page before drawing this row
         if (currentY + rowHeight > 650) {
@@ -161,12 +159,15 @@ export function generatePurchasePdfBuffer(purchase: any): Promise<Buffer> {
 
         doc.font(fontRegular).fontSize(9).fillColor('#1e293b');
         doc.text(String(item.quantity), 55, currentY + 6, { width: 30, align: 'center' });
-        doc.text(item.product?.sku || '--', 90, currentY + 6, { width: 90, align: 'left' });
         
-        // Product Name and SKU/UPC underneath
+        // Código/SKU Column (SKU and UPC)
+        doc.font(fontRegular).fontSize(8).fillColor('#1e293b');
+        doc.text(`SKU: ${item.product?.sku || '-'}`, 90, currentY + 4, { width: 90, align: 'left' });
+        doc.font(fontRegular).fontSize(7).fillColor('#64748b').text(`UPC: ${item.product?.barcode || '-'}`, 90, currentY + 14, { width: 90, align: 'left' });
+        
+        // Product Name (Description)
+        doc.font(fontRegular).fontSize(9).fillColor('#1e293b');
         doc.text(item.product?.name || 'Artículo sin nombre', 190, currentY + 4, { width: 200, align: 'left' });
-        doc.font(fontRegular).fontSize(7).fillColor('#64748b').text(skuText, 190, currentY + 16, { width: 200, align: 'left' });
-        doc.font(fontRegular).fontSize(9).fillColor('#1e293b'); // Restore
 
         doc.text(`$${item.cost.toFixed(2)}`, 400, currentY + 6, { width: 70, align: 'right' });
         doc.text(`$${(item.cost * item.quantity).toFixed(2)}`, 480, currentY + 6, { width: 75, align: 'right' });
