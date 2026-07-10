@@ -27,6 +27,18 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCfdiUse, setSelectedCfdiUse] = useState('G03');
+
+  useEffect(() => {
+    if (selectedCustomerId) {
+      const customer = customers.find(c => c.id === selectedCustomerId);
+      if (customer) {
+        setSelectedCfdiUse(customer.cfdiUse || 'G03');
+      }
+    } else {
+      setSelectedCfdiUse('S01'); // Public general default is S01
+    }
+  }, [selectedCustomerId, customers]);
 
   // WhatsApp Share States for Invoices
   const [isWhatsappOpen, setIsWhatsappOpen] = useState(false);
@@ -372,9 +384,9 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
     startTransition(async () => {
       let res;
       if (activeInvoicingSaleIds.length === 1) {
-        res = await stampInvoice(activeInvoicingSaleIds[0], selectedCustomerId || null);
+        res = await stampInvoice(activeInvoicingSaleIds[0], selectedCustomerId || null, selectedCfdiUse);
       } else {
-        res = await stampMultipleSalesInvoice(activeInvoicingSaleIds, selectedCustomerId || null);
+        res = await stampMultipleSalesInvoice(activeInvoicingSaleIds, selectedCustomerId || null, selectedCfdiUse);
       }
       
       if (res.success) {
@@ -1015,6 +1027,39 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                       </div>
                     )}
                   </div>
+                </div>
+
+                {/* CFDI Use Selector */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem', marginTop: '1rem' }}>
+                  <label style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#475569' }}>
+                    Uso de CFDI para esta factura:
+                  </label>
+                  <select 
+                    value={selectedCfdiUse}
+                    onChange={e => setSelectedCfdiUse(e.target.value)}
+                    style={{ 
+                      width: '100%', 
+                      padding: '0.75rem', 
+                      border: '1px solid #cbd5e1', 
+                      borderRadius: '8px', 
+                      fontSize: '0.9rem',
+                      backgroundColor: 'white',
+                      color: '#1e293b',
+                      outline: 'none'
+                    }}
+                  >
+                    <option value="G03">G03 - Gastos en general</option>
+                    <option value="G01">G01 - Adquisición de mercancías</option>
+                    <option value="I01">I01 - Construcciones</option>
+                    <option value="I02">I02 - Mobiliario y equipo de oficina</option>
+                    <option value="I03">I03 - Equipo de transporte</option>
+                    <option value="I04">I04 - Equipo de cómputo y accesorios</option>
+                    <option value="I08">I08 - Otra maquinaria y equipo</option>
+                    <option value="D01">D01 - Honorarios médicos y dentales</option>
+                    <option value="D02">D02 - Gastos médicos por incapacidad</option>
+                    <option value="S01">S01 - Sin efectos fiscales</option>
+                    <option value="CP01">CP01 - Pagos</option>
+                  </select>
                 </div>
 
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
