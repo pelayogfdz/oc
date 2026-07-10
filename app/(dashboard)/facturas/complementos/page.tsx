@@ -1,14 +1,19 @@
 import { prisma } from "@/lib/prisma";
-import { getActiveBranch } from "@/app/actions/auth";
+import { getActiveBranch, getSession } from "@/app/actions/auth";
 import REPClient from "./REPClient";
 
 export default async function ComplementosPage() {
   const branch = await getActiveBranch();
+  const session = await getSession();
+
+  const baseWhere = branch.id === 'GLOBAL'
+    ? { branch: { tenantId: session?.tenantId || undefined } }
+    : { branchId: branch.id };
 
   // Traer ventas facturadas
   const sales = await prisma.sale.findMany({
     where: {
-      branchId: branch.id,
+      ...baseWhere,
       invoiceId: { not: null },
       paymentMethod: 'CREDIT' // Idealmente solo facturas a crédito (PPD)
     },
@@ -16,7 +21,7 @@ export default async function ComplementosPage() {
       customer: true
     },
     orderBy: { createdAt: 'desc' },
-    take: 100
+    take: 300
   });
 
   return (

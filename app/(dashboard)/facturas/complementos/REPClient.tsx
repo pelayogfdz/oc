@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { createMultiplePaymentReceipt } from '@/app/actions/facturacion';
-import { FileText, Send, Calendar, CreditCard, Layers, X, Check, Loader2, AlertTriangle } from 'lucide-react';
+import { FileText, Send, Calendar, CreditCard, Layers, X, Check, Loader2, AlertTriangle, Search } from 'lucide-react';
 
 export default function REPClient({ sales }: { sales: any[] }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -13,6 +13,28 @@ export default function REPClient({ sales }: { sales: any[] }) {
   
   // Custom payment amounts for each selected invoice
   const [paymentAmounts, setPaymentAmounts] = useState<Record<string, string>>({});
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredSales = sales.filter((sale) => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return true;
+    
+    const folio = (sale.folio || sale.id.substring(0, 8)).toLowerCase();
+    const clientName = (sale.customer?.name || '').toLowerCase();
+    const clientLegalName = (sale.customer?.legalName || '').toLowerCase();
+    const clientTaxId = (sale.customer?.taxId || '').toLowerCase();
+    const invoiceId = (sale.invoiceId || '').toLowerCase();
+    const invoiceFolio = (sale.invoiceFolio || '').toLowerCase();
+
+    return (
+      folio.includes(query) ||
+      clientName.includes(query) ||
+      clientLegalName.includes(query) ||
+      clientTaxId.includes(query) ||
+      invoiceId.includes(query) ||
+      invoiceFolio.includes(query)
+    );
+  });
 
   const selectedSales = sales.filter(s => selectedIds.includes(s.id));
 
@@ -41,17 +63,28 @@ export default function REPClient({ sales }: { sales: any[] }) {
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      const allIds = sales.map(s => s.id);
-      setSelectedIds(allIds);
-      // Initialize all amounts
-      const initialAmounts: Record<string, string> = {};
-      sales.forEach(s => {
-        initialAmounts[s.id] = s.total.toString();
+      const allFilteredIds = filteredSales.map(s => s.id);
+      setSelectedIds(prev => {
+        const union = new Set([...prev, ...allFilteredIds]);
+        return Array.from(union);
       });
-      setPaymentAmounts(initialAmounts);
+      setPaymentAmounts(amounts => {
+        const next = { ...amounts };
+        filteredSales.forEach(s => {
+          next[s.id] = s.total.toString();
+        });
+        return next;
+      });
     } else {
-      setSelectedIds([]);
-      setPaymentAmounts({});
+      const allFilteredIds = filteredSales.map(s => s.id);
+      setSelectedIds(prev => prev.filter(id => !allFilteredIds.includes(id)));
+      setPaymentAmounts(amounts => {
+        const next = { ...amounts };
+        filteredSales.forEach(s => {
+          delete next[s.id];
+        });
+        return next;
+      });
     }
   };
 
@@ -128,6 +161,29 @@ export default function REPClient({ sales }: { sales: any[] }) {
         </div>
       )}
 
+      {/* Search Input Bar */}
+      <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
+        <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={20} />
+        <input 
+          type="text" 
+          placeholder="Buscar facturas PPD por folio, cliente, RFC o UUID de Facturapi..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          style={{ 
+            width: '100%', 
+            padding: '0.85rem 1rem 0.85rem 2.75rem', 
+            border: '1px solid var(--caanma-border)', 
+            borderRadius: '12px', 
+            fontSize: '0.95rem',
+            backgroundColor: 'white',
+            color: '#1e293b',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)',
+            outline: 'none',
+            transition: 'all 0.2s'
+          }}
+        />
+      </div>
+
       {/* Invoices List Card */}
       <div className="card" style={{ marginBottom: '2rem', padding: 0, overflow: 'hidden' }}>
         <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--caanma-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -160,6 +216,11 @@ export default function REPClient({ sales }: { sales: any[] }) {
             <FileText size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.3 }} />
             No hay facturas a crédito (PPD) registradas en esta sucursal.
           </div>
+        ) : filteredSales.length === 0 ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
+            <Search size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.3, color: '#94a3b8' }} />
+            No se encontraron facturas o clientes que coincidan con la búsqueda.
+          </div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
@@ -168,7 +229,7 @@ export default function REPClient({ sales }: { sales: any[] }) {
                   <input 
                     type="checkbox" 
                     onChange={handleSelectAll}
-                    checked={selectedIds.length > 0 && selectedIds.length === sales.length}
+                    checked={selectedIds.length > 0 && filteredSales.length > 0 && filteredSales.every(s => selectedIds.includes(s.id))}
                     style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                   />
                 </th>
@@ -180,7 +241,7 @@ export default function REPClient({ sales }: { sales: any[] }) {
               </tr>
             </thead>
             <tbody>
-              {sales.map((sale) => {
+              {filteredSales.map((sale) => {
                 const isSelected = selectedIds.includes(sale.id);
                 return (
                   <tr 
