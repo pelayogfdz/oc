@@ -3428,7 +3428,7 @@ export default function POSClient({
                      quantity: fastItemQuantity,
                      isFastItem: true
                    };
-                   setCart([...cart, newCartItem as any]);
+                   setCart([newCartItem as any, ...cart]);
                    setShowFastItemModal(false);
                    setFastItemName('');
                    setFastItemPrice('');
