@@ -237,17 +237,14 @@ export default function CrearPedidoForm({
   const handleAddItem = (product: any) => {
     if (!product || !product.id) return;
     
-    const exists = items.some((i: any) => i.productId === product.id);
+    const exists = items.find((i: any) => i.productId === product.id);
     if (exists) {
-      setItems((prev: any[]) => prev.map((item: any) => 
-        item.productId === product.id 
-          ? { ...item, quantity: item.quantity + 1 } 
-          : item
-      ));
+      const updatedItem = { ...exists, quantity: exists.quantity + 1 };
+      setItems((prev: any[]) => [updatedItem, ...prev.filter((item: any) => item.productId !== product.id)]);
       return;
     }
 
-    setItems([...items, { 
+    setItems([{ 
       productId: product.id, 
       name: product.name, 
       sku: product.sku,
@@ -255,7 +252,7 @@ export default function CrearPedidoForm({
       quantity: 1, 
       cost: product.cost, 
       imageUrl: product.imageUrl 
-    }]);
+    }, ...items]);
   };
 
   const handleUpdateItem = (index: number, field: string, value: number) => {

@@ -222,13 +222,10 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
   const handleAddItem = (product: any) => {
     if (!product || !product.id) return;
     
-    const exists = items.some(i => i.productId === product.id);
+    const exists = items.find(i => i.productId === product.id);
     if (exists) {
-      setItems(prev => prev.map(item => 
-        item.productId === product.id 
-          ? { ...item, quantity: item.quantity + 1 } 
-          : item
-      ));
+      const updatedItem = { ...exists, quantity: exists.quantity + 1 };
+      setItems(prev => [updatedItem, ...prev.filter(item => item.productId !== product.id)]);
       return;
     }
 
