@@ -272,7 +272,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
     const cleanTerm = term.trim().toLowerCase();
     
     // Search exact match in products
-    const exactProduct = products.find(p => 
+    const exactProduct = products.find((p: any) => 
       (p.barcode && p.barcode.toLowerCase() === cleanTerm) ||
       (p.sku && p.sku.toLowerCase() === cleanTerm)
     );
