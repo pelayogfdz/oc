@@ -14,7 +14,7 @@ export default function TraspasosClient({
   branches?: { id: string; name: string }[]
 }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   // Filter States
@@ -380,10 +380,15 @@ export default function TraspasosClient({
                   </div>
                 </div>
                 
-                <div style={{ padding: '1rem 1.25rem', backgroundColor: '#f8fafc', borderTop: '1px solid var(--caanma-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Link href={`/productos/traspasos/${item.id}`} style={{ color: 'var(--caanma-primary)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold' }}>
-                    Ver Detalle &rarr;
-                  </Link>
+                <div style={{ padding: '1rem 1.25rem', backgroundColor: '#f8fafc', borderTop: '1px solid var(--caanma-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <Link href={`/productos/traspasos/${item.id}`} style={{ color: 'var(--caanma-primary)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                      Ver Detalle &rarr;
+                    </Link>
+                    <Link href={`/productos/traspasos/${item.id}/imprimir`} target="_blank" style={{ color: '#0284c7', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                      Imprimir
+                    </Link>
+                  </div>
                   {isIncoming && item.status === 'DISPATCHED' && (
                      <button onClick={async () => {
                        const t = await import('@/app/actions/transfer');
