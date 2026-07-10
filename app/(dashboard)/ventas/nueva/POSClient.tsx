@@ -321,6 +321,8 @@ export default function POSClient({
   const [showPromoModal, setShowPromoModal] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const scannerBufferRef = useRef<string>('');
+  const lastKeyTimeRef = useRef<number>(0);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -787,7 +789,7 @@ export default function POSClient({
       setPriceList('price');
     }
     
-    if (!isProgrammatic) {
+    if (!isProgrammatic && !loadedQuoteId) {
       setCart(prev => prev.map(item => {
         const { customPrice, ...rest } = item;
         return rest;
@@ -1003,6 +1005,10 @@ export default function POSClient({
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm, branchId, isOnline]);
 
+
+
+
+
   const getProductPrice = useCallback((prod: any) => {
     if (prod.customPrice !== undefined && prod.customPrice !== null && prod.customPrice !== '') {
       return prod.customPrice;
@@ -1054,6 +1060,106 @@ export default function POSClient({
       }
     });
   }, [ventasConfig.venderSinStock, mode]);
+
+  const handleImmediateSearch = useCallback(async (term: string) => {
+    if (term.trim() === '') return false;
+    setIsSearching(true);
+    try {
+      let results = [];
+      if (!isOnline) {
+        const { db } = await import('@/lib/offlineDB');
+        const lowerTerm = term.trim().toLowerCase();
+        const queryChain = branchId === 'GLOBAL' ? db.products : db.products.where('branchId').equals(branchId);
+        results = await queryChain
+          .filter(p => 
+            Boolean(p.name.toLowerCase().includes(lowerTerm) || 
+            (p.sku && p.sku.toLowerCase().includes(lowerTerm)) || 
+            (p.barcode && p.barcode.includes(lowerTerm)))
+          ).limit(50).toArray();
+      } else {
+        results = await searchProducts(term.trim(), branchId);
+      }
+
+      if (results && results.length > 0) {
+        const cleanTerm = term.trim().toLowerCase();
+        
+        // Exact product search
+        const exactProduct = results.find(p => 
+          (p.barcode && p.barcode.toLowerCase() === cleanTerm) ||
+          (p.sku && p.sku.toLowerCase() === cleanTerm)
+        );
+        if (exactProduct) {
+          if (!exactProduct.variants || exactProduct.variants.length === 0) {
+            addToCart(exactProduct);
+            setSearchTerm('');
+            setIsSearchModalOpen(false);
+            return true;
+          }
+        }
+        
+        // Exact variant search
+        for (const p of results) {
+          if (p.variants && p.variants.length > 0) {
+            const exactVariant = p.variants.find((v: any) => 
+              (v.barcode && v.barcode.toLowerCase() === cleanTerm) ||
+              (v.sku && v.sku.toLowerCase() === cleanTerm)
+            );
+            if (exactVariant) {
+              addToCart(p, exactVariant);
+              setSearchTerm('');
+              setIsSearchModalOpen(false);
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    } catch (err) {
+      console.error(err);
+      return false;
+    } finally {
+      setIsSearching(false);
+    }
+  }, [branchId, isOnline, addToCart]);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const activeElement = document.activeElement;
+      if (activeElement && (
+        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'TEXTAREA' || 
+        activeElement.getAttribute('contenteditable') === 'true'
+      )) {
+        // If it's the search input of our modal, allow keydown
+        if (activeElement.id === 'pos-search-input') {
+          // Let it fall through
+        } else {
+          return;
+        }
+      }
+
+      const now = Date.now();
+      if (now - lastKeyTimeRef.current > 50) {
+        scannerBufferRef.current = '';
+      }
+      lastKeyTimeRef.current = now;
+
+      if (e.key === 'Enter') {
+        const barcode = scannerBufferRef.current.trim();
+        if (barcode.length >= 3) {
+          e.preventDefault();
+          e.stopPropagation();
+          scannerBufferRef.current = '';
+          handleImmediateSearch(barcode);
+        }
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        scannerBufferRef.current += e.key;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown, true);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown, true);
+  }, [handleImmediateSearch]);
 
   const handleUpdateQty = useCallback((cartItemId: string, newQ: number) => {
     if (newQ < 1) return;
@@ -1733,8 +1839,9 @@ export default function POSClient({
 
       const items = finalCart.map(item => {
         const basePrice = getProductPrice(item);
-        // When converting a quote to sale, use the exact quote prices without any proration
-        const savedPrice = loadedQuoteId
+        // If mode is SALE (converting a loaded quote to a sale), we preserve the exact loaded prices.
+        // If mode is QUOTE (saving a new or edited quote), we apply standard proration so the quote remains consistent.
+        const savedPrice = (mode === 'SALE' && loadedQuoteId)
           ? basePrice
           : (breakdownDiscounts
             ? basePrice
@@ -4382,11 +4489,18 @@ export default function POSClient({
             <div style={{ position: 'relative', marginBottom: '1rem' }}>
               <Search size={20} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
               <input 
+                id="pos-search-input"
                 type="text" 
                 autoFocus
                 placeholder="Escribe el nombre, SKU o código de barras del producto..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
+                onKeyDown={async (e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    await handleImmediateSearch(searchTerm);
+                  }
+                }}
                 style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1.05rem', outline: 'none' }}
               />
             </div>

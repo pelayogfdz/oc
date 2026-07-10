@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2, ShoppingBag, Search, Filter, Plus, Minus, FileText, CheckCircle2, Clock } from 'lucide-react';
 import { createPurchase } from '@/app/actions/purchase';
@@ -51,6 +51,8 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
   const [searchTerm, setSearchTerm] = useState('');
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const scannerBufferRef = React.useRef<string>('');
+  const lastKeyTimeRef = React.useRef<number>(0);
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
@@ -219,7 +221,17 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
 
   const handleAddItem = (product: any) => {
     if (!product || !product.id) return;
-    if (items.some(i => i.productId === product.id)) return;
+    
+    const exists = items.some(i => i.productId === product.id);
+    if (exists) {
+      setItems(prev => prev.map(item => 
+        item.productId === product.id 
+          ? { ...item, quantity: item.quantity + 1 } 
+          : item
+      ));
+      return;
+    }
+
     setItems([{ 
       productId: product.id, 
       name: product.name, 
@@ -309,6 +321,63 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
     const matchesCategory = filterCategory === 'ALL' || p.category === filterCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const handleImmediateSearch = useCallback((term: string) => {
+    if (term.trim() === '') return false;
+    const cleanTerm = term.trim().toLowerCase();
+    
+    // Search exact match in products
+    const exactProduct = availableProducts.find(p => 
+      (p.barcode && p.barcode.toLowerCase() === cleanTerm) ||
+      (p.sku && p.sku.toLowerCase() === cleanTerm)
+    );
+
+    if (exactProduct) {
+      handleAddItem(exactProduct);
+      setSearchTerm('');
+      setIsSearchModalOpen(false);
+      return true;
+    }
+    return false;
+  }, [availableProducts, handleAddItem]);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const activeElement = document.activeElement;
+      if (activeElement && (
+        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'TEXTAREA' || 
+        activeElement.getAttribute('contenteditable') === 'true'
+      )) {
+        if (activeElement.id === 'compras-search-input') {
+          // Let it fall through
+        } else {
+          return;
+        }
+      }
+
+      const now = Date.now();
+      if (now - lastKeyTimeRef.current > 50) {
+        scannerBufferRef.current = '';
+      }
+      lastKeyTimeRef.current = now;
+
+      if (e.key === 'Enter') {
+        const barcode = scannerBufferRef.current.trim();
+        if (barcode.length >= 3) {
+          e.preventDefault();
+          e.stopPropagation();
+          scannerBufferRef.current = '';
+          handleImmediateSearch(barcode);
+        }
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        scannerBufferRef.current += e.key;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown, true);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown, true);
+  }, [handleImmediateSearch]);
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem 0' }}>
@@ -1039,11 +1108,18 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
             <div style={{ position: 'relative', marginBottom: '1rem' }}>
               <Search size={20} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
               <input 
+                id="compras-search-input"
                 type="text" 
                 autoFocus
                 placeholder="Escribe el nombre, SKU o código de barras del producto..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
+                onKeyDown={async (e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    await handleImmediateSearch(searchTerm);
+                  }
+                }}
                 style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1.05rem', outline: 'none' }}
               />
             </div>

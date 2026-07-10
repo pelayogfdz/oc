@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { requestTransfer, dispatchDirectTransfer } from '@/app/actions/transfer';
 import { useRouter } from 'next/navigation';
 import { Truck, ArrowRight, Trash2, Search, Plus, Minus, FileText, CheckCircle2, ShoppingBag, Camera, ArrowDownUp } from 'lucide-react';
@@ -15,6 +15,8 @@ export default function TransferClient({ originBranchId, originBranchName, other
   const [searchTerm, setSearchTerm] = useState('');
   const [stockFilter, setStockFilter] = useState('ALL');
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const scannerBufferRef = useRef<string>('');
+  const lastKeyTimeRef = useRef<number>(0);
   const [showScanner, setShowScanner] = useState(false);
   
   const [inventory, setInventory] = useState(initialInventory || []);
@@ -184,6 +186,81 @@ export default function TransferClient({ originBranchId, originBranchName, other
       return i;
     }));
   };
+
+  const handleImmediateSearch = useCallback((term: string) => {
+    if (term.trim() === '') return false;
+    const cleanTerm = term.trim().toLowerCase();
+    
+    // Search exact match in base products
+    const exactProduct = inventory.find((p: any) => 
+      (p.barcode && p.barcode.toLowerCase() === cleanTerm) ||
+      (p.sku && p.sku.toLowerCase() === cleanTerm)
+    );
+
+    if (exactProduct) {
+      if (!exactProduct.variants || exactProduct.variants.length === 0) {
+        handleAdd(exactProduct, null);
+        setSearchTerm('');
+        setIsSearchModalOpen(false);
+        return true;
+      }
+    }
+    
+    // Search exact match in variants
+    for (const p of inventory) {
+      if (p.variants && p.variants.length > 0) {
+        const exactVariant = p.variants.find((v: any) => 
+          (v.barcode && v.barcode.toLowerCase() === cleanTerm) ||
+          (v.sku && v.sku.toLowerCase() === cleanTerm)
+        );
+        if (exactVariant) {
+          handleAdd(p, exactVariant);
+          setSearchTerm('');
+          setIsSearchModalOpen(false);
+          return true;
+        }
+      }
+    }
+    return false;
+  }, [inventory, handleAdd]);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const activeElement = document.activeElement;
+      if (activeElement && (
+        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'TEXTAREA' || 
+        activeElement.getAttribute('contenteditable') === 'true'
+      )) {
+        if (activeElement.id === 'traspaso-search-input') {
+          // Let it fall through
+        } else {
+          return;
+        }
+      }
+
+      const now = Date.now();
+      if (now - lastKeyTimeRef.current > 50) {
+        scannerBufferRef.current = '';
+      }
+      lastKeyTimeRef.current = now;
+
+      if (e.key === 'Enter') {
+        const barcode = scannerBufferRef.current.trim();
+        if (barcode.length >= 3) {
+          e.preventDefault();
+          e.stopPropagation();
+          scannerBufferRef.current = '';
+          handleImmediateSearch(barcode);
+        }
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        scannerBufferRef.current += e.key;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown, true);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown, true);
+  }, [handleImmediateSearch]);
 
   const handleSubmit = async () => {
     if (!targetBranchId || transferItems.length === 0) return;
@@ -670,11 +747,18 @@ export default function TransferClient({ originBranchId, originBranchName, other
             <div style={{ position: 'relative', marginBottom: '1rem' }}>
               <Search size={20} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
               <input 
+                id="traspaso-search-input"
                 type="text" 
                 autoFocus
                 placeholder="Escribe el nombre, SKU o código de barras del producto..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
+                onKeyDown={async (e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    await handleImmediateSearch(searchTerm);
+                  }
+                }}
                 style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1.05rem', outline: 'none' }}
               />
             </div>

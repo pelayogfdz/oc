@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { getActiveBranch, getActiveUser } from './auth';
 
 export async function createQuote(
-  items: { productId: string; quantity: number; price: number }[], 
+  items: { productId: string; quantity: number; price: number; variantId?: string | null }[], 
   total: number,
   paymentMethod: string = 'CASH',
   customerId: string | null = null,
@@ -42,7 +42,8 @@ export async function createQuote(
             create: items.map(item => ({
               quantity: item.quantity,
               price: item.price,
-              productId: item.productId
+              productId: item.productId,
+              variantId: item.variantId || null
             }))
           }
         }
@@ -64,7 +65,8 @@ export async function createQuote(
             create: items.map(item => ({
               quantity: item.quantity,
               price: item.price,
-              productId: item.productId
+              productId: item.productId,
+              variantId: item.variantId || null
             }))
           }
         }

@@ -57,7 +57,7 @@ function cleanConditions(str: string | null | undefined): string | undefined {
   return cleaned !== "" ? cleaned : undefined;
 }
 
-export async function stampInvoice(saleId: string, customerId?: string | null) {
+export async function stampInvoice(saleId: string, customerId?: string | null, customCfdiUse?: string | null) {
   try {
     const resolved = await resolveClientForSale(saleId);
     if (!resolved) {
@@ -233,6 +233,8 @@ export async function stampInvoice(saleId: string, customerId?: string | null) {
       customerData.legal_name = "PUBLICO EN GENERAL";
       customerData.tax_system = "616";
       cfdiUse = "S01";
+    } else if (customCfdiUse) {
+      cfdiUse = customCfdiUse;
     } else if (finalCustomer && finalCustomer.cfdiUse) {
       cfdiUse = finalCustomer.cfdiUse;
     } else {
@@ -572,7 +574,7 @@ export async function cancelInvoice(saleId: string) {
   }
 }
 
-export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: string | null) {
+export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: string | null, customCfdiUse?: string | null) {
   try {
     if (!saleIds || saleIds.length === 0) {
       throw new Error("No se seleccionaron ventas para facturar.");
@@ -771,6 +773,8 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
       customerData.legal_name = "PUBLICO EN GENERAL";
       customerData.tax_system = "616";
       cfdiUse = "S01";
+    } else if (customCfdiUse) {
+      cfdiUse = customCfdiUse;
     } else if (finalCustomer && finalCustomer.cfdiUse) {
       cfdiUse = finalCustomer.cfdiUse;
     } else {
