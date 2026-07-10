@@ -1,59 +1,149 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getOrRefreshMeliToken } from '@/app/utils/meliToken';
 
-// Webhook listener for Mercado Libre events
 export async function POST(req: Request) {
   try {
     const payload = await req.json();
     
-    // Validamos el origen si es posible / Meli suele enviar POST con JSON
-    // Ej: { "resource": "/orders/12345678", "user_id": 1234, "topic": "orders" }
+    // Un webhook de Mercado Libre contiene:
+    // { "resource": "/orders/12345678", "user_id": 123456789, "topic": "orders", "application_id": 11111 }
     
-    if (payload.topic === 'orders') {
-       // Logic for processing an order
-       console.log(`[MELI WEBHOOK] Nueva Orden Detectada: ${payload.resource}`);
+    if (payload.topic === 'orders' || payload.topic === 'created_orders') {
+      console.log(`[MELI WEBHOOK] Evento de orden recibido. Recurso: ${payload.resource}, UserID vendedor: ${payload.user_id}`);
 
-       // SIMULATED: In a real app we would use the access token associated with payload.user_id 
-       // to fetch the details of /orders/12345678 and figure out which externalId was sold.
-       // For mock purposes, let's assume we fetch the order and it says: 'MLM12345678' qty 1
+      // 1. Identificar la sucursal de Caanma dueña de esta integración buscando por el userId de ML en metadata
+      const integrations = await prisma.storeIntegration.findMany({
+        where: { platform: 'MERCADO_LIBRE', isActive: true }
+      });
 
-       const externalIdSold = 'MLM12345678';
-       const qtySold = 1;
+      const integration = integrations.find(i => {
+        if (!i.metadata) return false;
+        try {
+          const meta = JSON.parse(i.metadata);
+          return String(meta.userId) === String(payload.user_id);
+        } catch {
+          return false;
+        }
+      });
 
-       // Find the product map
-       const mappedItem = await prisma.externalProductMap.findFirst({
-         where: { externalId: externalIdSold, platform: 'MERCADO_LIBRE' },
-         include: { product: true }
-       });
+      if (!integration) {
+        console.warn(`[MELI WEBHOOK] No se encontró ninguna sucursal con integración activa para el usuario de ML: ${payload.user_id}`);
+        // Responder 200 para indicarle a ML que recibimos el mensaje pero no nos corresponde procesarlo
+        return new NextResponse('OK', { status: 200 });
+      }
 
-       if (mappedItem) {
-          // Descontar inventario local
+      // 2. Obtener token real auto-refrescado
+      const token = await getOrRefreshMeliToken(integration.branchId);
+      if (!token) {
+        console.error(`[MELI WEBHOOK] Token no disponible para la sucursal ${integration.branchId}. Reintentando después...`);
+        return new NextResponse('Token error', { status: 500 });
+      }
+
+      // 3. Consultar los detalles de la orden en la API oficial de Mercado Libre
+      const orderResponse = await fetch(`https://api.mercadolibre.com${payload.resource}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!orderResponse.ok) {
+        console.error(`[MELI WEBHOOK] Error al obtener detalles de la orden de Mercado Libre (${orderResponse.status})`);
+        return new NextResponse('Error de comunicación con ML API', { status: 500 });
+      }
+
+      const orderData = await orderResponse.json();
+      console.log(`[MELI WEBHOOK] Detalles de la orden recuperados. Orden ID: ${orderData.id}, Comprador: ${orderData.buyer?.nickname}`);
+
+      const orderItems = orderData.order_items || [];
+      const itemsToSale: any[] = [];
+      let totalSaleAmount = 0;
+
+      // 4. Procesar cada publicación de la orden
+      for (const item of orderItems) {
+        const externalId = item.item.id; // MLMxxxxxx
+        const quantity = Number(item.quantity);
+        const price = Number(item.unit_price);
+
+        // Buscar si la publicación está mapeada en nuestro catálogo
+        const mappedItem = await prisma.externalProductMap.findFirst({
+          where: { externalId, platform: 'MERCADO_LIBRE' },
+          include: { product: { include: { variants: true } } }
+        });
+
+        if (mappedItem) {
+          const product = mappedItem.product;
+          console.log(`[MELI WEBHOOK] Publicación mapeada encontrada: ${product.name} (ID: ${product.id}). Cantidad: ${quantity}`);
+          
+          // Descontar inventario local en la base de datos
           await prisma.product.update({
-            where: { id: mappedItem.product.id },
-            data: { stock: { decrement: qtySold } }
+            where: { id: product.id },
+            data: { stock: { decrement: quantity } }
           });
 
-          // Registrar en Kardex de Caanma
+          // Registrar en Kardex
           await prisma.inventoryMovement.create({
             data: {
-              productId: mappedItem.product.id,
+              productId: product.id,
               type: 'OUT',
-              quantity: -qtySold,
-              reason: `Venta Externa Mercado Libre API (Ref: ${payload.resource})`
+              quantity: -quantity,
+              reason: `Venta Externa Mercado Libre (Pedido #${orderData.id})`
             }
           });
 
-          // Opcional: Registrar una "Sale" en Caanma para reflejar en el balance contable
-          // ... 
-       }
+          itemsToSale.push({
+            productId: product.id,
+            quantity,
+            price
+          });
+
+          totalSaleAmount += (price * quantity);
+        } else {
+          console.warn(`[MELI WEBHOOK] Publicación vendida ${externalId} no está mapeada en el inventario local de Caanma. Se omitirá el descuento de stock.`);
+        }
+      }
+
+      // 5. Si logramos mapear al menos un producto, registrar la venta a nivel contable
+      if (itemsToSale.length > 0) {
+        console.log(`[MELI WEBHOOK] Registrando venta contable en Caanma por un total de $${totalSaleAmount}...`);
+        
+        // Obtener el primer usuario de la base de datos para registrar la venta
+        const defaultUser = await prisma.user.findFirst();
+        if (!defaultUser) {
+          console.error('[MELI WEBHOOK] No se encontró ningún usuario para asociar al registro de la venta.');
+          return new NextResponse('Internal User Config Error', { status: 500 });
+        }
+
+        // Crear la venta
+        await prisma.sale.create({
+          data: {
+            folio: `ML-${orderData.id}`,
+            total: totalSaleAmount,
+            status: 'COMPLETED',
+            paymentMethod: 'MERCADO_PAGO',
+            branchId: integration.branchId,
+            userId: defaultUser.id,
+            notes: `Venta automática registrada desde Mercado Libre. Comprador: ${orderData.buyer?.nickname || 'Desconocido'}.`,
+            items: {
+              create: itemsToSale.map(item => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                price: item.price
+              }))
+            }
+          }
+        });
+
+        console.log(`[MELI WEBHOOK] Venta registrada exitosamente con Folio: ML-${orderData.id}`);
+      }
     }
 
-    // Always respond 200 to MELI immediately so they don't retry incessantly
+    // Retornar 200 de inmediato a Mercado Libre para acusar de recibida la notificación
     return new NextResponse('OK', { status: 200 });
 
   } catch (err) {
-    console.error('Meli Webhook Error:', err);
-    // Even on error, it's sometimes best to send 200 if we logged it, or 500 if we want MELI to retry.
-    return new NextResponse('Error', { status: 500 });
+    console.error('[MELI WEBHOOK] Error general procesando notificación:', err);
+    // Retornamos 500 para indicarle a ML que reintente en unos minutos
+    return new NextResponse('Error de procesamiento interno', { status: 500 });
   }
 }

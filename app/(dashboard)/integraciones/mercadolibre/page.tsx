@@ -4,10 +4,16 @@ import { saveIntegrationTokens, deleteIntegration } from '@/app/actions/integrat
 import { ArrowLeft, Save, Trash2, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import MeliCalculator from './Calculator';
+import { headers } from 'next/headers';
 
 export default async function MercadoLibreConfigPage() {
   const branch = await getActiveBranch();
   
+  const headersList = await headers();
+  const host = headersList.get('host') || 'localhost:3000';
+  const protocol = host.startsWith('localhost') ? 'http' : 'https';
+  const redirectUri = `${protocol}://${host}/api/mercadolibre/callback`;
+
   const integration = await prisma.storeIntegration.findUnique({
     where: { branchId_platform: { branchId: branch.id, platform: 'MERCADO_LIBRE' } }
   });
@@ -76,6 +82,40 @@ export default async function MercadoLibreConfigPage() {
             )}
           </div>
         </form>
+
+        {integration?.appId && integration?.clientSecret && (
+          <div style={{ marginTop: '1.5rem', padding: '1.25rem', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+            <h3 style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#166534', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <span>🔌 Flujo de Autorización OAuth 2.0</span>
+              {integration.accessToken && (
+                <span style={{ fontSize: '0.75rem', padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: '#16a34a', color: 'white', fontWeight: 'bold', marginLeft: '0.5rem' }}>
+                  CONECTADO
+                </span>
+              )}
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: '#1e3f20', marginBottom: '1rem' }}>
+              Para que Caanma pueda renovar tus tokens automáticamente de por vida, haz clic en el siguiente botón para iniciar el proceso de vinculación oficial con Mercado Libre.
+            </p>
+            <a 
+              href={`https://auth.mercadolibre.com.mx/authorization?response_type=code&client_id=${integration.appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${branch.id}`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                backgroundColor: '#16a34a',
+                color: 'white',
+                padding: '0.65rem 1.25rem',
+                borderRadius: '6px',
+                textDecoration: 'none',
+                fontWeight: 'bold',
+                fontSize: '0.9rem',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+              }}
+            >
+              🔄 Vincular con Mercado Libre ahora
+            </a>
+          </div>
+        )}
       </div>
 
       {integration && (
@@ -104,7 +144,7 @@ export default async function MercadoLibreConfigPage() {
                Para que tu stock se descuente al vender en ML, entra a tu panel de desarrollador en Mercado Libre y en **Notificaciones (Webhooks)** registra esta URL:
             </p>
             <code style={{ display: 'block', backgroundColor: 'black', color: '#a7f3d0', padding: '0.75rem', borderRadius: '4px', marginTop: '0.5rem', fontSize: '0.875rem' }}>
-               https://tu-dominio-caanma.com/api/mercadolibre/webhook
+               https://tu-dominio-caanma.com/api/mercadolibre/webhooks
             </code>
           </div>
         </div>

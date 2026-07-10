@@ -227,13 +227,14 @@ export default function TransferClient({ originBranchId, originBranchName, other
           alert('Cantidad excede el stock disponible en origen.');
           return;
       }
-      setTransferItems(transferItems.map(i => i.listId === listId ? { ...i, quantity: i.quantity + 1 } : i));
+      const updatedItem = { ...existing, quantity: existing.quantity + 1 };
+      setTransferItems([updatedItem, ...transferItems.filter(i => i.listId !== listId)]);
     } else {
       if (!ventasConfig.venderSinStock && maxStock <= 0) {
           alert('Este producto no tiene stock disponible en origen y los traspasos sin stock están desactivados.');
           return;
       }
-      setTransferItems([...transferItems, {
+      setTransferItems([{
         listId,
         productId: product.id,
         variantId: variant ? variant.id : null,
@@ -245,7 +246,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
         maxStock,
         quantity: 1,
         imageUrl: product.imageUrl
-      }]);
+      }, ...transferItems]);
     }
   };
 
