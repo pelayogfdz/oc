@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Printer, Send, Share2, Loader2, CheckCircle, ArrowRight, Pencil, Mail, Download, X } from 'lucide-react';
+import { Printer, Send, Share2, Loader2, CheckCircle, ArrowRight, Pencil, Mail, Download, X, Copy } from 'lucide-react';
 import { sendQuoteByEmail } from '@/app/actions/quote';
 
 interface QuoteActionsProps {
@@ -279,6 +279,35 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
         }}
       >
         <Mail size={15} />
+      </button>
+
+      {/* Clone Quote Button */}
+      <button
+        onClick={() => router.push(`/ventas/cotizaciones/nueva?cloneQuoteId=${quoteId}`)}
+        title="Clonar Cotización"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '32px',
+          height: '32px',
+          backgroundColor: '#faf5ff',
+          border: '1px solid #e9d5ff',
+          borderRadius: '6px',
+          cursor: 'pointer',
+          color: '#6b21a8',
+          transition: 'all 0.15s ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#f3e8ff';
+          e.currentTarget.style.borderColor = '#d8b4fe';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#faf5ff';
+          e.currentTarget.style.borderColor = '#e9d5ff';
+        }}
+      >
+        <Copy size={15} />
       </button>
 
       {/* Edit Quote Button (If Pending) */}

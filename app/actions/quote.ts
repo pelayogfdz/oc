@@ -105,7 +105,8 @@ export async function getQuoteForPOS(quoteId: string) {
             include: {
               prices: true
             }
-          }
+          },
+          variant: true
         }
       } 
     }

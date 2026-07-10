@@ -1,6 +1,4 @@
-export const dynamic = 'force-dynamic';
-
-import { getActiveBranch } from "@/app/actions/auth";
+import { getActiveBranch, getSession } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Plus } from "lucide-react";
@@ -8,8 +6,14 @@ import CotizacionesTable from "./CotizacionesTable";
 
 export default async function CotizacionesPage() {
   const branch = await getActiveBranch();
+  const session = await getSession();
+
+  const baseWhere = branch.id === 'GLOBAL'
+    ? { branch: { tenantId: session?.tenantId || undefined } }
+    : { branchId: branch.id };
+
   const quotes = await prisma.quote.findMany({
-    where: { branchId: branch.id },
+    where: baseWhere,
     orderBy: { createdAt: 'desc' },
     include: {
       user: true,

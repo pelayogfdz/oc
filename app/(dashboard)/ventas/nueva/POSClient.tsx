@@ -290,6 +290,7 @@ export default function POSClient({
     setBreakdownDiscounts(false);
     
     lastQuoteIdRef.current = null;
+    if (lastCloneQuoteIdRef) lastCloneQuoteIdRef.current = null;
     lastConsignmentIdRef.current = null;
 
     setTabs(prev => prev.map(t => t.id === activeTabId ? {
@@ -854,7 +855,7 @@ export default function POSClient({
     }
   };
 
-  const handleLoadQuote = async (incomingId?: string) => {
+  const handleLoadQuote = async (incomingId?: string, isClone: boolean = false) => {
     const idToLoad = incomingId || quoteSearchId.trim();
     if (!idToLoad) return;
     
@@ -862,19 +863,31 @@ export default function POSClient({
     try {
       const quote = await getQuoteForPOS(idToLoad);
       
-      setLoadedQuoteId(quote.id);
+      setLoadedQuoteId(isClone ? null : quote.id);
       setLoadedQuoteTotal(quote.total);
       setBreakdownDiscounts(quote.breakdownDiscounts || false);
       
-      // Load cart preserving variantId, cartItemId and customPrice
-      const newCart = quote.items.map((item: any) => ({
-        ...item.product,
-        cartItemId: item.variantId ? `v_${item.variantId}` : item.product.id,
-        quantity: item.quantity,
-        customPrice: item.price,
-        cartPrice: item.price,
-        variantId: item.variantId || null
-      }));
+      // Load cart preserving variantId, cartItemId, customPrice, variant attributes, SKU and stock details
+      const newCart = quote.items.map((item: any) => {
+        const product = item.product;
+        const variant = item.variant;
+        const cartItemName = variant ? `${product.name} (${variant.attribute})` : product.name;
+        const cartItemSku = variant && variant.sku ? variant.sku : product.sku;
+        const checkStock = variant ? variant.stock : product.stock;
+        
+        return {
+          ...product,
+          name: cartItemName,
+          sku: cartItemSku,
+          stock: checkStock,
+          cartItemId: item.variantId ? `v_${item.variantId}` : product.id,
+          quantity: item.quantity,
+          customPrice: item.price,
+          cartPrice: item.price,
+          variantId: item.variantId || null,
+          attribute: variant ? variant.attribute : null
+        };
+      });
       setCart(newCart);
       
       // Load Customer
@@ -940,6 +953,7 @@ export default function POSClient({
   };
 
   const lastQuoteIdRef = useRef<string | null>(null);
+  const lastCloneQuoteIdRef = useRef<string | null>(null);
   const lastConsignmentIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -952,6 +966,21 @@ export default function POSClient({
     } else {
       if (lastQuoteIdRef.current) {
         lastQuoteIdRef.current = null;
+        resetActiveTab();
+      }
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const cloneId = searchParams.get('cloneQuoteId');
+    if (cloneId) {
+      if (cloneId !== lastCloneQuoteIdRef.current) {
+        lastCloneQuoteIdRef.current = cloneId;
+        handleLoadQuote(cloneId, true);
+      }
+    } else {
+      if (lastCloneQuoteIdRef.current) {
+        lastCloneQuoteIdRef.current = null;
         resetActiveTab();
       }
     }
@@ -1046,9 +1075,11 @@ export default function POSClient({
       const cartItemSku = variant && variant.sku ? variant.sku : product.sku;
       
       if (exists) {
-        return prevCart.map(item => item.cartItemId === cartItemId ? { ...item, quantity: item.quantity + 1 } : item);
+        const updatedItem = { ...exists, quantity: exists.quantity + 1 };
+        const filteredCart = prevCart.filter(item => item.cartItemId !== cartItemId);
+        return [updatedItem, ...filteredCart];
       } else {
-        return [...prevCart, { 
+        return [{ 
           ...product, 
           cartItemId, 
           name: cartItemName, 
@@ -1056,7 +1087,7 @@ export default function POSClient({
           variantId: variant ? variant.id : null,
           attribute: variant ? variant.attribute : null,
           quantity: 1 
-        }];
+        }, ...prevCart];
       }
     });
   }, [ventasConfig.venderSinStock, mode]);
@@ -1839,13 +1870,10 @@ export default function POSClient({
 
       const items = finalCart.map(item => {
         const basePrice = getProductPrice(item);
-        // If mode is SALE (converting a loaded quote to a sale), we preserve the exact loaded prices.
-        // If mode is QUOTE (saving a new or edited quote), we apply standard proration so the quote remains consistent.
-        const savedPrice = (mode === 'SALE' && loadedQuoteId)
+        // Apply uniform proration so item prices remain mathematically consistent with the total sale/quote amount (unless breakdownDiscounts is active)
+        const savedPrice = breakdownDiscounts
           ? basePrice
-          : (breakdownDiscounts
-            ? basePrice
-            : (subTotal > 0 ? (basePrice * (total / subTotal)) : 0));
+          : (subTotal > 0 ? (basePrice * (total / subTotal)) : 0);
         return { 
           productId: item.id, 
           variantId: item.variantId || null,
@@ -1946,8 +1974,8 @@ export default function POSClient({
           saleId = `OFFLINE-${Date.now()}`;
         } else {
           // ONLINE MODE
-          // When converting a quote, use the original quote total to ensure exact value preservation
-          const saleTotal = (loadedQuoteId && loadedQuoteTotal !== null) ? loadedQuoteTotal + tipAmount : total + tipAmount;
+          // Use the real dynamic total calculated by the POS (total + tipAmount) to preserve edits (quantities, customer, additional products)
+          const saleTotal = total + tipAmount;
           const response = await createSale(items, saleTotal, paymentMethod, selectedCustomerId || null, sessionId, finalNotes, cashValue, cardValue, billingData, loadedQuoteId || undefined, loadedConsignmentId || undefined, pointsRedeemed, branchId, breakdownDiscounts);
           if (!response.success) {
             throw new Error(response.error);
@@ -2702,6 +2730,7 @@ export default function POSClient({
                     setLoadedQuoteTotal(null);
                     setLoadedConsignmentId(null);
                     lastQuoteIdRef.current = null;
+                    if (lastCloneQuoteIdRef) lastCloneQuoteIdRef.current = null;
                     lastConsignmentIdRef.current = null;
                   }
                 }}
@@ -3078,6 +3107,7 @@ export default function POSClient({
                                   setLoadedQuoteTotal(null);
                                   setLoadedConsignmentId(null);
                                   lastQuoteIdRef.current = null;
+                                  if (lastCloneQuoteIdRef) lastCloneQuoteIdRef.current = null;
                                   lastConsignmentIdRef.current = null;
                                 }
                                 setActiveItemMenuId(null);
