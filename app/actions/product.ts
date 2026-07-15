@@ -16,6 +16,7 @@ export async function createProduct(prevState: any, formData: FormData) {
     const barcode = (formData.get('barcode') as string) || null;
     const name = formData.get('name') as string;
     const description = formData.get('description') as string;
+    const location = (formData.get('location') as string) || null;
     
     const price = parseFloat(formData.get('price') as string) || 0;
     const cost = parseFloat(formData.get('cost') as string) || 0;
@@ -146,6 +147,7 @@ export async function createProduct(prevState: any, formData: FormData) {
       satKey,
       satUnit,
       expirationDate,
+      location,
       hasTraceability,
       // @ts-ignore
       showInWeb
@@ -368,6 +370,9 @@ export async function updateProduct(productId: string, formData: FormData) {
 
     const description = formData.get('description');
     if (description !== null) data.description = (description as string) || null;
+
+    const location = formData.get('location');
+    if (location !== null) data.location = (location as string) || null;
 
     const price = formData.get('price');
     if (price !== null) data.price = parseFloat(price as string) || 0;

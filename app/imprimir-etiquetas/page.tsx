@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import EtiquetaClient from "./EtiquetaClient";
 import { notFound } from "next/navigation";
+import { getBranchSettings } from "@/app/actions/settings";
 
 export default async function ImprimirEtiquetasPage({
   searchParams,
@@ -18,5 +19,27 @@ export default async function ImprimirEtiquetasPage({
 
   if (!products.length) return notFound();
 
-  return <EtiquetaClient products={products} />;
+  const settings = await getBranchSettings();
+  let labelConfig: any = {
+    width: 62,
+    height: 29, // Brother QL-800 default preset (62x29mm DK-1201 or DK-2205 size)
+    showName: true,
+    showPrice: true,
+    showBarcode: true,
+    showLocation: true,
+    showDescription: true,
+    barcodeFormat: 'CODE128',
+    margin: 2
+  };
+  
+  if (settings?.configJson) {
+    try {
+      const parsed = JSON.parse(settings.configJson);
+      if (parsed.labels) {
+        labelConfig = { ...labelConfig, ...parsed.labels };
+      }
+    } catch (e) {}
+  }
+
+  return <EtiquetaClient products={products} labelConfig={labelConfig} />;
 }

@@ -186,6 +186,10 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Código de Barras</label>
             <input type="text" name="barcode" defaultValue="" placeholder="(Opcional)" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
           </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Ubicación</label>
+            <input type="text" name="location" defaultValue={cloneProduct?.location || ''} placeholder="Ej. Pasillo 3, Estante B" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+          </div>
           <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '2rem', flexWrap: 'wrap', marginTop: '0.5rem', marginBottom: '0.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '6px', border: '1px solid var(--caanma-border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <input type="hidden" name="allowProduction" value="false" />

@@ -3,8 +3,12 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { KeyRound, ShieldAlert } from 'lucide-react';
 
-export default async function NuevoIntegracion({ params }: { params: { platform: string } }) {
-  const platform = await params.platform;
+export default async function NuevoIntegracion({ params }: { params: Promise<{ platform: string }> }) {
+  const { platform } = await params;
+
+  if (platform && (platform.toLowerCase() === 'mercadolibre' || platform.toLowerCase() === 'mercado_libre')) {
+    redirect('/integraciones/mercadolibre');
+  }
   
   const saveAction = async (formData: FormData) => {
     'use server';

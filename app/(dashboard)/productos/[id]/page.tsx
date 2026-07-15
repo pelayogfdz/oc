@@ -250,6 +250,10 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
                 <input type="text" name="barcode" defaultValue={product.barcode || ''} placeholder="(Opcional)" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
               </div>
               <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Ubicación</label>
+                <input type="text" name="location" defaultValue={product.location || ''} placeholder="Ej. Pasillo 3, Estante B" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+              </div>
+              <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Proveedor Sugerido</label>
                 <select name="supplierId" defaultValue={product.supplierId || ""} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }}>
                   <option value="">-- PÚBLICO / NINGUNO --</option>

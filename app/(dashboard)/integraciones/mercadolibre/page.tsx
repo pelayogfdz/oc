@@ -1,158 +1,364 @@
 import { prisma } from '@/lib/prisma';
-import { getActiveBranch } from '@/app/actions/auth';
+import { getActiveBranch, getActiveUser, getTenantBranches } from '@/app/actions/auth';
 import { saveIntegrationTokens, deleteIntegration } from '@/app/actions/integration';
-import { ArrowLeft, Save, Trash2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, RefreshCw, ExternalLink, Info } from 'lucide-react';
 import Link from 'next/link';
 import MeliCalculator from './Calculator';
+import MeliQuestions from './MeliQuestions';
 import { headers } from 'next/headers';
 
-export default async function MercadoLibreConfigPage() {
+interface PageProps {
+  searchParams: Promise<{
+    tab?: string;
+    success?: string;
+  }>;
+}
+
+export default async function MercadoLibreConfigPage({ searchParams }: PageProps) {
   const branch = await getActiveBranch();
+  const user = await getActiveUser();
+  if (!user || !user.tenantId) {
+    throw new Error('Tenant context missing. Authorization violation.');
+  }
+
+  const resolvedSearchParams = await searchParams;
+  const activeTab = resolvedSearchParams.tab || 'config';
   
   const headersList = await headers();
   const host = headersList.get('host') || 'localhost:3000';
   const protocol = host.startsWith('localhost') ? 'http' : 'https';
   const redirectUri = `${protocol}://${host}/api/mercadolibre/callback`;
 
-  const integration = await prisma.storeIntegration.findUnique({
+  // Obtener todas las sucursales del tenant
+  const tenantBranchesList = await prisma.branch.findMany({
+    where: { tenantId: user.tenantId, isActive: true },
+    select: { id: true }
+  });
+  const tenantBranchIds = tenantBranchesList.map(b => b.id);
+
+  let integration = await prisma.storeIntegration.findUnique({
     where: { branchId_platform: { branchId: branch.id, platform: 'MERCADO_LIBRE' } }
   });
 
-  const externalMaps = await prisma.externalProductMap.count({
-    where: { platform: 'MERCADO_LIBRE', product: { branchId: branch.id } }
+  console.log('[MELI PAGE] Resolved branch:', branch.id, branch.name);
+  console.log('[MELI PAGE] Initial integration:', integration ? { id: integration.id, appId: integration.appId } : 'NULL');
+
+  // Si la sucursal actual no está conectada pero el tenant tiene una integración activa en alguna sucursal
+  if (!integration) {
+    const tenantIntegration = await prisma.storeIntegration.findFirst({
+      where: {
+        platform: 'MERCADO_LIBRE',
+        branchId: { in: tenantBranchIds }
+      }
+    });
+    console.log('[MELI PAGE] Tenant integration fallback check:', tenantIntegration ? { id: tenantIntegration.id, appId: tenantIntegration.appId } : 'NULL');
+    if (tenantIntegration) {
+      integration = tenantIntegration;
+    }
+  }
+
+  const externalMaps = await prisma.externalProductMap.findMany({
+    where: { platform: 'MERCADO_LIBRE', product: { branchId: { in: tenantBranchIds } } },
+    include: { product: true }
   });
 
+  const branches = await getTenantBranches(user.tenantId);
+
+  // Extraer configuración de margen desde metadatos
+  let targetMargin = 20;
+  let shippingCost = 115;
+  let listingType = 0.15;
+  let hasTaxRetention = true;
+  let satRetentionPct = 10.5;
+  let stockBranchIds: string[] = [];
+  let mainSaleBranchId = branch.id;
+  
+  if (integration?.metadata) {
+    try {
+      const meta = JSON.parse(integration.metadata);
+      if (meta.targetMargin !== undefined) targetMargin = Number(meta.targetMargin);
+      if (meta.shippingCost !== undefined) shippingCost = Number(meta.shippingCost);
+      if (meta.listingType !== undefined) listingType = Number(meta.listingType);
+      if (meta.hasTaxRetention !== undefined) hasTaxRetention = Boolean(meta.hasTaxRetention);
+      if (meta.satRetentionPct !== undefined) satRetentionPct = Number(meta.satRetentionPct);
+      if (meta.stockBranchIds !== undefined) stockBranchIds = meta.stockBranchIds;
+      if (meta.mainSaleBranchId !== undefined) mainSaleBranchId = String(meta.mainSaleBranchId);
+    } catch {}
+  }
+
+  const calculateSuggestedPrice = (cost: number) => {
+    const retentionRate = hasTaxRetention ? (satRetentionPct / 100) : 0;
+    const denominator = 1 - listingType - retentionRate - (targetMargin / 100);
+    if (denominator <= 0) return 0;
+    return (shippingCost + cost) / denominator;
+  };
+
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+    <div style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '3rem' }}>
+      {/* Cabecera */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
         <Link href="/integraciones" style={{ color: 'var(--caanma-text-muted)', textDecoration: 'none' }}>
           <ArrowLeft size={24} />
         </Link>
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Configuración de Mercado Libre</h1>
-          <p style={{ color: 'var(--caanma-text-muted)' }}>Asocia una cuenta mediante Token para sincronizar ventas y catálogo.</p>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Panel de Mercado Libre</h1>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Administra tu sincronización, margen de ganancias, publicaciones y preguntas de clientes.</p>
         </div>
       </div>
 
-      <div className="card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>
-          Credenciales de la API
-        </h2>
-        <form action={saveIntegrationTokens} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <input type="hidden" name="platform" value="MERCADO_LIBRE" />
-          <div>
-            <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.25rem' }}>App ID (Opcional si solo usas Token Personal)</label>
-            <input 
-              type="text" 
-              name="appId"
-              defaultValue={integration?.appId || ''}
-              placeholder="Ej. 1234567890123"
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
-            />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.25rem' }}>Client Secret (Opcional)</label>
-            <input 
-              type="text" 
-              name="clientSecret"
-              defaultValue={integration?.clientSecret || ''}
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
-            />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.25rem', color: 'var(--caanma-primary)' }}>Access Token de Producción (Requerido)</label>
-            <input 
-              type="text" 
-              name="accessToken"
-              required
-              defaultValue={integration?.accessToken || ''}
-              placeholder="APP_USR-xxxxxx-xxxxxx-xxxx..."
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '2px solid var(--caanma-primary)', backgroundColor: '#f0f9ff' }}
-            />
-            <span style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>Genera este token desde el portal de desarrolladores de Mercado Libre.</span>
-          </div>
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-            <button type="submit" className="btn-primary" style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Save size={18} /> {integration ? 'Actualizar Token' : 'Guardar y Conectar'}
-            </button>
-            {integration && (
-               <button formAction={deleteIntegration} style={{ padding: '0.75rem 1.5rem', backgroundColor: '#fef2f2', color: '#ef4444', border: 'none', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 'bold' }}>
-                 <Trash2 size={18} /> Desconectar
-               </button>
+      {resolvedSearchParams.success === 'connected' && (
+        <div className="card" style={{ padding: '1rem', backgroundColor: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', marginBottom: '2rem', fontWeight: 'bold' }}>
+          ¡Cuenta de Mercado Libre conectada y vinculada por OAuth 2.0 exitosamente!
+        </div>
+      )}
+
+      {/* Tabs Navigation */}
+      {integration && (
+        <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--caanma-border)', marginBottom: '2rem', overflowX: 'auto' }}>
+          <Link 
+            href="?tab=config" 
+            style={{ 
+              padding: '0.75rem 1rem', 
+              color: activeTab === 'config' ? 'var(--caanma-primary)' : 'var(--caanma-text-muted)', 
+              fontWeight: 'bold', 
+              textDecoration: 'none',
+              borderBottom: activeTab === 'config' ? '3px solid var(--caanma-primary)' : 'none',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            ⚙️ Configuración y Margen
+          </Link>
+          <Link 
+            href="?tab=catalogo" 
+            style={{ 
+              padding: '0.75rem 1rem', 
+              color: activeTab === 'catalogo' ? 'var(--caanma-primary)' : 'var(--caanma-text-muted)', 
+              fontWeight: 'bold', 
+              textDecoration: 'none',
+              borderBottom: activeTab === 'catalogo' ? '3px solid var(--caanma-primary)' : 'none',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            📦 Catálogo Vinculado ({externalMaps.length})
+          </Link>
+          <Link 
+            href="?tab=preguntas" 
+            style={{ 
+              padding: '0.75rem 1rem', 
+              color: activeTab === 'preguntas' ? 'var(--caanma-primary)' : 'var(--caanma-text-muted)', 
+              fontWeight: 'bold', 
+              textDecoration: 'none',
+              borderBottom: activeTab === 'preguntas' ? '3px solid var(--caanma-primary)' : 'none',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            💬 Preguntas de Clientes
+          </Link>
+        </div>
+      )}
+
+      {/* Tab: Configuración y Margen */}
+      {activeTab === 'config' && (
+        <div>
+          <div className="card" style={{ padding: '2rem', marginBottom: '2rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>
+              Credenciales de la API
+            </h2>
+            <form action={saveIntegrationTokens} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <input type="hidden" name="platform" value="MERCADO_LIBRE" />
+              <div>
+                <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.25rem' }}>App ID (Opcional si solo usas Token Personal)</label>
+                <input 
+                  type="text" 
+                  name="appId"
+                  defaultValue={integration?.appId || ''}
+                  placeholder="Ej. 1234567890123"
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.25rem' }}>Client Secret (Opcional)</label>
+                <input 
+                  type="text" 
+                  name="clientSecret"
+                  defaultValue={integration?.clientSecret || ''}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.25rem', color: 'var(--caanma-primary)' }}>Access Token de Producción (Requerido)</label>
+                <input 
+                  type="text" 
+                  name="accessToken"
+                  required
+                  defaultValue={integration?.accessToken || ''}
+                  placeholder="APP_USR-xxxxxx-xxxxxx-xxxx..."
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '2px solid var(--caanma-primary)', backgroundColor: '#f0f9ff' }}
+                />
+                <span style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>Genera este token desde el portal de desarrolladores de Mercado Libre.</span>
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                <button type="submit" className="btn-primary" style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Save size={18} /> {integration ? 'Actualizar Token' : 'Guardar y Conectar'}
+                </button>
+                {integration && (
+                   <button formAction={deleteIntegration} style={{ padding: '0.75rem 1.5rem', backgroundColor: '#fef2f2', color: '#ef4444', border: 'none', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 'bold' }}>
+                     <Trash2 size={18} /> Desconectar
+                   </button>
+                )}
+              </div>
+            </form>
+
+            {integration?.appId && integration?.clientSecret && (
+              <div style={{ marginTop: '1.5rem', padding: '1.25rem', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                <h3 style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#166534', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <span>🔌 Flujo de Autorización OAuth 2.0</span>
+                  {integration.accessToken && (
+                    <span style={{ fontSize: '0.75rem', padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: '#16a34a', color: 'white', fontWeight: 'bold', marginLeft: '0.5rem' }}>
+                      CONECTADO
+                    </span>
+                  )}
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: '#1e3f20', marginBottom: '1rem' }}>
+                  Para que Caanma pueda renovar tus tokens automáticamente de por vida, haz clic en el siguiente botón para iniciar el proceso de vinculación oficial con Mercado Libre.
+                </p>
+                <a 
+                  href={`https://auth.mercadolibre.com.mx/authorization?response_type=code&client_id=${integration.appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${branch.id}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    backgroundColor: '#16a34a',
+                    color: 'white',
+                    padding: '0.65rem 1.25rem',
+                    borderRadius: '6px',
+                    textDecoration: 'none',
+                    fontWeight: 'bold',
+                    fontSize: '0.9rem',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                  }}
+                >
+                  🔄 Vincular con Mercado Libre ahora
+                </a>
+              </div>
             )}
           </div>
-        </form>
 
-        {integration?.appId && integration?.clientSecret && (
-          <div style={{ marginTop: '1.5rem', padding: '1.25rem', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-            <h3 style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#166534', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <span>🔌 Flujo de Autorización OAuth 2.0</span>
-              {integration.accessToken && (
-                <span style={{ fontSize: '0.75rem', padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: '#16a34a', color: 'white', fontWeight: 'bold', marginLeft: '0.5rem' }}>
-                  CONECTADO
-                </span>
-              )}
-            </h3>
-            <p style={{ fontSize: '0.85rem', color: '#1e3f20', marginBottom: '1rem' }}>
-              Para que Caanma pueda renovar tus tokens automáticamente de por vida, haz clic en el siguiente botón para iniciar el proceso de vinculación oficial con Mercado Libre.
+          <MeliCalculator 
+             branches={branches}
+             initialConfig={{ 
+               targetMargin, 
+               shippingCost, 
+               listingType, 
+               hasTaxRetention,
+               satRetentionPct,
+               stockBranchIds,
+               mainSaleBranchId
+             }} 
+           />
+        </div>
+      )}
+
+      {/* Tab: Catálogo Vinculado */}
+      {activeTab === 'catalogo' && integration && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <div className="card" style={{ padding: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Sincronización de Catálogo</h2>
+              <div style={{ fontWeight: 'bold', color: '#16a34a', backgroundColor: '#dcfce7', padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.875rem' }}>
+                {externalMaps.length} productos empatados
+              </div>
+            </div>
+            
+            <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '1.5rem' }}>
+              Caanma descarga tus publicaciones activas. Si un SKU coincide con los tuyos, se empata automáticamente. 
+              Las publicaciones nuevas sin SKU en Caanma se crearán en el inventario.
             </p>
-            <a 
-              href={`https://auth.mercadolibre.com.mx/authorization?response_type=code&client_id=${integration.appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${branch.id}`}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: '#16a34a',
-                color: 'white',
-                padding: '0.65rem 1.25rem',
-                borderRadius: '6px',
-                textDecoration: 'none',
-                fontWeight: 'bold',
-                fontSize: '0.9rem',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-              }}
-            >
-              🔄 Vincular con Mercado Libre ahora
-            </a>
-          </div>
-        )}
-      </div>
 
-      {integration && (
-        <div className="card" style={{ padding: '2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Sincronización de Catálogo</h2>
-            <div style={{ fontWeight: 'bold', color: '#16a34a', backgroundColor: '#dcfce7', padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.875rem' }}>
-              {externalMaps} productos empatados
+            <form action="/api/mercadolibre/sync" method="POST">
+               <button type="submit" className="btn-secondary" style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <RefreshCw size={18} /> Forzar Sincronización Manual Ahora
+               </button>
+            </form>
+
+            <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#f1f5f9', borderRadius: '8px' }}>
+              <h3 style={{ fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Instrucciones para Webhooks (Ventas en tiempo real)</h3>
+              <p style={{ fontSize: '0.875rem', color: '#475569' }}>
+                 Para que tu stock se descuente al vender en ML, entra a tu panel de desarrollador en Mercado Libre y en **Notificaciones (Webhooks)** registra esta URL:
+              </p>
+              <code style={{ display: 'block', backgroundColor: 'black', color: '#a7f3d0', padding: '0.75rem', borderRadius: '4px', marginTop: '0.5rem', fontSize: '0.875rem' }}>
+                 https://caanma.com/api/mercadolibre/webhooks
+              </code>
             </div>
           </div>
-          
-          <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '1.5rem' }}>
-            Caanma descargará tus publicaciones activas. Si un SKU coincide con los tuyos, se empatará automáticamente. 
-            Las publicaciones nuevas sin SKU en Caanma se crearán en el inventario.
-          </p>
 
-          <form action="/api/mercadolibre/sync" method="POST">
-             <button type="submit" className="btn-secondary" style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <RefreshCw size={18} /> Forzar Sincronización Manual Ahora
-             </button>
-          </form>
-
-          <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#f1f5f9', borderRadius: '8px' }}>
-            <h3 style={{ fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Instrucciones para Webhooks (Ventas en tiempo real)</h3>
-            <p style={{ fontSize: '0.875rem', color: '#475569' }}>
-               Para que tu stock se descuente al vender en ML, entra a tu panel de desarrollador en Mercado Libre y en **Notificaciones (Webhooks)** registra esta URL:
-            </p>
-            <code style={{ display: 'block', backgroundColor: 'black', color: '#a7f3d0', padding: '0.75rem', borderRadius: '4px', marginTop: '0.5rem', fontSize: '0.875rem' }}>
-               https://tu-dominio-caanma.com/api/mercadolibre/webhooks
-            </code>
+          {/* Tabla de Productos Vinculados */}
+          <div className="card" style={{ padding: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: 0 }}>Listado de Vinculaciones y Precios Sugeridos</h2>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', backgroundColor: '#eff6ff', color: '#1d4ed8', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '500' }}>
+                <Info size={12} />
+                Basado en tu margen del {targetMargin}%
+              </div>
+            </div>
+            
+            {externalMaps.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--caanma-text-muted)' }}>
+                No tienes productos vinculados actualmente. Utiliza el botón "Forzar Sincronización" arriba para emparejar tu catálogo.
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--caanma-border)', color: 'var(--caanma-text-muted)', fontWeight: 'bold' }}>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Producto Local (Caanma)</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>SKU</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Costo</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Precio Local</th>
+                      <th style={{ padding: '0.75rem 0.5rem', color: 'var(--caanma-primary)' }}>Precio Meli Sugerido</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Stock</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>ID Mercado Libre</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {externalMaps.map((map) => {
+                      const p = map.product;
+                      const suggested = calculateSuggestedPrice(p.cost);
+                      return (
+                        <tr key={map.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
+                          <td style={{ padding: '0.75rem 0.5rem', fontWeight: '500' }}>{p.name}</td>
+                          <td style={{ padding: '0.75rem 0.5rem', color: 'var(--caanma-text-muted)' }}>{p.sku}</td>
+                          <td style={{ padding: '0.75rem 0.5rem' }}>${p.cost.toFixed(2)}</td>
+                          <td style={{ padding: '0.75rem 0.5rem' }}>${p.price.toFixed(2)}</td>
+                          <td style={{ padding: '0.75rem 0.5rem', fontWeight: 'bold', color: '#16a34a' }}>
+                            {suggested > 0 ? `$${suggested.toFixed(2)}` : 'Margen Inviable'}
+                          </td>
+                          <td style={{ padding: '0.75rem 0.5rem' }}>{p.stock}</td>
+                          <td style={{ padding: '0.75rem 0.5rem' }}>
+                            <a 
+                              href={`https://articulo.mercadolibre.com.mx/${map.externalId.replace('MLM', 'MLM-')}`}
+                              target="_blank" 
+                              rel="noreferrer" 
+                              style={{ color: 'var(--caanma-primary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontWeight: '500' }}
+                            >
+                              {map.externalId} <ExternalLink size={12} />
+                            </a>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Calculator Section */}
-      <MeliCalculator />
-
+      {/* Tab: Centro de Preguntas */}
+      {activeTab === 'preguntas' && integration && (
+        <MeliQuestions />
+      )}
     </div>
   );
 }

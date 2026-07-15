@@ -279,6 +279,7 @@ model Product {
   barcode             String?
   name                String
   description         String?
+  location            String?
   price               Float
   wholesalePrice      Float?
   specialPrice        Float?

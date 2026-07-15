@@ -1,6 +1,6 @@
 'use server';
 
-import { prisma } from '@/lib/prisma';
+import { prisma, masterClient } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/session';
 
@@ -38,8 +38,8 @@ export async function getSubscriptionData() {
     where: { tenantId: tenant.id }
   });
 
-  // Fetch Public Key to render MP Brick safely on client
-  const settings = await prisma.systemSettings.findFirst();
+  // Fetch Public Key to render MP Brick safely on client from MASTER database
+  const settings = await masterClient.systemSettings.findFirst();
 
   return {
     tenant,
@@ -53,7 +53,7 @@ export async function getSubscriptionData() {
 export async function saveMercadoPagoCard(cardTokenId: string, paymentMethodId?: string) {
   const { user, tenant } = await requireTenantAdmin();
 
-  const settings = await prisma.systemSettings.findFirst();
+  const settings = await masterClient.systemSettings.findFirst();
   if (!settings || !settings.mpAccessToken) {
     throw new Error('El sistema de pagos no está configurado por el Super Admin');
   }
@@ -178,7 +178,7 @@ export async function processManualPayment(amount: number) {
     throw new Error('No hay una tarjeta guardada para esta organización. Por favor, guarda una tarjeta primero.');
   }
 
-  const settings = await prisma.systemSettings.findFirst();
+  const settings = await masterClient.systemSettings.findFirst();
   if (!settings || !settings.mpAccessToken) {
     throw new Error('Sistema de pagos no configurado.');
   }

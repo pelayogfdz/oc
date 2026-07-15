@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { updateSystemMPCredentials, addTenantGiftCredits, updateSystemPricing, updateTenantCustomPricing, editTenant, toggleTenantStatus, deleteTenant, changeUserPassword } from '@/app/actions/admin';
+import { updateSystemMPCredentials, updateTenantGiftCredits, updateSystemPricing, updateTenantCustomPricing, editTenant, toggleTenantStatus, deleteTenant, changeUserPassword } from '@/app/actions/admin';
 import { Save, Building2, Users, Coins, CreditCard, ShieldAlert, CheckCircle2, DollarSign, Settings, Edit, Power, PowerOff, Trash2, Lock } from 'lucide-react';
 
 export default function AdminClient({ initialData }: { initialData: any }) {
@@ -75,12 +75,12 @@ export default function AdminClient({ initialData }: { initialData: any }) {
     }
   };
 
-  const handleAddCredits = async () => {
-    if (!selectedTenant || creditsAmount <= 0) return;
+  const handleUpdateCredits = async () => {
+    if (!selectedTenant || creditsAmount < 0) return;
     setIsSavingCredits(true);
     try {
-      await addTenantGiftCredits(selectedTenant.id, creditsAmount);
-      alert(`Se añadieron ${creditsAmount} créditos a ${selectedTenant.name}.`);
+      await updateTenantGiftCredits(selectedTenant.id, creditsAmount);
+      alert(`Créditos actualizados exitosamente para ${selectedTenant.name}.`);
       setSelectedTenant(null);
       setCreditsAmount(0);
       window.location.reload();
@@ -89,6 +89,11 @@ export default function AdminClient({ initialData }: { initialData: any }) {
     } finally {
       setIsSavingCredits(false);
     }
+  };
+
+  const openCreditsModal = (t: any) => {
+    setSelectedTenant(t);
+    setCreditsAmount(t.giftCredits || 0);
   };
 
   const handleSaveTenantPricing = async () => {
@@ -344,8 +349,9 @@ export default function AdminClient({ initialData }: { initialData: any }) {
                         <Settings size={16} /> Precios
                       </button>
                       <button 
-                        onClick={() => setSelectedTenant(t)}
+                        onClick={() => openCreditsModal(t)}
                         style={{ padding: '0.5rem 0.75rem', backgroundColor: '#f3e8ff', color: '#7e22ce', borderRadius: '4px', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                        title="Modificar Créditos Manuales"
                       >
                         <Coins size={16} /> Créditos
                       </button>
@@ -374,13 +380,13 @@ export default function AdminClient({ initialData }: { initialData: any }) {
       {selectedTenant && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Asignar Créditos</h3>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Modificar Créditos</h3>
             <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-              Los créditos ingresados se descontarán de la próxima factura de <strong>{selectedTenant.name}</strong>.
+              Define el saldo total de créditos de regalo que tendrá la organización <strong>{selectedTenant.name}</strong>.
             </p>
             
             <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Monto en MXN</label>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Créditos Disponibles (MXN)</label>
               <input 
                 type="number" 
                 value={creditsAmount}
@@ -398,11 +404,11 @@ export default function AdminClient({ initialData }: { initialData: any }) {
                 Cancelar
               </button>
               <button 
-                onClick={handleAddCredits}
+                onClick={handleUpdateCredits}
                 disabled={isSavingCredits}
                 style={{ padding: '0.75rem 1.5rem', backgroundColor: '#7e22ce', color: 'white', borderRadius: '6px', fontWeight: 'bold', border: 'none', cursor: isSavingCredits ? 'not-allowed' : 'pointer' }}
               >
-                {isSavingCredits ? 'Asignando...' : 'Asignar Créditos'}
+                {isSavingCredits ? 'Guardando...' : 'Guardar Créditos'}
               </button>
             </div>
           </div>

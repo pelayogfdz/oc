@@ -14,6 +14,7 @@ import { prisma } from '@/lib/prisma';
 import FloatingWhatsappWidget from '../components/FloatingWhatsappWidget';
 import CollaboratorTaskPopup from '../components/CollaboratorTaskPopup';
 import PriceChangesAlertPopup from '../components/PriceChangesAlertPopup';
+import MeliSalesAlertPopup from '../components/MeliSalesAlertPopup';
 import { redirect, unstable_rethrow } from 'next/navigation';
 import { hasPermission, hasNodeAccess } from '@/app/config/permissions';
 
@@ -115,6 +116,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {user && hasNodeAccess(userPermissions, 'whatsapp_widget', isSuperAdmin, userRole) && <FloatingWhatsappWidget />}
         {user && <CollaboratorTaskPopup userId={user.id} />}
         {user && <PriceChangesAlertPopup />}
+        {user && <MeliSalesAlertPopup />}
       </MobileMenuProvider>
     </OfflineSyncProvider>
   );

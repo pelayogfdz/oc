@@ -423,24 +423,52 @@ export function getAllTenantClients(): PrismaClient[] {
   return clients;
 }
 
+function buildSearchConditions(cleanId: string) {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId) || /^[0-9a-f]{32}$/i.test(cleanId);
+  const isQrHex = /^[0-9a-f]+$/i.test(cleanId);
+  
+  if (isUuid) {
+    return { id: cleanId };
+  }
+  
+  const conditions: any[] = [];
+  
+  // If it's a QR code segment (first 8 chars or last 6 chars of UUID)
+  if (isQrHex && (cleanId.length === 8 || cleanId.length === 6)) {
+    if (cleanId.length === 8) {
+      conditions.push({ id: { startsWith: cleanId.toLowerCase() } });
+      conditions.push({ id: { startsWith: cleanId.toUpperCase() } });
+      conditions.push({ id: { startsWith: cleanId } });
+    } else {
+      conditions.push({ id: { endsWith: cleanId.toLowerCase() } });
+      conditions.push({ id: { endsWith: cleanId.toUpperCase() } });
+      conditions.push({ id: { endsWith: cleanId } });
+    }
+  } else {
+    // Manual folio entry
+    conditions.push({ folio: { equals: cleanId, mode: 'insensitive' } });
+    conditions.push({ folio: { equals: cleanId.replace(/\s+/g, ''), mode: 'insensitive' } });
+    
+    const numericPart = cleanId.match(/\d+$/)?.[0];
+    if (numericPart) {
+      conditions.push({ folio: { endsWith: `-${numericPart}` } });
+      conditions.push({ folio: { endsWith: ` ${numericPart}` } });
+      conditions.push({ folio: { endsWith: numericPart } });
+    }
+  }
+  
+  return { OR: conditions };
+}
+
 export async function resolveClientForSale(saleIdOrFolio: string): Promise<{ client: PrismaClient; sale: any } | null> {
   const cleanId = saleIdOrFolio.trim();
   const clients = getAllTenantClients();
+  const searchWhere = buildSearchConditions(cleanId);
 
   for (const client of clients) {
     try {
       const sale = await client.sale.findFirst({
-        where: {
-          OR: [
-            { id: cleanId },
-            { id: { endsWith: cleanId.toLowerCase() } },
-            { id: { endsWith: cleanId } },
-            { folio: cleanId },
-            { folio: { equals: cleanId, mode: 'insensitive' } },
-            { folio: { endsWith: `-${cleanId}` } },
-            { folio: { endsWith: `#${cleanId}` } }
-          ]
-        },
+        where: searchWhere,
         include: {
           user: true,
           customer: true,
@@ -465,21 +493,12 @@ export async function resolveClientForSale(saleIdOrFolio: string): Promise<{ cli
 export async function resolveClientForQuote(quoteIdOrFolio: string): Promise<{ client: PrismaClient; quote: any } | null> {
   const cleanId = quoteIdOrFolio.trim();
   const clients = getAllTenantClients();
+  const searchWhere = buildSearchConditions(cleanId);
 
   for (const client of clients) {
     try {
       const quote = await client.quote.findFirst({
-        where: {
-          OR: [
-            { id: cleanId },
-            { id: { endsWith: cleanId.toLowerCase() } },
-            { id: { endsWith: cleanId } },
-            { folio: cleanId },
-            { folio: { equals: cleanId, mode: 'insensitive' } },
-            { folio: { endsWith: `-${cleanId}` } },
-            { folio: { endsWith: `#${cleanId}` } }
-          ]
-        },
+        where: searchWhere,
         include: {
           user: true,
           customer: true,

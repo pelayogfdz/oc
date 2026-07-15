@@ -32,13 +32,13 @@ export default async function IntegracionesPage() {
             const p = platforms.find(px => px.id === conn.platform) || platforms[0];
             return (
               <div key={conn.id} className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.5rem', borderLeft: `4px solid ${p.color}` }}>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                 <Link href={`/integraciones/${p.id.toLowerCase()}`} style={{ display: 'flex', alignItems: 'center', gap: '1rem', textDecoration: 'none', color: 'inherit', width: '100%' }}>
                    <div style={{ fontSize: '2rem' }}>{p.icon}</div>
                    <div>
                      <p style={{ fontWeight: 'bold', margin: '0 0 0.25rem 0' }}>{p.name}</p>
-                     <p style={{ fontSize: '0.75rem', color: '#10b981', margin: 0, fontWeight: 'bold' }}>● CONECTADO CORRECTAMENTE</p>
+                     <p style={{ fontSize: '0.75rem', color: '#10b981', margin: 0, fontWeight: 'bold' }}>● CONECTADO CORRECTAMENTE (Clic para Configurar)</p>
                    </div>
-                 </div>
+                 </Link>
               </div>
             );
           })}
@@ -67,7 +67,7 @@ export default async function IntegracionesPage() {
                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981' }}></div> Emparejador de SKU</div>
                </div>
                
-               <Link href={`/integraciones/${p.id}`} className="btn-primary" style={{ textAlign: 'center', backgroundColor: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', width: '100%', marginTop: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+               <Link href={`/integraciones/${p.id.toLowerCase()}`} className="btn-primary" style={{ textAlign: 'center', backgroundColor: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', width: '100%', marginTop: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
                   Conectar Canal <ChevronRight size={16}/>
                </Link>
              </div>

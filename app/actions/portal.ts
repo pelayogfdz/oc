@@ -30,13 +30,10 @@ export async function generateInvoice(ticketId: string, taxData: any) {
       select: { tenantId: true }
     });
 
-    // Find customer by taxId (RFC) in the same tenant (via branches belonging to that tenant)
+    // Find customer by taxId (RFC) in this tenant database (all customers belong to this tenant)
     let customer = await db.customer.findFirst({
       where: {
-        taxId: { equals: taxData.rfc, mode: 'insensitive' },
-        branch: {
-          tenantId: branch?.tenantId || undefined
-        }
+        taxId: { equals: taxData.rfc, mode: 'insensitive' }
       }
     });
 

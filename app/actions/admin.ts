@@ -87,7 +87,7 @@ export async function updateSystemMPCredentials(data: {
   return { success: true };
 }
 
-export async function addTenantGiftCredits(tenantId: string, amount: number) {
+export async function updateTenantGiftCredits(tenantId: string, amount: number) {
   await requireSuperAdmin();
 
   const tenant = await masterClient.tenant.findUnique({ where: { id: tenantId } });
@@ -96,9 +96,9 @@ export async function addTenantGiftCredits(tenantId: string, amount: number) {
   await prisma.tenant.update({
     where: { id: tenantId },
     data: {
-      giftCredits: {
-        increment: amount
-      }
+      giftCredits: amount,
+      // Automatically activate subscription if credits are set above 0
+      subscriptionStatus: amount > 0 ? 'ACTIVE' : tenant.subscriptionStatus
     }
   });
 

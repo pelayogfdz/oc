@@ -13,6 +13,8 @@ export default function EtiquetasClient({ initialConfig }: { initialConfig: any 
     showName: initialConfig?.showName ?? true,
     showPrice: initialConfig?.showPrice ?? true,
     showBarcode: initialConfig?.showBarcode ?? true,
+    showLocation: initialConfig?.showLocation ?? true,
+    showDescription: initialConfig?.showDescription ?? true,
     barcodeFormat: initialConfig?.barcodeFormat || 'CODE128',
     margin: initialConfig?.margin || 2, // mm
   });
@@ -100,6 +102,14 @@ export default function EtiquetasClient({ initialConfig }: { initialConfig: any 
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: '500' }}>
             <input type="checkbox" name="showBarcode" checked={config.showBarcode} onChange={handleChange} style={{ width: '18px', height: '18px' }} />
             Imprimir Código de Barras (Gráfico)
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: '500' }}>
+            <input type="checkbox" name="showLocation" checked={config.showLocation} onChange={handleChange} style={{ width: '18px', height: '18px' }} />
+            Imprimir Ubicación del Producto
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: '500' }}>
+            <input type="checkbox" name="showDescription" checked={config.showDescription} onChange={handleChange} style={{ width: '18px', height: '18px' }} />
+            Imprimir Descripción del Producto
           </label>
         </div>
 
