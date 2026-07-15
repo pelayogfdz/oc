@@ -64,6 +64,11 @@ export default async function Header() {
     if (currentUser.branchId && !allowedBranchIds.includes(currentUser.branchId)) {
       allowedBranchIds.push(currentUser.branchId);
     }
+
+    // Restrict allowedBranchIds to ONLY the assigned branch if limited (non-global) and has one assigned
+    if (!isGlobal && currentUser.branchId) {
+      allowedBranchIds.splice(0, allowedBranchIds.length, currentUser.branchId);
+    }
   }
 
   if (!isGlobal) {

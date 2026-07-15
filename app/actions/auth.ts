@@ -95,10 +95,24 @@ export const getActiveBranch = cache(async () => {
     if (user.branchId && !allowedBranchIds.includes(user.branchId)) {
       allowedBranchIds.push(user.branchId);
     }
+
+    // Restrict allowedBranchIds to ONLY the assigned branch if limited (non-global) and has one assigned
+    if (!isGlobal && user.branchId) {
+      allowedBranchIds.splice(0, allowedBranchIds.length, user.branchId);
+    }
   }
 
   const cookieStore = await cookies();
   let branchId = cookieStore.get('caanma_active_branch')?.value;
+
+  // Enforce default active branch on login/session entry if cookie not set
+  if (!branchId && user) {
+    if (user.branchId) {
+      branchId = user.branchId;
+    } else if (isGlobal) {
+      branchId = 'GLOBAL';
+    }
+  }
   
   // 2. Enforce restrictions for non-global users
   if (user && !isGlobal && allowedBranchIds.length > 0) {
