@@ -241,12 +241,12 @@ async function handleSync() {
 
           // 1. Recalcular precio meta
           let suggestedPrice = 0;
-          if (denominator > 0) {
+          if (denominator > 0 && !map.isFixedPrice) {
             suggestedPrice = (shippingCost + product.cost) / denominator;
             suggestedPrice = Math.round(suggestedPrice * 100) / 100;
           }
 
-          if (suggestedPrice > 0) {
+          if (suggestedPrice > 0 && !map.isFixedPrice) {
             // Guardar localmente
             await prisma.productPrice.upsert({
               where: {

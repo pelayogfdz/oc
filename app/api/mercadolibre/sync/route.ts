@@ -106,10 +106,26 @@ export async function POST(req: Request) {
       });
 
       if (existingMap) {
-        // El mapa ya existe, actualizamos la fecha de sincronización
+        // El mapa ya existe, actualizamos la fecha de sincronización y el precio (si no está fijo)
+        const updateData: any = { lastSync: new Date() };
+        if (!existingMap.isFixedPrice) {
+          updateData.precioMeli = item.price;
+          
+          const cost = existingMap.product.cost;
+          const comision = existingMap.comisionMeli || 0;
+          const envio = existingMap.envioMeli || 0;
+          const retencion = existingMap.retencionMeli || 0;
+          
+          const margenDinero = item.price - cost - comision - envio - retencion;
+          const margenPorcentaje = item.price > 0 ? (margenDinero / item.price) * 100 : 0;
+          
+          updateData.margenDinero = margenDinero;
+          updateData.margenPorcentaje = margenPorcentaje;
+        }
+        
         await prisma.externalProductMap.update({
           where: { id: existingMap.id },
-          data: { lastSync: new Date() }
+          data: updateData
         });
         syncedCount++;
       } else {
@@ -122,13 +138,24 @@ export async function POST(req: Request) {
 
         if (localProduct) {
           // Coincidencia de SKU encontrada! Crear mapeo
+          const initialPrecioMeli = item.price;
+          const initialMargenDinero = initialPrecioMeli - localProduct.cost;
+          const initialMargenPorcentaje = initialPrecioMeli > 0 ? (initialMargenDinero / initialPrecioMeli) * 100 : 0;
+
           await prisma.externalProductMap.create({
             data: { 
               productId: localProduct.id, 
               platform: 'MERCADO_LIBRE', 
               externalId: item.id,
               syncStatus: 'SYNCED',
-              lastSync: new Date()
+              lastSync: new Date(),
+              precioMeli: initialPrecioMeli,
+              comisionMeli: 0,
+              envioMeli: 0,
+              retencionMeli: 0,
+              margenDinero: initialMargenDinero,
+              margenPorcentaje: initialMargenPorcentaje,
+              isFixedPrice: false
             }
           });
           syncedCount++;
@@ -147,13 +174,24 @@ export async function POST(req: Request) {
             }
           });
           
+          const initialPrecioMeli = item.price;
+          const initialMargenDinero = initialPrecioMeli - newLocal.cost;
+          const initialMargenPorcentaje = initialPrecioMeli > 0 ? (initialMargenDinero / initialPrecioMeli) * 100 : 0;
+
           await prisma.externalProductMap.create({
             data: { 
               productId: newLocal.id, 
               platform: 'MERCADO_LIBRE', 
               externalId: item.id,
               syncStatus: 'SYNCED',
-              lastSync: new Date()
+              lastSync: new Date(),
+              precioMeli: initialPrecioMeli,
+              comisionMeli: 0,
+              envioMeli: 0,
+              retencionMeli: 0,
+              margenDinero: initialMargenDinero,
+              margenPorcentaje: initialMargenPorcentaje,
+              isFixedPrice: false
             }
           });
           newCreatedCount++;

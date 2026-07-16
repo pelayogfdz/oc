@@ -700,13 +700,21 @@ model StoreIntegration {
 }
 
 model ExternalProductMap {
-  id         String   @id @default(uuid())
-  productId  String
-  platform   String
-  externalId String
-  syncStatus String   @default("SYNCED")
-  lastSync   DateTime @default(now())
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id               String   @id @default(uuid())
+  productId        String
+  platform         String
+  externalId       String
+  syncStatus       String   @default("SYNCED")
+  lastSync         DateTime @default(now())
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  precioMeli       Float?
+  comisionMeli     Float?   @default(0)
+  envioMeli        Float?   @default(0)
+  margenDinero     Float?   @default(0)
+  margenPorcentaje Float?   @default(0)
+  retencionMeli    Float?   @default(0)
+  isFixedPrice     Boolean  @default(false)
 
   @@unique([platform, externalId])
 }

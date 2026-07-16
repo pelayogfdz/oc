@@ -6,6 +6,7 @@ import Link from 'next/link';
 import MeliCalculator from './Calculator';
 import MeliQuestions from './MeliQuestions';
 import { headers } from 'next/headers';
+import MeliCatalogTable from './MeliCatalogTable';
 
 interface PageProps {
   searchParams: Promise<{
@@ -294,12 +295,8 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
 
           {/* Tabla de Productos Vinculados */}
           <div className="card" style={{ padding: '2rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: 0 }}>Listado de Vinculaciones y Precios Sugeridos</h2>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', backgroundColor: '#eff6ff', color: '#1d4ed8', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '500' }}>
-                <Info size={12} />
-                Basado en tu margen del {targetMargin}%
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: 0 }}>Listado de Vinculaciones, Costos y Precios Editables</h2>
             </div>
             
             {externalMaps.length === 0 ? (
@@ -307,49 +304,7 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
                 No tienes productos vinculados actualmente. Utiliza el botón "Forzar Sincronización" arriba para emparejar tu catálogo.
               </div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid var(--caanma-border)', color: 'var(--caanma-text-muted)', fontWeight: 'bold' }}>
-                      <th style={{ padding: '0.75rem 0.5rem' }}>Producto Local (Caanma)</th>
-                      <th style={{ padding: '0.75rem 0.5rem' }}>SKU</th>
-                      <th style={{ padding: '0.75rem 0.5rem' }}>Costo</th>
-                      <th style={{ padding: '0.75rem 0.5rem' }}>Precio Local</th>
-                      <th style={{ padding: '0.75rem 0.5rem', color: 'var(--caanma-primary)' }}>Precio Meli Sugerido</th>
-                      <th style={{ padding: '0.75rem 0.5rem' }}>Stock</th>
-                      <th style={{ padding: '0.75rem 0.5rem' }}>ID Mercado Libre</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {externalMaps.map((map) => {
-                      const p = map.product;
-                      const suggested = calculateSuggestedPrice(p.cost);
-                      return (
-                        <tr key={map.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-                          <td style={{ padding: '0.75rem 0.5rem', fontWeight: '500' }}>{p.name}</td>
-                          <td style={{ padding: '0.75rem 0.5rem', color: 'var(--caanma-text-muted)' }}>{p.sku}</td>
-                          <td style={{ padding: '0.75rem 0.5rem' }}>${p.cost.toFixed(2)}</td>
-                          <td style={{ padding: '0.75rem 0.5rem' }}>${p.price.toFixed(2)}</td>
-                          <td style={{ padding: '0.75rem 0.5rem', fontWeight: 'bold', color: '#16a34a' }}>
-                            {suggested > 0 ? `$${suggested.toFixed(2)}` : 'Margen Inviable'}
-                          </td>
-                          <td style={{ padding: '0.75rem 0.5rem' }}>{p.stock}</td>
-                          <td style={{ padding: '0.75rem 0.5rem' }}>
-                            <a 
-                              href={`https://articulo.mercadolibre.com.mx/${map.externalId.replace('MLM', 'MLM-')}`}
-                              target="_blank" 
-                              rel="noreferrer" 
-                              style={{ color: 'var(--caanma-primary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontWeight: '500' }}
-                            >
-                              {map.externalId} <ExternalLink size={12} />
-                            </a>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <MeliCatalogTable initialMaps={externalMaps} />
             )}
           </div>
         </div>
