@@ -1074,7 +1074,72 @@ export async function stampCustomerPayment(paymentId: string) {
 
     const facturapi = new Facturapi(apiKey);
 
-    // Map paymentMethod to SAT Payment Form (from customerPayment method or reason)
+    // Retrieve original invoice to get its SAT UUID and taxes
+    const originalInvoice = await facturapi.invoices.retrieve(payment.sale.invoiceId);
+    const originalUuid = originalInvoice.uuid;
+
+    if (!originalUuid) {
+      throw new Error("La factura original aún no tiene un folio fiscal (UUID) asignado en Facturapi.");
+    }
+
+    // Extract taxes from original invoice items to compute proportional taxes
+    const taxRatesMap = new Map<string, { type: string; rate: number }>();
+    let hasTaxes = false;
+    if (originalInvoice.items) {
+      for (const item of originalInvoice.items as any[]) {
+        if (item.taxes && Array.isArray(item.taxes)) {
+          for (const tax of item.taxes) {
+            if (tax.amount > 0) {
+              hasTaxes = true;
+              const key = `${tax.type}-${tax.rate}`;
+              taxRatesMap.set(key, { type: tax.type, rate: tax.rate });
+            }
+          }
+        }
+      }
+    }
+
+    const relatedTaxes: any[] = [];
+    if (hasTaxes) {
+      for (const [_, taxInfo] of taxRatesMap.entries()) {
+        const base = payment.amount / (1 + taxInfo.rate);
+        const taxAmount = payment.amount - base;
+        relatedTaxes.push({
+          type: taxInfo.type,
+          rate: taxInfo.rate,
+          base: Number(base.toFixed(2)),
+          amount: Number(taxAmount.toFixed(2))
+        });
+      }
+    }
+
+    // Count previous invoiced payments to calculate installment number
+    const previousPaymentsCount = await prisma.customerPayment.count({
+      where: {
+        saleId: payment.saleId,
+        cfdiStatus: 'INVOICED',
+        createdAt: {
+          lt: payment.createdAt
+        }
+      }
+    });
+    const installment = previousPaymentsCount + 1;
+
+    // Calculate last balance before this payment
+    const previousPayments = await prisma.customerPayment.findMany({
+      where: {
+        saleId: payment.saleId,
+        cfdiStatus: 'INVOICED',
+        createdAt: {
+          lt: payment.createdAt
+        }
+      },
+      select: { amount: true }
+    });
+    const totalPaidBefore = previousPayments.reduce((acc, p) => acc + p.amount, 0);
+    const lastBalance = payment.sale.total - totalPaidBefore;
+
+    // Map paymentMethod to SAT Payment Form
     let paymentForm = "03"; // Default Transferencia (03)
     const reasonUpper = (payment.reason || "").toUpperCase();
     if (reasonUpper.includes("CASH") || reasonUpper.includes("EFECTIVO")) {
@@ -1087,19 +1152,41 @@ export async function stampCustomerPayment(paymentId: string) {
       paymentForm = "02";
     }
 
-    // Call Facturapi to create the payment receipt (REP)
-    const receipt = await facturapi.receipts.create({
-      payment_form: paymentForm,
-      date: payment.paymentDate || payment.createdAt,
-      invoices: [
+    // Create Payment Complement (REP) as an invoice of type 'P'
+    const receipt = await facturapi.invoices.create({
+      type: "P",
+      customer: {
+        legal_name: payment.customer.legalName || payment.customer.name,
+        tax_id: payment.customer.taxId || "XAXX010101000",
+        tax_system: payment.customer.taxRegime || "616",
+        address: {
+          zip: payment.customer.zipCode || "76000"
+        }
+      },
+      complements: [
         {
-          id: payment.sale.invoiceId,
-          amount: payment.amount
+          type: "pago",
+          data: [
+            {
+              payment_form: paymentForm,
+              related_documents: [
+                {
+                  uuid: originalUuid,
+                  amount: payment.amount,
+                  installment: installment,
+                  last_balance: lastBalance,
+                  currency: "MXN",
+                  ...(relatedTaxes.length > 0 ? { taxes: relatedTaxes } : {})
+                }
+              ]
+            }
+          ]
         }
       ]
     });
 
-    const receiptPdf = `/api/facturacion/download?receiptId=${receipt.id}&format=pdf`;
+    const receiptPdf = `/api/facturacion/download?invoiceId=${receipt.id}&format=pdf`;
+    const receiptXml = `/api/facturacion/download?invoiceId=${receipt.id}&format=xml`;
 
     // Update payment record in database
     await prisma.customerPayment.update({
@@ -1107,7 +1194,7 @@ export async function stampCustomerPayment(paymentId: string) {
       data: {
         cfdiStatus: "INVOICED",
         cfdiUrlPdf: receiptPdf,
-        cfdiUrlXml: ""
+        cfdiUrlXml: receiptXml
       }
     });
 
