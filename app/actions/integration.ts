@@ -354,3 +354,132 @@ export async function saveMeliProductPricing(
   }
 }
 
+export async function publishProductToMeli(productId: string) {
+  try {
+    const branch = await getActiveBranch();
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        externalMaps: {
+          where: { platform: 'MERCADO_LIBRE' }
+        }
+      }
+    });
+
+    if (!product) {
+      return { success: false, error: 'Producto no encontrado.' };
+    }
+
+    if (product.externalMaps.length > 0) {
+      return { success: false, error: 'El producto ya está vinculado a Mercado Libre.' };
+    }
+
+    if (!product.sku) {
+      return { success: false, error: 'El producto debe tener un SKU configurado antes de publicarse.' };
+    }
+
+    // Obtener la integración
+    const integration = await prisma.storeIntegration.findUnique({
+      where: { branchId_platform: { branchId: branch.id, platform: 'MERCADO_LIBRE' } }
+    });
+
+    if (!integration || !integration.accessToken) {
+      return { success: false, error: 'Integración con Mercado Libre no configurada o desconectada.' };
+    }
+
+    // Determinar listing_type_id basado en la configuración del margen/metadata
+    let listingTypeId = 'gold_special'; // Clásica
+    if (integration.metadata) {
+      try {
+        const meta = JSON.parse(integration.metadata);
+        if (meta.listingType && Number(meta.listingType) >= 0.18) {
+          listingTypeId = 'gold_pro'; // Premium
+        }
+      } catch {}
+    }
+
+    // 1. Llamar al Category Predictor de Mercado Libre
+    let categoryId = 'MLM3530'; // Categoría genérica (Otros Productos en México)
+    try {
+      const predRes = await fetch(`https://api.mercadolibre.com/sites/MLM/category_predictor/predict?title=${encodeURIComponent(product.name)}`);
+      if (predRes.ok) {
+        const predData = await predRes.json();
+        if (predData && predData.id) {
+          categoryId = predData.id;
+        }
+      }
+    } catch (e) {
+      console.error('[publishProductToMeli] Error prediciendo categoría:', e);
+    }
+
+    // 2. Renovar/obtener token real
+    const { getOrRefreshMeliToken } = await import('@/app/utils/meliToken');
+    const token = await getOrRefreshMeliToken(branch.id);
+    if (!token) {
+      return { success: false, error: 'No se pudo obtener un token válido de Mercado Libre.' };
+    }
+
+    // 3. Construir el payload de publicación
+    const price = product.price > 0 ? product.price : 100; // Evitar precio de 0
+    const payload = {
+      title: product.name.substring(0, 60), // Límite de título en ML es 60 caracteres
+      category_id: categoryId,
+      price: price,
+      currency_id: 'MXN',
+      available_quantity: product.stock > 0 ? product.stock : 1, // Mínimo 1 para publicar activo
+      buying_mode: 'buy_it_now',
+      listing_type_id: listingTypeId,
+      condition: 'new',
+      seller_custom_field: product.sku,
+      pictures: product.imageUrl ? [{ source: product.imageUrl }] : []
+    };
+
+    console.log('[publishProductToMeli] Publicando producto:', product.name, 'con payload:', payload);
+
+    // 4. Llamar a la API de publicación de Mercado Libre
+    const response = await fetch('https://api.mercadolibre.com/items', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      console.error('[publishProductToMeli] Error al publicar en ML:', errBody);
+      return { 
+        success: false, 
+        error: `Error de Mercado Libre: ${errBody.message || 'No se pudo publicar. Revisa título o precio.'}` 
+      };
+    }
+
+    const newItem = await response.json();
+    const externalId = newItem.id;
+
+    // 5. Crear el registro de mapeo en nuestra base de datos
+    await prisma.externalProductMap.create({
+      data: {
+        productId: product.id,
+        platform: 'MERCADO_LIBRE',
+        externalId: externalId,
+        syncStatus: 'active',
+        precioMeli: price,
+        comisionMeli: 0,
+        envioMeli: 0,
+        retencionMeli: 0,
+        margenDinero: price - product.cost,
+        margenPorcentaje: price > 0 ? ((price - product.cost) / price) * 100 : 0,
+        isFixedPrice: false
+      }
+    });
+
+    revalidatePath('/integraciones/mercadolibre');
+    return { success: true, externalId };
+  } catch (error: any) {
+    console.error('Error in publishProductToMeli:', error);
+    return { success: false, error: error.message || 'Error inesperado al publicar.' };
+  }
+}
+

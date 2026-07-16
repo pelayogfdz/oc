@@ -82,6 +82,7 @@ export async function POST(req: Request) {
                 id: body.id,
                 title: body.title,
                 price: body.price,
+                status: body.status, // active, paused, closed, etc.
                 available_quantity: body.available_quantity,
                 seller_custom_field: body.seller_custom_field || null // SKU ingresado por el vendedor
               });
@@ -107,7 +108,7 @@ export async function POST(req: Request) {
 
       if (existingMap) {
         // El mapa ya existe, actualizamos la fecha de sincronización y el precio (si no está fijo)
-        const updateData: any = { lastSync: new Date() };
+        const updateData: any = { lastSync: new Date(), syncStatus: item.status || 'active' };
         if (!existingMap.isFixedPrice) {
           updateData.precioMeli = item.price;
           
@@ -147,7 +148,7 @@ export async function POST(req: Request) {
               productId: localProduct.id, 
               platform: 'MERCADO_LIBRE', 
               externalId: item.id,
-              syncStatus: 'SYNCED',
+              syncStatus: item.status || 'active',
               lastSync: new Date(),
               precioMeli: initialPrecioMeli,
               comisionMeli: 0,
@@ -183,7 +184,7 @@ export async function POST(req: Request) {
               productId: newLocal.id, 
               platform: 'MERCADO_LIBRE', 
               externalId: item.id,
-              syncStatus: 'SYNCED',
+              syncStatus: item.status || 'active',
               lastSync: new Date(),
               precioMeli: initialPrecioMeli,
               comisionMeli: 0,

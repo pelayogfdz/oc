@@ -58,9 +58,33 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
     }
   }
 
-  const externalMaps = await prisma.externalProductMap.findMany({
-    where: { platform: 'MERCADO_LIBRE', product: { branchId: { in: tenantBranchIds } } },
-    include: { product: true }
+  const allProducts = await prisma.product.findMany({
+    where: { branchId: { in: tenantBranchIds }, isActive: true },
+    include: {
+      externalMaps: {
+        where: { platform: 'MERCADO_LIBRE' }
+      }
+    },
+    orderBy: { name: 'asc' }
+  });
+
+  const catalogList = allProducts.map(p => {
+    const map = p.externalMaps?.[0] || null;
+    return {
+      id: map?.id || `unlinked-${p.id}`,
+      productId: p.id,
+      platform: 'MERCADO_LIBRE',
+      externalId: map?.externalId || '',
+      syncStatus: map ? (map.syncStatus || 'active') : 'unlinked',
+      precioMeli: map?.precioMeli,
+      comisionMeli: map?.comisionMeli || 0,
+      envioMeli: map?.envioMeli || 0,
+      retencionMeli: map?.retencionMeli || 0,
+      margenDinero: map?.margenDinero,
+      margenPorcentaje: map?.margenPorcentaje,
+      isFixedPrice: !!map?.isFixedPrice,
+      product: p
+    };
   });
 
   const branches = await getTenantBranches(user.tenantId);
@@ -140,7 +164,7 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
               whiteSpace: 'nowrap'
             }}
           >
-            📦 Catálogo Vinculado ({externalMaps.length})
+            📦 Catálogo Vinculado ({catalogList.filter(c => c.syncStatus !== 'unlinked').length})
           </Link>
           <Link 
             href="?tab=preguntas" 
@@ -267,7 +291,7 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Sincronización de Catálogo</h2>
               <div style={{ fontWeight: 'bold', color: '#16a34a', backgroundColor: '#dcfce7', padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.875rem' }}>
-                {externalMaps.length} productos empatados
+                {catalogList.filter(c => c.syncStatus !== 'unlinked').length} productos empatados
               </div>
             </div>
             
@@ -299,12 +323,12 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
               <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: 0 }}>Listado de Vinculaciones, Costos y Precios Editables</h2>
             </div>
             
-            {externalMaps.length === 0 ? (
+            {catalogList.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--caanma-text-muted)' }}>
-                No tienes productos vinculados actualmente. Utiliza el botón "Forzar Sincronización" arriba para emparejar tu catálogo.
+                No tienes productos en Caanma actualmente.
               </div>
             ) : (
-              <MeliCatalogTable initialMaps={externalMaps} />
+              <MeliCatalogTable initialMaps={catalogList} />
             )}
           </div>
         </div>
