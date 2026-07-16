@@ -418,9 +418,13 @@ export default function POSClient({
           }
         } catch (e) {
           console.error('Failed to restore recovery state:', e);
-        } finally {
-          localStorage.removeItem(`caanma_pos_recovery_${branchId}_${mode}`);
         }
+
+        // Delay deletion of recovery state to survive React 18 hydration double-renders and quick unmounts
+        const timer = setTimeout(() => {
+          localStorage.removeItem(`caanma_pos_recovery_${branchId}_${mode}`);
+        }, 5000);
+        return () => clearTimeout(timer);
       }
     }
   }, [branchId, mode]);
@@ -959,6 +963,11 @@ export default function POSClient({
   useEffect(() => {
     const qId = searchParams.get('quoteId');
     if (qId) {
+      const hasRecovery = localStorage.getItem(`caanma_pos_recovery_${branchId}_${mode}`);
+      if (hasRecovery) {
+        lastQuoteIdRef.current = qId;
+        return;
+      }
       if (qId !== lastQuoteIdRef.current) {
         lastQuoteIdRef.current = qId;
         handleLoadQuote(qId);
@@ -969,11 +978,16 @@ export default function POSClient({
         resetActiveTab();
       }
     }
-  }, [searchParams]);
+  }, [searchParams, branchId, mode]);
 
   useEffect(() => {
     const cloneId = searchParams.get('cloneQuoteId');
     if (cloneId) {
+      const hasRecovery = localStorage.getItem(`caanma_pos_recovery_${branchId}_${mode}`);
+      if (hasRecovery) {
+        lastCloneQuoteIdRef.current = cloneId;
+        return;
+      }
       if (cloneId !== lastCloneQuoteIdRef.current) {
         lastCloneQuoteIdRef.current = cloneId;
         handleLoadQuote(cloneId, true);
@@ -984,11 +998,16 @@ export default function POSClient({
         resetActiveTab();
       }
     }
-  }, [searchParams]);
+  }, [searchParams, branchId, mode]);
 
   useEffect(() => {
     const cId = searchParams.get('consignmentId');
     if (cId) {
+      const hasRecovery = localStorage.getItem(`caanma_pos_recovery_${branchId}_${mode}`);
+      if (hasRecovery) {
+        lastConsignmentIdRef.current = cId;
+        return;
+      }
       if (cId !== lastConsignmentIdRef.current) {
         lastConsignmentIdRef.current = cId;
         handleLoadConsignment(cId);
@@ -999,7 +1018,7 @@ export default function POSClient({
         resetActiveTab();
       }
     }
-  }, [searchParams]);
+  }, [searchParams, branchId, mode]);
 
 
   
