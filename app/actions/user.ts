@@ -255,8 +255,14 @@ export async function deleteUser(id: string) {
       revalidatePath('/preferencias/usuarios');
       return { success: true };
     } catch (deleteError: any) {
-      // If it fails due to foreign key constraints, perform anonymization / soft-delete
-      if (deleteError.code === 'P2003') {
+      // If it fails due to foreign key constraints or dependency issues, perform anonymization / soft-delete
+      const isConstraintError = 
+        deleteError.code === 'P2003' || 
+        deleteError.code === 'P2025' || 
+        String(deleteError).includes('Record to delete does not exist') ||
+        String(deleteError).includes('foreign key constraint');
+
+      if (isConstraintError) {
         const uniqueSuffix = id.substring(0, 8);
         const timestamp = Date.now();
         await prisma.user.update({
