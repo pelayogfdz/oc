@@ -97,8 +97,14 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       
       const shouldRefreshOnStart = async () => {
         if (!isOnline) return;
-        // En modo standalone de escritorio, sincronizar catálogos silenciosamente de inmediato al iniciar
-        await refreshCatalogs(true);
+        
+        // Prevent aggressive catalog downloads on every page reload/tab opening.
+        // Only sync on startup if the last sync was more than 4 hours ago.
+        const lastSync = localStorage.getItem('last_catalog_sync_timestamp');
+        const fourHours = 4 * 60 * 60 * 1000;
+        if (!lastSync || (Date.now() - parseInt(lastSync)) > fourHours) {
+          await refreshCatalogs(true);
+        }
       };
       
       shouldRefreshOnStart();
@@ -125,11 +131,12 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
         forceSync();
       }, 30 * 1000);
 
-      // Cada 3 minutos: sincronizar silenciosamente los catálogos desde el servidor
+      // Sincronizar silenciosamente los catálogos desde el servidor cada 6 horas (en lugar de cada 3 minutos)
+      // para evitar bloqueos y lentitud extrema mientras la plataforma está online
       catalogInterval = setInterval(() => {
         console.log('[PWA] Sincronización automática de catálogos en segundo plano iniciada...');
         refreshCatalogs(true);
-      }, 3 * 60 * 1000);
+      }, 6 * 60 * 60 * 1000);
     }
 
     return () => {

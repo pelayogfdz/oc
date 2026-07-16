@@ -53,31 +53,49 @@ Instrucciones Maestras:
     const fullPrompt = `${systemPrompt}\n\nPregunta del usuario:\n${prompt}`;
 
     const chat = model.startChat();
-    const result = await chat.sendMessage(fullPrompt);
+    let result = await chat.sendMessage(fullPrompt);
     
-    let responseText = '';
-    const functionCalls = result.response.functionCalls();
+    let loopCount = 0;
+    const maxLoops = 6;
     
-    if (functionCalls && functionCalls.length > 0) {
-      const call = functionCalls[0];
-      console.log(`[AI-TOOL-EXEC] Alina solicitó la herramienta: ${call.name}`);
+    while (loopCount < maxLoops) {
+      const functionCalls = result.response.functionCalls();
+      if (!functionCalls || functionCalls.length === 0) {
+        break;
+      }
       
-      const dbResult = await executeAiFunction(call.name, call.args, branchContext);
+      console.log(`[AI-TOOL-EXEC] Turn ${loopCount + 1}: Alina requested tools:`, functionCalls.map((c: any) => c.name));
       
-      const result2 = await chat.sendMessage([{
-        functionResponse: {
-          name: call.name,
-          response: dbResult
-        }
-      }]);
+      // Execute all function calls requested in parallel
+      const responses = await Promise.all(
+        functionCalls.map(async (call: any) => {
+          try {
+            const dbResult = await executeAiFunction(call.name, call.args, branchContext);
+            return {
+              functionResponse: {
+                name: call.name,
+                response: dbResult
+              }
+            };
+          } catch (err: any) {
+            console.error(`Error executing function ${call.name}:`, err);
+            return {
+              functionResponse: {
+                name: call.name,
+                response: { error: err.message || "Error interno ejecutando la función." }
+              }
+            };
+          }
+        })
+      );
       
-      responseText = result2.response.text();
-    } else {
-      responseText = result.response.text();
+      // Send the tool outputs back to the model
+      result = await chat.sendMessage(responses);
+      loopCount++;
     }
-
-    return NextResponse.json({ text: responseText });
     
+    const responseText = result.response.text();
+    return NextResponse.json({ text: responseText });
   } catch (error: any) {
     console.error('AI Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -1180,6 +1180,33 @@ export default function PortalClient() {
                           <span style={{ color: 'var(--caanma-text-muted)' }}>Fecha:</span>
                           <span style={{ fontWeight: 'bold' }}>{new Date(sale.createdAt).toLocaleDateString()}</span>
                        </div>
+
+                       {/* Detalle de Productos */}
+                       {sale.items && sale.items.length > 0 && (
+                         <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--caanma-border)' }}>
+                           <span style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--caanma-text-muted)', marginBottom: '0.75rem' }}>Productos</span>
+                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '200px', overflowY: 'auto', paddingRight: '4px' }}>
+                             {sale.items.map((item: any, idx: number) => {
+                               const name = item.product?.name || 'Artículo';
+                               return (
+                                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', alignItems: 'flex-start', borderBottom: idx < sale.items.length - 1 ? '1px dashed var(--caanma-border-light, #f1f5f9)' : 'none', paddingBottom: idx < sale.items.length - 1 ? '0.5rem' : '0' }}>
+                                   <div style={{ flex: 1, paddingRight: '0.75rem' }}>
+                                     <span style={{ color: 'var(--caanma-text)', fontWeight: '500', display: 'block', lineHeight: '1.2' }}>{name}</span>
+                                     {item.product?.sku && (
+                                       <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--caanma-text-muted)', marginTop: '0.15rem' }}>SKU: {item.product.sku}</span>
+                                     )}
+                                   </div>
+                                   <div style={{ display: 'flex', gap: '1rem', textAlign: 'right', flexShrink: 0, alignItems: 'center' }}>
+                                     <span style={{ color: 'var(--caanma-text-muted)', fontSize: '0.8rem' }}>{item.quantity} pza{item.quantity > 1 ? 's' : ''}</span>
+                                     <span style={{ fontWeight: '600', color: 'var(--caanma-text)', minWidth: '60px' }}>{formatCurrency(item.price * item.quantity)}</span>
+                                   </div>
+                                 </div>
+                               );
+                             })}
+                           </div>
+                         </div>
+                       )}
+
                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.5rem', marginTop: '1rem', paddingTop: '1rem', borderTop: '2px solid var(--caanma-border)' }}>
                           <span>Total:</span>
                           <span style={{ fontWeight: 'bold', color: 'var(--caanma-text)' }}>{formatCurrency(sale.total)}</span>

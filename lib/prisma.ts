@@ -423,18 +423,30 @@ export function getAllTenantClients(): PrismaClient[] {
   return clients;
 }
 
-function buildSearchConditions(cleanId: string) {
+function buildExactSearchConditions(cleanId: string) {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId) || /^[0-9a-f]{32}$/i.test(cleanId);
-  const isQrHex = /^[0-9a-f]+$/i.test(cleanId);
-  
   if (isUuid) {
     return { id: cleanId };
   }
   
   const conditions: any[] = [];
+  conditions.push({ folio: { equals: cleanId, mode: 'insensitive' } });
+  conditions.push({ folio: { equals: cleanId.replace(/\s+/g, ''), mode: 'insensitive' } });
   
-  // If it's a QR code segment (first 8 chars or last 6 chars of UUID)
+  const numericPart = cleanId.match(/\d+$/)?.[0];
+  if (numericPart) {
+    conditions.push({ folio: { endsWith: `-${numericPart}` } });
+    conditions.push({ folio: { endsWith: ` ${numericPart}` } });
+    conditions.push({ folio: { endsWith: numericPart } });
+  }
+  
+  return { OR: conditions };
+}
+
+function buildPartialSearchConditions(cleanId: string) {
+  const isQrHex = /^[0-9a-f]+$/i.test(cleanId);
   if (isQrHex && (cleanId.length === 8 || cleanId.length === 6)) {
+    const conditions: any[] = [];
     if (cleanId.length === 8) {
       conditions.push({ id: { startsWith: cleanId.toLowerCase() } });
       conditions.push({ id: { startsWith: cleanId.toUpperCase() } });
@@ -444,31 +456,52 @@ function buildSearchConditions(cleanId: string) {
       conditions.push({ id: { endsWith: cleanId.toUpperCase() } });
       conditions.push({ id: { endsWith: cleanId } });
     }
-  } else {
-    // Manual folio entry
-    conditions.push({ folio: { equals: cleanId, mode: 'insensitive' } });
-    conditions.push({ folio: { equals: cleanId.replace(/\s+/g, ''), mode: 'insensitive' } });
-    
-    const numericPart = cleanId.match(/\d+$/)?.[0];
-    if (numericPart) {
-      conditions.push({ folio: { endsWith: `-${numericPart}` } });
-      conditions.push({ folio: { endsWith: ` ${numericPart}` } });
-      conditions.push({ folio: { endsWith: numericPart } });
+    return { OR: conditions };
+  }
+  return null;
+}
+
+function isFolioMatch(folio: string, searchInput: string): boolean {
+  const f = folio.trim().toLowerCase();
+  const s = searchInput.trim().toLowerCase().replace(/^#+/, '').trim();
+  
+  if (f === s) return true;
+  
+  const fNorm = f.replace(/[^a-z0-9]/g, '');
+  const sNorm = s.replace(/[^a-z0-9]/g, '');
+  
+  if (fNorm === sNorm) return true;
+  
+  // The database folio must at least end with the search input characters
+  if (!fNorm.endsWith(sNorm)) {
+    return false;
+  }
+  
+  // Extract numeric suffixes
+  const sDigits = s.match(/\d+$/)?.[0] || '';
+  const fDigits = f.match(/\d+$/)?.[0] || '';
+  
+  if (sDigits) {
+    const sNum = parseInt(sDigits, 10);
+    const fNum = parseInt(fDigits, 10);
+    if (sNum !== fNum) {
+      return false;
     }
   }
   
-  return { OR: conditions };
+  return true;
 }
 
 export async function resolveClientForSale(saleIdOrFolio: string): Promise<{ client: PrismaClient; sale: any } | null> {
-  const cleanId = saleIdOrFolio.trim();
+  const cleanId = saleIdOrFolio.trim().replace(/^#+/, '').trim();
   const clients = getAllTenantClients();
-  const searchWhere = buildSearchConditions(cleanId);
 
+  // Phase 1: Exact matches (Folio or full UUID)
+  const exactWhere = buildExactSearchConditions(cleanId);
   for (const client of clients) {
     try {
-      const sale = await client.sale.findFirst({
-        where: searchWhere,
+      const sales = await client.sale.findMany({
+        where: exactWhere,
         include: {
           user: true,
           customer: true,
@@ -480,25 +513,55 @@ export async function resolveClientForSale(saleIdOrFolio: string): Promise<{ cli
           }
         }
       });
+      const sale = sales.find(s => s.folio && isFolioMatch(s.folio, cleanId)) || sales.find(s => s.id === cleanId);
       if (sale) {
         return { client, sale };
       }
     } catch (e) {
-      // Ignore query errors for individual databases
+      // Ignore
     }
   }
+
+  // Phase 2: Partial matches (QR code segments of 6 or 8 characters)
+  const partialWhere = buildPartialSearchConditions(cleanId);
+  if (partialWhere) {
+    for (const client of clients) {
+      try {
+        const sale = await client.sale.findFirst({
+          where: partialWhere,
+          include: {
+            user: true,
+            customer: true,
+            branch: {
+              include: { settings: true, tenant: true }
+            },
+            items: {
+              include: { product: true, variant: true }
+            }
+          }
+        });
+        if (sale) {
+          return { client, sale };
+        }
+      } catch (e) {
+        // Ignore
+      }
+    }
+  }
+
   return null;
 }
 
 export async function resolveClientForQuote(quoteIdOrFolio: string): Promise<{ client: PrismaClient; quote: any } | null> {
-  const cleanId = quoteIdOrFolio.trim();
+  const cleanId = quoteIdOrFolio.trim().replace(/^#+/, '').trim();
   const clients = getAllTenantClients();
-  const searchWhere = buildSearchConditions(cleanId);
 
+  // Phase 1: Exact matches (Folio or full UUID)
+  const exactWhere = buildExactSearchConditions(cleanId);
   for (const client of clients) {
     try {
-      const quote = await client.quote.findFirst({
-        where: searchWhere,
+      const quotes = await client.quote.findMany({
+        where: exactWhere,
         include: {
           user: true,
           customer: true,
@@ -510,13 +573,42 @@ export async function resolveClientForQuote(quoteIdOrFolio: string): Promise<{ c
           }
         }
       });
+      const quote = quotes.find(q => q.folio && isFolioMatch(q.folio, cleanId)) || quotes.find(q => q.id === cleanId);
       if (quote) {
         return { client, quote };
       }
     } catch (e) {
-      // Ignore query errors for individual databases
+      // Ignore
     }
   }
+
+  // Phase 2: Partial matches (QR code segments of 6 or 8 characters)
+  const partialWhere = buildPartialSearchConditions(cleanId);
+  if (partialWhere) {
+    for (const client of clients) {
+      try {
+        const quote = await client.quote.findFirst({
+          where: partialWhere,
+          include: {
+            user: true,
+            customer: true,
+            branch: {
+              include: { settings: true, tenant: true }
+            },
+            items: {
+              include: { product: true }
+            }
+          }
+        });
+        if (quote) {
+          return { client, quote };
+        }
+      } catch (e) {
+        // Ignore
+      }
+    }
+  }
+
   return null;
 }
 

@@ -266,6 +266,7 @@ export async function getSalesDetailData(
     },
     select: {
       id: true,
+      folio: true,
       createdAt: true,
       paymentMethod: true,
       total: true,
@@ -321,12 +322,17 @@ export async function getSalesDetailData(
     if (!salesByUser[userName]) salesByUser[userName] = 0;
     salesByUser[userName] += sale.total;
 
+    const paymentMethodUpper = String(sale.paymentMethod || '').toUpperCase();
+    const pueOrPpd = paymentMethodUpper === 'CREDIT' ? 'PPD' : 'PUE';
+
     return {
       id: sale.id,
+      folio: sale.folio || sale.id.split('-')[0].toUpperCase(),
       date: sale.createdAt.toISOString(),
       user: userName,
       customer: sale.customer?.name || 'Mostrador',
       method: sale.paymentMethod,
+      pueOrPpd: pueOrPpd,
       total: sale.total,
       profit: profit,
       itemsCount: sale.items.reduce((acc, item) => acc + item.quantity, 0),

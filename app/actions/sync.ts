@@ -8,21 +8,32 @@ export async function syncBasicCatalogs() {
   const branchId = branch?.id || '';
   const tenantId = branch?.tenantId || '';
 
+  const tenantBranches = await prisma.branch.findMany({ where: { tenantId, isActive: true } });
+  const branchIds = tenantBranches.map(b => b.id);
+
   const customers = await prisma.customer.findMany({
     where: {
       OR: [
         { branchId: null },
         { branchId: '' },
-        { branchId }
+        { branchId: { in: branchIds } }
       ]
     }
   });
   const suppliers = await prisma.supplier.findMany();
-  const branches = await prisma.branch.findMany({ where: { tenantId, isActive: true } });
-  const settingsDb = await prisma.branchSettings.findUnique({ where: { branchId } });
+  
+  let settingsDb = null;
+  if (branchId && branchId !== 'GLOBAL') {
+    settingsDb = await prisma.branchSettings.findUnique({ where: { branchId } });
+  }
+  if (!settingsDb && branchIds.length > 0) {
+    settingsDb = await prisma.branchSettings.findFirst({
+      where: { branchId: { in: branchIds } }
+    });
+  }
   
   const totalProducts = await prisma.product.count({ 
-    where: { branchId, isActive: true } 
+    where: { branchId: { in: branchIds }, isActive: true } 
   });
   
   // Fetch active users in the tenant for offline Kiosk Mode
@@ -49,17 +60,23 @@ export async function syncBasicCatalogs() {
     }
   });
 
-  return { customers, suppliers, branches, settings: settingsDb, totalProducts, users };
+  return { customers, suppliers, branches: tenantBranches, settings: settingsDb, totalProducts, users };
 }
 
 export async function syncProductsPage(page: number, limit: number) {
   const branch = await getActiveBranch();
   if (!branch) return [];
-  const branchId = branch.id;
+  const tenantId = branch.tenantId;
+  
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const branchIds = tenantBranches.map(b => b.id);
   
   const skip = (page - 1) * limit;
   const products = await prisma.product.findMany({
-    where: { branchId, isActive: true },
+    where: { branchId: { in: branchIds }, isActive: true },
     include: { variants: true, prices: true },
     skip,
     take: limit,

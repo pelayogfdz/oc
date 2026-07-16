@@ -48,7 +48,7 @@ html, body {
   overflow-x: hidden; /* Fully protect layout flow from global sideways viewport scrolling */
 }
 
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
   html, body {
     font-size: 14px; /* Scale down slightly on mobile to fit more content and look premium */
   }
@@ -134,7 +134,7 @@ button {
   display: none;
 }
 
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
   .desktop-only-menu-item {
     display: none !important;
   }
@@ -416,7 +416,7 @@ button {
   min-width: 350px; /* Secure minimum width on desktop */
 }
 
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
   .pos-layout {
     flex-direction: column;
     height: auto;
@@ -451,7 +451,7 @@ button {
   overflow-y: auto;
 }
 
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
   .preferences-layout {
     flex-direction: column;
     gap: 1rem;
@@ -503,6 +503,12 @@ button {
   .dashboard-content-wrapper {
     height: auto !important;
     overflow: visible !important;
+  }
+
+  .report-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2rem !important;
   }
 
   /* Evitar recortes (scrolls) de tablas y contenedores de reportes, expandiendo su altura completa */
@@ -703,7 +709,7 @@ img[data-header-img="true"]::after {
 /* ==========================================================================
    Mobile Responsiveness Enhancements (<= 768px)
    ========================================================================== */
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
   /* Header Adjustments */
   .header-user-controls {
     gap: 0.5rem !important;
@@ -932,7 +938,7 @@ img[data-header-img="true"]::after {
   overflow: hidden;
 }
 
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
   .actions-dropdown-menu {
     right: auto !important;
     left: 0 !important;
@@ -942,7 +948,7 @@ img[data-header-img="true"]::after {
   }
 }
 
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
   /* Ensure standard tables inside scrollable wrappers have a minimum width on mobile to avoid squeezing */
   div[style*="overflow-x"] > table:not(.responsive-table),
   div[style*="overflow-x: auto"] > table:not(.responsive-table),

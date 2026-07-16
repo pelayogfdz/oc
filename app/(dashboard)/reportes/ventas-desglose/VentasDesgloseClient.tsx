@@ -48,14 +48,15 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
   };
 
   const downloadExcel = () => {
-    const headers = ["Fecha", "Folio", "Cliente", "Cajero/Vendedor", "Método Pago", "Facturado", "Monto"];
+    const headers = ["Fecha", "Folio", "Cliente", "Cajero/Vendedor", "Método Pago", "Tipo Pago (PUE/PPD)", "Facturado", "Monto"];
     const rows = filteredSales.map((s: any) => [
-      formatDate(s.createdAt),
-      `#${s.id.slice(0, 8).toUpperCase()}`,
+      formatDate(s.date),
+      s.folio,
       s.customer,
       s.user,
-      s.paymentMethod,
-      s.isFacturado ? 'Sí' : 'No',
+      s.method,
+      s.pueOrPpd,
+      s.invoiceId ? 'Sí' : 'No',
       s.total
     ]);
     exportToExcel(headers, rows, 'Reporte_Desglose_Ventas');
@@ -131,7 +132,7 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
           </ResponsiveContainer>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 350px', gap: '2rem', alignItems: 'start' }}>
+        <div className="report-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 350px', gap: '2rem', alignItems: 'start' }}>
           
           {/* Tabla Analítica */}
           <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
@@ -163,7 +164,7 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
                 <thead style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10 }}>
                   <tr style={{ borderBottom: '2px solid var(--caanma-border)', color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>
                     <th style={{ padding: '0.75rem 0.5rem' }}>Fecha</th>
-                    <th style={{ padding: '0.75rem 0.5rem' }}>ID Ticket</th>
+                    <th style={{ padding: '0.75rem 0.5rem' }}>Folio</th>
                     <th style={{ padding: '0.75rem 0.5rem' }}>Cliente</th>
                     <th style={{ padding: '0.75rem 0.5rem' }}>Cajero</th>
                     <th style={{ padding: '0.75rem 0.5rem' }}>Método</th>
@@ -177,7 +178,7 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
                   {filteredSales.map((s: any) => (
                     <tr key={s.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                       <td data-label="Fecha" style={{ padding: '1rem 0.5rem', fontSize: '0.9rem' }}>{formatDate(s.date)}</td>
-                      <td data-label="ID Ticket" style={{ padding: '1rem 0.5rem', fontSize: '0.9rem', color: 'var(--caanma-primary)', fontFamily: 'monospace' }}>{s.id.split('-')[0]}</td>
+                      <td data-label="Folio" style={{ padding: '1rem 0.5rem', fontSize: '0.9rem', color: 'var(--caanma-primary)', fontFamily: 'monospace' }}>{s.folio}</td>
                       <td data-label="Cliente" style={{ padding: '1rem 0.5rem' }}>{s.customer}</td>
                       <td data-label="Cajero" style={{ padding: '1rem 0.5rem', color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>{s.user}</td>
                       <td data-label="Método" style={{ padding: '1rem 0.5rem' }}>
