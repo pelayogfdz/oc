@@ -14,11 +14,17 @@ import { formatTime12h as formatTime12hUtil, formatDateLocal } from '@/app/lib/t
 export default function MonitoreoClient({ 
   users, 
   branches,
-  timezone
+  timezone,
+  userPermissions = {},
+  userRole = '',
+  isSuperAdmin = false
 }: { 
   users: any[]; 
   branches: any[];
   timezone: string;
+  userPermissions?: Record<string, boolean>;
+  userRole?: string;
+  isSuperAdmin?: boolean;
 }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'today' | 'history'>('today');
@@ -31,6 +37,13 @@ export default function MonitoreoClient({
   const [manualDate, setManualDate] = useState('');
   const [manualNotes, setManualNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // CRUD extensions
+  const [editingLog, setEditingLog] = useState<any>(null);
+  const [manualStatus, setManualStatus] = useState('OK');
+  const [manualUserId, setManualUserId] = useState('');
+
+  const canModify = isSuperAdmin || userRole === 'ADMIN' || !!userPermissions['rh_modify_attendance'];
 
   // History filters states
   const [historyLogs, setHistoryLogs] = useState<any[]>([]);
@@ -88,39 +101,116 @@ export default function MonitoreoClient({
     }
   };
 
+  const formatForInput = (dateStr: string | Date) => {
+    const d = new Date(dateStr);
+    const pad = (num: number) => String(num).padStart(2, '0');
+    const year = d.getFullYear();
+    const month = pad(d.getMonth() + 1);
+    const day = pad(d.getDate());
+    const hours = pad(d.getHours());
+    const minutes = pad(d.getMinutes());
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   const openManualModal = (user: any) => {
+    setEditingLog(null);
     setSelectedUser(user);
-    const logs = user.attendanceLogs || [];
+    setManualUserId(user?.id || '');
+    setManualStatus('OK');
+    const logs = user?.attendanceLogs || [];
     const checkIn = logs.find((l: any) => l.type === 'CHECK_IN');
     const checkOut = logs.find((l: any) => l.type === 'CHECK_OUT');
     
     if (checkIn && !checkOut) setManualType('CHECK_OUT');
     else setManualType('CHECK_IN');
 
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    setManualDate(now.toISOString().slice(0, 16));
+    setManualDate(formatForInput(new Date()));
     setManualNotes('');
     setIsModalOpen(true);
   };
 
+  const openAddGlobalModal = () => {
+    setEditingLog(null);
+    setSelectedUser(null);
+    setManualUserId(users[0]?.id || '');
+    setManualType('CHECK_IN');
+    setManualStatus('OK');
+    setManualDate(formatForInput(new Date()));
+    setManualNotes('');
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (log: any) => {
+    setEditingLog(log);
+    setSelectedUser(log.user);
+    setManualUserId(log.userId);
+    setManualType(log.type);
+    setManualStatus(log.status || 'OK');
+    setManualDate(formatForInput(log.timestamp));
+    const noteText = log.deviceInfo?.startsWith('Registro Manual (Admin): ') 
+      ? log.deviceInfo.replace('Registro Manual (Admin): ', '') 
+      : (log.deviceInfo === 'Registro Manual (Admin)' ? '' : (log.deviceInfo || ''));
+    setManualNotes(noteText);
+    setIsModalOpen(true);
+  };
+
   const handleManualSubmit = async () => {
-    if (!selectedUser || !manualDate) return;
+    const targetUserId = selectedUser?.id || manualUserId;
+    if (!targetUserId || !manualDate) {
+      toast.error("Por favor selecciona un empleado y una fecha.");
+      return;
+    }
     setIsSubmitting(true);
     try {
-      await registerAttendanceAdmin({
-        userId: selectedUser.id,
-        type: manualType,
-        timestamp: new Date(manualDate).toISOString(),
-        notes: manualNotes
-      });
-      toast.success("Registro manual guardado correctamente.");
+      if (editingLog) {
+        const { updateAttendanceLog } = await import('@/app/actions/hr');
+        await updateAttendanceLog({
+          id: editingLog.id,
+          type: manualType,
+          timestamp: new Date(manualDate).toISOString(),
+          status: manualStatus,
+          notes: manualNotes
+        });
+        toast.success("Registro modificado correctamente.");
+        if (activeTab === 'history') {
+          handleSearchHistory();
+        }
+      } else {
+        await registerAttendanceAdmin({
+          userId: targetUserId,
+          type: manualType,
+          timestamp: new Date(manualDate).toISOString(),
+          status: manualStatus,
+          notes: manualNotes
+        });
+        toast.success("Registro manual guardado correctamente.");
+        if (activeTab === 'history') {
+          handleSearchHistory();
+        }
+      }
       setIsModalOpen(false);
       router.refresh();
     } catch (error: any) {
       toast.error(error.message || "Error al guardar el registro.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteLog = async (logId: string) => {
+    if (!confirm("¿Estás seguro de que deseas eliminar este registro de asistencia? Esta acción no se puede deshacer.")) {
+      return;
+    }
+    try {
+      const { deleteAttendanceLog } = await import('@/app/actions/hr');
+      await deleteAttendanceLog(logId);
+      toast.success("Registro eliminado correctamente.");
+      if (activeTab === 'history') {
+        handleSearchHistory();
+      }
+      router.refresh();
+    } catch (error: any) {
+      toast.error(error.message || "Error al eliminar el registro.");
     }
   };
 
@@ -235,12 +325,14 @@ export default function MonitoreoClient({
                       <div style={{ padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: `${statusColor}15`, color: statusColor, border: `1px solid ${statusColor}30` }}>
                         {statusText}
                       </div>
-                      <button 
-                        onClick={() => openManualModal(user)}
-                        style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: 'bold', padding: 0 }}
-                      >
-                        <PlusCircle size={14} /> Corregir
-                      </button>
+                      {canModify && (
+                        <button 
+                          onClick={() => openManualModal(user)}
+                          style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: 'bold', padding: 0 }}
+                        >
+                          <PlusCircle size={14} /> Corregir
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -621,9 +713,32 @@ export default function MonitoreoClient({
 
           {/* Results Table */}
           <div className="card" style={{ padding: '0', overflow: 'hidden', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.95rem' }}>Resultados del Historial</span>
-              <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '500' }}>{historyLogs.length} registros cargados</span>
+            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.95rem', marginRight: '1rem' }}>Resultados del Historial</span>
+                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '500' }}>{historyLogs.length} registros cargados</span>
+              </div>
+              {canModify && (
+                <button
+                  onClick={openAddGlobalModal}
+                  style={{
+                    padding: '0.45rem 1rem',
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    borderRadius: '8px',
+                    fontWeight: 'bold',
+                    fontSize: '0.8rem',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    boxShadow: '0 2px 4px rgba(16,185,129,0.2)'
+                  }}
+                >
+                  <PlusCircle size={14} /> Agregar Registro Manual
+                </button>
+              )}
             </div>
 
             {isLoadingHistory ? (
@@ -650,6 +765,9 @@ export default function MonitoreoClient({
                       <th style={{ padding: '0.75rem 1.5rem', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase', textAlign: 'center' }}>Selfie</th>
                       <th style={{ padding: '0.75rem 1.5rem', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase', textAlign: 'center' }}>GPS Map</th>
                       <th style={{ padding: '0.75rem 1.5rem', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase' }}>Dispositivo</th>
+                      {canModify && (
+                        <th style={{ padding: '0.75rem 1.5rem', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase', textAlign: 'center' }}>Acciones</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -791,6 +909,50 @@ export default function MonitoreoClient({
                               <Smartphone size={12} /> {log.deviceInfo || 'N/D'}
                             </span>
                           </td>
+
+                          {/* Action Buttons Column */}
+                          {canModify && (
+                            <td style={{ padding: '0.75rem 1.5rem', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
+                                <button 
+                                  onClick={() => openEditModal(log)}
+                                  style={{ 
+                                    display: 'inline-flex', 
+                                    alignItems: 'center', 
+                                    padding: '0.25rem 0.5rem', 
+                                    backgroundColor: '#f1f5f9', 
+                                    color: '#475569', 
+                                    border: '1px solid #cbd5e1', 
+                                    borderRadius: '6px', 
+                                    fontSize: '0.75rem', 
+                                    fontWeight: 'bold', 
+                                    cursor: 'pointer' 
+                                  }}
+                                  title="Editar registro"
+                                >
+                                  Editar
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteLog(log.id)}
+                                  style={{ 
+                                    display: 'inline-flex', 
+                                    alignItems: 'center', 
+                                    padding: '0.25rem 0.5rem', 
+                                    backgroundColor: '#fef2f2', 
+                                    color: '#ef4444', 
+                                    border: '1px solid #fecaca', 
+                                    borderRadius: '6px', 
+                                    fontSize: '0.75rem', 
+                                    fontWeight: 'bold', 
+                                    cursor: 'pointer' 
+                                  }}
+                                  title="Eliminar registro"
+                                >
+                                  Eliminar
+                                </button>
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
@@ -829,22 +991,56 @@ export default function MonitoreoClient({
         </div>
       )}
 
-      {/* ================= CORRECTION MODAL (MANUAL REGISTER) ================= */}
-      {isModalOpen && selectedUser && (
+      {/* ================= CORRECTION MODAL (MANUAL REGISTER / EDIT) ================= */}
+      {isModalOpen && (selectedUser || !editingLog) && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div className="card" style={{ width: '400px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem', border: 'none', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>Registro Manual</h2>
-            <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.9rem', margin: 0 }}>Agregando registro para <strong>{selectedUser.name}</strong></p>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>
+              {editingLog ? 'Editar Registro' : 'Registro Manual'}
+            </h2>
+            
+            {(selectedUser || editingLog) ? (
+              <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.9rem', margin: 0 }}>
+                {editingLog ? 'Modificando registro de ' : 'Agregando registro para '}
+                <strong>{selectedUser?.name || editingLog?.user?.name}</strong>
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#475569' }}>Empleado</label>
+                <select 
+                  value={manualUserId} 
+                  onChange={(e) => setManualUserId(e.target.value)}
+                  style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', backgroundColor: 'white' }}
+                >
+                  {users.map(u => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <label style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#475569' }}>Tipo de Registro</label>
               <select 
                 value={manualType} 
                 onChange={(e) => setManualType(e.target.value as any)}
-                style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', backgroundColor: 'white' }}
               >
                 <option value="CHECK_IN">Entrada (Check-in)</option>
                 <option value="CHECK_OUT">Salida (Check-out)</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#475569' }}>Estado</label>
+              <select 
+                value={manualStatus} 
+                onChange={(e) => setManualStatus(e.target.value)}
+                style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', backgroundColor: 'white' }}
+              >
+                <option value="OK">A Tiempo</option>
+                <option value="LATE">Retardo</option>
+                <option value="OUTSIDE_RADIUS">Fuera de Rango</option>
               </select>
             </div>
 
@@ -854,7 +1050,7 @@ export default function MonitoreoClient({
                 type="datetime-local" 
                 value={manualDate}
                 onChange={(e) => setManualDate(e.target.value)}
-                style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', backgroundColor: 'white' }}
               />
             </div>
 
@@ -865,7 +1061,7 @@ export default function MonitoreoClient({
                 placeholder="Ej. Olvidó marcar, Falla de sistema"
                 value={manualNotes}
                 onChange={(e) => setManualNotes(e.target.value)}
-                style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', backgroundColor: 'white' }}
               />
             </div>
 

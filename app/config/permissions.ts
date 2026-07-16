@@ -246,6 +246,7 @@ export const PERMISSION_MODULES = [
         name: 'Control de Asistencia',
         permissions: [
           { id: 'rh_monitoreo', label: 'Ver Monitoreo de Asistencia' },
+          { id: 'rh_modify_attendance', label: 'Editar, Agregar o Eliminar registros de Asistencia' },
           { id: 'rh_calendario', label: 'Ver Calendario de Incidencias' },
           { id: 'rh_reportes', label: 'Ver Reportes Históricos' },
           { id: 'rh_gps', label: 'Ver Ubicaciones GPS' }

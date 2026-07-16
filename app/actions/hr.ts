@@ -347,18 +347,61 @@ export async function registerFingerprintCredential(data: {
   }
 }
 
+async function checkModifyAttendancePermission() {
+  const sessionCookie = (await cookies()).get('session')?.value;
+  const session = await decrypt(sessionCookie);
+  if (!session?.userId) {
+    throw new Error("No autorizado. Inicie sesión.");
+  }
+  
+  if (session.role === 'ADMIN' || session.userId === 'pelayogfdz@gmail.com') {
+    return true;
+  }
+  
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    include: { customRole: true }
+  });
+  
+  if (!user) {
+    throw new Error("Usuario no encontrado.");
+  }
+  
+  const rolePermissions = user.customRole?.permissions;
+  const userPermissionsRaw = user.permissions;
+  const mergedList: string[] = [];
+
+  if (rolePermissions) {
+    try {
+      const parsed = JSON.parse(rolePermissions);
+      if (Array.isArray(parsed)) mergedList.push(...parsed);
+      else Object.keys(parsed).forEach((k) => { if (parsed[k]) mergedList.push(k); });
+    } catch (e) {}
+  }
+
+  if (userPermissionsRaw) {
+    try {
+      const parsed = JSON.parse(userPermissionsRaw);
+      if (Array.isArray(parsed)) mergedList.push(...parsed);
+      else Object.keys(parsed).forEach((k) => { if (parsed[k]) mergedList.push(k); });
+    } catch (e) {}
+  }
+
+  if (mergedList.includes('rh_modify_attendance')) {
+    return true;
+  }
+  
+  throw new Error("No autorizado. Se requiere el permiso: 'rh_modify_attendance'.");
+}
+
 export async function registerAttendanceAdmin(data: {
   userId: string;
   type: 'CHECK_IN' | 'CHECK_OUT';
   timestamp: string;
+  status?: string;
   notes?: string;
 }) {
-  const sessionCookie = (await cookies()).get('session')?.value;
-  const session = await decrypt(sessionCookie);
-  
-  if (!session?.userId || (session.role !== 'ADMIN' && session.role !== 'MANAGER')) {
-    throw new Error("No autorizado. Se requieren permisos de administrador o recursos humanos.");
-  }
+  await checkModifyAttendancePermission();
 
   const logTimestamp = new Date(data.timestamp);
 
@@ -366,7 +409,7 @@ export async function registerAttendanceAdmin(data: {
     data: {
       userId: data.userId,
       type: data.type,
-      status: 'OK',
+      status: data.status || 'OK',
       timestamp: logTimestamp,
       deviceInfo: data.notes ? `Registro Manual (Admin): ${data.notes}` : 'Registro Manual (Admin)'
     }
@@ -388,6 +431,44 @@ export async function registerAttendanceAdmin(data: {
       deviceInfo: log.deviceInfo
     } 
   };
+}
+
+export async function updateAttendanceLog(data: {
+  id: string;
+  type: 'CHECK_IN' | 'CHECK_OUT';
+  timestamp: string;
+  status: string;
+  notes?: string;
+}) {
+  await checkModifyAttendancePermission();
+
+  const logTimestamp = new Date(data.timestamp);
+
+  const log = await prisma.attendanceLog.update({
+    where: { id: data.id },
+    data: {
+      type: data.type,
+      timestamp: logTimestamp,
+      status: data.status,
+      deviceInfo: data.notes ? `Registro Manual (Admin): ${data.notes}` : undefined
+    }
+  });
+
+  revalidatePath('/rh/monitoreo');
+  revalidatePath('/rh/reportes');
+  return { success: true, log };
+}
+
+export async function deleteAttendanceLog(id: string) {
+  await checkModifyAttendancePermission();
+
+  await prisma.attendanceLog.delete({
+    where: { id }
+  });
+
+  revalidatePath('/rh/monitoreo');
+  revalidatePath('/rh/reportes');
+  return { success: true };
 }
 
 export async function createLeaveRequest(data: {
