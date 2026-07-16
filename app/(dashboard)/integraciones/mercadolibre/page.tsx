@@ -12,6 +12,7 @@ interface PageProps {
   searchParams: Promise<{
     tab?: string;
     success?: string;
+    search?: string;
   }>;
 }
 
@@ -24,6 +25,7 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
 
   const resolvedSearchParams = await searchParams;
   const activeTab = resolvedSearchParams.tab || 'config';
+  const search = resolvedSearchParams.search || '';
   
   const headersList = await headers();
   const host = headersList.get('host') || 'localhost:3000';
@@ -58,34 +60,68 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
     }
   }
 
-  const allProducts = await prisma.product.findMany({
-    where: { branchId: { in: tenantBranchIds }, isActive: true },
-    include: {
-      externalMaps: {
-        where: { platform: 'MERCADO_LIBRE' }
-      }
+  // 1. Obtener todas las vinculaciones activas para el tenant (todas las sucursales)
+  const linkedMaps = await prisma.externalProductMap.findMany({
+    where: { 
+      platform: 'MERCADO_LIBRE', 
+      product: { 
+        branchId: { in: tenantBranchIds },
+        isActive: true
+      } 
     },
+    include: { product: true }
+  });
+
+  // 2. Obtener productos no vinculados (limitado o según búsqueda para evitar error P2035)
+  const unlinkedProducts = await prisma.product.findMany({
+    where: {
+      branchId: { in: tenantBranchIds },
+      isActive: true,
+      externalMaps: {
+        none: { platform: 'MERCADO_LIBRE' }
+      },
+      OR: search ? [
+        { name: { contains: search, mode: 'insensitive' } },
+        { sku: { contains: search, mode: 'insensitive' } }
+      ] : undefined
+    },
+    take: search ? 500 : 150, // Más amplio si están buscando activamente
     orderBy: { name: 'asc' }
   });
 
-  const catalogList = allProducts.map(p => {
-    const map = p.externalMaps?.[0] || null;
-    return {
-      id: map?.id || `unlinked-${p.id}`,
+  // 3. Unificar ambas listas
+  const catalogList = [
+    ...linkedMaps.map(map => ({
+      id: map.id,
+      productId: map.productId,
+      platform: 'MERCADO_LIBRE',
+      externalId: map.externalId,
+      syncStatus: map.syncStatus || 'active',
+      precioMeli: map.precioMeli,
+      comisionMeli: map.comisionMeli || 0,
+      envioMeli: map.envioMeli || 0,
+      retencionMeli: map.retencionMeli || 0,
+      margenDinero: map.margenDinero,
+      margenPorcentaje: map.margenPorcentaje,
+      isFixedPrice: !!map.isFixedPrice,
+      product: map.product
+    })),
+    ...unlinkedProducts.map(p => ({
+      id: `unlinked-${p.id}`,
       productId: p.id,
       platform: 'MERCADO_LIBRE',
-      externalId: map?.externalId || '',
-      syncStatus: map ? (map.syncStatus || 'active') : 'unlinked',
-      precioMeli: map?.precioMeli,
-      comisionMeli: map?.comisionMeli || 0,
-      envioMeli: map?.envioMeli || 0,
-      retencionMeli: map?.retencionMeli || 0,
-      margenDinero: map?.margenDinero,
-      margenPorcentaje: map?.margenPorcentaje,
-      isFixedPrice: !!map?.isFixedPrice,
+      externalId: '',
+      syncStatus: 'unlinked',
+      precioMeli: null,
+      comisionMeli: 0,
+      envioMeli: 0,
+      retencionMeli: 0,
+      margenDinero: null,
+      margenPorcentaje: null,
+      isFixedPrice: false,
       product: p
-    };
-  });
+    }))
+  ];
 
   const branches = await getTenantBranches(user.tenantId);
 
@@ -322,6 +358,24 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: 0 }}>Listado de Vinculaciones, Costos y Precios Editables</h2>
             </div>
+
+            {/* Buscador de productos locales para vincular */}
+            <form action="" method="GET" style={{ marginBottom: '2rem', display: 'flex', gap: '0.5rem' }}>
+              <input type="hidden" name="tab" value="catalogo" />
+              <input 
+                type="text" 
+                name="search" 
+                placeholder="Buscar producto en Caanma para publicar / vincular (nombre o SKU)..." 
+                defaultValue={search}
+                style={{ flex: 1, padding: '0.6rem 1rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', fontSize: '0.875rem' }}
+              />
+              <button type="submit" className="btn-primary" style={{ padding: '0.6rem 1.5rem', fontWeight: 'bold' }}>Buscar</button>
+              {search && (
+                <Link href="?tab=catalogo" className="btn-secondary" style={{ padding: '0.6rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', fontWeight: 'bold' }}>
+                  Limpiar
+                </Link>
+              )}
+            </form>
             
             {catalogList.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--caanma-text-muted)' }}>
