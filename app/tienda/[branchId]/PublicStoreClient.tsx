@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { formatCurrency } from '@/lib/utils';
-import { ShoppingCart, Search, Plus, Minus, Send, MapPin, Store, X } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Minus, Send, MapPin, Store, X, Phone } from 'lucide-react';
 
 type CartItem = { product: any; quantity: number };
 
@@ -129,6 +129,41 @@ export default function PublicStoreClient({ branchName, config, products }: { br
           from { transform: scale(0.95); opacity: 0; }
           to { transform: scale(1); opacity: 1; }
         }
+        .store-header-container {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 1rem;
+          max-width: 1200px;
+          margin: 0 auto;
+          width: 100%;
+        }
+        .store-header-main {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          flex: 1;
+        }
+        .store-search-wrapper {
+          flex: 1;
+          max-width: 450px;
+          position: relative;
+        }
+        @media (max-width: 768px) {
+          .store-header-container {
+            flex-direction: column;
+            gap: 0.6rem;
+            align-items: stretch;
+          }
+          .store-header-main {
+            width: 100%;
+          }
+          .store-search-wrapper {
+            width: 100%;
+            max-width: 100%;
+          }
+        }
       `}</style>
 
       {/* Premium Zoom Modal Overlay */}
@@ -211,27 +246,104 @@ export default function PublicStoreClient({ branchName, config, products }: { br
       )}
       
       {/* Header */}
-      <div style={{ backgroundColor: config.themeColor, color: 'white', padding: '1rem', position: 'sticky', top: 0, zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ fontWeight: 'bold', fontSize: '1.25rem' }}>{branchName}</h1>
-        <button onClick={() => setShowCart(!showCart)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'rgba(255,255,255,0.2)', padding: '0.5rem 1rem', borderRadius: '50px', fontWeight: 'bold' }}>
-           <ShoppingCart size={18} /> {cart.length}
-        </button>
-      </div>
+      <div style={{ backgroundColor: config.themeColor, color: 'white', padding: '0.75rem 1rem', position: 'sticky', top: 0, zIndex: 10, boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
+        <div className="store-header-container">
+          <div className="store-header-main">
+            <h1 style={{ fontWeight: 'bold', fontSize: '1.25rem', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {branchName}
+            </h1>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+              {config.whatsapp && (
+                <a 
+                  href={`https://wa.me/${config.whatsapp}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.35rem', 
+                    backgroundColor: '#25d366', 
+                    color: 'white', 
+                    padding: '0.5rem 0.85rem', 
+                    borderRadius: '50px', 
+                    fontWeight: 'bold',
+                    fontSize: '0.85rem',
+                    textDecoration: 'none',
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  <Phone size={14} fill="white" />
+                  <span>Contacto</span>
+                </a>
+              )}
+              
+              <button 
+                onClick={() => setShowCart(!showCart)} 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem', 
+                  backgroundColor: 'rgba(255,255,255,0.2)', 
+                  border: 'none', 
+                  color: 'white', 
+                  padding: '0.5rem 1rem', 
+                  borderRadius: '50px', 
+                  fontWeight: 'bold', 
+                  cursor: 'pointer' 
+                }}
+              >
+                 <ShoppingCart size={18} /> {cart.length}
+              </button>
+            </div>
+          </div>
 
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
-        
-        <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'center' }}>
-          <div style={{ position: 'relative', width: '100%', maxWidth: '500px' }}>
-            <Search size={20} color="gray" style={{ position: 'absolute', top: '50%', left: '1rem', transform: 'translateY(-50%)' }} />
+          <div className="store-search-wrapper">
+            <Search size={18} color="gray" style={{ position: 'absolute', top: '50%', left: '1rem', transform: 'translateY(-50%)', zIndex: 2 }} />
             <input 
               type="text" 
               placeholder="Buscar productos..."
               value={searchTerm}
-               onChange={e => setSearchTerm(e.target.value)}
-              style={{ padding: '1rem 1rem 1rem 3rem', width: '100%', borderRadius: '50px', border: '1px solid #e2e8f0', fontSize: '1rem', outline: 'none' }}
+              onChange={e => setSearchTerm(e.target.value)}
+              style={{ 
+                padding: '0.5rem 1rem 0.5rem 2.8rem', 
+                width: '100%', 
+                borderRadius: '50px', 
+                border: 'none', 
+                fontSize: '0.95rem', 
+                outline: 'none',
+                color: '#334155',
+                backgroundColor: 'white',
+                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)'
+              }}
             />
+            {searchTerm && (
+              <button 
+                onClick={() => setSearchTerm('')} 
+                style={{ 
+                  position: 'absolute', 
+                  top: '50%', 
+                  right: '1rem', 
+                  transform: 'translateY(-50%)', 
+                  border: 'none', 
+                  background: 'none', 
+                  cursor: 'pointer', 
+                  color: '#94a3b8',
+                  padding: '0.2rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 2
+                }}
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
         </div>
+      </div>
+
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '1rem' }}>
           {filteredProducts.map(product => {

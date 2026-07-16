@@ -9,6 +9,13 @@ export async function searchTicket(ticketId: string) {
     const { sale } = resolved;
     if (sale.status !== "COMPLETED") return { error: "El ticket no es válido para facturación fiscal." };
 
+    // Only allow invoicing tickets generated within the current calendar month
+    const ticketDate = new Date(sale.createdAt);
+    const today = new Date();
+    if (ticketDate.getUTCMonth() !== today.getUTCMonth() || ticketDate.getUTCFullYear() !== today.getUTCFullYear()) {
+      return { error: "Solo se permite facturar tickets dentro del mismo mes en que fueron generados." };
+    }
+
     return { sale };
   } catch (error) {
     return { error: "Error de servidor al buscar el ticket." };
@@ -24,6 +31,13 @@ export async function generateInvoice(ticketId: string, taxData: any) {
 
     const { client: db, sale } = resolved;
     if (sale.invoiceId) return { error: "El ticket ya fue facturado." };
+
+    // Only allow invoicing tickets generated within the current calendar month
+    const ticketDate = new Date(sale.createdAt);
+    const today = new Date();
+    if (ticketDate.getUTCMonth() !== today.getUTCMonth() || ticketDate.getUTCFullYear() !== today.getUTCFullYear()) {
+      return { error: "Solo se permite facturar tickets dentro del mismo mes en que fueron generados." };
+    }
 
     const branch = await db.branch.findUnique({
       where: { id: sale.branchId || '' },

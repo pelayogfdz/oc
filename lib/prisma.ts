@@ -472,6 +472,11 @@ function isFolioMatch(folio: string, searchInput: string): boolean {
   
   if (fNorm === sNorm) return true;
   
+  // If the search input contains any letters (e.g. branch prefix), require exact normalized match
+  if (/[a-z]/i.test(sNorm)) {
+    return false;
+  }
+  
   // The database folio must at least end with the search input characters
   if (!fNorm.endsWith(sNorm)) {
     return false;
@@ -502,6 +507,7 @@ export async function resolveClientForSale(saleIdOrFolio: string): Promise<{ cli
     try {
       const sales = await client.sale.findMany({
         where: exactWhere,
+        orderBy: { createdAt: 'desc' },
         include: {
           user: true,
           customer: true,
@@ -529,6 +535,7 @@ export async function resolveClientForSale(saleIdOrFolio: string): Promise<{ cli
       try {
         const sale = await client.sale.findFirst({
           where: partialWhere,
+          orderBy: { createdAt: 'desc' },
           include: {
             user: true,
             customer: true,
@@ -562,6 +569,7 @@ export async function resolveClientForQuote(quoteIdOrFolio: string): Promise<{ c
     try {
       const quotes = await client.quote.findMany({
         where: exactWhere,
+        orderBy: { createdAt: 'desc' },
         include: {
           user: true,
           customer: true,
@@ -589,6 +597,7 @@ export async function resolveClientForQuote(quoteIdOrFolio: string): Promise<{ c
       try {
         const quote = await client.quote.findFirst({
           where: partialWhere,
+          orderBy: { createdAt: 'desc' },
           include: {
             user: true,
             customer: true,

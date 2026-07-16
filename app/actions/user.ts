@@ -255,11 +255,16 @@ export async function deleteUser(id: string) {
       revalidatePath('/preferencias/usuarios');
       return { success: true };
     } catch (deleteError: any) {
-      // If it fails due to foreign key constraints or dependency issues, perform anonymization / soft-delete
+      // If the record was not found during delete, it means it is already deleted or does not exist
+      if (deleteError.code === 'P2025' || String(deleteError).includes('Record to delete does not exist')) {
+        updateTag(`user-${id}`);
+        revalidatePath('/preferencias/usuarios');
+        return { success: true };
+      }
+
+      // If it fails due to foreign key constraints, perform anonymization / soft-delete
       const isConstraintError = 
         deleteError.code === 'P2003' || 
-        deleteError.code === 'P2025' || 
-        String(deleteError).includes('Record to delete does not exist') ||
         String(deleteError).includes('foreign key constraint');
 
       if (isConstraintError) {
@@ -281,7 +286,7 @@ export async function deleteUser(id: string) {
         revalidatePath('/preferencias/usuarios');
         return { success: true };
       }
-      throw deleteError;
+      return { success: false, error: deleteError.message || "No se pudo eliminar el usuario del sistema." };
     }
   } catch (error: any) {
     console.error("Error in deleteUser:", error);
