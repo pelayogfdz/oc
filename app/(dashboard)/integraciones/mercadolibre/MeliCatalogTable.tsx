@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { saveMeliProductPricing, publishProductToMeli } from '@/app/actions/integration';
-import { Save, Edit2, X, Check, Loader2, ExternalLink, Search, Globe } from 'lucide-react';
+import { saveMeliProductPricing, publishProductToMeli, linkMeliItemToProduct, searchCaanmaProducts, syncMeliCatalogAction } from '@/app/actions/integration';
+import { Save, Edit2, X, Check, Loader2, ExternalLink, Search, Globe, RefreshCw } from 'lucide-react';
 
 interface MeliCatalogTableProps {
   initialMaps: any[];
@@ -17,12 +17,40 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
   const [publishing, setPublishing] = useState(false);
   const [publishProgress, setPublishProgress] = useState<string | null>(null);
 
+  // Link selection state for unlinked ML items
+  const [rowLinkProductId, setRowLinkProductId] = useState<Record<string, string>>({});
+  const [rowSearchVal, setRowSearchVal] = useState<Record<string, string>>({});
+  const [rowSearchResults, setRowSearchResults] = useState<Record<string, any[]>>({});
+  const [rowSearching, setRowSearching] = useState<Record<string, boolean>>({});
+  const [selectedRowProduct, setSelectedRowProduct] = useState<Record<string, any>>({});
+
+  const handleSearchRowProduct = async (itemId: string, query: string) => {
+    setRowSearchVal(prev => ({ ...prev, [itemId]: query }));
+    if (!query || query.trim().length < 2) {
+      setRowSearchResults(prev => ({ ...prev, [itemId]: [] }));
+      return;
+    }
+    setRowSearching(prev => ({ ...prev, [itemId]: true }));
+    const results = await searchCaanmaProducts(query);
+    setRowSearching(prev => ({ ...prev, [itemId]: false }));
+    setRowSearchResults(prev => ({ ...prev, [itemId]: results }));
+  };
+
   // Column filter state
   const [filters, setFilters] = useState({
     name: '',
     sku: '',
-    status: 'ALL', // ALL, linked, unlinked, active, paused
+    status: 'ALL', // ALL, linked, unlinked, active, paused, meli_unlinked
     fixed: 'ALL', // ALL, yes, no
+    cost: '',
+    localPrice: '',
+    stock: '',
+    priceMeli: '',
+    comision: '',
+    envio: '',
+    retencion: '',
+    margenD: '',
+    margenP: '',
   });
 
   // Form state for inline editing
@@ -38,10 +66,39 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
 
   const [savingId, setSavingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    setMessage(null);
+    try {
+      const res = await syncMeliCatalogAction();
+      if (res.success) {
+        setMessage({ type: 'success', text: res.message || 'Sincronización completada exitosamente.' });
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        setMessage({ type: 'error', text: res.error || 'Error durante la sincronización.' });
+      }
+    } catch (e: any) {
+      setMessage({ type: 'error', text: e.message || String(e) });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // Filtered maps memoized
   const filteredMaps = useMemo(() => {
     return maps.filter(map => {
+      const p = map.product;
+      const dPrecio = map.precioMeli !== null && map.precioMeli !== undefined ? map.precioMeli : p.price;
+      const dComision = map.comisionMeli || 0;
+      const dEnvio = map.envioMeli || 0;
+      const dRetencion = map.retencionMeli || 0;
+      const dMargenD = map.margenDinero !== null && map.margenDinero !== undefined ? map.margenDinero : (dPrecio - p.cost - dComision - dEnvio - dRetencion);
+      const dMargenP = map.margenPorcentaje !== null && map.margenPorcentaje !== undefined ? map.margenPorcentaje : (dPrecio > 0 ? (dMargenD / dPrecio) * 100 : 0);
+
       // 1. Name Filter
       const nameMatch = map.product.name.toLowerCase().includes(filters.name.toLowerCase());
       
@@ -51,9 +108,11 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
       // 3. Status Filter
       let statusMatch = true;
       if (filters.status === 'linked') {
-        statusMatch = map.syncStatus !== 'unlinked';
+        statusMatch = map.syncStatus !== 'unlinked' && map.syncStatus !== 'meli_unlinked';
       } else if (filters.status === 'unlinked') {
         statusMatch = map.syncStatus === 'unlinked';
+      } else if (filters.status === 'meli_unlinked') {
+        statusMatch = map.syncStatus === 'meli_unlinked';
       } else if (filters.status === 'active') {
         statusMatch = map.syncStatus === 'active';
       } else if (filters.status === 'paused') {
@@ -65,10 +124,45 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
       if (filters.fixed === 'yes') {
         fixedMatch = map.isFixedPrice === true;
       } else if (filters.fixed === 'no') {
-        fixedMatch = map.isFixedPrice === false && map.syncStatus !== 'unlinked';
+        fixedMatch = map.isFixedPrice === false && map.syncStatus !== 'unlinked' && map.syncStatus !== 'meli_unlinked';
       }
 
-      return nameMatch && skuMatch && statusMatch && fixedMatch;
+      // Helper for numeric matching
+      const matchNumericFilter = (value: number, filterStr: string) => {
+        if (!filterStr) return true;
+        const trimmed = filterStr.trim();
+        if (trimmed.startsWith('>=')) {
+          const num = parseFloat(trimmed.substring(2));
+          return isNaN(num) ? true : value >= num;
+        }
+        if (trimmed.startsWith('<=')) {
+          const num = parseFloat(trimmed.substring(2));
+          return isNaN(num) ? true : value <= num;
+        }
+        if (trimmed.startsWith('>')) {
+          const num = parseFloat(trimmed.substring(1));
+          return isNaN(num) ? true : value > num;
+        }
+        if (trimmed.startsWith('<')) {
+          const num = parseFloat(trimmed.substring(1));
+          return isNaN(num) ? true : value < num;
+        }
+        const num = parseFloat(trimmed);
+        return isNaN(num) ? true : Math.abs(value - num) < 0.01 || String(value).includes(trimmed);
+      };
+
+      // Numeric Filters matches
+      const costMatch = map.syncStatus === 'meli_unlinked' ? true : matchNumericFilter(p.cost, filters.cost);
+      const localPriceMatch = map.syncStatus === 'meli_unlinked' ? true : matchNumericFilter(p.price, filters.localPrice);
+      const stockMatch = matchNumericFilter(p.stock, filters.stock);
+      const priceMeliMatch = map.syncStatus === 'unlinked' ? true : matchNumericFilter(dPrecio, filters.priceMeli);
+      const comisionMatch = map.syncStatus === 'unlinked' ? true : matchNumericFilter(dComision, filters.comision);
+      const envioMatch = map.syncStatus === 'unlinked' ? true : matchNumericFilter(dEnvio, filters.envio);
+      const retencionMatch = map.syncStatus === 'unlinked' ? true : matchNumericFilter(dRetencion, filters.retencion);
+      const margenDMatch = map.syncStatus === 'unlinked' ? true : matchNumericFilter(dMargenD, filters.margenD);
+      const margenPMatch = map.syncStatus === 'unlinked' ? true : matchNumericFilter(dMargenP, filters.margenP);
+
+      return nameMatch && skuMatch && statusMatch && fixedMatch && costMatch && localPriceMatch && stockMatch && priceMeliMatch && comisionMatch && envioMatch && retencionMatch && margenDMatch && margenPMatch;
     });
   }, [maps, filters]);
 
@@ -258,6 +352,8 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
     switch (status) {
       case 'unlinked':
         return <span style={{ padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: '#f1f5f9', color: '#64748b' }}>No Vinculado</span>;
+      case 'meli_unlinked':
+        return <span style={{ padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: '#e0f2fe', color: '#0369a1' }}>ML Sin Vincular</span>;
       case 'active':
         return <span style={{ padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: '#dcfce7', color: '#15803d' }}>Activo</span>;
       case 'paused':
@@ -274,11 +370,69 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
       
       {/* Header Actions & Bulk Actions */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Globe size={20} className="text-primary" />
-          <span style={{ fontWeight: '500', color: 'var(--caanma-text)' }}>
-            Productos filtrados: <strong>{filteredMaps.length}</strong> de {maps.length}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Globe size={20} className="text-primary" />
+            <span style={{ fontWeight: '500', color: 'var(--caanma-text)' }}>
+              Productos filtrados: <strong>{filteredMaps.length}</strong> de {maps.length}
+            </span>
+          </div>
+          
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="btn-secondary"
+            style={{ 
+              padding: '0.4rem 1rem', 
+              fontSize: '0.85rem', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem',
+              cursor: syncing ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {syncing ? (
+              <>
+                <Loader2 size={16} className="animate-spin text-primary" />
+                <span>Sincronizando...</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw size={16} />
+                <span>Forzar Sincronización Manual Ahora</span>
+              </>
+            )}
+          </button>
+          
+          <button
+            onClick={() => setFilters({
+              name: '',
+              sku: '',
+              status: 'ALL',
+              fixed: 'ALL',
+              cost: '',
+              localPrice: '',
+              stock: '',
+              priceMeli: '',
+              comision: '',
+              envio: '',
+              retencion: '',
+              margenD: '',
+              margenP: '',
+            })}
+            className="btn-secondary"
+            style={{ 
+              padding: '0.4rem 1.25rem', 
+              fontSize: '0.85rem', 
+              cursor: 'pointer',
+              borderColor: '#cbd5e1',
+              backgroundColor: 'white',
+              color: '#475569',
+              fontWeight: '500'
+            }}
+          >
+            Limpiar Filtros
+          </button>
         </div>
         
         {selectedCount > 0 && (
@@ -336,7 +490,7 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
               placeholder="Filtro de nombre..."
               value={filters.name}
               onChange={e => setFilters(prev => ({ ...prev, name: e.target.value }))}
-              style={{ width: '100%', padding: '0.4rem 0.5rem 0.4rem 1.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+              style={{ width: '100%', padding: '0.4rem 0.5rem 0.4rem 1.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
             />
             <Search size={12} style={{ position: 'absolute', left: '0.5rem', top: '0.6rem', color: '#94a3b8' }} />
           </div>
@@ -350,10 +504,109 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
               placeholder="Filtro de SKU..."
               value={filters.sku}
               onChange={e => setFilters(prev => ({ ...prev, sku: e.target.value }))}
-              style={{ width: '100%', padding: '0.4rem 0.5rem 0.4rem 1.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+              style={{ width: '100%', padding: '0.4rem 0.5rem 0.4rem 1.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
             />
             <Search size={12} style={{ position: 'absolute', left: '0.5rem', top: '0.6rem', color: '#94a3b8' }} />
           </div>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Costo</label>
+          <input 
+            type="text" 
+            placeholder="Ej: >50, <200"
+            value={filters.cost}
+            onChange={e => setFilters(prev => ({ ...prev, cost: e.target.value }))}
+            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Precio Local</label>
+          <input 
+            type="text" 
+            placeholder="Ej: >100"
+            value={filters.localPrice}
+            onChange={e => setFilters(prev => ({ ...prev, localPrice: e.target.value }))}
+            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Stock Caanma</label>
+          <input 
+            type="text" 
+            placeholder="Ej: >10, =0"
+            value={filters.stock}
+            onChange={e => setFilters(prev => ({ ...prev, stock: e.target.value }))}
+            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Precio Venta ML</label>
+          <input 
+            type="text" 
+            placeholder="Ej: >150"
+            value={filters.priceMeli}
+            onChange={e => setFilters(prev => ({ ...prev, priceMeli: e.target.value }))}
+            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Comisión Real</label>
+          <input 
+            type="text" 
+            placeholder="Ej: >0"
+            value={filters.comision}
+            onChange={e => setFilters(prev => ({ ...prev, comision: e.target.value }))}
+            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Costo Envío</label>
+          <input 
+            type="text" 
+            placeholder="Ej: >0"
+            value={filters.envio}
+            onChange={e => setFilters(prev => ({ ...prev, envio: e.target.value }))}
+            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Retención Imp.</label>
+          <input 
+            type="text" 
+            placeholder="Ej: >0"
+            value={filters.retencion}
+            onChange={e => setFilters(prev => ({ ...prev, retencion: e.target.value }))}
+            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Margen ($)</label>
+          <input 
+            type="text" 
+            placeholder="Ej: >20"
+            value={filters.margenD}
+            onChange={e => setFilters(prev => ({ ...prev, margenD: e.target.value }))}
+            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Margen (%)</label>
+          <input 
+            type="text" 
+            placeholder="Ej: >15"
+            value={filters.margenP}
+            onChange={e => setFilters(prev => ({ ...prev, margenP: e.target.value }))}
+            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
+          />
         </div>
 
         <div>
@@ -365,7 +618,8 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
           >
             <option value="ALL">Todos los estatus</option>
             <option value="linked">Vinculados</option>
-            <option value="unlinked">No vinculados</option>
+            <option value="unlinked">No vinculados (Caanma)</option>
+            <option value="meli_unlinked">Sin vincular (Mercado Libre)</option>
             <option value="active">Activos en ML</option>
             <option value="paused">Pausados en ML</option>
           </select>
@@ -403,6 +657,7 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
               <th style={{ padding: '0.75rem 0.5rem' }}>SKU</th>
               <th style={{ padding: '0.75rem 0.5rem' }}>Costo</th>
               <th style={{ padding: '0.75rem 0.5rem', color: '#64748b' }}>Precio Local</th>
+              <th style={{ padding: '0.75rem 0.5rem', color: '#475569', fontWeight: 'bold' }}>Stock Caanma</th>
               <th style={{ padding: '0.75rem 0.5rem', color: 'var(--caanma-primary)', minWidth: '100px' }}>Precio Venta ML</th>
               <th style={{ padding: '0.75rem 0.5rem', color: '#b91c1c', minWidth: '90px' }}>Comisión Real</th>
               <th style={{ padding: '0.75rem 0.5rem', color: '#3b82f6', minWidth: '90px' }}>Costo Envío</th>
@@ -417,7 +672,7 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
           <tbody>
             {filteredMaps.length === 0 ? (
               <tr>
-                <td colSpan={14} style={{ textAlign: 'center', padding: '3rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>
+                <td colSpan={15} style={{ textAlign: 'center', padding: '3rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>
                   No se encontraron productos que coincidan con los filtros seleccionados.
                 </td>
               </tr>
@@ -427,6 +682,7 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
                 const isEditing = editingId === map.id;
                 const isSaving = savingId === map.id;
                 const isUnlinked = map.syncStatus === 'unlinked';
+                const isMeliUnlinked = map.syncStatus === 'meli_unlinked';
 
                 // Display values
                 const dPrecio = map.precioMeli !== null && map.precioMeli !== undefined ? map.precioMeli : p.price;
@@ -436,13 +692,17 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
                 const dMargenD = map.margenDinero !== null && map.margenDinero !== undefined ? map.margenDinero : (dPrecio - p.cost - dComision - dEnvio - dRetencion);
                 const dMargenP = map.margenPorcentaje !== null && map.margenPorcentaje !== undefined ? map.margenPorcentaje : (dPrecio > 0 ? (dMargenD / dPrecio) * 100 : 0);
 
+                // Stock resolution for unlinked ML items when linked product is chosen
+                const linkedProductObj = selectedRowProduct[map.externalId];
+                const displayStock = linkedProductObj ? linkedProductObj.stock : p.stock;
+
                 return (
                   <tr key={map.id} style={{ 
                     borderBottom: '1px solid var(--caanma-border)', 
                     backgroundColor: isEditing ? '#f8fafc' : 'transparent',
                     transition: 'background-color 0.2s'
                   }}>
-                    {/* Checkbox (only for unlinked products) */}
+                    {/* Checkbox (only for Caanma unlinked products) */}
                     <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>
                       {isUnlinked ? (
                         <input 
@@ -460,7 +720,7 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
                     <td style={{ padding: '0.75rem 0.5rem', fontWeight: '500' }}>
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <span>{p.name}</span>
-                        {!isUnlinked && map.externalId && (
+                        {map.externalId && (
                           <span style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)' }}>
                             ID: <a href={`https://articulo.mercadolibre.com.mx/${map.externalId.replace('MLM', 'MLM-')}`} target="_blank" rel="noreferrer" style={{ color: 'var(--caanma-primary)', textDecoration: 'none' }}>{map.externalId} <ExternalLink size={10} style={{ display: 'inline' }} /></a>
                           </span>
@@ -469,138 +729,233 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
                     </td>
 
                     {/* SKU */}
-                    <td style={{ padding: '0.75rem 0.5rem', color: 'var(--caanma-text-muted)' }}>{p.sku || <span style={{ color: '#ef4444', fontStyle: 'italic', fontSize: '0.75rem' }}>Falta SKU</span>}</td>
+                    <td style={{ padding: '0.75rem 0.5rem', color: 'var(--caanma-text-muted)' }}>
+                      {isMeliUnlinked ? (
+                        <span style={{ fontWeight: '500', color: '#0369a1' }}>{p.sku}</span>
+                      ) : (
+                        p.sku || <span style={{ color: '#ef4444', fontStyle: 'italic', fontSize: '0.75rem' }}>Falta SKU</span>
+                      )}
+                    </td>
 
                     {/* Cost */}
-                    <td style={{ padding: '0.75rem 0.5rem' }}>${p.cost.toFixed(2)}</td>
+                    <td style={{ padding: '0.75rem 0.5rem' }}>{isMeliUnlinked ? '-' : `$${p.cost.toFixed(2)}`}</td>
 
                     {/* Price Local */}
-                    <td style={{ padding: '0.75rem 0.5rem', color: '#64748b' }}>${p.price.toFixed(2)}</td>
+                    <td style={{ padding: '0.75rem 0.5rem', color: '#64748b' }}>{isMeliUnlinked ? '-' : `$${p.price.toFixed(2)}`}</td>
 
-                    {/* Precio Venta ML */}
-                    <td style={{ padding: '0.5rem 0.25rem' }}>
-                      {isEditing ? (
-                        <input 
-                          type="number" 
-                          step="0.01"
-                          value={formData.precioMeli}
-                          onChange={e => handleFieldChange('precioMeli', parseFloat(e.target.value) || 0, p.cost)}
-                          style={{ width: '85px', padding: '0.35rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontWeight: 'bold' }}
-                        />
+                    {/* Stock Caanma */}
+                    <td style={{ padding: '0.75rem 0.5rem', fontWeight: '500', color: '#475569' }}>
+                      {isMeliUnlinked ? (
+                        linkedProductObj ? (
+                          <span style={{ color: '#16a34a', fontWeight: 'bold' }}>{displayStock} pzs</span>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No asignado</span>
+                        )
                       ) : (
-                        <span style={{ fontWeight: 'bold', color: isUnlinked ? '#94a3b8' : 'var(--caanma-primary)' }}>
-                          {isUnlinked ? '-' : `$${dPrecio.toFixed(2)}`}
-                        </span>
+                        `${p.stock} pzs`
                       )}
                     </td>
 
-                    {/* Comisión Real */}
-                    <td style={{ padding: '0.5rem 0.25rem' }}>
-                      {isEditing ? (
-                        <input 
-                          type="number" 
-                          step="0.01"
-                          value={formData.comisionMeli}
-                          onChange={e => handleFieldChange('comisionMeli', parseFloat(e.target.value) || 0, p.cost)}
-                          style={{ width: '75px', padding: '0.35rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-                        />
-                      ) : (
-                        <span>{isUnlinked ? '-' : `$${dComision.toFixed(2)}`}</span>
-                      )}
-                    </td>
+                    {/* Dynamic rendering depending on whether it is an unlinked ML item or Caanma item */}
+                    {isMeliUnlinked ? (
+                      <td colSpan={7} style={{ padding: '0.5rem 0.25rem', position: 'relative' }}>
+                        {linkedProductObj ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#e0f2fe', padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid #bae6fd' }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#0369a1', flex: 1 }}>
+                              Vinculando a: <strong style={{ color: '#0284c7' }}>{linkedProductObj.sku ? `[${linkedProductObj.sku}] ` : ''}</strong> {linkedProductObj.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedRowProduct(prev => {
+                                  const next = { ...prev };
+                                  delete next[map.externalId];
+                                  return next;
+                                });
+                                setRowLinkProductId(prev => {
+                                  const next = { ...prev };
+                                  delete next[map.externalId];
+                                  return next;
+                                });
+                              }}
+                              style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', backgroundColor: 'white', fontWeight: 'bold' }}
+                            >
+                              Cambiar
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ position: 'relative' }}>
+                            <input
+                              type="text"
+                              placeholder="Escribe 2+ letras para buscar por nombre o SKU de Caanma..."
+                              value={rowSearchVal[map.externalId] || ''}
+                              onChange={e => handleSearchRowProduct(map.externalId, e.target.value)}
+                              style={{ width: '100%', padding: '0.4rem 0.5rem 0.4rem 1.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
+                            />
+                            <Search size={12} style={{ position: 'absolute', left: '0.5rem', top: '0.65rem', color: '#94a3b8' }} />
+                            {rowSearching[map.externalId] && (
+                              <Loader2 size={12} className="animate-spin" style={{ position: 'absolute', right: '0.5rem', top: '0.65rem', color: '#94a3b8' }} />
+                            )}
+                            
+                            {/* Search results list popup */}
+                            {rowSearchResults[map.externalId] && rowSearchResults[map.externalId].length > 0 && (
+                              <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', zIndex: 100, backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '4px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', maxHeight: '180px', overflowY: 'auto', marginTop: '2px' }}>
+                                {rowSearchResults[map.externalId].map((cp: any) => (
+                                  <div
+                                    key={cp.id}
+                                    onClick={() => {
+                                      setSelectedRowProduct(prev => ({ ...prev, [map.externalId]: cp }));
+                                      setRowLinkProductId(prev => ({ ...prev, [map.externalId]: cp.id }));
+                                      setRowSearchResults(prev => ({ ...prev, [map.externalId]: [] })); // Clear list
+                                      setRowSearchVal(prev => ({ ...prev, [map.externalId]: '' })); // Clear input
+                                    }}
+                                    style={{ padding: '0.5rem', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', fontSize: '0.8rem' }}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                                  >
+                                    <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{cp.sku ? `[SKU: ${cp.sku}] ` : ''}{cp.name}</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Stock sumado: {cp.stock} pzs</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {rowSearchVal[map.externalId]?.trim().length >= 2 && !rowSearching[map.externalId] && (!rowSearchResults[map.externalId] || rowSearchResults[map.externalId].length === 0) && (
+                              <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', zIndex: 100, backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem', fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                                No se encontraron coincidencias.
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    ) : (
+                      <>
+                        {/* Precio Venta ML */}
+                        <td style={{ padding: '0.5rem 0.25rem' }}>
+                          {isEditing ? (
+                            <input 
+                              type="number" 
+                              step="0.01"
+                              value={formData.precioMeli}
+                              onChange={e => handleFieldChange('precioMeli', parseFloat(e.target.value) || 0, p.cost)}
+                              style={{ width: '85px', padding: '0.35rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontWeight: 'bold' }}
+                            />
+                          ) : (
+                            <span style={{ fontWeight: 'bold', color: isUnlinked ? '#94a3b8' : 'var(--caanma-primary)' }}>
+                              {isUnlinked ? '-' : `$${dPrecio.toFixed(2)}`}
+                            </span>
+                          )}
+                        </td>
 
-                    {/* Costo Envío */}
-                    <td style={{ padding: '0.5rem 0.25rem' }}>
-                      {isEditing ? (
-                        <input 
-                          type="number" 
-                          step="0.01"
-                          value={formData.envioMeli}
-                          onChange={e => handleFieldChange('envioMeli', parseFloat(e.target.value) || 0, p.cost)}
-                          style={{ width: '75px', padding: '0.35rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-                        />
-                      ) : (
-                        <span>{isUnlinked ? '-' : `$${dEnvio.toFixed(2)}`}</span>
-                      )}
-                    </td>
+                        {/* Comisión Real */}
+                        <td style={{ padding: '0.5rem 0.25rem' }}>
+                          {isEditing ? (
+                            <input 
+                              type="number" 
+                              step="0.01"
+                              value={formData.comisionMeli}
+                              onChange={e => handleFieldChange('comisionMeli', parseFloat(e.target.value) || 0, p.cost)}
+                              style={{ width: '75px', padding: '0.35rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                            />
+                          ) : (
+                            <span>{isUnlinked ? '-' : `$${dComision.toFixed(2)}`}</span>
+                          )}
+                        </td>
 
-                    {/* Retención Imp. */}
-                    <td style={{ padding: '0.5rem 0.25rem' }}>
-                      {isEditing ? (
-                        <input 
-                          type="number" 
-                          step="0.01"
-                          value={formData.retencionMeli}
-                          onChange={e => handleFieldChange('retencionMeli', parseFloat(e.target.value) || 0, p.cost)}
-                          style={{ width: '75px', padding: '0.35rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-                        />
-                      ) : (
-                        <span>{isUnlinked ? '-' : `$${dRetencion.toFixed(2)}`}</span>
-                      )}
-                    </td>
+                        {/* Costo Envío */}
+                        <td style={{ padding: '0.5rem 0.25rem' }}>
+                          {isEditing ? (
+                            <input 
+                              type="number" 
+                              step="0.01"
+                              value={formData.envioMeli}
+                              onChange={e => handleFieldChange('envioMeli', parseFloat(e.target.value) || 0, p.cost)}
+                              style={{ width: '75px', padding: '0.35rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                            />
+                          ) : (
+                            <span>{isUnlinked ? '-' : `$${dEnvio.toFixed(2)}`}</span>
+                          )}
+                        </td>
 
-                    {/* Margen ($) */}
-                    <td style={{ padding: '0.5rem 0.25rem' }}>
-                      {isEditing ? (
-                        <input 
-                          type="number" 
-                          step="0.01"
-                          value={formData.margenDinero}
-                          onChange={e => handleFieldChange('margenDinero', parseFloat(e.target.value) || 0, p.cost)}
-                          style={{ width: '75px', padding: '0.35rem', borderRadius: '4px', border: '1px solid #cbd5e1', color: '#16a34a', fontWeight: '500' }}
-                        />
-                      ) : (
-                        <span style={{ color: isUnlinked ? '#94a3b8' : (dMargenD >= 0 ? '#16a34a' : '#ef4444'), fontWeight: '500' }}>
-                          {isUnlinked ? '-' : `$${dMargenD.toFixed(2)}`}
-                        </span>
-                      )}
-                    </td>
+                        {/* Retención Imp. */}
+                        <td style={{ padding: '0.5rem 0.25rem' }}>
+                          {isEditing ? (
+                            <input 
+                              type="number" 
+                              step="0.01"
+                              value={formData.retencionMeli}
+                              onChange={e => handleFieldChange('retencionMeli', parseFloat(e.target.value) || 0, p.cost)}
+                              style={{ width: '75px', padding: '0.35rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                            />
+                          ) : (
+                            <span>{isUnlinked ? '-' : `$${dRetencion.toFixed(2)}`}</span>
+                          )}
+                        </td>
 
-                    {/* Margen (%) */}
-                    <td style={{ padding: '0.5rem 0.25rem' }}>
-                      {isEditing ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                          <input 
-                            type="number" 
-                            step="0.1"
-                            value={formData.margenPorcentaje}
-                            onChange={e => handleFieldChange('margenPorcentaje', parseFloat(e.target.value) || 0, p.cost)}
-                            style={{ width: '65px', padding: '0.35rem', borderRadius: '4px', border: '1px solid #cbd5e1', color: '#16a34a', fontWeight: '500' }}
-                          />
-                          <span>%</span>
-                        </div>
-                      ) : (
-                        <span style={{ color: isUnlinked ? '#94a3b8' : (dMargenP >= 0 ? '#16a34a' : '#ef4444'), fontWeight: '500' }}>
-                          {isUnlinked ? '-' : `${dMargenP.toFixed(1)}%`}
-                        </span>
-                      )}
-                    </td>
+                        {/* Margen ($) */}
+                        <td style={{ padding: '0.5rem 0.25rem' }}>
+                          {isEditing ? (
+                            <input 
+                              type="number" 
+                              step="0.01"
+                              value={formData.margenDinero}
+                              onChange={e => handleFieldChange('margenDinero', parseFloat(e.target.value) || 0, p.cost)}
+                              style={{ width: '75px', padding: '0.35rem', borderRadius: '4px', border: '1px solid #cbd5e1', color: '#16a34a', fontWeight: '500' }}
+                            />
+                          ) : (
+                            <span style={{ color: isUnlinked ? '#94a3b8' : (dMargenD >= 0 ? '#16a34a' : '#ef4444'), fontWeight: '500' }}>
+                              {isUnlinked ? '-' : `$${dMargenD.toFixed(2)}`}
+                            </span>
+                          )}
+                        </td>
 
-                    {/* Fijo? */}
-                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>
-                      {isUnlinked ? (
-                        <span style={{ color: '#cbd5e1' }}>-</span>
-                      ) : isEditing ? (
-                        <input 
-                          type="checkbox"
-                          checked={formData.isFixedPrice}
-                          onChange={e => setFormData(prev => ({ ...prev, isFixedPrice: e.target.checked }))}
-                          style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                        />
-                      ) : (
-                        <span style={{ 
-                          display: 'inline-block', 
-                          padding: '0.1rem 0.35rem', 
-                          borderRadius: '4px', 
-                          fontSize: '0.7rem', 
-                          fontWeight: 'bold',
-                          backgroundColor: map.isFixedPrice ? '#fef3c7' : '#f1f5f9',
-                          color: map.isFixedPrice ? '#d97706' : '#64748b'
-                        }}>
-                          {map.isFixedPrice ? 'SÍ' : 'NO'}
-                        </span>
-                      )}
-                    </td>
+                        {/* Margen (%) */}
+                        <td style={{ padding: '0.5rem 0.25rem' }}>
+                          {isEditing ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                              <input 
+                                type="number" 
+                                step="0.1"
+                                value={formData.margenPorcentaje}
+                                onChange={e => handleFieldChange('margenPorcentaje', parseFloat(e.target.value) || 0, p.cost)}
+                                style={{ width: '65px', padding: '0.35rem', borderRadius: '4px', border: '1px solid #cbd5e1', color: '#16a34a', fontWeight: '500' }}
+                              />
+                              <span>%</span>
+                            </div>
+                          ) : (
+                            <span style={{ color: isUnlinked ? '#94a3b8' : (dMargenP >= 0 ? '#16a34a' : '#ef4444'), fontWeight: '500' }}>
+                              {isUnlinked ? '-' : `${dMargenP.toFixed(1)}%`}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Fijo? */}
+                        <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>
+                          {isUnlinked ? (
+                            <span style={{ color: '#cbd5e1' }}>-</span>
+                          ) : isEditing ? (
+                            <input 
+                              type="checkbox"
+                              checked={formData.isFixedPrice}
+                              onChange={e => setFormData(prev => ({ ...prev, isFixedPrice: e.target.checked }))}
+                              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                            />
+                          ) : (
+                            <span style={{ 
+                              display: 'inline-block', 
+                              padding: '0.1rem 0.35rem', 
+                              borderRadius: '4px', 
+                              fontSize: '0.7rem', 
+                              fontWeight: 'bold',
+                              backgroundColor: map.isFixedPrice ? '#fef3c7' : '#f1f5f9',
+                              color: map.isFixedPrice ? '#d97706' : '#64748b'
+                            }}>
+                              {map.isFixedPrice ? 'SÍ' : 'NO'}
+                            </span>
+                          )}
+                        </td>
+                      </>
+                    )}
 
                     {/* Status badge */}
                     <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>
@@ -609,7 +964,49 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
 
                     {/* Actions */}
                     <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>
-                      {isUnlinked ? (
+                      {isMeliUnlinked ? (
+                        <button
+                          onClick={async () => {
+                            const targetPid = rowLinkProductId[map.externalId];
+                            if (!targetPid) return;
+                            setSavingId(map.externalId);
+                            setMessage(null);
+                            const res = await linkMeliItemToProduct(map.externalId, targetPid);
+                            setSavingId(null);
+                            if (res.success) {
+                              const linkedProd = selectedRowProduct[map.externalId];
+                              setMaps(prev => prev.map(m => m.externalId === map.externalId ? {
+                                ...m,
+                                productId: targetPid,
+                                syncStatus: 'active',
+                                product: {
+                                  ...m.product,
+                                  id: targetPid,
+                                  name: linkedProd?.name || m.product.name,
+                                  sku: linkedProd?.sku || m.product.sku,
+                                  stock: linkedProd?.stock || 0
+                                }
+                              } : m));
+                              setMessage({ type: 'success', text: `¡Publicación vinculada al producto '${linkedProd?.name || ''}' con éxito!` });
+                            } else {
+                              setMessage({ type: 'error', text: res.error || 'Error al vincular.' });
+                            }
+                            setTimeout(() => setMessage(null), 4000);
+                          }}
+                          disabled={savingId === map.externalId || !rowLinkProductId[map.externalId]}
+                          className="btn-primary"
+                          style={{ 
+                            padding: '0.4rem 0.75rem', 
+                            borderRadius: '4px', 
+                            fontSize: '0.75rem', 
+                            fontWeight: 'bold',
+                            opacity: rowLinkProductId[map.externalId] ? 1 : 0.5,
+                            cursor: rowLinkProductId[map.externalId] ? 'pointer' : 'not-allowed'
+                          }}
+                        >
+                          {savingId === map.externalId ? <Loader2 size={12} className="animate-spin" /> : 'Vincular'}
+                        </button>
+                      ) : isUnlinked ? (
                         <button 
                           onClick={async () => {
                             setSavingId(p.id);

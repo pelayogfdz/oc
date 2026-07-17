@@ -330,6 +330,11 @@ model Product {
 
   @@unique([sku, branchId])
   @@index([branchId, stock])
+  @@index([branchId, isActive, name])
+  @@index([branchId, isActive, category])
+  @@index([branchId, isActive, brand])
+  @@index([barcode])
+  @@index([sku])
 }
 
 model ProductVariant {
@@ -468,6 +473,7 @@ model Quote {
   user          User        @relation(fields: [userId], references: [id])
   breakdownDiscounts Boolean @default(false)
   items         QuoteItem[]
+  @@index([branchId, status])
 }
 
 model QuoteItem {
@@ -497,6 +503,7 @@ model Consignment {
   customer      Customer?         @relation(fields: [customerId], references: [id])
   user          User              @relation(fields: [userId], references: [id])
   items         ConsignmentItem[]
+  @@index([branchId, status])
 }
 
 model ConsignmentItem {

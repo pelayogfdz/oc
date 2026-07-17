@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import ChatInterface from "../prospeccion/chat/[id]/ChatInterface";
-import { useEffect } from "react";
 import { getRecentQuotes, searchCustomers, assignCustomerToProspect } from "@/app/actions/whatsapp-crm";
 
 const officeCityLocations = [
@@ -30,6 +29,10 @@ const defaultPresets = [
 
 export default function BandejaClient({ initialProspects, users, currentUser, customers = [] }: any) {
   const [prospects, setProspects] = useState(initialProspects);
+  const prospectsRef = useRef(prospects);
+  useEffect(() => {
+    prospectsRef.current = prospects;
+  }, [prospects]);
   const [selectedProspectId, setSelectedProspectId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
@@ -257,7 +260,7 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
           const data = await res.json();
           if (data.prospects) {
             // Check for changes (lengths, updatedAt, or message statuses)
-            const currentStr = JSON.stringify(prospects.map((p: any) => ({
+            const currentStr = JSON.stringify((prospectsRef.current || []).map((p: any) => ({
               id: p.id,
               updatedAt: p.updatedAt,
               msgCount: p.messages?.length || 0,
@@ -281,7 +284,7 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
     }, pollInterval);
 
     return () => clearInterval(interval);
-  }, [prospects, pollInterval]);
+  }, [pollInterval]);
 
   // Campaign Modal States
   const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);

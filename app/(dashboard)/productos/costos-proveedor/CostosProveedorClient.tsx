@@ -1,12 +1,33 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Save, Filter, Search, Upload, Download } from 'lucide-react';
 import { bulkUpdateCosts } from '@/app/actions/bulkCost';
 
 export default function CostosProveedorClient({ initProducts, brands, branchId }: { initProducts: any[], brands: string[], branchId: string }) {
   const [products, setProducts] = useState(initProducts.map(p => ({ ...p, _newCost: p.cost, _modified: false })));
   const [brandFilter, setBrandFilter] = useState<string>('');
+
+  const [brandsList, setBrandsList] = useState<string[]>(brands);
+  const [isLoadingBrands, setIsLoadingBrands] = useState(false);
+
+  useEffect(() => {
+    if (brandsList.length === 0) {
+      setIsLoadingBrands(true);
+      import('@/app/actions/product').then(async ({ getProductCategoriesAndBrands }) => {
+        try {
+          const res = await getProductCategoriesAndBrands(branchId);
+          if (res.success) {
+            setBrandsList(res.brands || []);
+          }
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setIsLoadingBrands(false);
+        }
+      });
+    }
+  }, [branchId, brandsList.length]);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [forceAverageCost, setForceAverageCost] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -135,9 +156,9 @@ export default function CostosProveedorClient({ initProducts, brands, branchId }
         </div>
         <div style={{ flex: 1, minWidth: '140px' }}>
           <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', fontWeight: 'bold' }}><Filter size={14} style={{ display: 'inline', marginRight: '4px' }}/> Filtrar por Marca</label>
-          <select value={brandFilter} onChange={e => setBrandFilter(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}>
-            <option value="">(Todas las marcas)</option>
-            {brands.map(b => <option key={b} value={b}>{b}</option>)}
+          <select disabled={isLoadingBrands} value={brandFilter} onChange={e => setBrandFilter(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}>
+            <option value="">{isLoadingBrands ? 'Cargando...' : '(Todas las marcas)'}</option>
+            {brandsList.map(b => <option key={b} value={b}>{b}</option>)}
           </select>
         </div>
         <div style={{ flex: 1, minWidth: '180px' }}>

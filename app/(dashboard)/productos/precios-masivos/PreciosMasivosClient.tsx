@@ -47,6 +47,29 @@ export default function PreciosMasivosClient({
   dynamicPriceLists: any[] 
 }) {
 
+  const [brandsList, setBrandsList] = useState<string[]>(brands);
+  const [categoriesList, setCategoriesList] = useState<string[]>(categories);
+  const [isLoadingFilters, setIsLoadingFilters] = useState(false);
+
+  useEffect(() => {
+    if (brandsList.length === 0 && categoriesList.length === 0) {
+      setIsLoadingFilters(true);
+      import('@/app/actions/product').then(async ({ getProductCategoriesAndBrands }) => {
+        try {
+          const res = await getProductCategoriesAndBrands(branchId);
+          if (res.success) {
+            setBrandsList(res.brands || []);
+            setCategoriesList(res.categories || []);
+          }
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setIsLoadingFilters(false);
+        }
+      });
+    }
+  }, [branchId, brandsList.length, categoriesList.length]);
+
   // Construimos todas las listas de precios combinadas
   const PRICE_LISTS: NormalizedPriceList[] = useMemo(() => {
     const defaultLists: NormalizedPriceList[] = [
@@ -378,16 +401,16 @@ export default function PreciosMasivosClient({
           </div>
           <div style={{ flex: 1, minWidth: '130px' }}>
             <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.4rem', fontWeight: 'bold' }}><Filter size={14} style={{ display: 'inline', marginRight: '4px' }}/> Marca</label>
-            <select value={brandFilter} onChange={e => setBrandFilter(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}>
-              <option value="">(Todas)</option>
-              {brands.map(b => <option key={b} value={b}>{b}</option>)}
+            <select disabled={isLoadingFilters} value={brandFilter} onChange={e => setBrandFilter(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}>
+              <option value="">{isLoadingFilters ? 'Cargando...' : '(Todas)'}</option>
+              {brandsList.map(b => <option key={b} value={b}>{b}</option>)}
             </select>
           </div>
           <div style={{ flex: 1, minWidth: '130px' }}>
             <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.4rem', fontWeight: 'bold' }}><Filter size={14} style={{ display: 'inline', marginRight: '4px' }}/> Categoría</label>
-            <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}>
-              <option value="">(Todas)</option>
-              {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            <select disabled={isLoadingFilters} value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}>
+              <option value="">{isLoadingFilters ? 'Cargando...' : '(Todas)'}</option>
+              {categoriesList.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
         </div>

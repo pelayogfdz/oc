@@ -6,19 +6,12 @@ export const dynamic = 'force-dynamic';
 
 export default async function CostosProveedorPage() {
   const branch = await getActiveBranch();
-  
-  // Extraemos las marcas únicas para el filtro
-  const brandList = await prisma.product.findMany({
-    where: { branchId: branch.id, brand: { not: null } },
-    select: { brand: true },
-    distinct: ['brand']
-  });
-  const brands = brandList.map(b => b.brand).filter(Boolean) as string[];
+  if (!branch) return null;
 
   const initialProducts = await prisma.product.findMany({
     where: { branchId: branch.id, isActive: true },
     select: { id: true, sku: true, name: true, brand: true, cost: true, averageCost: true }
   });
 
-  return <CostosProveedorClient initProducts={initialProducts} brands={brands} branchId={branch.id} />;
+  return <CostosProveedorClient initProducts={initialProducts} brands={[]} branchId={branch.id} />;
 }

@@ -7,11 +7,22 @@ export async function POST(req: Request) {
   try {
     const branch = await getActiveBranch();
     
+    const integration = await prisma.storeIntegration.findFirst({
+      where: {
+        platform: 'MERCADO_LIBRE',
+        branchId: branch.id // o cualquier sucursal vinculada
+      }
+    });
+
+    if (!integration) {
+      return NextResponse.json({ error: 'Configuración de Mercado Libre no encontrada.' }, { status: 400 });
+    }
+    
     // Obtener token real auto-refrescado
-    const token = await getOrRefreshMeliToken(branch.id);
+    const token = await getOrRefreshMeliToken(integration.branchId);
 
     if (!token) {
-      return NextResponse.json({ error: 'Configuración o token de Mercado Libre faltante o no conectado.' }, { status: 400 });
+      return NextResponse.json({ error: 'Token de Mercado Libre faltante o no conectado.' }, { status: 400 });
     }
 
     console.log(`[MELI SYNC] Iniciando sincronización de catálogo para sucursal ${branch.name}...`);
@@ -97,7 +108,7 @@ export async function POST(req: Request) {
     console.log(`[MELI SYNC] Procesando ${meliItems.length} publicaciones detalladas para mapeo de catálogo...`);
 
     let syncedCount = 0;
-    let newCreatedCount = 0;
+    const unlinkedMeliItems: any[] = [];
 
     for (const item of meliItems) {
       // Validar si la publicación ya tiene un mapa registrado
@@ -162,52 +173,41 @@ export async function POST(req: Request) {
           syncedCount++;
           console.log(`[MELI SYNC] Empatado producto local '${localProduct.name}' con publicación ${item.id} por SKU: ${cleanSku}`);
         } else {
-          // No hay producto local con ese SKU. Crear nuevo producto de forma automática
-          const newLocal = await prisma.product.create({
-            data: {
-              name: item.title,
-              sku: cleanSku || `MELI-${item.id}`,
-              price: item.price,
-              cost: item.price * 0.6, // Costo estimado base 60%
-              averageCost: item.price * 0.6,
-              stock: item.available_quantity,
-              branchId: branch.id
-            }
+          // No hay producto local con ese SKU. Guardamos como publicación de ML sin vincular en los metadatos
+          unlinkedMeliItems.push({
+            id: item.id,
+            title: item.title,
+            sku: cleanSku || '',
+            price: item.price,
+            status: item.status || 'active',
+            stock: item.available_quantity
           });
-          
-          const initialPrecioMeli = item.price;
-          const initialMargenDinero = initialPrecioMeli - newLocal.cost;
-          const initialMargenPorcentaje = initialPrecioMeli > 0 ? (initialMargenDinero / initialPrecioMeli) * 100 : 0;
-
-          await prisma.externalProductMap.create({
-            data: { 
-              productId: newLocal.id, 
-              platform: 'MERCADO_LIBRE', 
-              externalId: item.id,
-              syncStatus: item.status || 'active',
-              lastSync: new Date(),
-              precioMeli: initialPrecioMeli,
-              comisionMeli: 0,
-              envioMeli: 0,
-              retencionMeli: 0,
-              margenDinero: initialMargenDinero,
-              margenPorcentaje: initialMargenPorcentaje,
-              isFixedPrice: false
-            }
-          });
-          newCreatedCount++;
-          console.log(`[MELI SYNC] Creado nuevo producto local '${item.title}' (${newLocal.sku}) para publicación ${item.id}`);
         }
       }
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: `Sincronización completa. Mapeos actualizados: ${syncedCount}, Nuevos creados: ${newCreatedCount}` 
+    // Guardar las publicaciones no vinculadas de ML en los metadatos de la integración
+    const currentMeta = integration.metadata ? JSON.parse(integration.metadata) : {};
+    currentMeta.unlinkedMeliItems = unlinkedMeliItems;
+
+    await prisma.storeIntegration.update({
+      where: { id: integration.id },
+      data: { metadata: JSON.stringify(currentMeta) }
     });
+
+    const redirectUrl = new URL('/integraciones/mercadolibre', req.url);
+    redirectUrl.searchParams.set('tab', 'catalogo');
+    redirectUrl.searchParams.set('success', 'synced');
+    redirectUrl.searchParams.set('syncedCount', String(syncedCount));
+    redirectUrl.searchParams.set('unlinkedCount', String(unlinkedMeliItems.length));
+    return NextResponse.redirect(redirectUrl);
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Meli Sync Error:', error);
-    return NextResponse.json({ error: 'Error durante la sincronización: ' + String(error) }, { status: 500 });
+    const redirectUrl = new URL('/integraciones/mercadolibre', req.url);
+    redirectUrl.searchParams.set('tab', 'catalogo');
+    redirectUrl.searchParams.set('error', 'sync_failed');
+    redirectUrl.searchParams.set('message', error.message || String(error));
+    return NextResponse.redirect(redirectUrl);
   }
 }

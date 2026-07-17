@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import crypto from 'crypto';
 
 export async function GET(req: Request) {
   try {
@@ -22,7 +23,24 @@ export async function GET(req: Request) {
 
     // Intercambiar código por token
     const url = new URL(req.url);
-    const redirectUri = `${url.origin}/api/mercadolibre/callback`;
+    
+    let customRedirectUri = '';
+    if (integration.metadata) {
+      try {
+        const meta = JSON.parse(integration.metadata);
+        if (meta.customRedirectUri) customRedirectUri = meta.customRedirectUri;
+      } catch {}
+    }
+
+    let redirectUri = customRedirectUri;
+    if (!redirectUri) {
+      const host = req.headers.get('host') || url.host;
+      const protocol = host.startsWith('localhost') || host.startsWith('127.0.0.1') ? 'http' : 'https';
+      const baseHost = host.startsWith('localhost') || host.startsWith('127.0.0.1') ? host : 'caanma.com';
+      redirectUri = `${protocol}://${baseHost}/api/mercadolibre/callback`;
+    }
+
+    const verifier = crypto.createHash('sha256').update((integration.clientSecret || '') + branchId).digest('hex');
 
     const response = await fetch('https://api.mercadolibre.com/oauth/token', {
       method: 'POST',
@@ -32,10 +50,11 @@ export async function GET(req: Request) {
       },
       body: new URLSearchParams({
         grant_type: 'authorization_code',
-        client_id: integration.appId,
-        client_secret: integration.clientSecret,
+        client_id: integration.appId || '',
+        client_secret: integration.clientSecret || '',
         code,
-        redirect_uri: redirectUri
+        redirect_uri: redirectUri,
+        code_verifier: verifier
       })
     });
 
@@ -65,7 +84,18 @@ export async function GET(req: Request) {
     });
 
     // Redirigir de vuelta a la página de configuración con indicador de éxito
-    const redirectUrl = new URL('/integraciones/mercadolibre', url.origin);
+    let baseHost = 'caanma.com';
+    let protocol = 'https';
+    
+    const hostHeader = req.headers.get('host') || '';
+    const forwardedHost = req.headers.get('x-forwarded-host') || '';
+    
+    if (hostHeader.includes('localhost') || hostHeader.includes('127.0.0.1') || forwardedHost.includes('localhost') || forwardedHost.includes('127.0.0.1')) {
+      baseHost = hostHeader || forwardedHost || 'localhost:3000';
+      protocol = 'http';
+    }
+    
+    const redirectUrl = new URL('/integraciones/mercadolibre', `${protocol}://${baseHost}`);
     redirectUrl.searchParams.set('success', 'connected');
     return NextResponse.redirect(redirectUrl);
 

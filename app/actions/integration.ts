@@ -1,7 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { getActiveBranch } from './auth';
+import { getActiveBranch, getActiveUser } from './auth';
 import { revalidatePath } from 'next/cache';
 
 export async function saveIntegrationTokens(formData: FormData) {
@@ -10,6 +10,7 @@ export async function saveIntegrationTokens(formData: FormData) {
   const appId = formData.get('appId') as string;
   const clientSecret = formData.get('clientSecret') as string;
   const accessToken = formData.get('accessToken') as string;
+  const customRedirectUri = formData.get('customRedirectUri') as string;
   
   if (!platform || (!appId && !accessToken)) throw new Error("Faltan datos obligatorios");
 
@@ -17,14 +18,29 @@ export async function saveIntegrationTokens(formData: FormData) {
     where: { branchId_platform: { branchId: branch.id, platform } }
   });
 
+  const nextMetadata = existing?.metadata ? JSON.parse(existing.metadata) : {};
+  nextMetadata.customRedirectUri = customRedirectUri || '';
+
   if (existing) {
     await prisma.storeIntegration.update({
       where: { id: existing.id },
-      data: { appId, clientSecret, accessToken }
+      data: { 
+        appId, 
+        clientSecret, 
+        accessToken,
+        metadata: JSON.stringify(nextMetadata)
+      }
     });
   } else {
     await prisma.storeIntegration.create({
-      data: { branchId: branch.id, platform, appId, clientSecret, accessToken }
+      data: { 
+        branchId: branch.id, 
+        platform, 
+        appId, 
+        clientSecret, 
+        accessToken,
+        metadata: JSON.stringify(nextMetadata)
+      }
     });
   }
 
@@ -356,7 +372,17 @@ export async function saveMeliProductPricing(
 
 export async function publishProductToMeli(productId: string) {
   try {
-    const branch = await getActiveBranch();
+    const user = await getActiveUser();
+    if (!user || !user.tenantId) {
+      return { success: false, error: 'Contexto de usuario no encontrado.' };
+    }
+
+    const tenantBranchesList = await prisma.branch.findMany({
+      where: { tenantId: user.tenantId, isActive: true },
+      select: { id: true }
+    });
+    const tenantBranchIds = tenantBranchesList.map(b => b.id);
+
     const product = await prisma.product.findUnique({
       where: { id: productId },
       include: {
@@ -378,9 +404,12 @@ export async function publishProductToMeli(productId: string) {
       return { success: false, error: 'El producto debe tener un SKU configurado antes de publicarse.' };
     }
 
-    // Obtener la integración
-    const integration = await prisma.storeIntegration.findUnique({
-      where: { branchId_platform: { branchId: branch.id, platform: 'MERCADO_LIBRE' } }
+    // Obtener la integración en cualquiera de las sucursales del tenant
+    const integration = await prisma.storeIntegration.findFirst({
+      where: {
+        platform: 'MERCADO_LIBRE',
+        branchId: { in: tenantBranchIds }
+      }
     });
 
     if (!integration || !integration.accessToken) {
@@ -412,9 +441,9 @@ export async function publishProductToMeli(productId: string) {
       console.error('[publishProductToMeli] Error prediciendo categoría:', e);
     }
 
-    // 2. Renovar/obtener token real
+    // 2. Renovar/obtener token real de la sucursal de la integración
     const { getOrRefreshMeliToken } = await import('@/app/utils/meliToken');
-    const token = await getOrRefreshMeliToken(branch.id);
+    const token = await getOrRefreshMeliToken(integration.branchId);
     if (!token) {
       return { success: false, error: 'No se pudo obtener un token válido de Mercado Libre.' };
     }
@@ -482,4 +511,316 @@ export async function publishProductToMeli(productId: string) {
     return { success: false, error: error.message || 'Error inesperado al publicar.' };
   }
 }
+
+export async function linkMeliItemToProduct(externalId: string, productId: string) {
+  try {
+    const user = await getActiveUser();
+    if (!user || !user.tenantId) {
+      return { success: false, error: 'Contexto de usuario no encontrado.' };
+    }
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId }
+    });
+
+    if (!product) {
+      return { success: false, error: 'Producto Caanma no encontrado.' };
+    }
+
+    // Obtener las sucursales del tenant
+    const tenantBranchesList = await prisma.branch.findMany({
+      where: { tenantId: user.tenantId, isActive: true },
+      select: { id: true }
+    });
+    const tenantBranchIds = tenantBranchesList.map(b => b.id);
+
+    // Obtener la integración
+    const integration = await prisma.storeIntegration.findFirst({
+      where: {
+        platform: 'MERCADO_LIBRE',
+        branchId: { in: tenantBranchIds }
+      }
+    });
+
+    if (!integration) {
+      return { success: false, error: 'Integración no configurada.' };
+    }
+
+    const price = product.price > 0 ? product.price : 100;
+    
+    // Crear el registro de mapeo
+    await prisma.externalProductMap.create({
+      data: {
+        productId: product.id,
+        platform: 'MERCADO_LIBRE',
+        externalId: externalId,
+        syncStatus: 'active',
+        precioMeli: price,
+        comisionMeli: 0,
+        envioMeli: 0,
+        retencionMeli: 0,
+        margenDinero: price - product.cost,
+        margenPorcentaje: price > 0 ? ((price - product.cost) / price) * 100 : 0,
+        isFixedPrice: false
+      }
+    });
+
+    // Remover de unlinkedMeliItems en los metadatos
+    if (integration.metadata) {
+      try {
+        const meta = JSON.parse(integration.metadata);
+        if (meta.unlinkedMeliItems && Array.isArray(meta.unlinkedMeliItems)) {
+          meta.unlinkedMeliItems = meta.unlinkedMeliItems.filter((item: any) => item.id !== externalId);
+          await prisma.storeIntegration.update({
+            where: { id: integration.id },
+            data: { metadata: JSON.stringify(meta) }
+          });
+        }
+      } catch (e) {
+        console.error('Error actualizando metadatos en linkMeliItemToProduct:', e);
+      }
+    }
+
+    revalidatePath('/integraciones/mercadolibre');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error in linkMeliItemToProduct:', error);
+    return { success: false, error: error.message || 'Error inesperado al vincular.' };
+  }
+}
+
+export async function searchCaanmaProducts(query: string) {
+  try {
+    const user = await getActiveUser();
+    if (!user || !user.tenantId) {
+      return [];
+    }
+    
+    const tenantBranchesList = await prisma.branch.findMany({
+      where: { tenantId: user.tenantId, isActive: true },
+      select: { id: true }
+    });
+    const tenantBranchIds = tenantBranchesList.map(b => b.id);
+    
+    if (!query || query.trim().length < 2) {
+      return [];
+    }
+
+    const cleanQuery = query.trim();
+
+    // Buscar productos
+    const products = await prisma.product.findMany({
+      where: {
+        branchId: { in: tenantBranchIds },
+        isActive: true,
+        OR: [
+          { name: { contains: cleanQuery, mode: 'insensitive' } },
+          { sku: { contains: cleanQuery, mode: 'insensitive' } }
+        ]
+      },
+      select: { id: true, name: true, sku: true, stock: true },
+      take: 30,
+      orderBy: { name: 'asc' }
+    });
+
+    // Agrupar por SKU
+    const grouped: any[] = [];
+    const skuMap: Record<string, boolean> = {};
+    for (const p of products) {
+      const sku = p.sku ? String(p.sku).trim() : `NOSKU-${p.id}`;
+      if (!skuMap[sku]) {
+        skuMap[sku] = true;
+        grouped.push({
+          id: p.id,
+          name: p.name,
+          sku: p.sku,
+          stock: p.stock
+        });
+      } else {
+        const existing = grouped.find(x => (x.sku ? String(x.sku).trim() : '') === sku);
+        if (existing) {
+          existing.stock += p.stock;
+        }
+      }
+    }
+
+    return grouped;
+  } catch (e) {
+    console.error('Error in searchCaanmaProducts:', e);
+    return [];
+  }
+}
+
+export async function syncMeliCatalogAction() {
+  try {
+    const branch = await getActiveBranch();
+    const platform = 'MERCADO_LIBRE';
+    
+    const integration = await prisma.storeIntegration.findFirst({
+      where: { platform, branchId: branch.id }
+    });
+
+    if (!integration) {
+      return { success: false, error: 'Configuración de Mercado Libre no encontrada.' };
+    }
+
+    const { getOrRefreshMeliToken } = await import('@/app/utils/meliToken');
+    const token = await getOrRefreshMeliToken(integration.branchId);
+
+    if (!token) {
+      return { success: false, error: 'Token de Mercado Libre faltante o no conectado.' };
+    }
+
+    // 1. Obtener ID de usuario de Mercado Libre
+    const meResponse = await fetch('https://api.mercadolibre.com/users/me', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!meResponse.ok) {
+      return { success: false, error: 'Error al conectar con la cuenta de Mercado Libre. Verifica tu autorización.' };
+    }
+
+    const meData = await meResponse.json();
+    const userId = meData.id;
+
+    // 2. Buscar publicaciones activas del vendedor (límite inicial de 50 items)
+    const searchResponse = await fetch(`https://api.mercadolibre.com/users/${userId}/items/search?limit=50&status=active`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!searchResponse.ok) {
+      return { success: false, error: 'Error al consultar catálogo de Mercado Libre.' };
+    }
+
+    const searchData = await searchResponse.json();
+    const itemIds: string[] = searchData.results || [];
+
+    if (itemIds.length === 0) {
+      revalidatePath('/integraciones/mercadolibre');
+      return { success: true, message: 'Sincronización completa. No se encontraron publicaciones activas.' };
+    }
+
+    // 3. Obtener el detalle de las publicaciones en lotes de hasta 20
+    const meliItems: any[] = [];
+    const batchSize = 20;
+    
+    for (let i = 0; i < itemIds.length; i += batchSize) {
+      const batchIds = itemIds.slice(i, i + batchSize);
+      const itemsDetailResponse = await fetch(`https://api.mercadolibre.com/items?ids=${batchIds.join(',')}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (itemsDetailResponse.ok) {
+        const details = await itemsDetailResponse.json();
+        if (Array.isArray(details)) {
+          details.forEach((d: any) => {
+            if (d.code === 200 && d.body) {
+              const body = d.body;
+              meliItems.push({
+                id: body.id,
+                title: body.title,
+                price: body.price,
+                status: body.status,
+                available_quantity: body.available_quantity,
+                seller_custom_field: body.seller_custom_field || null
+              });
+            }
+          });
+        }
+      }
+    }
+
+    let syncedCount = 0;
+    const unlinkedMeliItems: any[] = [];
+
+    for (const item of meliItems) {
+      const existingMap = await prisma.externalProductMap.findUnique({
+        where: { platform_externalId: { platform: 'MERCADO_LIBRE', externalId: item.id } },
+        include: { product: true }
+      });
+
+      if (existingMap) {
+        const updateData: any = { lastSync: new Date(), syncStatus: item.status || 'active' };
+        if (!existingMap.isFixedPrice) {
+          updateData.precioMeli = item.price;
+          
+          const cost = existingMap.product.cost;
+          const comision = existingMap.comisionMeli || 0;
+          const envio = existingMap.envioMeli || 0;
+          const retencion = existingMap.retencionMeli || 0;
+          
+          const margenDinero = item.price - cost - comision - envio - retencion;
+          const margenPorcentaje = item.price > 0 ? (margenDinero / item.price) * 100 : 0;
+          
+          updateData.margenDinero = margenDinero;
+          updateData.margenPorcentaje = margenPorcentaje;
+        }
+        
+        await prisma.externalProductMap.update({
+          where: { id: existingMap.id },
+          data: updateData
+        });
+        syncedCount++;
+      } else {
+        const cleanSku = item.seller_custom_field ? String(item.seller_custom_field).trim() : null;
+        
+        const localProduct = cleanSku ? await prisma.product.findUnique({
+          where: { sku_branchId: { sku: cleanSku, branchId: branch.id } }
+        }) : null;
+
+        if (localProduct) {
+          const initialPrecioMeli = item.price;
+          const initialMargenDinero = initialPrecioMeli - localProduct.cost;
+          const initialMargenPorcentaje = initialPrecioMeli > 0 ? (initialMargenDinero / initialPrecioMeli) * 100 : 0;
+
+          await prisma.externalProductMap.create({
+            data: { 
+              productId: localProduct.id, 
+              platform: 'MERCADO_LIBRE', 
+              externalId: item.id,
+              syncStatus: item.status || 'active',
+              lastSync: new Date(),
+              precioMeli: initialPrecioMeli,
+              comisionMeli: 0,
+              envioMeli: 0,
+              retencionMeli: 0,
+              margenDinero: initialMargenDinero,
+              margenPorcentaje: initialMargenPorcentaje,
+              isFixedPrice: false
+            }
+          });
+          syncedCount++;
+        } else {
+          unlinkedMeliItems.push({
+            id: item.id,
+            title: item.title,
+            sku: cleanSku || '',
+            price: item.price,
+            status: item.status || 'active',
+            stock: item.available_quantity
+          });
+        }
+      }
+    }
+
+    const currentMeta = integration.metadata ? JSON.parse(integration.metadata) : {};
+    currentMeta.unlinkedMeliItems = unlinkedMeliItems;
+
+    await prisma.storeIntegration.update({
+      where: { id: integration.id },
+      data: { metadata: JSON.stringify(currentMeta) }
+    });
+
+    revalidatePath('/integraciones/mercadolibre');
+    return { 
+      success: true, 
+      message: `Sincronización completa. Vinculaciones: ${syncedCount}. Publicaciones sin SKU: ${unlinkedMeliItems.length}` 
+    };
+
+  } catch (error: any) {
+    console.error('syncMeliCatalogAction Error:', error);
+    return { success: false, error: 'Error durante la sincronización: ' + (error.message || String(error)) };
+  }
+}
+
 

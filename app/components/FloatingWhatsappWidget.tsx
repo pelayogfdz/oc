@@ -244,6 +244,11 @@ export default function FloatingWhatsappWidget() {
   };
 
   const [prospects, setProspects] = useState<any[]>([]);
+  const prospectsRef = useRef(prospects);
+  useEffect(() => {
+    prospectsRef.current = prospects;
+  }, [prospects]);
+
   const [isFloatingOpen, setIsFloatingOpen] = useState(false);
   const [floatingActiveChatId, setFloatingActiveChatId] = useState<string | null>(null);
   const [floatingReplyText, setFloatingReplyText] = useState("");
@@ -432,6 +437,8 @@ export default function FloatingWhatsappWidget() {
 
     fetchProspects();
 
+    const pollInterval = isFloatingOpen ? 10000 : 30000;
+
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`/api/prospects?t=${Date.now()}`, { cache: "no-store" });
@@ -439,7 +446,7 @@ export default function FloatingWhatsappWidget() {
           const data = await res.json();
           if (data.prospects) {
             // Check for changes (lengths, updatedAt, or message statuses)
-            const currentStr = JSON.stringify(prospects.map((p: any) => ({
+            const currentStr = JSON.stringify((prospectsRef.current || []).map((p: any) => ({
               id: p.id,
               updatedAt: p.updatedAt,
               msgCount: p.messages?.length || 0,
@@ -460,10 +467,10 @@ export default function FloatingWhatsappWidget() {
       } catch (err) {
         console.error("Error polling prospects in floating widget", err);
       }
-    }, 4000);
+    }, pollInterval);
 
     return () => clearInterval(interval);
-  }, [prospects, isAuthorized]);
+  }, [isAuthorized, isFloatingOpen]);
 
   // Track new incoming messages to show a floating Toast notification
   useEffect(() => {

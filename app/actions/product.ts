@@ -916,3 +916,58 @@ export async function getProductBranchStocks(params: {
 
   return branchStocks;
 }
+
+export async function getProductCategoriesAndBrands(branchId: string) {
+  try {
+    const isGlobal = branchId === 'GLOBAL';
+    let branchCondition: any = branchId;
+    if (isGlobal) {
+      const activeBranch = await getActiveBranch();
+      if (!activeBranch) return { success: false, categories: [], brands: [] };
+      const tenantBranches = await prisma.branch.findMany({
+        where: { tenantId: activeBranch.tenantId, isActive: true },
+        select: { id: true }
+      });
+      branchCondition = { in: tenantBranches.map(b => b.id) };
+    }
+
+    const [categoriesData, brandsData] = await Promise.all([
+      prisma.product.groupBy({
+        by: ['category'],
+        where: {
+          branchId: branchCondition,
+          isActive: true,
+          category: { not: null }
+        }
+      }),
+      prisma.product.groupBy({
+        by: ['brand'],
+        where: {
+          branchId: branchCondition,
+          isActive: true,
+          brand: { not: null }
+        }
+      })
+    ]);
+
+    const categories = categoriesData
+      .map(c => c.category?.trim())
+      .filter((c): c is string => !!c && c !== '')
+      .sort((a, b) => a.localeCompare(b));
+
+    const brands = brandsData
+      .map(b => b.brand?.trim())
+      .filter((b): b is string => !!b && b !== '')
+      .sort((a, b) => a.localeCompare(b));
+
+    return {
+      success: true,
+      categories,
+      brands
+    };
+  } catch (error: any) {
+    console.error('Error fetching categories and brands:', error);
+    return { success: false, categories: [], brands: [], error: error.message };
+  }
+}
+

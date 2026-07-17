@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { Filter, MapPin, ArrowDownUp, Search, MoreVertical, Camera, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { searchProducts, deleteProduct } from '@/app/actions/product';
+import { searchProducts, deleteProduct, getProductCategoriesAndBrands } from '@/app/actions/product';
 import ProductTableUI from '@/app/components/ProductTableUI';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 import ImportButton from './ImportButton';
@@ -28,6 +28,37 @@ export default function ProductListClient({ initialProducts, branchId, categorie
   const [filterImage, setFilterImage] = useState('ALL');
   const [filterBrand, setFilterBrand] = useState('ALL');
   const [filterType, setFilterType] = useState('ALL');
+
+  // Lazy Loaded Filters (Categories and Brands)
+  const [categoriesList, setCategoriesList] = useState<string[]>(categories);
+  const [brandsList, setBrandsList] = useState<string[]>(brands);
+  const [hasLoadedFilters, setHasLoadedFilters] = useState(categories.length > 0 && brands.length > 0);
+  const [isLoadingFilters, setIsLoadingFilters] = useState(false);
+
+  useEffect(() => {
+    if (showAdvancedFilters && !hasLoadedFilters && isOnline) {
+      setIsLoadingFilters(true);
+      getProductCategoriesAndBrands(branchId).then((res) => {
+        if (res.success) {
+          setCategoriesList(res.categories || []);
+          setBrandsList(res.brands || []);
+          setHasLoadedFilters(true);
+        }
+      }).catch(console.error).finally(() => {
+        setIsLoadingFilters(false);
+      });
+    }
+  }, [showAdvancedFilters, hasLoadedFilters, branchId, isOnline]);
+
+  const offlineCategories = useMemo(() => {
+    if (isOnline && hasLoadedFilters) return categoriesList;
+    return Array.from(new Set(displayedProducts.map(p => p.category?.trim()).filter(Boolean))) as string[];
+  }, [isOnline, hasLoadedFilters, categoriesList, displayedProducts]);
+
+  const offlineBrands = useMemo(() => {
+    if (isOnline && hasLoadedFilters) return brandsList;
+    return Array.from(new Set(displayedProducts.map(p => p.brand?.trim()).filter(Boolean))) as string[];
+  }, [isOnline, hasLoadedFilters, brandsList, displayedProducts]);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -361,9 +392,9 @@ export default function ProductListClient({ initialProducts, branchId, categorie
           <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Categoría</label>
-            <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
-              <option value="ALL">Todas</option>
-              {categories.map((cat: string) => (
+            <select disabled={isLoadingFilters} value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
+              <option value="ALL">{isLoadingFilters ? 'Cargando...' : 'Todas'}</option>
+              {offlineCategories.map((cat: string) => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
@@ -395,9 +426,9 @@ export default function ProductListClient({ initialProducts, branchId, categorie
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Filtrar por Marca</label>
-            <select value={filterBrand} onChange={e => setFilterBrand(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
-              <option value="ALL">Todas las marcas</option>
-              {brands.map((brand: string) => (
+            <select disabled={isLoadingFilters} value={filterBrand} onChange={e => setFilterBrand(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
+              <option value="ALL">{isLoadingFilters ? 'Cargando...' : 'Todas las marcas'}</option>
+              {offlineBrands.map((brand: string) => (
                 <option key={brand} value={brand}>{brand}</option>
               ))}
             </select>

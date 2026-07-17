@@ -184,6 +184,10 @@ button {
     width: 0;
   }
 
+  .desktop-sidebar-wrapper.sidebar-collapsed + .dashboard-content-wrapper .meli-page-container {
+    max-width: 100% !important;
+  }
+
   .desktop-sidebar-wrapper .dashboard-sidebar {
     width: 250px;
   }

@@ -22,25 +22,13 @@ export default async function ProductosPage() {
     branchCondition = { in: tenantBranchIds };
   }
 
-  // Fetch a subset of products for displaying (paginated/limited), categories and brands
-  const [displayedProductsRaw, categoriesData, brandsData] = await Promise.all([
-    prisma.product.findMany({
-      where: { branchId: branchCondition, isActive: true },
-      include: { variants: true, prices: true, branch: { select: { id: true, name: true } } },
-      orderBy: { name: 'asc' },
-      take: 100
-    }),
-    prisma.product.findMany({
-      where: { branchId: branchCondition, isActive: true },
-      select: { category: true },
-      distinct: ['category']
-    }),
-    prisma.product.findMany({
-      where: { branchId: branchCondition, isActive: true },
-      select: { brand: true },
-      distinct: ['brand']
-    })
-  ]);
+  // Fetch a subset of products for displaying (paginated/limited)
+  const displayedProductsRaw = await prisma.product.findMany({
+    where: { branchId: branchCondition, isActive: true },
+    include: { variants: true, prices: true, branch: { select: { id: true, name: true } } },
+    orderBy: { name: 'asc' },
+    take: 100
+  });
 
   // Extract unique identifiers to fetch cross-branch stock only for these products
   const productSkus = displayedProductsRaw.map(p => p.sku).filter((sku): sku is string => typeof sku === 'string' && sku.trim() !== '');
@@ -146,16 +134,13 @@ export default async function ProductosPage() {
   }
 
   const safeProducts = JSON.parse(JSON.stringify(displayedProducts));
-  const categories = Array.from(new Set(categoriesData.map(c => c.category?.trim()).filter(Boolean))) as string[];
-  const brands = Array.from(new Set(brandsData.map(b => b.brand?.trim()).filter(Boolean))) as string[];
-
   return (
     <div>
       <ProductListClient 
         initialProducts={safeProducts} 
         branchId={branchId} 
-        categories={categories} 
-        brands={brands}
+        categories={[]} 
+        brands={[]} 
       />
     </div>
   );

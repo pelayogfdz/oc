@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import crypto from 'crypto';
 import { getActiveBranch, getActiveUser, getTenantBranches } from '@/app/actions/auth';
 import { saveIntegrationTokens, deleteIntegration } from '@/app/actions/integration';
 import { ArrowLeft, Save, Trash2, RefreshCw, ExternalLink, Info } from 'lucide-react';
@@ -13,6 +14,10 @@ interface PageProps {
     tab?: string;
     success?: string;
     search?: string;
+    error?: string;
+    message?: string;
+    syncedCount?: string;
+    unlinkedCount?: string;
   }>;
 }
 
@@ -30,7 +35,6 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
   const headersList = await headers();
   const host = headersList.get('host') || 'localhost:3000';
   const protocol = host.startsWith('localhost') ? 'http' : 'https';
-  const redirectUri = `${protocol}://${host}/api/mercadolibre/callback`;
 
   // Obtener todas las sucursales del tenant
   const tenantBranchesList = await prisma.branch.findMany({
@@ -60,6 +64,56 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
     }
   }
 
+  let isTokenValid = false;
+  let meliUserNickname = '';
+  
+  if (integration?.accessToken) {
+    try {
+      const meRes = await fetch('https://api.mercadolibre.com/users/me', {
+        headers: { 'Authorization': `Bearer ${integration.accessToken}` }
+      });
+      if (meRes.ok) {
+        const meData = await meRes.json();
+        isTokenValid = true;
+        meliUserNickname = meData.nickname || '';
+      } else {
+        if (integration.refreshToken) {
+          const { getOrRefreshMeliToken } = await import('@/app/utils/meliToken');
+          const refreshedToken = await getOrRefreshMeliToken(integration.branchId);
+          if (refreshedToken) {
+            const meRes2 = await fetch('https://api.mercadolibre.com/users/me', {
+              headers: { 'Authorization': `Bearer ${refreshedToken}` }
+            });
+            if (meRes2.ok) {
+              const meData2 = await meRes2.json();
+              isTokenValid = true;
+              meliUserNickname = meData2.nickname || '';
+              integration.accessToken = refreshedToken;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[MELI PAGE] Error validating token:', e);
+    }
+  }
+  let customRedirectUri = '';
+  if (integration?.metadata) {
+    try {
+      const meta = JSON.parse(integration.metadata);
+      if (meta.customRedirectUri) customRedirectUri = meta.customRedirectUri;
+    } catch {}
+  }
+
+  const redirectUri = customRedirectUri || `${protocol}://${host}/api/mercadolibre/callback`;
+
+  // PKCE verifier and challenge generation
+  const verifier = crypto.createHash('sha256').update((integration?.clientSecret || '') + branch.id).digest('hex');
+  const challenge = crypto.createHash('sha256').update(verifier).digest('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+
   // 1. Obtener todas las vinculaciones activas para el tenant (todas las sucursales)
   const linkedMaps = await prisma.externalProductMap.findMany({
     where: { 
@@ -72,7 +126,7 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
     include: { product: true }
   });
 
-  // 2. Obtener productos no vinculados (limitado o según búsqueda para evitar error P2035)
+  // 2. Obtener productos no vinculados (limitado a 20 y ordenado por ID cuando no hay búsqueda para usar índice PK instantáneo)
   const unlinkedProducts = await prisma.product.findMany({
     where: {
       branchId: { in: tenantBranchIds },
@@ -85,43 +139,112 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
         { sku: { contains: search, mode: 'insensitive' } }
       ] : undefined
     },
-    take: search ? 500 : 150, // Más amplio si están buscando activamente
-    orderBy: { name: 'asc' }
+    take: 20,
+    orderBy: search ? { name: 'asc' } : { id: 'asc' }
   });
 
-  // 3. Unificar ambas listas
+  let unlinkedMeliItems: any[] = [];
+  if (integration?.metadata) {
+    try {
+      const meta = JSON.parse(integration.metadata);
+      if (meta.unlinkedMeliItems && Array.isArray(meta.unlinkedMeliItems)) {
+        unlinkedMeliItems = meta.unlinkedMeliItems;
+      }
+    } catch {}
+  }
+
+  // 3. Unificar y agrupar por SKU para evitar duplicar productos en distintas sucursales
+  const skuMapLinked: Record<string, any> = {};
+  for (const map of linkedMaps) {
+    const sku = map.product.sku ? String(map.product.sku).trim() : `NOSKU-${map.product.id}`;
+    if (!skuMapLinked[sku]) {
+      skuMapLinked[sku] = {
+        id: map.id,
+        productId: map.productId,
+        platform: 'MERCADO_LIBRE',
+        externalId: map.externalId,
+        syncStatus: map.syncStatus || 'active',
+        precioMeli: map.precioMeli,
+        comisionMeli: map.comisionMeli || 0,
+        envioMeli: map.envioMeli || 0,
+        retencionMeli: map.retencionMeli || 0,
+        margenDinero: map.margenDinero,
+        margenPorcentaje: map.margenPorcentaje,
+        isFixedPrice: !!map.isFixedPrice,
+        product: {
+          ...map.product,
+          stock: map.product.stock
+        }
+      };
+    } else {
+      // Sumar el stock si aparece en otra sucursal
+      skuMapLinked[sku].product.stock += map.product.stock;
+    }
+  }
+
+  const skuMapUnlinked: Record<string, any> = {};
+  for (const p of unlinkedProducts) {
+    const sku = p.sku ? String(p.sku).trim() : `NOSKU-${p.id}`;
+    
+    // Si ya está vinculada, el stock de esta sucursal se suma a la vinculada
+    if (skuMapLinked[sku]) {
+      skuMapLinked[sku].product.stock += p.stock;
+      continue;
+    }
+
+    if (!skuMapUnlinked[sku]) {
+      skuMapUnlinked[sku] = {
+        id: `unlinked-${p.id}`,
+        productId: p.id,
+        platform: 'MERCADO_LIBRE',
+        externalId: '',
+        syncStatus: 'unlinked',
+        precioMeli: null,
+        comisionMeli: 0,
+        envioMeli: 0,
+        retencionMeli: 0,
+        margenDinero: null,
+        margenPorcentaje: null,
+        isFixedPrice: false,
+        product: {
+          ...p,
+          stock: p.stock
+        }
+      };
+    } else {
+      // Sumar el stock si aparece en otra sucursal
+      skuMapUnlinked[sku].product.stock += p.stock;
+    }
+  }
+
   const catalogList = [
-    ...linkedMaps.map(map => ({
-      id: map.id,
-      productId: map.productId,
+    ...Object.values(skuMapLinked),
+    ...Object.values(skuMapUnlinked),
+    ...unlinkedMeliItems.map(item => ({
+      id: `meli-unlinked-${item.id}`,
+      productId: '',
       platform: 'MERCADO_LIBRE',
-      externalId: map.externalId,
-      syncStatus: map.syncStatus || 'active',
-      precioMeli: map.precioMeli,
-      comisionMeli: map.comisionMeli || 0,
-      envioMeli: map.envioMeli || 0,
-      retencionMeli: map.retencionMeli || 0,
-      margenDinero: map.margenDinero,
-      margenPorcentaje: map.margenPorcentaje,
-      isFixedPrice: !!map.isFixedPrice,
-      product: map.product
-    })),
-    ...unlinkedProducts.map(p => ({
-      id: `unlinked-${p.id}`,
-      productId: p.id,
-      platform: 'MERCADO_LIBRE',
-      externalId: '',
-      syncStatus: 'unlinked',
-      precioMeli: null,
+      externalId: item.id,
+      syncStatus: 'meli_unlinked',
+      precioMeli: item.price,
       comisionMeli: 0,
       envioMeli: 0,
       retencionMeli: 0,
-      margenDinero: null,
-      margenPorcentaje: null,
+      margenDinero: 0,
+      margenPorcentaje: 0,
       isFixedPrice: false,
-      product: p
+      product: {
+        id: '',
+        name: `[ML] ${item.title}`,
+        sku: item.sku || `(Sin SKU)`,
+        cost: 0,
+        price: item.price,
+        stock: item.stock || 0
+      }
     }))
   ];
+
+  // 4. Se eliminó la carga masiva de todos los productos (se realiza mediante búsqueda dinâmica por Server Action)
 
   const branches = await getTenantBranches(user.tenantId);
 
@@ -155,7 +278,7 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
   };
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '3rem' }}>
+    <div className="meli-page-container" style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '3rem', transition: 'max-width 0.3s ease' }}>
       {/* Cabecera */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
         <Link href="/integraciones" style={{ color: 'var(--caanma-text-muted)', textDecoration: 'none' }}>
@@ -170,6 +293,57 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
       {resolvedSearchParams.success === 'connected' && (
         <div className="card" style={{ padding: '1rem', backgroundColor: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', marginBottom: '2rem', fontWeight: 'bold' }}>
           ¡Cuenta de Mercado Libre conectada y vinculada por OAuth 2.0 exitosamente!
+        </div>
+      )}
+
+      {resolvedSearchParams.success === 'synced' && (
+        <div className="card" style={{ padding: '1rem', backgroundColor: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', marginBottom: '2rem' }}>
+          <h4 style={{ fontWeight: 'bold', fontSize: '1rem', color: '#166534', margin: '0 0 0.25rem 0' }}>✅ Sincronización Exitosa</h4>
+          <p style={{ margin: 0, fontSize: '0.85rem', color: '#14532d' }}>
+            Se sincronizó el catálogo. Vinculaciones creadas/actualizadas: <strong>{resolvedSearchParams.syncedCount || 0}</strong>. Publicaciones de ML encontradas sin vincular: <strong>{resolvedSearchParams.unlinkedCount || 0}</strong>.
+          </p>
+        </div>
+      )}
+
+      {resolvedSearchParams.error === 'sync_failed' && (
+        <div className="card" style={{ padding: '1rem', backgroundColor: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', marginBottom: '2rem' }}>
+          <h4 style={{ fontWeight: 'bold', fontSize: '1rem', color: '#991b1b', margin: '0 0 0.25rem 0' }}>🔴 Error de Sincronización</h4>
+          <p style={{ margin: 0, fontSize: '0.85rem', color: '#7f1d1d' }}>
+            Ocurrió un error al intentar sincronizar: {resolvedSearchParams.message}
+          </p>
+        </div>
+      )}
+
+      {integration && !isTokenValid && (
+        <div className="card" style={{ padding: '1.25rem', backgroundColor: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', marginBottom: '2rem' }}>
+          <h4 style={{ fontWeight: 'bold', fontSize: '1rem', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span>🔴 Conexión Inactiva o Token Expirado</span>
+          </h4>
+          <p style={{ fontSize: '0.85rem', margin: 0 }}>
+            El token actual ha expirado o es inválido. Por favor, introduce tu App ID y Client Secret en la sección de credenciales abajo, guarda los cambios, y haz clic en el botón verde <strong>"Vincular con Mercado Libre ahora"</strong> para autorizar la conexión.
+          </p>
+        </div>
+      )}
+
+      {integration && isTokenValid && !integration.refreshToken && (
+        <div className="card" style={{ padding: '1.25rem', backgroundColor: '#fffbeb', color: '#b91c1c', border: '1px solid #fef3c7', marginBottom: '2rem' }}>
+          <h4 style={{ fontWeight: 'bold', fontSize: '1rem', color: '#d97706', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span>⚠️ Conexión Temporal (Sin Refresh Token)</span>
+          </h4>
+          <p style={{ fontSize: '0.85rem', color: '#78350f', margin: 0 }}>
+            Has guardado un token de acceso temporal que expirará en unas horas. Para evitar que tu stock y precios dejen de sincronizarse, te recomendamos ingresar tu App ID y Client Secret en la sección de credenciales abajo, guardar los cambios, y hacer clic en el botón <strong>"Vincular con Mercado Libre ahora"</strong> para autorizar de forma permanente.
+          </p>
+        </div>
+      )}
+
+      {integration && isTokenValid && integration.refreshToken && (
+        <div className="card" style={{ padding: '1.25rem', backgroundColor: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', marginBottom: '2rem' }}>
+          <h4 style={{ fontWeight: 'bold', fontSize: '1rem', color: '#166534', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span>✅ Conexión Activa y Segura</span>
+          </h4>
+          <p style={{ fontSize: '0.85rem', color: '#14532d', margin: 0 }}>
+            Caanma está conectado exitosamente a la cuenta de Mercado Libre: <strong>{meliUserNickname}</strong>. Tus tokens se actualizarán automáticamente de por vida.
+          </p>
         </div>
       )}
 
@@ -247,16 +421,26 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.25rem', color: 'var(--caanma-primary)' }}>Access Token de Producción (Requerido)</label>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.25rem', color: 'var(--caanma-primary)' }}>Access Token de Producción (Opcional si usas Vinculación OAuth abajo)</label>
                 <input 
                   type="text" 
                   name="accessToken"
-                  required
                   defaultValue={integration?.accessToken || ''}
                   placeholder="APP_USR-xxxxxx-xxxxxx-xxxx..."
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '2px solid var(--caanma-primary)', backgroundColor: '#f0f9ff' }}
                 />
-                <span style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>Genera este token desde el portal de desarrolladores de Mercado Libre.</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>Opcional. Si vinculas tu cuenta usando el botón verde de abajo, este token se obtendrá y configurará automáticamente.</span>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.25rem' }}>URL de Redirección Personalizada (Opcional)</label>
+                <input 
+                  type="text" 
+                  name="customRedirectUri"
+                  defaultValue={customRedirectUri}
+                  placeholder={`Por defecto: ${protocol}://${host}/api/mercadolibre/callback`}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
+                />
+                <span style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>Configura esto solo si registraste una URL de redirección diferente en tu consola de desarrollador de Mercado Libre.</span>
               </div>
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                 <button type="submit" className="btn-primary" style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -283,8 +467,17 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
                 <p style={{ fontSize: '0.85rem', color: '#1e3f20', marginBottom: '1rem' }}>
                   Para que Caanma pueda renovar tus tokens automáticamente de por vida, haz clic en el siguiente botón para iniciar el proceso de vinculación oficial con Mercado Libre.
                 </p>
+                <div style={{ padding: '0.75rem', backgroundColor: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+                  <strong style={{ color: '#1e40af' }}>⚠️ Configuración de Redirección en Mercado Libre:</strong>
+                  <p style={{ margin: '0.25rem 0 0.5rem 0', color: '#1e3f20', fontSize: '0.8rem' }}>
+                    Debes copiar exactamente esta URL de redirección y pegarla en el campo <strong>"Redirect URI"</strong> de tu app en el portal de desarrolladores de Mercado Libre:
+                  </p>
+                  <code style={{ display: 'block', backgroundColor: 'white', padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontWeight: 'bold', fontSize: '0.8rem', color: '#0f766e', wordBreak: 'break-all' }}>
+                    {redirectUri}
+                  </code>
+                </div>
                 <a 
-                  href={`https://auth.mercadolibre.com.mx/authorization?response_type=code&client_id=${integration.appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${branch.id}`}
+                  href={`https://auth.mercadolibre.com.mx/authorization?response_type=code&client_id=${integration.appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${branch.id}&code_challenge=${challenge}&code_challenge_method=S256`}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -331,16 +524,10 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
               </div>
             </div>
             
-            <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '1.5rem' }}>
+            <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '1rem' }}>
               Caanma descarga tus publicaciones activas. Si un SKU coincide con los tuyos, se empata automáticamente. 
-              Las publicaciones nuevas sin SKU en Caanma se crearán en el inventario.
+              Puedes iniciar la sincronización utilizando el botón <strong>"Forzar Sincronización Manual Ahora"</strong> ubicado en la barra de herramientas del listado abajo.
             </p>
-
-            <form action="/api/mercadolibre/sync" method="POST">
-               <button type="submit" className="btn-secondary" style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <RefreshCw size={18} /> Forzar Sincronización Manual Ahora
-               </button>
-            </form>
 
             <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#f1f5f9', borderRadius: '8px' }}>
               <h3 style={{ fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Instrucciones para Webhooks (Ventas en tiempo real)</h3>
