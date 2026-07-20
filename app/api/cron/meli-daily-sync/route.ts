@@ -509,7 +509,9 @@ async function handleSync(onlyStock = false) {
                       seller_custom_field: body.seller_custom_field || null,
                       shipping: body.shipping,
                       category_id: body.category_id,
-                      listing_type_id: body.listing_type_id
+                      listing_type_id: body.listing_type_id,
+                      attributes: body.attributes || [],
+                      variations: body.variations || []
                     });
                   }
                 });
@@ -537,9 +539,26 @@ async function handleSync(onlyStock = false) {
             } else {
               const cleanSku = item.seller_custom_field ? String(item.seller_custom_field).trim() : null;
               
-              const localProduct = cleanSku ? await tenantClient.product.findUnique({
+              let localProduct = cleanSku ? await tenantClient.product.findUnique({
                 where: { sku_branchId: { sku: cleanSku, branchId: branchId } }
               }) : null;
+
+              if (!localProduct) {
+                const { getBarcodesFromMeliItem } = await import('@/app/actions/integration');
+                const barcodes = getBarcodesFromMeliItem(item);
+                if (barcodes.length > 0) {
+                  localProduct = await tenantClient.product.findFirst({
+                    where: {
+                      barcode: { in: barcodes },
+                      branchId: branchId,
+                      isActive: true
+                    }
+                  });
+                  if (localProduct) {
+                    console.log(`[MELI DAILY CRON] Auto-vinculando producto local '${localProduct.name}' con publicación ${item.id} por CÓDIGO DE BARRAS: ${barcodes}`);
+                  }
+                }
+              }
 
               if (localProduct) {
                 // Auto-vinculación automática por SKU!

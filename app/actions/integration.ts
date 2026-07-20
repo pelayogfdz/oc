@@ -868,7 +868,9 @@ export async function syncMeliCatalogAction() {
                 seller_custom_field: body.seller_custom_field || null,
                 shipping: body.shipping,
                 category_id: body.category_id,
-                listing_type_id: body.listing_type_id
+                listing_type_id: body.listing_type_id,
+                attributes: body.attributes || [],
+                variations: body.variations || []
               });
             }
           });
@@ -924,9 +926,22 @@ export async function syncMeliCatalogAction() {
       } else {
         const cleanSku = item.seller_custom_field ? String(item.seller_custom_field).trim() : null;
         
-        const localProduct = cleanSku ? await prisma.product.findUnique({
+        let localProduct = cleanSku ? await prisma.product.findUnique({
           where: { sku_branchId: { sku: cleanSku, branchId: branch.id } }
         }) : null;
+
+        if (!localProduct) {
+          const barcodes = getBarcodesFromMeliItem(item);
+          if (barcodes.length > 0) {
+            localProduct = await prisma.product.findFirst({
+              where: {
+                barcode: { in: barcodes },
+                branchId: branch.id,
+                isActive: true
+              }
+            });
+          }
+        }
 
         if (localProduct) {
           // 1. Obtener costos reales de Mercado Libre (solo si se va a auto-vincular)
@@ -1246,6 +1261,38 @@ export async function syncMeliStockAction(productId: string, tenantId: string | 
   } catch (error) {
     console.error('[MELI STOCK SYNC] Error general:', error);
   }
+}
+
+export function getBarcodesFromMeliItem(itemData: any): string[] {
+  const barcodes: string[] = [];
+  
+  if (Array.isArray(itemData.attributes)) {
+    const barcodeAttrIds = ['GTIN', 'EAN', 'UPC', 'JAN', 'ISBN'];
+    const attr = itemData.attributes.find((a: any) => barcodeAttrIds.includes(a.id));
+    if (attr && attr.value_name) {
+      const clean = String(attr.value_name).trim();
+      if (clean && clean !== 'N/A' && clean !== 'n/a') {
+        barcodes.push(clean);
+      }
+    }
+  }
+
+  if (Array.isArray(itemData.variations)) {
+    itemData.variations.forEach((v: any) => {
+      if (Array.isArray(v.attributes)) {
+        const barcodeAttrIds = ['GTIN', 'EAN', 'UPC', 'JAN', 'ISBN'];
+        const attr = v.attributes.find((a: any) => barcodeAttrIds.includes(a.id));
+        if (attr && attr.value_name) {
+          const clean = String(attr.value_name).trim();
+          if (clean && clean !== 'N/A' && clean !== 'n/a' && !barcodes.includes(clean)) {
+            barcodes.push(clean);
+          }
+        }
+      }
+    });
+  }
+
+  return barcodes;
 }
 
 
