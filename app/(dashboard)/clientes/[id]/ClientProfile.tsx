@@ -25,6 +25,8 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
   const [paymentDate, setPaymentDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [stampingId, setStampingId] = useState<string | null>(null);
+  const [selectedPaymentForStamping, setSelectedPaymentForStamping] = useState<string | null>(null);
+  const [paymentDateForStamping, setPaymentDateForStamping] = useState<string>('');
   
   // Estado de Cuenta Email state
   const [emailLoading, setEmailLoading] = useState(false);
@@ -49,11 +51,25 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
     }
   };
 
-  const handleStampPayment = async (paymentId: string) => {
-    if (!confirm('¿Estás seguro de timbrar este abono ante el SAT?')) return;
+  const handleOpenStampModal = (p: any) => {
+    const dateObj = new Date(p.paymentDate || p.createdAt);
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    const defaultDate = `${year}-${month}-${day}`;
+
+    setSelectedPaymentForStamping(p.id);
+    setPaymentDateForStamping(defaultDate);
+  };
+
+  const handleConfirmStampPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPaymentForStamping) return;
+    const paymentId = selectedPaymentForStamping;
+    setSelectedPaymentForStamping(null);
     setStampingId(paymentId);
     try {
-      const response = await stampCustomerPayment(paymentId);
+      const response = await stampCustomerPayment(paymentId, paymentDateForStamping);
       if (response.success) {
         alert('Recibo de pago (REP) timbrado exitosamente');
       } else {
@@ -612,7 +628,7 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
                               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                                  {p.saleId && (
                                     <button 
-                                       onClick={() => handleStampPayment(p.id)} 
+                                       onClick={() => handleOpenStampModal(p)} 
                                        disabled={stampingId === p.id}
                                        style={{ 
                                           background: 'none', 
@@ -862,6 +878,67 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
           </div>
         );
       })()}
+
+      {/* Modal para elegir fecha de recepción al timbrar abono individual */}
+      {selectedPaymentForStamping && (
+         <div style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            color: '#1e293b'
+         }}>
+            <div className="card" style={{ 
+               width: '90%', 
+               maxWidth: '480px', 
+               padding: '2rem', 
+               backgroundColor: 'white', 
+               borderRadius: '16px' 
+            }}>
+               <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.25rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  Timbrar Complemento de Pago
+               </h3>
+               
+               <form onSubmit={handleConfirmStampPayment} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  <div>
+                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.5rem' }}>
+                        Fecha de Recepción del Pago *
+                     </label>
+                     <input 
+                        type="date" 
+                        value={paymentDateForStamping} 
+                        onChange={e => setPaymentDateForStamping(e.target.value)}
+                        style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }}
+                        required
+                     />
+                     <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem', lineHeight: '1.4' }}>
+                        El complemento de pago se timbrará con la fecha seleccionada y la hora se fijará automáticamente a las 12:00 hrs.
+                     </p>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                     <button 
+                        type="button" 
+                        onClick={() => setSelectedPaymentForStamping(null)}
+                        style={{ flex: 1, padding: '0.75rem', backgroundColor: '#f1f5f9', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', color: '#475569' }}
+                     >
+                        Cancelar
+                     </button>
+                     <button 
+                        type="submit" 
+                        style={{ flex: 1.5, padding: '0.75rem', backgroundColor: 'var(--caanma-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                     >
+                        Timbrar REP
+                     </button>
+                  </div>
+               </form>
+            </div>
+         </div>
+      )}
 
     </div>
   );

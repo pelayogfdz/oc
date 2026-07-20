@@ -885,9 +885,22 @@ export async function createMultiplePaymentReceipt(
 
     const facturapi = new Facturapi(apiKey);
 
+    let dateStr = "";
+    if (typeof paymentDate === 'string') {
+      dateStr = (paymentDate as string).includes('T') ? paymentDate : `${paymentDate}T12:00:00`;
+    } else if (paymentDate instanceof Date) {
+      const year = paymentDate.getUTCFullYear();
+      const month = String(paymentDate.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(paymentDate.getUTCDate()).padStart(2, '0');
+      dateStr = `${year}-${month}-${day}T12:00:00`;
+    } else {
+      const today = new Date();
+      dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}T12:00:00`;
+    }
+
     const receipt = await facturapi.receipts.create({
       payment_form: paymentForm,
-      date: paymentDate,
+      date: dateStr as any,
       invoices: invoices
     });
 
@@ -1026,7 +1039,7 @@ export async function sendInvoiceByEmail(saleId: string, email: string) {
   }
 }
 
-export async function stampCustomerPayment(paymentId: string) {
+export async function stampCustomerPayment(paymentId: string, paymentDateStr?: string) {
   try {
     const payment = await prisma.customerPayment.findUnique({
       where: { id: paymentId },
@@ -1152,6 +1165,15 @@ export async function stampCustomerPayment(paymentId: string) {
       paymentForm = "02";
     }
 
+    // Format payment date to exactly 12:00 hrs local time for SAT
+    const defaultDateObj = payment.paymentDate || payment.createdAt;
+    const year = defaultDateObj.getFullYear();
+    const month = String(defaultDateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(defaultDateObj.getDate()).padStart(2, '0');
+    const defaultDateStr = `${year}-${month}-${day}`;
+    
+    const finalDate = `${paymentDateStr || defaultDateStr}T12:00:00`;
+
     // Create Payment Complement (REP) as an invoice of type 'P'
     const receipt = await facturapi.invoices.create({
       type: "P",
@@ -1169,6 +1191,7 @@ export async function stampCustomerPayment(paymentId: string) {
           data: [
             {
               payment_form: paymentForm,
+              date: finalDate,
               related_documents: [
                 {
                   uuid: originalUuid,

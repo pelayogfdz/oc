@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Eye, Printer, RotateCcw, Calendar, User, MapPin, Tag, Receipt, Send, Share2, Loader2, CheckCircle, Mail, Download, X, AlertTriangle, Filter } from 'lucide-react';
+import { Eye, Printer, RotateCcw, Calendar, User, MapPin, Tag, Receipt, Send, Share2, Loader2, CheckCircle, Mail, Download, X, AlertTriangle, Filter, Truck } from 'lucide-react';
 import { sendSaleByEmail } from '@/app/actions/sale';
+import { createDeliveryOrder } from '@/app/actions/logistica';
 import { formatCurrency } from '@/lib/utils';
 
 const getPaymentMethodLabel = (method: string) => {
@@ -52,6 +53,7 @@ export default function VentasHistoryClient({
   currentBranch: any;
   timezone: string;
 }) {
+  const [sales, setSales] = useState<any[]>(initialSales);
   const [filterDate, setFilterDate] = useState('');
   const [filterUser, setFilterUser] = useState('');
   const [filterBranch, setFilterBranch] = useState(currentBranch.id === 'GLOBAL' ? '' : currentBranch.id);
@@ -78,6 +80,172 @@ export default function VentasHistoryClient({
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailSuccess, setEmailSuccess] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
+
+  // Delivery routing modal states
+  const [selectedSaleForRoute, setSelectedSaleForRoute] = useState<any | null>(null);
+  const [routeStreet, setRouteStreet] = useState('');
+  const [routeExtNum, setRouteExtNum] = useState('');
+  const [routeIntNum, setRouteIntNum] = useState('');
+  const [routeColonia, setRouteColonia] = useState('');
+  const [routeCity, setRouteCity] = useState('');
+  const [routeState, setRouteState] = useState('');
+  const [routeZip, setRouteZip] = useState('');
+  const [routeLat, setRouteLat] = useState<number | null>(null);
+  const [routeLng, setRouteLng] = useState<number | null>(null);
+  const [isCreatingRoute, setIsCreatingRoute] = useState(false);
+  const [mapsLoaded, setMapsLoaded] = useState(false);
+
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setSales(initialSales);
+  }, [initialSales]);
+
+  const handleOpenRouteModal = (sale: any) => {
+    setSelectedSaleForRoute(sale);
+    setRouteStreet(sale.customer?.street || '');
+    setRouteExtNum(sale.customer?.exteriorNumber || '');
+    setRouteIntNum(sale.customer?.interiorNumber || '');
+    setRouteColonia(sale.customer?.neighborhood || '');
+    setRouteCity(sale.customer?.city || 'Querétaro');
+    setRouteState(sale.customer?.state || 'Querétaro');
+    setRouteZip(sale.customer?.zipCode || '');
+    setRouteLat(null);
+    setRouteLng(null);
+  };
+
+  const handleGeocode = () => {
+    if (!(window as any).google) return;
+    const address = `${routeStreet} ${routeExtNum || ''}, ${routeColonia || ''}, ${routeCity || ''}, ${routeState || ''}, ${routeZip || ''}`;
+    const geocoder = new (window as any).google.maps.Geocoder();
+    geocoder.geocode({ address }, (results: any, status: any) => {
+      if (status === 'OK' && results[0]) {
+        const loc = results[0].geometry.location;
+        setRouteLat(loc.lat());
+        setRouteLng(loc.lng());
+        if (mapRef.current) {
+          mapRef.current.setCenter(loc);
+          mapRef.current.setZoom(16);
+          if (markerRef.current) {
+            markerRef.current.setPosition(loc);
+          }
+        }
+      } else {
+        alert('No se pudo encontrar la ubicación en el mapa. Por favor haz clic manualmente en el mapa.');
+      }
+    });
+  };
+
+  const handleCreateRouteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSaleForRoute) return;
+
+    setIsCreatingRoute(true);
+    try {
+      const res = await createDeliveryOrder({
+        saleId: selectedSaleForRoute.id,
+        street: routeStreet,
+        exteriorNumber: routeExtNum,
+        interiorNumber: routeIntNum,
+        neighborhood: routeColonia,
+        city: routeCity,
+        state: routeState,
+        zipCode: routeZip,
+        lat: routeLat || undefined,
+        lng: routeLng || undefined
+      });
+
+      if (res.success && res.order) {
+        alert("Entrega programada exitosamente. Se ha agregado al módulo de Logística.");
+        
+        // Update local state to reflect the deliveryOrder assignment
+        setSales(prev => prev.map(s => s.id === selectedSaleForRoute.id ? {
+          ...s,
+          deliveryOrder: { id: res.order!.id, status: 'PENDING' }
+        } : s));
+        
+        setSelectedSaleForRoute(null);
+      } else {
+        alert("Error al programar entrega: " + res.error);
+      }
+    } catch (err: any) {
+      alert("Excepción: " + err.message);
+    } finally {
+      setIsCreatingRoute(false);
+    }
+  };
+
+  // Dynamic script loader for Google Maps in routing modal
+  useEffect(() => {
+    if (selectedSaleForRoute && !mapsLoaded) {
+      const existingScript = document.getElementById('google-maps-script');
+      if (existingScript) {
+        setMapsLoaded(true);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || ''}`;
+      script.id = 'google-maps-script';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        setMapsLoaded(true);
+      };
+      document.body.appendChild(script);
+    }
+  }, [selectedSaleForRoute, mapsLoaded]);
+
+  // Google Maps initialization inside routing modal
+  useEffect(() => {
+    if (selectedSaleForRoute && mapsLoaded && mapContainerRef.current && (window as any).google) {
+      const google = (window as any).google;
+      
+      const defaultCenter = routeLat && routeLng 
+        ? { lat: routeLat, lng: routeLng }
+        : { lat: 20.5888, lng: -100.3899 }; // Queretaro
+
+      const mapOptions = {
+        center: defaultCenter,
+        zoom: routeLat && routeLng ? 16 : 12,
+        mapId: "DEMO_MAP_ID_VENTAS",
+        styles: [
+          {
+            featureType: "poi",
+            elementType: "labels",
+            stylers: [{ visibility: "off" }]
+          }
+        ]
+      };
+
+      mapRef.current = new google.maps.Map(mapContainerRef.current, mapOptions);
+
+      markerRef.current = new google.maps.Marker({
+        position: defaultCenter,
+        map: mapRef.current,
+        draggable: true,
+        title: "Punto de Entrega"
+      });
+
+      // Update lat/lng on marker drag end
+      markerRef.current.addListener('dragend', () => {
+        const pos = markerRef.current.getPosition();
+        setRouteLat(pos.lat());
+        setRouteLng(pos.lng());
+      });
+
+      // Update lat/lng and marker position on map click
+      mapRef.current.addListener('click', (e: any) => {
+        const clickedLat = e.latLng.lat();
+        const clickedLng = e.latLng.lng();
+        setRouteLat(clickedLat);
+        setRouteLng(clickedLng);
+        markerRef.current.setPosition(e.latLng);
+      });
+    }
+  }, [selectedSaleForRoute, mapsLoaded]);
 
   // Load prospects for WhatsApp Option B
   useEffect(() => {
@@ -205,18 +373,18 @@ export default function VentasHistoryClient({
   // Extract unique statuses present in sales
   const statuses = useMemo(() => {
     const sSet = new Set<string>();
-    initialSales.forEach(s => {
+    sales.forEach(s => {
       if (s.status) sSet.add(s.status);
     });
     sSet.add('COMPLETED');
     sSet.add('CANCELLED');
     return Array.from(sSet);
-  }, [initialSales]);
+  }, [sales]);
 
   // Extract unique sellers present in sales
   const salesUsers = useMemo(() => {
     const userMap = new Map<string, string>();
-    initialSales.forEach(s => {
+    sales.forEach(s => {
       if (s.userId && s.user?.name) {
         userMap.set(s.userId, s.user.name);
       }
@@ -224,12 +392,12 @@ export default function VentasHistoryClient({
     return Array.from(userMap.entries())
       .map(([id, name]) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [initialSales]);
+  }, [sales]);
 
   // Extract unique branches present in sales
   const salesBranches = useMemo(() => {
     const branchMap = new Map<string, string>();
-    initialSales.forEach(s => {
+    sales.forEach(s => {
       if (s.branchId && s.branch?.name) {
         branchMap.set(s.branchId, s.branch.name);
       }
@@ -237,22 +405,22 @@ export default function VentasHistoryClient({
     return Array.from(branchMap.entries())
       .map(([id, name]) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [initialSales]);
+  }, [sales]);
 
   // Extract unique payment methods present in sales
   const salesPaymentMethods = useMemo(() => {
     const pmSet = new Set<string>();
-    initialSales.forEach(s => {
+    sales.forEach(s => {
       if (s.paymentMethod) pmSet.add(s.paymentMethod);
     });
     return Array.from(pmSet).sort((a, b) => 
       getPaymentMethodLabel(a).localeCompare(getPaymentMethodLabel(b))
     );
-  }, [initialSales]);
+  }, [sales]);
 
   // Filter logic
   const filteredSales = useMemo(() => {
-    return initialSales.filter(sale => {
+    return sales.filter(sale => {
       // Date filter
       if (filterDate) {
         const saleDateStr = new Date(sale.createdAt).toLocaleDateString('sv-SE', { timeZone: timezone });
@@ -297,7 +465,7 @@ export default function VentasHistoryClient({
 
       return true;
     });
-  }, [initialSales, filterDate, filterUser, filterBranch, filterStatus, filterClient, filterCfdi, filterPaymentMethod]);
+  }, [sales, filterDate, filterUser, filterBranch, filterStatus, filterClient, filterCfdi, filterPaymentMethod]);
 
   const hasActiveFilters = filterDate || filterUser || (currentBranch.id === 'GLOBAL' && filterBranch) || filterStatus || filterClient || filterCfdi || filterPaymentMethod;
 
@@ -769,6 +937,69 @@ export default function VentasHistoryClient({
                       >
                         <Mail size={13} />
                       </button>
+
+                      {/* Programar Entrega / Ruta */}
+                      {sale.status !== 'CANCELLED' && (
+                        sale.deliveryOrder ? (
+                          <Link
+                            href="/logistica"
+                            title={`Ver Entrega (${sale.deliveryOrder.status})`}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '26px',
+                              height: '26px',
+                              backgroundColor: '#e0f2fe',
+                              border: '1px solid #bae6fd',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              color: '#0369a1',
+                              transition: 'all 0.15s ease',
+                              textDecoration: 'none'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#bae6fd';
+                              e.currentTarget.style.borderColor = '#7dd3fc';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = '#e0f2fe';
+                              e.currentTarget.style.borderColor = '#bae6fd';
+                            }}
+                          >
+                            <Truck size={13} />
+                          </Link>
+                        ) : (
+                          <button
+                            onClick={() => handleOpenRouteModal(sale)}
+                            title="Programar Entrega a Domicilio"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '26px',
+                              height: '26px',
+                              backgroundColor: '#faf5ff',
+                              border: '1px solid #e9d5ff',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              color: '#7e22ce',
+                              transition: 'all 0.15s ease',
+                              padding: 0
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#f3e8ff';
+                              e.currentTarget.style.borderColor = '#d8b4fe';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = '#faf5ff';
+                              e.currentTarget.style.borderColor = '#e9d5ff';
+                            }}
+                          >
+                            <Truck size={13} />
+                          </button>
+                        )
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -1154,6 +1385,268 @@ export default function VentasHistoryClient({
                     </>
                   )}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Interactive Delivery Routing Modal */}
+      {selectedSaleForRoute && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.45)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            animation: 'fadeIn 0.2s ease-out',
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '20px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              width: '100%',
+              maxWidth: '1000px',
+              overflow: 'hidden',
+              animation: 'scaleIn 0.2s ease-out',
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: '90vh'
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #7e22ce, #9333ea)',
+                padding: '1.25rem 1.5rem',
+                color: 'white',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Truck size={20} /> Programar Entrega a Domicilio
+                </h3>
+                <span style={{ fontSize: '0.8rem', color: '#f3e8ff' }}>
+                  Folio de Venta: {selectedSaleForRoute.folio || selectedSaleForRoute.id.slice(0, 8)}
+                </span>
+              </div>
+              <button
+                onClick={() => setSelectedSaleForRoute(null)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  color: 'white',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)')}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Split Content */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', overflowY: 'auto', flex: 1 }}>
+              {/* Form Column */}
+              <form 
+                onSubmit={handleCreateRouteSubmit}
+                style={{
+                  flex: '1 1 450px',
+                  padding: '1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1rem',
+                  borderRight: '1px solid #cbd5e1'
+                }}
+              >
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Calle / Av.</label>
+                    <input
+                      type="text"
+                      required
+                      value={routeStreet}
+                      onChange={(e) => setRouteStreet(e.target.value)}
+                      style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Ext.</label>
+                    <input
+                      type="text"
+                      required
+                      value={routeExtNum}
+                      onChange={(e) => setRouteExtNum(e.target.value)}
+                      style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Int.</label>
+                    <input
+                      type="text"
+                      value={routeIntNum}
+                      onChange={(e) => setRouteIntNum(e.target.value)}
+                      style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Colonia</label>
+                    <input
+                      type="text"
+                      required
+                      value={routeColonia}
+                      onChange={(e) => setRouteColonia(e.target.value)}
+                      style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>C.P.</label>
+                    <input
+                      type="text"
+                      required
+                      value={routeZip}
+                      onChange={(e) => setRouteZip(e.target.value)}
+                      style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Ciudad</label>
+                    <input
+                      type="text"
+                      required
+                      value={routeCity}
+                      onChange={(e) => setRouteCity(e.target.value)}
+                      style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Estado</label>
+                    <input
+                      type="text"
+                      required
+                      value={routeState}
+                      onChange={(e) => setRouteState(e.target.value)}
+                      style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <button
+                    type="button"
+                    onClick={handleGeocode}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      backgroundColor: '#f1f5f9',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      color: '#334155',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    <MapPin size={16} /> Buscar Dirección en el Mapa
+                  </button>
+
+                  <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#64748b' }}>
+                    <div>
+                      Latitud: <strong style={{ color: '#0f172a' }}>{routeLat !== null ? routeLat.toFixed(6) : 'Sin fijar'}</strong>
+                    </div>
+                    <div>
+                      Longitud: <strong style={{ color: '#0f172a' }}>{routeLng !== null ? routeLng.toFixed(6) : 'Sin fijar'}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: 'auto', paddingTop: '1rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSaleForRoute(null)}
+                    style={{
+                      padding: '0.625rem 1.25rem',
+                      backgroundColor: 'white',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      color: '#475569',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreatingRoute}
+                    style={{
+                      padding: '0.625rem 1.5rem',
+                      backgroundColor: '#7e22ce',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '0.85rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {isCreatingRoute ? 'Programando...' : 'Programar Entrega'}
+                  </button>
+                </div>
+              </form>
+
+              {/* Map Column */}
+              <div 
+                style={{
+                  flex: '1 1 450px',
+                  minHeight: '350px',
+                  position: 'relative',
+                  backgroundColor: '#f1f5f9',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}
+              >
+                <div ref={mapContainerRef} style={{ width: '100%', flex: 1, minHeight: '300px' }} />
+                {!mapsLoaded && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#cbd5e1', zIndex: 10 }}>
+                    <div style={{ textAlign: 'center', color: '#475569' }}>
+                      <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 0.5rem' }} />
+                      <strong>Cargando Google Maps...</strong>
+                    </div>
+                  </div>
+                )}
+                <div style={{ padding: '0.5rem 1rem', backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', fontSize: '0.78rem', color: '#64748b', textAlign: 'center' }}>
+                  📍 Arrastra el marcador o haz clic en cualquier parte del mapa para fijar la coordenada exacta para el chofer.
+                </div>
               </div>
             </div>
           </div>

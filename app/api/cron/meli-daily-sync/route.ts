@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, getClientForTenant } from '@/lib/prisma';
 import { getOrRefreshMeliToken } from '@/app/utils/meliToken';
 
 export async function GET(req: Request) {
@@ -40,6 +40,8 @@ async function handleSync() {
         console.warn(`[MELI DAILY CRON] Saltando sucursal ${branchId} porque no tiene tenantId asociado.`);
         continue;
       }
+
+      const tenantClient = getClientForTenant(tenantId);
 
       // Obtener token real auto-refrescado
       const token = await getOrRefreshMeliToken(branchId);
@@ -99,13 +101,13 @@ async function handleSync() {
             console.log(`[MELI DAILY CRON] Se obtuvieron ${ordersList.length} órdenes totales recientes.`);
 
             // Buscar o crear usuario VENTAS ONLINE en el tenant
-            let onlineUser = await prisma.user.findFirst({
+            let onlineUser = await tenantClient.user.findFirst({
               where: { tenantId, name: 'VENTAS ONLINE' }
             });
 
             if (!onlineUser) {
               const safeSlug = integration.branch.name.replace(/\s+/g, '').toLowerCase().substring(0, 8);
-              onlineUser = await prisma.user.create({
+              onlineUser = await tenantClient.user.create({
                 data: {
                   name: 'VENTAS ONLINE',
                   email: `ventasonline_${safeSlug}_${Date.now().toString().substring(8)}@caanma.com`,
@@ -126,7 +128,7 @@ async function handleSync() {
               const checkNote = `Mercado Libre Orden ${orderId}`;
               
               // Verificar si ya está registrada la venta
-              const existingSale = await prisma.sale.findFirst({
+              const existingSale = await tenantClient.sale.findFirst({
                 where: {
                   branchId: mainSaleBranchId,
                   notes: { contains: checkNote }
@@ -147,7 +149,7 @@ async function handleSync() {
                 : '';
 
               // Crear venta en base de datos
-              const newSale = await prisma.sale.create({
+              const newSale = await tenantClient.sale.create({
                 data: {
                   total: order.total_amount || 0,
                   status: 'COMPLETED',
@@ -164,7 +166,7 @@ async function handleSync() {
                 const externalId = item.item?.id || '';
                 
                 // Mapear a producto local
-                const map = await prisma.externalProductMap.findUnique({
+                const map = await tenantClient.externalProductMap.findUnique({
                   where: { platform_externalId: { platform: 'MERCADO_LIBRE', externalId } }
                 });
 
@@ -172,7 +174,7 @@ async function handleSync() {
                   const quantity = item.quantity || 1;
                   const itemPrice = item.unit_price || 0;
 
-                  await prisma.saleItem.create({
+                  await tenantClient.saleItem.create({
                     data: {
                       saleId: newSale.id,
                       productId: map.productId,
@@ -182,7 +184,7 @@ async function handleSync() {
                   });
 
                   // Descontar inventario en la sucursal destino de ventas
-                  await prisma.product.update({
+                  await tenantClient.product.update({
                     where: { id: map.productId },
                     data: { stock: { decrement: quantity } }
                   });
@@ -204,7 +206,7 @@ async function handleSync() {
       // ----------------------------------------------------
       try {
         // Obtener todos los mapeos de esta sucursal
-        const mappings = await prisma.externalProductMap.findMany({
+        const mappings = await tenantClient.externalProductMap.findMany({
           where: {
             platform: 'MERCADO_LIBRE',
             product: { branchId: branchId }
@@ -217,7 +219,7 @@ async function handleSync() {
         console.log(`[MELI DAILY CRON] Sincronizando precios y stocks sumados para ${mappings.length} vinculaciones...`);
 
         // Buscar lista de precios "Mercado Libre"
-        let priceList = await prisma.priceList.findFirst({
+        let priceList = await tenantClient.priceList.findFirst({
           where: {
             branchId: branchId,
             name: { mode: 'insensitive', equals: 'mercado libre' }
@@ -225,7 +227,7 @@ async function handleSync() {
         });
 
         if (!priceList) {
-          priceList = await prisma.priceList.create({
+          priceList = await tenantClient.priceList.create({
             data: {
               branchId: branchId,
               name: 'Mercado Libre'
@@ -248,7 +250,7 @@ async function handleSync() {
 
           if (suggestedPrice > 0 && !map.isFixedPrice) {
             // Guardar localmente
-            await prisma.productPrice.upsert({
+            await tenantClient.productPrice.upsert({
               where: {
                 productId_priceListId: {
                   productId: product.id,
@@ -285,7 +287,7 @@ async function handleSync() {
 
           // 2. Sumar stock global
           try {
-            const productInBranches = await prisma.product.findMany({
+            const productInBranches = await tenantClient.product.findMany({
               where: {
                 sku: product.sku,
                 branchId: { in: stockBranchIds }

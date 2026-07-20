@@ -25,6 +25,7 @@ export default async function VentasPage() {
     user: true,
     branch: true,
     customer: true,
+    deliveryOrder: true,
     items: {
       include: {
         product: true
@@ -75,11 +76,22 @@ export default async function VentasPage() {
     paymentMethod: s.paymentMethod,
     invoiceId: s.invoiceId,
     invoiceFolio: s.invoiceFolio,
+    deliveryOrder: s.deliveryOrder ? {
+      id: s.deliveryOrder.id,
+      status: s.deliveryOrder.status
+    } : null,
     customer: s.customer ? {
       id: s.customer.id,
       name: s.customer.name,
       phone: s.customer.phone,
-      email: s.customer.email
+      email: s.customer.email,
+      street: s.customer.street,
+      exteriorNumber: s.customer.exteriorNumber,
+      interiorNumber: s.customer.interiorNumber,
+      neighborhood: s.customer.neighborhood,
+      city: s.customer.city,
+      state: s.customer.state,
+      zipCode: s.customer.zipCode
     } : null,
     user: {
       id: s.user.id,

@@ -173,24 +173,7 @@ button {
     display: none !important;
   }
 
-  /* Desktop Sidebar Collapse */
-  .desktop-sidebar-wrapper {
-    width: 250px;
-    flex-shrink: 0;
-    transition: width 0.3s ease;
-    overflow: hidden;
-  }
-  .desktop-sidebar-wrapper.sidebar-collapsed {
-    width: 0;
-  }
 
-  .desktop-sidebar-wrapper.sidebar-collapsed + .dashboard-content-wrapper .meli-page-container {
-    max-width: 100% !important;
-  }
-
-  .desktop-sidebar-wrapper .dashboard-sidebar {
-    width: 250px;
-  }
 
   /* Bottom Navigation Bar */
   .mobile-bottom-nav {
@@ -962,6 +945,19 @@ img[data-header-img="true"]::after {
   }
 }
 
-
-
-
+/* Desktop Sidebar Collapse (Root level) */
+.desktop-sidebar-wrapper {
+  width: 250px;
+  flex-shrink: 0;
+  transition: width 0.3s ease;
+  overflow: hidden;
+}
+.desktop-sidebar-wrapper.sidebar-collapsed {
+  width: 0;
+}
+.desktop-sidebar-wrapper.sidebar-collapsed + .dashboard-content-wrapper .meli-page-container {
+  max-width: 100% !important;
+}
+.desktop-sidebar-wrapper .dashboard-sidebar {
+  width: 250px;
+}

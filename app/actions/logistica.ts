@@ -70,3 +70,67 @@ export async function updateRouteSequence(orders: { id: string; routeOrder: numb
   }
 }
 
+export async function createDeliveryOrder(data: {
+  saleId?: string;
+  transferId?: string;
+  street?: string;
+  exteriorNumber?: string;
+  interiorNumber?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  lat?: number;
+  lng?: number;
+}) {
+  try {
+    const user = await getActiveUser();
+    if (!user) throw new Error("No autenticado");
+
+    let branchId = "";
+    if (data.saleId) {
+      const sale = await prisma.sale.findUnique({
+        where: { id: data.saleId }
+      });
+      if (!sale) throw new Error("Venta no encontrada");
+      if (!sale.branchId) throw new Error("La sucursal de la venta no es válida");
+      branchId = sale.branchId;
+    } else if (data.transferId) {
+      const transfer = await prisma.transfer.findUnique({
+        where: { id: data.transferId }
+      });
+      if (!transfer) throw new Error("Traspaso no encontrado");
+      if (!transfer.branchId) throw new Error("La sucursal del traspaso no es válida");
+      branchId = transfer.branchId;
+    } else {
+      throw new Error("Debes proporcionar un ID de venta o de traspaso");
+    }
+
+    const order = await prisma.deliveryOrder.create({
+      data: {
+        saleId: data.saleId || null,
+        transferId: data.transferId || null,
+        street: data.street || null,
+        exteriorNumber: data.exteriorNumber || null,
+        interiorNumber: data.interiorNumber || null,
+        neighborhood: data.neighborhood || null,
+        city: data.city || null,
+        state: data.state || null,
+        zipCode: data.zipCode || null,
+        lat: data.lat || null,
+        lng: data.lng || null,
+        branchId: branchId,
+        status: "PENDING"
+      }
+    });
+
+    revalidatePath('/ventas');
+    revalidatePath('/productos/traspasos');
+    revalidatePath('/logistica');
+    return { success: true, order };
+  } catch (error: any) {
+    console.error("Error creating delivery order:", error);
+    return { success: false, error: error.message || "Error al crear la orden de entrega" };
+  }
+}
+

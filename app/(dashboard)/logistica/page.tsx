@@ -10,12 +10,23 @@ export default async function LogisticaPage() {
   // Fetch delivery orders
   const deliveryOrders = await prisma.deliveryOrder.findMany({
     where: branch.id === 'GLOBAL'
-      ? { sale: { branch: { tenantId: session?.tenantId } } }
+      ? {
+          OR: [
+            { sale: { branch: { tenantId: session?.tenantId } } },
+            { transfer: { branch: { tenantId: session?.tenantId } } }
+          ]
+        }
       : { branchId: branch.id },
     include: {
       sale: {
         include: {
           customer: true
+        }
+      },
+      transfer: {
+        include: {
+          branch: true,
+          toBranch: true
         }
       },
       driver: true,

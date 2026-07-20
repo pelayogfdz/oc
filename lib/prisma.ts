@@ -29,11 +29,80 @@ declare const globalThis: {
   prismaClientCache?: Record<string, PrismaClient>;
 } & typeof global;
 
-export const masterClient = globalThis.prismaMasterClient ?? new PrismaClient({
-  datasources: { db: { url: getPooledUrl(masterUrl) } }
-});
+function registerMeliStockSyncMiddleware(client: PrismaClient, tenantId: string | null) {
+  client.$use(async (params, next) => {
+    const result = await next(params);
 
-globalThis.prismaMasterClient = masterClient;
+    try {
+      const productsToSync: string[] = [];
+
+      // Si es una escritura en el modelo Product
+      if (params.model === 'Product' && ['update', 'create', 'upsert', 'updateMany', 'createMany'].includes(params.action)) {
+        // Para operaciones individuales
+        if (result && result.id && result.sku) {
+          productsToSync.push(result.id);
+        }
+
+        // Para updates con filters en where
+        if (params.action === 'update' && params.args && params.args.where) {
+          const id = params.args.where.id;
+          if (id && typeof id === 'string' && !productsToSync.includes(id)) {
+            productsToSync.push(id);
+          }
+        }
+
+        // Para updateMany/createMany con filtros en where
+        if (params.action === 'updateMany' && params.args && params.args.where) {
+          const whereId = params.args.where.id;
+          if (whereId) {
+            if (typeof whereId === 'string' && !productsToSync.includes(whereId)) {
+              productsToSync.push(whereId);
+            } else if (whereId.in && Array.isArray(whereId.in)) {
+              for (const id of whereId.in) {
+                if (typeof id === 'string' && !productsToSync.includes(id)) {
+                  productsToSync.push(id);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Si es una escritura en el modelo ExternalProductMap
+      if (params.model === 'ExternalProductMap' && ['create', 'update', 'upsert'].includes(params.action)) {
+        const productId = result?.productId || params.args?.data?.productId;
+        if (productId && typeof productId === 'string' && !productsToSync.includes(productId)) {
+          productsToSync.push(productId);
+        }
+      }
+
+      for (const productId of productsToSync) {
+        setTimeout(async () => {
+          try {
+            const { syncMeliStockAction } = await import('@/app/actions/integration');
+            await syncMeliStockAction(productId, tenantId);
+          } catch (err) {
+            console.error('[PRISMA MIDDLEWARE] Background Meli stock sync error:', err);
+          }
+        }, 500);
+      }
+    } catch (err) {
+      console.error('[PRISMA MIDDLEWARE] Error parsing product update:', err);
+    }
+
+    return result;
+  });
+}
+
+let masterClientInstance = globalThis.prismaMasterClient;
+if (!masterClientInstance) {
+  masterClientInstance = new PrismaClient({
+    datasources: { db: { url: getPooledUrl(masterUrl) } }
+  });
+  registerMeliStockSyncMiddleware(masterClientInstance, null);
+  globalThis.prismaMasterClient = masterClientInstance;
+}
+export const masterClient = masterClientInstance;
 
 // Cache for tenant Prisma clients
 const clientCache: Record<string, PrismaClient> = globalThis.prismaClientCache ?? {};
@@ -58,6 +127,7 @@ export function getClientForTenant(tenantId: string): PrismaClient {
   const client = new PrismaClient({
     datasources: { db: { url: tenantUrl } }
   });
+  registerMeliStockSyncMiddleware(client, tenantId);
   clientCache[tenantId] = client;
   return client;
 }

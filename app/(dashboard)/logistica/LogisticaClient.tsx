@@ -38,9 +38,11 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
   const postponedCount = orders.filter(o => o.status === 'POSTPONED').length;
 
   const filteredOrders = orders.filter(o => 
-    o.sale?.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    o.saleId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    o.neighborhood?.toLowerCase().includes(searchTerm.toLowerCase())
+    (o.sale?.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) || 
+    (o.saleId?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+    (o.transferId?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+    (o.transfer?.toBranch?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+    (o.neighborhood?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
   );
 
   const getStatusColor = (status: string) => {
@@ -419,11 +421,21 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
                 return (
                   <tr key={order.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                     <td data-label="Venta" style={{ padding: '1rem' }}>
-                      <div style={{ fontWeight: '500', fontFamily: 'monospace' }}>{order.saleId?.slice(0,8)}</div>
+                      <div style={{ fontWeight: '500', fontFamily: 'monospace' }}>
+                        {order.saleId ? `VTA-${order.saleId.slice(0, 8)}` : `TRS-${order.transferId?.slice(0, 8)}`}
+                      </div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</div>
                     </td>
                     <td data-label="Cliente" style={{ padding: '1rem', fontWeight: '500' }}>
-                      {order.sale?.customer?.name || 'Venta de Mostrador'}
+                      {order.sale ? (
+                        order.sale.customer?.name || 'Venta de Mostrador'
+                      ) : order.transfer ? (
+                        <span style={{ color: '#4f46e5' }}>
+                          📦 Traspaso: {order.transfer.branch?.name || 'Origen'} ➜ {order.transfer.toBranch?.name || 'Destino'}
+                        </span>
+                      ) : (
+                        'Entrega'
+                      )}
                     </td>
                     <td data-label="Dirección" style={{ padding: '1rem' }}>
                       {order.street ? (

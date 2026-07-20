@@ -6,3 +6,4 @@ build
 .hetzner
 .wwebjs_cache
 *.log
+backups

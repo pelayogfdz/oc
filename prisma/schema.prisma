@@ -542,6 +542,7 @@ model Transfer {
   requestedBy      User?             @relation("TransferRequestedBy", fields: [requestedById], references: [id])
   toBranch         Branch?           @relation("TransferTo", fields: [toBranchId], references: [id])
   items            TransferItem[]
+  deliveryOrder    DeliveryOrder?
 }
 
 model TransferItem {
@@ -866,7 +867,8 @@ model HrLocation {
 
 model DeliveryOrder {
   id              String    @id @default(uuid())
-  saleId          String    @unique
+  saleId          String?   @unique
+  transferId      String?   @unique
   street          String?
   exteriorNumber  String?
   interiorNumber  String?
@@ -888,7 +890,8 @@ model DeliveryOrder {
   clientSignature String?
   routeOrder      Int       @default(0)
   driver          User?     @relation("DriverOrders", fields: [driverId], references: [id])
-  sale            Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  sale            Sale?     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  transfer        Transfer? @relation(fields: [transferId], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([deliveryDate])

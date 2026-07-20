@@ -65,7 +65,10 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ sales: formattedSales });
 
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.message === 'Unauthorized') {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error('[MELI NOTIFICATIONS API] Error:', error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }

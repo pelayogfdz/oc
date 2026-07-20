@@ -42,7 +42,10 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json({ prospects });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.message === 'Unauthorized') {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("Error fetching prospects:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
@@ -106,7 +109,10 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ prospect, isNew: true });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.message === 'Unauthorized') {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("Error creating prospect:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

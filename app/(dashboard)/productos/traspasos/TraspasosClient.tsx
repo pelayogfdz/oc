@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { Truck, Search, LayoutGrid, List, FileText, ArrowRight, MoreVertical, SlidersHorizontal, X, Hash } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Truck, Search, LayoutGrid, List, FileText, ArrowRight, MoreVertical, SlidersHorizontal, X, Hash, MapPin, Loader2, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
+import { createDeliveryOrder } from '@/app/actions/logistica';
 
 export default function TraspasosClient({ 
   initialTransfers, 
@@ -13,6 +14,7 @@ export default function TraspasosClient({
   currentBranchId: string,
   branches?: { id: string; name: string }[]
 }) {
+  const [transfers, setTransfers] = useState<any[]>(initialTransfers);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
@@ -24,7 +26,176 @@ export default function TraspasosClient({
   const [dateFilter, setDateFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  const filteredTransfers = initialTransfers.filter(transfer => {
+  // Delivery routing modal states
+  const [selectedTransferForRoute, setSelectedTransferForRoute] = useState<any | null>(null);
+  const [routeStreet, setRouteStreet] = useState('');
+  const [routeExtNum, setRouteExtNum] = useState('');
+  const [routeIntNum, setRouteIntNum] = useState('');
+  const [routeColonia, setRouteColonia] = useState('');
+  const [routeCity, setRouteCity] = useState('');
+  const [routeState, setRouteState] = useState('');
+  const [routeZip, setRouteZip] = useState('');
+  const [routeLat, setRouteLat] = useState<number | null>(null);
+  const [routeLng, setRouteLng] = useState<number | null>(null);
+  const [isCreatingRoute, setIsCreatingRoute] = useState(false);
+  const [mapsLoaded, setMapsLoaded] = useState(false);
+
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setTransfers(initialTransfers);
+  }, [initialTransfers]);
+
+  const handleOpenRouteModal = (transfer: any) => {
+    setSelectedTransferForRoute(transfer);
+    
+    // Fallback: If destination branch has a location string, pre-populate street field with it
+    const destLocation = transfer.toBranch?.location || '';
+    setRouteStreet(destLocation);
+    setRouteExtNum('');
+    setRouteIntNum('');
+    setRouteColonia('');
+    setRouteCity('Querétaro');
+    setRouteState('Querétaro');
+    setRouteZip('');
+    setRouteLat(null);
+    setRouteLng(null);
+  };
+
+  const handleGeocode = () => {
+    if (!(window as any).google) return;
+    const address = `${routeStreet} ${routeExtNum || ''}, ${routeColonia || ''}, ${routeCity || ''}, ${routeState || ''}, ${routeZip || ''}`;
+    const geocoder = new (window as any).google.maps.Geocoder();
+    geocoder.geocode({ address }, (results: any, status: any) => {
+      if (status === 'OK' && results[0]) {
+        const loc = results[0].geometry.location;
+        setRouteLat(loc.lat());
+        setRouteLng(loc.lng());
+        if (mapRef.current) {
+          mapRef.current.setCenter(loc);
+          mapRef.current.setZoom(16);
+          if (markerRef.current) {
+            markerRef.current.setPosition(loc);
+          }
+        }
+      } else {
+        alert('No se pudo encontrar la ubicación en el mapa. Por favor haz clic manualmente en el mapa.');
+      }
+    });
+  };
+
+  const handleCreateRouteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTransferForRoute) return;
+
+    setIsCreatingRoute(true);
+    try {
+      const res = await createDeliveryOrder({
+        transferId: selectedTransferForRoute.id,
+        street: routeStreet,
+        exteriorNumber: routeExtNum,
+        interiorNumber: routeIntNum,
+        neighborhood: routeColonia,
+        city: routeCity,
+        state: routeState,
+        zipCode: routeZip,
+        lat: routeLat || undefined,
+        lng: routeLng || undefined
+      });
+
+      if (res.success && res.order) {
+        alert("Entrega programada exitosamente para el Traspaso. Se ha agregado al módulo de Logística.");
+        
+        // Update local state to reflect the deliveryOrder assignment
+        setTransfers(prev => prev.map(t => t.id === selectedTransferForRoute.id ? {
+          ...t,
+          deliveryOrder: { id: res.order!.id, status: 'PENDING' }
+        } : t));
+        
+        setSelectedTransferForRoute(null);
+      } else {
+        alert("Error al programar entrega del traspaso: " + res.error);
+      }
+    } catch (err: any) {
+      alert("Excepción: " + err.message);
+    } finally {
+      setIsCreatingRoute(false);
+    }
+  };
+
+  // Dynamic script loader for Google Maps in routing modal
+  useEffect(() => {
+    if (selectedTransferForRoute && !mapsLoaded) {
+      const existingScript = document.getElementById('google-maps-script');
+      if (existingScript) {
+        setMapsLoaded(true);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || ''}`;
+      script.id = 'google-maps-script';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        setMapsLoaded(true);
+      };
+      document.body.appendChild(script);
+    }
+  }, [selectedTransferForRoute, mapsLoaded]);
+
+  // Google Maps initialization inside routing modal
+  useEffect(() => {
+    if (selectedTransferForRoute && mapsLoaded && mapContainerRef.current && (window as any).google) {
+      const google = (window as any).google;
+      
+      const defaultCenter = routeLat && routeLng 
+        ? { lat: routeLat, lng: routeLng }
+        : { lat: 20.5888, lng: -100.3899 }; // Queretaro
+
+      const mapOptions = {
+        center: defaultCenter,
+        zoom: routeLat && routeLng ? 16 : 12,
+        mapId: "DEMO_MAP_ID_TRASPASOS",
+        styles: [
+          {
+            featureType: "poi",
+            elementType: "labels",
+            stylers: [{ visibility: "off" }]
+          }
+        ]
+      };
+
+      mapRef.current = new google.maps.Map(mapContainerRef.current, mapOptions);
+
+      markerRef.current = new google.maps.Marker({
+        position: defaultCenter,
+        map: mapRef.current,
+        draggable: true,
+        title: "Punto de Entrega"
+      });
+
+      // Update lat/lng on marker drag end
+      markerRef.current.addListener('dragend', () => {
+        const pos = markerRef.current.getPosition();
+        setRouteLat(pos.lat());
+        setRouteLng(pos.lng());
+      });
+
+      // Update lat/lng and marker position on map click
+      mapRef.current.addListener('click', (e: any) => {
+        const clickedLat = e.latLng.lat();
+        const clickedLng = e.latLng.lng();
+        setRouteLat(clickedLat);
+        setRouteLng(clickedLng);
+        markerRef.current.setPosition(e.latLng);
+      });
+    }
+  }, [selectedTransferForRoute, mapsLoaded]);
+
+  const filteredTransfers = transfers.filter(transfer => {
     // Search Term (General search on ID or branch names)
     const term = searchTerm.toLowerCase().trim();
     const matchesGeneral = term === '' || 
@@ -381,13 +552,24 @@ export default function TraspasosClient({
                 </div>
                 
                 <div style={{ padding: '1rem 1.25rem', backgroundColor: '#f8fafc', borderTop: '1px solid var(--caanma-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     <Link href={`/productos/traspasos/${item.id}`} style={{ color: 'var(--caanma-primary)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold' }}>
                       Ver Detalle &rarr;
                     </Link>
                     <Link href={`/productos/traspasos/${item.id}/imprimir`} target="_blank" style={{ color: '#0284c7', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold' }}>
                       Imprimir
                     </Link>
+                    {item.status !== 'CANCELLED' && (
+                      item.deliveryOrder ? (
+                        <Link href="/logistica" style={{ color: '#0369a1', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Truck size={14} /> Ver Entrega ({item.deliveryOrder.status === 'PENDING' ? 'Pendiente' : item.deliveryOrder.status === 'IN_PROGRESS' ? 'En Ruta' : item.deliveryOrder.status === 'DELIVERED' ? 'Recibido' : 'Pospuesto'})
+                        </Link>
+                      ) : (
+                        <button onClick={() => handleOpenRouteModal(item)} style={{ background: 'none', border: 'none', padding: 0, color: '#7e22ce', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Truck size={14} /> Programar Entrega
+                        </button>
+                      )
+                    )}
                   </div>
                   {isIncoming && item.status === 'DISPATCHED' && (
                      <button onClick={async () => {
@@ -452,6 +634,17 @@ export default function TraspasosClient({
                       <Link href={`/productos/traspasos/${item.id}`} style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '0.4rem 0.75rem', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
                          Ver Detalle
                       </Link>
+                      {item.status !== 'CANCELLED' && (
+                        item.deliveryOrder ? (
+                          <Link href="/logistica" style={{ backgroundColor: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', padding: '0.4rem 0.75rem', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
+                            <Truck size={14} /> Ver Entrega ({item.deliveryOrder.status === 'PENDING' ? 'Pendiente' : item.deliveryOrder.status === 'IN_PROGRESS' ? 'En Ruta' : item.deliveryOrder.status === 'DELIVERED' ? 'Recibido' : 'Pospuesto'})
+                          </Link>
+                        ) : (
+                          <button onClick={() => handleOpenRouteModal(item)} style={{ backgroundColor: '#faf5ff', color: '#7e22ce', border: '1px solid #e9d5ff', padding: '0.4rem 0.75rem', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
+                            <Truck size={14} /> Programar Entrega
+                          </button>
+                        )
+                      )}
                       {isIncoming && item.status === 'DISPATCHED' && (
                          <button onClick={async () => {
                            const t = await import('@/app/actions/transfer');
@@ -470,6 +663,269 @@ export default function TraspasosClient({
               )})}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Interactive Delivery Routing Modal */}
+      {selectedTransferForRoute && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.45)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            animation: 'fadeIn 0.2s ease-out',
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '20px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              width: '100%',
+              maxWidth: '1000px',
+              overflow: 'hidden',
+              animation: 'scaleIn 0.2s ease-out',
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: '90vh'
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #7e22ce, #9333ea)',
+                padding: '1.25rem 1.5rem',
+                color: 'white',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Truck size={20} /> Programar Entrega del Traspaso
+                </h3>
+                <span style={{ fontSize: '0.8rem', color: '#f3e8ff' }}>
+                  ID Traspaso: {selectedTransferForRoute.folio || selectedTransferForRoute.id.slice(0, 8).toUpperCase()}
+                </span>
+              </div>
+              <button
+                onClick={() => setSelectedTransferForRoute(null)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  color: 'white',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)')}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Split Content */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', overflowY: 'auto', flex: 1 }}>
+              {/* Form Column */}
+              <form 
+                onSubmit={handleCreateRouteSubmit}
+                style={{
+                  flex: '1 1 450px',
+                  padding: '1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1rem',
+                  borderRight: '1px solid #cbd5e1'
+                }}
+              >
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Calle / Av. (o Domicilio)</label>
+                    <input
+                      type="text"
+                      required
+                      value={routeStreet}
+                      onChange={(e) => setRouteStreet(e.target.value)}
+                      style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Ext.</label>
+                    <input
+                      type="text"
+                      required
+                      value={routeExtNum}
+                      onChange={(e) => setRouteExtNum(e.target.value)}
+                      style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Int.</label>
+                    <input
+                      type="text"
+                      value={routeIntNum}
+                      onChange={(e) => setRouteIntNum(e.target.value)}
+                      style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Colonia</label>
+                    <input
+                      type="text"
+                      required
+                      value={routeColonia}
+                      onChange={(e) => setRouteColonia(e.target.value)}
+                      style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>C.P.</label>
+                    <input
+                      type="text"
+                      required
+                      value={routeZip}
+                      onChange={(e) => setRouteZip(e.target.value)}
+                      style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Ciudad</label>
+                    <input
+                      type="text"
+                      required
+                      value={routeCity}
+                      onChange={(e) => setRouteCity(e.target.value)}
+                      style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Estado</label>
+                    <input
+                      type="text"
+                      required
+                      value={routeState}
+                      onChange={(e) => setRouteState(e.target.value)}
+                      style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <button
+                    type="button"
+                    onClick={handleGeocode}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      backgroundColor: '#f1f5f9',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      color: '#334155',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    <MapPin size={16} /> Buscar Dirección en el Mapa
+                  </button>
+
+                  <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#64748b' }}>
+                    <div>
+                      Latitud: <strong style={{ color: '#0f172a' }}>{routeLat !== null ? routeLat.toFixed(6) : 'Sin fijar'}</strong>
+                    </div>
+                    <div>
+                      Longitud: <strong style={{ color: '#0f172a' }}>{routeLng !== null ? routeLng.toFixed(6) : 'Sin fijar'}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: 'auto', paddingTop: '1rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTransferForRoute(null)}
+                    style={{
+                      padding: '0.625rem 1.25rem',
+                      backgroundColor: 'white',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      color: '#475569',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreatingRoute}
+                    style={{
+                      padding: '0.625rem 1.5rem',
+                      backgroundColor: '#7e22ce',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '0.85rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {isCreatingRoute ? 'Programando...' : 'Programar Entrega'}
+                  </button>
+                </div>
+              </form>
+
+              {/* Map Column */}
+              <div 
+                style={{
+                  flex: '1 1 450px',
+                  minHeight: '350px',
+                  position: 'relative',
+                  backgroundColor: '#f1f5f9',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}
+              >
+                <div ref={mapContainerRef} style={{ width: '100%', flex: 1, minHeight: '300px' }} />
+                {!mapsLoaded && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#cbd5e1', zIndex: 10 }}>
+                    <div style={{ textAlign: 'center', color: '#475569' }}>
+                      <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 0.5rem' }} />
+                      <strong>Cargando Google Maps...</strong>
+                    </div>
+                  </div>
+                )}
+                <div style={{ padding: '0.5rem 1rem', backgroundColor: '#f8fafc', borderTop: '1px solid #cbd5e1', fontSize: '0.78rem', color: '#64748b', textAlign: 'center' }}>
+                  📍 Arrastra el marcador o haz clic en cualquier parte del mapa para fijar la coordenada exacta para el chofer.
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

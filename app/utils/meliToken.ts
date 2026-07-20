@@ -1,7 +1,20 @@
-import { prisma } from '@/lib/prisma';
+import { prisma, masterClient, getClientForTenant } from '@/lib/prisma';
 
 export async function getOrRefreshMeliToken(branchId: string): Promise<string | null> {
-  const integration = await prisma.storeIntegration.findUnique({
+  // Resolve correct tenant client dynamically based on branchId
+  let dbClient = prisma;
+  try {
+    const branchRecord = await masterClient.branch.findUnique({
+      where: { id: branchId }
+    });
+    if (branchRecord?.tenantId) {
+      dbClient = getClientForTenant(branchRecord.tenantId);
+    }
+  } catch (e) {
+    console.error('[MELI TOKEN HELPER] Error resolving tenant client:', e);
+  }
+
+  const integration = await dbClient.storeIntegration.findUnique({
     where: { branchId_platform: { branchId, platform: 'MERCADO_LIBRE' } }
   });
 
@@ -67,7 +80,7 @@ export async function getOrRefreshMeliToken(branchId: string): Promise<string | 
     parsedMeta.expiresAt = newExpiresAt.toISOString();
     if (data.user_id) parsedMeta.userId = data.user_id;
 
-    await prisma.storeIntegration.update({
+    await dbClient.storeIntegration.update({
       where: { id: integration.id },
       data: {
         accessToken: data.access_token,

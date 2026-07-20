@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, masterClient, getClientForTenant } from '@/lib/prisma';
 import { getOrRefreshMeliToken } from '@/app/utils/meliToken';
 
 export async function POST(req: Request) {
@@ -32,6 +32,13 @@ export async function POST(req: Request) {
         // Responder 200 para indicarle a ML que recibimos el mensaje pero no nos corresponde procesarlo
         return new NextResponse('OK', { status: 200 });
       }
+
+      // Obtener el tenantId de la sucursal correspondiente
+      const branchRecord = await masterClient.branch.findUnique({
+        where: { id: integration.branchId }
+      });
+      const tenantId = branchRecord?.tenantId || null;
+      const tenantClient = tenantId ? getClientForTenant(tenantId) : prisma;
 
       // 2. Obtener token real auto-refrescado
       const token = await getOrRefreshMeliToken(integration.branchId);
@@ -66,7 +73,7 @@ export async function POST(req: Request) {
         const price = Number(item.unit_price);
 
         // Buscar si la publicación está mapeada en nuestro catálogo
-        const mappedItem = await prisma.externalProductMap.findFirst({
+        const mappedItem = await tenantClient.externalProductMap.findFirst({
           where: { externalId, platform: 'MERCADO_LIBRE' },
           include: { product: { include: { variants: true } } }
         });
@@ -76,13 +83,13 @@ export async function POST(req: Request) {
           console.log(`[MELI WEBHOOK] Publicación mapeada encontrada: ${product.name} (ID: ${product.id}). Cantidad: ${quantity}`);
           
           // Descontar inventario local en la base de datos
-          await prisma.product.update({
+          await tenantClient.product.update({
             where: { id: product.id },
             data: { stock: { decrement: quantity } }
           });
 
           // Registrar en Kardex
-          await prisma.inventoryMovement.create({
+          await tenantClient.inventoryMovement.create({
             data: {
               productId: product.id,
               type: 'OUT',
@@ -108,14 +115,14 @@ export async function POST(req: Request) {
         console.log(`[MELI WEBHOOK] Registrando venta contable en Caanma por un total de $${totalSaleAmount}...`);
         
         // Obtener el primer usuario de la base de datos para registrar la venta
-        const defaultUser = await prisma.user.findFirst();
+        const defaultUser = await tenantClient.user.findFirst();
         if (!defaultUser) {
           console.error('[MELI WEBHOOK] No se encontró ningún usuario para asociar al registro de la venta.');
           return new NextResponse('Internal User Config Error', { status: 500 });
         }
 
         // Crear la venta
-        await prisma.sale.create({
+        await tenantClient.sale.create({
           data: {
             folio: `ML-${orderData.id}`,
             total: totalSaleAmount,
