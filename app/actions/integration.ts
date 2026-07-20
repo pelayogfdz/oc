@@ -819,7 +819,7 @@ export async function syncMeliCatalogAction() {
     let hasMore = true;
 
     while (hasMore) {
-      const searchResponse = await fetch(`https://api.mercadolibre.com/users/${userId}/items/search?limit=${searchLimit}&offset=${offset}&status=active`, {
+      const searchResponse = await fetch(`https://api.mercadolibre.com/users/${userId}/items/search?limit=${searchLimit}&offset=${offset}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 

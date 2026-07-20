@@ -44,8 +44,8 @@ export async function POST(req: Request) {
     const userId = meData.id;
     console.log(`[MELI SYNC] Conectado exitosamente con usuario de ML: ${meData.nickname} (${userId})`);
 
-    // 2. Buscar publicaciones activas del vendedor (límite inicial de 50 items para evitar timeouts)
-    const searchResponse = await fetch(`https://api.mercadolibre.com/users/${userId}/items/search?limit=50&status=active`, {
+    // 2. Buscar publicaciones del vendedor (límite inicial de 50 items para evitar timeouts)
+    const searchResponse = await fetch(`https://api.mercadolibre.com/users/${userId}/items/search?limit=50`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
