@@ -624,7 +624,7 @@ export async function searchProducts(query: string, branchId: string) {
       where: { branchId: branchCondition, isActive: true },
       include: { variants: true, prices: true, branch: { select: { id: true, name: true } } },
       orderBy: { name: 'asc' },
-      take: 100
+      take: isGlobal ? 100 * Math.max(1, tenantBranchIds.length) : 100
     });
   } else {
     const words = query.trim().split(/\s+/).filter(w => w.length > 0);
@@ -636,6 +636,10 @@ export async function searchProducts(query: string, branchId: string) {
       ]
     }));
 
+    const rawLimit = isGlobal
+      ? (query.length < 3 ? 50 : 150) * Math.max(1, tenantBranchIds.length)
+      : (query.length < 3 ? 50 : 150);
+
     products = await prisma.product.findMany({
       where: {
         branchId: branchCondition,
@@ -644,7 +648,7 @@ export async function searchProducts(query: string, branchId: string) {
       },
       include: { variants: true, prices: true, branch: { select: { id: true, name: true } } },
       orderBy: { name: 'asc' },
-      take: query.length < 3 ? 50 : 150
+      take: rawLimit
     });
   }
 
