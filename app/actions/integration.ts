@@ -68,6 +68,8 @@ export async function deleteIntegration(formData: FormData) {
 
 export async function saveMeliPricingConfig(formData: FormData) {
   const branch = await getActiveBranch();
+  const user = await getActiveUser();
+  const tenantId = user?.tenantId || branch.tenantId;
   const platform = 'MERCADO_LIBRE';
   
   const targetMargin = parseFloat(formData.get('targetMargin') as string) || 0;
@@ -224,37 +226,42 @@ export async function saveMeliPricingConfig(formData: FormData) {
         include: { product: true }
       });
 
-      console.log(`[saveMeliPricingConfig] Actualizando precios en caliente para ${mappings.length} publicaciones vinculadas...`);
+      console.log(`[saveMeliPricingConfig] Actualizando precios y stock en caliente para ${mappings.length} publicaciones vinculadas...`);
 
       for (const map of mappings) {
-        if (map.isFixedPrice) {
-          continue;
-        }
-
-        const prodCost = map.product.cost;
-        let suggestedPrice = 0;
-        if (denominator > 0) {
-          suggestedPrice = (shippingCost + prodCost) / denominator;
-          suggestedPrice = Math.round(suggestedPrice * 100) / 100;
-        }
-
-        if (suggestedPrice > 0) {
-          // Llamada PUT a Mercado Libre
-          const response = await fetch(`https://api.mercadolibre.com/items/${map.externalId}`, {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ price: suggestedPrice })
-          });
-
-          if (response.ok) {
-            console.log(`[saveMeliPricingConfig] Precio actualizado en Mercado Libre para ${map.externalId}: $${suggestedPrice}`);
-          } else {
-            const errBody = await response.json().catch(() => ({}));
-            console.error(`[saveMeliPricingConfig] Error al actualizar precio en ML para ${map.externalId}:`, errBody);
+        // 1. Sincronizar precio (si no es precio fijo)
+        if (!map.isFixedPrice) {
+          const prodCost = map.product.cost;
+          let suggestedPrice = 0;
+          if (denominator > 0) {
+            suggestedPrice = (shippingCost + prodCost) / denominator;
+            suggestedPrice = Math.round(suggestedPrice * 100) / 100;
           }
+
+          if (suggestedPrice > 0) {
+            const response = await fetch(`https://api.mercadolibre.com/items/${map.externalId}`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ price: suggestedPrice })
+            });
+
+            if (response.ok) {
+              console.log(`[saveMeliPricingConfig] Precio actualizado en Mercado Libre para ${map.externalId}: $${suggestedPrice}`);
+            } else {
+              const errBody = await response.json().catch(() => ({}));
+              console.error(`[saveMeliPricingConfig] Error al actualizar precio en ML para ${map.externalId}:`, errBody);
+            }
+          }
+        }
+
+        // 2. Sincronizar stock
+        try {
+          await syncMeliStockAction(map.productId, tenantId);
+        } catch (stockErr) {
+          console.error(`[saveMeliPricingConfig] Error al actualizar stock en ML para ${map.externalId}:`, stockErr);
         }
       }
     }
