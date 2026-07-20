@@ -85,7 +85,7 @@ async function handleSync(onlyStock = false) {
       let listingType = 0.15;
       let hasTaxRetention = true;
       let satRetentionPct = 10.5;
-      let stockBranchIds: string[] = [branchId];
+      let stockBranchIds: string[] = [];
       let mainSaleBranchId = branchId;
 
       if (integration.metadata) {
@@ -96,11 +96,21 @@ async function handleSync(onlyStock = false) {
           if (meta.listingType !== undefined) listingType = Number(meta.listingType);
           if (meta.hasTaxRetention !== undefined) hasTaxRetention = Boolean(meta.hasTaxRetention);
           if (meta.satRetentionPct !== undefined) satRetentionPct = Number(meta.satRetentionPct);
-          if (meta.stockBranchIds !== undefined && Array.isArray(meta.stockBranchIds)) stockBranchIds = meta.stockBranchIds;
+          if (meta.stockBranchIds !== undefined && Array.isArray(meta.stockBranchIds) && meta.stockBranchIds.length > 0) {
+            stockBranchIds = meta.stockBranchIds;
+          }
           if (meta.mainSaleBranchId !== undefined) mainSaleBranchId = String(meta.mainSaleBranchId);
         } catch (e) {
           console.error(`[MELI DAILY CRON] Error parseando metadatos para sucursal ${integration.branch.name}:`, e);
         }
+      }
+
+      if (stockBranchIds.length === 0) {
+        const branchesList = await tenantClient.branch.findMany({
+          where: { tenantId: tenantId, isActive: true },
+          select: { id: true }
+        });
+        stockBranchIds = branchesList.map(b => b.id);
       }
 
       console.log(`[MELI DAILY CRON] Procesando sucursal: ${integration.branch.name} (Tenant: ${tenantId})`);

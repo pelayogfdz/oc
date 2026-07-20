@@ -481,14 +481,37 @@ export async function publishProductToMeli(productId: string) {
       return { success: false, error: 'No se pudo obtener un token válido de Mercado Libre.' };
     }
 
-    // 3. Construir el payload de publicación
+    // 3. Obtener las sucursales para el stock y calcular el stock total sumado
+    let stockBranchIds: string[] = [integration.branchId];
+    if (integration.metadata) {
+      try {
+        const meta = JSON.parse(integration.metadata);
+        if (meta.stockBranchIds && Array.isArray(meta.stockBranchIds) && meta.stockBranchIds.length > 0) {
+          stockBranchIds = meta.stockBranchIds;
+        }
+      } catch {}
+    }
+    
+    if (stockBranchIds.length === 0) {
+      stockBranchIds = tenantBranchIds;
+    }
+
+    const productInBranches = await prisma.product.findMany({
+      where: {
+        sku: product.sku,
+        branchId: { in: stockBranchIds },
+        isActive: true
+      }
+    });
+    const totalStock = productInBranches.reduce((sum, p) => sum + p.stock, 0);
+
     const price = product.price > 0 ? product.price : 100; // Evitar precio de 0
     const payload = {
       title: product.name.substring(0, 60), // Límite de título en ML es 60 caracteres
       category_id: categoryId,
       price: price,
       currency_id: 'MXN',
-      available_quantity: product.stock > 0 ? product.stock : 1, // Mínimo 1 para publicar activo
+      available_quantity: totalStock > 0 ? totalStock : 1, // Mínimo 1 para publicar activo
       buying_mode: 'buy_it_now',
       listing_type_id: listingTypeId,
       condition: 'new',
@@ -671,6 +694,13 @@ export async function linkMeliItemToProduct(externalId: string, productId: strin
       } catch (e) {
         console.error('Error actualizando metadatos en linkMeliItemToProduct:', e);
       }
+    }
+
+    // Sincronizar stock inmediatamente después de vincular
+    try {
+      await syncMeliStockAction(product.id, user.tenantId);
+    } catch (e) {
+      console.error('[linkMeliItemToProduct] Error in post-link stock sync:', e);
     }
 
     revalidatePath('/integraciones/mercadolibre');
@@ -1143,7 +1173,7 @@ export async function syncMeliStockAction(productId: string, tenantId: string | 
       if (!token) continue;
 
       // Extract settings from metadata (like stockBranchIds)
-      let stockBranchIds: string[] = [integration.branchId];
+      let stockBranchIds: string[] = [];
       if (integration.metadata) {
         try {
           const meta = JSON.parse(integration.metadata);
@@ -1151,6 +1181,14 @@ export async function syncMeliStockAction(productId: string, tenantId: string | 
             stockBranchIds = meta.stockBranchIds;
           }
         } catch {}
+      }
+
+      if (stockBranchIds.length === 0) {
+        const branchesList = await tenantClient.branch.findMany({
+          where: { tenantId: tenantId || undefined, isActive: true },
+          select: { id: true }
+        });
+        stockBranchIds = branchesList.map(b => b.id);
       }
 
       // Sum stock across all selected branches

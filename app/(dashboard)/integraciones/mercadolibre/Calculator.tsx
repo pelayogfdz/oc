@@ -26,11 +26,16 @@ export default function MeliCalculator({ branches, initialConfig }: MeliCalculat
   const [targetMargin, setTargetMargin] = useState<number>(initialConfig?.targetMargin ?? 20); // 20% utilidad esperada
   const [shippingCost, setShippingCost] = useState<number>(initialConfig?.shippingCost ?? 115); // Envío estándar de MELI
   const [listingType, setListingType] = useState<number>(initialConfig?.listingType ?? 0.15); // Clásica ~15%, Premium ~19%
-  const [hasTaxRetention, setHasTaxRetention] = useState<boolean>(initialConfig?.hasTaxRetention ?? true); 
-  const [satRetentionPct, setSatRetentionPct] = useState<number>(initialConfig?.satRetentionPct ?? 10.5); // Default 10.5% (IVA 8% + ISR 2.5%)
+  // Default to false for tax retention (SAT options eliminated)
+  const [hasTaxRetention, setHasTaxRetention] = useState<boolean>(initialConfig?.hasTaxRetention ?? false); 
+  const [satRetentionPct, setSatRetentionPct] = useState<number>(initialConfig?.satRetentionPct ?? 0); 
   
-  // Lista de sucursales seleccionadas para el inventario publicado
-  const [stockBranchIds, setStockBranchIds] = useState<string[]>(initialConfig?.stockBranchIds ?? [(branches[0]?.id || '')]);
+  // Lista de sucursales seleccionadas para el inventario publicado. Default to all branches if not configured
+  const [stockBranchIds, setStockBranchIds] = useState<string[]>(
+    initialConfig?.stockBranchIds && initialConfig.stockBranchIds.length > 0
+      ? initialConfig.stockBranchIds
+      : branches.map(b => b.id)
+  );
   // Sucursal principal donde caen las ventas
   const [mainSaleBranchId, setMainSaleBranchId] = useState<string>(initialConfig?.mainSaleBranchId ?? (branches[0]?.id || ''));
 
@@ -180,43 +185,6 @@ export default function MeliCalculator({ branches, initialConfig }: MeliCalculat
                     />
                  </div>
                </div>
-             </div>
-           </div>
-
-           {/* Sección de Impuestos */}
-           <div style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--caanma-border)' }}>
-             <h3 style={{ fontWeight: 'bold', fontSize: '1rem', marginBottom: '0.75rem', color: '#d97706', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.25rem' }}>💼 Retenciones Fiscales (SAT)</h3>
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-               <div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                     <input 
-                       type="checkbox" 
-                       checked={hasTaxRetention} 
-                       onChange={e => setHasTaxRetention(e.target.checked)}
-                       style={{ width: '18px', height: '18px' }}
-                     />
-                     <span style={{ fontWeight: '600', fontSize: '0.9rem' }}>Aplicar Retenciones del SAT</span>
-                  </label>
-               </div>
-               
-               {hasTaxRetention && (
-                 <div>
-                   <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.25rem', fontSize: '0.85rem' }}>Porcentaje de Retención del SAT (%)</label>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                     <input 
-                       type="number" 
-                       step="0.1"
-                       value={satRetentionPct} 
-                       onChange={e => setSatRetentionPct(parseFloat(e.target.value) || 0)} 
-                       style={{ width: '100%', padding: '0.65rem', borderRadius: '4px', border: '1px solid #ccc' }} 
-                     />
-                     <span style={{ fontWeight: 'bold', color: '#64748b' }}>%</span>
-                   </div>
-                   <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>
-                     Usa <strong>10.5%</strong> si tienes RFC registrado (IVA 8% + ISR 2.5%) o <strong>16%</strong> si es RFC genérico.
-                   </div>
-                 </div>
-               )}
              </div>
            </div>
 

@@ -53,6 +53,26 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
     margenP: '',
   });
 
+  // Sorting state
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortOrder('asc');
+    }
+  };
+
+  const renderSortIndicator = (key: string) => {
+    if (sortKey !== key) return <span style={{ color: '#cbd5e1', marginLeft: '0.25rem', fontSize: '0.65rem' }}>↕</span>;
+    return sortOrder === 'asc' 
+      ? <span style={{ color: 'var(--caanma-primary)', marginLeft: '0.25rem', fontSize: '0.65rem' }}>▲</span>
+      : <span style={{ color: 'var(--caanma-primary)', marginLeft: '0.25rem', fontSize: '0.65rem' }}>▼</span>;
+  };
+
   // Form state for inline editing
   const [formData, setFormData] = useState({
     precioMeli: 0,
@@ -90,7 +110,7 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
 
   // Filtered maps memoized
   const filteredMaps = useMemo(() => {
-    return maps.filter(map => {
+    let result = maps.filter(map => {
       const p = map.product;
       const dPrecio = map.precioMeli !== null && map.precioMeli !== undefined ? map.precioMeli : p.price;
       const dComision = map.comisionMeli || 0;
@@ -164,7 +184,75 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
 
       return nameMatch && skuMatch && statusMatch && fixedMatch && costMatch && localPriceMatch && stockMatch && priceMeliMatch && comisionMatch && envioMatch && retencionMatch && margenDMatch && margenPMatch;
     });
-  }, [maps, filters]);
+
+    if (sortKey) {
+      result = [...result].sort((a, b) => {
+        let valA: any = '';
+        let valB: any = '';
+
+        if (sortKey === 'name') {
+          valA = a.product.name.toLowerCase();
+          valB = b.product.name.toLowerCase();
+        } else if (sortKey === 'sku') {
+          valA = (a.product.sku || '').toLowerCase();
+          valB = (b.product.sku || '').toLowerCase();
+        } else if (sortKey === 'cost') {
+          valA = a.product.cost || 0;
+          valB = b.product.cost || 0;
+        } else if (sortKey === 'localPrice') {
+          valA = a.product.price || 0;
+          valB = b.product.price || 0;
+        } else if (sortKey === 'stock') {
+          valA = a.product.stock || 0;
+          valB = b.product.stock || 0;
+        } else if (sortKey === 'priceMeli') {
+          valA = a.precioMeli !== null && a.precioMeli !== undefined ? a.precioMeli : a.product.price;
+          valB = b.precioMeli !== null && b.precioMeli !== undefined ? b.precioMeli : b.product.price;
+        } else if (sortKey === 'comision') {
+          valA = a.comisionMeli || 0;
+          valB = b.comisionMeli || 0;
+        } else if (sortKey === 'envio') {
+          valA = a.envioMeli || 0;
+          valB = b.envioMeli || 0;
+        } else if (sortKey === 'retencion') {
+          valA = a.retencionMeli || 0;
+          valB = b.retencionMeli || 0;
+        } else if (sortKey === 'margenD') {
+          const priceA = a.precioMeli !== null && a.precioMeli !== undefined ? a.precioMeli : a.product.price;
+          const comisionA = a.comisionMeli || 0;
+          const envioA = a.envioMeli || 0;
+          const retencionA = a.retencionMeli || 0;
+          valA = a.margenDinero !== null && a.margenDinero !== undefined ? a.margenDinero : (priceA - a.product.cost - comisionA - envioA - retencionA);
+
+          const priceB = b.precioMeli !== null && b.precioMeli !== undefined ? b.precioMeli : b.product.price;
+          const comisionB = b.comisionMeli || 0;
+          const envioB = b.envioMeli || 0;
+          const retencionB = b.retencionMeli || 0;
+          valB = b.margenDinero !== null && b.margenDinero !== undefined ? b.margenDinero : (priceB - b.product.cost - comisionB - envioB - retencionB);
+        } else if (sortKey === 'margenP') {
+          const priceA = a.precioMeli !== null && a.precioMeli !== undefined ? a.precioMeli : a.product.price;
+          const comisionA = a.comisionMeli || 0;
+          const envioA = a.envioMeli || 0;
+          const retencionA = a.retencionMeli || 0;
+          const mDA = a.margenDinero !== null && a.margenDinero !== undefined ? a.margenDinero : (priceA - a.product.cost - comisionA - envioA - retencionA);
+          valA = a.margenPorcentaje !== null && a.margenPorcentaje !== undefined ? a.margenPorcentaje : (priceA > 0 ? (mDA / priceA) * 100 : 0);
+
+          const priceB = b.precioMeli !== null && b.precioMeli !== undefined ? b.precioMeli : b.product.price;
+          const comisionB = b.comisionMeli || 0;
+          const envioB = b.envioMeli || 0;
+          const retencionB = b.retencionMeli || 0;
+          const mDB = b.margenDinero !== null && b.margenDinero !== undefined ? b.margenDinero : (priceB - b.product.cost - comisionB - envioB - retencionB);
+          valB = b.margenPorcentaje !== null && b.margenPorcentaje !== undefined ? b.margenPorcentaje : (priceB > 0 ? (mDB / priceB) * 100 : 0);
+        }
+
+        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [maps, filters, sortKey, sortOrder]);
 
   // Handle header checkbox change
   const handleSelectAll = (checked: boolean) => {
@@ -494,17 +582,39 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
                   title="Seleccionar todos los productos no vinculados"
                 />
               </th>
-              <th style={{ padding: '0.75rem 0.5rem', minWidth: '150px' }}>Producto Local</th>
-              <th style={{ padding: '0.75rem 0.5rem' }}>SKU</th>
-              <th style={{ padding: '0.75rem 0.5rem' }}>Costo</th>
-              <th style={{ padding: '0.75rem 0.5rem', color: '#64748b' }}>Precio Local</th>
-              <th style={{ padding: '0.75rem 0.5rem', color: '#475569', fontWeight: 'bold' }}>Stock Caanma</th>
-              <th style={{ padding: '0.75rem 0.5rem', color: 'var(--caanma-primary)', minWidth: '100px' }}>Precio Venta ML</th>
-              <th style={{ padding: '0.75rem 0.5rem', color: '#b91c1c', minWidth: '90px' }}>Comisión Real</th>
-              <th style={{ padding: '0.75rem 0.5rem', color: '#3b82f6', minWidth: '90px' }}>Costo Envío</th>
-              <th style={{ padding: '0.75rem 0.5rem', color: '#8b5cf6', minWidth: '90px' }}>Retención Imp.</th>
-              <th style={{ padding: '0.75rem 0.5rem', color: '#16a34a', minWidth: '90px' }}>Margen ($)</th>
-              <th style={{ padding: '0.75rem 0.5rem', color: '#16a34a', minWidth: '90px' }}>Margen (%)</th>
+              <th onClick={() => handleSort('name')} style={{ padding: '0.75rem 0.5rem', minWidth: '150px', cursor: 'pointer', userSelect: 'none' }}>
+                Producto Local {renderSortIndicator('name')}
+              </th>
+              <th onClick={() => handleSort('sku')} style={{ padding: '0.75rem 0.5rem', cursor: 'pointer', userSelect: 'none' }}>
+                SKU {renderSortIndicator('sku')}
+              </th>
+              <th onClick={() => handleSort('cost')} style={{ padding: '0.75rem 0.5rem', cursor: 'pointer', userSelect: 'none' }}>
+                Costo {renderSortIndicator('cost')}
+              </th>
+              <th onClick={() => handleSort('localPrice')} style={{ padding: '0.75rem 0.5rem', color: '#64748b', cursor: 'pointer', userSelect: 'none' }}>
+                Precio Local {renderSortIndicator('localPrice')}
+              </th>
+              <th onClick={() => handleSort('stock')} style={{ padding: '0.75rem 0.5rem', color: '#475569', fontWeight: 'bold', cursor: 'pointer', userSelect: 'none' }}>
+                Stock Caanma {renderSortIndicator('stock')}
+              </th>
+              <th onClick={() => handleSort('priceMeli')} style={{ padding: '0.75rem 0.5rem', color: 'var(--caanma-primary)', minWidth: '100px', cursor: 'pointer', userSelect: 'none' }}>
+                Precio Venta ML {renderSortIndicator('priceMeli')}
+              </th>
+              <th onClick={() => handleSort('comision')} style={{ padding: '0.75rem 0.5rem', color: '#b91c1c', minWidth: '90px', cursor: 'pointer', userSelect: 'none' }}>
+                Comisión Real {renderSortIndicator('comision')}
+              </th>
+              <th onClick={() => handleSort('envio')} style={{ padding: '0.75rem 0.5rem', color: '#3b82f6', minWidth: '90px', cursor: 'pointer', userSelect: 'none' }}>
+                Costo Envío {renderSortIndicator('envio')}
+              </th>
+              <th onClick={() => handleSort('retencion')} style={{ padding: '0.75rem 0.5rem', color: '#8b5cf6', minWidth: '90px', cursor: 'pointer', userSelect: 'none' }}>
+                Retención Imp. {renderSortIndicator('retencion')}
+              </th>
+              <th onClick={() => handleSort('margenD')} style={{ padding: '0.75rem 0.5rem', color: '#16a34a', minWidth: '90px', cursor: 'pointer', userSelect: 'none' }}>
+                Margen ($) {renderSortIndicator('margenD')}
+              </th>
+              <th onClick={() => handleSort('margenP')} style={{ padding: '0.75rem 0.5rem', color: '#16a34a', minWidth: '90px', cursor: 'pointer', userSelect: 'none' }}>
+                Margen (%) {renderSortIndicator('margenP')}
+              </th>
               <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>Fijo?</th>
               <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>Estatus ML</th>
               <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', minWidth: '100px' }}>Acciones</th>
