@@ -1268,13 +1268,14 @@ export async function syncMeliStockAction(productId: string, tenantId: string | 
       });
 
       const totalStock = productInBranches.reduce((sum, p) => sum + p.stock, 0);
+      const clampedStock = Math.max(0, totalStock);
 
-      console.log(`[MELI STOCK SYNC] Publicación ${map.externalId}: Nuevo stock a enviar = ${totalStock}`);
+      console.log(`[MELI STOCK SYNC] Publicación ${map.externalId}: Nuevo stock a enviar = ${totalStock} (clamped to ${clampedStock})`);
 
       // Push stock to Mercado Libre and reactivate if greater than 0
       const stockPayload = {
-        available_quantity: totalStock,
-        ...(totalStock > 0 ? { status: 'active' } : {})
+        available_quantity: clampedStock,
+        ...(clampedStock > 0 ? { status: 'active' } : {})
       };
 
       const response = await fetch(`https://api.mercadolibre.com/items/${map.externalId}`, {

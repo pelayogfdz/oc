@@ -413,11 +413,12 @@ async function handleSync(onlyStock = false) {
             });
 
             const totalStock = productInBranches.reduce((sum, p) => sum + p.stock, 0);
+            const clampedStock = Math.max(0, totalStock);
 
             // Actualizar stock en Mercado Libre y reactivar si es mayor a 0
             const stockPayload = {
-              available_quantity: totalStock,
-              ...(totalStock > 0 ? { status: 'active' } : {})
+              available_quantity: clampedStock,
+              ...(clampedStock > 0 ? { status: 'active' } : {})
             };
 
             const stockResponse = await fetch(`https://api.mercadolibre.com/items/${map.externalId}`, {
