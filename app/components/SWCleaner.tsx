@@ -9,13 +9,16 @@ export default function SWCleaner() {
     if (typeof window !== 'undefined') {
       const storedVersion = localStorage.getItem('caanma_build_version');
       if (storedVersion !== CURRENT_BUILD_VERSION) {
-        console.log('[PWA] Nueva versión detectada:', CURRENT_BUILD_VERSION, '. Limpiando cachés y desregistrando service workers...');
+        console.log('[PWA] Nueva versión detectada:', CURRENT_BUILD_VERSION, '. Limpiando cachés y desregistrando service workers sin recargar...');
         
-        // 1. Limpiar localStorage de permisos obsoletos
+        // 1. Guardar versión inmediatamente para evitar bucles de recarga
+        localStorage.setItem('caanma_build_version', CURRENT_BUILD_VERSION);
+
+        // 2. Limpiar localStorage de permisos obsoletos
         localStorage.removeItem('caanma_user_permissions');
         localStorage.removeItem('caanma_user_is_admin');
         
-        // 2. Desregistrar Service Workers
+        // 3. Desregistrar Service Workers
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.getRegistrations().then((registrations) => {
             for (const reg of registrations) {
@@ -24,20 +27,11 @@ export default function SWCleaner() {
           }).catch(err => console.warn('Error unregistering SW:', err));
         }
 
-        // 3. Limpiar todas las cachés de red y de la app
+        // 4. Limpiar todas las cachés de red y de la app
         if (typeof caches !== 'undefined') {
           caches.keys().then((keys) => {
-            Promise.all(keys.map(key => caches.delete(key))).finally(() => {
-              localStorage.setItem('caanma_build_version', CURRENT_BUILD_VERSION);
-              window.location.reload();
-            });
-          }).catch(() => {
-            localStorage.setItem('caanma_build_version', CURRENT_BUILD_VERSION);
-            window.location.reload();
-          });
-        } else {
-          localStorage.setItem('caanma_build_version', CURRENT_BUILD_VERSION);
-          window.location.reload();
+            Promise.all(keys.map(key => caches.delete(key)));
+          }).catch(err => console.warn('Error deleting caches:', err));
         }
       }
     }
