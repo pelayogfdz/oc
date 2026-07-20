@@ -885,17 +885,17 @@ export async function syncMeliCatalogAction() {
         include: { product: true }
       });
 
-      // 1. Obtener costos reales de Mercado Libre
-      const costs = await calculateMeliItemCosts(
-        integration.branchId,
-        item.id,
-        item.price,
-        item.category_id,
-        item.listing_type_id,
-        item.shipping ? item.shipping.free_shipping : false
-      );
-
       if (existingMap) {
+        // 1. Obtener costos reales de Mercado Libre (solo si existe el mapeo)
+        const costs = await calculateMeliItemCosts(
+          integration.branchId,
+          item.id,
+          item.price,
+          item.category_id,
+          item.listing_type_id,
+          item.shipping ? item.shipping.free_shipping : false
+        );
+
         const updateData: any = { 
           lastSync: new Date(), 
           syncStatus: item.status || 'active',
@@ -929,6 +929,16 @@ export async function syncMeliCatalogAction() {
         }) : null;
 
         if (localProduct) {
+          // 1. Obtener costos reales de Mercado Libre (solo si se va a auto-vincular)
+          const costs = await calculateMeliItemCosts(
+            integration.branchId,
+            item.id,
+            item.price,
+            item.category_id,
+            item.listing_type_id,
+            item.shipping ? item.shipping.free_shipping : false
+          );
+
           const cost = localProduct.cost;
           const margenDinero = item.price - cost - costs.comisionMeli - costs.envioMeli - costs.retencionMeli;
           const margenPorcentaje = item.price > 0 ? (margenDinero / item.price) * 100 : 0;
