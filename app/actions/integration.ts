@@ -742,6 +742,11 @@ export async function searchCaanmaProducts(query: string) {
       where: {
         branchId: { in: tenantBranchIds },
         isActive: true,
+        externalMaps: {
+          none: {
+            platform: 'MERCADO_LIBRE'
+          }
+        },
         OR: [
           { name: { contains: cleanQuery, mode: 'insensitive' } },
           { sku: { contains: cleanQuery, mode: 'insensitive' } }
