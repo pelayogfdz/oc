@@ -260,7 +260,79 @@ async function handleSync(onlyStock = false) {
           }
         });
 
-        console.log(`[MELI DAILY CRON] Sincronizando precios y stocks sumados para ${mappings.length} vinculaciones...`);
+        // RECALCULAR COSTOS DE MERCADO LIBRE PARA TODOS LOS ARTÍCULOS VINCULADOS
+        if (mappings.length > 0) {
+          try {
+            console.log(`[MELI DAILY CRON] Recalculando costos para ${mappings.length} artículos vinculados...`);
+            const itemIds = mappings.map(m => m.externalId);
+            const meliItemsDetails: Record<string, any> = {};
+            const batchSize = 20;
+
+            for (let i = 0; i < itemIds.length; i += batchSize) {
+              const batchIds = itemIds.slice(i, i + batchSize);
+              const itemsDetailResponse = await fetch(`https://api.mercadolibre.com/items?ids=${batchIds.join(',')}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+
+              if (itemsDetailResponse.ok) {
+                const details = await itemsDetailResponse.json();
+                if (Array.isArray(details)) {
+                  details.forEach((d: any) => {
+                    if (d.code === 200 && d.body) {
+                      meliItemsDetails[d.body.id] = d.body;
+                    }
+                  });
+                }
+              }
+            }
+
+            for (const map of mappings) {
+              const itemData = meliItemsDetails[map.externalId];
+              if (itemData) {
+                const { calculateMeliItemCosts } = await import('@/app/actions/integration');
+                const costs = await calculateMeliItemCosts(
+                  branchId,
+                  map.externalId,
+                  itemData.price,
+                  itemData.category_id,
+                  itemData.listing_type_id,
+                  itemData.shipping ? itemData.shipping.free_shipping : false
+                );
+
+                const actualPrecio = map.isFixedPrice ? (map.precioMeli || itemData.price) : itemData.price;
+                const cost = map.product.cost || 0;
+                const margenDinero = actualPrecio - cost - costs.comisionMeli - costs.envioMeli - costs.retencionMeli;
+                const margenPorcentaje = actualPrecio > 0 ? (margenDinero / actualPrecio) * 100 : 0;
+
+                await tenantClient.externalProductMap.update({
+                  where: { id: map.id },
+                  data: {
+                    precioMeli: map.isFixedPrice ? map.precioMeli : itemData.price,
+                    comisionMeli: costs.comisionMeli,
+                    envioMeli: costs.envioMeli,
+                    retencionMeli: costs.retencionMeli,
+                    margenDinero,
+                    margenPorcentaje,
+                    lastSync: new Date(),
+                    syncStatus: itemData.status || 'active'
+                  }
+                });
+
+                // Actualizar los valores en memoria para que la lógica subsiguiente los use
+                map.precioMeli = map.isFixedPrice ? map.precioMeli : itemData.price;
+                map.comisionMeli = costs.comisionMeli;
+                map.envioMeli = costs.envioMeli;
+                map.retencionMeli = costs.retencionMeli;
+                map.margenDinero = margenDinero;
+                map.margenPorcentaje = margenPorcentaje;
+                map.syncStatus = itemData.status || 'active';
+              }
+            }
+            console.log(`[MELI DAILY CRON] Costos recalculados y guardados exitosamente.`);
+          } catch (costErr) {
+            console.error(`[MELI DAILY CRON] Error al recalcular costos de artículos vinculados:`, costErr);
+          }
+        }
 
         for (const map of mappings) {
           const product = map.product;
