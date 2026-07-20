@@ -1166,14 +1166,19 @@ export async function syncMeliStockAction(productId: string, tenantId: string | 
 
       console.log(`[MELI STOCK SYNC] Publicación ${map.externalId}: Nuevo stock a enviar = ${totalStock}`);
 
-      // Push stock to Mercado Libre
+      // Push stock to Mercado Libre and reactivate if greater than 0
+      const stockPayload = {
+        available_quantity: totalStock,
+        ...(totalStock > 0 ? { status: 'active' } : {})
+      };
+
       const response = await fetch(`https://api.mercadolibre.com/items/${map.externalId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ available_quantity: totalStock })
+        body: JSON.stringify(stockPayload)
       });
 
       if (!response.ok) {
