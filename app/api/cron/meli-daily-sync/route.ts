@@ -371,6 +371,175 @@ async function handleSync(onlyStock = false) {
         console.error(`[MELI DAILY CRON] Error en sincronización de precios/inventarios para sucursal ${integration.branch.name}:`, syncErr);
       }
 
+      // ----------------------------------------------------
+      // PASO C: BARRIDO Y DESCARGA AUTOMÁTICA DE NUEVAS PUBLICACIONES (CADA 5 MINUTOS)
+      // ----------------------------------------------------
+      try {
+        console.log(`[MELI DAILY CRON] Iniciando barrido de catálogo para sucursal: ${integration.branch.name}`);
+        
+        // A. Obtener ID de usuario Meli
+        const meResponse = await fetch('https://api.mercadolibre.com/users/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (meResponse.ok) {
+          const meData = await meResponse.json();
+          const userId = meData.id;
+
+          // B. Buscar todas las publicaciones con paginación
+          const itemIds: string[] = [];
+          let offset = 0;
+          const searchLimit = 50;
+          let hasMore = true;
+
+          while (hasMore) {
+            const searchResponse = await fetch(`https://api.mercadolibre.com/users/${userId}/items/search?limit=${searchLimit}&offset=${offset}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!searchResponse.ok) break;
+
+            const searchData = await searchResponse.json();
+            const results: string[] = searchData.results || [];
+            itemIds.push(...results);
+
+            if (results.length < searchLimit || itemIds.length >= 5000) {
+              hasMore = false;
+            } else {
+              offset += searchLimit;
+            }
+          }
+
+          console.log(`[MELI DAILY CRON] Barrido: Se encontraron ${itemIds.length} publicaciones totales en ML.`);
+
+          // C. Obtener detalles en lotes de 20
+          const meliItems: any[] = [];
+          const batchSize = 20;
+
+          for (let i = 0; i < itemIds.length; i += batchSize) {
+            const batchIds = itemIds.slice(i, i + batchSize);
+            const itemsDetailResponse = await fetch(`https://api.mercadolibre.com/items?ids=${batchIds.join(',')}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (itemsDetailResponse.ok) {
+              const details = await itemsDetailResponse.json();
+              if (Array.isArray(details)) {
+                details.forEach((d: any) => {
+                  if (d.code === 200 && d.body) {
+                    const body = d.body;
+                    meliItems.push({
+                      id: body.id,
+                      title: body.title,
+                      price: body.price,
+                      status: body.status,
+                      available_quantity: body.available_quantity,
+                      seller_custom_field: body.seller_custom_field || null,
+                      shipping: body.shipping,
+                      category_id: body.category_id,
+                      listing_type_id: body.listing_type_id
+                    });
+                  }
+                });
+              }
+            }
+          }
+
+          // D. Comparar y vincular o agregar a unlinked
+          const unlinkedMeliItems: any[] = [];
+
+          for (const item of meliItems) {
+            const existingMap = await tenantClient.externalProductMap.findUnique({
+              where: { platform_externalId: { platform: 'MERCADO_LIBRE', externalId: item.id } },
+              include: { product: true }
+            });
+
+            if (existingMap) {
+              // Ya existe. Si no está sintonizado el estatus, lo actualizamos
+              if (existingMap.syncStatus !== item.status) {
+                await tenantClient.externalProductMap.update({
+                  where: { id: existingMap.id },
+                  data: { syncStatus: item.status || 'active' }
+                });
+              }
+            } else {
+              const cleanSku = item.seller_custom_field ? String(item.seller_custom_field).trim() : null;
+              
+              const localProduct = cleanSku ? await tenantClient.product.findUnique({
+                where: { sku_branchId: { sku: cleanSku, branchId: branchId } }
+              }) : null;
+
+              if (localProduct) {
+                // Auto-vinculación automática por SKU!
+                console.log(`[MELI DAILY CRON] Auto-vinculando producto local '${localProduct.name}' con publicación ${item.id} por SKU: ${cleanSku}`);
+                
+                // Calcular costos reales
+                const { calculateMeliItemCosts } = await import('@/app/actions/integration');
+                const costs = await calculateMeliItemCosts(
+                  branchId,
+                  item.id,
+                  item.price,
+                  item.category_id,
+                  item.listing_type_id,
+                  item.shipping ? item.shipping.free_shipping : false
+                );
+
+                const cost = localProduct.cost;
+                const margenDinero = item.price - cost - costs.comisionMeli - costs.envioMeli - costs.retencionMeli;
+                const margenPorcentaje = item.price > 0 ? (margenDinero / item.price) * 100 : 0;
+
+                await tenantClient.externalProductMap.create({
+                  data: { 
+                    productId: localProduct.id, 
+                    platform: 'MERCADO_LIBRE', 
+                    externalId: item.id,
+                    syncStatus: item.status || 'active',
+                    lastSync: new Date(),
+                    precioMeli: item.price,
+                    comisionMeli: costs.comisionMeli,
+                    envioMeli: costs.envioMeli,
+                    retencionMeli: costs.retencionMeli,
+                    margenDinero,
+                    margenPorcentaje,
+                    isFixedPrice: false
+                  }
+                });
+
+                // Sincronizar stock inmediatamente para el nuevo mapeo
+                try {
+                  const { syncMeliStockAction } = await import('@/app/actions/integration');
+                  await syncMeliStockAction(localProduct.id, tenantId);
+                } catch (stockErr) {
+                  console.error(`[MELI DAILY CRON] Error al sincronizar stock inmediato tras auto-vincular:`, stockErr);
+                }
+              } else {
+                unlinkedMeliItems.push({
+                  id: item.id,
+                  title: item.title,
+                  sku: cleanSku || '',
+                  price: item.price,
+                  status: item.status || 'active',
+                  stock: item.available_quantity
+                });
+              }
+            }
+          }
+
+          // Guardar lista en metadatos
+          const currentMeta = integration.metadata ? JSON.parse(integration.metadata) : {};
+          currentMeta.unlinkedMeliItems = unlinkedMeliItems;
+
+          await tenantClient.storeIntegration.update({
+            where: { id: integration.id },
+            data: { metadata: JSON.stringify(currentMeta) }
+          });
+
+          console.log(`[MELI DAILY CRON] Barrido de catálogo finalizado con éxito. ${unlinkedMeliItems.length} publicaciones sin vincular guardadas.`);
+        }
+      } catch (sweepErr) {
+        console.error(`[MELI DAILY CRON] Error en el barrido de catálogo:`, sweepErr);
+      }
+
       processedTenantsCount++;
     }
 
