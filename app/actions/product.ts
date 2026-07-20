@@ -631,7 +631,6 @@ export async function searchProducts(query: string, branchId: string) {
     const searchConditions = words.map(word => ({
       OR: [
         { name: { contains: word, mode: 'insensitive' as const } },
-        { description: { contains: word, mode: 'insensitive' as const } },
         { sku: { contains: word, mode: 'insensitive' as const } },
         { barcode: { contains: word, mode: 'insensitive' as const } }
       ]
