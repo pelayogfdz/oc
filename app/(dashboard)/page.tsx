@@ -80,14 +80,14 @@ export default async function DashboardPage(props: Props) {
       where: {
         ...branchFilter,
         createdAt: { gte: startOfDay, lte: endOfDay },
-        status: { not: 'CANCELLED' }
+        status: 'COMPLETED'
       }
     }),
     prisma.sale.findMany({
       where: {
         ...branchFilter,
         createdAt: { gte: startOfDay, lte: endOfDay },
-        status: { not: 'CANCELLED' }
+        status: 'COMPLETED'
       },
       include: {
         customer: {
@@ -104,7 +104,7 @@ export default async function DashboardPage(props: Props) {
       where: {
         ...branchFilter,
         createdAt: { gte: startOfDay, lte: endOfDay },
-        status: { not: 'CANCELLED' },
+        status: 'COMPLETED',
         customerId: { not: null }
       },
       _sum: { total: true },
@@ -119,7 +119,7 @@ export default async function DashboardPage(props: Props) {
         sale: {
           ...branchFilter,
           createdAt: { gte: startOfDay, lte: endOfDay },
-          status: { not: 'CANCELLED' }
+          status: 'COMPLETED'
         }
       },
       include: {
@@ -137,7 +137,7 @@ export default async function DashboardPage(props: Props) {
       where: {
         ...branchFilter,
         createdAt: { gte: filterStartUtc, lte: filterEndDayEndUtc },
-        status: { not: 'CANCELLED' }
+        status: 'COMPLETED'
       },
       select: {
         total: true,

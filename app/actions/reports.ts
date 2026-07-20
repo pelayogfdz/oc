@@ -48,7 +48,7 @@ export async function getDashboardMetrics(branchId?: string) {
     const todaySales = await prisma.sale.findMany({
       where: {
         createdAt: { gte: today, lte: endOfToday },
-        status: { not: "CANCELLED" },
+        status: "COMPLETED",
         ...resolvedBranchFilter
       },
       select: { total: true }

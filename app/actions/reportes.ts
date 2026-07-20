@@ -78,7 +78,7 @@ export async function getGeneralAnalyticsData(
       ...branchCondition,
       ...userCondition,
       createdAt: { gte: startDate, lte: endDate },
-      status: { not: 'CANCELLED' },
+      status: 'COMPLETED',
       ...(brandFilter && brandFilter !== 'ALL' ? {
         items: {
           some: {
@@ -245,7 +245,7 @@ export async function getSalesDetailData(
       ...branchCondition,
       ...userCondition,
       createdAt: { gte: startDate, lte: endDate },
-      status: { not: 'CANCELLED' },
+      status: 'COMPLETED',
       ...(brandFilter && brandFilter !== 'ALL' ? {
         items: {
           some: {
@@ -825,7 +825,7 @@ export async function getTopCustomersReport(
       ...branchCondition,
       ...customerCondition,
       createdAt: { gte: startDate, lte: endDate },
-      status: { not: 'CANCELLED' },
+      status: 'COMPLETED',
       ...(brandFilter && brandFilter !== 'ALL' ? {
         items: {
           some: {
@@ -934,7 +934,7 @@ export async function getTopProductsReport(
         ...branchCondition,
         ...userCondition,
         createdAt: { gte: startDate, lte: endDate },
-        status: { not: 'CANCELLED' }
+        status: 'COMPLETED'
       },
       ...categoryCondition,
       ...brandCondition
@@ -1027,7 +1027,7 @@ export async function getTopCategoriesReport(
       sale: {
         ...branchCondition,
         createdAt: { gte: startDate, lte: endDate },
-        status: { not: 'CANCELLED' }
+        status: 'COMPLETED'
       },
       ...brandCondition
     },
@@ -1098,7 +1098,7 @@ export async function getSalesBySellerReport(
     where: {
       ...branchCondition,
       createdAt: { gte: startDate, lte: endDate },
-      status: { not: 'CANCELLED' },
+      status: 'COMPLETED',
       ...(brandFilter && brandFilter !== 'ALL' ? {
         items: {
           some: {
@@ -1350,7 +1350,7 @@ export async function getRestockReportData(
       sale: {
         ...branchCondition,
         createdAt: { gte: startDate, lte: endDate },
-        status: { not: 'CANCELLED' }
+        status: 'COMPLETED'
       },
       product: {
         ...categoryCondition,
@@ -1468,7 +1468,7 @@ export async function getProductionReportData(
       sale: {
         ...branchCondition,
         createdAt: { gte: startDate, lte: endDate },
-        status: { not: 'CANCELLED' }
+        status: 'COMPLETED'
       },
       product: {
         ...categoryCondition,
@@ -1550,7 +1550,7 @@ export async function getInsumosReportData(
       sale: {
         ...branchCondition,
         createdAt: { gte: startDate, lte: endDate },
-        status: { not: 'CANCELLED' }
+        status: 'COMPLETED'
       },
       ...(brandFilter && brandFilter !== 'ALL' ? {
         product: {
