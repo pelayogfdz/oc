@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { saveMeliProductPricing, publishProductToMeli, linkMeliItemToProduct, searchCaanmaProducts, syncMeliCatalogAction } from '@/app/actions/integration';
 import { Save, Edit2, X, Check, Loader2, ExternalLink, Search, Globe, RefreshCw } from 'lucide-react';
 
@@ -24,16 +24,39 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
   const [rowSearching, setRowSearching] = useState<Record<string, boolean>>({});
   const [selectedRowProduct, setSelectedRowProduct] = useState<Record<string, any>>({});
 
+  const searchTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
+
+  useEffect(() => {
+    return () => {
+      Object.values(searchTimeouts.current).forEach(clearTimeout);
+    };
+  }, []);
+
   const handleSearchRowProduct = async (itemId: string, query: string) => {
     setRowSearchVal(prev => ({ ...prev, [itemId]: query }));
+    
+    if (searchTimeouts.current[itemId]) {
+      clearTimeout(searchTimeouts.current[itemId]);
+    }
+
     if (!query || query.trim().length < 2) {
       setRowSearchResults(prev => ({ ...prev, [itemId]: [] }));
+      setRowSearching(prev => ({ ...prev, [itemId]: false }));
       return;
     }
+
     setRowSearching(prev => ({ ...prev, [itemId]: true }));
-    const results = await searchCaanmaProducts(query);
-    setRowSearching(prev => ({ ...prev, [itemId]: false }));
-    setRowSearchResults(prev => ({ ...prev, [itemId]: results }));
+
+    searchTimeouts.current[itemId] = setTimeout(async () => {
+      try {
+        const results = await searchCaanmaProducts(query);
+        setRowSearchResults(prev => ({ ...prev, [itemId]: results }));
+      } catch (err) {
+        console.error('Error searching products:', err);
+      } finally {
+        setRowSearching(prev => ({ ...prev, [itemId]: false }));
+      }
+    }, 300);
   };
 
   // Column filter state
