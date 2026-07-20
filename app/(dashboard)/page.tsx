@@ -79,13 +79,15 @@ export default async function DashboardPage(props: Props) {
       _count: { id: true },
       where: {
         ...branchFilter,
-        createdAt: { gte: startOfDay, lte: endOfDay }
+        createdAt: { gte: startOfDay, lte: endOfDay },
+        status: { not: 'CANCELLED' }
       }
     }),
     prisma.sale.findMany({
       where: {
         ...branchFilter,
-        createdAt: { gte: startOfDay, lte: endOfDay }
+        createdAt: { gte: startOfDay, lte: endOfDay },
+        status: { not: 'CANCELLED' }
       },
       include: {
         customer: {

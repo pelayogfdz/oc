@@ -18,18 +18,43 @@ async function handleSync(onlyStock = false) {
   console.log("[MELI DAILY CRON] Iniciando proceso de sincronización diaria...");
   
   try {
-    // 1. Obtener todas las integraciones activas de Mercado Libre
-    const integrations = await prisma.storeIntegration.findMany({
-      where: {
-        platform: 'MERCADO_LIBRE',
-        isActive: true
-      },
-      include: {
-        branch: true
-      }
-    });
+    // 1. Obtener todas las integraciones activas de Mercado Libre de cada tenant
+    const tenantDbNames: Record<string, string> = {
+      '8b52cbcd-c956-4717-a1bd-02e57386aaa2': 'neondb_officecity',
+      'db5d3949-f8dd-41f6-9627-90374d55d044': 'neondb_petqro',
+      'cd1e1142-ae76-46aa-b2d2-e5de02904788': 'neondb_seit',
+      '0d246cea-0220-4328-92b0-8a1387ce6a6d': 'neondb_pizca'
+    };
 
-    console.log(`[MELI DAILY CRON] Se encontraron ${integrations.length} integraciones activas de Mercado Libre.`);
+    const integrations = [];
+
+    for (const [tenantId, dbName] of Object.entries(tenantDbNames)) {
+      try {
+        const tenantClient = getClientForTenant(tenantId);
+        const tenantIntegrations = await tenantClient.storeIntegration.findMany({
+          where: {
+            platform: 'MERCADO_LIBRE',
+            isActive: true
+          },
+          include: {
+            branch: true
+          }
+        });
+
+        // Asegurar que branch tenga el tenantId correspondiente
+        tenantIntegrations.forEach(i => {
+          if (i.branch) {
+            (i.branch as any).tenantId = tenantId;
+          }
+        });
+
+        integrations.push(...tenantIntegrations);
+      } catch (err) {
+        console.error(`[MELI DAILY CRON] Error al buscar integraciones en tenant ${tenantId}:`, err);
+      }
+    }
+
+    console.log(`[MELI DAILY CRON] Se encontraron ${integrations.length} integraciones activas de Mercado Libre across all tenants.`);
 
     let processedTenantsCount = 0;
     let totalSalesSynced = 0;

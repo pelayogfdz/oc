@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Package, Truck, Clock, CheckCircle2, AlertTriangle, MapPin, Search, X, Navigation, Eye, ArrowUp, ArrowDown } from 'lucide-react';
+import { Package, Truck, Clock, CheckCircle2, AlertTriangle, MapPin, Search, X, Navigation, Eye, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { updateDeliveryOrder, updateRouteSequence } from '@/app/actions/logistica';
 
@@ -15,7 +15,15 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
   const [editingOrder, setEditingOrder] = useState<DeliveryOrder | null>(null);
   const [editStatus, setEditStatus] = useState('');
   const [editDriver, setEditDriver] = useState('');
+  const [editMaxTime, setEditMaxTime] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Smart Routing states
+  const [showSmartRouteModal, setShowSmartRouteModal] = useState(false);
+  const [departureTime, setDepartureTime] = useState('09:00');
+  const [serviceTimePerStop, setServiceTimePerStop] = useState(15);
+  const [estimatedStops, setEstimatedStops] = useState<any[]>([]);
+  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
 
   // Evidence view modal
   const [evidenceOrder, setEvidenceOrder] = useState<DeliveryOrder | null>(null);
@@ -59,6 +67,7 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
     setEditingOrder(order);
     setEditStatus(order.status);
     setEditDriver(order.driverId || '');
+    setEditMaxTime(order.maxDeliveryTime || '');
   };
 
   const handleUpdate = async () => {
@@ -67,14 +76,16 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
     try {
       const res = await updateDeliveryOrder(editingOrder.id, {
         status: editStatus,
-        driverId: editDriver
+        driverId: editDriver,
+        maxDeliveryTime: editMaxTime || null
       });
       if (res.success) {
         setOrders(orders.map(o => o.id === editingOrder.id ? { 
           ...o, 
           status: editStatus, 
           driverId: editDriver || null, 
-          driver: drivers.find(d => d.id === editDriver) || null 
+          driver: drivers.find(d => d.id === editDriver) || null,
+          maxDeliveryTime: editMaxTime || null
         } : o));
         setEditingOrder(null);
       } else {
@@ -313,6 +324,141 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
       setIsSavingSequence(false);
     }
   };
+
+  const calculateFallbackEstimates = (activeList: any[]) => {
+    const [depHour, depMin] = departureTime.split(':').map(Number);
+    let currentTime = new Date();
+    currentTime.setHours(depHour, depMin, 0, 0);
+
+    const updatedStops = activeList.map((stop, idx) => {
+      const transitMin = 20; // 20 min fallback transit
+      currentTime = new Date(currentTime.getTime() + transitMin * 60 * 1000);
+      
+      const hours = String(currentTime.getHours()).padStart(2, '0');
+      const minutes = String(currentTime.getMinutes()).padStart(2, '0');
+      const arrivalStr = `${hours}:${minutes}`;
+
+      let isDelayed = false;
+      if (stop.maxDeliveryTime) {
+        const [maxH, maxM] = stop.maxDeliveryTime.split(':').map(Number);
+        const maxTimeVal = maxH * 60 + maxM;
+        const arrivalVal = currentTime.getHours() * 60 + currentTime.getMinutes();
+        if (arrivalVal > maxTimeVal) {
+          isDelayed = true;
+        }
+      }
+
+      currentTime = new Date(currentTime.getTime() + serviceTimePerStop * 60 * 1000);
+
+      return {
+        ...stop,
+        estimatedArrival: arrivalStr,
+        transitMinutes: transitMin,
+        isDelayed
+      };
+    });
+    setEstimatedStops(updatedStops);
+  };
+
+  const handleOpenSmartRouteModal = () => {
+    const activeList = orders.filter(o => 
+      (o.status === 'PENDING' || o.status === 'IN_PROGRESS' || o.status === 'POSTPONED') &&
+      o.driverId === mapDriverFilter
+    ).sort((a, b) => a.routeOrder - b.routeOrder);
+
+    if (activeList.length === 0) {
+      alert("No hay entregas asignadas a este chofer.");
+      return;
+    }
+
+    setShowSmartRouteModal(true);
+    setIsCalculatingRoute(true);
+
+    const currentStops = activeList.map(order => ({
+      ...order,
+      estimatedArrival: '',
+      transitMinutes: 0,
+      isDelayed: false
+    }));
+    setEstimatedStops(currentStops);
+  };
+
+  // Re-calculate route ETAs dynamically on input change
+  useEffect(() => {
+    if (showSmartRouteModal && mapDriverFilter !== 'ALL') {
+      const activeList = orders.filter(o => 
+        (o.status === 'PENDING' || o.status === 'IN_PROGRESS' || o.status === 'POSTPONED') &&
+        o.driverId === mapDriverFilter
+      ).sort((a, b) => a.routeOrder - b.routeOrder);
+      
+      if (activeList.length > 0) {
+        setIsCalculatingRoute(true);
+        const timer = setTimeout(() => {
+          if ((window as any).google) {
+            const google = (window as any).google;
+            const directionsService = new google.maps.DirectionsService();
+            const originLoc = branch.location || 'Querétaro, Qro.';
+            const waypoints = activeList.slice(0, -1).map(stop => ({
+              location: stop.lat && stop.lng ? new google.maps.LatLng(stop.lat, stop.lng) : stop.street || '',
+              stopover: true
+            }));
+            const destination = activeList[activeList.length - 1];
+            const destLocation = destination.lat && destination.lng 
+              ? new google.maps.LatLng(destination.lat, destination.lng)
+              : destination.street || '';
+
+            directionsService.route({
+              origin: originLoc,
+              destination: destLocation,
+              waypoints: waypoints,
+              travelMode: google.maps.TravelMode.DRIVING,
+              optimizeWaypoints: false
+            }, (response: any, status: any) => {
+              setIsCalculatingRoute(false);
+              if (status === 'OK' && response.routes[0]) {
+                const routeLegs = response.routes[0].legs;
+                const [depHour, depMin] = departureTime.split(':').map(Number);
+                let currentTime = new Date();
+                currentTime.setHours(depHour, depMin, 0, 0);
+
+                const updatedStops = activeList.map((stop, idx) => {
+                  const leg = routeLegs[idx];
+                  const transitSec = leg ? leg.duration.value : 1200;
+                  const transitMin = Math.round(transitSec / 60);
+                  currentTime = new Date(currentTime.getTime() + transitSec * 1000);
+                  const hours = String(currentTime.getHours()).padStart(2, '0');
+                  const minutes = String(currentTime.getMinutes()).padStart(2, '0');
+                  const arrivalStr = `${hours}:${minutes}`;
+
+                  let isDelayed = false;
+                  if (stop.maxDeliveryTime) {
+                    const [maxH, maxM] = stop.maxDeliveryTime.split(':').map(Number);
+                    const maxTimeVal = maxH * 60 + maxM;
+                    const arrivalVal = currentTime.getHours() * 60 + currentTime.getMinutes();
+                    if (arrivalVal > maxTimeVal) isDelayed = true;
+                  }
+                  currentTime = new Date(currentTime.getTime() + serviceTimePerStop * 60 * 1000);
+
+                  return {
+                    ...stop,
+                    estimatedArrival: arrivalStr,
+                    transitMinutes: transitMin,
+                    isDelayed
+                  };
+                });
+                setEstimatedStops(updatedStops);
+              } else {
+                calculateFallbackEstimates(activeList);
+              }
+            });
+          } else {
+            calculateFallbackEstimates(activeList);
+          }
+        }, 400);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [departureTime, serviceTimePerStop, showSmartRouteModal, mapDriverFilter, orders]);
 
   return (
     <div>
@@ -679,8 +825,32 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
                       <span>Selecciona un chofer para planear su orden de ruta en el mapa</span>
                     </div>
                   ) : (
-                    <div style={{ fontWeight: '500', color: '#4f46e5' }}>
-                      Ruta activa del Chofer
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontWeight: '600', color: '#4f46e5' }}>
+                        Ruta activa del Chofer
+                      </div>
+                      <button
+                        onClick={handleOpenSmartRouteModal}
+                        style={{
+                          backgroundColor: '#7e22ce',
+                          color: 'white',
+                          border: 'none',
+                          padding: '0.4rem 0.8rem',
+                          borderRadius: '6px',
+                          fontSize: '0.78rem',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          boxShadow: '0 2px 4px rgba(126, 34, 206, 0.2)',
+                          transition: 'transform 0.15s'
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.03)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.transform = 'none')}
+                      >
+                        🚀 Generar Ruta
+                      </button>
                     </div>
                   )}
                 </div>
@@ -833,6 +1003,189 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Smart Route Calculator Modal */}
+      {showSmartRouteModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100, padding: '1rem' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '800px', borderRadius: '20px', padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '90vh', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+            
+            {/* Header */}
+            <div style={{ padding: '1.25rem 1.5rem', background: 'linear-gradient(135deg, #7e22ce, #9333ea)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  🚀 Generador de Ruta Inteligente
+                </h3>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#f3e8ff' }}>
+                  Chofer: <strong>{drivers.find(d => d.id === mapDriverFilter)?.name || 'Chofer'}</strong> | Origen: {branch.name || 'Sucursal'}
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowSmartRouteModal(false)} 
+                style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Input Controls */}
+            <div style={{ padding: '1.25rem', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Hora de Salida</label>
+                <input 
+                  type="time" 
+                  value={departureTime} 
+                  onChange={e => setDepartureTime(e.target.value)} 
+                  style={{ padding: '0.4rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Tiempo de Servicio (mín. por parada)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input 
+                    type="number" 
+                    min="0" 
+                    value={serviceTimePerStop} 
+                    onChange={e => setServiceTimePerStop(Number(e.target.value))} 
+                    style={{ padding: '0.4rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', width: '80px' }}
+                  />
+                  <span style={{ fontSize: '0.85rem', color: '#64748b' }}>minutos</span>
+                </div>
+              </div>
+              {isCalculatingRoute && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto', alignSelf: 'flex-end', color: '#7e22ce', fontSize: '0.85rem', fontWeight: '600' }}>
+                  <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Calculando tiempos de tránsito...
+                </div>
+              )}
+            </div>
+
+            {/* Route Stops Sequence */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {estimatedStops.map((stop, index) => {
+                  return (
+                    <div 
+                      key={stop.id} 
+                      style={{ 
+                        border: '1px solid #e2e8f0', 
+                        borderRadius: '12px', 
+                        padding: '1rem', 
+                        backgroundColor: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '1rem',
+                        flexWrap: 'wrap',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', flex: '1 1 350px' }}>
+                        <span style={{ backgroundColor: '#7e22ce', color: 'white', fontSize: '0.8rem', fontWeight: 'bold', width: '22px', height: '22px', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', flexShrink: 0, marginTop: '2px', justifyContent: 'center' }}>
+                          {index + 1}
+                        </span>
+                        <div>
+                          <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#1e293b' }}>
+                            {stop.sale ? (
+                              stop.sale.customer?.name || 'Venta Mostrador'
+                            ) : stop.transfer ? (
+                              `📦 Traspaso a ${stop.transfer?.toBranch?.name || 'Destino'}`
+                            ) : (
+                              'Entrega'
+                            )}
+                          </div>
+                          <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.2rem' }}>
+                            {stop.street} {stop.exteriorNumber}, {stop.neighborhood}
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: '#f1f5f9', color: '#475569', fontFamily: 'monospace', fontWeight: 'bold' }}>
+                              {stop.saleId ? `VTA-${stop.saleId.slice(0,6).toUpperCase()}` : `TRS-${stop.transferId?.slice(0,6).toUpperCase()}`}
+                            </span>
+                            {stop.maxDeliveryTime && (
+                              <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: '#fee2e2', color: '#b91c1c', fontWeight: '600' }}>
+                                🕒 Límite: {stop.maxDeliveryTime}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Transit & Arrival info */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'right', gap: '0.25rem' }}>
+                        <div style={{ fontSize: '0.78rem', color: '#059669', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          🚗 +{stop.transitMinutes} min de tránsito
+                        </div>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#0f172a' }}>
+                          Est. {stop.estimatedArrival || '--:--'}
+                        </div>
+                        <div>
+                          {stop.maxDeliveryTime ? (
+                            stop.isDelayed ? (
+                              <span style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '999px', backgroundColor: '#fee2e2', color: '#991b1b', fontWeight: 'bold' }}>
+                                ⚠️ Retrasado
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '999px', backgroundColor: '#dcfce7', color: '#166534', fontWeight: 'bold' }}>
+                                ✓ A Tiempo
+                              </span>
+                            )
+                          ) : (
+                            <span style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '999px', backgroundColor: '#f1f5f9', color: '#64748b' }}>
+                              Sin límite
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer Navigation Action */}
+            <div style={{ padding: '1.25rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc' }}>
+              <button 
+                onClick={() => setShowSmartRouteModal(false)} 
+                className="btn-secondary" 
+                style={{ margin: 0 }}
+              >
+                Cerrar
+              </button>
+
+              <button
+                onClick={() => {
+                  if (estimatedStops.length === 0) return;
+                  const origin = branch.location || 'Querétaro, Qro.';
+                  const lastStop = estimatedStops[estimatedStops.length - 1];
+                  const destination = lastStop.lat && lastStop.lng ? `${lastStop.lat},${lastStop.lng}` : lastStop.street || '';
+                  const waypointsParts = estimatedStops.slice(0, -1).map(stop => {
+                    if (stop.lat && stop.lng) return `${stop.lat},${stop.lng}`;
+                    return stop.street || '';
+                  });
+                  const waypoints = waypointsParts.length > 0 ? `&waypoints=${waypointsParts.map(encodeURIComponent).join('%7C')}` : '';
+                  const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}${waypoints}`;
+                  window.open(url, '_blank');
+                }}
+                style={{
+                  backgroundColor: '#7e22ce',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.625rem 1.25rem',
+                  borderRadius: '8px',
+                  fontSize: '0.85rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  boxShadow: '0 4px 6px -1px rgba(126, 34, 206, 0.25)'
+                }}
+              >
+                <MapPin size={16} /> Abrir Ruta en Google Maps Nav 🗺️
+              </button>
+            </div>
+
           </div>
         </div>
       )}

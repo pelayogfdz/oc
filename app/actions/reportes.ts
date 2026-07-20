@@ -78,6 +78,7 @@ export async function getGeneralAnalyticsData(
       ...branchCondition,
       ...userCondition,
       createdAt: { gte: startDate, lte: endDate },
+      status: { not: 'CANCELLED' },
       ...(brandFilter && brandFilter !== 'ALL' ? {
         items: {
           some: {
@@ -244,6 +245,7 @@ export async function getSalesDetailData(
       ...branchCondition,
       ...userCondition,
       createdAt: { gte: startDate, lte: endDate },
+      status: { not: 'CANCELLED' },
       ...(brandFilter && brandFilter !== 'ALL' ? {
         items: {
           some: {

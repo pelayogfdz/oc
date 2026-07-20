@@ -878,6 +878,7 @@ model DeliveryOrder {
   zipCode         String?
   lat             Float?
   lng             Float?
+  maxDeliveryTime String?
   status          String    @default("PENDING")
   deliveryDate    DateTime?
   postponedTo     DateTime?

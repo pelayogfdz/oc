@@ -12,6 +12,7 @@ export async function updateDeliveryOrder(
     lat?: number; 
     lng?: number; 
     routeOrder?: number;
+    maxDeliveryTime?: string | null;
   }
 ) {
   try {
@@ -23,6 +24,7 @@ export async function updateDeliveryOrder(
     if (data.lat !== undefined) updateData.lat = data.lat;
     if (data.lng !== undefined) updateData.lng = data.lng;
     if (data.routeOrder !== undefined) updateData.routeOrder = data.routeOrder;
+    if (data.maxDeliveryTime !== undefined) updateData.maxDeliveryTime = data.maxDeliveryTime;
     
     // Allow unassigning driver if driverId is empty string, else connect
     if (data.driverId !== undefined) {
@@ -82,6 +84,7 @@ export async function createDeliveryOrder(data: {
   zipCode?: string;
   lat?: number;
   lng?: number;
+  maxDeliveryTime?: string;
 }) {
   try {
     const user = await getActiveUser();
@@ -119,6 +122,7 @@ export async function createDeliveryOrder(data: {
         zipCode: data.zipCode || null,
         lat: data.lat || null,
         lng: data.lng || null,
+        maxDeliveryTime: data.maxDeliveryTime || null,
         branchId: branchId,
         status: "PENDING"
       }

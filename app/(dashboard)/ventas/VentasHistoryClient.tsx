@@ -92,6 +92,7 @@ export default function VentasHistoryClient({
   const [routeZip, setRouteZip] = useState('');
   const [routeLat, setRouteLat] = useState<number | null>(null);
   const [routeLng, setRouteLng] = useState<number | null>(null);
+  const [routeMaxTime, setRouteMaxTime] = useState('');
   const [isCreatingRoute, setIsCreatingRoute] = useState(false);
   const [mapsLoaded, setMapsLoaded] = useState(false);
 
@@ -113,6 +114,7 @@ export default function VentasHistoryClient({
     setRouteState(sale.customer?.state || 'Querétaro');
     setRouteZip(sale.customer?.zipCode || '');
     setRouteLat(null);
+    setRouteMaxTime('');
     setRouteLng(null);
   };
 
@@ -154,7 +156,8 @@ export default function VentasHistoryClient({
         state: routeState,
         zipCode: routeZip,
         lat: routeLat || undefined,
-        lng: routeLng || undefined
+        lng: routeLng || undefined,
+        maxDeliveryTime: routeMaxTime || undefined
       });
 
       if (res.success && res.order) {
@@ -1552,6 +1555,18 @@ export default function VentasHistoryClient({
                       value={routeState}
                       onChange={(e) => setRouteState(e.target.value)}
                       style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Hora Máxima de Entrega (Opcional)</label>
+                    <input
+                      type="time"
+                      value={routeMaxTime}
+                      onChange={(e) => setRouteMaxTime(e.target.value)}
+                      style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', width: '100%' }}
                     />
                   </div>
                 </div>

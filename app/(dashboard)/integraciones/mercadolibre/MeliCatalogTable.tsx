@@ -480,165 +480,6 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
         </div>
       )}
 
-      {/* Grid containing filters on top (Alternative to table inputs) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', padding: '1rem', backgroundColor: '#f1f5f9', borderRadius: '8px' }}>
-        <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Buscar Producto</label>
-          <div style={{ position: 'relative' }}>
-            <input 
-              type="text" 
-              placeholder="Filtro de nombre..."
-              value={filters.name}
-              onChange={e => setFilters(prev => ({ ...prev, name: e.target.value }))}
-              style={{ width: '100%', padding: '0.4rem 0.5rem 0.4rem 1.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
-            />
-            <Search size={12} style={{ position: 'absolute', left: '0.5rem', top: '0.6rem', color: '#94a3b8' }} />
-          </div>
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Buscar SKU</label>
-          <div style={{ position: 'relative' }}>
-            <input 
-              type="text" 
-              placeholder="Filtro de SKU..."
-              value={filters.sku}
-              onChange={e => setFilters(prev => ({ ...prev, sku: e.target.value }))}
-              style={{ width: '100%', padding: '0.4rem 0.5rem 0.4rem 1.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
-            />
-            <Search size={12} style={{ position: 'absolute', left: '0.5rem', top: '0.6rem', color: '#94a3b8' }} />
-          </div>
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Costo</label>
-          <input 
-            type="text" 
-            placeholder="Ej: >50, <200"
-            value={filters.cost}
-            onChange={e => setFilters(prev => ({ ...prev, cost: e.target.value }))}
-            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Precio Local</label>
-          <input 
-            type="text" 
-            placeholder="Ej: >100"
-            value={filters.localPrice}
-            onChange={e => setFilters(prev => ({ ...prev, localPrice: e.target.value }))}
-            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Stock Caanma</label>
-          <input 
-            type="text" 
-            placeholder="Ej: >10, =0"
-            value={filters.stock}
-            onChange={e => setFilters(prev => ({ ...prev, stock: e.target.value }))}
-            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Precio Venta ML</label>
-          <input 
-            type="text" 
-            placeholder="Ej: >150"
-            value={filters.priceMeli}
-            onChange={e => setFilters(prev => ({ ...prev, priceMeli: e.target.value }))}
-            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Comisión Real</label>
-          <input 
-            type="text" 
-            placeholder="Ej: >0"
-            value={filters.comision}
-            onChange={e => setFilters(prev => ({ ...prev, comision: e.target.value }))}
-            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Costo Envío</label>
-          <input 
-            type="text" 
-            placeholder="Ej: >0"
-            value={filters.envio}
-            onChange={e => setFilters(prev => ({ ...prev, envio: e.target.value }))}
-            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Retención Imp.</label>
-          <input 
-            type="text" 
-            placeholder="Ej: >0"
-            value={filters.retencion}
-            onChange={e => setFilters(prev => ({ ...prev, retencion: e.target.value }))}
-            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Margen ($)</label>
-          <input 
-            type="text" 
-            placeholder="Ej: >20"
-            value={filters.margenD}
-            onChange={e => setFilters(prev => ({ ...prev, margenD: e.target.value }))}
-            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Margen (%)</label>
-          <input 
-            type="text" 
-            placeholder="Ej: >15"
-            value={filters.margenP}
-            onChange={e => setFilters(prev => ({ ...prev, margenP: e.target.value }))}
-            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Estatus Mercado Libre</label>
-          <select 
-            value={filters.status}
-            onChange={e => setFilters(prev => ({ ...prev, status: e.target.value }))}
-            style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
-          >
-            <option value="ALL">Todos los estatus</option>
-            <option value="linked">Vinculados</option>
-            <option value="unlinked">No vinculados (Caanma)</option>
-            <option value="meli_unlinked">Sin vincular (Mercado Libre)</option>
-            <option value="active">Activos en ML</option>
-            <option value="paused">Pausados en ML</option>
-          </select>
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Fijado de Precios</label>
-          <select 
-            value={filters.fixed}
-            onChange={e => setFilters(prev => ({ ...prev, fixed: e.target.value }))}
-            style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.8rem', backgroundColor: 'white' }}
-          >
-            <option value="ALL">Todos los precios</option>
-            <option value="yes">Precio Fijo (SÍ)</option>
-            <option value="no">Recalcular (NO)</option>
-          </select>
-        </div>
-      </div>
-
       {/* Main Catalog Table */}
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
@@ -667,6 +508,134 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
               <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>Fijo?</th>
               <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>Estatus ML</th>
               <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', minWidth: '100px' }}>Acciones</th>
+            </tr>
+            <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f8fafc' }}>
+              <th></th>
+              <th style={{ padding: '0.4rem 0.25rem' }}>
+                <input 
+                  type="text" 
+                  placeholder="Filtrar..."
+                  value={filters.name}
+                  onChange={e => setFilters(prev => ({ ...prev, name: e.target.value }))}
+                  style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
+                />
+              </th>
+              <th style={{ padding: '0.4rem 0.25rem' }}>
+                <input 
+                  type="text" 
+                  placeholder="Filtrar..."
+                  value={filters.sku}
+                  onChange={e => setFilters(prev => ({ ...prev, sku: e.target.value }))}
+                  style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
+                />
+              </th>
+              <th style={{ padding: '0.4rem 0.25rem' }}>
+                <input 
+                  type="text" 
+                  placeholder="Filtrar..."
+                  value={filters.cost}
+                  onChange={e => setFilters(prev => ({ ...prev, cost: e.target.value }))}
+                  style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
+                />
+              </th>
+              <th style={{ padding: '0.4rem 0.25rem' }}>
+                <input 
+                  type="text" 
+                  placeholder="Filtrar..."
+                  value={filters.localPrice}
+                  onChange={e => setFilters(prev => ({ ...prev, localPrice: e.target.value }))}
+                  style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
+                />
+              </th>
+              <th style={{ padding: '0.4rem 0.25rem' }}>
+                <input 
+                  type="text" 
+                  placeholder="Filtrar..."
+                  value={filters.stock}
+                  onChange={e => setFilters(prev => ({ ...prev, stock: e.target.value }))}
+                  style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
+                />
+              </th>
+              <th style={{ padding: '0.4rem 0.25rem' }}>
+                <input 
+                  type="text" 
+                  placeholder="Filtrar..."
+                  value={filters.priceMeli}
+                  onChange={e => setFilters(prev => ({ ...prev, priceMeli: e.target.value }))}
+                  style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
+                />
+              </th>
+              <th style={{ padding: '0.4rem 0.25rem' }}>
+                <input 
+                  type="text" 
+                  placeholder="Filtrar..."
+                  value={filters.comision}
+                  onChange={e => setFilters(prev => ({ ...prev, comision: e.target.value }))}
+                  style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
+                />
+              </th>
+              <th style={{ padding: '0.4rem 0.25rem' }}>
+                <input 
+                  type="text" 
+                  placeholder="Filtrar..."
+                  value={filters.envio}
+                  onChange={e => setFilters(prev => ({ ...prev, envio: e.target.value }))}
+                  style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
+                />
+              </th>
+              <th style={{ padding: '0.4rem 0.25rem' }}>
+                <input 
+                  type="text" 
+                  placeholder="Filtrar..."
+                  value={filters.retencion}
+                  onChange={e => setFilters(prev => ({ ...prev, retencion: e.target.value }))}
+                  style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
+                />
+              </th>
+              <th style={{ padding: '0.4rem 0.25rem' }}>
+                <input 
+                  type="text" 
+                  placeholder="Filtrar..."
+                  value={filters.margenD}
+                  onChange={e => setFilters(prev => ({ ...prev, margenD: e.target.value }))}
+                  style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
+                />
+              </th>
+              <th style={{ padding: '0.4rem 0.25rem' }}>
+                <input 
+                  type="text" 
+                  placeholder="Filtrar..."
+                  value={filters.margenP}
+                  onChange={e => setFilters(prev => ({ ...prev, margenP: e.target.value }))}
+                  style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
+                />
+              </th>
+              <th style={{ padding: '0.4rem 0.25rem', textAlign: 'center' }}>
+                <select 
+                  value={filters.fixed}
+                  onChange={e => setFilters(prev => ({ ...prev, fixed: e.target.value }))}
+                  style={{ width: '100%', padding: '0.25rem 0.2rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
+                >
+                  <option value="ALL">-</option>
+                  <option value="yes">SÍ</option>
+                  <option value="no">NO</option>
+                </select>
+              </th>
+              <th style={{ padding: '0.4rem 0.25rem', textAlign: 'center' }}>
+                <select 
+                  value={filters.status}
+                  onChange={e => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                  style={{ width: '100%', padding: '0.25rem 0.2rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
+                >
+                  <option value="ALL">-</option>
+                  <option value="linked">Vinculados</option>
+                  <option value="unlinked">No vinculados</option>
+                  <option value="meli_unlinked">Sin vincular</option>
+                  <option value="active">Activos</option>
+                  <option value="paused">Pausados</option>
+                </select>
+              </th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
