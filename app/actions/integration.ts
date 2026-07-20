@@ -737,7 +737,31 @@ export async function searchCaanmaProducts(query: string) {
 
     const cleanQuery = query.trim();
 
-    // Buscar productos
+    // 1. Obtener todos los SKUs ya vinculados para esta plataforma en las sucursales del tenant
+    const linkedMaps = await prisma.externalProductMap.findMany({
+      where: {
+        platform: 'MERCADO_LIBRE',
+        product: {
+          branchId: { in: tenantBranchIds }
+        }
+      },
+      select: {
+        product: {
+          select: {
+            sku: true
+          }
+        }
+      }
+    });
+
+    const linkedSkus = new Set<string>();
+    for (const m of linkedMaps) {
+      if (m.product?.sku) {
+        linkedSkus.add(String(m.product.sku).trim());
+      }
+    }
+
+    // 2. Buscar productos locales
     const products = await prisma.product.findMany({
       where: {
         branchId: { in: tenantBranchIds },
@@ -753,17 +777,23 @@ export async function searchCaanmaProducts(query: string) {
         ]
       },
       select: { id: true, name: true, sku: true, stock: true },
-      take: 30,
+      take: 50,
       orderBy: { name: 'asc' }
     });
 
-    // Agrupar por SKU
+    // 3. Agrupar por SKU y omitir los que ya estén vinculados en cualquier sucursal
     const grouped: any[] = [];
     const skuMap: Record<string, boolean> = {};
     for (const p of products) {
-      const sku = p.sku ? String(p.sku).trim() : `NOSKU-${p.id}`;
-      if (!skuMap[sku]) {
-        skuMap[sku] = true;
+      const sku = p.sku ? String(p.sku).trim() : null;
+      
+      if (sku && linkedSkus.has(sku)) {
+        continue;
+      }
+
+      const key = sku || `NOSKU-${p.id}`;
+      if (!skuMap[key]) {
+        skuMap[key] = true;
         grouped.push({
           id: p.id,
           name: p.name,
@@ -771,7 +801,7 @@ export async function searchCaanmaProducts(query: string) {
           stock: p.stock
         });
       } else {
-        const existing = grouped.find(x => (x.sku ? String(x.sku).trim() : '') === sku);
+        const existing = grouped.find(x => (x.sku ? String(x.sku).trim() : '') === (sku || ''));
         if (existing) {
           existing.stock += p.stock;
         }
