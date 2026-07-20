@@ -545,7 +545,7 @@ async function handleSync(onlyStock = false) {
 
               if (!localProduct) {
                 const { getBarcodesFromMeliItem } = await import('@/app/actions/integration');
-                const barcodes = getBarcodesFromMeliItem(item);
+                const barcodes = await getBarcodesFromMeliItem(item);
                 if (barcodes.length > 0) {
                   localProduct = await tenantClient.product.findFirst({
                     where: {

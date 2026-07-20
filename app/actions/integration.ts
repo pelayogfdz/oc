@@ -931,7 +931,7 @@ export async function syncMeliCatalogAction() {
         }) : null;
 
         if (!localProduct) {
-          const barcodes = getBarcodesFromMeliItem(item);
+          const barcodes = await getBarcodesFromMeliItem(item);
           if (barcodes.length > 0) {
             localProduct = await prisma.product.findFirst({
               where: {
@@ -1263,7 +1263,7 @@ export async function syncMeliStockAction(productId: string, tenantId: string | 
   }
 }
 
-export function getBarcodesFromMeliItem(itemData: any): string[] {
+export async function getBarcodesFromMeliItem(itemData: any): Promise<string[]> {
   const barcodes: string[] = [];
   
   if (Array.isArray(itemData.attributes)) {
