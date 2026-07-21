@@ -1119,19 +1119,15 @@ export async function stampCustomerPayment(paymentId: string, paymentDateStr?: s
     const relatedTaxes: any[] = [];
     for (const [_, taxInfo] of taxRatesMap.entries()) {
       let base: number;
-      let taxAmount: number;
       if (taxInfo.rate > 0) {
         base = Number((payment.amount / (1 + taxInfo.rate)).toFixed(2));
-        taxAmount = Number((payment.amount - base).toFixed(2));
       } else {
         base = Number(payment.amount.toFixed(2));
-        taxAmount = 0;
       }
       relatedTaxes.push({
         type: taxInfo.type,
         rate: taxInfo.rate,
-        base: base,
-        amount: taxAmount
+        base: base
       });
     }
 
