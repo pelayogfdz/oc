@@ -165,7 +165,8 @@ export default function TransferClient({ originBranchId, originBranchName, other
         barcode: product.barcode || "",
         maxStock,
         quantity: 1,
-        imageUrl: product.imageUrl
+        imageUrl: product.imageUrl,
+        location: product.location || null
       }, ...transferItems]);
     }
   };
@@ -495,6 +496,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
                     </div>
                     <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.1rem' }}>
                       SKU: {item.sku || '-'} | Código: {item.barcode || '-'}
+                      {item.location ? ` | Ubicación: ${item.location}` : ''}
                     </div>
                   </div>
 
@@ -803,7 +805,8 @@ export default function TransferClient({ originBranchId, originBranchName, other
                       <div>
                         <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b' }}>{p.name}</div>
                         <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
-                          SKU: {p.sku || '-'} | Código: {p.barcode || '-'} | Stock: <span style={{ color: p.stock > 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>{p.stock}</span>
+                          SKU: {p.sku || '-'} | Código: {p.barcode || '-'}
+                          {p.location ? ` | Ubicación: ${p.location}` : ''} | Stock: <span style={{ color: p.stock > 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>{p.stock}</span>
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

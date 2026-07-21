@@ -1095,35 +1095,44 @@ export async function stampCustomerPayment(paymentId: string, paymentDateStr?: s
       throw new Error("La factura original aún no tiene un folio fiscal (UUID) asignado en Facturapi.");
     }
 
-    // Extract taxes from original invoice items to compute proportional taxes
+    // Extract taxes from original invoice items (checking both item.taxes and item.product.taxes)
     const taxRatesMap = new Map<string, { type: string; rate: number }>();
-    let hasTaxes = false;
-    if (originalInvoice.items) {
+    if (originalInvoice.items && Array.isArray(originalInvoice.items)) {
       for (const item of originalInvoice.items as any[]) {
-        if (item.taxes && Array.isArray(item.taxes)) {
-          for (const tax of item.taxes) {
-            if (tax.amount > 0) {
-              hasTaxes = true;
-              const key = `${tax.type}-${tax.rate}`;
-              taxRatesMap.set(key, { type: tax.type, rate: tax.rate });
-            }
+        const taxesList = item.taxes || item.product?.taxes;
+        if (taxesList && Array.isArray(taxesList)) {
+          for (const tax of taxesList) {
+            const type = tax.type || "IVA";
+            const rate = typeof tax.rate === 'number' ? tax.rate : 0.16;
+            const key = `${type}-${rate}`;
+            taxRatesMap.set(key, { type, rate });
           }
         }
       }
     }
 
+    // Fallback: If no tax entries were found, default to standard IVA 16%
+    if (taxRatesMap.size === 0) {
+      taxRatesMap.set("IVA-0.16", { type: "IVA", rate: 0.16 });
+    }
+
     const relatedTaxes: any[] = [];
-    if (hasTaxes) {
-      for (const [_, taxInfo] of taxRatesMap.entries()) {
-        const base = payment.amount / (1 + taxInfo.rate);
-        const taxAmount = payment.amount - base;
-        relatedTaxes.push({
-          type: taxInfo.type,
-          rate: taxInfo.rate,
-          base: Number(base.toFixed(2)),
-          amount: Number(taxAmount.toFixed(2))
-        });
+    for (const [_, taxInfo] of taxRatesMap.entries()) {
+      let base: number;
+      let taxAmount: number;
+      if (taxInfo.rate > 0) {
+        base = Number((payment.amount / (1 + taxInfo.rate)).toFixed(2));
+        taxAmount = Number((payment.amount - base).toFixed(2));
+      } else {
+        base = Number(payment.amount.toFixed(2));
+        taxAmount = 0;
       }
+      relatedTaxes.push({
+        type: taxInfo.type,
+        rate: taxInfo.rate,
+        base: base,
+        amount: taxAmount
+      });
     }
 
     // Count previous invoiced payments to calculate installment number
@@ -1195,11 +1204,11 @@ export async function stampCustomerPayment(paymentId: string, paymentDateStr?: s
               related_documents: [
                 {
                   uuid: originalUuid,
-                  amount: payment.amount,
+                  amount: Number(payment.amount.toFixed(2)),
                   installment: installment,
-                  last_balance: lastBalance,
+                  last_balance: Number(lastBalance.toFixed(2)),
                   currency: "MXN",
-                  ...(relatedTaxes.length > 0 ? { taxes: relatedTaxes } : {})
+                  taxes: relatedTaxes
                 }
               ]
             }

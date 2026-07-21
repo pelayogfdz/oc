@@ -30,7 +30,8 @@ export default function EditTransferClient({ transfer, otherBranches, inventory,
       variantAttribute: item.variant ? item.variant.attribute : null,
       maxStock: 9999, // Will load from origin stocks
       quantity: item.quantity,
-      imageUrl: item.product.imageUrl
+      imageUrl: item.product.imageUrl,
+      location: item.product.location || null
     }));
   });
 
@@ -442,7 +443,10 @@ export default function EditTransferClient({ transfer, otherBranches, inventory,
                     </div>
                     <div>
                       <div style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.95rem' }}>{item.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem', fontFamily: 'monospace' }}>SKU: {item.sku || '-'} | Código: {item.barcode || '-'}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem', fontFamily: 'monospace' }}>
+                        SKU: {item.sku || '-'} | Código: {item.barcode || '-'}
+                        {item.location ? ` | Ubicación: ${item.location}` : ''}
+                      </div>
                       {sourceStocks && (
                         <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', fontWeight: 'bold', color: item.maxStock > 0 ? '#16a34a' : '#dc2626' }}>
                           Stock origen: {item.maxStock} disp.

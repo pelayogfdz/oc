@@ -183,6 +183,7 @@ export default async function PrintTransferPage({ params }: { params: Promise<{ 
                   <div>{item.product?.name || 'Desconocido'}</div>
                   <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.1rem', fontWeight: 'normal' }}>
                     SKU: {item.product?.sku || '-'} | Código: {item.product?.barcode || '-'}
+                    {item.product?.location ? ` | Ubicación: ${item.product.location}` : ''}
                   </div>
                 </td>
               </tr>
