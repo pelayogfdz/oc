@@ -534,6 +534,8 @@ model Transfer {
   receivedAt       DateTime?
   requestedAt      DateTime?         @default(now())
   requestedById    String?
+  dispatchEvidence String?
+  receiveEvidence  String?
   purchaseRequests PurchaseRequest[]
   branch           Branch?           @relation("TransferFrom", fields: [branchId], references: [id])
   createdBy        User?             @relation("TransferCreatedBy", fields: [createdById], references: [id])

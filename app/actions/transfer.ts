@@ -88,6 +88,7 @@ export async function dispatchDirectTransfer(
     toBranchId: string; // The destination branch
     reason: string;
     items: { productId: string; variantId?: string | null; quantity: number }[]; // Products from the ORIGIN branch
+    evidencePhoto?: string;
   }
 ) {
   try {
@@ -113,7 +114,8 @@ export async function dispatchDirectTransfer(
           status: "DISPATCHED",
           createdById: authUser.id,
           dispatchedById: authUser.id,
-          dispatchedAt: new Date()
+          dispatchedAt: new Date(),
+          dispatchEvidence: payload.evidencePhoto || null
         }
       });
       transferId = transfer.id;
@@ -195,7 +197,7 @@ export async function dispatchDirectTransfer(
   }
 }
 
-export async function dispatchTransfer(transferId: string, itemQuantities: Record<string, number>) {
+export async function dispatchTransfer(transferId: string, itemQuantities: Record<string, number>, evidencePhoto?: string) {
   try {
     const branchActive = await getActiveBranch(); // Origins
     if (!branchActive) throw new Error("No hay sucursal activa");
@@ -312,7 +314,8 @@ export async function dispatchTransfer(transferId: string, itemQuantities: Recor
         data: {
           status: 'DISPATCHED',
           dispatchedById: authUser.id,
-          dispatchedAt: new Date()
+          dispatchedAt: new Date(),
+          dispatchEvidence: evidencePhoto || null
         }
       });
     });
@@ -325,7 +328,7 @@ export async function dispatchTransfer(transferId: string, itemQuantities: Recor
   }
 }
 
-export async function receiveTransfer(transferId: string) {
+export async function receiveTransfer(transferId: string, evidencePhoto?: string) {
   try {
     const branchActive = await getActiveBranch();
     if (!branchActive) throw new Error("No hay sucursal activa");
@@ -378,7 +381,8 @@ export async function receiveTransfer(transferId: string) {
         data: { 
            status: "RECEIVED",
            receivedById: authUser.id,
-           receivedAt: new Date()
+           receivedAt: new Date(),
+           receiveEvidence: evidencePhoto || null
         }
       });
     });

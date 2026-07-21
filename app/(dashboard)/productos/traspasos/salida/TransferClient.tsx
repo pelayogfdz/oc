@@ -25,6 +25,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
   const [isProcessing, setIsProcessing] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [isMounted, setIsMounted] = useState(false);
+  const [evidencePhoto, setEvidencePhoto] = useState<string | null>(null);
 
   // States for transfers en espera
   const [onHoldTransfers, setOnHoldTransfers] = useState<any[]>([]);
@@ -266,6 +267,10 @@ export default function TransferClient({ originBranchId, originBranchName, other
 
   const handleSubmit = async () => {
     if (!targetBranchId || transferItems.length === 0) return;
+    if (isDirectDispatch && !evidencePhoto) {
+      alert("Por favor, capture o suba una fotografía como evidencia de la mercancía surtida.");
+      return;
+    }
     setIsProcessing(true);
     try {
       const itemsPayload = transferItems.map(i => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity }));
@@ -276,12 +281,13 @@ export default function TransferClient({ originBranchId, originBranchName, other
             toBranchId: isDirectDispatch ? targetBranchId : originBranchId,
             reason,
             items: itemsPayload,
-            isDirectDispatch
+            isDirectDispatch,
+            evidencePhoto // optional offline tracking
          });
       } else {
          let res;
          if (isDirectDispatch) {
-            res = await dispatchDirectTransfer({ toBranchId: targetBranchId, reason, items: itemsPayload });
+            res = await dispatchDirectTransfer({ toBranchId: targetBranchId, reason, items: itemsPayload, evidencePhoto: evidencePhoto || undefined });
          } else {
             res = await requestTransfer({ fromBranchId: targetBranchId, reason, items: itemsPayload });
          }
@@ -668,6 +674,33 @@ export default function TransferClient({ originBranchId, originBranchName, other
               Los traspasos requieren validación de stock físico en origen. Asegúrate de verificar que las cantidades empacadas correspondan al reporte de traspaso impreso.
             </div>
           </div>
+
+          {isDirectDispatch && (
+            <div className="card" style={{ padding: '1.25rem', border: '2px dashed var(--caanma-primary)', backgroundColor: '#f5f3ff', textAlign: 'center' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#4f46e5', marginBottom: '0.5rem' }}>
+                📷 Evidencia de Surtido Obligatoria *
+              </label>
+              <input 
+                type="file" 
+                accept="image/*" 
+                capture="environment"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => setEvidencePhoto(reader.result as string);
+                    reader.readAsDataURL(file);
+                  }
+                }}
+                style={{ fontSize: '0.8rem', maxWidth: '100%' }}
+              />
+              {evidencePhoto && (
+                <div style={{ marginTop: '0.75rem' }}>
+                  <img src={evidencePhoto} alt="Previsualización Surtido" style={{ maxWidth: '100%', maxHeight: '100px', borderRadius: '4px', objectFit: 'contain' }} />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Action Execution card */}
           <div className="card" style={{ padding: '1.5rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>

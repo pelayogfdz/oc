@@ -22,6 +22,9 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
     return initial;
   });
 
+  const [dispatchPhoto, setDispatchPhoto] = useState<string | null>(null);
+  const [receivePhoto, setReceivePhoto] = useState<string | null>(null);
+
   const handleApprove = async () => {
     if (!confirm('¿Aprobar y comenzar preparación de este traspaso?')) return;
     setIsProcessing(true);
@@ -40,10 +43,14 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
   };
 
   const handleDispatch = async () => {
+    if (!dispatchPhoto) {
+      alert("Por favor, capture o suba una fotografía como evidencia de la mercancía surtida antes de enviar.");
+      return;
+    }
     if (!confirm('¿Confirmar envío? Los artículos faltantes generarán una Solicitud de Compra.')) return;
     setIsProcessing(true);
     try {
-      const res = await dispatchTransfer(transfer.id, dispatchQuantities);
+      const res = await dispatchTransfer(transfer.id, dispatchQuantities, dispatchPhoto);
       if (res && !res.success) {
         throw new Error(res.error || 'Ocurrió un error');
       }
@@ -57,10 +64,14 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
   };
 
   const handleReceive = async () => {
+    if (!receivePhoto) {
+      alert("Por favor, capture o suba una fotografía como evidencia de la mercancía recibida.");
+      return;
+    }
     if (!confirm('¿Estás seguro de que deseas recibir este traspaso? El inventario será sumado a tu sucursal.')) return;
     setIsProcessing(true);
     try {
-      const res = await receiveTransfer(transfer.id);
+      const res = await receiveTransfer(transfer.id, receivePhoto);
       if (res && !res.success) {
         throw new Error(res.error || 'Ocurrió un error');
       }
@@ -214,6 +225,96 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
            })}
         </div>
       </div>
+
+      {/* Evidencia Fotográfica Required / Display Card */}
+      {(transfer.dispatchEvidence || transfer.receiveEvidence || (isOrigin && transfer.status === 'CREATED') || (isDestination && transfer.status === 'DISPATCHED')) && (
+         <div className="card" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+               📷 Evidencia Fotográfica de Seguridad
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+               {/* Dispatch Photo Block */}
+               <div>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.5rem' }}>Evidencia de Surtido (Origen)</h4>
+                  {transfer.dispatchEvidence ? (
+                     <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#f8fafc', padding: '0.5rem', textAlign: 'center' }}>
+                        <img src={transfer.dispatchEvidence} alt="Evidencia de Surtido" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '6px', objectFit: 'contain' }} />
+                        <div style={{ marginTop: '0.5rem' }}>
+                           <a href={transfer.dispatchEvidence} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: 'var(--caanma-primary)', fontWeight: 'bold', textDecoration: 'none' }}>
+                              Ver imagen completa ↗
+                           </a>
+                        </div>
+                     </div>
+                  ) : isOrigin && transfer.status === 'CREATED' ? (
+                     <div style={{ border: '2px dashed var(--caanma-primary)', borderRadius: '8px', padding: '1rem', backgroundColor: '#f5f3ff', textAlign: 'center' }}>
+                        <p style={{ fontSize: '0.85rem', color: '#4f46e5', fontWeight: '600', margin: '0 0 0.75rem 0' }}>Tomar o subir foto obligatoria *</p>
+                        <input 
+                           type="file" 
+                           accept="image/*" 
+                           capture="environment"
+                           onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                 const reader = new FileReader();
+                                 reader.onloadend = () => setDispatchPhoto(reader.result as string);
+                                 reader.readAsDataURL(file);
+                              }
+                           }}
+                           style={{ fontSize: '0.8rem', maxWidth: '100%' }}
+                        />
+                        {dispatchPhoto && (
+                           <div style={{ marginTop: '1rem' }}>
+                              <img src={dispatchPhoto} alt="Previsualización Surtido" style={{ maxWidth: '100%', maxHeight: '120px', borderRadius: '4px' }} />
+                           </div>
+                        )}
+                     </div>
+                  ) : (
+                     <p style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>Sin evidencia fotográfica cargada</p>
+                  )}
+               </div>
+
+               {/* Receive Photo Block */}
+               <div>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.5rem' }}>Evidencia de Recepción (Destino)</h4>
+                  {transfer.receiveEvidence ? (
+                     <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#f8fafc', padding: '0.5rem', textAlign: 'center' }}>
+                        <img src={transfer.receiveEvidence} alt="Evidencia de Recepción" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '6px', objectFit: 'contain' }} />
+                        <div style={{ marginTop: '0.5rem' }}>
+                           <a href={transfer.receiveEvidence} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: 'var(--caanma-primary)', fontWeight: 'bold', textDecoration: 'none' }}>
+                              Ver imagen completa ↗
+                           </a>
+                        </div>
+                     </div>
+                  ) : isDestination && transfer.status === 'DISPATCHED' ? (
+                     <div style={{ border: '2px dashed var(--caanma-primary)', borderRadius: '8px', padding: '1rem', backgroundColor: '#f5f3ff', textAlign: 'center' }}>
+                        <p style={{ fontSize: '0.85rem', color: '#4f46e5', fontWeight: '600', margin: '0 0 0.75rem 0' }}>Tomar o subir foto obligatoria *</p>
+                        <input 
+                           type="file" 
+                           accept="image/*" 
+                           capture="environment"
+                           onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                 const reader = new FileReader();
+                                 reader.onloadend = () => setReceivePhoto(reader.result as string);
+                                 reader.readAsDataURL(file);
+                              }
+                           }}
+                           style={{ fontSize: '0.8rem', maxWidth: '100%' }}
+                        />
+                        {receivePhoto && (
+                           <div style={{ marginTop: '1rem' }}>
+                              <img src={receivePhoto} alt="Previsualización Recepción" style={{ maxWidth: '100%', maxHeight: '120px', borderRadius: '4px' }} />
+                           </div>
+                        )}
+                     </div>
+                  ) : (
+                     <p style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>Sin evidencia fotográfica cargada</p>
+                  )}
+               </div>
+            </div>
+         </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
         <div className="card" style={{ padding: '1.5rem' }}>
