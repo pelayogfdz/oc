@@ -191,7 +191,8 @@ export default function EditTransferClient({ transfer, otherBranches, inventory,
         variantAttribute: variant ? variant.attribute : null,
         maxStock,
         quantity: 1,
-        imageUrl: product.imageUrl
+        imageUrl: product.imageUrl,
+        location: product.location || null
       }]);
     }
   };
