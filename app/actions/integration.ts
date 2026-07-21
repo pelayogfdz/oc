@@ -1331,4 +1331,79 @@ export async function getBarcodesFromMeliItem(itemData: any): Promise<string[]> 
   return barcodes;
 }
 
+export async function updateMeliItemStatus(mapId: string, action: 'active' | 'paused' | 'closed' | 'delete') {
+  try {
+    const user = await getActiveUser();
+    if (!user || !user.tenantId) {
+      return { success: false, error: 'Contexto de usuario no encontrado.' };
+    }
+
+    const branch = await prisma.branch.findFirst({
+      where: { tenantId: user.tenantId }
+    });
+    if (!branch) {
+      return { success: false, error: 'No se encontró la sucursal del usuario.' };
+    }
+
+    const map = await prisma.externalProductMap.findUnique({
+      where: { id: mapId }
+    });
+    if (!map) {
+      return { success: false, error: 'Publicación no encontrada.' };
+    }
+
+    const { getOrRefreshMeliToken } = await import('@/app/utils/meliToken');
+    const token = await getOrRefreshMeliToken(branch.id);
+    if (!token) {
+      return { success: false, error: 'No hay conexión activa con Mercado Libre.' };
+    }
+
+    const meliStatus = action === 'delete' ? 'closed' : action;
+
+    // Call Mercado Libre API PUT /items/{externalId}
+    const body: any = { status: meliStatus };
+    if (action === 'delete') {
+      body.deleted = 'true';
+    }
+
+    const response = await fetch(`https://api.mercadolibre.com/items/${map.externalId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    const resData = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      console.error(`[updateMeliItemStatus] Error ML API para ${map.externalId}:`, resData);
+      const msg = resData.message || (resData.cause && resData.cause[0] && resData.cause[0].message) || 'Error devuelto por Mercado Libre.';
+      return { success: false, error: msg };
+    }
+
+    if (action === 'delete') {
+      await prisma.externalProductMap.delete({
+        where: { id: mapId }
+      });
+    } else {
+      await prisma.externalProductMap.update({
+        where: { id: mapId },
+        data: {
+          syncStatus: meliStatus,
+          lastSync: new Date()
+        }
+      });
+    }
+
+    revalidatePath('/integraciones/mercadolibre');
+    return { success: true, newStatus: meliStatus };
+  } catch (error: any) {
+    console.error('Error in updateMeliItemStatus:', error);
+    return { success: false, error: error.message || 'Error al cambiar estado en Mercado Libre.' };
+  }
+}
+
+
 

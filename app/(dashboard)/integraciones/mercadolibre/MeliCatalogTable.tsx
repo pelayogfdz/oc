@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { saveMeliProductPricing, publishProductToMeli, linkMeliItemToProduct, searchCaanmaProducts, syncMeliCatalogAction } from '@/app/actions/integration';
-import { Save, Edit2, X, Check, Loader2, ExternalLink, Search, Globe, RefreshCw } from 'lucide-react';
+import { saveMeliProductPricing, publishProductToMeli, linkMeliItemToProduct, searchCaanmaProducts, syncMeliCatalogAction, updateMeliItemStatus } from '@/app/actions/integration';
+import { Save, Edit2, X, Check, Loader2, ExternalLink, Search, Globe, RefreshCw, Play, Pause, Archive, Trash2 } from 'lucide-react';
 
 interface MeliCatalogTableProps {
   initialMaps: any[];
@@ -108,8 +108,41 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
   });
 
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [syncing, setSyncing] = useState(false);
+
+  const handleStatusChange = async (mapId: string, action: 'active' | 'paused' | 'closed' | 'delete') => {
+    let confirmMsg = '';
+    if (action === 'closed') {
+      confirmMsg = '¿Estás seguro de que deseas finalizar esta publicación en Mercado Libre? Las publicaciones finalizadas no se pueden volver a activar.';
+    } else if (action === 'delete') {
+      confirmMsg = '¿Estás seguro de que deseas ELIMINAR esta publicación de Mercado Libre y Caanma? Esta acción no se puede deshacer.';
+    }
+
+    if (confirmMsg && !window.confirm(confirmMsg)) {
+      return;
+    }
+
+    setStatusUpdatingId(mapId);
+    setMessage(null);
+    const res = await updateMeliItemStatus(mapId, action);
+    setStatusUpdatingId(null);
+
+    if (res.success) {
+      if (action === 'delete') {
+        setMaps(prev => prev.filter(m => m.id !== mapId));
+        setMessage({ type: 'success', text: 'Publicación eliminada de Mercado Libre y Caanma con éxito.' });
+      } else {
+        setMaps(prev => prev.map(m => m.id === mapId ? { ...m, syncStatus: res.newStatus || action } : m));
+        const statusLabel = action === 'active' ? 'Activada' : action === 'paused' ? 'Pausada' : 'Finalizada';
+        setMessage({ type: 'success', text: `Publicación marcada como '${statusLabel}' en Mercado Libre con éxito.` });
+      }
+    } else {
+      setMessage({ type: 'error', text: res.error || 'Error al cambiar el estado en Mercado Libre.' });
+    }
+    setTimeout(() => setMessage(null), 5000);
+  };
 
   const handleSync = async () => {
     setSyncing(true);
@@ -640,7 +673,7 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
               </th>
               <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>Fijo?</th>
               <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>Estatus ML</th>
-              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', minWidth: '100px' }}>Acciones</th>
+              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', minWidth: '240px' }}>Acciones</th>
             </tr>
             <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f8fafc' }}>
               <th></th>
@@ -1167,12 +1200,55 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
                           </button>
                         </div>
                       ) : (
-                        <button 
-                          onClick={() => startEditing(map)}
-                          style={{ padding: '0.4rem 0.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: 'var(--caanma-text)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 'bold' }}
-                        >
-                          <Edit2 size={12} /> Editar
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'center', flexWrap: 'nowrap' }}>
+                          <button 
+                            onClick={() => startEditing(map)}
+                            style={{ padding: '0.35rem 0.6rem', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#334155', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 'bold' }}
+                            title="Editar precios y márgenes de la publicación"
+                          >
+                            <Edit2 size={12} /> Editar
+                          </button>
+
+                          {map.syncStatus === 'paused' ? (
+                            <button
+                              onClick={() => handleStatusChange(map.id, 'active')}
+                              disabled={statusUpdatingId === map.id}
+                              style={{ padding: '0.35rem 0.6rem', borderRadius: '4px', border: '1px solid #bbf7d0', backgroundColor: '#f0fdf4', color: '#16a34a', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 'bold' }}
+                              title="Activar publicación en Mercado Libre"
+                            >
+                              {statusUpdatingId === map.id ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />} Activar
+                            </button>
+                          ) : map.syncStatus === 'active' ? (
+                            <button
+                              onClick={() => handleStatusChange(map.id, 'paused')}
+                              disabled={statusUpdatingId === map.id}
+                              style={{ padding: '0.35rem 0.6rem', borderRadius: '4px', border: '1px solid #fde68a', backgroundColor: '#fffbeb', color: '#d97706', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 'bold' }}
+                              title="Pausar publicación en Mercado Libre"
+                            >
+                              {statusUpdatingId === map.id ? <Loader2 size={12} className="animate-spin" /> : <Pause size={12} />} Pausar
+                            </button>
+                          ) : null}
+
+                          {map.syncStatus !== 'closed' && (
+                            <button
+                              onClick={() => handleStatusChange(map.id, 'closed')}
+                              disabled={statusUpdatingId === map.id}
+                              style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid #e2e8f0', backgroundColor: 'white', color: '#64748b', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.75rem' }}
+                              title="Finalizar publicación en Mercado Libre"
+                            >
+                              <Archive size={12} /> Finalizar
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleStatusChange(map.id, 'delete')}
+                            disabled={statusUpdatingId === map.id}
+                            style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid #fecaca', backgroundColor: '#fef2f2', color: '#dc2626', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.75rem' }}
+                            title="Eliminar publicación de Mercado Libre y Caanma"
+                          >
+                            <Trash2 size={12} /> Eliminar
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
