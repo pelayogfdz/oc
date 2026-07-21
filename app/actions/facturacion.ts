@@ -1382,4 +1382,200 @@ export async function stampCustomerPayment(paymentId: string, paymentDateStr?: s
   }
 }
 
+export async function stampPaymentBatch(paymentIds: string[], paymentDateStr?: string) {
+  try {
+    const user = await getActiveUser();
+    if (!user || !user.id || !user.tenantId) {
+      throw new Error("Contexto de usuario no encontrado.");
+    }
+
+    const branch = await getActiveBranch();
+    const branchSettings = await prisma.branchSettings.findUnique({
+      where: { branchId: branch.id }
+    });
+
+    if (!branchSettings || !branchSettings.configJson) {
+      throw new Error("La sucursal no tiene configuraciones establecidas.");
+    }
+
+    const config = JSON.parse(branchSettings.configJson);
+    const apiKey = getFacturapiApiKey(config);
+
+    if (!apiKey) {
+      throw new Error("No hay llaves de Facturapi configuradas en las preferencias de esta Sucursal.");
+    }
+
+    const facturapi = new Facturapi(apiKey);
+
+    // Fetch all pre-existing payments
+    const payments = await prisma.customerPayment.findMany({
+      where: { id: { in: paymentIds } },
+      include: { customer: true, sale: true }
+    });
+
+    if (payments.length === 0) {
+      throw new Error("No se encontraron los abonos.");
+    }
+
+    // Verify if any is already invoiced
+    if (payments.some(p => p.cfdiStatus === 'INVOICED')) {
+      throw new Error("Uno o más abonos ya han sido facturados.");
+    }
+
+    // Ensure all belong to sales that have been invoiced (PPD)
+    if (payments.some(p => p.saleId && !p.sale?.invoiceId)) {
+      throw new Error("Uno o más abonos corresponden a ventas que aún no han sido facturadas.");
+    }
+
+    // Map payment method to SAT Payment Form (from the first payment's reason or custom logic)
+    let paymentForm = "03"; // Default Transfer
+    const firstReason = payments[0].reason || "";
+    if (firstReason.includes("(Efectivo)") || firstReason.includes("EFECTIVO") || firstReason.includes("CASH")) {
+      paymentForm = "01";
+    } else if (firstReason.includes("TRANSFERENCIA") || firstReason.includes("SPEI") || firstReason.includes("TRANSFER")) {
+      paymentForm = "03";
+    } else if (firstReason.includes("TARJETA") || firstReason.includes("CARD")) {
+      paymentForm = "28";
+    } else if (firstReason.includes("CHEQUE") || firstReason.includes("CHECK")) {
+      paymentForm = "02";
+    }
+
+    // Format payment date
+    const defaultDateObj = payments[0].paymentDate || payments[0].createdAt;
+    const year = defaultDateObj.getFullYear();
+    const month = String(defaultDateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(defaultDateObj.getDate()).padStart(2, '0');
+    const defaultDateStr = `${year}-${month}-${day}`;
+    
+    const finalDate = `${paymentDateStr || defaultDateStr}T12:00:00`;
+
+    const relatedDocuments: any[] = [];
+
+    for (const payment of payments) {
+      if (!payment.saleId || !payment.sale?.invoiceId) continue;
+
+      const originalInvoice = await facturapi.invoices.retrieve(payment.sale.invoiceId);
+      const originalUuid = originalInvoice.uuid;
+      if (!originalUuid) {
+        throw new Error(`La factura original de la venta ${payment.saleId} no tiene un folio fiscal (UUID) asignado.`);
+      }
+
+      // Extract taxes from the original invoice items
+      const taxRatesMap = new Map<string, { type: string; rate: number }>();
+      if (originalInvoice.items && Array.isArray(originalInvoice.items)) {
+        for (const item of originalInvoice.items as any[]) {
+          const taxesList = item.taxes || item.product?.taxes;
+          if (taxesList && Array.isArray(taxesList)) {
+            for (const tax of taxesList) {
+              const type = tax.type || "IVA";
+              const rate = typeof tax.rate === 'number' ? tax.rate : 0.16;
+              const key = `${type}-${rate}`;
+              taxRatesMap.set(key, { type, rate });
+            }
+          }
+        }
+      }
+
+      if (taxRatesMap.size === 0) {
+        taxRatesMap.set("IVA-0.16", { type: "IVA", rate: 0.16 });
+      }
+
+      const relatedTaxes: any[] = [];
+      for (const [_, taxInfo] of taxRatesMap.entries()) {
+        let base: number;
+        if (taxInfo.rate > 0) {
+          base = Number((payment.amount / (1 + taxInfo.rate)).toFixed(2));
+        } else {
+          base = Number(payment.amount.toFixed(2));
+        }
+        relatedTaxes.push({
+          type: taxInfo.type,
+          rate: taxInfo.rate,
+          base: base
+        });
+      }
+
+      // Calculate installment and last balance
+      const previousPaymentsCount = await prisma.customerPayment.count({
+        where: {
+          saleId: payment.saleId,
+          cfdiStatus: 'INVOICED',
+          createdAt: { lt: payment.createdAt }
+        }
+      });
+      const installment = previousPaymentsCount + 1;
+
+      const previousPayments = await prisma.customerPayment.findMany({
+        where: {
+          saleId: payment.saleId,
+          cfdiStatus: 'INVOICED',
+          createdAt: { lt: payment.createdAt }
+        },
+        select: { amount: true }
+      });
+      const totalPaidBefore = previousPayments.reduce((acc, p) => acc + p.amount, 0);
+      const lastBalance = payment.sale.total - totalPaidBefore;
+
+      relatedDocuments.push({
+        uuid: originalUuid,
+        amount: Number(payment.amount.toFixed(2)),
+        installment: installment,
+        last_balance: Number(lastBalance.toFixed(2)),
+        currency: "MXN",
+        taxes: relatedTaxes
+      });
+    }
+
+    if (relatedDocuments.length === 0) {
+      throw new Error("No hay documentos válidos para timbrar en este pago.");
+    }
+
+    const firstCustomer = payments[0].customer;
+
+    // Stamp the payment complement (type: "P")
+    const receipt = await facturapi.invoices.create({
+      type: "P",
+      customer: {
+        legal_name: firstCustomer.legalName || firstCustomer.name,
+        tax_id: firstCustomer.taxId || "XAXX010101000",
+        tax_system: firstCustomer.taxRegime || "616",
+        address: {
+          zip: firstCustomer.zipCode || "76000"
+        }
+      },
+      complements: [
+        {
+          type: "pago",
+          data: [
+            {
+              payment_form: paymentForm,
+              date: finalDate,
+              related_documents: relatedDocuments
+            }
+          ]
+        }
+      ]
+    });
+
+    const receiptPdf = `/api/facturacion/download?invoiceId=${receipt.id}&format=pdf`;
+    const receiptXml = `/api/facturacion/download?invoiceId=${receipt.id}&format=xml`;
+
+    // Update all payments in the database
+    await prisma.customerPayment.updateMany({
+      where: { id: { in: paymentIds } },
+      data: {
+        cfdiStatus: "INVOICED",
+        cfdiUrlPdf: receiptPdf,
+        cfdiUrlXml: receiptXml
+      }
+    });
+
+    revalidatePath(`/clientes/${firstCustomer.id}`);
+    return { success: true, receiptId: receipt.id };
+  } catch (error: any) {
+    console.error("Error al timbrar lote de abonos:", error);
+    return { success: false, error: error.message || "Error desconocido al timbrar abonos agrupados." };
+  }
+}
+
 

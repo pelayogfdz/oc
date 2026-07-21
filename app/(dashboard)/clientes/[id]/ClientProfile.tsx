@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import Link from 'next/link';
 import { 
   UserCircle, ShoppingBag, HandCoins, History, Edit, 
@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { addCustomerPaymentBatch, deleteCustomerPayment } from '@/app/actions/customerPayment';
 import { toggleCustomerBlock, sendCustomerAccountStatementEmail } from '@/app/actions/customer';
-import { stampCustomerPayment } from '@/app/actions/facturacion';
+import { stampCustomerPayment, stampPaymentBatch } from '@/app/actions/facturacion';
 import { formatCurrency } from '@/lib/utils';
 import { getGoogleWalletSettings, generateGoogleWalletPassUrl } from '@/app/actions/loyalty';
 
@@ -25,8 +25,9 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
   const [paymentDate, setPaymentDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [stampingId, setStampingId] = useState<string | null>(null);
-  const [selectedPaymentForStamping, setSelectedPaymentForStamping] = useState<string | null>(null);
+  const [selectedPaymentIdsForStamping, setSelectedPaymentIdsForStamping] = useState<string[] | null>(null);
   const [paymentDateForStamping, setPaymentDateForStamping] = useState<string>('');
+  const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
   
   // Estado de Cuenta Email state
   const [emailLoading, setEmailLoading] = useState(false);
@@ -51,25 +52,85 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
     }
   };
 
-  const handleOpenStampModal = (p: any) => {
-    const dateObj = new Date(p.paymentDate || p.createdAt);
+  const getBatchId = (reason: string | null) => {
+     if (!reason) return null;
+     const match = reason.match(/\[Batch: ([^\]]+)\]/);
+     return match ? match[1] : null;
+  };
+
+  const cleanReason = (reason: string | null) => {
+     if (!reason) return '';
+     return reason.replace(/\s*\[Batch: [^\]]+\]/, '');
+  };
+
+  const groupedPayments = useMemo(() => {
+     const groups: Record<string, {
+        batchId: string;
+        paymentDate: Date;
+        createdAt: Date;
+        amount: number;
+        cfdiStatus: string;
+        cfdiUrlPdf: string | null;
+        cfdiUrlXml: string | null;
+        payments: any[];
+     }> = {};
+
+     payments.forEach((p: any) => {
+        const bId = getBatchId(p.reason) || p.id;
+        if (!groups[bId]) {
+           groups[bId] = {
+              batchId: bId,
+              paymentDate: p.paymentDate ? new Date(p.paymentDate) : new Date(p.createdAt),
+              createdAt: new Date(p.createdAt),
+              amount: 0,
+              cfdiStatus: p.cfdiStatus,
+              cfdiUrlPdf: p.cfdiUrlPdf,
+              cfdiUrlXml: p.cfdiUrlXml,
+              payments: []
+           };
+        }
+        
+        const grp = groups[bId];
+        grp.amount += p.amount;
+        grp.payments.push(p);
+        
+        if (p.cfdiStatus === 'INVOICED') {
+           grp.cfdiStatus = 'INVOICED';
+           if (p.cfdiUrlPdf) grp.cfdiUrlPdf = p.cfdiUrlPdf;
+           if (p.cfdiUrlXml) grp.cfdiUrlXml = p.cfdiUrlXml;
+        } else if (grp.cfdiStatus !== 'INVOICED' && p.cfdiStatus === 'REQUESTED') {
+           grp.cfdiStatus = 'REQUESTED';
+        }
+     });
+
+     return Object.values(groups).sort((a, b) => b.paymentDate.getTime() - a.paymentDate.getTime());
+  }, [payments]);
+
+  const handleOpenStampModal = (group: any) => {
+    const dateObj = new Date(group.paymentDate || group.createdAt);
     const year = dateObj.getFullYear();
     const month = String(dateObj.getMonth() + 1).padStart(2, '0');
     const day = String(dateObj.getDate()).padStart(2, '0');
     const defaultDate = `${year}-${month}-${day}`;
 
-    setSelectedPaymentForStamping(p.id);
+    const ids = group.payments.map((pmt: any) => pmt.id);
+    setSelectedPaymentIdsForStamping(ids);
     setPaymentDateForStamping(defaultDate);
   };
 
   const handleConfirmStampPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPaymentForStamping) return;
-    const paymentId = selectedPaymentForStamping;
-    setSelectedPaymentForStamping(null);
-    setStampingId(paymentId);
+    if (!selectedPaymentIdsForStamping || selectedPaymentIdsForStamping.length === 0) return;
+    const ids = selectedPaymentIdsForStamping;
+    setSelectedPaymentIdsForStamping(null);
+    setStampingId(ids[0]);
     try {
-      const response = await stampCustomerPayment(paymentId, paymentDateForStamping);
+      let response;
+      if (ids.length === 1) {
+        response = await stampCustomerPayment(ids[0], paymentDateForStamping);
+      } else {
+        response = await stampPaymentBatch(ids, paymentDateForStamping);
+      }
       if (response.success) {
         alert('Recibo de pago (REP) timbrado exitosamente');
       } else {
@@ -80,6 +141,29 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
     } finally {
       setStampingId(null);
     }
+  };
+
+  const handleDeleteGroup = async (group: any) => {
+     const isBatch = group.payments.length > 1;
+     const confirmMsg = isBatch 
+        ? `Este abono se aplicó a ${group.payments.length} facturas. ¿Seguro que deseas revertir todos los pagos de este lote?` 
+        : "¿Seguro que deseas eliminar este abono? Esto revertirá saldos e ingresos en caja.";
+     if (!confirm(confirmMsg)) return;
+
+     setLoading(true);
+     try {
+        for (const p of group.payments) {
+           const response = await deleteCustomerPayment(p.id);
+           if (!response?.success) {
+              throw new Error(response?.error || 'Error al eliminar uno de los pagos');
+           }
+        }
+        alert('Pagos revertidos correctamente');
+     } catch (err: any) {
+        alert(err.message);
+     } finally {
+        setLoading(false);
+     }
   };
 
   // Google Wallet Integration State
@@ -587,85 +671,144 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
                   </tr>
                </thead>
                <tbody>
-                  {payments.map((p: any) => (
-                     <tr key={p.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-                        <td style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b' }}>{p.id.slice(0,8).toUpperCase()}</td>
-                        <td style={{ padding: '1rem' }}>
-                           <div>{new Date(p.paymentDate || p.createdAt).toLocaleDateString()}</div>
-                           <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{new Date(p.paymentDate || p.createdAt).toLocaleTimeString()}</div>
-                        </td>
-                        <td style={{ padding: '1rem' }}>{p.reason}</td>
-                        <td style={{ padding: '1rem', fontWeight: 'bold', color: '#10b981' }}>+{formatCurrency(p.amount)}</td>
-                        <td style={{ padding: '1rem' }}>
-                           {p.cfdiStatus === 'INVOICED' ? (
-                              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                 <span style={{ fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: '#dcfce7', color: '#15803d', padding: '0.25rem 0.5rem', borderRadius: '6px' }}>
-                                    Timbrado ✓
-                                 </span>
-                                 {p.cfdiUrlPdf && (
-                                    <a 
-                                       href={p.cfdiUrlPdf} 
-                                       target="_blank" 
-                                       rel="noopener noreferrer"
-                                       style={{ 
-                                          fontSize: '0.75rem', 
-                                          fontWeight: 'bold', 
-                                          backgroundColor: '#e0f2fe', 
-                                          color: '#0369a1', 
-                                          padding: '0.25rem 0.5rem', 
-                                          borderRadius: '6px', 
-                                          textDecoration: 'none',
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          gap: '0.25rem'
-                                       }}
-                                    >
-                                       <Download size={12} /> PDF
-                                    </a>
+                  {groupedPayments.map((g: any) => {
+                     const isBatch = g.payments.length > 1;
+                     const isExpanded = expandedBatchId === g.batchId;
+                     return (
+                        <Fragment key={g.batchId}>
+                           <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: isBatch ? '#f8fafc' : 'transparent' }}>
+                              <td style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b' }}>
+                                 {g.batchId.slice(0,8).toUpperCase()}
+                              </td>
+                              <td style={{ padding: '1rem' }}>
+                                 <div>{g.paymentDate.toLocaleDateString()}</div>
+                                 <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{g.payments[0]?.createdAt ? new Date(g.payments[0].createdAt).toLocaleTimeString() : ''}</div>
+                              </td>
+                              <td style={{ padding: '1rem' }}>
+                                 {isBatch ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                       <span style={{ fontWeight: '600', color: '#334155' }}>Pago agrupado ({g.payments.length} facturas)</span>
+                                       <button 
+                                          onClick={() => setExpandedBatchId(isExpanded ? null : g.batchId)}
+                                          style={{ 
+                                             background: 'none', 
+                                             border: 'none', 
+                                             color: 'var(--caanma-primary)', 
+                                             cursor: 'pointer', 
+                                             padding: 0, 
+                                             fontSize: '0.8rem', 
+                                             fontWeight: 'bold', 
+                                             textAlign: 'left',
+                                             display: 'inline-flex',
+                                             alignItems: 'center',
+                                             gap: '0.25rem'
+                                          }}
+                                       >
+                                          {isExpanded ? 'Ocultar facturas ↑' : 'Ver detalle facturas ↓'}
+                                       </button>
+                                    </div>
+                                 ) : (
+                                    <span>{cleanReason(g.payments[0]?.reason)}</span>
                                  )}
-                              </div>
-                           ) : (
-                              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                                 {p.saleId && (
-                                    <button 
-                                       onClick={() => handleOpenStampModal(p)} 
-                                       disabled={stampingId === p.id}
-                                       style={{ 
-                                          background: 'none', 
-                                          border: 'none', 
-                                          color: 'var(--caanma-primary)', 
-                                          cursor: stampingId === p.id ? 'not-allowed' : 'pointer', 
-                                          display: 'flex', 
-                                          alignItems: 'center', 
-                                          gap: '0.25rem', 
-                                          fontWeight: 'bold' 
-                                       }}
-                                    >
-                                       {stampingId === p.id ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                                       Timbrar Pago
-                                    </button>
+                              </td>
+                              <td style={{ padding: '1rem', fontWeight: 'bold', color: '#10b981' }}>
+                                 +{formatCurrency(g.amount)}
+                              </td>
+                              <td style={{ padding: '1rem' }}>
+                                 {g.cfdiStatus === 'INVOICED' ? (
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                       <span style={{ fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: '#dcfce7', color: '#15803d', padding: '0.25rem 0.5rem', borderRadius: '6px' }}>
+                                          Timbrado ✓
+                                       </span>
+                                       {g.cfdiUrlPdf && (
+                                          <a 
+                                             href={g.cfdiUrlPdf} 
+                                             target="_blank" 
+                                             rel="noopener noreferrer"
+                                             style={{ 
+                                                fontSize: '0.75rem', 
+                                                fontWeight: 'bold', 
+                                                backgroundColor: '#e0f2fe', 
+                                                color: '#0369a1', 
+                                                padding: '0.25rem 0.5rem', 
+                                                borderRadius: '6px', 
+                                                textDecoration: 'none',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '0.25rem'
+                                             }}
+                                          >
+                                             <Download size={12} /> PDF
+                                          </a>
+                                       )}
+                                    </div>
+                                 ) : (
+                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                       {g.payments.some((pmt: any) => pmt.saleId) && (
+                                          <button 
+                                             onClick={() => handleOpenStampModal(g)} 
+                                             disabled={stampingId === g.batchId || stampingId === g.payments[0]?.id}
+                                             style={{ 
+                                                background: 'none', 
+                                                border: 'none', 
+                                                color: 'var(--caanma-primary)', 
+                                                cursor: (stampingId === g.batchId || stampingId === g.payments[0]?.id) ? 'not-allowed' : 'pointer', 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                gap: '0.25rem', 
+                                                fontWeight: 'bold' 
+                                             }}
+                                          >
+                                             {(stampingId === g.batchId || stampingId === g.payments[0]?.id) ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                                             Timbrar Pago
+                                          </button>
+                                       )}
+                                       <button 
+                                          onClick={() => handleDeleteGroup(g)} 
+                                          style={{ 
+                                             background: 'none', 
+                                             border: 'none', 
+                                             color: '#ef4444', 
+                                             cursor: 'pointer', 
+                                             display: 'flex', 
+                                             alignItems: 'center', 
+                                             gap: '0.25rem', 
+                                             fontWeight: 'bold' 
+                                          }}
+                                          disabled={stampingId === g.batchId || stampingId === g.payments[0]?.id}
+                                       >
+                                          <Trash2 size={16} /> Revertir Pago
+                                       </button>
+                                    </div>
                                  )}
-                                 <button 
-                                    onClick={() => handleDeletePayment(p.id)} 
-                                    style={{ 
-                                       background: 'none', 
-                                       border: 'none', 
-                                       color: '#ef4444', 
-                                       cursor: 'pointer', 
-                                       display: 'flex', 
-                                       alignItems: 'center', 
-                                       gap: '0.25rem', 
-                                       fontWeight: 'bold' 
-                                    }}
-                                    disabled={stampingId === p.id}
-                                 >
-                                    <Trash2 size={16} /> Revertir Pago
-                                 </button>
-                              </div>
+                              </td>
+                           </tr>
+                           {isExpanded && isBatch && (
+                              <tr style={{ backgroundColor: '#fdfdfd' }}>
+                                 <td colSpan={5} style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--caanma-border)' }}>
+                                    <div style={{ padding: '0.75rem', borderLeft: '3px solid var(--caanma-primary)', display: 'flex', flexDirection: 'column', gap: '0.5rem', backgroundColor: 'white', borderRadius: '4px', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)' }}>
+                                       <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Facturas Aplicadas en este Lote:</span>
+                                       <table style={{ width: '100%', fontSize: '0.85rem' }}>
+                                          <tbody>
+                                             {g.payments.map((pmt: any) => (
+                                                <tr key={pmt.id}>
+                                                   <td style={{ padding: '0.25rem 0', fontWeight: '500', color: '#475569' }}>
+                                                      {cleanReason(pmt.reason)}
+                                                   </td>
+                                                   <td style={{ padding: '0.25rem 0', textAlign: 'right', fontWeight: 'bold', color: '#0f172a' }}>
+                                                      {formatCurrency(pmt.amount)}
+                                                   </td>
+                                                </tr>
+                                             ))}
+                                          </tbody>
+                                       </table>
+                                    </div>
+                                 </td>
+                              </tr>
                            )}
-                        </td>
-                     </tr>
-                  ))}
+                        </Fragment>
+                     );
+                  })}
                   {payments.length === 0 && (
                      <tr><td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>Aún no hay abonos registrados</td></tr>
                   )}
@@ -880,7 +1023,7 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
       })()}
 
       {/* Modal para elegir fecha de recepción al timbrar abono individual */}
-      {selectedPaymentForStamping && (
+      {selectedPaymentIdsForStamping && (
          <div style={{
             position: 'fixed',
             top: 0, left: 0, right: 0, bottom: 0,
@@ -923,7 +1066,7 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
                   <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                      <button 
                         type="button" 
-                        onClick={() => setSelectedPaymentForStamping(null)}
+                        onClick={() => setSelectedPaymentIdsForStamping(null)}
                         style={{ flex: 1, padding: '0.75rem', backgroundColor: '#f1f5f9', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', color: '#475569' }}
                      >
                         Cancelar

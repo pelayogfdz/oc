@@ -63,6 +63,8 @@ export async function addCustomerPaymentBatch(
 
   let remainingAmount = totalAmount;
   let totalEffectiveToDebt = 0;
+  
+  const batchId = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
   if (salePayments.length > 0) {
     const saleIds = salePayments.map(sp => sp.id);
@@ -89,7 +91,7 @@ export async function addCustomerPaymentBatch(
           data: {
              customerId,
              amount: deduct,
-             reason: `Abono a Ticket #${sale.id.slice(0,8)} (${paymentMethod})`,
+             reason: `Abono a Ticket #${sale.id.slice(0,8)} (${paymentMethod}) [Batch: ${batchId}]`,
              userId: user.id,
              branchId: sale.branchId || paymentBranchId,
              saleId: sale.id,
@@ -105,7 +107,7 @@ export async function addCustomerPaymentBatch(
           data: {
              customerId,
              amount: remainingAmount,
-             reason: `Depósito a Saldo a Favor (${paymentMethod})`,
+             reason: `Depósito a Saldo a Favor (${paymentMethod}) [Batch: ${batchId}]`,
              userId: user.id,
              branchId: paymentBranchId,
              saleId: null,
