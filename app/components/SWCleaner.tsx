@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 
-export const CURRENT_BUILD_VERSION = '2026-07-21-v4';
+export const CURRENT_BUILD_VERSION = '2026-07-21-v5';
 
 export default function SWCleaner() {
   useEffect(() => {

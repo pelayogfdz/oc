@@ -872,8 +872,12 @@ export async function createMultiplePaymentReceipt(
   paymentDate: Date
 ) {
   try {
+    const user = await getActiveUser();
+    if (!user || !user.id || !user.tenantId) {
+      throw new Error("Contexto de usuario no encontrado.");
+    }
+
     const branch = await getActiveBranch();
-    
     const branchSettings = await prisma.branchSettings.findUnique({
       where: { branchId: branch.id }
     });
@@ -904,16 +908,154 @@ export async function createMultiplePaymentReceipt(
       dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}T12:00:00`;
     }
 
-    const receipt = await facturapi.receipts.create({
-      payment_form: paymentForm,
-      date: dateStr as any,
-      invoices: invoices
+    // Resolve client fiscal data from the first invoice
+    const firstInvoiceDetail = await facturapi.invoices.retrieve(invoices[0].invoiceId);
+    if (!firstInvoiceDetail.customer) {
+      throw new Error("La factura original no tiene datos del cliente.");
+    }
+
+    const relatedDocuments: any[] = [];
+    const salesInfo: any[] = [];
+
+    for (const inv of invoices) {
+      const originalInvoice = await facturapi.invoices.retrieve(inv.invoiceId);
+      const originalUuid = originalInvoice.uuid;
+      if (!originalUuid) {
+        throw new Error(`La factura con ID ${inv.invoiceId} no tiene un folio fiscal (UUID) asignado en Facturapi.`);
+      }
+
+      // Extract taxes from the original invoice items
+      const taxRatesMap = new Map<string, { type: string; rate: number }>();
+      if (originalInvoice.items && Array.isArray(originalInvoice.items)) {
+        for (const item of originalInvoice.items as any[]) {
+          const taxesList = item.taxes || item.product?.taxes;
+          if (taxesList && Array.isArray(taxesList)) {
+            for (const tax of taxesList) {
+              const type = tax.type || "IVA";
+              const rate = typeof tax.rate === 'number' ? tax.rate : 0.16;
+              const key = `${type}-${rate}`;
+              taxRatesMap.set(key, { type, rate });
+            }
+          }
+        }
+      }
+
+      // Fallback: If no tax entries were found, default to standard IVA 16%
+      if (taxRatesMap.size === 0) {
+        taxRatesMap.set("IVA-0.16", { type: "IVA", rate: 0.16 });
+      }
+
+      const relatedTaxes: any[] = [];
+      for (const [_, taxInfo] of taxRatesMap.entries()) {
+        let base: number;
+        if (taxInfo.rate > 0) {
+          base = Number((inv.amount / (1 + taxInfo.rate)).toFixed(2));
+        } else {
+          base = Number(inv.amount.toFixed(2));
+        }
+        relatedTaxes.push({
+          type: taxInfo.type,
+          rate: taxInfo.rate,
+          base: base
+        });
+      }
+
+      const sale = await prisma.sale.findFirst({
+        where: { invoiceId: inv.invoiceId }
+      });
+
+      let installment = 1;
+      let lastBalance = originalInvoice.total || inv.amount;
+
+      if (sale) {
+        const previousPaymentsCount = await prisma.customerPayment.count({
+          where: {
+            saleId: sale.id,
+            cfdiStatus: 'INVOICED'
+          }
+        });
+        installment = previousPaymentsCount + 1;
+
+        const previousPayments = await prisma.customerPayment.findMany({
+          where: {
+            saleId: sale.id,
+            cfdiStatus: 'INVOICED'
+          },
+          select: { amount: true }
+        });
+        const totalPaidBefore = previousPayments.reduce((acc, p) => acc + p.amount, 0);
+        lastBalance = sale.total - totalPaidBefore;
+
+        salesInfo.push({
+          saleId: sale.id,
+          customerId: sale.customerId,
+          amount: inv.amount
+        });
+      } else {
+        throw new Error(`No se encontró la venta con Facturapi ID: ${inv.invoiceId} en la base de datos.`);
+      }
+
+      relatedDocuments.push({
+        uuid: originalUuid,
+        amount: Number(inv.amount.toFixed(2)),
+        installment: installment,
+        last_balance: Number(lastBalance.toFixed(2)),
+        currency: "MXN",
+        taxes: relatedTaxes
+      });
+    }
+
+    // Stamp a single complement invoice of type "P" (Payment Complement)
+    const receipt = await facturapi.invoices.create({
+      type: "P",
+      customer: {
+        legal_name: firstInvoiceDetail.customer.legal_name,
+        tax_id: firstInvoiceDetail.customer.tax_id,
+        tax_system: firstInvoiceDetail.customer.tax_system || "616",
+        address: {
+          zip: firstInvoiceDetail.customer.address?.zip || "76000"
+        }
+      },
+      complements: [
+        {
+          type: "pago",
+          data: [
+            {
+              payment_form: paymentForm,
+              date: dateStr,
+              related_documents: relatedDocuments
+            }
+          ]
+        }
+      ]
     });
 
+    const receiptPdf = `/api/facturacion/download?invoiceId=${receipt.id}&format=pdf`;
+    const receiptXml = `/api/facturacion/download?invoiceId=${receipt.id}&format=xml`;
+
+    // Create CustomerPayment record in database for each paid invoice
+    for (const sInfo of salesInfo) {
+      await prisma.customerPayment.create({
+        data: {
+          customerId: sInfo.customerId,
+          amount: sInfo.amount,
+          reason: "Abono timbrado en REP Agrupado",
+          userId: user.id,
+          branchId: branch.id,
+          cfdiStatus: "INVOICED",
+          cfdiUrlPdf: receiptPdf,
+          cfdiUrlXml: receiptXml,
+          saleId: sInfo.saleId,
+          paymentDate: new Date(dateStr)
+        }
+      });
+    }
+
+    revalidatePath('/facturas/complementos');
     return { success: true, receiptId: receipt.id };
   } catch (error: any) {
-    console.error("Facturapi Multiple Receipt Error:", error);
-    return { success: false, error: error.message || "Error desconocido al emitir el recibo de pago." };
+    console.error("Facturapi Multiple REP Error:", error);
+    return { success: false, error: error.message || "Error desconocido al emitir el complemento de pago." };
   }
 }
 
