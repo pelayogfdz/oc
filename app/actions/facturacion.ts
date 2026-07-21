@@ -227,6 +227,8 @@ export async function stampInvoice(saleId: string, customerId?: string | null, c
       payment_form = "04"; // Tarjeta de crédito
     } else if (methodUpper === 'TRANSFER' || methodUpper.includes('TRANSFERENCIA') || methodUpper.includes('SPEI')) {
       payment_form = "03"; // Transferencia electrónica
+    } else if (methodUpper === 'CHECK' || methodUpper === 'CHEQUE') {
+      payment_form = "02"; // Cheque nominativo
     }
 
     if (customerData.tax_id === "XAXX010101000") {
@@ -761,11 +763,15 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
       payment_method = "PPD";
     } else {
       // Find first sale with non-cash payment method to get a representative payment form
-      const nonCashSale = sales.find(s => String(s.paymentMethod || '').toUpperCase() !== 'CASH');
+      const nonCashSale = sales.find(s => {
+        const m = String(s.paymentMethod || '').toUpperCase();
+        return m !== 'CASH';
+      });
       const pm = String(nonCashSale ? nonCashSale.paymentMethod : sales[0].paymentMethod || '').toUpperCase();
       if (pm === 'CARD_DEBIT' || pm.includes('DEBITO') || pm.includes('DEBIT')) payment_form = "28";
       else if (pm === 'CARD_CREDIT' || pm === 'CARD' || pm.includes('TARJETA') || pm.includes('CARD')) payment_form = "04";
       else if (pm === 'TRANSFER' || pm.includes('TRANSFERENCIA') || pm.includes('SPEI')) payment_form = "03";
+      else if (pm === 'CHECK' || pm === 'CHEQUE') payment_form = "02";
       else payment_form = "01";
     }
 

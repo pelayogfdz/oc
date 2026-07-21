@@ -17,7 +17,9 @@ const getPaymentMethodLabel = (method: string) => {
     'CREDIT': 'Crédito',
     'VALES': 'Vales',
     'DEPOSIT': 'Depósito',
-    'OTHER': 'Otro'
+    'OTHER': 'Otro',
+    'CHECK': 'Cheque',
+    'CHEQUE': 'Cheque'
   };
   return mapping[method] || method || 'Efectivo';
 };

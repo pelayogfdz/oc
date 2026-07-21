@@ -91,6 +91,7 @@ export default function CajaActualClient({
   // -------------------------------------------------------------
   const standardNames: Record<string, string> = {
     CASH: 'Efectivo',
+    CHECK: 'Cheque',
     CARD: 'Tarjeta de Crédito / Débito',
     CARD_CREDIT: 'Tarjeta de Crédito',
     CARD_DEBIT: 'Tarjeta de Débito',
@@ -126,10 +127,16 @@ export default function CajaActualClient({
     // Default fallback
     configMethods = [
       { id: 'CASH', name: 'Efectivo' },
+      { id: 'CHECK', name: 'Cheque' },
       { id: 'CARD_CREDIT', name: 'Tarjeta de Crédito' },
       { id: 'CARD_DEBIT', name: 'Tarjeta de Débito' },
       { id: 'TRANSFER', name: 'Transferencia' }
     ];
+  }
+
+  // Ensure CHECK is present for everyone
+  if (!configMethods.some((m: any) => m.id === 'CHECK')) {
+    configMethods.push({ id: 'CHECK', name: 'Cheque' });
   }
 
   // Active sales (ignore cancelled ones)

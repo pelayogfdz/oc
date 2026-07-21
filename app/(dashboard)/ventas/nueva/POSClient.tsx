@@ -595,9 +595,13 @@ export default function POSClient({
   const [breakdownDiscounts, setBreakdownDiscounts] = useState<boolean>(false);
 
   
-  const methodsList = (Array.isArray(metodosConfig?.methods) && metodosConfig.methods.length > 0) 
+  let methodsList = (Array.isArray(metodosConfig?.methods) && metodosConfig.methods.length > 0) 
      ? metodosConfig.methods 
-     : [{ id: 'CASH', name: 'Efectivo' }, { id: 'CARD_CREDIT', name: 'Tarjeta de Crédito' }, { id: 'CARD_DEBIT', name: 'Tarjeta de Débito' }, { id: 'TRANSFER', name: 'Transferencia' }];
+     : [{ id: 'CASH', name: 'Efectivo' }, { id: 'CHECK', name: 'Cheque' }, { id: 'CARD_CREDIT', name: 'Tarjeta de Crédito' }, { id: 'CARD_DEBIT', name: 'Tarjeta de Débito' }, { id: 'TRANSFER', name: 'Transferencia' }];
+
+  if (!methodsList.some((m: any) => m.id === 'CHECK')) {
+    methodsList = [...methodsList, { id: 'CHECK', name: 'Cheque' }];
+  }
 
   const finalMethods: any[] = [];
   methodsList.forEach((m: any) => {

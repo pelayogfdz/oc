@@ -219,6 +219,8 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
   const formatPaymentMethod = (method: string) => {
     switch (method) {
       case 'CASH': return 'Efectivo';
+      case 'CHECK':
+      case 'CHEQUE': return 'Cheque';
       case 'CARD': return 'Tarjeta';
       case 'CARD_CREDIT': return 'Tarjeta C.';
       case 'CARD_DEBIT': return 'Tarjeta D.';
@@ -670,7 +672,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                       <span>RFC: {sale.customer?.taxId || 'XAXX010101000'}</span>
                       <span>•</span>
                       <span style={{ fontWeight: '500', color: '#2563eb' }}>
-                        {sale.paymentMethod === 'CASH' ? 'Efectivo' : sale.paymentMethod === 'CARD' ? 'Tarjeta' : sale.paymentMethod === 'CARD_CREDIT' ? 'Tarjeta C.' : sale.paymentMethod === 'CARD_DEBIT' ? 'Tarjeta D.' : sale.paymentMethod === 'TRANSFER' ? 'Transf' : sale.paymentMethod}
+                        {sale.paymentMethod === 'CASH' ? 'Efectivo' : sale.paymentMethod === 'CARD' ? 'Tarjeta' : sale.paymentMethod === 'CARD_CREDIT' ? 'Tarjeta C.' : sale.paymentMethod === 'CARD_DEBIT' ? 'Tarjeta D.' : sale.paymentMethod === 'TRANSFER' ? 'Transf' : sale.paymentMethod === 'CHECK' || sale.paymentMethod === 'CHEQUE' ? 'Cheque' : sale.paymentMethod}
                       </span>
                       <span>•</span>
                       <span style={{ fontWeight: '500', color: '#0ea5e9' }}>

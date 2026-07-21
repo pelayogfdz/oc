@@ -83,7 +83,7 @@ export default function VentaActionsClient({
     return `¡Hola ${customerName || 'Cliente'}! Le comparto el comprobante de su compra de CAANMA.\n\n` +
       `*Folio:* #${displayFolio}\n` +
       `*Total:* ${formattedTotal}\n` +
-      `*Método:* ${paymentMethod === 'CASH' ? 'Efectivo' : paymentMethod === 'CARD' ? 'Tarjeta' : paymentMethod === 'CARD_CREDIT' ? 'Tarjeta de Crédito' : paymentMethod === 'CARD_DEBIT' ? 'Tarjeta de Débito' : paymentMethod === 'TRANSFER' ? 'Transferencia' : paymentMethod}\n\n` +
+      `*Método:* ${paymentMethod === 'CASH' ? 'Efectivo' : paymentMethod === 'CARD' ? 'Tarjeta' : paymentMethod === 'CARD_CREDIT' ? 'Tarjeta de Crédito' : paymentMethod === 'CARD_DEBIT' ? 'Tarjeta de Débito' : paymentMethod === 'TRANSFER' ? 'Transferencia' : paymentMethod === 'CHECK' || paymentMethod === 'CHEQUE' ? 'Cheque' : paymentMethod}\n\n` +
       `Puede ver e imprimir el recibo detallado aquí:\n${link}\n\n` +
       `¡Muchas gracias por su preferencia! Que tenga un excelente día.`;
   };
