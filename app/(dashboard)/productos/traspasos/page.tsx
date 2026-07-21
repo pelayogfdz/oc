@@ -1,4 +1,4 @@
-import { getActiveBranch } from "@/app/actions/auth";
+import { getActiveBranch, getActiveUser } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import * as Icons from 'lucide-react';
 import { FileText, Plus, Trash2, ArrowRight } from 'lucide-react';
@@ -13,7 +13,37 @@ export default async function Page() {
   const branch = await getActiveBranch();
   if (!branch || !branch.tenantId) return <div>No hay sucursal seleccionada.</div>;
 
-  const whereClause = branch.id === 'GLOBAL' 
+  const user = await getActiveUser();
+  
+  // Detect if the user has global viewing privileges (Admin or explicit GLOBAL_VIEW permission)
+  let isUserGlobal = user.role === 'ADMIN' || user.email?.toLowerCase() === 'pelayogfdz@gmail.com';
+  if (!isUserGlobal) {
+    const rolePermissions = user.customRole?.permissions;
+    const userPermissionsRaw = user.permissions;
+    const mergedList: string[] = [];
+
+    if (rolePermissions) {
+      try {
+        const parsed = JSON.parse(rolePermissions);
+        if (Array.isArray(parsed)) mergedList.push(...parsed);
+        else Object.keys(parsed).forEach((k) => { if (parsed[k]) mergedList.push(k); });
+      } catch (e) {}
+    }
+
+    if (userPermissionsRaw) {
+      try {
+        const parsed = JSON.parse(userPermissionsRaw);
+        if (Array.isArray(parsed)) mergedList.push(...parsed);
+        else Object.keys(parsed).forEach((k) => { if (parsed[k]) mergedList.push(k); });
+      } catch (e) {}
+    }
+
+    if (mergedList.includes('GLOBAL_VIEW')) {
+      isUserGlobal = true;
+    }
+  }
+
+  const whereClause = (branch.id === 'GLOBAL' || isUserGlobal)
     ? { branch: { tenantId: branch.tenantId } }
     : { 
         OR: [

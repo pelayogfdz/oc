@@ -40,8 +40,11 @@ export async function GET(req: Request) {
       const orderMatch = notes.match(/Mercado Libre Orden\s*(\d+)/);
       const orderId = orderMatch ? orderMatch[1] : null;
 
-      const guideMatch = notes.match(/Guía de Envío:\s*([^\s\.]+)/);
-      const guideUrl = guideMatch ? guideMatch[1] : null;
+      const guideMatch = notes.match(/Guía de Envío:\s*(\S+)/);
+      let guideUrl = guideMatch ? guideMatch[1] : null;
+      if (guideUrl && guideUrl.endsWith('.')) {
+        guideUrl = guideUrl.slice(0, -1);
+      }
 
       const buyerMatch = notes.match(/Comprador:\s*([^\n\r]+)/);
       const buyerName = buyerMatch ? buyerMatch[1].trim() : 'Cliente Mercado Libre';

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
+import Link from 'next/link';
 import { adjustInventory } from '@/app/actions/inventory';
 import { createVariant, deleteVariant } from '@/app/actions/variant';
 import { createBatch, deleteBatch } from '@/app/actions/batch';
@@ -630,26 +631,46 @@ export function ProductDetailClient({
       })()}
 
       {activeTab === 'sales' && (
-        <div className="card">
+        <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
           <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f9fafb' }}>
-                <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Venta N° (ID)</th>
-                <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'center' }}>Unidades Vendidas</th>
-                <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right' }}>Subtotal Generado</th>
+              <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f8fafc' }}>
+                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 'bold', fontSize: '0.85rem' }}>Folio Venta</th>
+                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 'bold', fontSize: '0.85rem' }}>Fecha</th>
+                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 'bold', fontSize: '0.85rem' }}>Vendedor</th>
+                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 'bold', fontSize: '0.85rem', textAlign: 'center' }}>Unidades Vendidas</th>
+                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 'bold', fontSize: '0.85rem', textAlign: 'right' }}>Subtotal Generado</th>
+                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 'bold', fontSize: '0.85rem', textAlign: 'right' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {sales.map(s => (
-                <tr key={s.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-                  <td data-label="Venta N° (ID)" style={{ padding: '1rem', fontFamily: 'monospace' }}>{s.saleId.slice(0, 8)}...</td>
-                  <td data-label="Unidades Vendidas" style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>{s.quantity}</td>
-                  <td data-label="Subtotal Generado" style={{ padding: '1rem', textAlign: 'right' }}>${(s.quantity * s.price).toFixed(2)}</td>
-                </tr>
-              ))}
+              {sales.map(s => {
+                const displayFolio = s.sale?.folio || `#${s.saleId.slice(0, 8).toUpperCase()}`;
+                const saleDate = s.sale?.createdAt ? new Date(s.sale.createdAt).toLocaleString() : 'N/A';
+                const sellerName = s.sale?.user?.name || s.sale?.user?.email || 'Sistema';
+
+                return (
+                  <tr key={s.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
+                    <td data-label="Folio Venta" style={{ padding: '1rem', fontWeight: 'bold' }}>
+                      <Link href={`/ventas/detalle/${s.saleId}`} style={{ color: 'var(--caanma-primary)', textDecoration: 'none' }}>
+                        {displayFolio}
+                      </Link>
+                    </td>
+                    <td data-label="Fecha" style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>{saleDate}</td>
+                    <td data-label="Vendedor" style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>{sellerName}</td>
+                    <td data-label="Unidades Vendidas" style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>{s.quantity}</td>
+                    <td data-label="Subtotal Generado" style={{ padding: '1rem', textAlign: 'right', fontWeight: '500' }}>${(s.quantity * s.price).toFixed(2)}</td>
+                    <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'right' }}>
+                      <Link href={`/ventas/detalle/${s.saleId}`} style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '0.35rem 0.75rem', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', textDecoration: 'none', fontSize: '0.8rem', display: 'inline-block' }}>
+                        Ver Detalle
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
               {sales.length === 0 && (
                 <tr>
-                  <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
+                  <td colSpan={6} style={{ padding: '4rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                     Este producto no tiene ventas históricas registradas.
                   </td>
                 </tr>

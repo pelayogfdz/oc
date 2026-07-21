@@ -133,7 +133,7 @@ async function handleSync(onlyStock = false) {
             const meliUserId = meData.id;
 
             // Buscar órdenes de las últimas 24-48 horas
-            const ordersResponse = await fetch(`https://api.mercadolibre.com/orders/search?seller=${meliUserId}`, {
+            const ordersResponse = await fetch(`https://api.mercadolibre.com/orders/search?seller=${meliUserId}&sort=date_desc`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -199,7 +199,9 @@ async function handleSync(onlyStock = false) {
                     paymentMethod: 'CARD',
                     branchId: mainSaleBranchId,
                     userId: onlineUser.id,
-                    notes: `${checkNote}. Guía de Envío: ${shippingLabelUrl || 'No disponible'}. Comprador: ${order.buyer?.nickname || 'Mercado Libre Client'}`
+                    notes: `${checkNote}. Guía de Envío: ${shippingLabelUrl || 'No disponible'}. Comprador: ${order.buyer?.nickname || 'Mercado Libre Client'}`,
+                    createdAt: order.date_created ? new Date(order.date_created) : new Date(),
+                    updatedAt: order.date_created ? new Date(order.date_created) : new Date()
                   }
                 });
 

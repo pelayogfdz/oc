@@ -26,7 +26,13 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
       },
       saleItems: {
         orderBy: { sale: { createdAt: 'desc' } },
-        include: { sale: true }
+        include: { 
+          sale: {
+            include: {
+              user: true
+            }
+          }
+        }
       },
       variants: {
         orderBy: { attribute: 'asc' }
@@ -83,6 +89,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
     product.inventoryMovements.map(async (mov) => {
       let detailUrl = null;
       let detailLabel = null;
+      let displayReason = mov.reason;
       
       // 1. Purchase Check (starts with 'Compra #')
       if (mov.reason.startsWith('Compra #')) {
@@ -90,11 +97,12 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
         if (prefix && prefix.length >= 8) {
           const purchase = await prisma.purchase.findFirst({
             where: { id: { startsWith: prefix } },
-            select: { id: true }
+            select: { id: true, folio: true }
           });
           if (purchase) {
             detailUrl = `/productos/compras/${purchase.id}`;
             detailLabel = 'Ver Compra';
+            displayReason = `Compra #${purchase.folio || purchase.id.substring(0, 8).toUpperCase()}`;
           }
         }
       } 
@@ -104,11 +112,12 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
         if (prefix && prefix.length >= 8) {
           const purchase = await prisma.purchase.findFirst({
             where: { id: { startsWith: prefix } },
-            select: { id: true }
+            select: { id: true, folio: true }
           });
           if (purchase) {
             detailUrl = `/productos/compras/${purchase.id}`;
             detailLabel = 'Ver Compra';
+            displayReason = `Cancelación Compra #${purchase.folio || purchase.id.substring(0, 8).toUpperCase()}`;
           }
         }
       }
@@ -118,11 +127,12 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
         if (prefix && prefix.length >= 8) {
           const sale = await prisma.sale.findFirst({
             where: { id: { startsWith: prefix } },
-            select: { id: true }
+            select: { id: true, folio: true }
           });
           if (sale) {
             detailUrl = `/ventas/detalle/${sale.id}`;
             detailLabel = 'Ver Venta';
+            displayReason = `Venta #${sale.folio || sale.id.substring(0, 8).toUpperCase()}`;
           }
         }
       }
@@ -132,11 +142,12 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
         if (prefix && prefix.length >= 8) {
           const sale = await prisma.sale.findFirst({
             where: { id: { startsWith: prefix } },
-            select: { id: true }
+            select: { id: true, folio: true }
           });
           if (sale) {
             detailUrl = `/ventas/detalle/${sale.id}`;
             detailLabel = 'Ver Venta';
+            displayReason = `Cancelación Venta #${sale.folio || sale.id.substring(0, 8).toUpperCase()}`;
           }
         }
       }
@@ -146,6 +157,14 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
         if (uuidMatch) {
           detailUrl = `/productos/traspasos/${uuidMatch[0]}`;
           detailLabel = 'Ver Traspaso';
+          // Find the transfer to get the folio if possible
+          const transfer = await prisma.transfer.findUnique({
+            where: { id: uuidMatch[0] },
+            select: { folio: true }
+          });
+          if (transfer && transfer.folio) {
+            displayReason = mov.reason.replace(uuidMatch[0], transfer.folio);
+          }
         }
       }
 
@@ -154,7 +173,8 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
         productId: mov.productId,
         type: mov.type,
         quantity: mov.quantity,
-        reason: mov.reason,
+        runningBalance: (mov as any).runningBalance ?? 0,
+        reason: displayReason,
         createdAt: mov.createdAt.toISOString(),
         userId: mov.userId,
         variantId: mov.variantId,

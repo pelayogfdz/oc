@@ -24,6 +24,7 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
 
   const [dispatchPhoto, setDispatchPhoto] = useState<string | null>(null);
   const [receivePhoto, setReceivePhoto] = useState<string | null>(null);
+  const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
 
   const handleApprove = async () => {
     if (!confirm('¿Aprobar y comenzar preparación de este traspaso?')) return;
@@ -240,9 +241,9 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#f8fafc', padding: '0.5rem', textAlign: 'center' }}>
                         <img src={transfer.dispatchEvidence} alt="Evidencia de Surtido" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '6px', objectFit: 'contain' }} />
                         <div style={{ marginTop: '0.5rem' }}>
-                           <a href={transfer.dispatchEvidence} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: 'var(--caanma-primary)', fontWeight: 'bold', textDecoration: 'none' }}>
+                           <button onClick={() => setFullscreenPhoto(transfer.dispatchEvidence)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: '0.8rem', color: 'var(--caanma-primary)', fontWeight: 'bold' }}>
                               Ver imagen completa ↗
-                           </a>
+                           </button>
                         </div>
                      </div>
                   ) : isOrigin && transfer.status === 'CREATED' ? (
@@ -280,9 +281,9 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#f8fafc', padding: '0.5rem', textAlign: 'center' }}>
                         <img src={transfer.receiveEvidence} alt="Evidencia de Recepción" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '6px', objectFit: 'contain' }} />
                         <div style={{ marginTop: '0.5rem' }}>
-                           <a href={transfer.receiveEvidence} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: 'var(--caanma-primary)', fontWeight: 'bold', textDecoration: 'none' }}>
+                           <button onClick={() => setFullscreenPhoto(transfer.receiveEvidence)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: '0.8rem', color: 'var(--caanma-primary)', fontWeight: 'bold' }}>
                               Ver imagen completa ↗
-                           </a>
+                           </button>
                         </div>
                      </div>
                   ) : isDestination && transfer.status === 'DISPATCHED' ? (
@@ -461,8 +462,58 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
                </tr>
              </tfoot>
           ) : null}
-        </table>
+         </table>
       </div>
+
+      {fullscreenPhoto && (
+        <div 
+          onClick={() => setFullscreenPhoto(null)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            cursor: 'pointer',
+            padding: '2rem'
+          }}
+        >
+          <div style={{ position: 'relative', maxWidth: '90%', maxHeight: '90%' }} onClick={(e) => e.stopPropagation()}>
+            <button 
+              onClick={() => setFullscreenPhoto(null)}
+              style={{
+                position: 'absolute',
+                top: '-2.5rem',
+                right: 0,
+                background: 'none',
+                border: 'none',
+                color: 'white',
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              ✕ Cerrar
+            </button>
+            <img 
+              src={fullscreenPhoto} 
+              alt="Evidencia Completa" 
+              style={{ 
+                maxWidth: '100%', 
+                maxHeight: '80vh', 
+                borderRadius: '8px', 
+                boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                objectFit: 'contain'
+              }} 
+            />
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -121,6 +121,12 @@ export async function POST(req: Request) {
           return new NextResponse('Internal User Config Error', { status: 500 });
         }
 
+        // Guía/etiqueta de envío link
+        const shipmentId = orderData.shipping?.id || '';
+        const shippingLabelUrl = shipmentId 
+          ? `https://api.mercadolibre.com/shipments/${shipmentId}/labels?access_token=${token}`
+          : '';
+
         // Crear la venta
         await tenantClient.sale.create({
           data: {
@@ -130,7 +136,9 @@ export async function POST(req: Request) {
             paymentMethod: 'MERCADO_PAGO',
             branchId: integration.branchId,
             userId: defaultUser.id,
-            notes: `Venta automática registrada desde Mercado Libre. Comprador: ${orderData.buyer?.nickname || 'Desconocido'}.`,
+            notes: `Venta automática registrada desde Mercado Libre. Guía de Envío: ${shippingLabelUrl || 'No disponible'}. Comprador: ${orderData.buyer?.nickname || 'Desconocido'}.`,
+            createdAt: orderData.date_created ? new Date(orderData.date_created) : new Date(),
+            updatedAt: orderData.date_created ? new Date(orderData.date_created) : new Date(),
             items: {
               create: itemsToSale.map(item => ({
                 productId: item.productId,
