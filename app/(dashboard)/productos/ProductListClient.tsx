@@ -29,6 +29,11 @@ export default function ProductListClient({ initialProducts, branchId, categorie
   const [filterBrand, setFilterBrand] = useState('ALL');
   const [filterType, setFilterType] = useState('ALL');
 
+  // Sorting State
+  const [sortBy, setSortBy] = useState<string>('name'); // 'name', 'price', 'stock', 'sku', 'createdAt'
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [showSortMenu, setShowSortMenu] = useState(false);
+
   // Lazy Loaded Filters (Categories and Brands)
   const [categoriesList, setCategoriesList] = useState<string[]>(categories);
   const [brandsList, setBrandsList] = useState<string[]>(brands);
@@ -79,6 +84,8 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       const persistedType = sessionStorage.getItem('products_filterType');
       const persistedPage = sessionStorage.getItem('products_currentPage');
       const persistedPageSize = sessionStorage.getItem('products_pageSize');
+      const persistedSortBy = sessionStorage.getItem('products_sortBy');
+      const persistedSortOrder = sessionStorage.getItem('products_sortOrder');
 
       if (persistedSearch !== null) setSearchTerm(persistedSearch);
       if (persistedCategory !== null) setFilterCategory(persistedCategory);
@@ -89,6 +96,8 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       if (persistedType !== null) setFilterType(persistedType);
       if (persistedPageSize !== null) setPageSize(Number(persistedPageSize));
       if (persistedPage !== null) setCurrentPage(Number(persistedPage));
+      if (persistedSortBy !== null) setSortBy(persistedSortBy);
+      if (persistedSortOrder !== null) setSortOrder(persistedSortOrder as 'asc' | 'desc');
       
       setIsInitialized(true);
     }
@@ -106,8 +115,10 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       sessionStorage.setItem('products_filterType', filterType);
       sessionStorage.setItem('products_currentPage', String(currentPage));
       sessionStorage.setItem('products_pageSize', String(pageSize));
+      sessionStorage.setItem('products_sortBy', sortBy);
+      sessionStorage.setItem('products_sortOrder', sortOrder);
     }
-  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, currentPage, pageSize, isInitialized]);
+  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, currentPage, pageSize, sortBy, sortOrder, isInitialized]);
 
   useEffect(() => {
     setDisplayedProducts(initialProducts);
@@ -199,21 +210,48 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     return true;
   }), [displayedProducts, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType]);
 
+  const sortedProducts = useMemo(() => {
+    const products = [...filteredProducts];
+    products.sort((a, b) => {
+      let valA: any = a[sortBy];
+      let valB: any = b[sortBy];
+
+      if (valA === undefined || valA === null) valA = '';
+      if (valB === undefined || valB === null) valB = '';
+
+      if (sortBy === 'price' || sortBy === 'stock') {
+        valA = Number(valA) || 0;
+        valB = Number(valB) || 0;
+      } else if (sortBy === 'createdAt') {
+        valA = new Date(valA).getTime() || 0;
+        valB = new Date(valB).getTime() || 0;
+      } else {
+        valA = String(valA).toLowerCase();
+        valB = String(valB).toLowerCase();
+      }
+
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return products;
+  }, [filteredProducts, sortBy, sortOrder]);
+
   // Reset page when filters change (only AFTER initialization is complete)
   useEffect(() => {
     if (isInitialized) {
       setCurrentPage(1);
     }
-  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, isInitialized]);
+  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, sortBy, sortOrder, isInitialized]);
 
-  const totalPages = Math.ceil(filteredProducts.length / pageSize) || 1;
-  const startRange = filteredProducts.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const endRange = Math.min(currentPage * pageSize, filteredProducts.length);
+  const totalPages = Math.ceil(sortedProducts.length / pageSize) || 1;
+  const startRange = sortedProducts.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endRange = Math.min(currentPage * pageSize, sortedProducts.length);
 
   const paginatedProducts = useMemo(() => {
     const skip = (currentPage - 1) * pageSize;
-    return filteredProducts.slice(skip, skip + pageSize);
-  }, [filteredProducts, currentPage, pageSize]);
+    return sortedProducts.slice(skip, skip + pageSize);
+  }, [sortedProducts, currentPage, pageSize]);
 
   const handleToggleSelectAll = useCallback(() => {
     const currentPageIds = paginatedProducts.map(p => p.id);
@@ -355,19 +393,84 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             <MapPin size={18} /> Ubicación
           </button>
 
-          <button 
-            style={{ 
-              display: 'flex', alignItems: 'center', gap: '0.5rem', 
-              backgroundColor: 'white', 
-              border: '1px solid #cbd5e1', 
-              padding: '0.75rem 1rem', 
-              borderRadius: '8px', 
-              fontWeight: '500', 
-              cursor: 'pointer',
-              fontSize: '0.95rem'
-            }}>
-            <ArrowDownUp size={18} /> Ordenar
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button 
+              type="button"
+              onClick={() => setShowSortMenu(!showSortMenu)}
+              style={{ 
+                display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                backgroundColor: 'white', 
+                border: '1px solid #cbd5e1', 
+                padding: '0.75rem 1rem', 
+                borderRadius: '8px', 
+                fontWeight: '500', 
+                cursor: 'pointer',
+                fontSize: '0.95rem'
+              }}>
+              <ArrowDownUp size={18} /> Ordenar
+            </button>
+            {showSortMenu && (
+              <div 
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  marginTop: '0.5rem',
+                  backgroundColor: 'white',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                  zIndex: 50,
+                  minWidth: '220px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  padding: '0.5rem 0'
+                }}
+              >
+                {[
+                  { label: 'Nombre: A - Z', field: 'name', order: 'asc' },
+                  { label: 'Nombre: Z - A', field: 'name', order: 'desc' },
+                  { label: 'Precio: Menor a Mayor', field: 'price', order: 'asc' },
+                  { label: 'Precio: Mayor a Menor', field: 'price', order: 'desc' },
+                  { label: 'Stock: Menor a Mayor', field: 'stock', order: 'asc' },
+                  { label: 'Stock: Mayor a Menor', field: 'stock', order: 'desc' },
+                  { label: 'SKU: A - Z', field: 'sku', order: 'asc' },
+                  { label: 'SKU: Z - A', field: 'sku', order: 'desc' },
+                  { label: 'Fecha de Creación: Más nuevos', field: 'createdAt', order: 'desc' },
+                  { label: 'Fecha de Creación: Más antiguos', field: 'createdAt', order: 'asc' },
+                ].map((opt, idx) => {
+                  const isActive = sortBy === opt.field && sortOrder === opt.order;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setSortBy(opt.field);
+                        setSortOrder(opt.order as 'asc' | 'desc');
+                        setShowSortMenu(false);
+                      }}
+                      style={{
+                        padding: '0.6rem 1rem',
+                        textAlign: 'left',
+                        border: 'none',
+                        background: isActive ? '#eff6ff' : 'none',
+                        color: isActive ? 'var(--caanma-primary)' : 'var(--caanma-text)',
+                        fontWeight: isActive ? 'bold' : 'normal',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                    >
+                      {opt.label}
+                      {isActive && <span style={{ color: 'var(--caanma-primary)' }}>✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           <button 
             type="button"
@@ -490,11 +593,11 @@ export default function ProductListClient({ initialProducts, branchId, categorie
         }}>
           {/* Left Side: Range Info */}
           <div style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: '500' }}>
-            {filteredProducts.length === 0 ? (
+            {sortedProducts.length === 0 ? (
               <span>Sin productos</span>
             ) : (
               <span>
-                Mostrando <strong style={{ color: '#1e293b' }}>{startRange}</strong> a <strong style={{ color: '#1e293b' }}>{endRange}</strong> de <strong style={{ color: '#1e293b' }}>{filteredProducts.length}</strong> productos
+                Mostrando <strong style={{ color: '#1e293b' }}>{startRange}</strong> a <strong style={{ color: '#1e293b' }}>{endRange}</strong> de <strong style={{ color: '#1e293b' }}>{sortedProducts.length}</strong> productos
               </span>
             )}
           </div>
@@ -507,7 +610,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
               <select 
                 value={pageSize} 
                 onChange={e => {
-                  const val = e.target.value === 'ALL' ? filteredProducts.length : Number(e.target.value);
+                  const val = e.target.value === 'ALL' ? sortedProducts.length : Number(e.target.value);
                   setPageSize(val);
                   setCurrentPage(1);
                 }} 
