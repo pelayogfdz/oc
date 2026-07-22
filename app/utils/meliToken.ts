@@ -98,7 +98,7 @@ export async function getOrRefreshMeliToken(branchId: string): Promise<string | 
   }
 }
 
-export async function fetchMeliWithRetry(url: string, options: any, maxRetries = 3): Promise<Response> {
+export async function fetchMeliWithRetry(url: string, options: any, maxRetries = 5): Promise<Response> {
   let attempt = 0;
   while (attempt < maxRetries) {
     const response = await fetch(url, options);

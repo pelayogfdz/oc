@@ -338,7 +338,7 @@ async function handleSync(onlyStock = false) {
 
         for (const map of mappings) {
           // Introducir un pequeño retardo para evitar exceder el límite de peticiones (429 too_many_requests)
-          await new Promise(resolve => setTimeout(resolve, onlyStock ? 300 : 500));
+          await new Promise(resolve => setTimeout(resolve, onlyStock ? 600 : 1000));
 
           const product = map.product;
 
