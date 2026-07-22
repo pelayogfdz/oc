@@ -97,3 +97,19 @@ export async function getOrRefreshMeliToken(branchId: string): Promise<string | 
     return integration.accessToken;
   }
 }
+
+export async function fetchMeliWithRetry(url: string, options: any, maxRetries = 3): Promise<Response> {
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    const response = await fetch(url, options);
+    if (response.status === 429) {
+      attempt++;
+      const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+      console.warn(`[MELI API] Recibido 429 (too_many_requests) en intento ${attempt} para ${url}. Esperando ${delay.toFixed(0)}ms para reintentar...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      continue;
+    }
+    return response;
+  }
+  return fetch(url, options);
+}

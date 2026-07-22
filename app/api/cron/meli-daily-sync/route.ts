@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma, getClientForTenant } from '@/lib/prisma';
-import { getOrRefreshMeliToken } from '@/app/utils/meliToken';
+import { getOrRefreshMeliToken, fetchMeliWithRetry } from '@/app/utils/meliToken';
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -124,7 +124,7 @@ async function handleSync(onlyStock = false) {
         // ----------------------------------------------------
         try {
           // Obtener ID del usuario Meli
-          const meResponse = await fetch('https://api.mercadolibre.com/users/me', {
+          const meResponse = await fetchMeliWithRetry('https://api.mercadolibre.com/users/me', {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           
@@ -133,7 +133,7 @@ async function handleSync(onlyStock = false) {
             const meliUserId = meData.id;
 
             // Buscar órdenes de las últimas 24-48 horas
-            const ordersResponse = await fetch(`https://api.mercadolibre.com/orders/search?seller=${meliUserId}&sort=date_desc`, {
+            const ordersResponse = await fetchMeliWithRetry(`https://api.mercadolibre.com/orders/search?seller=${meliUserId}&sort=date_desc`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -272,7 +272,7 @@ async function handleSync(onlyStock = false) {
 
             for (let i = 0; i < itemIds.length; i += batchSize) {
               const batchIds = itemIds.slice(i, i + batchSize);
-              const itemsDetailResponse = await fetch(`https://api.mercadolibre.com/items?ids=${batchIds.join(',')}`, {
+              const itemsDetailResponse = await fetchMeliWithRetry(`https://api.mercadolibre.com/items?ids=${batchIds.join(',')}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               });
 
@@ -338,7 +338,7 @@ async function handleSync(onlyStock = false) {
 
         for (const map of mappings) {
           // Introducir un pequeño retardo para evitar exceder el límite de peticiones (429 too_many_requests)
-          await new Promise(resolve => setTimeout(resolve, 150));
+          await new Promise(resolve => setTimeout(resolve, onlyStock ? 300 : 500));
 
           const product = map.product;
 
@@ -390,7 +390,7 @@ async function handleSync(onlyStock = false) {
               });
 
               // Actualizar en Mercado Libre
-              const priceResponse = await fetch(`https://api.mercadolibre.com/items/${map.externalId}`, {
+              const priceResponse = await fetchMeliWithRetry(`https://api.mercadolibre.com/items/${map.externalId}`, {
                 method: 'PUT',
                 headers: {
                   'Authorization': `Bearer ${token}`,
@@ -426,7 +426,7 @@ async function handleSync(onlyStock = false) {
               ...(clampedStock > 0 ? { status: 'active' } : {})
             };
 
-            const stockResponse = await fetch(`https://api.mercadolibre.com/items/${map.externalId}`, {
+            const stockResponse = await fetchMeliWithRetry(`https://api.mercadolibre.com/items/${map.externalId}`, {
               method: 'PUT',
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -456,7 +456,7 @@ async function handleSync(onlyStock = false) {
         console.log(`[MELI DAILY CRON] Iniciando barrido de catálogo para sucursal: ${integration.branch.name}`);
         
         // A. Obtener ID de usuario Meli
-        const meResponse = await fetch('https://api.mercadolibre.com/users/me', {
+        const meResponse = await fetchMeliWithRetry('https://api.mercadolibre.com/users/me', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -471,7 +471,7 @@ async function handleSync(onlyStock = false) {
           let hasMore = true;
 
           while (hasMore) {
-            const searchResponse = await fetch(`https://api.mercadolibre.com/users/${userId}/items/search?limit=${searchLimit}&offset=${offset}`, {
+            const searchResponse = await fetchMeliWithRetry(`https://api.mercadolibre.com/users/${userId}/items/search?limit=${searchLimit}&offset=${offset}`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -496,7 +496,7 @@ async function handleSync(onlyStock = false) {
 
           for (let i = 0; i < itemIds.length; i += batchSize) {
             const batchIds = itemIds.slice(i, i + batchSize);
-            const itemsDetailResponse = await fetch(`https://api.mercadolibre.com/items?ids=${batchIds.join(',')}`, {
+            const itemsDetailResponse = await fetchMeliWithRetry(`https://api.mercadolibre.com/items?ids=${batchIds.join(',')}`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
 

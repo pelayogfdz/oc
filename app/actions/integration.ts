@@ -1278,7 +1278,8 @@ export async function syncMeliStockAction(productId: string, tenantId: string | 
         ...(clampedStock > 0 ? { status: 'active' } : {})
       };
 
-      const response = await fetch(`https://api.mercadolibre.com/items/${map.externalId}`, {
+      const { fetchMeliWithRetry } = await import('@/app/utils/meliToken');
+      const response = await fetchMeliWithRetry(`https://api.mercadolibre.com/items/${map.externalId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1366,7 +1367,8 @@ export async function updateMeliItemStatus(mapId: string, action: 'active' | 'pa
       body.deleted = 'true';
     }
 
-    const response = await fetch(`https://api.mercadolibre.com/items/${map.externalId}`, {
+    const { fetchMeliWithRetry } = await import('@/app/utils/meliToken');
+    const response = await fetchMeliWithRetry(`https://api.mercadolibre.com/items/${map.externalId}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
