@@ -14,6 +14,8 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
   
   // Selection state
   const [selectedIds, setSelectedIds] = useState<Record<string, boolean>>({});
+  const [selectedLinkedIds, setSelectedLinkedIds] = useState<Record<string, boolean>>({});
+  const [bulkEditingMargin, setBulkEditingMargin] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [publishProgress, setPublishProgress] = useState<string | null>(null);
 
@@ -391,6 +393,118 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
     setTimeout(() => setMessage(null), 5000);
   };
 
+  // Handle header checkbox change for linked items
+  const handleSelectAllLinked = (checked: boolean) => {
+    const nextSelected: Record<string, boolean> = {};
+    if (checked) {
+      filteredMaps.forEach(map => {
+        if (map.syncStatus !== 'unlinked' && map.externalId) {
+          nextSelected[map.id] = true;
+        }
+      });
+    }
+    setSelectedLinkedIds(nextSelected);
+  };
+
+  // Check if all linked items are selected
+  const allLinkedSelected = useMemo(() => {
+    const linkedFiltered = filteredMaps.filter(m => m.syncStatus !== 'unlinked' && m.externalId);
+    if (linkedFiltered.length === 0) return false;
+    return linkedFiltered.every(m => selectedLinkedIds[m.id]);
+  }, [filteredMaps, selectedLinkedIds]);
+
+  const toggleSelectLinked = (mapId: string) => {
+    setSelectedLinkedIds(prev => ({
+      ...prev,
+      [mapId]: !prev[mapId]
+    }));
+  };
+
+  const selectedLinkedCount = useMemo(() => {
+    return Object.values(selectedLinkedIds).filter(Boolean).length;
+  }, [selectedLinkedIds]);
+
+  const handleBulkEditMargin = async () => {
+    const marginStr = window.prompt("Ingresa el nuevo porcentaje de Margen (%) para los productos seleccionados (ejemplo: 25):");
+    if (marginStr === null) return; // Cancelado
+
+    const newMarginP = parseFloat(marginStr);
+    if (isNaN(newMarginP) || newMarginP < 0 || newMarginP >= 100) {
+      alert("Por favor ingresa un porcentaje de margen válido entre 0 y 99.9.");
+      return;
+    }
+
+    const selectedMapIds = Object.keys(selectedLinkedIds).filter(id => selectedLinkedIds[id]);
+    if (selectedMapIds.length === 0) return;
+
+    setBulkEditingMargin(true);
+    setMessage(null);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let index = 0; index < selectedMapIds.length; index++) {
+      const mapId = selectedMapIds[index];
+      const map = maps.find(m => m.id === mapId);
+      if (!map) continue;
+
+      const p = map.product;
+      const dComision = map.comisionMeli || 0;
+      const dEnvio = map.envioMeli || 0;
+      const dRetencion = map.retencionMeli || 0;
+
+      // Calcular precio sugerido en base al nuevo margen
+      // Formula: Precio = (Costo + Comision + Envio + Retencion) / (1 - MargenPorcentaje / 100)
+      const sumCosts = p.cost + dComision + dEnvio + dRetencion;
+      const denominator = 1 - (newMarginP / 100);
+      let calculatedPrice = sumCosts / denominator;
+      calculatedPrice = Math.round(calculatedPrice * 100) / 100;
+
+      const payload = {
+        precioMeli: calculatedPrice,
+        comisionMeli: dComision,
+        envioMeli: dEnvio,
+        retencionMeli: dRetencion,
+        margenDinero: Number((calculatedPrice - sumCosts).toFixed(2)),
+        margenPorcentaje: newMarginP,
+        isFixedPrice: true
+      };
+
+      try {
+        const res = await saveMeliProductPricing(mapId, payload);
+        if (res.success) {
+          successCount++;
+          // Actualizar estado local
+          setMaps(prev => prev.map(m => m.id === mapId ? {
+            ...m,
+            precioMeli: payload.precioMeli,
+            margenDinero: payload.margenDinero,
+            margenPorcentaje: payload.margenPorcentaje,
+            isFixedPrice: payload.isFixedPrice,
+            lastSync: new Date()
+          } : m));
+        } else {
+          failCount++;
+        }
+      } catch (err) {
+        failCount++;
+      }
+
+      // Pequeño delay de 200ms para evitar saturación
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+
+    setBulkEditingMargin(false);
+    setSelectedLinkedIds({}); // Limpiar selección
+
+    if (failCount === 0) {
+      setMessage({ type: 'success', text: `Se actualizaron correctamente ${successCount} productos.` });
+    } else {
+      setMessage({ type: 'error', text: `Se actualizaron ${successCount} productos. Fallaron ${failCount} productos.` });
+    }
+
+    setTimeout(() => setMessage(null), 5000);
+  };
+
   const startEditing = (map: any) => {
     setEditingId(map.id);
     
@@ -601,6 +715,37 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
             </button>
           </div>
         )}
+
+        {selectedLinkedCount > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#16a34a' }}>
+              {selectedLinkedCount} vinculados seleccionados
+            </span>
+            <button 
+              onClick={handleBulkEditMargin}
+              disabled={bulkEditingMargin}
+              className="btn-primary"
+              style={{ 
+                padding: '0.5rem 1rem', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.5rem', 
+                fontSize: '0.85rem',
+                backgroundColor: '#16a34a',
+                borderColor: '#16a34a'
+              }}
+            >
+              {bulkEditingMargin ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Actualizando márgenes...
+                </>
+              ) : (
+                '✏️ Editar Margen (%) Masivo'
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {publishProgress && (
@@ -632,10 +777,20 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
               <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', width: '40px' }}>
                 <input 
                   type="checkbox"
-                  checked={allUnlinkedSelected}
-                  onChange={e => handleSelectAll(e.target.checked)}
+                  checked={
+                    filteredMaps.some(m => m.syncStatus === 'unlinked')
+                      ? allUnlinkedSelected
+                      : allLinkedSelected
+                  }
+                  onChange={e => {
+                    if (filteredMaps.some(m => m.syncStatus === 'unlinked')) {
+                      handleSelectAll(e.target.checked);
+                    } else {
+                      handleSelectAllLinked(e.target.checked);
+                    }
+                  }}
                   style={{ width: '15px', height: '15px', cursor: 'pointer' }}
-                  title="Seleccionar todos los productos no vinculados"
+                  title="Seleccionar todos los productos filtrados"
                 />
               </th>
               <th onClick={() => handleSort('name')} style={{ padding: '0.75rem 0.5rem', minWidth: '150px', cursor: 'pointer', userSelect: 'none' }}>
@@ -837,13 +992,20 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
                     backgroundColor: isEditing ? '#f8fafc' : 'transparent',
                     transition: 'background-color 0.2s'
                   }}>
-                    {/* Checkbox (only for Caanma unlinked products) */}
+                    {/* Checkbox */}
                     <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>
                       {isUnlinked ? (
                         <input 
                           type="checkbox"
                           checked={!!selectedIds[p.id]}
                           onChange={() => toggleSelect(p.id)}
+                          style={{ width: '15px', height: '15px', cursor: 'pointer' }}
+                        />
+                      ) : map.externalId ? (
+                        <input 
+                          type="checkbox"
+                          checked={!!selectedLinkedIds[map.id]}
+                          onChange={() => toggleSelectLinked(map.id)}
                           style={{ width: '15px', height: '15px', cursor: 'pointer' }}
                         />
                       ) : (
