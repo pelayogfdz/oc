@@ -320,25 +320,58 @@ const ProductTableUI = memo(function ProductTableUI({
                                {prod.name}
                              </Link>
                           )}
-                          {prod.externalMaps?.some((m: any) => m.platform === 'MERCADO_LIBRE') && (
-                            <span 
-                              title="Sincronizado con Mercado Libre"
-                              style={{
-                                backgroundColor: '#ffe600',
-                                color: '#2d3277',
-                                fontSize: '0.65rem',
-                                fontWeight: 'bold',
-                                padding: '0.05rem 0.25rem',
-                                borderRadius: '4px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                lineHeight: '1',
-                                border: '1px solid #e6cf00'
-                              }}
-                            >
-                              ML
-                            </span>
-                          )}
+                          {(() => {
+                            const meliMap = prod.externalMaps?.find((m: any) => m.platform === 'MERCADO_LIBRE');
+                            if (!meliMap) return null;
+                            const cleanId = meliMap.externalId.replace(/^[A-Z]{3}/, (match: string) => `${match}-`);
+                            const meliUrl = `https://articulo.mercadolibre.com.mx/${cleanId}`;
+                            
+                            return (
+                              <a 
+                                href={meliUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                title="Ver publicación en Mercado Libre"
+                                onClick={e => e.stopPropagation()} // Prevent row click navigation
+                                style={{
+                                  backgroundColor: '#ffe600',
+                                  color: '#2d3277',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 'bold',
+                                  padding: '0.12rem 0.35rem',
+                                  borderRadius: '5px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  lineHeight: '1',
+                                  border: '1px solid #e6cf00',
+                                  textDecoration: 'none',
+                                  cursor: 'pointer',
+                                  transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                                }}
+                                onMouseEnter={e => {
+                                  e.currentTarget.style.transform = 'scale(1.08)';
+                                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                                }}
+                                onMouseLeave={e => {
+                                  e.currentTarget.style.transform = 'none';
+                                  e.currentTarget.style.boxShadow = 'none';
+                                }}
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block' }}>
+                                  <path d="M10 14 5 9" />
+                                  <path d="m14 6-3-3a3.5 3.5 0 0 0-5 0l-.5.5" />
+                                  <path d="m18 10-3 3a3.5 3.5 0 0 1-5 0l-.5-.5" />
+                                  <path d="m12 18-5-5" />
+                                  <path d="M19 14.5a2.5 2.5 0 0 0 0-5" />
+                                  <path d="M14 19.5a2.5 2.5 0 0 0 0-5" />
+                                  <path d="m2 17 5-5" />
+                                  <path d="m22 7-5 5" />
+                                </svg>
+                                <span>ML</span>
+                              </a>
+                            );
+                          })()}
                         </div>
                         <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>
                           SKU: {prod.sku || '-'} | Código: {prod.barcode || '-'}
