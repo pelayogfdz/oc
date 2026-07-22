@@ -455,7 +455,7 @@ export async function updateProduct(productId: string, formData: FormData) {
     // Get current product details before update (to find siblings by old SKU)
     const currentProduct = await prisma.product.findUnique({
       where: { id: productId },
-      select: { sku: true, price: true, branchId: true }
+      select: { sku: true, price: true, branchId: true, cost: true }
     });
 
     if (!currentProduct) return;
@@ -584,6 +584,62 @@ export async function updateProduct(productId: string, formData: FormData) {
             create: { productId, priceListId, price: listPrice },
             update: { price: listPrice }
           });
+
+          // Check if this price list is the "Mercado Libre" price list to sync back
+          const priceListObj = await prisma.priceList.findUnique({
+            where: { id: priceListId },
+            select: { name: true, branchId: true }
+          });
+
+          if (priceListObj && priceListObj.name.toLowerCase() === 'mercado libre') {
+            const maps = await prisma.externalProductMap.findMany({
+              where: { productId, platform: 'MERCADO_LIBRE' }
+            });
+
+            for (const map of maps) {
+              const productCost = currentProduct.cost || 0;
+              const comisionMeli = map.comisionMeli || 0;
+              const envioMeli = map.envioMeli || 0;
+              const retencionMeli = map.retencionMeli || 0;
+              const margenDinero = listPrice - productCost - comisionMeli - envioMeli - retencionMeli;
+              const margenPorcentaje = listPrice > 0 ? (margenDinero / listPrice) * 100 : 0;
+
+              // Update local map price and margins
+              await prisma.externalProductMap.update({
+                where: { id: map.id },
+                data: {
+                  precioMeli: listPrice,
+                  margenDinero,
+                  margenPorcentaje,
+                  lastSync: new Date()
+                }
+              });
+
+              // Push the new price to Mercado Libre API in real-time
+              const { getOrRefreshMeliToken, fetchMeliWithRetry } = await import('@/app/utils/meliToken');
+              const token = await getOrRefreshMeliToken(priceListObj.branchId);
+              if (token) {
+                try {
+                  const response = await fetchMeliWithRetry(`https://api.mercadolibre.com/items/${map.externalId}`, {
+                    method: 'PUT',
+                    headers: {
+                      'Authorization': `Bearer ${token}`,
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ price: listPrice })
+                  });
+                  if (!response.ok) {
+                    const errBody = await response.json().catch(() => ({}));
+                    console.error(`[MELI PRICE SYNC BACK] Error pushing price to ML for ${map.externalId}:`, errBody);
+                  } else {
+                    console.log(`[MELI PRICE SYNC BACK] Price successfully pushed to ML for ${map.externalId}: ${listPrice}`);
+                  }
+                } catch (e) {
+                  console.error(`[MELI PRICE SYNC BACK] Network error pushing price to ML:`, e);
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -622,7 +678,7 @@ export async function searchProducts(query: string, branchId: string) {
   if (!query || query.trim() === '') {
     products = await prisma.product.findMany({
       where: { branchId: branchCondition, isActive: true },
-      include: { variants: true, prices: true, branch: { select: { id: true, name: true } } },
+      include: { variants: true, prices: true, branch: { select: { id: true, name: true } }, externalMaps: true },
       orderBy: { name: 'asc' },
       take: isGlobal ? 100 * Math.max(1, tenantBranchIds.length) : 100
     });
@@ -646,7 +702,7 @@ export async function searchProducts(query: string, branchId: string) {
         isActive: true,
         AND: searchConditions
       },
-      include: { variants: true, prices: true, branch: { select: { id: true, name: true } } },
+      include: { variants: true, prices: true, branch: { select: { id: true, name: true } }, externalMaps: true },
       orderBy: { name: 'asc' },
       take: rawLimit
     });
@@ -721,10 +777,20 @@ export async function searchProducts(query: string, branchId: string) {
             }
           });
         }
+
+        if (prod.externalMaps && prod.externalMaps.length > 0) {
+          if (!existing.externalMaps) existing.externalMaps = [];
+          prod.externalMaps.forEach((em: any) => {
+            if (!existing.externalMaps.some((x: any) => x.id === em.id)) {
+              existing.externalMaps.push({ ...em });
+            }
+          });
+        }
       } else {
         mergedMap.set(key, {
           ...prod,
-          variants: prod.variants ? prod.variants.map((v: any) => ({ ...v })) : []
+          variants: prod.variants ? prod.variants.map((v: any) => ({ ...v })) : [],
+          externalMaps: prod.externalMaps ? prod.externalMaps.map((em: any) => ({ ...em })) : []
         });
       }
     });

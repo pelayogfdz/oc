@@ -590,6 +590,9 @@ export async function publishProductToMeli(productId: string) {
       }
     });
 
+    // Sincronizar el precio a la lista de precios local
+    await syncMeliPriceToPriceList(product.id, integration.branchId, price);
+
     revalidatePath('/integraciones/mercadolibre');
     return { success: true, externalId };
   } catch (error: any) {
@@ -686,6 +689,9 @@ export async function linkMeliItemToProduct(externalId: string, productId: strin
         isFixedPrice: false
       }
     });
+
+    // Sincronizar el precio a la lista de precios local
+    await syncMeliPriceToPriceList(product.id, integration.branchId, itemPrice);
 
     // Remover de unlinkedMeliItems en los metadatos
     if (integration.metadata) {
@@ -957,6 +963,7 @@ export async function syncMeliCatalogAction() {
           where: { id: existingMap.id },
           data: updateData
         });
+        await syncMeliPriceToPriceList(existingMap.productId, branch.id, actualPrecio);
         syncedCount++;
       } else {
         const cleanSku = item.seller_custom_field ? String(item.seller_custom_field).trim() : null;
@@ -1009,6 +1016,7 @@ export async function syncMeliCatalogAction() {
               isFixedPrice: false
             }
           });
+          await syncMeliPriceToPriceList(localProduct.id, branch.id, item.price);
           syncedCount++;
         } else {
           unlinkedMeliItems.push({
@@ -1404,6 +1412,43 @@ export async function updateMeliItemStatus(mapId: string, action: 'active' | 'pa
   } catch (error: any) {
     console.error('Error in updateMeliItemStatus:', error);
     return { success: false, error: error.message || 'Error al cambiar estado en Mercado Libre.' };
+  }
+}
+
+export async function syncMeliPriceToPriceList(
+  productId: string,
+  branchId: string,
+  price: number,
+  db: any = prisma
+) {
+  try {
+    let priceList = await db.priceList.findFirst({
+      where: {
+        branchId,
+        name: { mode: 'insensitive', equals: 'mercado libre' }
+      }
+    });
+
+    if (!priceList) {
+      priceList = await db.priceList.create({
+        data: {
+          branchId,
+          name: 'Mercado Libre'
+        }
+      });
+      console.log(`[syncMeliPriceToPriceList] Creada nueva lista de precios 'Mercado Libre' en sucursal ${branchId}`);
+    }
+
+    await db.productPrice.upsert({
+      where: {
+        productId_priceListId: { productId, priceListId: priceList.id }
+      },
+      create: { productId, priceListId: priceList.id, price },
+      update: { price }
+    });
+    console.log(`[syncMeliPriceToPriceList] Sincronizado precio $${price} para producto ${productId} en sucursal ${branchId}`);
+  } catch (error) {
+    console.error(`[syncMeliPriceToPriceList] Error syncing price list:`, error);
   }
 }
 

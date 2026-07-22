@@ -312,13 +312,34 @@ const ProductTableUI = memo(function ProductTableUI({
                         </div>
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        {onRowClick ? (
-                           <div style={{ color: '#0ea5e9', fontWeight: '600', marginBottom: '0.1rem', fontSize: '0.85rem', wordBreak: 'break-word', overflow: 'hidden' }}>{prod.name}</div>
-                        ) : (
-                           <Link href={`/productos/${prod.id}`} style={{ color: '#0ea5e9', fontWeight: '600', textDecoration: 'none', marginBottom: '0.1rem', display: 'block', fontSize: '0.85rem', wordBreak: 'break-word', overflow: 'hidden' }}>
-                             {prod.name}
-                           </Link>
-                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '0.1rem' }}>
+                          {onRowClick ? (
+                             <div style={{ color: '#0ea5e9', fontWeight: '600', fontSize: '0.85rem', wordBreak: 'break-word', overflow: 'hidden' }}>{prod.name}</div>
+                          ) : (
+                             <Link href={`/productos/${prod.id}`} style={{ color: '#0ea5e9', fontWeight: '600', textDecoration: 'none', display: 'block', fontSize: '0.85rem', wordBreak: 'break-word', overflow: 'hidden' }}>
+                               {prod.name}
+                             </Link>
+                          )}
+                          {prod.externalMaps?.some((m: any) => m.platform === 'MERCADO_LIBRE') && (
+                            <span 
+                              title="Sincronizado con Mercado Libre"
+                              style={{
+                                backgroundColor: '#ffe600',
+                                color: '#2d3277',
+                                fontSize: '0.65rem',
+                                fontWeight: 'bold',
+                                padding: '0.05rem 0.25rem',
+                                borderRadius: '4px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                lineHeight: '1',
+                                border: '1px solid #e6cf00'
+                              }}
+                            >
+                              ML
+                            </span>
+                          )}
+                        </div>
                         <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>
                           SKU: {prod.sku || '-'} | Código: {prod.barcode || '-'}
                         </div>

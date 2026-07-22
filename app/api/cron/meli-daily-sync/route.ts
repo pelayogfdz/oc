@@ -320,6 +320,9 @@ async function handleSync(onlyStock = false) {
                   }
                 });
 
+                const { syncMeliPriceToPriceList } = await import('@/app/actions/integration');
+                await syncMeliPriceToPriceList(map.productId, branchId, actualPrecio, tenantClient);
+
                 // Actualizar los valores en memoria para que la lógica subsiguiente los use
                 map.precioMeli = map.isFixedPrice ? map.precioMeli : itemData.price;
                 map.comisionMeli = costs.comisionMeli;
@@ -601,6 +604,9 @@ async function handleSync(onlyStock = false) {
                     isFixedPrice: false
                   }
                 });
+
+                const { syncMeliPriceToPriceList } = await import('@/app/actions/integration');
+                await syncMeliPriceToPriceList(localProduct.id, branchId, item.price, tenantClient);
 
                 // Sincronizar stock inmediatamente para el nuevo mapeo
                 try {

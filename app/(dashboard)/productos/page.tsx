@@ -25,7 +25,7 @@ export default async function ProductosPage() {
   // Fetch a subset of products for displaying (paginated/limited)
   const displayedProductsRaw = await prisma.product.findMany({
     where: { branchId: branchCondition, isActive: true },
-    include: { variants: true, prices: true, branch: { select: { id: true, name: true } } },
+    include: { variants: true, prices: true, branch: { select: { id: true, name: true } }, externalMaps: true },
     orderBy: { name: 'asc' },
     take: 100
   });
@@ -100,10 +100,20 @@ export default async function ProductosPage() {
             }
           });
         }
+
+        if (prod.externalMaps && prod.externalMaps.length > 0) {
+          if (!existing.externalMaps) existing.externalMaps = [];
+          prod.externalMaps.forEach((em: any) => {
+            if (!existing.externalMaps.some((x: any) => x.id === em.id)) {
+              existing.externalMaps.push({ ...em });
+            }
+          });
+        }
       } else {
         mergedMap.set(key, {
           ...prod,
-          variants: prod.variants ? prod.variants.map((v: any) => ({ ...v })) : []
+          variants: prod.variants ? prod.variants.map((v: any) => ({ ...v })) : [],
+          externalMaps: prod.externalMaps ? prod.externalMaps.map((em: any) => ({ ...em })) : []
         });
       }
     });
