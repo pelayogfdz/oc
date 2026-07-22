@@ -17,6 +17,13 @@ export async function POST(req: Request) {
 async function handleSync(onlyStock = false) {
   console.log("[MELI DAILY CRON] Iniciando proceso de sincronización diaria...");
   
+  if ((globalThis as any).isMeliSyncCronRunning) {
+    console.log("[MELI DAILY CRON] Se intentó iniciar el cron pero ya hay una instancia activa en ejecución. Saltando...");
+    return NextResponse.json({ success: true, message: "Sincronización ya en ejecución." });
+  }
+
+  (globalThis as any).isMeliSyncCronRunning = true;
+
   try {
     // 1. Obtener todas las integraciones activas de Mercado Libre de cada tenant
     const tenantDbNames: Record<string, string> = {
@@ -339,114 +346,119 @@ async function handleSync(onlyStock = false) {
           }
         }
 
-        for (const map of mappings) {
-          // Introducir un pequeño retardo para evitar exceder el límite de peticiones (429 too_many_requests)
-          await new Promise(resolve => setTimeout(resolve, onlyStock ? 600 : 1000));
+        const batchSize = 10;
+        for (let i = 0; i < mappings.length; i += batchSize) {
+          const batch = mappings.slice(i, i + batchSize);
 
-          const product = map.product;
+          await Promise.all(batch.map(async (map) => {
+            const product = map.product;
 
-          if (!onlyStock) {
-            // Buscar lista de precios "Mercado Libre"
-            let priceList = await tenantClient.priceList.findFirst({
-              where: {
-                branchId: branchId,
-                name: { mode: 'insensitive', equals: 'mercado libre' }
-              }
-            });
-
-            if (!priceList) {
-              priceList = await tenantClient.priceList.create({
-                data: {
-                  branchId: branchId,
-                  name: 'Mercado Libre'
-                }
-              });
-            }
-
-            const retentionRate = hasTaxRetention ? (satRetentionPct / 100) : 0;
-            const denominator = 1 - listingType - retentionRate - (targetMargin / 100);
-
-            // 1. Recalcular precio meta
-            let suggestedPrice = 0;
-            if (denominator > 0 && !map.isFixedPrice) {
-              suggestedPrice = (shippingCost + product.cost) / denominator;
-              suggestedPrice = Math.round(suggestedPrice * 100) / 100;
-            }
-
-            if (suggestedPrice > 0 && !map.isFixedPrice) {
-              // Guardar localmente
-              await tenantClient.productPrice.upsert({
+            if (!onlyStock) {
+              // Buscar lista de precios "Mercado Libre"
+              let priceList = await tenantClient.priceList.findFirst({
                 where: {
-                  productId_priceListId: {
-                    productId: product.id,
-                    priceListId: priceList.id
-                  }
-                },
-                create: {
-                  productId: product.id,
-                  priceListId: priceList.id,
-                  price: suggestedPrice
-                },
-                update: {
-                  price: suggestedPrice
+                  branchId: branchId,
+                  name: { mode: 'insensitive', equals: 'mercado libre' }
                 }
               });
 
-              // Actualizar en Mercado Libre
-              const priceResponse = await fetchMeliWithRetry(`https://api.mercadolibre.com/items/${map.externalId}`, {
+              if (!priceList) {
+                priceList = await tenantClient.priceList.create({
+                  data: {
+                    branchId: branchId,
+                    name: 'Mercado Libre'
+                  }
+                });
+              }
+
+              const retentionRate = hasTaxRetention ? (satRetentionPct / 100) : 0;
+              const denominator = 1 - listingType - retentionRate - (targetMargin / 100);
+
+              // 1. Recalcular precio meta
+              let suggestedPrice = 0;
+              if (denominator > 0 && !map.isFixedPrice) {
+                suggestedPrice = (shippingCost + product.cost) / denominator;
+                suggestedPrice = Math.round(suggestedPrice * 100) / 100;
+              }
+
+              if (suggestedPrice > 0 && !map.isFixedPrice) {
+                // Guardar localmente
+                await tenantClient.productPrice.upsert({
+                  where: {
+                    productId_priceListId: {
+                      productId: product.id,
+                      priceListId: priceList.id
+                    }
+                  },
+                  create: {
+                    productId: product.id,
+                    priceListId: priceList.id,
+                    price: suggestedPrice
+                  },
+                  update: {
+                    price: suggestedPrice
+                  }
+                });
+
+                // Actualizar en Mercado Libre
+                const priceResponse = await fetchMeliWithRetry(`https://api.mercadolibre.com/items/${map.externalId}`, {
+                  method: 'PUT',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ price: suggestedPrice })
+                });
+
+                if (priceResponse.ok) {
+                  totalPricesSynced++;
+                } else {
+                  const errBody = await priceResponse.json().catch(() => ({}));
+                  console.error(`[MELI DAILY CRON] Error al actualizar precio en ML para ${map.externalId}:`, errBody);
+                }
+              }
+            }
+
+            // 2. Sumar stock global
+            try {
+              const productInBranches = await tenantClient.product.findMany({
+                where: {
+                  sku: product.sku,
+                  branchId: { in: stockBranchIds }
+                }
+              });
+
+              const totalStock = productInBranches.reduce((sum, p) => sum + p.stock, 0);
+              const clampedStock = Math.max(0, totalStock);
+
+              // Actualizar stock en Mercado Libre y reactivar si es mayor a 0
+              const stockPayload = {
+                available_quantity: clampedStock,
+                ...(clampedStock > 0 ? { status: 'active' } : {})
+              };
+
+              const stockResponse = await fetchMeliWithRetry(`https://api.mercadolibre.com/items/${map.externalId}`, {
                 method: 'PUT',
                 headers: {
                   'Authorization': `Bearer ${token}`,
                   'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ price: suggestedPrice })
+                body: JSON.stringify(stockPayload)
               });
 
-              if (priceResponse.ok) {
-                totalPricesSynced++;
+              if (stockResponse.ok) {
+                totalStocksSynced++;
               } else {
-                const errBody = await priceResponse.json().catch(() => ({}));
-                console.error(`[MELI DAILY CRON] Error al actualizar precio en ML para ${map.externalId}:`, errBody);
+                const errBody = await stockResponse.json().catch(() => ({}));
+                console.error(`[MELI DAILY CRON] Error al actualizar stock en ML para ${map.externalId}:`, errBody);
               }
+            } catch (stockErr) {
+              console.error(`[MELI DAILY CRON] Error sincronizando stock para ${map.externalId}:`, stockErr);
             }
-          }
+          }));
 
-          // 2. Sumar stock global
-          try {
-            const productInBranches = await tenantClient.product.findMany({
-              where: {
-                sku: product.sku,
-                branchId: { in: stockBranchIds }
-              }
-            });
-
-            const totalStock = productInBranches.reduce((sum, p) => sum + p.stock, 0);
-            const clampedStock = Math.max(0, totalStock);
-
-            // Actualizar stock en Mercado Libre y reactivar si es mayor a 0
-            const stockPayload = {
-              available_quantity: clampedStock,
-              ...(clampedStock > 0 ? { status: 'active' } : {})
-            };
-
-            const stockResponse = await fetchMeliWithRetry(`https://api.mercadolibre.com/items/${map.externalId}`, {
-              method: 'PUT',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(stockPayload)
-            });
-
-            if (stockResponse.ok) {
-              totalStocksSynced++;
-            } else {
-              const errBody = await stockResponse.json().catch(() => ({}));
-              console.error(`[MELI DAILY CRON] Error al actualizar stock en ML para ${map.externalId}:`, errBody);
-            }
-          } catch (stockErr) {
-            console.error(`[MELI DAILY CRON] Error sincronizando stock para ${map.externalId}:`, stockErr);
-          }
+          // Retardo de 1.5 segundos entre lotes para no saturar rate limit
+          await new Promise(resolve => setTimeout(resolve, 1500));
         }
       } catch (syncErr) {
         console.error(`[MELI DAILY CRON] Error en sincronización de precios/inventarios para sucursal ${integration.branch.name}:`, syncErr);
@@ -660,5 +672,7 @@ async function handleSync(onlyStock = false) {
   } catch (error) {
     console.error('[MELI DAILY CRON] Error fatal durante el cron:', error);
     return NextResponse.json({ error: 'Error durante la sincronización: ' + String(error) }, { status: 500 });
+  } finally {
+    (globalThis as any).isMeliSyncCronRunning = false;
   }
 }
