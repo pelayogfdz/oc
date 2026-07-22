@@ -162,7 +162,9 @@ export async function createProduct(prevState: any, formData: FormData) {
             productId: product.id,
             attribute: v.attribute,
             sku: v.sku,
-            stock: Number(v.stock) || 0
+            stock: Number(v.stock) || 0,
+            price: v.price !== undefined && v.price !== null && v.price !== '' ? Number(v.price) : null,
+            cost: v.cost !== undefined && v.cost !== null && v.cost !== '' ? Number(v.cost) : null
           }
         });
       }
@@ -320,7 +322,9 @@ export async function createProduct(prevState: any, formData: FormData) {
                     productId: sibProduct.id,
                     attribute: v.attribute,
                     sku: v.sku,
-                    stock: 0
+                    stock: 0,
+                    price: v.price !== undefined && v.price !== null && v.price !== '' ? Number(v.price) : null,
+                    cost: v.cost !== undefined && v.cost !== null && v.cost !== '' ? Number(v.cost) : null
                   }
                 });
               }

@@ -885,6 +885,11 @@ export default function POSClient({
         
         return {
           ...product,
+          price: variant && variant.price !== undefined && variant.price !== null && variant.price > 0 ? variant.price : product.price,
+          wholesalePrice: variant && variant.wholesalePrice !== undefined && variant.wholesalePrice !== null && variant.wholesalePrice > 0 ? variant.wholesalePrice : product.wholesalePrice,
+          specialPrice: variant && variant.specialPrice !== undefined && variant.specialPrice !== null && variant.specialPrice > 0 ? variant.specialPrice : product.specialPrice,
+          cost: variant && variant.cost !== undefined && variant.cost !== null && variant.cost > 0 ? variant.cost : product.cost,
+          barcode: variant && variant.barcode ? variant.barcode : product.barcode,
           name: cartItemName,
           sku: cartItemSku,
           stock: checkStock,
@@ -936,14 +941,31 @@ export default function POSClient({
       const consignment = await getConsignmentForPOS(incomingId);
       setLoadedConsignmentId(consignment.id);
       
-      // Load cart
-      const newCart = consignment.items.map((item: any) => ({
-        ...item.product,
-        cartItemId: item.variantId ? `v_${item.variantId}` : item.product.id,
-        quantity: item.quantity,
-        cartPrice: item.price,
-        variantId: item.variantId || null
-      }));
+      const newCart = consignment.items.map((item: any) => {
+        const product = item.product;
+        const variant = item.variant;
+        const cartItemName = variant ? `${product.name} (${variant.attribute})` : product.name;
+        const cartItemSku = variant && variant.sku ? variant.sku : product.sku;
+        const checkStock = variant ? variant.stock : product.stock;
+        
+        return {
+          ...product,
+          price: variant && variant.price !== undefined && variant.price !== null && variant.price > 0 ? variant.price : product.price,
+          wholesalePrice: variant && variant.wholesalePrice !== undefined && variant.wholesalePrice !== null && variant.wholesalePrice > 0 ? variant.wholesalePrice : product.wholesalePrice,
+          specialPrice: variant && variant.specialPrice !== undefined && variant.specialPrice !== null && variant.specialPrice > 0 ? variant.specialPrice : product.specialPrice,
+          cost: variant && variant.cost !== undefined && variant.cost !== null && variant.cost > 0 ? variant.cost : product.cost,
+          barcode: variant && variant.barcode ? variant.barcode : product.barcode,
+          name: cartItemName,
+          sku: cartItemSku,
+          stock: checkStock,
+          cartItemId: item.variantId ? `v_${item.variantId}` : product.id,
+          quantity: item.quantity,
+          customPrice: item.price,
+          cartPrice: item.price,
+          variantId: item.variantId || null,
+          attribute: variant ? variant.attribute : null
+        };
+      });
       setCart(newCart);
       
       // Load Customer
@@ -1104,6 +1126,11 @@ export default function POSClient({
       } else {
         return [{ 
           ...product, 
+          price: variant && variant.price !== undefined && variant.price !== null && variant.price > 0 ? variant.price : product.price,
+          wholesalePrice: variant && variant.wholesalePrice !== undefined && variant.wholesalePrice !== null && variant.wholesalePrice > 0 ? variant.wholesalePrice : product.wholesalePrice,
+          specialPrice: variant && variant.specialPrice !== undefined && variant.specialPrice !== null && variant.specialPrice > 0 ? variant.specialPrice : product.specialPrice,
+          cost: variant && variant.cost !== undefined && variant.cost !== null && variant.cost > 0 ? variant.cost : product.cost,
+          barcode: variant && variant.barcode ? variant.barcode : product.barcode,
           cartItemId, 
           name: cartItemName, 
           sku: cartItemSku,
@@ -3841,10 +3868,26 @@ export default function POSClient({
                       <select value={billRegime} onChange={e => setBillRegime(e.target.value)} style={{ width: '100%', padding: '0.4rem', fontSize: '0.8rem', borderRadius: '4px', border: '1px solid #bbf7d0', backgroundColor: 'white' }}>
                         <option value="601">601 - Gral. Morales</option>
                         <option value="603">603 - Sin Fines Lucrativos</option>
+                        <option value="605">605 - Sueldos y Salarios</option>
+                        <option value="606">606 - Arrendamiento</option>
+                        <option value="607">607 - Enajenación de Bienes</option>
+                        <option value="608">608 - Demás ingresos</option>
+                        <option value="610">610 - Residentes Extranjero</option>
+                        <option value="611">611 - Dividendos</option>
                         <option value="612">612 - P.F. Activ. Empresariales</option>
+                        <option value="614">614 - Intereses</option>
+                        <option value="615">615 - Obtención de premios</option>
                         <option value="616">616 - Sin obligaciones fiscales</option>
+                        <option value="620">620 - Sociedades Cooperativas</option>
                         <option value="621">621 - Incorporación Fiscal</option>
+                        <option value="622">622 - Act. Agrícolas, Ganaderas, Silvícolas y Pesqueras (AGAPES - PM)</option>
+                        <option value="623">623 - Opcional Grupos Sociedades</option>
+                        <option value="624">624 - Coordinados</option>
+                        <option value="625">625 - Act. Plataformas Tecnológicas</option>
                         <option value="626">626 - RESICO</option>
+                        <option value="628">628 - Hidrocarburos</option>
+                        <option value="629">629 - Regímenes Preferentes</option>
+                        <option value="630">630 - Enajenación acciones bolsa</option>
                       </select>
                     </div>
                     <div>
@@ -3974,35 +4017,49 @@ export default function POSClient({
             </div>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '50vh', overflowY: 'auto' }}>
-              {selectedProductForVariant.variants.map((v: any) => (
-                <button
-                  key={v.id}
-                  onClick={() => {
-                    addToCart(selectedProductForVariant, v);
-                    setSelectedProductForVariant(null);
-                    setIsMobileSearchActive(false); // Close search overlay on mobile
-                  }}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '1rem',
-                    border: '1px solid var(--caanma-border)',
-                    borderRadius: '4px',
-                    backgroundColor: 'white',
-                    cursor: 'pointer',
-                    textAlign: 'left'
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{v.attribute}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>SKU: {v.sku || '--'}</div>
-                  </div>
-                  <div style={{ fontSize: '0.875rem', fontWeight: '600', color: v.stock > 0 ? '#16a34a' : '#dc2626' }}>
-                    {v.stock} disp.
-                  </div>
-                </button>
-              ))}
+              {selectedProductForVariant.variants.map((v: any) => {
+                const vPrice = (() => {
+                  if (priceList === 'wholesalePrice' && v.wholesalePrice && v.wholesalePrice > 0) return v.wholesalePrice;
+                  if (priceList === 'specialPrice' && v.specialPrice && v.specialPrice > 0) return v.specialPrice;
+                  if (v.price && v.price > 0) return v.price;
+                  return getProductPrice(selectedProductForVariant);
+                })();
+
+                return (
+                  <button
+                    key={v.id}
+                    onClick={() => {
+                      addToCart(selectedProductForVariant, v);
+                      setSelectedProductForVariant(null);
+                      setIsMobileSearchActive(false); // Close search overlay on mobile
+                    }}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '1rem',
+                      border: '1px solid var(--caanma-border)',
+                      borderRadius: '4px',
+                      backgroundColor: 'white',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{v.attribute}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>SKU: {v.sku || '--'}</div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem' }}>
+                      <div style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>
+                        ${vPrice.toFixed(2)}
+                      </div>
+                      <div style={{ fontSize: '0.875rem', fontWeight: '600', color: v.stock > 0 ? '#16a34a' : '#dc2626' }}>
+                        {v.stock} disp.
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
 
             <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>

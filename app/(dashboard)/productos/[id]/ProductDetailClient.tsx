@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect } from 'react';
 import Link from 'next/link';
 import { adjustInventory } from '@/app/actions/inventory';
-import { createVariant, deleteVariant } from '@/app/actions/variant';
+import { createVariant, deleteVariant, updateVariant } from '@/app/actions/variant';
 import { createBatch, deleteBatch } from '@/app/actions/batch';
 import { Truck, Image as ImageIcon, X } from 'lucide-react';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
@@ -44,6 +44,7 @@ export function ProductDetailClient({
   const [headerImageError, setHeaderImageError] = useState(false);
   const [selectedMovement, setSelectedMovement] = useState<any | null>(null);
   const { isOnline, pushOfflineProduct } = useOfflineSync();
+  const [editingVariant, setEditingVariant] = useState<any | null>(null);
 
   const handleMovementClick = (mov: any) => {
     if (mov.detailUrl) {
@@ -685,10 +686,15 @@ export function ProductDetailClient({
           <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', fontWeight: 'bold' }}>Multi-Variantes del Producto</h2>
           <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '2rem', fontSize: '0.875rem' }}>Agrega tallas, colores o características especiales sin crear un producto nuevo.</p>
           
-          <form action={createVariant} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+          <form action={createVariant} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
              <input type="hidden" name="productId" value={product.id} />
-             <input type="text" name="attribute" placeholder="Ej. Talla M - Color Rojo" required style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
-             <input type="text" name="sku" placeholder="SKU Variante (Opcional)" style={{ width: '200px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+             <input type="text" name="attribute" placeholder="Atributo (Ej. Talla M - Color Rojo)" required style={{ flex: 2, minWidth: '200px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+             <input type="text" name="sku" placeholder="SKU" style={{ flex: 1, minWidth: '120px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+             <input type="text" name="barcode" placeholder="Cod. Barras" style={{ flex: 1, minWidth: '120px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+             <input type="number" step="any" name="cost" placeholder="Costo" style={{ width: '110px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+             <input type="number" step="any" name="price" placeholder="Precio Púb." style={{ width: '110px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+             <input type="number" step="any" name="wholesalePrice" placeholder="Mayoreo" style={{ width: '110px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+             <input type="number" step="any" name="specialPrice" placeholder="Especial" style={{ width: '110px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
              <button type="submit" className="btn-primary" style={{ padding: '0 2rem' }}>+ Agregar</button>
           </form>
 
@@ -697,28 +703,43 @@ export function ProductDetailClient({
                <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid var(--caanma-border)' }}>
                  <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>Atributo</th>
                  <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>SKU Propio</th>
+                 <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>Código de Barras</th>
+                 <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>Costo Propio</th>
+                 <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>Precio Público</th>
+                 <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>P. Mayoreo</th>
+                 <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>P. Especial</th>
+                 <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', textAlign: 'right' }}>Existencia</th>
                  <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', textAlign: 'center' }}>Acciones</th>
                </tr>
              </thead>
              <tbody>
-               {variants?.map(v => (
-                 <tr key={v.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-                   <td data-label="Atributo" style={{ padding: '1rem', fontWeight: 'bold' }}>{v.attribute}</td>
-                   <td data-label="SKU Propio" style={{ padding: '1rem' }}>{v.sku || '-'}</td>
-                   <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }}>
-                     <form action={deleteVariant} style={{ display: 'inline' }}>
-                        <input type="hidden" name="variantId" value={v.id} />
-                        <input type="hidden" name="productId" value={product.id} />
-                        <button type="submit" style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar</button>
-                     </form>
-                   </td>
-                 </tr>
-               ))}
-               {!variants || variants.length === 0 && (
-                 <tr>
-                   <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>No hay variantes registradas.</td>
-                 </tr>
-               )}
+                {variants?.map(v => (
+                  <tr key={v.id} style={{ borderBottom: '1px solid var(--caanma-border)', cursor: 'pointer' }} onClick={() => setEditingVariant(v)}>
+                    <td data-label="Atributo" style={{ padding: '1rem', fontWeight: 'bold' }}>{v.attribute}</td>
+                    <td data-label="SKU Propio" style={{ padding: '1rem' }}>{v.sku || '-'}</td>
+                    <td data-label="Código de Barras" style={{ padding: '1rem' }}>{v.barcode || '-'}</td>
+                    <td data-label="Costo Propio" style={{ padding: '1rem' }}>{v.cost !== null && v.cost !== undefined ? `$${v.cost.toFixed(2)}` : '-'}</td>
+                    <td data-label="Precio Público" style={{ padding: '1rem' }}>{v.price !== null && v.price !== undefined ? `$${v.price.toFixed(2)}` : '-'}</td>
+                    <td data-label="P. Mayoreo" style={{ padding: '1rem' }}>{v.wholesalePrice !== null && v.wholesalePrice !== undefined ? `$${v.wholesalePrice.toFixed(2)}` : '-'}</td>
+                    <td data-label="P. Especial" style={{ padding: '1rem' }}>{v.specialPrice !== null && v.specialPrice !== undefined ? `$${v.specialPrice.toFixed(2)}` : '-'}</td>
+                    <td data-label="Existencia" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>{v.stock}</td>
+                    <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                        <button type="button" className="btn-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem', cursor: 'pointer' }} onClick={() => setEditingVariant(v)}>Editar</button>
+                        <form action={deleteVariant} style={{ display: 'inline' }}>
+                           <input type="hidden" name="variantId" value={v.id} />
+                           <input type="hidden" name="productId" value={product.id} />
+                           <button type="submit" style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold', padding: '0.25rem 0.5rem' }}>Eliminar</button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {(!variants || variants.length === 0) && (
+                  <tr>
+                    <td colSpan={9} style={{ padding: '2rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>No hay variantes registradas.</td>
+                  </tr>
+                )}
              </tbody>
           </table>
         </div>
@@ -953,6 +974,227 @@ export function ProductDetailClient({
                 Cerrar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {editingVariant && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999,
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '550px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            border: '1px solid var(--caanma-border)',
+            overflow: 'hidden',
+            animation: 'scaleIn 0.2s ease-out'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '1.25rem 1.5rem',
+              borderBottom: '1px solid var(--caanma-border)',
+              backgroundColor: '#f8fafc'
+            }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0, color: '#0f172a' }}>
+                Editar Variante: {editingVariant.attribute}
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setEditingVariant(null)}
+                style={{
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  color: '#64748b',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '4px',
+                  borderRadius: '50%',
+                  backgroundColor: '#e2e8f0'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form 
+              action={async (formData) => {
+                try {
+                  await updateVariant(formData);
+                  setEditingVariant(null);
+                } catch (err) {
+                  alert(String(err));
+                }
+              }}
+              style={{ padding: '1.5rem' }}
+            >
+              <input type="hidden" name="variantId" value={editingVariant.id} />
+              <input type="hidden" name="productId" value={product.id} />
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '500', fontSize: '0.875rem', color: '#334155' }}>
+                    Atributo (Nombre de la variante) *
+                  </label>
+                  <input 
+                    type="text" 
+                    name="attribute" 
+                    defaultValue={editingVariant.attribute} 
+                    required 
+                    style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} 
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '500', fontSize: '0.875rem', color: '#334155' }}>
+                    SKU Propio
+                  </label>
+                  <input 
+                    type="text" 
+                    name="sku" 
+                    defaultValue={editingVariant.sku || ''} 
+                    placeholder="Opcional"
+                    style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} 
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '500', fontSize: '0.875rem', color: '#334155' }}>
+                    Código de Barras
+                  </label>
+                  <input 
+                    type="text" 
+                    name="barcode" 
+                    defaultValue={editingVariant.barcode || ''} 
+                    placeholder="Opcional"
+                    style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} 
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '500', fontSize: '0.875rem', color: '#334155' }}>
+                    Costo Propio
+                  </label>
+                  <input 
+                    type="number" 
+                    step="any"
+                    name="cost" 
+                    defaultValue={editingVariant.cost !== null && editingVariant.cost !== undefined ? editingVariant.cost : ''} 
+                    placeholder="Opcional"
+                    style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} 
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '500', fontSize: '0.875rem', color: '#334155' }}>
+                    Precio Público
+                  </label>
+                  <input 
+                    type="number" 
+                    step="any"
+                    name="price" 
+                    defaultValue={editingVariant.price !== null && editingVariant.price !== undefined ? editingVariant.price : ''} 
+                    placeholder="Opcional"
+                    style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} 
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '500', fontSize: '0.875rem', color: '#334155' }}>
+                    Precio Mayoreo
+                  </label>
+                  <input 
+                    type="number" 
+                    step="any"
+                    name="wholesalePrice" 
+                    defaultValue={editingVariant.wholesalePrice !== null && editingVariant.wholesalePrice !== undefined ? editingVariant.wholesalePrice : ''} 
+                    placeholder="Opcional"
+                    style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} 
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '500', fontSize: '0.875rem', color: '#334155' }}>
+                    Precio Especial
+                  </label>
+                  <input 
+                    type="number" 
+                    step="any"
+                    name="specialPrice" 
+                    defaultValue={editingVariant.specialPrice !== null && editingVariant.specialPrice !== undefined ? editingVariant.specialPrice : ''} 
+                    placeholder="Opcional"
+                    style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} 
+                  />
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '500', fontSize: '0.875rem', color: '#334155' }}>
+                    Existencia (Stock)
+                  </label>
+                  <input 
+                    type="number" 
+                    name="stock" 
+                    defaultValue={editingVariant.stock} 
+                    required
+                    style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} 
+                  />
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '0.75rem',
+                borderTop: '1px solid var(--caanma-border)',
+                paddingTop: '1rem'
+              }}>
+                <button 
+                  type="button" 
+                  onClick={() => setEditingVariant(null)}
+                  style={{
+                    padding: '0.5rem 1.25rem',
+                    border: '1px solid var(--caanma-border)',
+                    borderRadius: '4px',
+                    backgroundColor: '#ffffff',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    color: '#475569'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-primary"
+                  style={{
+                    padding: '0.5rem 1.75rem',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Guardar Variante
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

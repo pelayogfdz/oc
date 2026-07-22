@@ -21,7 +21,7 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
   const { isOnline, pushOfflineProduct } = useOfflineSync();
   const [state, formAction] = useFormState(createProduct, initialState);
   const [hasVariants, setHasVariants] = useState(false);
-  const [variants, setVariants] = useState<{ attribute: string, stock: number, sku: string }[]>([]);
+  const [variants, setVariants] = useState<{ attribute: string, stock: number, sku: string, price: number | '', cost: number | '' }[]>([]);
   const [hasBatches, setHasBatches] = useState(false);
   const [batches, setBatches] = useState<{ batchNumber: string, expirationDate: string, stock: number }[]>([]);
   const [isService, setIsService] = useState(cloneProduct?.isService || false);
@@ -40,7 +40,7 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
 
 
   const handleAddVariant = () => {
-    setVariants([...variants, { attribute: '', stock: 0, sku: '' }]);
+    setVariants([...variants, { attribute: '', stock: 0, sku: '', price: '', cost: '' }]);
   };
 
   const handleRemoveVariant = (index: number) => {
@@ -323,6 +323,8 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
                   <tr>
                     <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>Atributo (Ej. Talla 27, Rojo)</th>
                     <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>SKU Variante</th>
+                    <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>Precio Venta (Opcional)</th>
+                    <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>Costo (Opcional)</th>
                     <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1' }}>Stock Inicial</th>
                     <th style={{ padding: '0.5rem', borderBottom: '1px solid #cbd5e1', width: '50px' }}></th>
                   </tr>
@@ -335,6 +337,12 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
                       </td>
                       <td style={{ padding: '0.5rem' }}>
                         <input type="text" value={v.sku} onChange={e => handleVariantChange(index, 'sku', e.target.value)} required placeholder="SKU-ROJO-XL" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+                      </td>
+                      <td style={{ padding: '0.5rem' }}>
+                        <input type="number" step="any" value={v.price} onChange={e => handleVariantChange(index, 'price', e.target.value === '' ? '' : Number(e.target.value))} placeholder="Precio" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+                      </td>
+                      <td style={{ padding: '0.5rem' }}>
+                        <input type="number" step="any" value={v.cost} onChange={e => handleVariantChange(index, 'cost', e.target.value === '' ? '' : Number(e.target.value))} placeholder="Costo" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
                       </td>
                       <td style={{ padding: '0.5rem' }}>
                         <input type="number" value={v.stock} onChange={e => handleVariantChange(index, 'stock', Number(e.target.value))} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />

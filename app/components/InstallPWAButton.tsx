@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, CheckCircle } from 'lucide-react';
+import { Download, CheckCircle, Laptop } from 'lucide-react';
 
 export default function InstallPWAButton() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -43,7 +43,7 @@ export default function InstallPWAButton() {
          "Para forzar la instalación, busca un ícono de un monitor con una flecha en el lado derecho de tu BARRA DE DIRECCIONES (junto a la estrella de Favoritos) en Google Chrome o Edge y haz clic ahí."
        );
        return;
-    }
+     }
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
@@ -52,22 +52,13 @@ export default function InstallPWAButton() {
     setDeferredPrompt(null);
   };
 
-  if (isInstalled) {
-    return (
-      <div style={{ marginTop: 'auto', padding: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: '6px', backgroundColor: '#f0fdf4', color: '#166534', fontWeight: 'bold', fontSize: '0.9rem' }}>
-          <CheckCircle size={18} />
-          App Desktop Instalada
-        </div>
-      </div>
-    );
-  }
-
-  // Si no está instalada, mostramos el botón (incluso si no está el prompt, porque pueden forzarla si se les da instrucciones, pero idealmente funciona con click)
   return (
-    <div style={{ marginTop: 'auto', padding: '1rem', borderTop: '1px solid var(--caanma-border)' }}>
-      <button 
-        onClick={handleInstallClick}
+    <div style={{ marginTop: 'auto', padding: '1rem', borderTop: '1px solid var(--caanma-border)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      
+      {/* Botón de Descarga Standalone (Windows .zip) */}
+      <a 
+        href="/desktop/CaanmaPOS-portable.zip"
+        download="CaanmaPOS-portable.zip"
         style={{
           width: '100%',
           display: 'flex',
@@ -76,23 +67,71 @@ export default function InstallPWAButton() {
           gap: '0.5rem',
           padding: '0.75rem 1rem',
           borderRadius: '6px',
-          backgroundColor: 'var(--caanma-primary)',
+          backgroundColor: '#10b981', // green emerald premium color
           color: 'white',
           fontWeight: 'bold',
           fontSize: '0.9rem',
+          textDecoration: 'none',
+          textAlign: 'center',
+          boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.2)',
+          transition: 'all 0.2s',
           cursor: 'pointer',
-          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
-          transition: 'transform 0.2s',
           border: 'none',
         }}
-        onMouseOver={e => e.currentTarget.style.transform = 'scale(1.02)'}
-        onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+        onMouseOver={e => {
+          e.currentTarget.style.transform = 'translateY(-1px)';
+          e.currentTarget.style.backgroundColor = '#059669';
+        }}
+        onMouseOut={e => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.backgroundColor = '#10b981';
+        }}
       >
-        <Download size={18} />
-        Instalar Versión Desktop
-      </button>
-      <p style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', textAlign: 'center', marginTop: '0.5rem' }}>
-        Trabaja sin internet desde tu computadora.
+        <Laptop size={18} />
+        Descargar CaanmaPOS (Win)
+      </a>
+
+      {/* Botón de PWA (Instalar en Navegador) */}
+      {!isInstalled ? (
+        <button 
+          onClick={handleInstallClick}
+          style={{
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.6rem 1rem',
+            borderRadius: '6px',
+            backgroundColor: 'transparent',
+            color: 'var(--caanma-text)',
+            border: '1px solid var(--caanma-border)',
+            fontWeight: 'bold',
+            fontSize: '0.85rem',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+          onMouseOver={e => {
+            e.currentTarget.style.backgroundColor = 'var(--caanma-bg-hover)';
+            e.currentTarget.style.borderColor = 'var(--caanma-text)';
+          }}
+          onMouseOut={e => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.borderColor = 'var(--caanma-border)';
+          }}
+        >
+          <Download size={16} />
+          Instalar Versión PWA
+        </button>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.5rem', borderRadius: '6px', backgroundColor: '#f0fdf4', color: '#166534', fontWeight: '600', fontSize: '0.8rem' }}>
+          <CheckCircle size={14} />
+          Versión PWA Instalada
+        </div>
+      )}
+
+      <p style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', textAlign: 'center', margin: 0, lineHeight: '1.2' }}>
+        Sincroniza precios y existencias localmente.
       </p>
     </div>
   );

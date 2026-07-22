@@ -342,7 +342,12 @@ model ProductVariant {
   productId          String
   attribute          String
   sku                String?
+  barcode            String?
   stock              Int                 @default(0)
+  price              Float?
+  wholesalePrice     Float?
+  specialPrice       Float?
+  cost               Float?
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   inventoryMovements InventoryMovement[]
