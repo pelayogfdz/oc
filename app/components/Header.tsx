@@ -115,7 +115,7 @@ export default async function Header() {
         </Link>
 
         <div className="header-user-controls" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {currentUser?.email?.toLowerCase() !== 'pelayogfdz@gmail.com' && (
+          {currentUser && (
             <div className="header-branch-selector-wrapper">
               <BranchSelector branches={finalOptions} currentBranchId={currentBranch?.id || ''} />
             </div>
