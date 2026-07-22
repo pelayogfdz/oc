@@ -4,10 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { getActiveBranch, getSession } from "@/app/actions/auth";
 import { getBranchFilter } from "@/lib/utils";
 import VentasHistoryClient from "./VentasHistoryClient";
+import { getUtcDateFromLocal } from "@/app/lib/timezone";
 
-export default async function VentasPage() {
+export default async function VentasPage(props: { searchParams: Promise<any> }) {
   const branch = await getActiveBranch();
   const session = await getSession();
+  const params = await props.searchParams;
 
   // Fetch only branches of this tenant to populate branch selector
   const branches = await prisma.branch.findMany({
@@ -33,30 +35,68 @@ export default async function VentasPage() {
     }
   };
 
-  const baseWhere = branch.id === 'GLOBAL'
-    ? { branch: { tenantId: session?.tenantId || undefined } }
-    : { branchId: branch.id };
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: branch.tenantId || undefined },
+    select: { timezone: true }
+  });
+  const timezone = tenant?.timezone || 'America/Mexico_City';
 
-  // Obtener las últimas 450 ventas activas (no canceladas)
+  // Get current date components in tenant timezone
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const parts = formatter.formatToParts(now);
+  const currentYear = parseInt(parts.find(p => p.type === 'year')!.value, 10);
+  const currentMonth = parseInt(parts.find(p => p.type === 'month')!.value, 10);
+  const currentDay = parseInt(parts.find(p => p.type === 'day')!.value, 10);
+
+  let startUtc = getUtcDateFromLocal(currentYear, currentMonth, 1, 0, 0, 0, 0, timezone);
+  let endUtc = getUtcDateFromLocal(currentYear, currentMonth, currentDay, 23, 59, 59, 999, timezone);
+
+  if (params?.startDate) {
+    const [sy, sm, sd] = params.startDate.split('-').map(Number);
+    startUtc = getUtcDateFromLocal(sy, sm, sd, 0, 0, 0, 0, timezone);
+    
+    if (params.endDate) {
+      const [ey, em, ed] = params.endDate.split('-').map(Number);
+      endUtc = getUtcDateFromLocal(ey, em, ed, 23, 59, 59, 999, timezone);
+    } else {
+      endUtc = getUtcDateFromLocal(sy, sm, sd, 23, 59, 59, 999, timezone);
+    }
+  }
+
+  const baseWhere = {
+    ...(branch.id === 'GLOBAL'
+      ? { branch: { tenantId: session?.tenantId || undefined } }
+      : { branchId: branch.id }),
+    createdAt: {
+      gte: startUtc,
+      lte: endUtc
+    }
+  };
+
+  // Obtener las ventas activas (no canceladas) en el rango de fechas
   const activeSales = await prisma.sale.findMany({
     where: {
       ...baseWhere,
       status: { not: 'CANCELLED' }
     },
     include: commonInclude,
-    orderBy: { createdAt: 'desc' },
-    take: 450
+    orderBy: { createdAt: 'desc' }
   });
 
-  // Obtener las últimas 100 ventas canceladas para garantizar su visibilidad en el cliente
+  // Obtener las ventas canceladas en el rango de fechas
   const cancelledSales = await prisma.sale.findMany({
     where: {
       ...baseWhere,
       status: 'CANCELLED'
     },
     include: commonInclude,
-    orderBy: { createdAt: 'desc' },
-    take: 100
+    orderBy: { createdAt: 'desc' }
   });
 
   // Unir ambas listas y ordenar por fecha de forma descendente
@@ -121,12 +161,6 @@ export default async function VentasPage() {
     id: branch.id,
     name: branch.name
   };
-
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: branch.tenantId || undefined },
-    select: { timezone: true }
-  });
-  const timezone = tenant?.timezone || 'America/Mexico_City';
 
   return (
     <VentasHistoryClient 

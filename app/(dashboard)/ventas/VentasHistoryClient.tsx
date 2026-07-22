@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import { Eye, Printer, RotateCcw, Calendar, User, MapPin, Tag, Receipt, Send, Share2, Loader2, CheckCircle, Mail, Download, X, AlertTriangle, Filter, Truck } from 'lucide-react';
 import { sendSaleByEmail } from '@/app/actions/sale';
 import { createDeliveryOrder } from '@/app/actions/logistica';
@@ -55,6 +56,10 @@ export default function VentasHistoryClient({
   currentBranch: any;
   timezone: string;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const isInitialMount = useRef(true);
+
   const [sales, setSales] = useState<any[]>(initialSales);
   const [filterDate, setFilterDate] = useState('');
   const [filterUser, setFilterUser] = useState('');
@@ -64,6 +69,29 @@ export default function VentasHistoryClient({
   const [filterCfdi, setFilterCfdi] = useState('');
   const [filterPaymentMethod, setFilterPaymentMethod] = useState('');
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
+
+  // Sync date filter with URL search parameters
+  useEffect(() => {
+    if (isInitialMount.current) {
+      const params = new URLSearchParams(window.location.search);
+      const initialDate = params.get('startDate') || '';
+      if (initialDate) {
+        setFilterDate(initialDate);
+      }
+      isInitialMount.current = false;
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    if (filterDate) {
+      params.set('startDate', filterDate);
+      params.set('endDate', filterDate);
+    } else {
+      params.delete('startDate');
+      params.delete('endDate');
+    }
+    router.push(`${pathname}?${params.toString()}`);
+  }, [filterDate, router, pathname]);
 
   // WhatsApp Share States
   const [isWhatsappOpen, setIsWhatsappOpen] = useState(false);
