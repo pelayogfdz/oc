@@ -208,7 +208,29 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
       // Helper for numeric matching
       const matchNumericFilter = (value: number, filterStr: string) => {
         if (!filterStr) return true;
-        const trimmed = filterStr.trim();
+        const trimmed = filterStr.trim().toLowerCase();
+
+        // 1. Textual attributes match (e.g. "con stock" / "sin stock" / "con" / "sin")
+        if (trimmed === 'con stock' || trimmed === 'con' || trimmed === 'activo' || trimmed === 'si' || trimmed === 'sí') {
+          return value > 0;
+        }
+        if (trimmed === 'sin stock' || trimmed === 'sin' || trimmed === 'inactivo' || trimmed === 'no') {
+          return value <= 0;
+        }
+
+        // 2. Range matching (e.g. "10-50")
+        if (trimmed.includes('-') && !trimmed.startsWith('-')) {
+          const parts = trimmed.split('-');
+          if (parts.length === 2) {
+            const min = parseFloat(parts[0]);
+            const max = parseFloat(parts[1]);
+            if (!isNaN(min) && !isNaN(max)) {
+              return value >= min && value <= max;
+            }
+          }
+        }
+
+        // 3. Mathematical operators
         if (trimmed.startsWith('>=')) {
           const num = parseFloat(trimmed.substring(2));
           return isNaN(num) ? true : value >= num;
@@ -225,6 +247,8 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
           const num = parseFloat(trimmed.substring(1));
           return isNaN(num) ? true : value < num;
         }
+
+        // 4. Exact match or includes substring
         const num = parseFloat(trimmed);
         return isNaN(num) ? true : Math.abs(value - num) < 0.01 || String(value).includes(trimmed);
       };
@@ -853,7 +877,7 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
               <th style={{ padding: '0.4rem 0.25rem' }}>
                 <input 
                   type="text" 
-                  placeholder="Filtrar..."
+                  placeholder="ej: 10-50 o >20"
                   value={filters.cost}
                   onChange={e => setFilters(prev => ({ ...prev, cost: e.target.value }))}
                   style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
@@ -862,7 +886,7 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
               <th style={{ padding: '0.4rem 0.25rem' }}>
                 <input 
                   type="text" 
-                  placeholder="Filtrar..."
+                  placeholder="ej: 50-100"
                   value={filters.localPrice}
                   onChange={e => setFilters(prev => ({ ...prev, localPrice: e.target.value }))}
                   style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
@@ -871,7 +895,7 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
               <th style={{ padding: '0.4rem 0.25rem' }}>
                 <input 
                   type="text" 
-                  placeholder="Filtrar..."
+                  placeholder="ej: con / sin / >0"
                   value={filters.stock}
                   onChange={e => setFilters(prev => ({ ...prev, stock: e.target.value }))}
                   style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
@@ -880,7 +904,7 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
               <th style={{ padding: '0.4rem 0.25rem' }}>
                 <input 
                   type="text" 
-                  placeholder="Filtrar..."
+                  placeholder="ej: >100 o 50-150"
                   value={filters.priceMeli}
                   onChange={e => setFilters(prev => ({ ...prev, priceMeli: e.target.value }))}
                   style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
@@ -889,7 +913,7 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
               <th style={{ padding: '0.4rem 0.25rem' }}>
                 <input 
                   type="text" 
-                  placeholder="Filtrar..."
+                  placeholder="ej: <20"
                   value={filters.comision}
                   onChange={e => setFilters(prev => ({ ...prev, comision: e.target.value }))}
                   style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
@@ -898,7 +922,7 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
               <th style={{ padding: '0.4rem 0.25rem' }}>
                 <input 
                   type="text" 
-                  placeholder="Filtrar..."
+                  placeholder="ej: 0 o >50"
                   value={filters.envio}
                   onChange={e => setFilters(prev => ({ ...prev, envio: e.target.value }))}
                   style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
@@ -907,7 +931,7 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
               <th style={{ padding: '0.4rem 0.25rem' }}>
                 <input 
                   type="text" 
-                  placeholder="Filtrar..."
+                  placeholder="ej: 10-30"
                   value={filters.retencion}
                   onChange={e => setFilters(prev => ({ ...prev, retencion: e.target.value }))}
                   style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
@@ -916,7 +940,7 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
               <th style={{ padding: '0.4rem 0.25rem' }}>
                 <input 
                   type="text" 
-                  placeholder="Filtrar..."
+                  placeholder="ej: >50"
                   value={filters.margenD}
                   onChange={e => setFilters(prev => ({ ...prev, margenD: e.target.value }))}
                   style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
@@ -925,7 +949,7 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
               <th style={{ padding: '0.4rem 0.25rem' }}>
                 <input 
                   type="text" 
-                  placeholder="Filtrar..."
+                  placeholder="ej: >20 o 10-30"
                   value={filters.margenP}
                   onChange={e => setFilters(prev => ({ ...prev, margenP: e.target.value }))}
                   style={{ width: '100%', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 'normal', backgroundColor: 'white' }}
