@@ -27,6 +27,7 @@ export default function ImprimirEtiquetasClient({
     }, {});
   });
 
+  const [includeTax, setIncludeTax] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
@@ -34,7 +35,10 @@ export default function ImprimirEtiquetasClient({
   };
 
   const calculateFinalPrice = (price: number) => {
-    return price * (1 + taxIVA / 100);
+    if (includeTax) {
+      return price * (1 + taxIVA / 100);
+    }
+    return price;
   };
 
   // Convert mm to pixels roughly (1mm ≈ 3.78px)
@@ -85,6 +89,21 @@ export default function ImprimirEtiquetasClient({
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {products.length > 0 && (
+          <div style={{ marginBottom: '1.5rem', padding: '0.75rem', backgroundColor: '#f0fdf4', borderRadius: '6px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <input 
+              type="checkbox" 
+              id="includeTaxCheck" 
+              checked={includeTax} 
+              onChange={e => setIncludeTax(e.target.checked)} 
+              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+            />
+            <label htmlFor="includeTaxCheck" style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#166534', cursor: 'pointer', userSelect: 'none' }}>
+              Sumar IVA al precio base en la etiqueta (+{taxIVA}%) (Desactivado por defecto para coincidir con Caja)
+            </label>
           </div>
         )}
 
