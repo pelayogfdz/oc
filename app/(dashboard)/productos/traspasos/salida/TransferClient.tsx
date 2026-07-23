@@ -146,14 +146,14 @@ export default function TransferClient({ originBranchId, originBranchName, other
 
     const existing = transferItems.find(i => i.listId === listId);
     if (existing) {
-      if (!isDirectDispatch && !ventasConfig.venderSinStock && existing.quantity >= maxStock) {
+      if (isDirectDispatch && !ventasConfig.venderSinStock && existing.quantity >= maxStock) {
           alert('Cantidad excede el stock disponible.');
           return;
       }
       const updatedItem = { ...existing, quantity: existing.quantity + 1 };
       setTransferItems([updatedItem, ...transferItems.filter(i => i.listId !== listId)]);
     } else {
-      if (!isDirectDispatch && !ventasConfig.venderSinStock && maxStock <= 0) {
+      if (isDirectDispatch && !ventasConfig.venderSinStock && maxStock <= 0) {
           alert('Este producto no tiene stock y los traspasos sin stock están desactivados.');
           return;
       }
@@ -181,7 +181,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
     if (isNaN(parsed) || parsed < 1) return;
     setTransferItems(transferItems.map(i => {
       if (i.listId === listId) {
-         if (!isDirectDispatch && !ventasConfig.venderSinStock && parsed > i.maxStock) {
+         if (isDirectDispatch && !ventasConfig.venderSinStock && parsed > i.maxStock) {
            return { ...i, quantity: i.maxStock };
          }
          return { ...i, quantity: parsed };

@@ -100,6 +100,13 @@ export async function dispatchDirectTransfer(
 
     const authUser = await getActiveUser();
 
+    // Consultar configuración de la sucursal de origen
+    const settings = await prisma.branchSettings.findUnique({
+      where: { branchId: branchActive.id }
+    });
+    const config = settings?.configJson ? JSON.parse(settings.configJson) : {};
+    const venderSinStock = config.ventas?.venderSinStock === true;
+
     let transferId = '';
     await prisma.$transaction(async (tx) => {
       const { getNextFolio } = await import('./folios');
@@ -128,6 +135,19 @@ export async function dispatchDirectTransfer(
         if (!originProduct) throw new Error(`Producto no encontrado en origen.`);
 
         let originVariantId = item.variantId || null;
+
+        // Check stock availability if venderSinStock is disabled
+        if (!venderSinStock) {
+          if (originProduct.stock < dispatchedQty) {
+            throw new Error(`El producto "${originProduct.name}" no tiene suficiente existencia en origen (disponible: ${originProduct.stock}, solicitado: ${dispatchedQty}).`);
+          }
+          if (originVariantId) {
+            const variant = await tx.productVariant.findUnique({ where: { id: originVariantId } });
+            if (variant && variant.stock < dispatchedQty) {
+              throw new Error(`La variante "${variant.attribute}" de "${originProduct.name}" no tiene suficiente existencia en origen (disponible: ${variant.stock}, solicitado: ${dispatchedQty}).`);
+            }
+          }
+        }
 
         // 1. Deduct stock at Origin
         await tx.product.update({
