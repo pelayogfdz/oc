@@ -166,10 +166,27 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
 
   const pushOfflineSale = async (saleParams: Omit<OfflineSale, 'id' | 'timestamp' | 'synced' | 'retryCount' | 'failed' | 'errorMessage'>) => {
     try {
+      const now = new Date();
+      const recentSales = await db.pendingSales
+        .where('timestamp')
+        .above(new Date(now.getTime() - 10000).toISOString())
+        .toArray();
+
+      const isDuplicate = recentSales.some(s => 
+        s.customerId === saleParams.customerId &&
+        s.total === saleParams.total &&
+        JSON.stringify(s.items) === JSON.stringify(saleParams.items)
+      );
+
+      if (isDuplicate) {
+        console.warn('[Offline] Duplicate sale submission detected within 10s, ignoring.');
+        return;
+      }
+
       const newSale: OfflineSale = {
         ...saleParams,
         id: crypto.randomUUID(), 
-        timestamp: new Date().toISOString(),
+        timestamp: now.toISOString(),
         synced: false,
         retryCount: 0,
         failed: false
@@ -189,10 +206,26 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
 
   const pushOfflineTransfer = async (transferParams: any) => {
     try {
+      const now = new Date();
+      const recentTransfers = await db.pendingTransfers
+        .where('timestamp')
+        .above(new Date(now.getTime() - 10000).toISOString())
+        .toArray();
+
+      const isDuplicate = recentTransfers.some(t => 
+        t.toBranchId === transferParams.toBranchId &&
+        JSON.stringify(t.items) === JSON.stringify(transferParams.items)
+      );
+
+      if (isDuplicate) {
+        console.warn('[Offline] Duplicate transfer submission detected within 10s, ignoring.');
+        return;
+      }
+
       const newTransfer = {
         ...transferParams,
         id: crypto.randomUUID(),
-        timestamp: new Date().toISOString(),
+        timestamp: now.toISOString(),
         synced: false,
         retryCount: 0,
         failed: false
@@ -208,10 +241,27 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
 
   const pushOfflinePurchase = async (purchaseParams: any) => {
     try {
+      const now = new Date();
+      const recentPurchases = await db.pendingPurchases
+        .where('timestamp')
+        .above(new Date(now.getTime() - 10000).toISOString())
+        .toArray();
+
+      const isDuplicate = recentPurchases.some(p => 
+        p.supplierId === purchaseParams.supplierId &&
+        p.total === purchaseParams.total &&
+        JSON.stringify(p.items) === JSON.stringify(purchaseParams.items)
+      );
+
+      if (isDuplicate) {
+        console.warn('[Offline] Duplicate purchase submission detected within 10s, ignoring.');
+        return;
+      }
+
       const newPurchase = {
         ...purchaseParams,
         id: crypto.randomUUID(),
-        timestamp: new Date().toISOString(),
+        timestamp: now.toISOString(),
         synced: false,
         retryCount: 0,
         failed: false

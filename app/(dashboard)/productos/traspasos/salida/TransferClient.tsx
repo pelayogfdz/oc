@@ -313,11 +313,9 @@ export default function TransferClient({ originBranchId, originBranchName, other
            }
          }
       }
-
       router.push('/productos/traspasos');
     } catch (e: any) {
       alert("Error: " + e.message);
-    } finally {
       setIsProcessing(false);
     }
   };
