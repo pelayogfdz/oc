@@ -312,9 +312,9 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
 
   // Filter products based on search term and category
   const filteredProducts = availableProducts.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                          (p.barcode && p.barcode.toLowerCase().includes(searchTerm.toLowerCase()));
+    const searchTarget = `${p.name} ${p.sku || ''} ${p.barcode || ''}`.toLowerCase();
+    const searchWords = searchTerm.toLowerCase().split(/\s+/).filter(Boolean);
+    const matchesSearch = searchWords.every(word => searchTarget.includes(word));
     const matchesCategory = filterCategory === 'ALL' || p.category === filterCategory;
     return matchesSearch && matchesCategory;
   });
