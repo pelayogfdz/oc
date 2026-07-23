@@ -199,16 +199,18 @@ export default function TraspasosClient({
   }, [selectedTransferForRoute, mapsLoaded]);
 
   const filteredTransfers = transfers.filter(transfer => {
-    // Search Term (General search on ID or branch names)
+    // Search Term (General search on ID, Folio or branch names)
     const term = searchTerm.toLowerCase().trim();
     const matchesGeneral = term === '' || 
       transfer.id.toLowerCase().includes(term) ||
+      (transfer.folio || '').toLowerCase().includes(term) ||
       (transfer.branch?.name || '').toLowerCase().includes(term) ||
       (transfer.toBranch?.name || '').toLowerCase().includes(term);
 
-    // ID Filter Match (specific)
+    // ID / Folio Filter Match (specific)
     const matchesId = idFilter.trim() === '' || 
-      transfer.id.toLowerCase().includes(idFilter.toLowerCase().trim());
+      transfer.id.toLowerCase().includes(idFilter.toLowerCase().trim()) ||
+      (transfer.folio || '').toLowerCase().includes(idFilter.toLowerCase().trim());
 
     // Sending Branch Filter Match
     const matchesFromBranch = fromBranchFilter === '' || 
@@ -509,7 +511,7 @@ export default function TraspasosClient({
                 <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--caanma-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                      <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                       <Truck size={14} /> #{item.id.substring(0,8).toUpperCase()}
+                       <Truck size={14} /> #{item.folio || item.id.substring(0,8).toUpperCase()}
                      </div>
                      <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: '4px', backgroundColor: isIncoming ? '#e0e7ff' : '#f1f5f9', color: isIncoming ? '#4338ca' : '#475569', fontWeight: 'bold' }}>
@@ -597,7 +599,7 @@ export default function TraspasosClient({
           <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ backgroundColor: '#f8fafc' }}>
               <tr>
-                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Traspaso ID</th>
+                <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Folio / ID</th>
                 <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Ruta (Origen → Destino)</th>
                 <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Información</th>
                 <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Estado</th>
@@ -610,8 +612,8 @@ export default function TraspasosClient({
                 
                 return (
                 <tr key={item.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-                  <td data-label="Traspaso ID" style={{ padding: '1rem', fontWeight: '500' }}>
-                    <div style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>#{item.id.substring(0,8).toUpperCase()}</div>
+                  <td data-label="Folio / ID" style={{ padding: '1rem', fontWeight: '500' }}>
+                    <div style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>#{item.folio || item.id.substring(0,8).toUpperCase()}</div>
                     <span style={{ fontSize: '10px', padding: '2px 4px', borderRadius: '4px', display: 'inline-block', backgroundColor: isIncoming ? '#e0e7ff' : '#f1f5f9', color: isIncoming ? '#4338ca' : '#475569', marginTop: '4px' }}>
                        {isIncoming ? 'ENTRANTE' : 'SALIENTE'}
                     </span>
