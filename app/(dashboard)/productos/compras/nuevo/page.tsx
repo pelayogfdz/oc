@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ArrowLeft, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 import CrearCompraForm from './CrearCompraForm';
+import { getTenantSuppliers } from "@/app/actions/supplier";
 
 export const dynamic = 'force-dynamic';
 
@@ -24,9 +25,7 @@ export default async function NuevaCompraPage() {
     select: { id: true, name: true, stock: true, cost: true }
   });
   
-  const suppliers = await prisma.supplier.findMany({
-    where: query
-  });
+  const suppliers = await getTenantSuppliers();
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
