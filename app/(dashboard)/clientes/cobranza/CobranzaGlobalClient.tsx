@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Search, History, ArrowRight } from 'lucide-react';
+import { Search, History, ArrowRight, X, FileText, Send, Copy, Check, ExternalLink } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
 export default function CobranzaGlobalClient({ initialData }: { initialData: any[] }) {
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'NOT_OVERDUE' | '0_15' | '15_30' | '30_60' | '60_90' | '90_PLUS'>('ALL');
+  const [selectedGroup, setSelectedGroup] = useState<any | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const getDaysOverdue = (dueDateStr: string | null | undefined): number => {
     if (!dueDateStr) return -1;
@@ -20,6 +22,25 @@ export default function CobranzaGlobalClient({ initialData }: { initialData: any
     if (diffTime <= 0) return 0;
     
     return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  const getOldestDueDateText = (dueDateStr: string | null): { text: string; isOverdue: boolean } => {
+    if (!dueDateStr) return { text: 'N/A', isOverdue: false };
+    const dueDate = new Date(dueDateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+    
+    const diffTime = today.getTime() - dueDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays > 0) {
+      return { text: `Vencido hace ${diffDays} día(s) (${dueDate.toLocaleDateString()})`, isOverdue: true };
+    } else if (diffDays === 0) {
+      return { text: `Vence hoy (${dueDate.toLocaleDateString()})`, isOverdue: true };
+    } else {
+      return { text: `Vence en ${Math.abs(diffDays)} día(s) (${dueDate.toLocaleDateString()})`, isOverdue: false };
+    }
   };
 
   const buckets = {
@@ -68,7 +89,56 @@ export default function CobranzaGlobalClient({ initialData }: { initialData: any
     return customerMatch || saleIdMatch || folioMatch;
   });
 
+  // Group filtered sales by customer
+  const groupedClients = useMemo(() => {
+    const groups: { [customerId: string]: { customer: any; sales: any[]; totalBalanceDue: number; oldestDueDate: string | null } } = {};
+    
+    filteredSales.forEach(sale => {
+      const customerId = sale.customer?.id || 'public';
+      if (!groups[customerId]) {
+        groups[customerId] = {
+          customer: sale.customer || { id: 'public', name: 'Público en General', phone: '' },
+          sales: [],
+          totalBalanceDue: 0,
+          oldestDueDate: null
+        };
+      }
+      groups[customerId].sales.push(sale);
+      groups[customerId].totalBalanceDue += sale.balanceDue || 0;
+      
+      if (sale.dueDate) {
+        if (!groups[customerId].oldestDueDate || new Date(sale.dueDate) < new Date(groups[customerId].oldestDueDate!)) {
+          groups[customerId].oldestDueDate = sale.dueDate;
+        }
+      }
+    });
+
+    return Object.values(groups).sort((a, b) => b.totalBalanceDue - a.totalBalanceDue);
+  }, [filteredSales]);
+
   const totalDeudaGlobal = filteredSales.reduce((acc, sale) => acc + (sale.balanceDue || 0), 0);
+
+  const handleCopyLink = async (customerId: string) => {
+    const link = `${window.location.origin}/api/clientes/${customerId}/estado-de-cuenta`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      alert(`Enlace: ${link}`);
+    }
+  };
+
+  const handleSendWhatsApp = (client: any) => {
+    const phone = client.customer.phone ? client.customer.phone.replace(/\D/g, '') : '';
+    const msgText = `Hola, le compartimos su Estado de Cuenta. Su saldo total pendiente es ${formatCurrency(client.totalBalanceDue)}. Puede consultarlo e imprimirlo en el siguiente enlace: ${window.location.origin}/api/clientes/${client.customer.id}/estado-de-cuenta`;
+    const waUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msgText)}`;
+    window.open(waUrl, '_blank');
+  };
+
+  const handleViewPdf = (customerId: string) => {
+    window.open(`/api/clientes/${customerId}/estado-de-cuenta`, '_blank');
+  };
 
   return (
     <div className="card">
@@ -136,44 +206,52 @@ export default function CobranzaGlobalClient({ initialData }: { initialData: any
             <thead style={{ backgroundColor: '#f8fafc' }}>
                 <tr>
                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Cliente</th>
-                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Folio / Ticket</th>
-                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Fecha de Creación</th>
-                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Vencimiento</th>
-                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Deuda Actual</th>
-                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Acción</th>
+                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'center' }}>Facturas / Ventas</th>
+                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Vencimiento Más Antiguo</th>
+                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'right' }}>Deuda Total</th>
+                    <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)', textAlign: 'center' }}>Acciones</th>
                 </tr>
             </thead>
             <tbody>
-                {filteredSales.map((sale: any) => {
-                    const overdue = sale.dueDate ? new Date(sale.dueDate) < new Date() : false;
+                {groupedClients.map((client: any) => {
+                    const overdueInfo = getOldestDueDateText(client.oldestDueDate);
                     return (
-                        <tr key={sale.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
+                        <tr key={client.customer.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                             <td data-label="Cliente" style={{ padding: '1rem', fontWeight: 'bold' }}>
-                                {sale.customer?.name || 'Venta de Mostrador'}
+                                {client.customer.name}
                             </td>
-                            <td data-label="Folio / Ticket" style={{ padding: '1rem', color: '#64748b', fontFamily: 'monospace', fontWeight: '500' }}>
-                                {sale.folio ? `#${sale.folio}` : `#${sale.id.slice(0,8).toUpperCase()}`}
+                            <td data-label="Facturas / Ventas" style={{ padding: '1rem', textAlign: 'center' }}>
+                                <span style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold', border: '1px solid #cbd5e1' }}>
+                                    {client.sales.length} doctos.
+                                </span>
                             </td>
-                            <td data-label="Fecha de Creación" style={{ padding: '1rem', color: '#64748b' }}>{new Date(sale.createdAt).toLocaleDateString()}</td>
-                            <td data-label="Vencimiento" style={{ padding: '1rem', fontWeight: 'bold', color: overdue ? '#dc2626' : '#16a34a' }}>
-                                {sale.dueDate ? new Date(sale.dueDate).toLocaleDateString() : 'N/A'}
+                            <td data-label="Vencimiento Más Antiguo" style={{ padding: '1rem', fontWeight: '500', color: overdueInfo.isOverdue ? '#dc2626' : '#16a34a' }}>
+                                {overdueInfo.text}
                             </td>
-                            <td data-label="Deuda Actual" style={{ padding: '1rem', fontWeight: 'bold', color: '#dc2626', fontSize: '1.1rem' }}>
-                                {formatCurrency(sale.balanceDue, 2)}
+                            <td data-label="Deuda Total" style={{ padding: '1rem', fontWeight: 'bold', color: '#dc2626', fontSize: '1.1rem', textAlign: 'right' }}>
+                                {formatCurrency(client.totalBalanceDue, 2)}
                             </td>
-                            <td data-label="Acción" style={{ padding: '1rem' }}>
-                                {sale.customer?.id && (
-                                    <Link href={`/clientes/${sale.customer.id}`} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', textDecoration: 'none', color: '#4f46e5', fontWeight: 'bold', fontSize: '0.85rem' }}>
-                                        Ir al Perfil y Abonar <ArrowRight size={14}/>
-                                    </Link>
-                                )}
+                            <td data-label="Acciones" style={{ padding: '1rem' }}>
+                                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', alignItems: 'center' }}>
+                                    <button
+                                        onClick={() => setSelectedGroup(client)}
+                                        style={{ border: '1px solid #cbd5e1', padding: '0.35rem 0.75rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', backgroundColor: 'white', color: 'var(--caanma-primary)', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', transition: 'all 0.15s ease' }}
+                                    >
+                                        Detalle de Facturas
+                                    </button>
+                                    {client.customer?.id && client.customer.id !== 'public' && (
+                                        <Link href={`/clientes/${client.customer.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', textDecoration: 'none', color: '#64748b', fontWeight: 'bold', fontSize: '0.8rem' }}>
+                                            Ir al Perfil y Abonar <ArrowRight size={14}/>
+                                        </Link>
+                                    )}
+                                </div>
                             </td>
                         </tr>
                     )
                 })}
-                {filteredSales.length === 0 && (
+                {groupedClients.length === 0 && (
                     <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                        <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
                             <History size={32} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
                             No hay cuentas pendientes o coincidencia con tu búsqueda.
                         </td>
@@ -181,6 +259,110 @@ export default function CobranzaGlobalClient({ initialData }: { initialData: any
                 )}
             </tbody>
         </table>
+
+        {/* Modal Detalle de Facturas */}
+        {selectedGroup && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+            <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '750px', maxWidth: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
+              {/* Header */}
+              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1e293b' }}>Detalle de Cuentas por Cobrar</h3>
+                  <p style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '0.15rem' }}>{selectedGroup.customer.name}</p>
+                </div>
+                <button 
+                  onClick={() => setSelectedGroup(null)}
+                  style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '4px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              
+              {/* Actions panel */}
+              {selectedGroup.customer.id !== 'public' && (
+                <div style={{ padding: '1rem 1.5rem', backgroundColor: '#f0fdf4', borderBottom: '1px solid #bbf7d0', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#166534', marginRight: 'auto' }}>
+                    Deuda Total: {formatCurrency(selectedGroup.totalBalanceDue, 2)}
+                  </span>
+                  <button 
+                    onClick={() => handleViewPdf(selectedGroup.customer.id)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.75rem', backgroundColor: '#ffffff', border: '1px solid #bbf7d0', borderRadius: '6px', color: '#15803d', fontWeight: 'bold', fontSize: '0.825rem', cursor: 'pointer' }}
+                  >
+                    <FileText size={15} /> Ver PDF
+                  </button>
+                  <button 
+                    onClick={() => handleSendWhatsApp(selectedGroup)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.75rem', backgroundColor: '#25d366', border: 'none', borderRadius: '6px', color: 'white', fontWeight: 'bold', fontSize: '0.825rem', cursor: 'pointer' }}
+                  >
+                    <Send size={15} /> WhatsApp
+                  </button>
+                  <button 
+                    onClick={() => handleCopyLink(selectedGroup.customer.id)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.75rem', backgroundColor: '#ffffff', border: '1px solid #bbf7d0', borderRadius: '6px', color: '#15803d', fontWeight: 'bold', fontSize: '0.825rem', cursor: 'pointer', minWidth: '120px', justifyContent: 'center' }}
+                  >
+                    {copied ? <><Check size={15} /> Copiado</> : <><Copy size={15} /> Copiar Enlace</>}
+                  </button>
+                </div>
+              )}
+
+              {/* List */}
+              <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#475569', fontWeight: '600' }}>
+                      <th style={{ padding: '0.5rem', textAlign: 'left' }}>Folio</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'left' }}>Fecha</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'left' }}>Vencimiento</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'right' }}>Deuda</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'center' }}>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedGroup.sales.map((sale: any) => {
+                      const overdueInfo = getOldestDueDateText(sale.dueDate);
+                      return (
+                        <tr key={sale.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                          <td style={{ padding: '0.75rem 0.5rem', fontFamily: 'monospace', fontWeight: '500' }}>
+                            {sale.folio ? `#${sale.folio}` : `#${sale.id.slice(0,8).toUpperCase()}`}
+                          </td>
+                          <td style={{ padding: '0.75rem 0.5rem', color: '#64748b' }}>
+                            {new Date(sale.createdAt).toLocaleDateString()}
+                          </td>
+                          <td style={{ padding: '0.75rem 0.5rem', color: overdueInfo.isOverdue ? '#dc2626' : '#16a34a', fontWeight: '500' }}>
+                            {sale.dueDate ? new Date(sale.dueDate).toLocaleDateString() : 'N/A'}
+                          </td>
+                          <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontWeight: 'bold', color: '#dc2626' }}>
+                            {formatCurrency(sale.balanceDue, 2)}
+                          </td>
+                          <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>
+                            <Link 
+                              href={`/ventas/detalle/${sale.id}`} 
+                              target="_blank"
+                              style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.15rem' }}
+                            >
+                              Ver Venta <ExternalLink size={12} />
+                            </Link>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Footer */}
+              <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', backgroundColor: '#f8fafc' }}>
+                <button 
+                  onClick={() => setSelectedGroup(null)}
+                  className="btn-secondary"
+                  style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#334155', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 }
