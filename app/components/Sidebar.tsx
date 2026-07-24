@@ -98,24 +98,25 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
       fontSize: '0.98rem'
     }}>
       {/* Brand Header */}
-      <div style={{ padding: '1.125rem 1.5rem', marginBottom: '0.375rem' }}>
-        <Link href="/" style={{ textDecoration: 'none', color: 'var(--caanma-text)', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+      <div style={{ padding: '1.125rem 1rem', marginBottom: '0.375rem' }}>
+        <Link href="/" style={{ textDecoration: 'none', color: 'var(--caanma-text)', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', flexWrap: 'nowrap' }}>
           <div style={{
-            width: '42px',
-            height: '42px',
+            width: '38px',
+            height: '38px',
             backgroundColor: 'var(--caanma-primary)',
-            borderRadius: '9px',
+            borderRadius: '8px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: 'white',
             fontWeight: 'bold',
-            fontSize: '24px',
+            fontSize: '20px',
+            flexShrink: 0
           }}>
             C
           </div>
-          <span style={{ fontWeight: 'bold', fontSize: '2.25rem' }}>CAANMA</span>
-          <span style={{ fontSize: '1.125rem', fontWeight: 'normal', color: '#94a3b8', verticalAlign: 'top', marginLeft: '0.375rem' }}>PRO</span>
+          <span style={{ fontWeight: 'bold', fontSize: '1.75rem', flexShrink: 0, letterSpacing: '-0.025em' }}>CAANMA</span>
+          <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#94a3b8', verticalAlign: 'top', marginLeft: '0.25rem', flexShrink: 0 }}>PRO</span>
         </Link>
       </div>
 
