@@ -78,6 +78,7 @@ export async function syncProductsPage(page: number, limit: number) {
   const products = await prisma.product.findMany({
     where: { branchId: { in: branchIds }, isActive: true },
     include: { variants: true, prices: true },
+    orderBy: { id: 'asc' },
     skip,
     take: limit,
   });
