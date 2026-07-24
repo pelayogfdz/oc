@@ -1177,11 +1177,22 @@ export async function syncMeliStockAction(productId: string, tenantId: string | 
 
     if (!product || !product.sku) return;
 
-    // 2. Find all Mercado Libre mappings for this product or SKU
+    const cleanSku = product.sku.trim();
+
+    // 2. Find all products sharing this SKU in active branches, and find mappings for any of them
+    const productsWithSameSku = await tenantClient.product.findMany({
+      where: {
+        sku: { equals: cleanSku, mode: 'insensitive' },
+        isActive: true
+      },
+      select: { id: true }
+    });
+    const productIds = productsWithSameSku.map(p => p.id);
+
     const maps = await tenantClient.externalProductMap.findMany({
       where: {
         platform: 'MERCADO_LIBRE',
-        productId: product.id
+        productId: { in: productIds }
       }
     });
 
@@ -1289,7 +1300,7 @@ export async function syncMeliStockAction(productId: string, tenantId: string | 
       // Sum stock across all selected branches
       const productInBranches = await tenantClient.product.findMany({
         where: {
-          sku: product.sku,
+          sku: { equals: cleanSku, mode: 'insensitive' },
           branchId: { in: stockBranchIds },
           isActive: true
         }

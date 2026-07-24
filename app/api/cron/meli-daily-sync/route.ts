@@ -421,10 +421,12 @@ async function handleSync(onlyStock = false) {
 
             // 2. Sumar stock global
             try {
+              const cleanSku = product.sku ? product.sku.trim() : '';
               const productInBranches = await tenantClient.product.findMany({
                 where: {
-                  sku: product.sku,
-                  branchId: { in: stockBranchIds }
+                  sku: { equals: cleanSku, mode: 'insensitive' },
+                  branchId: { in: stockBranchIds },
+                  isActive: true
                 }
               });
 
