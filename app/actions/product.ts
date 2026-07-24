@@ -694,17 +694,22 @@ export async function searchProducts(
   // Construir condiciones adicionales de filtros
   const extraConditions: any[] = [];
 
+  // Por defecto, filtramos solo productos activos, a menos que el usuario indique lo contrario
+  let isActiveCondition: any = { isActive: true };
+  if (options && options.status) {
+    if (options.status === 'ACTIVE') {
+      isActiveCondition = { isActive: true };
+    } else if (options.status === 'INACTIVE') {
+      isActiveCondition = { isActive: false };
+    } else if (options.status === 'ALL') {
+      isActiveCondition = {}; // no agregar filtro para traer activos e inactivos
+    }
+  }
+  extraConditions.push(isActiveCondition);
+
   if (options) {
     if (options.category && options.category !== 'ALL') {
       extraConditions.push({ category: options.category });
-    }
-
-    if (options.status) {
-      if (options.status === 'ACTIVE') {
-        extraConditions.push({ status: { not: 'INACTIVE' } });
-      } else if (options.status === 'INACTIVE') {
-        extraConditions.push({ status: 'INACTIVE' });
-      }
     }
 
     if (options.stock) {
@@ -756,7 +761,6 @@ export async function searchProducts(
     products = await prisma.product.findMany({
       where: { 
         branchId: branchCondition, 
-        isActive: true,
         AND: extraConditions
       },
       include: { variants: true, prices: true, branch: { select: { id: true, name: true } }, externalMaps: true },
@@ -778,7 +782,6 @@ export async function searchProducts(
     products = await prisma.product.findMany({
       where: {
         branchId: branchCondition,
-        isActive: true,
         AND: [...searchConditions, ...extraConditions]
       },
       include: { variants: true, prices: true, branch: { select: { id: true, name: true } }, externalMaps: true },
