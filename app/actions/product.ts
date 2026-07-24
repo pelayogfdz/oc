@@ -657,7 +657,20 @@ export async function updateProduct(productId: string, formData: FormData) {
   redirect('/productos');
 }
 
-export async function searchProducts(query: string, branchId: string) {
+export async function searchProducts(
+  query: string,
+  branchId: string,
+  options?: {
+    category?: string;
+    status?: string;
+    stock?: string;
+    image?: string;
+    brand?: string;
+    type?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }
+) {
   const isGlobal = branchId === 'GLOBAL';
   const session = await getSession();
   const activeBranch = await getActiveBranch();
@@ -678,13 +691,77 @@ export async function searchProducts(query: string, branchId: string) {
     branchCondition = branchId;
   }
 
+  // Construir condiciones adicionales de filtros
+  const extraConditions: any[] = [];
+
+  if (options) {
+    if (options.category && options.category !== 'ALL') {
+      extraConditions.push({ category: options.category });
+    }
+
+    if (options.status) {
+      if (options.status === 'ACTIVE') {
+        extraConditions.push({ status: { not: 'INACTIVE' } });
+      } else if (options.status === 'INACTIVE') {
+        extraConditions.push({ status: 'INACTIVE' });
+      }
+    }
+
+    if (options.stock) {
+      if (options.stock === 'IN_STOCK') {
+        extraConditions.push({ stock: { gt: 0 }, isService: false });
+      } else if (options.stock === 'OUT_OF_STOCK') {
+        extraConditions.push({ stock: { lte: 0 }, isService: false });
+      } else if (options.stock === 'LOW_STOCK') {
+        // Para LOW_STOCK aproximamos con stock <= 5, el cliente terminará de filtrar
+        extraConditions.push({ stock: { lte: 5 }, isService: false });
+      }
+    }
+
+    if (options.image) {
+      if (options.image === 'WITH_IMAGE') {
+        extraConditions.push({ imageUrl: { not: '' } });
+      } else if (options.image === 'WITHOUT_IMAGE') {
+        extraConditions.push({ OR: [{ imageUrl: null }, { imageUrl: '' }] });
+      }
+    }
+
+    if (options.brand && options.brand !== 'ALL') {
+      extraConditions.push({ brand: options.brand });
+    }
+
+    if (options.type) {
+      if (options.type === 'PRODUCT') {
+        extraConditions.push({ isService: false });
+      } else if (options.type === 'SERVICE') {
+        extraConditions.push({ isService: true });
+      }
+    }
+  }
+
+  // Configurar ordenación nativa
+  let orderByCondition: any = { name: 'asc' };
+  if (options?.sortBy && options?.sortOrder) {
+    const field = options.sortBy;
+    const order = options.sortOrder;
+    if (field === 'name' || field === 'sku' || field === 'price' || field === 'stock' || field === 'createdAt') {
+      orderByCondition = { [field]: order };
+    }
+  }
+
+  const limitCount = isGlobal ? 300 * Math.max(1, tenantBranchIds.length) : 300;
+
   let products = [];
   if (!query || query.trim() === '') {
     products = await prisma.product.findMany({
-      where: { branchId: branchCondition, isActive: true },
+      where: { 
+        branchId: branchCondition, 
+        isActive: true,
+        AND: extraConditions
+      },
       include: { variants: true, prices: true, branch: { select: { id: true, name: true } }, externalMaps: true },
-      orderBy: { name: 'asc' },
-      take: isGlobal ? 100 * Math.max(1, tenantBranchIds.length) : 100
+      orderBy: orderByCondition,
+      take: limitCount
     });
   } else {
     const words = query.trim().split(/\s+/).filter(w => w.length > 0);
@@ -698,19 +775,15 @@ export async function searchProducts(query: string, branchId: string) {
       ]
     }));
 
-    const rawLimit = isGlobal
-      ? (query.length < 3 ? 50 : 150) * Math.max(1, tenantBranchIds.length)
-      : (query.length < 3 ? 50 : 150);
-
     products = await prisma.product.findMany({
       where: {
         branchId: branchCondition,
         isActive: true,
-        AND: searchConditions
+        AND: [...searchConditions, ...extraConditions]
       },
       include: { variants: true, prices: true, branch: { select: { id: true, name: true } }, externalMaps: true },
-      orderBy: { name: 'asc' },
-      take: rawLimit
+      orderBy: orderByCondition,
+      take: limitCount
     });
   }
 

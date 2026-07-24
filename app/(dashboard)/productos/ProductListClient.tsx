@@ -143,22 +143,20 @@ export default function ProductListClient({ initialProducts, branchId, categorie
   useEffect(() => {
     if (!isInitialized) return;
 
-    // Prevent searching on mount when searchTerm is empty (initialProducts is already loaded)
-    if (searchTerm === '' && !hasSearched) {
-      if (!isOnline) {
-        import('@/lib/offlineDB').then(async ({ db }) => {
-          const localProducts = await db.products.toArray();
-          setDisplayedProducts(localProducts);
-        });
-      }
-      return;
-    }
-
     const delayDebounceFn = setTimeout(async () => {
       setIsSearching(true);
       try {
         if (isOnline) {
-          const results = await searchProducts(searchTerm, branchId);
+          const results = await searchProducts(searchTerm, branchId, {
+            category: filterCategory,
+            status: filterStatus,
+            stock: filterStock,
+            image: filterImage,
+            brand: filterBrand,
+            type: filterType,
+            sortBy,
+            sortOrder
+          });
           setDisplayedProducts(results);
         } else {
           // Offline search! Filter Dexie database
@@ -183,7 +181,20 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, branchId, isInitialized, hasSearched, isOnline]);
+  }, [
+    searchTerm,
+    filterCategory,
+    filterStatus,
+    filterStock,
+    filterImage,
+    filterBrand,
+    filterType,
+    sortBy,
+    sortOrder,
+    branchId,
+    isInitialized,
+    isOnline
+  ]);
 
   const filteredProducts = useMemo(() => displayedProducts.filter(p => {
     if (filterCategory !== 'ALL' && p.category !== filterCategory) return false;
