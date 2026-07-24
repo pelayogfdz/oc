@@ -79,8 +79,17 @@ export async function GET(request: NextRequest) {
       const stockZibata = sameSkuProducts.find((tp: any) => tp.branchId === zibataId)?.stock || 0;
       const stockJuriquilla = sameSkuProducts.find((tp: any) => tp.branchId === juriquillaId)?.stock || 0;
 
+      // Resolve variants: fallback to other branches of the same SKU if the active branch has none
+      let activeVariants = p.variants || [];
+      if (activeVariants.length === 0) {
+        const productWithVariants = sameSkuProducts.find((tp: any) => tp.variants && tp.variants.length > 0);
+        if (productWithVariants) {
+          activeVariants = productWithVariants.variants;
+        }
+      }
+
       // Map variants to include stocks per branch
-      const mappedVariants = (p.variants || []).map((v: any) => {
+      const mappedVariants = activeVariants.map((v: any) => {
         // Find variants with the same attribute name in the other branches
         const sameAttrVariants = tenantProducts
           .filter((tp: any) => tp.sku === p.sku)
