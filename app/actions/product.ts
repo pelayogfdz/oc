@@ -829,33 +829,84 @@ export async function searchProducts(query: string, branchId: string) {
 
 export async function deleteProduct(productId: string) {
   try {
-    // Para forzar la eliminación, primero borramos el historial de movimientos y dependencias 
-    // que puedan causar errores de Foreign Key (Restrict o falta de Cascade).
-    await prisma.$transaction(async (tx) => {
-      // 1. Eliminar dependencias directas e indirectas que impiden borrar el producto
-      await tx.inventoryMovement.deleteMany({ where: { productId } });
-      await tx.saleItem.deleteMany({ where: { productId } });
-      await tx.quoteItem.deleteMany({ where: { productId } });
-      await tx.transferItem.deleteMany({ where: { productId } });
-      await tx.purchaseItem.deleteMany({ where: { productId } });
-      
-      // Borrar de otras recetas donde este producto se use como ingrediente
-      await tx.recipeIngredient.deleteMany({ where: { productId } });
-      
-      // Borrar la receta propia del producto y sus órdenes de producción (si tiene)
-      const recipe = await tx.recipe.findUnique({ where: { productId } });
-      if (recipe) {
-        await tx.productionOrder.deleteMany({ where: { recipeId: recipe.id } });
-        await tx.recipe.delete({ where: { id: recipe.id } });
-      }
-
-      await tx.fuelTraceability.deleteMany({ where: { productId } });
-      await tx.purchaseOrderItem.deleteMany({ where: { productId } });
-      await tx.consignmentItem.deleteMany({ where: { productId } });
-
-      // 2. Finalmente borrar el producto
-      await tx.product.delete({ where: { id: productId } });
+    const productToDelete = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { sku: true, branchId: true }
     });
+
+    if (!productToDelete) return;
+
+    // Obtener la sucursal para determinar el tenantId
+    const branch = await prisma.branch.findUnique({
+      where: { id: productToDelete.branchId },
+      select: { tenantId: true }
+    });
+
+    const tenantId = branch?.tenantId;
+
+    if (tenantId && productToDelete.sku) {
+      // Encontrar todos los productos con el mismo SKU en las sucursales del tenant
+      const siblingBranches = await prisma.branch.findMany({
+        where: { tenantId, isActive: true },
+        select: { id: true }
+      });
+      const siblingBranchIds = siblingBranches.map(b => b.id);
+
+      const productsToClear = await prisma.product.findMany({
+        where: {
+          sku: productToDelete.sku,
+          branchId: { in: siblingBranchIds }
+        },
+        select: { id: true }
+      });
+
+      const productIdsToClear = productsToClear.map(p => p.id);
+
+      // Eliminar dependencias y productos en lote
+      await prisma.$transaction(async (tx) => {
+        await tx.inventoryMovement.deleteMany({ where: { productId: { in: productIdsToClear } } });
+        await tx.saleItem.deleteMany({ where: { productId: { in: productIdsToClear } } });
+        await tx.quoteItem.deleteMany({ where: { productId: { in: productIdsToClear } } });
+        await tx.transferItem.deleteMany({ where: { productId: { in: productIdsToClear } } });
+        await tx.purchaseItem.deleteMany({ where: { productId: { in: productIdsToClear } } });
+        await tx.recipeIngredient.deleteMany({ where: { productId: { in: productIdsToClear } } });
+        
+        const recipes = await tx.recipe.findMany({ where: { productId: { in: productIdsToClear } } });
+        if (recipes.length > 0) {
+          const recipeIds = recipes.map(r => r.id);
+          await tx.productionOrder.deleteMany({ where: { recipeId: { in: recipeIds } } });
+          await tx.recipe.deleteMany({ where: { id: { in: recipeIds } } });
+        }
+
+        await tx.fuelTraceability.deleteMany({ where: { productId: { in: productIdsToClear } } });
+        await tx.purchaseOrderItem.deleteMany({ where: { productId: { in: productIdsToClear } } });
+        await tx.consignmentItem.deleteMany({ where: { productId: { in: productIdsToClear } } });
+
+        await tx.product.deleteMany({ where: { id: { in: productIdsToClear } } });
+      });
+    } else {
+      // Eliminar solo el producto individual si no hay SKU o tenant
+      await prisma.$transaction(async (tx) => {
+        await tx.inventoryMovement.deleteMany({ where: { productId } });
+        await tx.saleItem.deleteMany({ where: { productId } });
+        await tx.quoteItem.deleteMany({ where: { productId } });
+        await tx.transferItem.deleteMany({ where: { productId } });
+        await tx.purchaseItem.deleteMany({ where: { productId } });
+        await tx.recipeIngredient.deleteMany({ where: { productId } });
+        
+        const recipe = await tx.recipe.findUnique({ where: { productId } });
+        if (recipe) {
+          await tx.productionOrder.deleteMany({ where: { recipeId: recipe.id } });
+          await tx.recipe.delete({ where: { id: recipe.id } });
+        }
+
+        await tx.fuelTraceability.deleteMany({ where: { productId } });
+        await tx.purchaseOrderItem.deleteMany({ where: { productId } });
+        await tx.consignmentItem.deleteMany({ where: { productId } });
+
+        await tx.product.delete({ where: { id: productId } });
+      });
+    }
   } catch(e) {
     console.error("Error eliminando producto:", e);
     throw e;
@@ -1041,6 +1092,125 @@ export async function getProductCategoriesAndBrands(branchId: string) {
   } catch (error: any) {
     console.error('Error fetching categories and brands:', error);
     return { success: false, categories: [], brands: [], error: error.message };
+  }
+}
+
+export async function syncTenantCatalogs(tenantId: string) {
+  try {
+    // 1. Obtener todas las sucursales activas del tenant
+    const branches = await prisma.branch.findMany({
+      where: { tenantId, isActive: true },
+      select: { id: true }
+    });
+
+    if (branches.length <= 1) return { success: true, message: "Solo hay una sucursal, no se requiere sincronización." };
+
+    const branchIds = branches.map(b => b.id);
+
+    // 2. Obtener todos los productos del tenant en estas sucursales
+    const allProducts = await prisma.product.findMany({
+      where: { branchId: { in: branchIds } },
+      include: {
+        variants: true,
+        prices: true
+      }
+    });
+
+    // 3. Agrupar productos por SKU
+    const productsBySku: Record<string, typeof allProducts> = {};
+    for (const p of allProducts) {
+      if (!p.sku) continue;
+      if (!productsBySku[p.sku]) {
+        productsBySku[p.sku] = [];
+      }
+      productsBySku[p.sku].push(p);
+    }
+
+    let createdCount = 0;
+
+    // 4. Asegurar que cada SKU exista en todas las sucursales
+    for (const [sku, prods] of Object.entries(productsBySku)) {
+      const existingBranchIds = new Set(prods.map(p => p.branchId));
+      const missingBranchIds = branchIds.filter(id => !existingBranchIds.has(id));
+
+      if (missingBranchIds.length > 0) {
+        // Usar el primer producto encontrado como plantilla/representativo
+        const template = prods[0];
+
+        for (const missingBranchId of missingBranchIds) {
+          // Crear el producto en la sucursal faltante
+          const newProduct = await prisma.product.create({
+            data: {
+              branchId: missingBranchId,
+              sku: template.sku,
+              barcode: template.barcode,
+              name: template.name,
+              description: template.description,
+              price: template.price,
+              cost: template.cost,
+              taxRate: template.taxRate,
+              taxType: template.taxType,
+              iepsRate: template.iepsRate,
+              brand: template.brand,
+              imageUrl: template.imageUrl,
+              youtubeUrl: template.youtubeUrl,
+              isActive: template.isActive,
+              allowProduction: template.allowProduction,
+              isProductionInput: template.isProductionInput,
+              isService: template.isService,
+              unit: template.unit,
+              stock: 0, // Stock inicial en 0
+              minStock: 0,
+              supplierId: null,
+              satKey: template.satKey,
+              satUnit: template.satUnit,
+              expirationDate: template.expirationDate,
+              location: template.location,
+              hasTraceability: template.hasTraceability,
+              // @ts-ignore
+              showInWeb: template.showInWeb
+            }
+          });
+
+          // Copiar variantes
+          if (template.variants && template.variants.length > 0) {
+            for (const v of template.variants) {
+              await prisma.productVariant.create({
+                data: {
+                  productId: newProduct.id,
+                  attribute: v.attribute,
+                  sku: v.sku,
+                  stock: 0,
+                  price: v.price,
+                  cost: v.cost
+                }
+              });
+            }
+          }
+
+          // Copiar precios dinámicos
+          if (template.prices && template.prices.length > 0) {
+            for (const p of template.prices) {
+              await prisma.productPrice.create({
+                data: {
+                  productId: newProduct.id,
+                  priceListId: p.priceListId,
+                  price: p.price
+                }
+              });
+            }
+          }
+
+          createdCount++;
+        }
+      }
+    }
+
+    console.log(`[CATALOG SYNC] Sincronización finalizada. Creados ${createdCount} productos faltantes en el tenant ${tenantId}.`);
+    return { success: true, createdCount };
+  } catch (error) {
+    console.error("[CATALOG SYNC] Error en syncTenantCatalogs:", error);
+    return { success: false, error };
   }
 }
 

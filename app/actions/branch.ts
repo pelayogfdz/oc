@@ -50,6 +50,12 @@ export async function createBranch(formData: FormData) {
   
   if (tenantId) {
     updateTag(`tenant-branches-${tenantId}`);
+    try {
+      const { syncTenantCatalogs } = await import('./product');
+      await syncTenantCatalogs(tenantId);
+    } catch (e) {
+      console.error("[createBranch] Error al sincronizar catálogos:", e);
+    }
   }
   revalidatePath('/preferencias/sucursales');
   revalidatePath('/preferencias/usuarios');
