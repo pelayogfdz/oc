@@ -116,7 +116,9 @@ export default function EditarPedidoForm({
   };
 
   const filteredProducts = availableProducts.filter(p => {
-    const searchTarget = `${p.name} ${p.sku || ''} ${p.barcode || ''}`.toLowerCase();
+    const variantSkus = p.variants ? p.variants.map((v: any) => v.sku || '').join(' ') : '';
+    const variantBarcodes = p.variants ? p.variants.map((v: any) => v.barcode || '').join(' ') : '';
+    const searchTarget = `${p.name} ${p.sku || ''} ${p.barcode || ''} ${variantSkus} ${variantBarcodes}`.toLowerCase();
     const searchWords = searchTerm.toLowerCase().split(/\s+/).filter(Boolean);
     const matchesSearch = searchWords.every(word => searchTarget.includes(word));
     return matchesSearch;

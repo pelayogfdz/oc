@@ -22,7 +22,7 @@ export default async function NuevaCompraPage() {
   const query = { branchId: branch.id };
   const products = await prisma.product.findMany({
     where: query,
-    select: { id: true, name: true, stock: true, cost: true }
+    include: { variants: true }
   });
   
   const suppliers = await getTenantSuppliers();

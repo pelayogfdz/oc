@@ -195,9 +195,11 @@ export default function TransferClient({ originBranchId, originBranchName, other
 
     if (!searchTerm.trim()) return true;
     const searchTerms = removeAccents(searchTerm.toLowerCase().trim()).split(/\s+/);
-    const searchableString = removeAccents(`${p.name || ''} ${p.description || ''} ${p.sku || ''} ${p.barcode || ''}`.toLowerCase());
+    const variantSkus = p.variants ? p.variants.map((v: any) => v.sku || '').join(' ') : '';
+    const variantBarcodes = p.variants ? p.variants.map((v: any) => v.barcode || '').join(' ') : '';
+    const searchableString = removeAccents(`${p.name || ''} ${p.description || ''} ${p.sku || ''} ${p.barcode || ''} ${variantSkus} ${variantBarcodes}`.toLowerCase());
     
-    return searchTerms.every(term => searchableString.includes(term));
+    return searchTerms.every((term: string) => searchableString.includes(term));
   });
 
   const handleProductClick = (product: any) => {

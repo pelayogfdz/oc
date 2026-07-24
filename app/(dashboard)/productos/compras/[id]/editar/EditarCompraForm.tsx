@@ -153,7 +153,9 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
 
   // Filter products based on search term and category
   const filteredProducts = availableProducts.filter((p) => {
-    const searchTarget = `${p.name} ${p.sku || ''} ${p.barcode || ''}`.toLowerCase();
+    const variantSkus = p.variants ? p.variants.map((v: any) => v.sku || '').join(' ') : '';
+    const variantBarcodes = p.variants ? p.variants.map((v: any) => v.barcode || '').join(' ') : '';
+    const searchTarget = `${p.name} ${p.sku || ''} ${p.barcode || ''} ${variantSkus} ${variantBarcodes}`.toLowerCase();
     const searchWords = searchTerm.toLowerCase().split(/\s+/).filter(Boolean);
     const matchesSearch = searchWords.every(word => searchTarget.includes(word));
     const matchesCategory = filterCategory === "ALL" || p.category === filterCategory;

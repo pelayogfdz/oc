@@ -86,7 +86,9 @@ export async function searchCatalogProducts(params: {
       whereClause.OR = [
         { name: { contains: query, mode: 'insensitive' } },
         { sku: { contains: query, mode: 'insensitive' } },
-        { barcode: { contains: query, mode: 'insensitive' } }
+        { barcode: { contains: query, mode: 'insensitive' } },
+        { variants: { some: { sku: { contains: query, mode: 'insensitive' } } } },
+        { variants: { some: { barcode: { contains: query, mode: 'insensitive' } } } }
       ];
     }
 

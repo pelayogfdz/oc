@@ -241,7 +241,18 @@ async function handleSync(onlyStock = false) {
                       data: { stock: { decrement: quantity } }
                     });
 
-                    console.log(`[MELI DAILY CRON] Descontado stock local (${quantity}) para producto vinculado ${map.productId}`);
+                    // Registrar movimiento de inventario tipo OUT
+                    await tenantClient.inventoryMovement.create({
+                      data: {
+                        productId: map.productId,
+                        type: 'OUT',
+                        quantity: -quantity,
+                        reason: `Venta Mercado Libre Orden ${orderId}`,
+                        userId: onlineUser.id
+                      }
+                    });
+
+                    console.log(`[MELI DAILY CRON] Descontado stock local (${quantity}) y registrado movimiento OUT para producto vinculado ${map.productId}`);
                   }
                 }
                 

@@ -692,7 +692,9 @@ export async function searchProducts(query: string, branchId: string) {
       OR: [
         { name: { contains: word, mode: 'insensitive' as const } },
         { sku: { contains: word, mode: 'insensitive' as const } },
-        { barcode: { contains: word, mode: 'insensitive' as const } }
+        { barcode: { contains: word, mode: 'insensitive' as const } },
+        { variants: { some: { sku: { contains: word, mode: 'insensitive' as const } } } },
+        { variants: { some: { barcode: { contains: word, mode: 'insensitive' as const } } } }
       ]
     }));
 

@@ -34,7 +34,7 @@ export default async function PurchaseOrderDetailPage({ params }: { params: { id
   
   const products = await prisma.product.findMany({
     where: query,
-    select: { id: true, name: true, sku: true, barcode: true, cost: true, imageUrl: true }
+    include: { variants: true }
   });
 
   const suppliers = await getTenantSuppliers();

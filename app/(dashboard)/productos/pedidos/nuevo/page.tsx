@@ -17,7 +17,7 @@ export default async function NuevoPedidoPage({ searchParams }: { searchParams: 
   const query = branch?.id === 'GLOBAL' ? {} : { branchId: branch?.id || '' };
   const products = await prisma.product.findMany({
     where: query,
-    select: { id: true, name: true, stock: true, minStock: true, cost: true, sku: true, barcode: true, imageUrl: true }
+    include: { variants: true }
   });
   
   const suppliers = await getTenantSuppliers();

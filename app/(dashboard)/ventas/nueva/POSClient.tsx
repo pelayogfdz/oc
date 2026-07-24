@@ -1060,7 +1060,9 @@ export default function POSClient({
              .filter(p => 
                Boolean(p.name.toLowerCase().includes(lowerTerm) || 
                (p.sku && p.sku.toLowerCase().includes(lowerTerm)) || 
-               (p.barcode && p.barcode.includes(lowerTerm)))
+               (p.barcode && p.barcode.includes(lowerTerm)) ||
+               (p.variants && p.variants.some((v: any) => typeof v.sku === 'string' && v.sku.toLowerCase().includes(lowerTerm))) ||
+               (p.variants && p.variants.some((v: any) => typeof v.barcode === 'string' && v.barcode.toLowerCase().includes(lowerTerm))))
              ).limit(50).toArray();
            setDisplayedProducts(results);
         } else if (searchTerm.trim() !== '') {

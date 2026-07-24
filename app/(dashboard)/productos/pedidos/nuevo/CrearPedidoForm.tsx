@@ -329,7 +329,9 @@ export default function CrearPedidoForm({
   };
 
   const filteredProducts = availableProducts.filter(p => {
-    const searchTarget = `${p.name} ${p.sku || ''} ${p.barcode || ''}`.toLowerCase();
+    const variantSkus = p.variants ? p.variants.map((v: any) => v.sku || '').join(' ') : '';
+    const variantBarcodes = p.variants ? p.variants.map((v: any) => v.barcode || '').join(' ') : '';
+    const searchTarget = `${p.name} ${p.sku || ''} ${p.barcode || ''} ${variantSkus} ${variantBarcodes}`.toLowerCase();
     const searchWords = searchTerm.toLowerCase().split(/\s+/).filter(Boolean);
     const matchesSearch = searchWords.every(word => searchTarget.includes(word));
     const matchesCategory = filterCategory === 'ALL' || p.category === filterCategory;
@@ -343,7 +345,11 @@ export default function CrearPedidoForm({
     // Search exact match in products
     const exactProduct = availableProducts.find(p => 
       (p.barcode && p.barcode.toLowerCase() === cleanTerm) ||
-      (p.sku && p.sku.toLowerCase() === cleanTerm)
+      (p.sku && p.sku.toLowerCase() === cleanTerm) ||
+      (p.variants && p.variants.some((v: any) => 
+        (v.barcode && v.barcode.toLowerCase() === cleanTerm) ||
+        (v.sku && v.sku.toLowerCase() === cleanTerm)
+      ))
     );
 
     if (exactProduct) {

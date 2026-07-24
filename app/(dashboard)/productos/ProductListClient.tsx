@@ -168,7 +168,9 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             const nameMatch = p.name.toLowerCase().includes(term);
             const skuMatch = typeof p.sku === 'string' && p.sku.toLowerCase().includes(term);
             const barcodeMatch = typeof p.barcode === 'string' && p.barcode.toLowerCase().includes(term);
-            return nameMatch || skuMatch || barcodeMatch;
+            const variantSkuMatch = p.variants && p.variants.some((v: any) => typeof v.sku === 'string' && v.sku.toLowerCase().includes(term));
+            const variantBarcodeMatch = p.variants && p.variants.some((v: any) => typeof v.barcode === 'string' && v.barcode.toLowerCase().includes(term));
+            return nameMatch || skuMatch || barcodeMatch || variantSkuMatch || variantBarcodeMatch;
           }).toArray();
           setDisplayedProducts(results);
         }
