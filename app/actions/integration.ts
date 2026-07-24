@@ -145,129 +145,149 @@ export async function saveMeliPricingConfig(formData: FormData) {
     }
   });
 
-  // 2. Buscar o crear la lista de precios "Mercado Libre" en esta sucursal
-  let priceList = await prisma.priceList.findFirst({
-    where: {
-      branchId: branch.id,
-      name: { mode: 'insensitive', equals: 'mercado libre' }
-    }
-  });
+  // 2. Buscar o crear la lista de precios "Mercado Libre" en esta sucursal y realizar la sincronización en segundo plano para evitar timeouts de red
+  const { getClientForTenant } = await import('@/lib/prisma');
+  const tenantClient = tenantId ? getClientForTenant(tenantId) : prisma;
 
-  if (!priceList) {
-    priceList = await prisma.priceList.create({
-      data: {
-        branchId: branch.id,
-        name: 'Mercado Libre'
-      }
-    });
-    console.log(`[saveMeliPricingConfig] Creada nueva lista de precios 'Mercado Libre' en sucursal ${branch.id}`);
-  }
-
-  // 3. Recalcular y guardar el precio en la lista para TODOS los productos activos que no tengan precio fijo en ML
-  const activeProducts = await prisma.product.findMany({
-    where: { branchId: branch.id, isActive: true },
-    include: {
-      externalMaps: {
-        where: { platform: 'MERCADO_LIBRE' }
-      }
-    }
-  });
-
-  console.log(`[saveMeliPricingConfig] Recalculando precios para ${activeProducts.length} productos locales...`);
-  
-  const retentionRate = hasTaxRetention ? (satRetentionPct / 100) : 0;
-  const denominator = 1 - listingType - retentionRate - (targetMargin / 100);
-
-  for (const product of activeProducts) {
-    const map = product.externalMaps?.[0];
-    if (map?.isFixedPrice) {
-      continue;
-    }
-
-    let suggestedPrice = 0;
-    if (denominator > 0) {
-      suggestedPrice = (shippingCost + product.cost) / denominator;
-      // Redondear a 2 decimales
-      suggestedPrice = Math.round(suggestedPrice * 100) / 100;
-    }
-
-    if (suggestedPrice > 0) {
-      // Upsert en ProductPrice
-      await prisma.productPrice.upsert({
+  setTimeout(async () => {
+    try {
+      let priceList = await tenantClient.priceList.findFirst({
         where: {
-          productId_priceListId: {
-            productId: product.id,
-            priceListId: priceList.id
-          }
-        },
-        create: {
-          productId: product.id,
-          priceListId: priceList.id,
-          price: suggestedPrice
-        },
-        update: {
-          price: suggestedPrice
+          branchId: branch.id,
+          name: { mode: 'insensitive', equals: 'mercado libre' }
         }
       });
-    }
-  }
 
-  // 4. Intentar empujar precios actualizados a las publicaciones vinculadas de Mercado Libre
-  try {
-    const { getOrRefreshMeliToken } = await import('@/app/utils/meliToken');
-    const token = await getOrRefreshMeliToken(branch.id);
-    
-    if (token) {
-      const mappings = await prisma.externalProductMap.findMany({
-        where: {
-          platform: 'MERCADO_LIBRE',
-          product: { branchId: branch.id }
-        },
-        include: { product: true }
+      if (!priceList) {
+        priceList = await tenantClient.priceList.create({
+          data: {
+            branchId: branch.id,
+            name: 'Mercado Libre'
+          }
+        });
+        console.log(`[saveMeliPricingConfig] Creada nueva lista de precios 'Mercado Libre' en sucursal ${branch.id}`);
+      }
+
+      // 3. Recalcular y guardar el precio en la lista para TODOS los productos activos que no tengan precio fijo en ML
+      const activeProducts = await tenantClient.product.findMany({
+        where: { branchId: branch.id, isActive: true },
+        include: {
+          externalMaps: {
+            where: { platform: 'MERCADO_LIBRE' }
+          }
+        }
       });
 
-      console.log(`[saveMeliPricingConfig] Actualizando precios y stock en caliente para ${mappings.length} publicaciones vinculadas...`);
+      console.log(`[saveMeliPricingConfig] Recalculando precios para ${activeProducts.length} productos locales...`);
+      
+      const retentionRate = hasTaxRetention ? (satRetentionPct / 100) : 0;
+      const denominator = 1 - listingType - retentionRate - (targetMargin / 100);
 
-      for (const map of mappings) {
-        // 1. Sincronizar precio (si no es precio fijo)
-        if (!map.isFixedPrice) {
-          const prodCost = map.product.cost;
-          let suggestedPrice = 0;
-          if (denominator > 0) {
-            suggestedPrice = (shippingCost + prodCost) / denominator;
-            suggestedPrice = Math.round(suggestedPrice * 100) / 100;
+      // Optimización: traer precios existentes de la lista para omitir escrituras innecesarias en la base de datos
+      const existingPrices = await tenantClient.productPrice.findMany({
+        where: { priceListId: priceList.id }
+      });
+      const existingPricesMap = new Map(existingPrices.map(p => [p.productId, p.price]));
+
+      for (const product of activeProducts) {
+        const map = product.externalMaps?.[0];
+        if (map?.isFixedPrice) {
+          continue;
+        }
+
+        let suggestedPrice = 0;
+        if (denominator > 0) {
+          suggestedPrice = (shippingCost + product.cost) / denominator;
+          // Redondear a 2 decimales
+          suggestedPrice = Math.round(suggestedPrice * 100) / 100;
+        }
+
+        if (suggestedPrice > 0) {
+          const currentPrice = existingPricesMap.get(product.id);
+          if (currentPrice === suggestedPrice) {
+            continue; // Evitar escrituras si el precio no cambió
           }
 
-          if (suggestedPrice > 0) {
-            const response = await fetch(`https://api.mercadolibre.com/items/${map.externalId}`, {
-              method: 'PUT',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ price: suggestedPrice })
-            });
+          // Upsert en ProductPrice
+          await tenantClient.productPrice.upsert({
+            where: {
+              productId_priceListId: {
+                productId: product.id,
+                priceListId: priceList.id
+              }
+            },
+            create: {
+              productId: product.id,
+              priceListId: priceList.id,
+              price: suggestedPrice
+            },
+            update: {
+              price: suggestedPrice
+            }
+          });
+        }
+      }
 
-            if (response.ok) {
-              console.log(`[saveMeliPricingConfig] Precio actualizado en Mercado Libre para ${map.externalId}: $${suggestedPrice}`);
-            } else {
-              const errBody = await response.json().catch(() => ({}));
-              console.error(`[saveMeliPricingConfig] Error al actualizar precio en ML para ${map.externalId}:`, errBody);
+      // 4. Intentar empujar precios actualizados a las publicaciones vinculadas de Mercado Libre
+      try {
+        const { getOrRefreshMeliToken } = await import('@/app/utils/meliToken');
+        const token = await getOrRefreshMeliToken(branch.id);
+        
+        if (token) {
+          const mappings = await tenantClient.externalProductMap.findMany({
+            where: {
+              platform: 'MERCADO_LIBRE',
+              product: { branchId: branch.id }
+            },
+            include: { product: true }
+          });
+
+          console.log(`[saveMeliPricingConfig] Actualizando precios y stock en caliente para ${mappings.length} publicaciones vinculadas...`);
+
+          for (const map of mappings) {
+            // 1. Sincronizar precio (si no es precio fijo)
+            if (!map.isFixedPrice) {
+              const prodCost = map.product.cost;
+              let suggestedPrice = 0;
+              if (denominator > 0) {
+                suggestedPrice = (shippingCost + prodCost) / denominator;
+                suggestedPrice = Math.round(suggestedPrice * 100) / 100;
+              }
+
+              if (suggestedPrice > 0) {
+                const response = await fetch(`https://api.mercadolibre.com/items/${map.externalId}`, {
+                  method: 'PUT',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ price: suggestedPrice })
+                });
+
+                if (response.ok) {
+                  console.log(`[saveMeliPricingConfig] Precio actualizado en Mercado Libre para ${map.externalId}: $${suggestedPrice}`);
+                } else {
+                  const errBody = await response.json().catch(() => ({}));
+                  console.error(`[saveMeliPricingConfig] Error al actualizar precio en ML para ${map.externalId}:`, errBody);
+                }
+              }
+            }
+
+            // 2. Sincronizar stock
+            try {
+              await syncMeliStockAction(map.productId, tenantId);
+            } catch (stockErr) {
+              console.error(`[saveMeliPricingConfig] Error al actualizar stock en ML para ${map.externalId}:`, stockErr);
             }
           }
         }
-
-        // 2. Sincronizar stock
-        try {
-          await syncMeliStockAction(map.productId, tenantId);
-        } catch (stockErr) {
-          console.error(`[saveMeliPricingConfig] Error al actualizar stock en ML para ${map.externalId}:`, stockErr);
-        }
+      } catch (syncErr) {
+        console.error('[saveMeliPricingConfig] Error en sincronización de precios con ML:', syncErr);
       }
+    } catch (err) {
+      console.error('[saveMeliPricingConfig] Error general en tarea de fondo:', err);
     }
-  } catch (syncErr) {
-    console.error('[saveMeliPricingConfig] Error en sincronización de precios con ML:', syncErr);
-  }
+  }, 0);
 
   revalidatePath(`/integraciones/${platform.toLowerCase()}`);
 }
