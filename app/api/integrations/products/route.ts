@@ -4,10 +4,23 @@ import { authenticateToken } from '../auth';
 
 export const dynamic = 'force-dynamic';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders
+  });
+}
+
 export async function GET(request: NextRequest) {
   const auth = await authenticateToken(request);
   if (!auth) {
-    return NextResponse.json({ error: 'No autorizado. Token API inválido o inactivo.' }, { status: 401 });
+    return NextResponse.json({ error: 'No autorizado. Token API inválido o inactivo.' }, { status: 401, headers: corsHeaders });
   }
 
   const { branch } = auth;
@@ -59,9 +72,9 @@ export async function GET(request: NextRequest) {
       },
       count: products.length,
       products
-    });
+    }, { headers: corsHeaders });
   } catch (error: any) {
     console.error('Error fetching products for integration API:', error);
-    return NextResponse.json({ error: 'Error del servidor: ' + error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Error del servidor: ' + error.message }, { status: 500, headers: corsHeaders });
   }
 }
