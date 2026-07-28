@@ -87,6 +87,24 @@ export async function createSale(
         let product = await tx.product.findUnique({ where: { id: item.productId } });
         if (!product) throw new Error("Producto no encontrado");
 
+        // Si el producto no pertenece a la sucursal de la venta, buscar el producto de la sucursal correcta por SKU
+        if (product.branchId !== finalBranchId) {
+          const correctProduct = await tx.product.findFirst({
+            where: {
+              branchId: finalBranchId,
+              sku: product.sku,
+              isActive: true
+            }
+          });
+          if (correctProduct) {
+            console.log(`[AUTOCORRECCIÓN SUCURSAL] Cambiando producto ${product.id} (sucursal ${product.branchId}) por ${correctProduct.id} (sucursal ${finalBranchId})`);
+            product = correctProduct;
+            item.productId = correctProduct.id;
+          } else {
+            throw new Error(`El producto ${product.name} (SKU: ${product.sku}) no está registrado o activo en la sucursal de la venta.`);
+          }
+        }
+
         // Auto-activate temporary products when sold
         if (!product.isActive && product.sku.startsWith('TEMP-')) {
           product = await tx.product.update({

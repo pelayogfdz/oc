@@ -338,6 +338,34 @@ export default function POSClient({
     }
   }, [branchId, mode]);
 
+  // Reset active tab and clear tabs list when changing active branch to prevent cross-branch cart sales
+  useEffect(() => {
+    resetActiveTab();
+    setTabs([
+      {
+        id: '1',
+        name: mode === 'QUOTE' ? 'Nueva Cotización' : mode === 'CONSIGNMENT' ? 'Nueva Consignación' : 'Nueva Venta',
+        cart: [],
+        selectedCustomerId: null,
+        customerSearchTerm: '',
+        priceList: 'price',
+        manualDiscountType: '$',
+        manualDiscountValue: '',
+        pointsRedeemed: 0,
+        tipAmount: 0,
+        paymentMethod: 'CASH',
+        amountReceived: '',
+        cardAmount: '',
+        notes: '',
+        documentType: 'TICKET',
+        transactionType: 'VENTA',
+        appliedPromotionIds: null,
+        breakdownDiscounts: false
+      }
+    ]);
+    setActiveTabId('1');
+  }, [branchId]);
+
   const handleActionError = (e: any): boolean => {
     const errStr = String(e);
     if (
