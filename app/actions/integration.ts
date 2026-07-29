@@ -230,11 +230,26 @@ export async function saveMeliPricingConfig(formData: FormData) {
 
       // 4. Intentar empujar precios actualizados a las publicaciones vinculadas de Mercado Libre
       try {
-        const { getOrRefreshMeliToken } = await import('@/app/utils/meliToken');
-        const token = await getOrRefreshMeliToken(branch.id);
-        
-        if (token) {
-          const mappings = await tenantClient.externalProductMap.findMany({
+        const tenantBranchesList = await tenantClient.branch.findMany({
+          where: { tenantId: branch.tenantId, isActive: true },
+          select: { id: true }
+        });
+        const tenantBranchIdsList = tenantBranchesList.map(b => b.id);
+
+        const mainIntegration = await tenantClient.storeIntegration.findFirst({
+          where: {
+            platform: 'MERCADO_LIBRE',
+            branchId: { in: tenantBranchIdsList },
+            accessToken: { not: null }
+          }
+        });
+
+        if (mainIntegration) {
+          const { getOrRefreshMeliToken } = await import('@/app/utils/meliToken');
+          const token = await getOrRefreshMeliToken(mainIntegration.branchId);
+          
+          if (token) {
+            const mappings = await tenantClient.externalProductMap.findMany({
             where: {
               platform: 'MERCADO_LIBRE',
               product: { branchId: branch.id }
@@ -281,7 +296,8 @@ export async function saveMeliPricingConfig(formData: FormData) {
             }
           }
         }
-      } catch (syncErr) {
+      }
+    } catch (syncErr) {
         console.error('[saveMeliPricingConfig] Error en sincronización de precios con ML:', syncErr);
       }
     } catch (err) {
@@ -303,9 +319,12 @@ export async function saveMeliProductPricing(
     margenPorcentaje: number;
     isFixedPrice: boolean;
   }
-) {
+): Promise<{ success: boolean; error?: string; warning?: string }> {
   try {
     const branch = await getActiveBranch();
+    if (!branch) {
+      return { success: false, error: 'Sucursal activa no encontrada.' };
+    }
     
     // Buscar el mapa
     const map = await prisma.externalProductMap.findUnique({
@@ -317,35 +336,78 @@ export async function saveMeliProductPricing(
       return { success: false, error: 'Vinculación no encontrada.' };
     }
 
+    // Obtener todas las sucursales activas del tenant
+    const tenantBranches = await prisma.branch.findMany({
+      where: { tenantId: branch.tenantId, isActive: true },
+      select: { id: true }
+    });
+    const tenantBranchIds = tenantBranches.map(b => b.id);
+
+    // Buscar en cuál sucursal del tenant está configurada la integración de Mercado Libre
+    const integration = await prisma.storeIntegration.findFirst({
+      where: {
+        platform: 'MERCADO_LIBRE',
+        branchId: { in: tenantBranchIds },
+        accessToken: { not: null }
+      }
+    });
+
+    if (!integration) {
+      return { success: false, error: 'No se encontró una integración conectada de Mercado Libre para este negocio.' };
+    }
+
+    const { getOrRefreshMeliToken } = await import('@/app/utils/meliToken');
+    const token = await getOrRefreshMeliToken(integration.branchId);
+    
+    if (!token) {
+      return { success: false, error: 'No se pudo obtener un token de acceso válido de Mercado Libre. Por favor, reconecta tu cuenta.' };
+    }
+
     // Intentar obtener detalles del item de Mercado Libre para calcular costos reales con el nuevo precio
     let comisionMeli = data.comisionMeli;
     let envioMeli = data.envioMeli;
     let retencionMeli = data.retencionMeli;
 
-    const { getOrRefreshMeliToken } = await import('@/app/utils/meliToken');
-    const token = await getOrRefreshMeliToken(branch.id);
-    if (token) {
-      try {
-        const itemRes = await fetch(`https://api.mercadolibre.com/items/${map.externalId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (itemRes.ok) {
-          const itemData = await itemRes.json();
-          const calculatedCosts = await calculateMeliItemCosts(
-            branch.id,
-            map.externalId,
-            data.precioMeli,
-            itemData.category_id,
-            itemData.listing_type_id,
-            itemData.shipping ? itemData.shipping.free_shipping : false
-          );
-          comisionMeli = calculatedCosts.comisionMeli;
-          envioMeli = calculatedCosts.envioMeli;
-          retencionMeli = calculatedCosts.retencionMeli;
-        }
-      } catch (e) {
-        console.error('Error fetching costs in saveMeliProductPricing:', e);
+    try {
+      const itemRes = await fetch(`https://api.mercadolibre.com/items/${map.externalId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (itemRes.ok) {
+        const itemData = await itemRes.json();
+        const calculatedCosts = await calculateMeliItemCosts(
+          integration.branchId,
+          map.externalId,
+          data.precioMeli,
+          itemData.category_id,
+          itemData.listing_type_id,
+          itemData.shipping ? itemData.shipping.free_shipping : false
+        );
+        comisionMeli = calculatedCosts.comisionMeli;
+        envioMeli = calculatedCosts.envioMeli;
+        retencionMeli = calculatedCosts.retencionMeli;
       }
+    } catch (e) {
+      console.error('Error fetching costs in saveMeliProductPricing:', e);
+    }
+
+    // Intentar empujar el precio a Mercado Libre en tiempo real
+    const response = await fetch(`https://api.mercadolibre.com/items/${map.externalId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ price: data.precioMeli })
+    });
+
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      console.error(`[saveMeliProductPricing] Error al empujar precio a ML para ${map.externalId}:`, errBody);
+      const msg = errBody.message || (errBody.cause && errBody.cause[0] && errBody.cause[0].message) || 'Error de API';
+      return { 
+        success: false, 
+        error: 'No se pudo actualizar el precio en Mercado Libre. Detalle: ' + msg
+      };
     }
 
     const cost = map.product.cost;
@@ -367,10 +429,10 @@ export async function saveMeliProductPricing(
       }
     });
 
-    // Guardar el precio en la lista de precios "Mercado Libre" del producto
+    // Guardar el precio en la lista de precios "Mercado Libre" de la sucursal del producto
     let priceList = await prisma.priceList.findFirst({
       where: {
-        branchId: branch.id,
+        branchId: map.product.branchId,
         name: { mode: 'insensitive', equals: 'mercado libre' }
       }
     });
@@ -378,7 +440,7 @@ export async function saveMeliProductPricing(
     if (!priceList) {
       priceList = await prisma.priceList.create({
         data: {
-          branchId: branch.id,
+          branchId: map.product.branchId,
           name: 'Mercado Libre'
         }
       });
@@ -400,27 +462,6 @@ export async function saveMeliProductPricing(
         price: data.precioMeli
       }
     });
-
-    // Intentar empujar el precio a Mercado Libre en tiempo real
-    if (token) {
-      const response = await fetch(`https://api.mercadolibre.com/items/${map.externalId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ price: data.precioMeli })
-      });
-
-      if (!response.ok) {
-        const errBody = await response.json().catch(() => ({}));
-        console.error(`[saveMeliProductPricing] Error al empujar precio a ML para ${map.externalId}:`, errBody);
-        return { 
-          success: true, 
-          warning: 'Guardado localmente, pero no se pudo actualizar en Mercado Libre. Detalle: ' + (errBody.message || 'Error de API')
-        };
-      }
-    }
 
     revalidatePath(`/integraciones/mercadolibre`);
     return { success: true };
@@ -1378,13 +1419,6 @@ export async function updateMeliItemStatus(mapId: string, action: 'active' | 'pa
       return { success: false, error: 'Contexto de usuario no encontrado.' };
     }
 
-    const branch = await prisma.branch.findFirst({
-      where: { tenantId: user.tenantId }
-    });
-    if (!branch) {
-      return { success: false, error: 'No se encontró la sucursal del usuario.' };
-    }
-
     const map = await prisma.externalProductMap.findUnique({
       where: { id: mapId }
     });
@@ -1392,10 +1426,28 @@ export async function updateMeliItemStatus(mapId: string, action: 'active' | 'pa
       return { success: false, error: 'Publicación no encontrada.' };
     }
 
+    const tenantBranches = await prisma.branch.findMany({
+      where: { tenantId: user.tenantId, isActive: true },
+      select: { id: true }
+    });
+    const tenantBranchIds = tenantBranches.map(b => b.id);
+
+    const integration = await prisma.storeIntegration.findFirst({
+      where: {
+        platform: 'MERCADO_LIBRE',
+        branchId: { in: tenantBranchIds },
+        accessToken: { not: null }
+      }
+    });
+
+    if (!integration) {
+      return { success: false, error: 'No se encontró una integración conectada de Mercado Libre para este negocio.' };
+    }
+
     const { getOrRefreshMeliToken } = await import('@/app/utils/meliToken');
-    const token = await getOrRefreshMeliToken(branch.id);
+    const token = await getOrRefreshMeliToken(integration.branchId);
     if (!token) {
-      return { success: false, error: 'No hay conexión activa con Mercado Libre.' };
+      return { success: false, error: 'No se pudo obtener un token de acceso válido de Mercado Libre. Por favor, reconecta tu cuenta.' };
     }
 
     const meliStatus = action === 'delete' ? 'closed' : action;
