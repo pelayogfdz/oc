@@ -60,14 +60,18 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
   }, [salesData, filterUserId, filterPayment, filterStatus, filterBrand]);
 
   // KPIs
-  const totalVentas = filteredSales.reduce((sum: number, sale: any) => sum + sale.total, 0);
-  const totalFacturado = filteredSales.filter((s: any) => s.isFacturado).reduce((sum: number, sale: any) => sum + sale.total, 0);
+  const activeFilteredSales = useMemo(() => {
+    return filteredSales.filter((s: any) => s.status !== 'CANCELLED');
+  }, [filteredSales]);
+
+  const totalVentas = activeFilteredSales.reduce((sum: number, sale: any) => sum + sale.total, 0);
+  const totalFacturado = activeFilteredSales.filter((s: any) => s.isFacturado).reduce((sum: number, sale: any) => sum + sale.total, 0);
   const percentageFacturado = totalVentas > 0 ? ((totalFacturado / totalVentas) * 100).toFixed(1) : '0.0';
 
   // Chart Data: Venta por Día
   const salesByDay = useMemo(() => {
     const grouped: any = {};
-    filteredSales.forEach((s: any) => {
+    activeFilteredSales.forEach((s: any) => {
       const date = new Date(s.createdAt).toLocaleDateString();
       if (!grouped[date]) grouped[date] = { date, facturado: 0, noFacturado: 0 };
       if (s.isFacturado) {
@@ -77,18 +81,18 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
       }
     });
     return Object.values(grouped);
-  }, [filteredSales]);
+  }, [activeFilteredSales]);
 
   // Chart Data: Forma de Pago
   const salesByPayment = useMemo(() => {
     const grouped: any = {};
-    filteredSales.filter((s: any) => s.isFacturado).forEach((s: any) => {
+    activeFilteredSales.filter((s: any) => s.isFacturado).forEach((s: any) => {
       const pm = s.paymentMethod;
       if (!grouped[pm]) grouped[pm] = { name: pm, value: 0 };
       grouped[pm].value += s.total;
     });
     return Object.values(grouped);
-  }, [filteredSales]);
+  }, [activeFilteredSales]);
 
   const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -101,7 +105,7 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
       s.user?.name || s.user?.email || 'Desconocido',
       s.paymentMethod,
       s.total,
-      s.isFacturado ? 'Facturado' : 'Sin Facturar'
+      s.status === 'CANCELLED' ? 'Cancelada' : (s.isFacturado ? 'Facturado' : 'Sin Facturar')
     ]);
     
     exportToExcel(headers, rows, `reporte_facturacion_${new Date().toISOString().split('T')[0]}`);
@@ -247,7 +251,11 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
                 <td style={{ padding: '1rem' }}>{s.user?.name || s.user?.email || 'Caja'}</td>
                 <td style={{ padding: '1rem', fontWeight: 'bold' }}>${s.total.toFixed(2)}</td>
                 <td style={{ padding: '1rem' }}>
-                  {s.isFacturado ? (
+                  {s.status === 'CANCELLED' ? (
+                    <span style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '0.25rem 0.5rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                      Cancelada
+                    </span>
+                  ) : s.isFacturado ? (
                     <span style={{ backgroundColor: '#ecfdf5', color: '#059669', padding: '0.25rem 0.5rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>
                       Facturado
                     </span>

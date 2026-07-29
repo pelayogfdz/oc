@@ -54,7 +54,17 @@ export async function getDashboardMetrics(branchId?: string) {
       select: { total: true }
     });
 
-    const ventasDelDia = todaySales.reduce((acc, sum) => acc + sum.total, 0);
+    // Devoluciones de hoy
+    const todayReturns = await prisma.saleReturn.findMany({
+      where: {
+        createdAt: { gte: today, lte: endOfToday },
+        ...resolvedBranchFilter
+      },
+      select: { totalRefund: true }
+    });
+
+    const totalRefunds = todayReturns.reduce((acc, r) => acc + r.totalRefund, 0);
+    const ventasDelDia = Math.max(0, todaySales.reduce((acc, sum) => acc + sum.total, 0) - totalRefunds);
     const ticketsEmitidos = todaySales.length;
 
     // Inventario

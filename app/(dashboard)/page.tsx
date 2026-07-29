@@ -72,7 +72,8 @@ export default async function DashboardPage(props: Props) {
     topCustomersGroup,
     todaySaleItems,
     lowStockProducts,
-    chartSales
+    chartSales,
+    todayReturnsAggregate
   ] = await Promise.all([
     prisma.sale.aggregate({
       _sum: { total: true },
@@ -143,10 +144,18 @@ export default async function DashboardPage(props: Props) {
         total: true,
         createdAt: true
       }
+    }),
+    prisma.saleReturn.aggregate({
+      _sum: { totalRefund: true },
+      where: {
+        ...branchFilter,
+        createdAt: { gte: startOfDay, lte: endOfDay }
+      }
     })
   ]);
 
-  const totalSalesValue = todayAggregate._sum.total || 0;
+  const totalRefundsValue = todayReturnsAggregate._sum.totalRefund || 0;
+  const totalSalesValue = Math.max(0, (todayAggregate._sum.total || 0) - totalRefundsValue);
   const totalOrders = todayAggregate._count.id || 0;
   const avgTicket = totalOrders > 0 ? totalSalesValue / totalOrders : 0;
 
