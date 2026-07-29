@@ -462,9 +462,24 @@ button {
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
   }
 
-  /* Ocultar barra lateral, cabeceras, botones y elementos innecesarios en la impresión */
+  /* Desbloquear altura fija y desborde oculto de contenedores padres para evitar truncamiento en la primera página */
+  html, body, #__next, 
+  div[style*="height: 100vh"], div[style*="height:100vh"],
+  div[style*="height: 100%"], div[style*="height:100%"],
+  div[style*="overflow: hidden"], div[style*="overflow:hidden"] {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    display: block !important;
+  }
+
+  /* Ocultar barra lateral, cabeceras, botones, widgets flotantes de chat y elementos innecesarios */
   .dashboard-sidebar, 
   .sidebar-overlay, 
   .mobile-menu-toggle,
@@ -473,8 +488,16 @@ button {
   .btn-primary, 
   .btn-secondary, 
   button,
+  a[href^="tel:"],
+  a[href^="mailto:"],
   input[type="button"],
-  input[type="submit"] {
+  input[type="submit"],
+  .floating-whatsapp-widget,
+  .collaborator-task-popup,
+  .price-changes-alert-popup,
+  .meli-sales-alert-popup,
+  .chat-widget-container,
+  #hubspot-messages-iframe-container {
     display: none !important;
   }
 
@@ -485,17 +508,28 @@ button {
     width: 100% !important;
     max-width: 100% !important;
     overflow: visible !important;
+    display: block !important;
   }
 
   .dashboard-content-wrapper {
     height: auto !important;
     overflow: visible !important;
+    display: block !important;
+    flex: none !important;
   }
 
+  /* Distribuir reportes verticalmente de forma limpia */
   .report-grid {
     display: flex !important;
     flex-direction: column !important;
-    gap: 2rem !important;
+    gap: 1.5rem !important;
+  }
+
+  /* Asegurar que las tarjetas de KPIs quepan ordenadas en una fila y no se encimen */
+  .grid, [class*="grid-cols"] {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 10px !important;
   }
 
   /* Evitar recortes (scrolls) de tablas y contenedores de reportes, expandiendo su altura completa */
@@ -506,9 +540,33 @@ button {
     overflow-y: visible !important;
   }
 
-  /* Repetir cabecera de tablas en cada página impresa */
+  /* Estilo premium para tablas impresas, impidiendo desborde horizontal */
+  table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: auto !important;
+    font-size: 10px !important; /* Letra compacta para que quepan todas las columnas */
+    border-collapse: collapse !important;
+    background-color: white !important;
+    color: #000000 !important;
+  }
+
   thead {
     display: table-header-group !important;
+  }
+
+  th, td {
+    padding: 5px 6px !important;
+    border: 1px solid #cbd5e1 !important;
+    word-break: break-word !important; /* Ajustar texto largo en celdas */
+    white-space: normal !important;
+    font-size: 10px !important;
+  }
+
+  th {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    font-weight: bold !important;
   }
 
   /* Evitar romper filas de tabla a la mitad en saltos de página */
@@ -526,10 +584,9 @@ button {
     overflow: visible !important;
   }
 
-  /* Eliminar sombras para una impresión más limpia */
-  * {
-    box-shadow: none !important;
-    text-shadow: none !important;
+  @page {
+    margin: 10mm;
+    size: auto;
   }
 }
   
