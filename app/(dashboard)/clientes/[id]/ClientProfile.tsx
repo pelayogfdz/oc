@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { addCustomerPaymentBatch, deleteCustomerPayment } from '@/app/actions/customerPayment';
 import { toggleCustomerBlock, sendCustomerAccountStatementEmail } from '@/app/actions/customer';
-import { stampCustomerPayment, stampPaymentBatch } from '@/app/actions/facturacion';
+import { stampCustomerPayment, stampPaymentBatch, cancelPaymentComplement, sendPaymentComplementByEmail } from '@/app/actions/facturacion';
 import { formatCurrency } from '@/lib/utils';
 import { getGoogleWalletSettings, generateGoogleWalletPassUrl } from '@/app/actions/loyalty';
 
@@ -31,6 +31,8 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
   
   // Estado de Cuenta Email state
   const [emailLoading, setEmailLoading] = useState(false);
+  const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   const handleSendStatementEmail = async () => {
     const destEmail = prompt("Ingresa el correo al que deseas enviar el Estado de Cuenta:", customer.email || "");
@@ -49,6 +51,50 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
       alert("Error: " + e.message);
     } finally {
       setEmailLoading(false);
+    }
+  };
+
+  const handleSendPaymentComplementEmail = async (group: any) => {
+    const destEmail = prompt("Ingresa el correo al que deseas enviar el Complemento de Pago:", customer.email || "");
+    if (destEmail === null) return;
+    if (!destEmail.trim()) return alert("El correo es requerido");
+
+    setSendingEmailId(group.batchId);
+    try {
+      const pmtId = group.payments[0].id;
+      const res = await sendPaymentComplementByEmail(pmtId, destEmail.trim());
+      if (res.success) {
+        alert("Complemento de pago enviado con éxito.");
+      } else {
+        alert("Error al enviar: " + res.error);
+      }
+    } catch (e: any) {
+      alert("Error: " + e.message);
+    } finally {
+      setSendingEmailId(null);
+    }
+  };
+
+  const handleCancelPaymentComplement = async (group: any) => {
+    const confirmMsg = group.payments.length > 1
+      ? `¿Seguro que deseas cancelar el Complemento de Pago (REP) para este lote de ${group.payments.length} abonos en Facturapi? Esto no eliminará los pagos de tu sistema, solo cancelará la factura ante el SAT.`
+      : "¿Seguro que deseas cancelar el Complemento de Pago (REP) en Facturapi? Esto no eliminará el pago de tu sistema, solo cancelará la factura ante el SAT.";
+    
+    if (!confirm(confirmMsg)) return;
+
+    setCancellingId(group.batchId);
+    try {
+      const pmtId = group.payments[0].id;
+      const res = await cancelPaymentComplement(pmtId);
+      if (res.success) {
+        alert("Complemento de pago cancelado exitosamente en Facturapi.");
+      } else {
+        alert("Error al cancelar: " + res.error);
+      }
+    } catch (e: any) {
+      alert("Error: " + e.message);
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -516,7 +562,10 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
                         </div>
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', alignItems: 'center' }}>
-                            <span style={{ fontWeight: 'bold', color: '#334155' }}>#{sale.id.slice(0,8).toUpperCase()}</span>
+                            <span style={{ fontWeight: 'bold', color: '#334155' }}>
+                              {sale.folio ? `#${sale.folio}` : `#${sale.id.slice(0,8).toUpperCase()}`}
+                              {sale.invoiceFolio && <span style={{ fontWeight: 'normal', color: '#64748b', fontSize: '0.85rem', marginLeft: '0.5rem' }}>(Factura: {sale.invoiceFolio})</span>}
+                            </span>
                             <span style={{ fontWeight: 'bold', color: '#dc2626' }}>Deuda: {formatCurrency(sale.balanceDue)}</span>
                           </div>
                           
@@ -716,7 +765,7 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
                               </td>
                               <td style={{ padding: '1rem' }}>
                                  {g.cfdiStatus === 'INVOICED' ? (
-                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: '#dcfce7', color: '#15803d', padding: '0.25rem 0.5rem', borderRadius: '6px' }}>
                                           Timbrado ✓
                                        </span>
@@ -741,6 +790,65 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
                                              <Download size={12} /> PDF
                                           </a>
                                        )}
+                                       {g.cfdiUrlXml && (
+                                          <a 
+                                             href={g.cfdiUrlXml} 
+                                             target="_blank" 
+                                             rel="noopener noreferrer"
+                                             style={{ 
+                                                fontSize: '0.75rem', 
+                                                fontWeight: 'bold', 
+                                                backgroundColor: '#f1f5f9', 
+                                                color: '#475569', 
+                                                padding: '0.25rem 0.5rem', 
+                                                borderRadius: '6px', 
+                                                textDecoration: 'none',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '0.25rem'
+                                             }}
+                                          >
+                                             <Download size={12} /> XML
+                                          </a>
+                                       )}
+                                       <button
+                                          onClick={() => handleSendPaymentComplementEmail(g)}
+                                          disabled={sendingEmailId === g.batchId}
+                                          style={{ 
+                                             background: 'none', 
+                                             border: 'none', 
+                                             color: 'var(--caanma-primary)', 
+                                             cursor: 'pointer', 
+                                             fontSize: '0.75rem',
+                                             fontWeight: 'bold', 
+                                             display: 'inline-flex',
+                                             alignItems: 'center',
+                                             gap: '0.25rem',
+                                             padding: '0.25rem 0.5rem'
+                                          }}
+                                       >
+                                          {sendingEmailId === g.batchId ? <Loader2 size={12} className="animate-spin" /> : <Mail size={12} />}
+                                          Enviar Correo
+                                       </button>
+                                       <button
+                                          onClick={() => handleCancelPaymentComplement(g)}
+                                          disabled={cancellingId === g.batchId}
+                                          style={{ 
+                                             background: 'none', 
+                                             border: 'none', 
+                                             color: '#ef4444', 
+                                             cursor: 'pointer', 
+                                             fontSize: '0.75rem',
+                                             fontWeight: 'bold', 
+                                             display: 'inline-flex',
+                                             alignItems: 'center',
+                                             gap: '0.25rem',
+                                             padding: '0.25rem 0.5rem'
+                                          }}
+                                       >
+                                          {cancellingId === g.batchId ? <Loader2 size={12} className="animate-spin" /> : <AlertTriangle size={12} />}
+                                          Cancelar CFDI
+                                       </button>
                                     </div>
                                  ) : (
                                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>

@@ -1578,4 +1578,168 @@ export async function stampPaymentBatch(paymentIds: string[], paymentDateStr?: s
   }
 }
 
+export async function cancelPaymentComplement(paymentId: string) {
+  try {
+    const payment = await prisma.customerPayment.findUnique({
+      where: { id: paymentId }
+    });
+
+    if (!payment) {
+      throw new Error("El abono especificado no existe.");
+    }
+
+    if (payment.cfdiStatus !== 'INVOICED' || !payment.cfdiUrlPdf) {
+      throw new Error("Este abono no tiene un complemento de pago timbrado.");
+    }
+
+    // Extract invoiceId from cfdiUrlPdf
+    const url = new URL(payment.cfdiUrlPdf, "http://localhost");
+    const invoiceId = url.searchParams.get("invoiceId");
+
+    if (!invoiceId) {
+      throw new Error("No se pudo identificar el ID del complemento de pago en Facturapi.");
+    }
+
+    const branchId = payment.branchId;
+    if (!branchId) {
+      throw new Error("El abono no está asociado a ninguna sucursal.");
+    }
+
+    const branchSettings = await prisma.branchSettings.findUnique({
+      where: { branchId }
+    });
+
+    if (!branchSettings || !branchSettings.configJson) {
+      throw new Error("La sucursal no tiene configuraciones establecidas.");
+    }
+
+    const config = JSON.parse(branchSettings.configJson);
+    const apiKey = getFacturapiApiKey(config);
+
+    if (!apiKey) {
+      throw new Error("No hay llaves de Facturapi configuradas en las preferencias de esta Sucursal.");
+    }
+
+    const facturapi = new Facturapi(apiKey);
+
+    // Cancel in Facturapi with motive "02" (Comprobante emitido con errores sin relación)
+    await facturapi.invoices.cancel(invoiceId, { motive: "02" as any });
+
+    // Update all payments in database that share this same invoiceId in their cfdiUrlPdf
+    const pdfPattern = `invoiceId=${invoiceId}&`;
+    const paymentsToUpdate = await prisma.customerPayment.findMany({
+      where: {
+        cfdiUrlPdf: {
+          contains: pdfPattern
+        }
+      }
+    });
+
+    const paymentIdsToUpdate = paymentsToUpdate.map(p => p.id);
+
+    await prisma.customerPayment.updateMany({
+      where: {
+        id: { in: paymentIdsToUpdate }
+      },
+      data: {
+        cfdiStatus: "NONE",
+        cfdiUrlPdf: null,
+        cfdiUrlXml: null
+      }
+    });
+
+    revalidatePath(`/clientes/${payment.customerId}`);
+    return { success: true };
+  } catch (error: any) {
+    console.error("Facturapi Cancel Payment Complement Error:", error);
+    return { success: false, error: error.message || "Error desconocido al cancelar el complemento de pago." };
+  }
+}
+
+export async function sendPaymentComplementByEmail(paymentId: string, email: string) {
+  try {
+    const payment = await prisma.customerPayment.findUnique({
+      where: { id: paymentId },
+      include: { customer: true }
+    });
+
+    if (!payment) {
+      throw new Error("El abono especificado no existe.");
+    }
+
+    if (!payment.cfdiUrlPdf || payment.cfdiStatus !== 'INVOICED') {
+      throw new Error("Este abono no cuenta con un complemento de pago timbrado para enviar.");
+    }
+
+    // Extract invoiceId from cfdiUrlPdf
+    const url = new URL(payment.cfdiUrlPdf, "http://localhost");
+    const invoiceId = url.searchParams.get("invoiceId");
+
+    if (!invoiceId) {
+      throw new Error("No se pudo identificar el ID del complemento de pago en Facturapi.");
+    }
+
+    const branchId = payment.branchId;
+    if (!branchId) {
+      throw new Error("El abono no está asociado a ninguna sucursal.");
+    }
+
+    const branchSettings = await prisma.branchSettings.findUnique({
+      where: { branchId }
+    });
+
+    if (!branchSettings || !branchSettings.configJson) {
+      throw new Error("La sucursal no tiene configuraciones establecidas.");
+    }
+
+    const config = JSON.parse(branchSettings.configJson);
+    const apiKey = getFacturapiApiKey(config);
+
+    if (!apiKey) {
+      throw new Error("No hay llaves de Facturapi configuradas en las preferencias de esta Sucursal.");
+    }
+
+    const facturapi = new Facturapi(apiKey);
+
+    // Fetch PDF and XML binary buffers from Facturapi
+    const pdfBlob = await facturapi.invoices.downloadPdf(invoiceId);
+    let xmlBlob: any = null;
+    try {
+      xmlBlob = await facturapi.invoices.downloadXml(invoiceId);
+    } catch (e) {
+      // Ignore if XML download fails
+    }
+
+    const pdfBuffer = await binaryDownloadToBuffer(pdfBlob);
+    const xmlBuffer = xmlBlob ? await binaryDownloadToBuffer(xmlBlob) : undefined;
+
+    // Find all payments that belong to this same complement to calculate the total amount of the complement
+    const pdfPattern = `invoiceId=${invoiceId}&`;
+    const siblingPayments = await prisma.customerPayment.findMany({
+      where: {
+        cfdiUrlPdf: {
+          contains: pdfPattern
+        }
+      }
+    });
+
+    const totalAmount = siblingPayments.reduce((acc, p) => acc + p.amount, 0);
+
+    const { sendPaymentComplementNotificationEmail } = await import('@/lib/mailer');
+    const result = await sendPaymentComplementNotificationEmail(
+      email,
+      payment.customer,
+      totalAmount,
+      invoiceId,
+      pdfBuffer,
+      xmlBuffer
+    );
+    return result;
+  } catch (error: any) {
+    console.error("Error al enviar complemento de pago por correo:", error);
+    return { success: false, error: error.message || "Error al procesar el envío del complemento de pago." };
+  }
+}
+
+
 

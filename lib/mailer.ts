@@ -488,6 +488,88 @@ export const sendInvoiceNotificationEmail = async (
   }
 };
 
+export const sendPaymentComplementNotificationEmail = async (
+  to: string,
+  customer: any,
+  amount: number,
+  receiptId: string,
+  pdfBuffer: Buffer,
+  xmlBuffer?: Buffer
+) => {
+  const { transporter: customTransporter, fromEmail, fromName, isCustom, tenantName, configured } = await getTransporterAndSender(customer.branchId);
+  const brandName = isCustom ? fromName : `${tenantName} Facturación`;
+
+  if (!configured) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('❌ Error: SMTP credentials are not configured in production environment.');
+      return { success: false, error: 'SMTP credentials not configured' };
+    }
+    console.warn('⚠️ SMTP credentials not set. Simulating payment complement email sending.');
+    console.log(`[EMAIL SIMULADO COMPLEMENTO PAGO] Destino: ${to} | Recibo ID: ${receiptId}`);
+    return { success: true, simulated: true };
+  }
+
+  const attachments = [
+    {
+      filename: `Complemento_Pago_${receiptId}.pdf`,
+      content: pdfBuffer,
+      contentType: 'application/pdf'
+    }
+  ];
+
+  if (xmlBuffer) {
+    attachments.push({
+      filename: `Complemento_Pago_${receiptId}.xml`,
+      content: xmlBuffer,
+      contentType: 'application/xml'
+    });
+  }
+
+  try {
+    const info = await customTransporter.sendMail({
+      from: `"${brandName}" <${fromEmail}>`,
+      to,
+      subject: `Comprobante de Recepción de Pagos (REP) - Recibo #${receiptId}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px;">
+          <div style="text-align: center; border-bottom: 2px solid #10b981; padding-bottom: 20px;">
+            <h1 style="color: #10b981; margin: 0; font-size: 28px;">Complemento de Pago</h1>
+            <p style="color: #666; margin: 5px 0 0 0;">Recibo #${receiptId}</p>
+          </div>
+          
+          <p>Estimado(a) cliente <strong>${customer.legalName || customer.name}</strong>,</p>
+          <p>Le compartimos el Comprobante de Recepción de Pagos (Complemento de Pago) correspondiente a su abono recibido.</p>
+          <p>Adjunto a este correo encontrará los archivos <strong>PDF</strong> y <strong>XML</strong> del complemento para su descarga.</p>
+          
+          <h3 style="color: #333; border-bottom: 1px solid #eaeaea; padding-bottom: 8px;">Detalles del Pago</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+            <tr>
+              <td style="padding: 8px; font-weight: bold; width: 30%;">Monto Recibido:</td>
+              <td style="padding: 8px; font-weight: bold; color: #10b981;">$${amount.toFixed(2)} MXN</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; font-weight: bold;">Folio Fiscal Complemento:</td>
+              <td style="padding: 8px;">${receiptId}</td>
+            </tr>
+          </table>
+
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; text-align: center; font-size: 12px; color: #888;">
+            <p>Este es un correo automático de ${tenantName}, por favor no responda directamente.</p>
+            <p><strong>${tenantName} ERP</strong></p>
+          </div>
+        </div>
+      `,
+      attachments
+    });
+
+    console.log('Correo de complemento de pago enviado: %s', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error: any) {
+    console.error('Error al enviar el correo de complemento de pago:', error);
+    return { success: false, error: error.message || error };
+  }
+};
+
 export const sendPurchaseOrderEmail = async (
   to: string,
   purchase: any
