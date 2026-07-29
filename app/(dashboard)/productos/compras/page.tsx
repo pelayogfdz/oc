@@ -16,19 +16,28 @@ export default async function ComprasPage({ searchParams }: PageProps) {
   const branch = await getActiveBranch();
   const resolvedParams = searchParams ? await searchParams : {};
   const search = resolvedParams.search || '';
-  
+  const whereClause: any = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
+  if (search) {
+    whereClause.OR = [
+      { id: { contains: search, mode: 'insensitive' } },
+      { supplierFolio: { contains: search, mode: 'insensitive' } },
+      { supplier: { name: { contains: search, mode: 'insensitive' } } }
+    ];
+  }
+
   const purchases = await prisma.purchase.findMany({
-    where: branch.id === 'GLOBAL' ? {} : { branchId: branch.id },
+    where: whereClause,
     include: {
       supplier: true,
       user: true,
       branch: true,
       items: {
-        include: { product: true }
+        select: { id: true }
       }
     },
-    orderBy: { createdAt: 'desc' }
-  });
+    orderBy: { createdAt: 'desc' },
+    take: 150
+   });
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>

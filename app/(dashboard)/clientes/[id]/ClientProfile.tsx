@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { addCustomerPaymentBatch, deleteCustomerPayment } from '@/app/actions/customerPayment';
 import { toggleCustomerBlock, sendCustomerAccountStatementEmail } from '@/app/actions/customer';
-import { stampCustomerPayment, stampPaymentBatch, cancelPaymentComplement, sendPaymentComplementByEmail } from '@/app/actions/facturacion';
+import { stampCustomerPayment, stampPaymentBatch, cancelPaymentComplement, sendPaymentComplementByEmail, checkDocumentSatStatus } from '@/app/actions/facturacion';
 import { formatCurrency } from '@/lib/utils';
 import { getGoogleWalletSettings, generateGoogleWalletPassUrl } from '@/app/actions/loyalty';
 
@@ -33,6 +33,7 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
   const [emailLoading, setEmailLoading] = useState(false);
   const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [checkingSatId, setCheckingSatId] = useState<string | null>(null);
 
   const handleSendStatementEmail = async () => {
     const destEmail = prompt("Ingresa el correo al que deseas enviar el Estado de Cuenta:", customer.email || "");
@@ -95,6 +96,23 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
       alert("Error: " + e.message);
     } finally {
       setCancellingId(null);
+    }
+  };
+
+  const handleCheckSatStatus = async (group: any, type: 'sale' | 'payment') => {
+    setCheckingSatId(group.batchId);
+    try {
+      const pmtId = group.payments[0].id;
+      const res = await checkDocumentSatStatus(pmtId, type);
+      if (res.success && res.status && res.cancellationStatus) {
+        alert(`Estado SAT: ${res.status.toUpperCase()}\nEstado de Cancelación: ${res.cancellationStatus.toUpperCase()}\n\n${res.message}`);
+      } else {
+        alert("Error al verificar: " + (res.error || "Respuesta incompleta de Facturapi"));
+      }
+    } catch (e: any) {
+      alert("Error: " + e.message);
+    } finally {
+      setCheckingSatId(null);
     }
   };
 
@@ -829,6 +847,25 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
                                        >
                                           {sendingEmailId === g.batchId ? <Loader2 size={12} className="animate-spin" /> : <Mail size={12} />}
                                           Enviar Correo
+                                       </button>
+                                       <button
+                                          onClick={() => handleCheckSatStatus(g, 'payment')}
+                                          disabled={checkingSatId === g.batchId}
+                                          style={{ 
+                                             background: 'none', 
+                                             border: 'none', 
+                                             color: '#0ea5e9', 
+                                             cursor: 'pointer', 
+                                             fontSize: '0.75rem',
+                                             fontWeight: 'bold', 
+                                             display: 'inline-flex',
+                                             alignItems: 'center',
+                                             gap: '0.25rem',
+                                             padding: '0.25rem 0.5rem'
+                                          }}
+                                       >
+                                          {checkingSatId === g.batchId ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle size={12} />}
+                                          Verificar SAT
                                        </button>
                                        <button
                                           onClick={() => handleCancelPaymentComplement(g)}

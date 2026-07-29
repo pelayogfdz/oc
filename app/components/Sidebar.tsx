@@ -115,8 +115,8 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
           }}>
             C
           </div>
-          <span style={{ fontWeight: 'bold', fontSize: '1.75rem', flexShrink: 0, letterSpacing: '-0.025em' }}>CAANMA</span>
-          <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#94a3b8', verticalAlign: 'top', marginLeft: '0.25rem', flexShrink: 0 }}>PRO</span>
+          <span style={{ fontWeight: 'bold', fontSize: '1.45rem', flexShrink: 0, letterSpacing: '-0.025em' }}>CAANMA</span>
+          <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#94a3b8', marginLeft: '0.15rem', flexShrink: 0 }}>PRO</span>
         </Link>
       </div>
 

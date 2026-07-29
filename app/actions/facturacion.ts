@@ -1741,5 +1741,148 @@ export async function sendPaymentComplementByEmail(paymentId: string, email: str
   }
 }
 
+export async function checkDocumentSatStatus(documentId: string, type: 'sale' | 'payment') {
+  try {
+    let invoiceId: string | null = null;
+    let branchId: string | null = null;
+    let customerId: string | null = null;
+
+    if (type === 'sale') {
+      const sale = await prisma.sale.findUnique({
+        where: { id: documentId }
+      });
+      if (!sale) throw new Error("Venta no encontrada.");
+      invoiceId = sale.invoiceId;
+      branchId = sale.branchId;
+      customerId = sale.customerId;
+    } else {
+      const payment = await prisma.customerPayment.findUnique({
+        where: { id: documentId }
+      });
+      if (!payment) throw new Error("Abono no encontrado.");
+      if (payment.cfdiUrlPdf) {
+        const url = new URL(payment.cfdiUrlPdf, "http://localhost");
+        invoiceId = url.searchParams.get("invoiceId");
+      }
+      branchId = payment.branchId;
+      customerId = payment.customerId;
+    }
+
+    if (!invoiceId) {
+      return { success: false, error: "Este documento no cuenta con un folio o ID de factura timbrado." };
+    }
+
+    if (!branchId) {
+      return { success: false, error: "El documento no está asociado a una sucursal." };
+    }
+
+    const branchSettings = await prisma.branchSettings.findUnique({
+      where: { branchId }
+    });
+
+    if (!branchSettings || !branchSettings.configJson) {
+      throw new Error("La sucursal no tiene configuraciones establecidas.");
+    }
+
+    const config = JSON.parse(branchSettings.configJson);
+    const apiKey = getFacturapiApiKey(config);
+
+    if (!apiKey) {
+      throw new Error("No hay llaves de Facturapi configuradas en las preferencias de esta Sucursal.");
+    }
+
+    const facturapi = new Facturapi(apiKey);
+
+    // Retrieve invoice detail from Facturapi to get its live status and cancellation_status
+    const invoiceDetail = await facturapi.invoices.retrieve(invoiceId);
+
+    const status = invoiceDetail.status; // 'valid' | 'canceled'
+    const cancellationStatus = invoiceDetail.cancellation_status; // 'none' | 'pending' | 'accepted' | 'rejected' | 'expired'
+
+    // If the invoice is marked as canceled in Facturapi but not in our database, we can update our database automatically!
+    if (status === 'canceled') {
+      if (type === 'sale') {
+        const sale = await prisma.sale.findUnique({ where: { id: documentId } });
+        if (sale && sale.status !== 'CANCELLED') {
+          // Find all associated sales with this invoiceId
+          const associatedSales = await prisma.sale.findMany({
+            where: { invoiceId }
+          });
+          const systemUser = await getActiveUser();
+          for (const assocSale of associatedSales) {
+            if (assocSale.status !== 'CANCELLED') {
+              await cancelSaleInternal(assocSale.id, systemUser.id);
+            }
+          }
+        }
+        await prisma.sale.updateMany({
+          where: { invoiceId },
+          data: {
+            invoiceId: null,
+            invoiceFolio: null
+          }
+        });
+      } else {
+        const pdfPattern = `invoiceId=${invoiceId}&`;
+        const paymentsToUpdate = await prisma.customerPayment.findMany({
+          where: {
+            cfdiUrlPdf: {
+              contains: pdfPattern
+            }
+          }
+        });
+        const paymentIdsToUpdate = paymentsToUpdate.map(p => p.id);
+        await prisma.customerPayment.updateMany({
+          where: {
+            id: { in: paymentIdsToUpdate }
+          },
+          data: {
+            cfdiStatus: "NONE",
+            cfdiUrlPdf: null,
+            cfdiUrlXml: null
+          }
+        });
+      }
+    }
+
+    revalidatePath('/facturas/ventas');
+    if (customerId) {
+      revalidatePath(`/clientes/${customerId}`);
+    }
+
+    return {
+      success: true,
+      status,
+      cancellationStatus,
+      message: getSatStatusDescription(status, cancellationStatus)
+    };
+  } catch (error: any) {
+    console.error("Error al verificar estado SAT:", error);
+    return { success: false, error: error.message || "Error al verificar el estado en el SAT." };
+  }
+}
+
+function getSatStatusDescription(status: string, cancellationStatus: string): string {
+  if (status === 'canceled') {
+    if (cancellationStatus === 'accepted') {
+      return "El CFDI ha sido cancelado exitosamente ante el SAT (Aceptado por el receptor o por vencimiento de plazo).";
+    }
+    return "El CFDI ha sido cancelado exitosamente ante el SAT.";
+  }
+
+  switch (cancellationStatus) {
+    case 'pending':
+      return "Solicitud de cancelación enviada al cliente. Pendiente de aceptación en su buzón tributario.";
+    case 'rejected':
+      return "La solicitud de cancelación fue RECHAZADA por el cliente en el SAT.";
+    case 'expired':
+      return "La solicitud de cancelación ha expirado.";
+    case 'none':
+    default:
+      return "El CFDI se encuentra vigente en el SAT y no cuenta con solicitudes de cancelación activas.";
+  }
+}
+
+
 
 

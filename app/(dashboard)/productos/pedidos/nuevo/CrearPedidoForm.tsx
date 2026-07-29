@@ -89,6 +89,19 @@ export default function CrearPedidoForm({
   const [showScanner, setShowScanner] = useState(false);
   const [filterCategory, setFilterCategory] = useState('ALL');
 
+  // Inline product creation states
+  const [isCreateProductModalOpen, setIsCreateProductModalOpen] = useState(false);
+  const [newProdName, setNewProdName] = useState('');
+  const [newProdSku, setNewProdSku] = useState('');
+  const [newProdBarcode, setNewProdBarcode] = useState('');
+  const [newProdCategory, setNewProdCategory] = useState('VARIOS');
+  const [newProdBrand, setNewProdBrand] = useState('GENERICO');
+  const [newProdUnit, setNewProdUnit] = useState('Pieza');
+  const [newProdPrice, setNewProdPrice] = useState('0');
+  const [newProdCost, setNewProdCost] = useState('0');
+  const [createProductError, setCreateProductError] = useState('');
+  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+
   const [availableProducts, setAvailableProducts] = useState(products || []);
   const [availableSuppliers, setAvailableSuppliers] = useState(suppliers || []);
 
@@ -516,7 +529,7 @@ export default function CrearPedidoForm({
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap', flex: 1, minWidth: '300px' }}>
           
           {/* SEARCH INPUT TRIGGER (opens popup) */}
-          <div style={{ display: 'flex', flexDirection: 'column', width: '280px' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <div 
               onClick={() => setIsSearchModalOpen(true)}
               style={{ 
@@ -532,7 +545,8 @@ export default function CrearPedidoForm({
                 boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                 userSelect: 'none',
                 position: 'relative',
-                height: '40px'
+                height: '40px',
+                width: '280px'
               }}
             >
               <Search size={18} color="#94a3b8" style={{ marginRight: '8px' }} />
@@ -559,6 +573,33 @@ export default function CrearPedidoForm({
                 </span>
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                setCreateProductError('');
+                setIsCreateProductModalOpen(true);
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0 1rem',
+                borderRadius: '8px',
+                backgroundColor: '#8b5cf6',
+                color: 'white',
+                fontWeight: 'bold',
+                fontSize: '0.9rem',
+                border: 'none',
+                cursor: 'pointer',
+                height: '40px',
+                transition: 'background-color 0.2s',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+              onMouseOver={e => e.currentTarget.style.backgroundColor = '#7c3aed'}
+              onMouseOut={e => e.currentTarget.style.backgroundColor = '#8b5cf6'}
+            >
+              <Plus size={18} /> Crear Artículo
+            </button>
           </div>
 
           {/* Category selector */}
@@ -1057,7 +1098,34 @@ export default function CrearPedidoForm({
             {/* Results list */}
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', minHeight: '300px' }}>
               {filteredProducts.length === 0 ? (
-                <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No se encontraron productos coincidentes</div>
+                <div style={{ padding: '2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ color: '#64748b' }}>No se encontraron productos coincidentes</div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewProdName(searchTerm);
+                      setNewProdSku('');
+                      setNewProdBarcode('');
+                      setCreateProductError('');
+                      setIsCreateProductModalOpen(true);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.5rem 1rem',
+                      borderRadius: '6px',
+                      backgroundColor: '#8b5cf6',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      fontSize: '0.85rem',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Plus size={16} /> Crear "{searchTerm}"
+                  </button>
+                </div>
               ) : (
                 filteredProducts.slice(0, 30).map((p: any) => {
                   const inCart = items.some((i: any) => i.productId === p.id);
@@ -1102,6 +1170,193 @@ export default function CrearPedidoForm({
               )}
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* CREATE PRODUCT MODAL */}
+      {isCreateProductModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10100 }}>
+          <div 
+            onClick={() => setIsCreateProductModalOpen(false)}
+            style={{ position: 'absolute', inset: 0 }}
+          />
+          <div className="card" style={{ position: 'relative', width: '500px', maxWidth: '95%', display: 'flex', flexDirection: 'column', padding: '1.5rem', backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', zIndex: 10200 }}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', margin: 0, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Plus size={20} color="#8b5cf6" /> Crear Nuevo Artículo
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setIsCreateProductModalOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: '1.25rem', fontWeight: 'bold' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {createProductError && (
+              <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '0.75rem', borderRadius: '6px', fontSize: '0.85rem', marginBottom: '1rem', fontWeight: 500 }}>
+                ⚠️ {createProductError}
+              </div>
+            )}
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setIsCreatingProduct(true);
+              setCreateProductError('');
+              try {
+                const { createProductInline } = await import('@/app/actions/product');
+                const result = await createProductInline({
+                  sku: newProdSku,
+                  name: newProdName,
+                  barcode: newProdBarcode || newProdSku,
+                  category: newProdCategory,
+                  brand: newProdBrand,
+                  unit: newProdUnit,
+                  price: parseFloat(newProdPrice) || 0,
+                  cost: parseFloat(newProdCost) || 0,
+                  branchId
+                });
+
+                if (result.error) {
+                  setCreateProductError(result.error);
+                } else if (result.success && result.product) {
+                  // Add to available products list
+                  setAvailableProducts(prev => [result.product, ...prev]);
+                  // Auto add to items list
+                  handleAddItem(result.product);
+                  // Close modal
+                  setIsCreateProductModalOpen(false);
+                  // Reset form fields
+                  setNewProdName('');
+                  setNewProdSku('');
+                  setNewProdBarcode('');
+                  setNewProdCategory('VARIOS');
+                  setNewProdBrand('GENERICO');
+                  setNewProdUnit('Pieza');
+                  setNewProdPrice('0');
+                  setNewProdCost('0');
+                  setIsSearchModalOpen(false);
+                }
+              } catch (err: any) {
+                setCreateProductError(err.message || 'Error al guardar el producto.');
+              } finally {
+                setIsCreatingProduct(false);
+              }
+            }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Nombre del Producto *</label>
+                <input 
+                  type="text" 
+                  required 
+                  value={newProdName} 
+                  onChange={e => setNewProdName(e.target.value)}
+                  placeholder="Ej. Cinta Janel Transparente"
+                  style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>SKU (Código Interno) *</label>
+                  <input 
+                    type="text" 
+                    required 
+                    value={newProdSku} 
+                    onChange={e => setNewProdSku(e.target.value)}
+                    placeholder="Ej. SKU-1234"
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Código de Barras (Opcional)</label>
+                  <input 
+                    type="text" 
+                    value={newProdBarcode} 
+                    onChange={e => setNewProdBarcode(e.target.value)}
+                    placeholder="Ej. 750123..."
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Categoría</label>
+                  <input 
+                    type="text" 
+                    value={newProdCategory} 
+                    onChange={e => setNewProdCategory(e.target.value)}
+                    placeholder="VARIOS"
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Marca</label>
+                  <input 
+                    type="text" 
+                    value={newProdBrand} 
+                    onChange={e => setNewProdBrand(e.target.value)}
+                    placeholder="GENERICO"
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Costo Inicial</label>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    value={newProdCost} 
+                    onChange={e => setNewProdCost(e.target.value)}
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Precio Venta</label>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    value={newProdPrice} 
+                    onChange={e => setNewProdPrice(e.target.value)}
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>Unidad Medida</label>
+                  <input 
+                    type="text" 
+                    value={newProdUnit} 
+                    onChange={e => setNewProdUnit(e.target.value)}
+                    placeholder="Pieza"
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1rem', marginTop: '0.5rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setIsCreateProductModalOpen(false)}
+                  disabled={isCreatingProduct}
+                  style={{ padding: '0.5rem 1rem', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#475569', borderRadius: '6px', fontSize: '0.9rem', cursor: 'pointer' }}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isCreatingProduct}
+                  style={{ padding: '0.5rem 1.25rem', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '6px', fontSize: '0.9rem', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  {isCreatingProduct ? 'Guardando...' : 'Crear y Agregar'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

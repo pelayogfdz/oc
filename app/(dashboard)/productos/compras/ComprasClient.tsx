@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { ShoppingCart, Calendar, Store, CreditCard, LayoutGrid, List, Search, MoreVertical } from 'lucide-react';
 import Link from 'next/link';
 
@@ -11,9 +12,19 @@ export default function ComprasClient({
   initialPurchases: any[], 
   initialSearch?: string 
 }) {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const url = searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : '?';
+      router.push(url, { scroll: false });
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, router]);
 
   const filteredPurchases = initialPurchases.filter(purchase => {
     const term = searchTerm.toLowerCase();

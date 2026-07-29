@@ -1292,3 +1292,106 @@ export async function syncTenantCatalogs(tenantId: string) {
   }
 }
 
+export async function createProductInline(data: {
+  sku: string;
+  name: string;
+  barcode?: string;
+  category?: string;
+  brand?: string;
+  unit?: string;
+  price?: number;
+  cost?: number;
+  branchId: string;
+}) {
+  try {
+    const { sku, name, barcode, category, brand, unit, price = 0, cost = 0, branchId } = data;
+
+    if (!sku || !name || !branchId) {
+      return { error: "Faltan campos obligatorios (SKU, Nombre o Sucursal)." };
+    }
+
+    const cleanSku = sku.trim();
+    const cleanBarcode = barcode ? barcode.trim() : cleanSku;
+
+    // Duplicates check
+    const existing = await prisma.product.findFirst({
+      where: {
+        branchId,
+        OR: [
+          { sku: cleanSku },
+          { barcode: cleanBarcode }
+        ]
+      }
+    });
+
+    if (existing) {
+      return { error: `Ya existe un producto con el SKU o código de barras "${cleanSku}" en esta sucursal.` };
+    }
+
+    const branch = await prisma.branch.findUnique({
+      where: { id: branchId },
+      select: { tenantId: true }
+    });
+    const tenantId = branch?.tenantId;
+
+    const product = await prisma.product.create({
+      data: {
+        branchId,
+        sku: cleanSku,
+        barcode: cleanBarcode,
+        name: name.trim(),
+        category: category || 'VARIOS',
+        brand: brand || 'GENERICO',
+        unit: unit || 'Pieza',
+        price,
+        cost,
+        isActive: true,
+        stock: 0,
+        minStock: 0
+      }
+    });
+
+    // Sibling replication
+    if (tenantId) {
+      const siblingBranches = await prisma.branch.findMany({
+        where: {
+          tenantId,
+          id: { not: branchId },
+          isActive: true
+        },
+        select: { id: true }
+      });
+
+      for (const sib of siblingBranches) {
+        // Check if exists
+        const sibExists = await prisma.product.findFirst({
+          where: { sku: cleanSku, branchId: sib.id }
+        });
+        if (!sibExists) {
+          await prisma.product.create({
+            data: {
+              branchId: sib.id,
+              sku: cleanSku,
+              barcode: cleanBarcode,
+              name: name.trim(),
+              category: category || 'VARIOS',
+              brand: brand || 'GENERICO',
+              unit: unit || 'Pieza',
+              price,
+              cost,
+              isActive: true,
+              stock: 0,
+              minStock: 0
+            }
+          });
+        }
+      }
+    }
+
+    return { success: true, product };
+  } catch (error: any) {
+    console.error("Error in createProductInline:", error);
+    return { error: error.message || "Error desconocido al crear producto." };
+  }
+}
+

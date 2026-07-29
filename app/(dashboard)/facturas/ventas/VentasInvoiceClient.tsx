@@ -6,7 +6,7 @@ import {
   Check, X, FileDown, Layers, Loader2, Sparkles,
   Printer, Share2, CheckCircle, Mail
 } from 'lucide-react';
-import { stampInvoice, cancelInvoice, stampMultipleSalesInvoice, sendInvoiceByEmail } from '@/app/actions/facturacion';
+import { stampInvoice, cancelInvoice, stampMultipleSalesInvoice, sendInvoiceByEmail, checkDocumentSatStatus } from '@/app/actions/facturacion';
 import { createCustomerBilling } from '@/app/actions/customer';
 
 interface VentasInvoiceClientProps {
@@ -177,6 +177,27 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
       setEmailError(e.message || 'Error de red o SMTP no configurado.');
     } finally {
       setIsSendingEmail(false);
+    }
+  };
+
+  const [checkingSatSaleId, setCheckingSatSaleId] = useState<string | null>(null);
+
+  const handleCheckSatStatus = async (saleId: string, type: 'sale' | 'payment') => {
+    setCheckingSatSaleId(saleId);
+    try {
+      const res = await checkDocumentSatStatus(saleId, type);
+      if (res.success && res.status && res.cancellationStatus) {
+        alert(`Estado SAT: ${res.status.toUpperCase()}\nEstado de Cancelación: ${res.cancellationStatus.toUpperCase()}\n\n${res.message}`);
+        if (res.status === 'canceled') {
+          setSales(prev => prev.map(s => s.id === saleId ? { ...s, invoiceId: null, invoiceFolio: null } : s));
+        }
+      } else {
+        alert("Error al verificar: " + (res.error || "Respuesta incompleta de Facturapi"));
+      }
+    } catch (e: any) {
+      alert("Error: " + e.message);
+    } finally {
+      setCheckingSatSaleId(null);
     }
   };
 
@@ -838,6 +859,37 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                             <Mail size={15} />
                             Enviar por mail
                           </button>
+
+                           {/* Verificar SAT */}
+                           <button 
+                             disabled={checkingSatSaleId === sale.id}
+                             onClick={() => handleCheckSatStatus(sale.id, 'sale')}
+                             style={{ 
+                               display: 'inline-flex',
+                               alignItems: 'center',
+                               gap: '0.35rem',
+                               padding: '0.4rem 0.8rem',
+                               backgroundColor: '#f1f5f9', 
+                               border: '1px solid #cbd5e1',
+                               borderRadius: '6px', 
+                               cursor: checkingSatSaleId === sale.id ? 'not-allowed' : 'pointer',
+                               fontWeight: '600',
+                               fontSize: '0.825rem',
+                               color: '#475569', 
+                               transition: 'all 0.15s ease',
+                               opacity: checkingSatSaleId === sale.id ? 0.6 : 1
+                             }}
+                             title="Verificar Estado del CFDI en el SAT"
+                             onMouseEnter={(e) => {
+                               e.currentTarget.style.backgroundColor = '#e2e8f0';
+                             }}
+                             onMouseLeave={(e) => {
+                               e.currentTarget.style.backgroundColor = '#f1f5f9';
+                             }}
+                           >
+                             {checkingSatSaleId === sale.id ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} />}
+                             Verificar SAT
+                           </button>
 
                           {/* Cancelar */}
                           <button 
