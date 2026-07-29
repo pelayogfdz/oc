@@ -5,6 +5,7 @@ import Facturapi from "facturapi";
 import { getActiveBranch, getActiveUser } from "./auth";
 import { revalidatePath } from "next/cache";
 import { cancelSaleInternal } from "./sale";
+import { sendPaymentComplementNotificationEmail, sendInvoiceNotificationEmail } from "@/lib/mailer";
 
 function getFacturapiApiKey(config: any): string | null {
   if (!config || !config.facturacion) return null;
@@ -1178,7 +1179,6 @@ export async function sendInvoiceByEmail(saleId: string, email: string) {
     const pdfBuffer = await binaryDownloadToBuffer(pdfBlob);
     const xmlBuffer = xmlBlob ? await binaryDownloadToBuffer(xmlBlob) : undefined;
 
-    const { sendInvoiceNotificationEmail } = await import('@/lib/mailer');
     const result = await sendInvoiceNotificationEmail(email, sale, pdfBuffer, xmlBuffer);
     return result;
   } catch (error: any) {
@@ -1725,7 +1725,6 @@ export async function sendPaymentComplementByEmail(paymentId: string, email: str
 
     const totalAmount = siblingPayments.reduce((acc, p) => acc + p.amount, 0);
 
-    const { sendPaymentComplementNotificationEmail } = await import('@/lib/mailer');
     const result = await sendPaymentComplementNotificationEmail(
       email,
       payment.customer,
