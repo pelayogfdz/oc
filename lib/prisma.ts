@@ -29,9 +29,15 @@ declare const globalThis: {
   prismaClientCache?: Record<string, PrismaClient>;
 } & typeof global;
 
+const meliIntegrationActiveCache = new Map<string, boolean>();
+
 function registerMeliStockSyncMiddleware(client: PrismaClient, tenantId: string | null) {
   client.$use(async (params, next) => {
     const result = await next(params);
+
+    if (!tenantId) {
+      return result;
+    }
 
     try {
       const productsToSync: string[] = [];
@@ -75,6 +81,20 @@ function registerMeliStockSyncMiddleware(client: PrismaClient, tenantId: string 
           productsToSync.push(productId);
         }
       }
+
+      if (productsToSync.length === 0) return result;
+
+      // Verificar en caché si hay integraciones activas con Mercado Libre en este tenant
+      let isMeliActive = meliIntegrationActiveCache.get(tenantId);
+      if (isMeliActive === undefined) {
+        const count = await client.storeIntegration.count({
+          where: { platform: 'MERCADO_LIBRE', accessToken: { not: null } }
+        });
+        isMeliActive = count > 0;
+        meliIntegrationActiveCache.set(tenantId, isMeliActive);
+      }
+
+      if (!isMeliActive) return result;
 
       for (const productId of productsToSync) {
         setTimeout(async () => {

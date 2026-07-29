@@ -19,13 +19,34 @@ export async function encrypt(payload: any) {
     .sign(encodedKey);
 }
 
+const sessionCache = new Map<string, SessionPayload | null>();
+
 export async function decrypt(session: string | undefined = '') {
+  if (!session) return null;
+  
+  const cached = sessionCache.get(session);
+  if (cached !== undefined) {
+    return cached;
+  }
+
   try {
     const { payload } = await jwtVerify(session, encodedKey, {
       algorithms: ['HS256'],
     });
-    return payload as SessionPayload;
+    const result = payload as SessionPayload;
+    sessionCache.set(session, result);
+    
+    // Evitar memory leak controlando el tamaño máximo del caché
+    if (sessionCache.size > 2000) {
+      const firstKey = sessionCache.keys().next().value;
+      if (firstKey !== undefined) {
+        sessionCache.delete(firstKey);
+      }
+    }
+    
+    return result;
   } catch (error) {
+    sessionCache.set(session, null);
     return null; // Invalid token
   }
 }
