@@ -131,6 +131,30 @@ export default function POSClient({
         setLoadedConsignmentId(target.loadedConsignmentId || null);
         setBreakdownDiscounts(target.breakdownDiscounts || false);
         setActiveTabId(targetTabId);
+
+        // Auto-fill or clear billing data for the target customer
+        if (target.selectedCustomerId) {
+          const customer = activeCustomers.find((c: any) => c.id === target.selectedCustomerId);
+          if (customer) {
+            setBillRfc(customer.taxId || '');
+            setBillName(customer.legalName || customer.name || '');
+            setBillZipCode(customer.zipCode || '');
+            setBillRegime(customer.taxRegime || '601');
+            setBillUse(customer.cfdiUse || 'G03');
+          } else {
+            setBillRfc('');
+            setBillName('');
+            setBillZipCode('');
+            setBillRegime('601');
+            setBillUse('G03');
+          }
+        } else {
+          setBillRfc('');
+          setBillName('');
+          setBillZipCode('');
+          setBillRegime('601');
+          setBillUse('G03');
+        }
       }
       return updated;
     });
@@ -288,6 +312,13 @@ export default function POSClient({
     setDocumentType('TICKET');
     setTransactionType('VENTA');
     setBreakdownDiscounts(false);
+    
+    // Clear billing data fields
+    setBillRfc('');
+    setBillName('');
+    setBillZipCode('');
+    setBillRegime('601');
+    setBillUse('G03');
     
     lastQuoteIdRef.current = null;
     if (lastCloneQuoteIdRef) lastCloneQuoteIdRef.current = null;
@@ -929,6 +960,22 @@ export default function POSClient({
           attribute: variant ? variant.attribute : null
         };
       });
+      // Recalculate subtotal of loaded items and distribute small rounding differences
+      const subTotalOfLoadedItems = newCart.reduce((sum: number, item: any) => sum + (item.customPrice * item.quantity), 0);
+      const discountDiff = subTotalOfLoadedItems - quote.total;
+
+      if (Math.abs(discountDiff) > 0.001 && Math.abs(discountDiff) <= 5.0) {
+        const totalQty = newCart.reduce((sum: number, item: any) => sum + item.quantity, 0);
+        if (totalQty > 0) {
+          const adjPerUnit = -discountDiff / totalQty;
+          newCart.forEach((item: any) => {
+            const adjustedPrice = Number((item.customPrice + adjPerUnit).toFixed(6));
+            item.customPrice = adjustedPrice;
+            item.cartPrice = adjustedPrice;
+          });
+        }
+      }
+
       setCart(newCart);
       
       // Load Customer
@@ -939,11 +986,11 @@ export default function POSClient({
       }
 
       // Re-calculate and set manual discount if there was a difference between subtotal of items and quote total
-      const subTotalOfLoadedItems = newCart.reduce((sum: number, item: any) => sum + (item.customPrice * item.quantity), 0);
-      const discountDiff = subTotalOfLoadedItems - quote.total;
-      if (discountDiff > 0.01) {
+      const updatedSubTotal = newCart.reduce((sum: number, item: any) => sum + (item.customPrice * item.quantity), 0);
+      const finalDiscountDiff = updatedSubTotal - quote.total;
+      if (finalDiscountDiff > 0.01) {
         setManualDiscountType('$');
-        setManualDiscountValue(Number(discountDiff.toFixed(2)));
+        setManualDiscountValue(Number(finalDiscountDiff.toFixed(2)));
       } else {
         setManualDiscountType('$');
         setManualDiscountValue('');
@@ -994,6 +1041,23 @@ export default function POSClient({
           attribute: variant ? variant.attribute : null
         };
       });
+
+      // Recalculate subtotal of loaded items and distribute small rounding differences
+      const subTotalOfLoadedItems = newCart.reduce((sum: number, item: any) => sum + (item.customPrice * item.quantity), 0);
+      const discountDiff = subTotalOfLoadedItems - consignment.total;
+
+      if (Math.abs(discountDiff) > 0.001 && Math.abs(discountDiff) <= 5.0) {
+        const totalQty = newCart.reduce((sum: number, item: any) => sum + item.quantity, 0);
+        if (totalQty > 0) {
+          const adjPerUnit = -discountDiff / totalQty;
+          newCart.forEach((item: any) => {
+            const adjustedPrice = Number((item.customPrice + adjPerUnit).toFixed(6));
+            item.customPrice = adjustedPrice;
+            item.cartPrice = adjustedPrice;
+          });
+        }
+      }
+
       setCart(newCart);
       
       // Load Customer
@@ -1958,7 +2022,7 @@ export default function POSClient({
           productId: item.id, 
           variantId: item.variantId || null,
           quantity: item.quantity, 
-          price: Number(savedPrice.toFixed(2)) 
+          price: Number(savedPrice.toFixed(6)) 
         };
       });
       
