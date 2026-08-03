@@ -864,6 +864,10 @@ export default function POSClient({
       }));
     }
     
+    if (!isProgrammatic) {
+      setNotes('');
+    }
+    
     // Auto-fill billing data if available
     if (customer) {
        setBillRfc(customer.taxId || '');
@@ -904,6 +908,7 @@ export default function POSClient({
       setBillRfc(created.taxId || '');
       setBillName(created.legalName || created.name || '');
       setBillZipCode(created.zipCode || '');
+      setNotes('');
 
       setShowAddCustomerModal(false);
       setNewCustName('');
@@ -996,6 +1001,8 @@ export default function POSClient({
         setManualDiscountValue('');
       }
       
+      setNotes('');
+      
       setIsQuoteModalOpen(false);
       setQuoteSearchId('');
       if (!incomingId) alert("Cotización cargada correctamente.");
@@ -1064,6 +1071,8 @@ export default function POSClient({
       if (consignment.customerId) {
         handleCustomerChange(consignment.customerId, true);
       }
+      
+      setNotes('');
       
       alert("Consignación cargada correctamente.");
     } catch (e: any) {
@@ -2869,10 +2878,7 @@ export default function POSClient({
                 type="button"
                 onClick={() => {
                   if (cart.length > 0 && confirm('¿Deseas vaciar el carrito actual?')) {
-                    setCart([]);
-                    setLoadedQuoteId(null);
-                    setLoadedQuoteTotal(null);
-                    setLoadedConsignmentId(null);
+                    resetActiveTab();
                     lastQuoteIdRef.current = null;
                     if (lastCloneQuoteIdRef) lastCloneQuoteIdRef.current = null;
                     lastConsignmentIdRef.current = null;
@@ -3253,6 +3259,7 @@ export default function POSClient({
                                   lastQuoteIdRef.current = null;
                                   if (lastCloneQuoteIdRef) lastCloneQuoteIdRef.current = null;
                                   lastConsignmentIdRef.current = null;
+                                  setNotes('');
                                 }
                                 setActiveItemMenuId(null);
                               }}
