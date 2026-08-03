@@ -20,6 +20,7 @@ export default async function CobranzaGlobalPage() {
   });
 
   const branches = await prisma.branch.findMany({
+    where: { isActive: true },
     select: { id: true, name: true },
     orderBy: { name: 'asc' }
   });
