@@ -279,7 +279,10 @@ export default function AdminClient({ initialData }: { initialData: any }) {
               {tenants.map((t: any) => {
                 const effectiveBase = t.customBasePrice !== null ? t.customBasePrice : (settings?.basePrice || 0);
                 const effectiveUserPrice = t.customUserPrice !== null ? t.customUserPrice : (settings?.userPrice || 0);
-                const total = effectiveBase + (t._count?.users || 0) * effectiveUserPrice;
+                const grossTotal = effectiveBase + (t._count?.users || 0) * effectiveUserPrice;
+                const appliedCredits = Math.min(grossTotal, t.giftCredits || 0);
+                const remainingCredits = Math.max(0, (t.giftCredits || 0) - grossTotal);
+                const netToPay = Math.max(0, grossTotal - (t.giftCredits || 0));
                 
                 return (
                 <tr key={t.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
@@ -295,17 +298,39 @@ export default function AdminClient({ initialData }: { initialData: any }) {
                     </div>
                   </td>
                   <td style={{ padding: '1rem 0.75rem' }}>
-                    <div>
-                      <strong style={{ fontSize: '1.1rem' }}>${total.toFixed(2)}</strong>
-                      <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                        Base: ${effectiveBase} | Usr: ${effectiveUserPrice}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {/* Net Payment Amount */}
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                        <span style={{ fontSize: '1.1rem', fontWeight: '700', color: netToPay > 0 ? '#b91c1c' : '#16a34a' }}>
+                          ${netToPay.toFixed(2)}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '500' }}>
+                          {netToPay > 0 ? 'neto por cobrar' : 'cubierto con créditos'}
+                        </span>
+                      </div>
+
+                      {/* Breakdown Detail */}
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        Costo bruto: <strong>${grossTotal.toFixed(2)}</strong> (Base: ${effectiveBase} | Usr: ${effectiveUserPrice})
                         {(t.customBasePrice !== null || t.customUserPrice !== null) && (
-                          <span style={{ color: '#d97706', marginLeft: '4px' }}>(Personalizado)</span>
+                          <span style={{ color: '#d97706', marginLeft: '4px', fontWeight: 'bold' }}>(Personalizado)</span>
                         )}
                       </div>
-                      {t.giftCredits > 0 && (
-                        <div style={{ fontSize: '0.8rem', color: '#16a34a', fontWeight: 'bold' }}>
-                          -${t.giftCredits.toFixed(2)} en Créditos
+
+                      {/* Credits Detail */}
+                      {(t.giftCredits || 0) > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', marginTop: '2px', padding: '4px 8px', backgroundColor: '#f0fdf4', borderRadius: '6px', border: '1px solid #dcfce7', width: 'fit-content' }}>
+                          <span style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Coins size={12} /> Saldo de Créditos: ${t.giftCredits.toFixed(2)}
+                          </span>
+                          <span style={{ fontSize: '0.7rem', color: '#166534' }}>
+                            Aplicados este mes: -${appliedCredits.toFixed(2)}
+                          </span>
+                          {remainingCredits > 0 && (
+                            <span style={{ fontSize: '0.7rem', color: '#15803d', fontWeight: 'bold' }}>
+                              Remanente para próximo mes: +${remainingCredits.toFixed(2)}
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -380,13 +405,13 @@ export default function AdminClient({ initialData }: { initialData: any }) {
       {selectedTenant && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Modificar Créditos</h3>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Modificar Créditos de Regalo (Saldo a Favor)</h3>
             <p style={{ color: 'var(--caanma-text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-              Define el saldo total de créditos de regalo que tendrá la organización <strong>{selectedTenant.name}</strong>.
+              Define los créditos de regalo (saldo a favor) para la organización <strong>{selectedTenant.name}</strong>. Este saldo se descontará de forma automática de la próxima factura del cliente.
             </p>
             
             <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Créditos Disponibles (MXN)</label>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Saldo de Créditos a Favor (MXN)</label>
               <input 
                 type="number" 
                 value={creditsAmount}
