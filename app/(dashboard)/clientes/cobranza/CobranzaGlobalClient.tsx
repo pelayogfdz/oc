@@ -5,11 +5,30 @@ import Link from 'next/link';
 import { Search, History, ArrowRight, X, FileText, Send, Copy, Check, ExternalLink } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
-export default function CobranzaGlobalClient({ initialData }: { initialData: any[] }) {
+export default function CobranzaGlobalClient({ 
+  initialData, 
+  branches = [], 
+  users = [] 
+}: { 
+  initialData: any[]; 
+  branches?: any[]; 
+  users?: any[]; 
+}) {
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'NOT_OVERDUE' | '0_15' | '15_30' | '30_60' | '60_90' | '90_PLUS'>('ALL');
   const [selectedGroup, setSelectedGroup] = useState<any | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const [selectedBranchId, setSelectedBranchId] = useState<string>('ALL');
+  const [selectedSellerId, setSelectedSellerId] = useState<string>('ALL');
+
+  const preFilteredSales = useMemo(() => {
+    return initialData.filter(sale => {
+      if (selectedBranchId !== 'ALL' && sale.branchId !== selectedBranchId) return false;
+      if (selectedSellerId !== 'ALL' && sale.userId !== selectedSellerId) return false;
+      return true;
+    });
+  }, [initialData, selectedBranchId, selectedSellerId]);
 
   const getDaysOverdue = (dueDateStr: string | null | undefined): number => {
     if (!dueDateStr) return -1;
@@ -53,7 +72,7 @@ export default function CobranzaGlobalClient({ initialData }: { initialData: any
     '90_PLUS': { label: 'Más de 90 días', sales: [] as any[], total: 0 }
   };
 
-  initialData.forEach(sale => {
+  preFilteredSales.forEach(sale => {
     const days = getDaysOverdue(sale.dueDate);
     buckets.ALL.sales.push(sale);
     buckets.ALL.total += sale.balanceDue || 0;
@@ -142,8 +161,8 @@ export default function CobranzaGlobalClient({ initialData }: { initialData: any
 
   return (
     <div className="card">
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: '300px', position: 'relative' }}>
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ flex: 2, minWidth: '250px', position: 'relative' }}>
                 <Search size={18} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '1rem', color: '#94a3b8' }} />
                 <input 
                     type="text" 
@@ -153,7 +172,34 @@ export default function CobranzaGlobalClient({ initialData }: { initialData: any
                     style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.5rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}
                 />
             </div>
-            <div style={{ padding: '0.75rem 1.5rem', backgroundColor: '#fee2e2', color: '#b91c1c', borderRadius: '8px', fontWeight: 'bold' }}>
+
+            <div style={{ flex: 1, minWidth: '180px' }}>
+                <select
+                  value={selectedBranchId}
+                  onChange={(e) => setSelectedBranchId(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white', color: '#334155', fontWeight: '500', cursor: 'pointer' }}
+                >
+                  <option value="ALL">Todas las Sucursales</option>
+                  {branches.map((b: any) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+            </div>
+
+            <div style={{ flex: 1, minWidth: '180px' }}>
+                <select
+                  value={selectedSellerId}
+                  onChange={(e) => setSelectedSellerId(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white', color: '#334155', fontWeight: '500', cursor: 'pointer' }}
+                >
+                  <option value="ALL">Todos los Vendedores</option>
+                  {users.map((u: any) => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
+            </div>
+
+            <div style={{ padding: '0.75rem 1.5rem', backgroundColor: '#fee2e2', color: '#b91c1c', borderRadius: '8px', fontWeight: 'bold', marginLeft: 'auto' }}>
                 Deuda Global Filtrada: {formatCurrency(totalDeudaGlobal, 2)}
             </div>
         </div>
@@ -311,6 +357,8 @@ export default function CobranzaGlobalClient({ initialData }: { initialData: any
                   <thead>
                     <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#475569', fontWeight: '600' }}>
                       <th style={{ padding: '0.5rem', textAlign: 'left' }}>Folio</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'left' }}>Sucursal</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'left' }}>Vendedor</th>
                       <th style={{ padding: '0.5rem', textAlign: 'left' }}>Fecha</th>
                       <th style={{ padding: '0.5rem', textAlign: 'left' }}>Vencimiento</th>
                       <th style={{ padding: '0.5rem', textAlign: 'right' }}>Deuda</th>
@@ -324,6 +372,12 @@ export default function CobranzaGlobalClient({ initialData }: { initialData: any
                         <tr key={sale.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                           <td style={{ padding: '0.75rem 0.5rem', fontFamily: 'monospace', fontWeight: '500' }}>
                             {sale.folio ? `#${sale.folio}` : `#${sale.id.slice(0,8).toUpperCase()}`}
+                          </td>
+                          <td style={{ padding: '0.75rem 0.5rem', color: '#64748b' }}>
+                            {sale.branch?.name || 'Matriz'}
+                          </td>
+                          <td style={{ padding: '0.75rem 0.5rem', color: '#64748b' }}>
+                            {sale.user?.name || 'N/A'}
                           </td>
                           <td style={{ padding: '0.75rem 0.5rem', color: '#64748b' }}>
                             {new Date(sale.createdAt).toLocaleDateString()}
