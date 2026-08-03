@@ -125,15 +125,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'La venta debe contener al menos un producto en "items".' }, { status: 400, headers: corsHeaders });
     }
 
-    // Resolve an user to associate the sale
-    const firstUser = await prisma.user.findFirst({
+    // Resolve or create the B2C online user "VENTAS ONLINE PAGINA"
+    const onlineUserEmail = `ventasonline_${branch.tenantId || 'global'}@caanma.com`;
+    let firstUser = await prisma.user.findFirst({
       where: {
-        OR: [
-          { branchId: branch.id },
-          { tenantId: branch.tenantId }
-        ]
+        email: onlineUserEmail
       }
     });
+
+    if (!firstUser) {
+      try {
+        firstUser = await prisma.user.create({
+          data: {
+            name: 'VENTAS ONLINE PAGINA',
+            email: onlineUserEmail,
+            password: '$2b$10$dummyhashplaceholderforventasonlinewhichcannotlogin12345',
+            role: 'USER',
+            tenantId: branch.tenantId,
+            branchId: branch.id
+          }
+        });
+      } catch (e) {
+        console.warn('Failed to create VENTAS ONLINE PAGINA user, falling back to branch user:', e);
+        firstUser = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { branchId: branch.id },
+              { tenantId: branch.tenantId }
+            ]
+          }
+        });
+      }
+    }
 
     if (!firstUser) {
       return NextResponse.json({ error: 'No se encontró ningún usuario configurado en esta sucursal para asociar la venta.' }, { status: 400, headers: corsHeaders });

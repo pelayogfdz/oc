@@ -54,7 +54,15 @@ export default async function VentasPage(props: { searchParams: Promise<any> }) 
   const currentMonth = parseInt(parts.find(p => p.type === 'month')!.value, 10);
   const currentDay = parseInt(parts.find(p => p.type === 'day')!.value, 10);
 
-  let startUtc = getUtcDateFromLocal(currentYear, currentMonth, 1, 0, 0, 0, 0, timezone);
+  // Calculate default 30 days ago components in tenant timezone
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const partsAgo = formatter.formatToParts(thirtyDaysAgo);
+  const agoYear = parseInt(partsAgo.find(p => p.type === 'year')!.value, 10);
+  const agoMonth = parseInt(partsAgo.find(p => p.type === 'month')!.value, 10);
+  const agoDay = parseInt(partsAgo.find(p => p.type === 'day')!.value, 10);
+
+  let startUtc = getUtcDateFromLocal(agoYear, agoMonth, agoDay, 0, 0, 0, 0, timezone);
   let endUtc = getUtcDateFromLocal(currentYear, currentMonth, currentDay, 23, 59, 59, 999, timezone);
 
   if (params?.startDate) {

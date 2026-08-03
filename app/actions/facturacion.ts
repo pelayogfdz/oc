@@ -7,6 +7,32 @@ import { revalidatePath } from "next/cache";
 import { cancelSaleInternal } from "./sale";
 import { sendPaymentComplementNotificationEmail, sendInvoiceNotificationEmail } from "@/lib/mailer";
 
+const getSanitizedIvaRate = (rawRate: number | null | undefined): number => {
+  const rateVal = rawRate ?? 16.0;
+  let decimalRate = rateVal;
+  if (rateVal > 1.0) {
+    decimalRate = rateVal / 100;
+  }
+  
+  // Sanitizar a tasas oficiales del SAT para IVA (0.16, 0.08, 0.0)
+  if (decimalRate >= 0.12) {
+    return 0.16;
+  } else if (decimalRate >= 0.04) {
+    return 0.08;
+  } else {
+    return 0.0;
+  }
+};
+
+const getSanitizedIepsRate = (rawRate: number | null | undefined): number => {
+  const rateVal = rawRate ?? 0;
+  let decimalRate = rateVal;
+  if (rateVal > 1.0) {
+    decimalRate = rateVal / 100;
+  }
+  return Number(decimalRate.toFixed(4));
+};
+
 function getFacturapiApiKey(config: any): string | null {
   if (!config || !config.facturacion) return null;
   const f = config.facturacion;
@@ -198,11 +224,11 @@ export async function stampInvoice(saleId: string, customerId?: string | null, c
             const taxType = item.product.taxType || 'IVA';
             const taxesList: any[] = [];
             if (taxType === 'IVA' || taxType === 'IVA_IEPS') {
-              const rate = (item.product.taxRate ?? 16.0) / 100;
+              const rate = getSanitizedIvaRate(item.product.taxRate);
               if (rate > 0) taxesList.push({ type: "IVA", rate });
             }
             if (taxType === 'IEPS' || taxType === 'IVA_IEPS') {
-              const rate = (item.product.iepsRate ?? 0) / 100;
+              const rate = getSanitizedIepsRate(item.product.iepsRate);
               if (rate > 0) taxesList.push({ type: "IEPS", rate });
             }
             return taxesList;
@@ -274,10 +300,11 @@ export async function stampInvoice(saleId: string, customerId?: string | null, c
     }
 
     if (customerData.tax_id === "XAXX010101000") {
+      const saleDate = sale.createdAt ? new Date(sale.createdAt) : new Date();
       invoicePayload.global = {
         periodicity: "day",
-        months: String(new Date().getMonth() + 1).padStart(2, '0'),
-        year: new Date().getFullYear()
+        months: String(saleDate.getMonth() + 1).padStart(2, '0'),
+        year: saleDate.getFullYear()
       };
     }
 
@@ -404,11 +431,11 @@ export async function stampGlobalInvoice(startDateStr?: string, endDateStr?: str
                const taxType = item.product.taxType || 'IVA';
                const taxesList: any[] = [];
                if (taxType === 'IVA' || taxType === 'IVA_IEPS') {
-                 const rate = (item.product.taxRate ?? 16.0) / 100;
+                 const rate = getSanitizedIvaRate(item.product.taxRate);
                  if (rate > 0) taxesList.push({ type: "IVA", rate });
                }
                if (taxType === 'IEPS' || taxType === 'IVA_IEPS') {
-                 const rate = (item.product.iepsRate ?? 0) / 100;
+                 const rate = getSanitizedIepsRate(item.product.iepsRate);
                  if (rate > 0) taxesList.push({ type: "IEPS", rate });
                }
                return taxesList;
@@ -438,8 +465,8 @@ export async function stampGlobalInvoice(startDateStr?: string, endDateStr?: str
       type: "I",
       global: {
          periodicity: "day",
-         months: String(new Date().getMonth() + 1).padStart(2, '0'), // Mes actual
-         year: new Date().getFullYear()
+         months: String(salesFiltered[0]?.createdAt ? new Date(salesFiltered[0].createdAt).getMonth() + 1 : new Date().getMonth() + 1).padStart(2, '0'),
+         year: salesFiltered[0]?.createdAt ? new Date(salesFiltered[0].createdAt).getFullYear() : new Date().getFullYear()
       }
     } as any);
 
@@ -503,7 +530,7 @@ export async function createPaymentReceipt(invoiceId: string, amount: number, pa
   }
 }
 
-export async function cancelInvoice(saleId: string) {
+export async function cancelInvoice(saleId: string, cancelSale: boolean = true) {
   try {
     const branch = await getActiveBranch();
     
@@ -552,10 +579,30 @@ export async function cancelInvoice(saleId: string) {
 
     const user = await getActiveUser();
 
-    // Cancelar internamente cada una de las ventas (esto retorna stock y maneja caja/crédito)
-    for (const assocSale of associatedSales) {
-      if (assocSale.status !== 'CANCELLED') {
-        await cancelSaleInternal(assocSale.id, user.id);
+    if (cancelSale) {
+      // Cancelar internamente cada una de las ventas (esto retorna stock y maneja caja/crédito)
+      for (const assocSale of associatedSales) {
+        if (assocSale.status !== 'CANCELLED') {
+          try {
+            await cancelSaleInternal(assocSale.id, user.id);
+          } catch (saleCancelError) {
+            console.error(`[CANCEL_INVOICE] Error cancelling associated sale ${assocSale.id}:`, saleCancelError);
+            // Fallback defensivo para cancelar saldo y deuda del cliente si cancelSaleInternal falla
+            if (assocSale.customerId && assocSale.balanceDue > 0) {
+              await prisma.customer.update({
+                where: { id: assocSale.customerId },
+                data: { creditBalance: { decrement: assocSale.balanceDue } }
+              });
+            }
+            await prisma.sale.update({
+              where: { id: assocSale.id },
+              data: {
+                status: 'CANCELLED',
+                balanceDue: 0
+              }
+            });
+          }
+        }
       }
     }
 
@@ -736,11 +783,11 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
              const taxType = item.product.taxType || 'IVA';
              const taxesList: any[] = [];
              if (taxType === 'IVA' || taxType === 'IVA_IEPS') {
-               const rate = (item.product.taxRate ?? 16.0) / 100;
+               const rate = getSanitizedIvaRate(item.product.taxRate);
                if (rate > 0) taxesList.push({ type: "IVA", rate });
              }
              if (taxType === 'IEPS' || taxType === 'IVA_IEPS') {
-               const rate = (item.product.iepsRate ?? 0) / 100;
+               const rate = getSanitizedIepsRate(item.product.iepsRate);
                if (rate > 0) taxesList.push({ type: "IEPS", rate });
              }
              return taxesList;
@@ -821,10 +868,11 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
     }
 
     if (customerData.tax_id === "XAXX010101000") {
+      const saleDate = sortedSales[0]?.createdAt ? new Date(sortedSales[0].createdAt) : new Date();
       invoicePayload.global = {
         periodicity: "day",
-        months: String(new Date().getMonth() + 1).padStart(2, '0'),
-        year: new Date().getFullYear()
+        months: String(saleDate.getMonth() + 1).padStart(2, '0'),
+        year: saleDate.getFullYear()
       };
     }
 

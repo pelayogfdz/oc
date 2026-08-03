@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect, useRef } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { 
   FileText, Send, AlertTriangle, Download, Plus, Search, 
   Check, X, FileDown, Layers, Loader2, Sparkles,
-  Printer, Share2, CheckCircle, Mail
+  Printer, Share2, CheckCircle, Mail, Calendar
 } from 'lucide-react';
 import { stampInvoice, cancelInvoice, stampMultipleSalesInvoice, sendInvoiceByEmail, checkDocumentSatStatus } from '@/app/actions/facturacion';
 import { createCustomerBilling } from '@/app/actions/customer';
@@ -15,8 +16,56 @@ interface VentasInvoiceClientProps {
 }
 
 export default function VentasInvoiceClient({ initialSales, initialCustomers }: VentasInvoiceClientProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+  const isInitialMount = useRef(true);
+
   const [sales, setSales] = useState<any[]>(initialSales);
   const [customers, setCustomers] = useState<any[]>(initialCustomers);
+
+  // Sync props to state when they change on the server
+  useEffect(() => {
+    setSales(initialSales);
+  }, [initialSales]);
+
+  useEffect(() => {
+    setCustomers(initialCustomers);
+  }, [initialCustomers]);
+
+  // Sync URL search params on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const initialStartDate = params.get('startDate') || '';
+      const initialEndDate = params.get('endDate') || '';
+      if (initialStartDate) {
+        setFilterStartDate(initialStartDate);
+      }
+      if (initialEndDate) {
+        setFilterEndDate(initialEndDate);
+      }
+      isInitialMount.current = false;
+    }
+  }, []);
+
+  // Update URL search params when date filters change
+  useEffect(() => {
+    if (isInitialMount.current) return;
+    const params = new URLSearchParams(window.location.search);
+    if (filterStartDate) {
+      params.set('startDate', filterStartDate);
+    } else {
+      params.delete('startDate');
+    }
+    if (filterEndDate) {
+      params.set('endDate', filterEndDate);
+    } else {
+      params.delete('endDate');
+    }
+    router.push(`${pathname}?${params.toString()}`);
+  }, [filterStartDate, filterEndDate, router, pathname]);
   const [selectedSaleIds, setSelectedSaleIds] = useState<string[]>([]);
   const [activeInvoicingSaleIds, setActiveInvoicingSaleIds] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
@@ -359,12 +408,17 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
 
   const handleCancelSingle = (saleId: string, invoiceId: string) => {
     if (!confirm('¿Estás seguro de cancelar la factura ante el SAT? Esto cancelará la factura con motivo "02" en Facturapi.')) return;
+    const cancelSale = confirm('¿Deseas también CANCELAR la venta (cuenta), devolver el inventario y anular la deuda en el sistema?');
     startTransition(async () => {
-      const res = await cancelInvoice(saleId);
+      const res = await cancelInvoice(saleId, cancelSale);
       if (res.success) {
-        alert('Factura cancelada exitosamente.');
+        alert(cancelSale ? 'Factura y venta canceladas exitosamente.' : 'Factura cancelada exitosamente.');
         // Refresh local state
-        setSales(prev => prev.map(s => s.id === saleId ? { ...s, invoiceId: null } : s));
+        if (cancelSale) {
+          setSales(prev => prev.filter(s => s.id !== saleId));
+        } else {
+          setSales(prev => prev.map(s => s.id === saleId ? { ...s, invoiceId: null, invoiceFolio: null } : s));
+        }
       } else {
         alert('Error al cancelar factura: ' + res.error);
       }
@@ -582,6 +636,47 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
           </div>
         </div>
 
+      </div>
+
+      {/* Date Range Filters */}
+      <div 
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+          gap: '1rem', 
+          marginBottom: '1.25rem',
+          backgroundColor: '#f8fafc',
+          padding: '1.25rem',
+          borderRadius: '16px',
+          border: '1px solid var(--caanma-border)',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+        }}
+      >
+        {/* Date Filter: Start */}
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: '#475569', marginBottom: '0.5rem' }}>
+            <Calendar size={14} /> Fecha Inicio
+          </label>
+          <input 
+            type="date" 
+            value={filterStartDate} 
+            onChange={(e) => setFilterStartDate(e.target.value)} 
+            style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem', color: '#0f172a' }} 
+          />
+        </div>
+
+        {/* Date Filter: End */}
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: '#475569', marginBottom: '0.5rem' }}>
+            <Calendar size={14} /> Fecha Fin
+          </label>
+          <input 
+            type="date" 
+            value={filterEndDate} 
+            onChange={(e) => setFilterEndDate(e.target.value)} 
+            style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem', color: '#0f172a' }} 
+          />
+        </div>
       </div>
 
       {/* Search & Export Action Bar */}

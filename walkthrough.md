@@ -239,3 +239,19 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
      * **Interfaz de Sucursales (`page.tsx` y `BranchClient.tsx`):**
        * Reemplazamos el formulario básico de servidor de [page.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/preferencias/sucursales/page.tsx) por una integración interactiva dentro del componente cliente [BranchClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/preferencias/sucursales/BranchClient.tsx).
        * El nuevo formulario cliente captura la respuesta del servidor action, maneja estados de carga (`isProcessing`), limpia los inputs al crearse con éxito, y despliega notificaciones de error tipo `alert` en pantalla en caso de que se intente crear una sucursal duplicada.
+
+---
+
+## 21. Reportes de Cuentas por Cobrar (CxC) y Cuentas por Pagar (CxP)
+* **Requerimiento**: Generar dentro del módulo de reportes un reporte de cuentas por cobrar y otro de cuentas por pagar, con ordenación por antigüedad, monto y nombre, filtrado por sucursales y rangos, búsquedas textuales y detalles completos de facturas.
+* **Soluciones Aplicadas**:
+  1. **Registro en el Centro de Reportes:**
+     * Registramos los accesos para los nuevos reportes en [ReportesModuleClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/reportes/ReportesModuleClient.tsx) apuntando a `/reportes/cuentas-por-cobrar` y `/reportes/cuentas-por-pagar` y validando los permisos correspondientes de finanzas (`fin_cxc` y `fin_cxp` o acceso de administrador).
+  2. **Reporte de Cuentas por Cobrar (CxC):**
+     * **Página del Servidor (page.tsx):** Creamos [cuentas-por-cobrar/page.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/reportes/cuentas-por-cobrar/page.tsx) para recuperar ventas con método `CREDIT`, saldo pendiente (`balanceDue > 0`) y activas (excluyendo `CANCELLED`). Recuperamos también el catálogo de sucursales.
+     * **Interfaz Interactiva (CuentasPorCobrarReportClient.tsx):** Creamos [CuentasPorCobrarReportClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/reportes/cuentas-por-cobrar/CuentasPorCobrarReportClient.tsx) con tarjetas de KPI (Cartera Total, Saldo Vencido y Corriente), filtros por sucursal y antigüedad (buckets por rangos de días vencidos), ordenación por nombre de cliente, monto y antigüedad de la deuda, y modal con desglose detallado de documentos pendientes (con visor de PDF de estado de cuenta consolidado, botón de compartir en WhatsApp y copiar enlace).
+  3. **Reporte de Cuentas por Pagar (CxP):**
+     * **Página del Servidor (page.tsx):** Creamos [cuentas-por-pagar/page.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/reportes/cuentas-por-pagar/page.tsx) para consultar las compras a crédito pendientes de pago.
+     * **Interfaz Interactiva (CuentasPorPagarReportClient.tsx):** Creamos [CuentasPorPagarReportClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/reportes/cuentas-por-pagar/CuentasPorPagarReportClient.tsx) que agrupa por proveedor, calcula pasivos totales vencidos y corrientes, permite búsquedas y filtrados por sucursal, y desglosa las compras individuales en un modal interactivo que enlaza al módulo de abonos del proveedor.
+  4. **Exportación e Impresión Integradas:**
+     * Integramos el botón de exportar a Excel usando el helper `exportToExcel` de `lib/exportExcel.ts` y añadimos estilos CSS adaptados a impresión (`no-print` y clases de visibilidad) para garantizar la compatibilidad con impresión física o conversión a PDF nativa del navegador.

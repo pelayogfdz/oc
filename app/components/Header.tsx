@@ -16,6 +16,34 @@ export default async function Header() {
     getActiveUser().catch(() => null)
   ]);
   
+  let showGlobalSearch = false;
+  let showIAButton = false;
+
+  let activeBranchId = currentBranch?.id;
+  if (activeBranchId === 'GLOBAL' && currentUser?.tenantId) {
+    const firstBranch = await prisma.branch.findFirst({
+      where: { isActive: true, tenantId: currentUser.tenantId },
+      select: { id: true }
+    });
+    if (firstBranch) {
+      activeBranchId = firstBranch.id;
+    }
+  }
+
+  if (activeBranchId && activeBranchId !== 'GLOBAL') {
+    const settings = await prisma.branchSettings.findUnique({
+      where: { branchId: activeBranchId },
+      select: { configJson: true }
+    });
+    if (settings && settings.configJson) {
+      try {
+        const parsed = JSON.parse(settings.configJson);
+        showGlobalSearch = parsed.general?.enableGlobalSearch === 'true' || parsed.general?.enableGlobalSearch === true;
+        showIAButton = parsed.general?.enableIAButton === 'true' || parsed.general?.enableIAButton === true;
+      } catch (e) {}
+    }
+  }
+
   const branches = currentUser?.tenantId ? await getTenantBranches(currentUser.tenantId) : [];
 
 
@@ -101,18 +129,22 @@ export default async function Header() {
       </div>
       <div className="header-right-section" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <HeaderNetworkStatus />
-        <div className="desktop-only-header-item">
-          <GlobalSearch />
-        </div>
+        {showGlobalSearch && (
+          <div className="desktop-only-header-item">
+            <GlobalSearch />
+          </div>
+        )}
         
         {/* IA Shortcut Link */}
-        <Link 
-          href="/ia" 
-          className="desktop-only-header-item header-ia-link"
-        >
-          <Sparkles size={14} style={{ color: '#3b82f6' }} />
-          <span>IA</span>
-        </Link>
+        {showIAButton && (
+          <Link 
+            href="/ia" 
+            className="desktop-only-header-item header-ia-link"
+          >
+            <Sparkles size={14} style={{ color: '#3b82f6' }} />
+            <span>IA</span>
+          </Link>
+        )}
 
         <div className="header-user-controls" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {currentUser && (

@@ -61,7 +61,8 @@ export default function VentasHistoryClient({
   const isInitialMount = useRef(true);
 
   const [sales, setSales] = useState<any[]>(initialSales);
-  const [filterDate, setFilterDate] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
   const [filterUser, setFilterUser] = useState('');
   const [filterBranch, setFilterBranch] = useState(currentBranch.id === 'GLOBAL' ? '' : currentBranch.id);
   const [filterStatus, setFilterStatus] = useState('');
@@ -74,24 +75,33 @@ export default function VentasHistoryClient({
   useEffect(() => {
     if (isInitialMount.current) {
       const params = new URLSearchParams(window.location.search);
-      const initialDate = params.get('startDate') || '';
-      if (initialDate) {
-        setFilterDate(initialDate);
+      const initialStartDate = params.get('startDate') || '';
+      const initialEndDate = params.get('endDate') || '';
+      if (initialStartDate) {
+        setFilterStartDate(initialStartDate);
+      }
+      if (initialEndDate) {
+        setFilterEndDate(initialEndDate);
       }
       isInitialMount.current = false;
       return;
     }
 
     const params = new URLSearchParams(window.location.search);
-    if (filterDate) {
-      params.set('startDate', filterDate);
-      params.set('endDate', filterDate);
+    if (filterStartDate) {
+      params.set('startDate', filterStartDate);
     } else {
       params.delete('startDate');
+    }
+
+    if (filterEndDate) {
+      params.set('endDate', filterEndDate);
+    } else {
       params.delete('endDate');
     }
+
     router.push(`${pathname}?${params.toString()}`);
-  }, [filterDate, router, pathname]);
+  }, [filterStartDate, filterEndDate, router, pathname]);
 
   // WhatsApp Share States
   const [isWhatsappOpen, setIsWhatsappOpen] = useState(false);
@@ -454,10 +464,14 @@ export default function VentasHistoryClient({
   // Filter logic
   const filteredSales = useMemo(() => {
     return sales.filter(sale => {
-      // Date filter
-      if (filterDate) {
+      // Date filter (range)
+      if (filterStartDate) {
         const saleDateStr = new Date(sale.createdAt).toLocaleDateString('sv-SE', { timeZone: timezone });
-        if (saleDateStr !== filterDate) return false;
+        if (saleDateStr < filterStartDate) return false;
+      }
+      if (filterEndDate) {
+        const saleDateStr = new Date(sale.createdAt).toLocaleDateString('sv-SE', { timeZone: timezone });
+        if (saleDateStr > filterEndDate) return false;
       }
       
       // User filter
@@ -498,12 +512,13 @@ export default function VentasHistoryClient({
 
       return true;
     });
-  }, [sales, filterDate, filterUser, filterBranch, filterStatus, filterClient, filterCfdi, filterPaymentMethod]);
+  }, [sales, filterStartDate, filterEndDate, filterUser, filterBranch, filterStatus, filterClient, filterCfdi, filterPaymentMethod, timezone]);
 
-  const hasActiveFilters = filterDate || filterUser || (currentBranch.id === 'GLOBAL' && filterBranch) || filterStatus || filterClient || filterCfdi || filterPaymentMethod;
+  const hasActiveFilters = filterStartDate || filterEndDate || filterUser || (currentBranch.id === 'GLOBAL' && filterBranch) || filterStatus || filterClient || filterCfdi || filterPaymentMethod;
 
   const handleClearFilters = () => {
-    setFilterDate('');
+    setFilterStartDate('');
+    setFilterEndDate('');
     setFilterUser('');
     setFilterBranch(currentBranch.id === 'GLOBAL' ? '' : currentBranch.id);
     setFilterStatus('');
@@ -565,15 +580,28 @@ export default function VentasHistoryClient({
           border: '1px solid var(--caanma-border)' 
         }}
       >
-        {/* Date Filter */}
+        {/* Date Filter: Start */}
         <div>
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
-            <Calendar size={14} /> Fecha
+            <Calendar size={14} /> Fecha Inicio
           </label>
           <input 
             type="date" 
-            value={filterDate} 
-            onChange={(e) => setFilterDate(e.target.value)} 
+            value={filterStartDate} 
+            onChange={(e) => setFilterStartDate(e.target.value)} 
+            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
+          />
+        </div>
+
+        {/* Date Filter: End */}
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
+            <Calendar size={14} /> Fecha Fin
+          </label>
+          <input 
+            type="date" 
+            value={filterEndDate} 
+            onChange={(e) => setFilterEndDate(e.target.value)} 
             style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
           />
         </div>

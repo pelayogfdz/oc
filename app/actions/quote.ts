@@ -76,22 +76,6 @@ export async function createQuote(
 
   revalidatePath('/ventas/cotizaciones');
 
-  // Send email to customer automatically if customer has email configured
-  if (quote.customerId) {
-    try {
-      const dbCustomer = await prisma.customer.findUnique({
-        where: { id: quote.customerId }
-      });
-      if (dbCustomer && dbCustomer.email && dbCustomer.email.trim() !== "") {
-        sendQuoteByEmail(quote.id, dbCustomer.email.trim()).catch(e => {
-          console.error("Auto email quote sending failed:", e);
-        });
-      }
-    } catch (e) {
-      console.error("Failed to auto send quote email:", e);
-    }
-  }
-
   return quote;
 }
 

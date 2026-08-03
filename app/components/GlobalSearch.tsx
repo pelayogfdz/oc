@@ -705,11 +705,131 @@ const SEARCH_DIRECTORY: SearchItem[] = [
         'Ve a Preferencias > Fabricación.',
         'Define el factor de costo indirecto de manufactura (ej. porcentaje adicional por luz, gas o mano de obra).',
         'Establece las mermas promedio toleradas de ingredientes básicos (Harina, Levadura).',
-        'Presiona "Guardar". Los cálculos se aplicarán al emitir órdenes de producción en el módulo de panadería.'
+        'Presiona "Guardar". Los cálculos se aplicarán al emitir órdenes de producción en el módulo de panadería.',
       ],
       faq: [
         { q: '¿Qué es el costo indirecto?', a: 'Es un porcentaje sugerido para amortizar los costos de mano de obra y servicios de la planta en el costo unitario de tu pan o producto final.' },
         { q: '¿El sistema bloquea producciones si no hay insumos?', a: 'Sí, a menos que actives la casilla "Permitir inventario de insumos en negativo" en este panel de configuración.' }
+      ]
+    }
+  },
+  {
+    name: 'Trámites y Vacaciones (Recursos Humanos)',
+    path: '/rh/tramites',
+    category: 'RH',
+    description: 'Control de vacaciones de empleados, días de ley acumulados, saldo disponible, incidencias, solicitudes y justificaciones.',
+    keywords: ['vacaciones', 'tramites', 'solicitudes', 'permisos', 'dias libres', 'justificaciones', 'antiguedad', 'dias de ley', 'rh tramites', 'avisos'],
+    manual: {
+      purpose: 'Administrar el saldo de vacaciones acumuladas y gozadas de cada empleado, así como procesar solicitudes y justificar retardos.',
+      steps: [
+        'Ingresa al módulo de Trámites y Avisos desde la sección de RH.',
+        'En la pestaña "Vacaciones", revisa el saldo actual (Base, Ley acumulada, Gozadas, Disponibles).',
+        'Haz clic en "Acciones" para registrar días gozados de forma manual o autorizar solicitudes pendientes.',
+        'El sistema descontará automáticamente los días del saldo disponible de manera inmutable.'
+      ],
+      faq: [
+        { q: '¿Cómo calcula la ley los días anuales?', a: 'Se calculan automáticamente según el aniversario del empleado cumplido en el año 2026 basándose en las tablas de la LFT (por ejemplo, 12 días en el año 1, 14 en el año 2).' },
+        { q: '¿Se pueden registrar justificantes médicos?', a: 'Sí, en la sección de solicitudes puedes subir el justificante y marcar la falta de ese día como justificada para que no afecte la pre-nómina.' }
+      ]
+    }
+  },
+  {
+    name: 'Cálculo de Nómina',
+    path: '/rh/nomina',
+    category: 'RH',
+    description: 'Procesamiento y cálculo de nómina de empleados, deducciones, percepciones y prenóminas de asistencia.',
+    keywords: ['nomina', 'nominas', 'prenomina', 'pagos', 'sueldo', 'salario', 'calculo de nomina', 'rh nomina'],
+    manual: {
+      purpose: 'Generar el cálculo de sueldos netos a pagar en base al salario base, horas extra, bonos y deducciones por retardos o faltas.',
+      steps: [
+        'Ve a Recursos Humanos > Cálculo de Nómina.',
+        'Selecciona el periodo (quincenal, semanal, etc.) y haz clic en "Cargar Asistencias" para importar retardos.',
+        'Modifica o añade percepciones adicionales (bonos, comisiones) o deducciones de forma individual.',
+        'Haz clic en "Calcular y Cerrar Nómina" para registrar el egreso en finanzas y liberar recibos.'
+      ],
+      faq: [
+        { q: '¿Se pueden pagar comisiones de ventas aquí?', a: 'Sí, el sistema sugiere las comisiones devengadas por el vendedor en el periodo seleccionado en base a los folios cobrados.' },
+        { q: '¿Dónde se reflejan los pagos de nómina?', a: 'Quedan registrados como un egreso automático en la cuenta bancaria de nómina seleccionada en Finanzas.' }
+      ]
+    }
+  },
+  {
+    name: 'Monitoreo de Asistencia',
+    path: '/rh/monitoreo',
+    category: 'RH',
+    description: 'Panel en tiempo real de entradas, salidas, retardos, incidencias y geolocalización GPS de la checada de personal.',
+    keywords: ['monitoreo', 'asistencia', 'reloj checador', 'checador gps', 'retardos', 'entradas y salidas', 'bitacora asistencia'],
+    manual: {
+      purpose: 'Supervisar el estatus de asistencia de los empleados durante el día de trabajo activo en todas las sucursales.',
+      steps: [
+        'Entra a RH > Monitoreo de Asistencia.',
+        'El panel mostrará quién ya checó entrada, quién está ausente y los retardos del día.',
+        'Haz clic sobre el icono de mapa en el empleado para visualizar la ubicación GPS exacta donde checó.',
+        'Puedes autorizar retardos justificados directamente en esta lista para limpiar la incidencia.'
+      ],
+      faq: [
+        { q: '¿Qué es la geocerca de asistencia?', a: 'Es un límite circular de seguridad configurado por sucursal (ej. 50 metros) que valida que el empleado realmente esté en la sucursal al checar desde su celular.' },
+        { q: '¿Se requiere internet para checar?', a: 'Sí, el dispositivo del empleado necesita señal de internet para transmitir la hora exacta y coordenadas GPS al servidor.' }
+      ]
+    }
+  },
+  {
+    name: 'Calendario de Incidencias',
+    path: '/rh/calendario',
+    category: 'RH',
+    description: 'Vista mensual y semanal de faltas, retardos, vacaciones aprobadas y justificaciones de todo el personal.',
+    keywords: ['calendario', 'incidencias', 'faltas', 'vacaciones aprobadas', 'calendario laboral', 'rh calendario'],
+    manual: {
+      purpose: 'Tener una visualización tipo agenda para planificar turnos, coberturas e identificar patrones de ausentismo del personal.',
+      steps: [
+        'Ve a Recursos Humanos > Calendario de Incidencias.',
+        'Utiliza el selector mensual para navegar entre los meses de la operación.',
+        'Los días con círculos de colores representan retardos (amarillo), faltas (rojo) y vacaciones (verde).',
+        'Haz clic sobre el círculo de incidencia para ver el motivo o la justificación cargada.'
+      ],
+      faq: [
+        { q: '¿Cómo programo turnos especiales en días festivos?', a: 'Al hacer doble clic en el calendario sobre un día y empleado, puedes asignar el estatus de "Descanso obligatorio" o "Festivo laborado".' },
+        { q: '¿Se sincronizan las solicitudes de trámites aquí?', a: 'Sí, cualquier solicitud de vacaciones aprobada en Trámites se inyectará como un periodo verde automáticamente.' }
+      ]
+    }
+  },
+  {
+    name: 'Reloj Checador (Kiosko)',
+    path: '/rh/kiosko',
+    category: 'RH',
+    description: 'Portal y pantalla de registro de asistencia de entrada y salida para los empleados mediante PIN y geolocalización.',
+    keywords: ['kiosko', 'reloj checador', 'checar entrada', 'checar salida', 'pin empleado', 'kiosko de asistencia'],
+    manual: {
+      purpose: 'Facilitar a los empleados una terminal única física en la sucursal para registrar sus horas de entrada, salida y comida.',
+      steps: [
+        'Abre la pantalla de Kiosko de Asistencia en una tablet o computadora fija en la entrada de la sucursal.',
+        'El empleado ingresa su código/PIN asignado y presiona "Ingresar".',
+        'Selecciona el evento a registrar (Entrada, Comida, Regreso de comida, Salida).',
+        'El sistema tomará una captura si la cámara web de la tablet está activa para validar identidad.'
+      ],
+      faq: [
+        { q: '¿Cómo sé cuál es el PIN de mi empleado?', a: 'Puedes ver y editar el PIN asignado en la ficha del empleado desde Preferencias > Usuarios y Permisos.' },
+        { q: '¿Qué pasa si checan doble por error?', a: 'El sistema tiene un bloqueo de re-entrada de 5 minutos para evitar dobles registros accidentales.' }
+      ]
+    }
+  },
+  {
+    name: 'Configuración de Facturación CFDI',
+    path: '/preferencias/facturacion',
+    category: 'Preferencias',
+    description: 'Configura las llaves de timbrado del SAT, credenciales de Facturapi, regímenes fiscales y sellos digitales.',
+    keywords: ['facturacion sat', 'llaves', 'api key', 'credenciales', 'facturapi', 'certificado', 'sellos digitales', 'csd', 'rfc emisor'],
+    manual: {
+      purpose: 'Vincular y configurar tus credenciales de Facturapi (modo Test y Producción) y cargar tus certificados de sello digital (CSD) para emitir CFDI 4.0.',
+      steps: [
+        'Navega a Preferencias > Facturación CFDI.',
+        'Ingresa tu clave de API de Facturapi (Live y Test) correspondiente.',
+        'Carga los archivos de certificado `.cer`, llave `.key` y contraseña de la clave privada de tu CSD.',
+        'Selecciona el Régimen Fiscal emisor de tu empresa y presiona "Guardar y Probar Conexión".'
+      ],
+      faq: [
+        { q: '¿Cómo sé si mi CSD está vigente?', a: 'La plataforma validará el archivo del SAT y te mostrará la fecha de vencimiento. Recuerda renovarlo cada 4 años en el portal del SAT.' },
+        { q: '¿Qué diferencia hay entre Modo Test y Modo Live?', a: 'Modo Test emite facturas con RFCs de prueba sin valor fiscal. Modo Live timbra facturas reales válidas ante el SAT que consumen créditos.' }
       ]
     }
   }
@@ -743,15 +863,28 @@ export default function GlobalSearch() {
       return;
     }
 
-    const searchVal = normalizeString(query);
-    const searchTokens = searchVal.split(/\s+/).filter(Boolean);
+    const rawQueryNormalized = normalizeString(query);
+    
+    // Stop words a excluir
+    const STOP_WORDS = new Set([
+      'de', 'el', 'la', 'los', 'las', 'un', 'una', 'con', 'para', 'por', 
+      'en', 'y', 'o', 'a', 'del', 'al', 'modulo', 'modulos', 'proceso', 
+      'procesos', 'buscador', 'buscar', 'donde'
+    ]);
+
+    const rawTokens = rawQueryNormalized.split(/\s+/).filter(Boolean);
+    // Filtrar stop-words si hay tokens significativos
+    let searchTokens = rawTokens.filter(token => !STOP_WORDS.has(token));
+    if (searchTokens.length === 0) {
+      searchTokens = rawTokens; // Fallback si todo son stop-words
+    }
 
     if (searchTokens.length === 0) {
       setResults([]);
       return;
     }
 
-    // Fuzzy matching / Levenshtein distance helper
+    // Levenshtein distance helper
     const levenshteinDistance = (a: string, b: string): number => {
       const tmp = [];
       for (let i = 0; i <= a.length; i++) tmp.push([i]);
@@ -770,8 +903,9 @@ export default function GlobalSearch() {
 
     const isFuzzyMatch = (wordA: string, wordB: string): boolean => {
       if (wordB.includes(wordA) || wordA.includes(wordB)) return true;
-      const maxDistance = wordA.length >= 5 ? 2 : 1;
-      if (wordA.length >= 3 && wordB.length >= 3) {
+      // Solo hacer fuzzy matching para palabras de longitud mayor o igual a 4
+      if (wordA.length >= 4 && wordB.length >= 4) {
+        const maxDistance = wordA.length >= 6 ? 2 : 1;
         const dist = levenshteinDistance(wordA, wordB);
         if (dist <= maxDistance) return true;
       }
@@ -782,6 +916,7 @@ export default function GlobalSearch() {
       const nameNorm = normalizeString(item.name);
       const descNorm = normalizeString(item.description);
       const catNorm = normalizeString(item.category);
+      
       const itemTokens = [
         ...nameNorm.split(/\s+/),
         ...descNorm.split(/\s+/),
@@ -792,33 +927,66 @@ export default function GlobalSearch() {
       let matches = 0;
       let score = 0;
 
+      // 1. Coincidencia exacta de la frase de búsqueda completa (Máxima prioridad)
+      if (nameNorm.includes(rawQueryNormalized)) {
+        score += 200;
+        matches++;
+      } else if (descNorm.includes(rawQueryNormalized)) {
+        score += 100;
+        matches++;
+      }
+
+      // 2. Coincidencia por tokens significativos
       for (const sToken of searchTokens) {
-        // Direct match on name (highest priority)
+        // Coincidencia exacta en palabras clave
+        const directKeywordMatch = item.keywords.some(kw => {
+          const kwNorm = normalizeString(kw);
+          return kwNorm === sToken || kwNorm.startsWith(sToken + " ") || kwNorm.endsWith(" " + sToken);
+        });
+
+        if (directKeywordMatch) {
+          score += 50;
+          matches++;
+          continue;
+        }
+
+        // Coincidencia parcial en nombre
         if (nameNorm.includes(sToken)) {
+          if (nameNorm.startsWith(sToken) || nameNorm.includes(" " + sToken)) {
+            score += 40;
+          } else {
+            score += 20;
+          }
+          matches++;
+          continue;
+        }
+
+        // Coincidencia en palabras clave parcial
+        const partialKeywordMatch = item.keywords.some(kw => normalizeString(kw).includes(sToken));
+        if (partialKeywordMatch) {
+          score += 15;
+          matches++;
+          continue;
+        }
+
+        // Coincidencia en categoría
+        if (catNorm.includes(sToken)) {
           score += 10;
           matches++;
           continue;
         }
 
-        // Direct match on keywords
-        const directKeywordMatch = item.keywords.some(kw => normalizeString(kw).includes(sToken));
-        if (directKeywordMatch) {
+        // Coincidencia en descripción
+        if (descNorm.includes(sToken)) {
           score += 5;
           matches++;
           continue;
         }
 
-        // Direct match on description or category
-        if (descNorm.includes(sToken) || catNorm.includes(sToken)) {
-          score += 2;
-          matches++;
-          continue;
-        }
-
-        // Fuzzy match
+        // Búsqueda difusa para corregir faltas de ortografía
         const hasFuzzy = itemTokens.some(iToken => isFuzzyMatch(sToken, iToken));
         if (hasFuzzy) {
-          score += 1;
+          score += 2;
           matches++;
         }
       }
@@ -827,11 +995,11 @@ export default function GlobalSearch() {
     });
 
     const filtered = scored
-      .filter(entry => entry.matches > 0)
+      .filter(entry => entry.matches > 0 && entry.score > 0)
       .sort((a, b) => b.score - a.score)
       .map(entry => entry.item);
 
-    setResults(filtered.slice(0, 8)); // Expanded view list cap
+    setResults(filtered.slice(0, 8));
   }, [query]);
 
   // Dynamic Print PDF Function

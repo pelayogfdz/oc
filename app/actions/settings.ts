@@ -21,6 +21,33 @@ export async function updateBranchSettings(formData: FormData) {
   const currencySymbol = formData.get('currencySymbol') as string || '$';
   const autoCloseCash = formData.get('autoCloseCash') === 'true';
   const useCustomCFDI = formData.get('useCustomCFDI') === 'true';
+  
+  const enableGlobalSearch = formData.get('enableGlobalSearch') === 'true';
+  const enableIAButton = formData.get('enableIAButton') === 'true';
+
+  let settingsObj = await prisma.branchSettings.findUnique({
+    where: { branchId: branch.id }
+  });
+
+  let currentJson: Record<string, any> = {};
+  if (settingsObj && settingsObj.configJson) {
+    try {
+      const parsed = JSON.parse(settingsObj.configJson);
+      if (parsed && typeof parsed === 'object') {
+        currentJson = parsed;
+      }
+    } catch (e) {
+      console.error("Error parsing configJson:", e);
+    }
+  }
+
+  if (!currentJson.general) {
+    currentJson.general = {};
+  }
+  currentJson.general.enableGlobalSearch = enableGlobalSearch;
+  currentJson.general.enableIAButton = enableIAButton;
+
+  const configJson = JSON.stringify(currentJson);
 
   await prisma.branchSettings.upsert({
     where: { branchId: branch.id },
@@ -30,7 +57,8 @@ export async function updateBranchSettings(formData: FormData) {
       taxIVA,
       currencySymbol,
       autoCloseCash,
-      useCustomCFDI
+      useCustomCFDI,
+      configJson
     },
     create: {
       branchId: branch.id,
@@ -39,7 +67,8 @@ export async function updateBranchSettings(formData: FormData) {
       taxIVA,
       currencySymbol,
       autoCloseCash,
-      useCustomCFDI
+      useCustomCFDI,
+      configJson
     }
   });
 

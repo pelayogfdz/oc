@@ -863,6 +863,35 @@ export async function editLeaveRequest(id: string, data: { type: string, startDa
   };
 }
 
+export async function updateEmployeeVacationSettings(
+  userId: string,
+  initialVacationDays: number,
+  vacationStartDate: string | null
+) {
+  try {
+    const sessionCookie = (await cookies()).get('session')?.value;
+    const session = await decrypt(sessionCookie);
+
+    if (!session?.userId || (session.role !== 'ADMIN' && session.role !== 'MANAGER')) {
+      throw new Error("No autorizado");
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        initialVacationDays,
+        vacationStartDate: vacationStartDate ? new Date(vacationStartDate) : null
+      }
+    });
+
+    revalidatePath('/rh/tramites');
+    return { success: true };
+  } catch (e: any) {
+    console.error("Error in updateEmployeeVacationSettings:", e);
+    return { success: false, error: e.message };
+  }
+}
+
 export async function getFilteredAttendanceLogs(filters: {
   startDate?: string;
   endDate?: string;

@@ -10,10 +10,14 @@ export default async function GeneralPreferencesPage() {
   const tenantSettings = await getTenantSettings();
 
   let globalLogoUrl = '';
+  let enableGlobalSearch = false;
+  let enableIAButton = false;
   if (settings.configJson) {
     try {
       const parsed = JSON.parse(settings.configJson);
       globalLogoUrl = parsed.global?.logoUrl || '';
+      enableGlobalSearch = parsed.general?.enableGlobalSearch === 'true' || parsed.general?.enableGlobalSearch === true;
+      enableIAButton = parsed.general?.enableIAButton === 'true' || parsed.general?.enableIAButton === true;
     } catch (e) {}
   }
 
@@ -191,6 +195,46 @@ export default async function GeneralPreferencesPage() {
               display: 'flex', alignItems: 'center', padding: '2px'
             }}>
               <span style={{ height: '20px', width: '20px', backgroundColor: 'white', borderRadius: '50%', transition: '.4s', transform: settings.useCustomCFDI ? 'translateX(20px)' : 'translateX(0)' }}></span>
+            </span>
+          </label>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f3f4f6', paddingBottom: '1rem' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold', color: '#1f2937' }}>
+              Activar Buscador de Módulos
+            </label>
+            <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0.2rem 0 0 0' }}>Muestra el buscador rápido de módulos y procesos en la cabecera superior.</p>
+          </div>
+          <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+            <input type="checkbox" name="enableGlobalSearch" value="true" defaultChecked={enableGlobalSearch} style={{ opacity: 0, width: 0, height: 0 }} />
+            <span style={{ 
+              position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, 
+              backgroundColor: enableGlobalSearch ? '#3b82f6' : '#ccc', 
+              transition: '.4s', borderRadius: '34px',
+              display: 'flex', alignItems: 'center', padding: '2px'
+            }}>
+              <span style={{ height: '20px', width: '20px', backgroundColor: 'white', borderRadius: '50%', transition: '.4s', transform: enableGlobalSearch ? 'translateX(20px)' : 'translateX(0)' }}></span>
+            </span>
+          </label>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f3f4f6', paddingBottom: '1rem' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold', color: '#1f2937' }}>
+              Activar Botón de Asistente de IA
+            </label>
+            <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0.2rem 0 0 0' }}>Muestra el acceso directo al asistente de IA en la cabecera superior.</p>
+          </div>
+          <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
+            <input type="checkbox" name="enableIAButton" value="true" defaultChecked={enableIAButton} style={{ opacity: 0, width: 0, height: 0 }} />
+            <span style={{ 
+              position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, 
+              backgroundColor: enableIAButton ? '#3b82f6' : '#ccc', 
+              transition: '.4s', borderRadius: '34px',
+              display: 'flex', alignItems: 'center', padding: '2px'
+            }}>
+              <span style={{ height: '20px', width: '20px', backgroundColor: 'white', borderRadius: '50%', transition: '.4s', transform: enableIAButton ? 'translateX(20px)' : 'translateX(0)' }}></span>
             </span>
           </label>
         </div>

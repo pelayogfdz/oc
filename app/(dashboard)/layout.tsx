@@ -98,13 +98,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <OfflineSyncProvider>
       <TenantSettingsInjector decimals={tenantSettings.decimals} />
       <MobileMenuProvider>
-        <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', minWidth: 0 }}>
           <DesktopSidebarWrapper>
             <Sidebar isSuperAdmin={isSuperAdmin} userPermissions={userPermissions} userRole={userRole} />
           </DesktopSidebarWrapper>
-          <div className="dashboard-content-wrapper" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div className="dashboard-content-wrapper" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
             <Header />
-            <main className="dashboard-main" style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
+            <main className="dashboard-main" style={{ flex: 1, padding: '2rem', overflowY: 'auto', minWidth: 0 }}>
               <SubscriptionGuard status={subscriptionStatus} role={userRole} isSuperAdmin={isSuperAdmin}>
                 {children}
               </SubscriptionGuard>

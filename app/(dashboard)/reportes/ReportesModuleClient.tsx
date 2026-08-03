@@ -39,6 +39,8 @@ export default function ReportesModuleClient({
     { title: 'Corte de Caja', icon: <Calculator size={24} color="#d946ef" />, description: 'Auditoría de ingresos, egresos y control de efectivo.', route: '/caja/actual', requiredPermission: 'report_cash_cut' },
     { title: 'Reporte de Turnos', icon: <Clock size={24} color="#8b5cf6" />, description: 'Aperturas y cierres por cajero, bitácora de anomalías.', route: '/caja/cortes', requiredPermission: 'report_shifts' },
     { title: 'Rendimiento de Tareas', icon: <Clock size={24} color="#8b5cf6" />, description: 'Rendimiento de tareas, cumplimientos, retrasos e inasistencias por empleado.', route: '/reportes/tareas', requiredPermission: 'report_tasks' },
+    { title: 'Cuentas por Cobrar', icon: <Calculator size={24} color="#2563eb" />, description: 'Adeudos de clientes, saldos pendientes y antigüedad de deudas.', route: '/reportes/cuentas-por-cobrar', requiredPermission: 'fin_cxc' },
+    { title: 'Cuentas por Pagar', icon: <Calculator size={24} color="#dc2626" />, description: 'Adeudos con proveedores, saldos pendientes y antigüedad de deudas.', route: '/reportes/cuentas-por-pagar', requiredPermission: 'fin_cxp' },
   ];
 
   const visibleReports = reports.filter(report => 

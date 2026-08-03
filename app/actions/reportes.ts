@@ -1279,8 +1279,35 @@ export async function getRestockReportData(
     ? { brand: brandFilter } 
     : {};
 
+  const saleItems = await prisma.saleItem.findMany({
+    where: {
+      sale: {
+        ...branchCondition,
+        createdAt: { gte: startDate, lte: endDate },
+        status: 'COMPLETED'
+      },
+      product: {
+        ...categoryCondition,
+        ...brandCondition
+      }
+    },
+    select: {
+      productId: true,
+      quantity: true
+    }
+  });
+
+  const salesMap = new Map<string, number>();
+  saleItems.forEach(item => {
+    const current = salesMap.get(item.productId) || 0;
+    salesMap.set(item.productId, current + item.quantity);
+  });
+
+  const productIdsWithSales = Array.from(salesMap.keys());
+
   const products = await prisma.product.findMany({
     where: {
+      id: { in: productIdsWithSales },
       ...branchCondition,
       ...categoryCondition,
       ...brandCondition,
@@ -1310,6 +1337,7 @@ export async function getRestockReportData(
   // Fetch recent purchase items to determine the last supplier
   const purchaseItems = await prisma.purchaseItem.findMany({
     where: {
+      productId: { in: productIdsWithSales },
       product: branchCondition
     },
     select: {
@@ -1343,30 +1371,6 @@ export async function getRestockReportData(
         lastSupplierMap.set(item.productId, { id: supplierId, name: supplierName });
       }
     }
-  });
-
-  const saleItems = await prisma.saleItem.findMany({
-    where: {
-      sale: {
-        ...branchCondition,
-        createdAt: { gte: startDate, lte: endDate },
-        status: 'COMPLETED'
-      },
-      product: {
-        ...categoryCondition,
-        ...brandCondition
-      }
-    },
-    select: {
-      productId: true,
-      quantity: true
-    }
-  });
-
-  const salesMap = new Map<string, number>();
-  saleItems.forEach(item => {
-    const current = salesMap.get(item.productId) || 0;
-    salesMap.set(item.productId, current + item.quantity);
   });
 
   const msDiff = endDate.getTime() - startDate.getTime();

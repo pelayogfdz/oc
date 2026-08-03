@@ -466,17 +466,15 @@ button {
     text-shadow: none !important;
   }
 
-  /* Desbloquear altura fija y desborde oculto de contenedores padres para evitar truncamiento en la primera página */
-  html, body, #__next, 
-  div[style*="height: 100vh"], div[style*="height:100vh"],
-  div[style*="height: 100%"], div[style*="height:100%"],
-  div[style*="overflow: hidden"], div[style*="overflow:hidden"] {
+  /* Desbloquear altura fija y desborde para permitir impresión completa sin scrollbars */
+  html, body, #__next, #root, main, section, article,
+  .dashboard-main, .dashboard-content-wrapper, .card {
     height: auto !important;
-    min-height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
     overflow: visible !important;
     overflow-x: visible !important;
     overflow-y: visible !important;
-    display: block !important;
   }
 
   /* Ocultar barra lateral, cabeceras, botones, widgets flotantes de chat y elementos innecesarios */
@@ -518,18 +516,43 @@ button {
     flex: none !important;
   }
 
-  /* Distribuir reportes verticalmente de forma limpia */
-  .report-grid {
+  /* Colapsar layouts de cuadrícula a una sola columna para que ocupen todo el ancho y no se encimen */
+  .report-grid,
+  .grid, 
+  [class*="grid-cols"] {
     display: flex !important;
     flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
     gap: 1.5rem !important;
   }
 
-  /* Asegurar que las tarjetas de KPIs quepan ordenadas en una fila y no se encimen */
-  .grid, [class*="grid-cols"] {
-    display: grid !important;
-    grid-template-columns: repeat(4, 1fr) !important;
-    gap: 10px !important;
+  /* Estilizar tarjetas de KPIs para que se distribuyan bien y no se desborden */
+  .grid > div, 
+  [class*="grid-cols"] > div {
+    width: 100% !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Optimizar gráficos SVG de Recharts para que sean responsivos al ancho del PDF y no se corten */
+  .recharts-responsive-container {
+    width: 100% !important;
+    height: 280px !important; /* Altura fija óptima para impresión */
+    min-width: 100% !important;
+    min-height: 280px !important;
+  }
+
+  .recharts-wrapper,
+  .recharts-wrapper svg {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  
+  svg.recharts-surface {
+    width: 100% !important;
+    height: auto !important;
   }
 
   /* Evitar recortes (scrolls) de tablas y contenedores de reportes, expandiendo su altura completa */
@@ -553,6 +576,7 @@ button {
 
   thead {
     display: table-header-group !important;
+    position: static !important; /* Quitar sticky en impresión para evitar encimar texto */
   }
 
   th, td {
@@ -585,8 +609,8 @@ button {
   }
 
   @page {
-    margin: 10mm;
-    size: auto;
+    margin: 15mm 10mm;
+    size: portrait;
   }
 }
   

@@ -189,12 +189,13 @@ export default function VentaActionsClient({
 
   const handleCancelInvoice = () => {
     if (!confirm('¿ESTÁS SEGURO DE CANCELAR LA FACTURA DE ESTA VENTA? Se solicitará la cancelación en Facturapi y no se podrá deshacer.')) return;
+    const cancelSale = confirm('¿Deseas también CANCELAR la venta (cuenta), devolver el inventario y anular la deuda en el sistema?');
     
     startTransition(async () => {
       try {
-        const res = await cancelInvoice(saleId);
+        const res = await cancelInvoice(saleId, cancelSale);
         if (res.success) {
-          alert('Factura cancelada exitosamente.');
+          alert(cancelSale ? 'Factura y venta canceladas exitosamente.' : 'Factura cancelada exitosamente.');
           router.refresh();
         } else {
           alert(res.error || 'Error al cancelar la factura.');
