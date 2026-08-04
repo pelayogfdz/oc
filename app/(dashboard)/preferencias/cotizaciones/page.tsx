@@ -14,6 +14,12 @@ export default async function Page() {
       placeholder: 'Ej: 15' 
     },
     { 
+      name: 'incluirImagenes', 
+      label: 'Incluir Imágenes de Productos', 
+      description: 'Muestra una vista previa con imagen pequeña a la izquierda de cada artículo para un diseño premium de cotización.',
+      type: 'boolean' 
+    },
+    { 
       name: 'permitirAprobarAutomatico', 
       label: 'Portal Inversa (Link Privado)', 
       description: 'Habilita un portal web para que el interesado mande su aceptación online con 1 botonazo.',

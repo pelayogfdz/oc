@@ -40,6 +40,10 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
   const logoUrl = cotizacionConfig.logoUrl || globalLogoUrl;
   const primaryColor = cotizacionConfig.primaryColor || '#0ea5e9'; // Elegant CAANMA Cyan / Sky Blue
 
+  const cotizacionesConfig = config.cotizaciones || {};
+  const incluirImagenes = cotizacionesConfig.incluirImagenes === true || cotizacionesConfig.incluirImagenes === 'true';
+  const diasVigencia = parseInt(cotizacionesConfig.diasVigencia || '15', 10);
+
   // Auto-print script
   const printScript = `
     (function() {
@@ -242,7 +246,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
                     <tr>
                       <td style={{ color: '#64748b', padding: '0.35rem 0', fontWeight: '500' }}>Validez hasta:</td>
                       <td style={{ fontWeight: '600', textAlign: 'right', color: '#b91c1c' }}>
-                        {new Date(new Date(quote.createdAt).getTime() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })} (15 días)
+                        {new Date(new Date(quote.createdAt).getTime() + diasVigencia * 24 * 60 * 60 * 1000).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })} ({diasVigencia} días)
                       </td>
                     </tr>
                     <tr>
@@ -272,10 +276,14 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
               <tr key={item.id}>
                 <td>
                   <div className="prod-cell">
-                    {item.product?.imageUrl ? (
-                      <img src={item.product.imageUrl} alt={item.product.name} className="prod-img" />
-                    ) : (
-                      <div className="prod-img-placeholder">PET</div>
+                    {incluirImagenes && (
+                      item.product?.imageUrl ? (
+                        <img src={item.product.imageUrl} alt={item.product.name} className="prod-img" />
+                      ) : (
+                        <div className="prod-img-placeholder">
+                          {item.product?.name ? item.product.name.slice(0, 2).toUpperCase() : 'PR'}
+                        </div>
+                      )
                     )}
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <h3 className="prod-name">{item.product?.name || 'Artículo'}</h3>
@@ -346,6 +354,14 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
             <span>${quote.total.toFixed(2)}</span>
           </div>
         </div>
+
+        {/* Términos y Condiciones */}
+        {cotizacionesConfig.terminosCot && (
+          <div style={{ marginTop: '2.5rem', padding: '1rem', borderTop: '1px solid #cbd5e1', fontSize: '0.8rem', color: '#475569', lineHeight: '1.5' }}>
+            <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.35rem', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.5px' }}>Términos y Condiciones:</strong>
+            <div style={{ whiteSpace: 'pre-wrap', fontStyle: 'italic' }}>{cotizacionesConfig.terminosCot}</div>
+          </div>
+        )}
 
         {/* Footer QR Box matching reference */}
          <div className="qr-box">
