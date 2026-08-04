@@ -7,6 +7,7 @@ import { Eye, Printer, RotateCcw, Calendar, User, MapPin, Tag, Receipt, Send, Sh
 import { sendSaleByEmail } from '@/app/actions/sale';
 import { createDeliveryOrder } from '@/app/actions/logistica';
 import { formatCurrency } from '@/lib/utils';
+import { exportToExcel } from '@/lib/exportExcel';
 
 const getPaymentMethodLabel = (method: string) => {
   const mapping: Record<string, string> = {
@@ -527,6 +528,34 @@ export default function VentasHistoryClient({
     setFilterPaymentMethod('');
   };
 
+  const downloadExcel = () => {
+    const headers = [
+      "ID Venta",
+      "Fecha / Hora",
+      "Cliente",
+      "Folio CFDI",
+      "Sucursal",
+      "Vendedor",
+      "Método de Pago",
+      "Total",
+      "Estado"
+    ];
+    const rows = filteredSales.map(sale => {
+      return [
+        sale.folio || sale.id.slice(0, 8).toUpperCase(),
+        formatDateCompact(sale.createdAt, timezone),
+        sale.customer ? sale.customer.name : 'Público en General',
+        sale.invoiceFolio || sale.invoiceId || '-',
+        sale.branch ? sale.branch.name : '-',
+        sale.user ? sale.user.name : '-',
+        getPaymentMethodLabel(sale.paymentMethod),
+        sale.total,
+        sale.status === 'COMPLETED' ? 'Completado' : sale.status === 'CANCELLED' ? 'Cancelado' : sale.status
+      ];
+    });
+    exportToExcel(headers, rows, 'Historial_de_Ventas');
+  };
+
   return (
     <div>
       <div className="page-header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -534,7 +563,28 @@ export default function VentasHistoryClient({
           <h1 className="page-header-title" style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Historial de Ventas</h1>
           <p className="page-header-subtitle" style={{ color: 'var(--caanma-text-muted)', margin: 0 }}>Módulo de ventas y cortes de caja</p>
         </div>
-        <div className="page-header-actions">
+        <div className="page-header-actions" style={{ display: 'flex', gap: '0.75rem' }}>
+          <button 
+            onClick={downloadExcel}
+            className="btn-secondary"
+            style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              padding: '0.75rem 1.5rem', 
+              borderRadius: '8px', 
+              fontWeight: 'bold', 
+              cursor: 'pointer', 
+              border: '1px solid var(--caanma-border)', 
+              backgroundColor: 'white', 
+              color: '#334155', 
+              transition: 'all 0.2s' 
+            }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor='#f8fafc'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor='white'}
+          >
+            <Download size={18} /> Exportar Excel
+          </button>
           <Link href="/ventas/nueva" className="btn-primary" style={{ padding: '0.75rem 1.5rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             + Nueva Venta / TPV
           </Link>

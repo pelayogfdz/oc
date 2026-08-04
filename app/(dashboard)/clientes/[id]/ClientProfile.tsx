@@ -257,7 +257,7 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
     }
   };
 
-  const pendingSales = sales.filter((s:any) => s.paymentMethod === 'CREDIT' && s.balanceDue > 0);
+  const pendingSales = sales.filter((s:any) => s.paymentMethod === 'CREDIT' && s.balanceDue > 0 && s.status !== 'CANCELLED');
 
   const isOverdue = (dateDate: Date | string | null) => dateDate ? new Date(dateDate) < new Date() : false;
 

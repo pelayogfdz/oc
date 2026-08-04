@@ -257,3 +257,12 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
      * Integramos el botón de exportar a Excel usando el helper `exportToExcel` de `lib/exportExcel.ts` y añadimos estilos CSS adaptados a impresión (`no-print` y clases de visibilidad) para garantizar la compatibilidad con impresión física o conversión a PDF nativa del navegador.
   5. **Depuración de Sucursales Duplicadas en Filtros:**
      * Corregimos la consulta de sucursales en la página de cobranza global `/clientes/cobranza` ([clientes/cobranza/page.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/clientes/cobranza/page.tsx)) para filtrar por `where: { isActive: true }`. Esto evita que sucursales inactivas o desactivadas anteriormente por duplicidad se desplieguen en el selector del reporte.
+
+---
+
+## 22. Exportación a Excel en el Historial de Ventas
+* **Requerimiento**: Permitir exportar las ventas filtradas en el Historial de Ventas (`/ventas`) a un archivo Excel para fines de conciliación y control de pagos.
+* **Soluciones Aplicadas**:
+  1. **Integración de Botón de Exportar:** Añadimos un botón interactivo de "Exportar Excel" en la sección de acciones de cabecera (`page-header-actions`) de [VentasHistoryClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/ventas/VentasHistoryClient.tsx).
+  2. **Función de Exportación Dinámica:** Implementamos la función `downloadExcel` que lee las ventas filtradas actualmente en pantalla y genera un archivo estructurado con columnas claras (ID Venta, Fecha / Hora, Cliente, Folio CFDI, Sucursal, Vendedor, Método de Pago, Total y Estado).
+  3. **Preservación de Filtros:** La exportación respeta todos los filtros activos (rango de fechas, cliente, sucursal, vendedor, método de pago, folio CFDI y estado), permitiendo descargar exactamente lo seleccionado por el usuario en tiempo real.
