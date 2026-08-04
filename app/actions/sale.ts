@@ -169,15 +169,18 @@ export async function createSale(
           throw new Error(`El cliente excede su límite de crédito. Disponible: $${(customer.creditLimit - customer.creditBalance).toFixed(2)}`);
         }
 
-        const overdueSales = await tx.sale.findFirst({
-          where: {
-             customerId: resolvedCustId,
-             balanceDue: { gt: 0 },
-             dueDate: { lt: new Date() }
+        const bloquearCreditoFacturasVencidas = config.bloquearCreditoFacturasVencidas !== false;
+        if (bloquearCreditoFacturasVencidas) {
+          const overdueSales = await tx.sale.findFirst({
+            where: {
+               customerId: resolvedCustId,
+               balanceDue: { gt: 0 },
+               dueDate: { lt: new Date() }
+            }
+          });
+          if (overdueSales) {
+            throw new Error("El cliente tiene facturas vencidas. No se puede otorgar nuevo crédito hasta liquidar.");
           }
-        });
-        if (overdueSales) {
-          throw new Error("El cliente tiene facturas vencidas. No se puede otorgar nuevo crédito hasta liquidar.");
         }
 
         dueDate = new Date();

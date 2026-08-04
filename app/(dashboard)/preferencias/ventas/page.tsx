@@ -18,6 +18,12 @@ export default async function Page() {
       description: 'Permitir que el precio final de venta de un producto (incluyendo descuentos) sea menor a su costo de compra registrado.',
       type: 'boolean' 
     },
+    {
+      name: 'bloquearCreditoFacturasVencidas',
+      label: 'Bloquear nuevo crédito por facturas vencidas',
+      description: 'Prevenir que se autorice nuevo crédito en el punto de venta a clientes que tengan cuentas o facturas vencidas sin liquidar.',
+      type: 'boolean'
+    },
     { 
       name: 'bloquearDescuentos', 
       label: 'Bloquear Descuentos Manuales', 
