@@ -266,3 +266,15 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
   1. **Integración de Botón de Exportar:** Añadimos un botón interactivo de "Exportar Excel" en la sección de acciones de cabecera (`page-header-actions`) de [VentasHistoryClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/ventas/VentasHistoryClient.tsx).
   2. **Función de Exportación Dinámica:** Implementamos la función `downloadExcel` que lee las ventas filtradas actualmente en pantalla y genera un archivo estructurado con columnas claras (ID Venta, Fecha / Hora, Cliente, Folio CFDI, Sucursal, Vendedor, Método de Pago, Total y Estado).
   3. **Preservación de Filtros:** La exportación respeta todos los filtros activos (rango de fechas, cliente, sucursal, vendedor, método de pago, folio CFDI y estado), permitiendo descargar exactamente lo seleccionado por el usuario en tiempo real.
+
+---
+
+## 23. Preferencia de Bloqueo de Crédito por Facturas Vencidas
+* **Requerimiento**: Solucionar el bloqueo de facturación/venta a crédito para clientes con facturas vencidas antiguas, dando la opción de flexibilizar o deshabilitar esta validación automática.
+* **Soluciones Aplicadas**:
+  1. **Configuración de Preferencia de Venta (`page.tsx`):**
+     * Añadimos el nuevo campo interactivo `bloquearCreditoFacturasVencidas` (Bloquear nuevo crédito por facturas vencidas) tipo `boolean` en la sección de **Preferencias de Venta** ([page.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/preferencias/ventas/page.tsx)). Esto permite a los administradores del sistema desactivar esta restricción con un simple interruptor (toggle).
+  2. **Validación Condicional en el Punto de Venta (`sale.ts`):**
+     * Modificamos la validación de crédito en la acción de checkout ([sale.ts](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/actions/sale.ts)). Ahora, el sistema solo verifica y arroja el error de facturas vencidas si la preferencia `bloquearCreditoFacturasVencidas` está configurada como activa (que es el valor por defecto `true`). Si el administrador la desmarca, el Punto de Venta permite registrar la venta a crédito con éxito.
+  3. **Despliegue a Producción:**
+     * Sincronizamos las modificaciones a GitHub y ejecutamos la reconstrucción en el servidor de Hetzner para que la nueva preferencia esté disponible inmediatamente.
