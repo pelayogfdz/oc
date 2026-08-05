@@ -124,7 +124,7 @@ export async function POST(req: Request) {
         // Guía/etiqueta de envío link
         const shipmentId = orderData.shipping?.id || '';
         const shippingLabelUrl = shipmentId 
-          ? `https://api.mercadolibre.com/shipments/${shipmentId}/labels?access_token=${token}`
+          ? `https://api.mercadolibre.com/shipments/${shipmentId}/labels?response_type=pdf&access_token=${token}`
           : '';
 
         // Crear la venta
