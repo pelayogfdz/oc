@@ -45,6 +45,13 @@ export async function GET(req: Request) {
       if (guideUrl && guideUrl.endsWith('.')) {
         guideUrl = guideUrl.slice(0, -1);
       }
+      if (guideUrl && guideUrl.includes('/shipments/') && !guideUrl.includes('response_type=')) {
+        if (guideUrl.includes('?')) {
+          guideUrl = guideUrl.replace('?', '?response_type=pdf&');
+        } else {
+          guideUrl = guideUrl + '?response_type=pdf';
+        }
+      }
 
       const buyerMatch = notes.match(/Comprador:\s*([^\n\r]+)/);
       const buyerName = buyerMatch ? buyerMatch[1].trim() : 'Cliente Mercado Libre';
