@@ -32,21 +32,22 @@ const getLawDaysForYear = (year: number): number => {
 const calculateAccruedVacationDays = (hireDateStr: string | null, vacationStartDateStr: string | null): number => {
   if (!hireDateStr) return 0;
   const hireDate = new Date(hireDateStr);
+  if (isNaN(hireDate.getTime())) return 0;
   const vacationStartDate = vacationStartDateStr ? new Date(vacationStartDateStr) : null;
   const now = new Date();
   let totalAccrued = 0;
 
   let anniversaryYear = 1;
-  while (true) {
+  while (anniversaryYear < 100) {
     const anniversaryDate = new Date(hireDate);
     anniversaryDate.setFullYear(hireDate.getFullYear() + anniversaryYear);
 
-    if (anniversaryDate > now) {
+    if (isNaN(anniversaryDate.getTime()) || anniversaryDate > now) {
       break;
     }
 
     // Only count this anniversary if it happens AFTER the vacationStartDate baseline
-    if (!vacationStartDate || anniversaryDate > vacationStartDate) {
+    if (!vacationStartDate || isNaN(vacationStartDate.getTime()) || anniversaryDate > vacationStartDate) {
       totalAccrued += getLawDaysForYear(anniversaryYear);
     }
 

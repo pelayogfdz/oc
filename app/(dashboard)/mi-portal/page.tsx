@@ -59,21 +59,21 @@ export default async function MiPortalPage() {
   };
 
   const calculateAccruedVacationDays = (hireDate: Date | null, vacationStartDate: Date | null): number => {
-    if (!hireDate) return 0;
+    if (!hireDate || isNaN(hireDate.getTime())) return 0;
     const now = new Date();
     let totalAccrued = 0;
 
     let anniversaryYear = 1;
-    while (true) {
+    while (anniversaryYear < 100) {
       const anniversaryDate = new Date(hireDate);
       anniversaryDate.setFullYear(hireDate.getFullYear() + anniversaryYear);
 
-      if (anniversaryDate > now) {
+      if (isNaN(anniversaryDate.getTime()) || anniversaryDate > now) {
         break;
       }
 
       // Only count this anniversary if it happens AFTER the vacationStartDate baseline
-      if (!vacationStartDate || anniversaryDate > vacationStartDate) {
+      if (!vacationStartDate || isNaN(vacationStartDate.getTime()) || anniversaryDate > vacationStartDate) {
         totalAccrued += getLawDaysForYear(anniversaryYear);
       }
 
