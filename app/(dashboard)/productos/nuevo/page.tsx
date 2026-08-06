@@ -44,6 +44,27 @@ export default async function NuevoProductoPage({ searchParams }: { searchParams
   // Deduplicate case-insensitively just in case
   const uniqueCategories = Array.from(new Set(categories));
 
+  // Fetch distinct brands for the current branch
+  const brandsData = await prisma.product.findMany({
+    where: { 
+      branchId: branch?.id,
+      NOT: [
+        { brand: null },
+        { brand: "" }
+      ]
+    },
+    select: { brand: true },
+    distinct: ['brand']
+  });
+  const brands = brandsData
+    .map(b => b.brand)
+    .filter(Boolean)
+    .map(b => b!.trim())
+    .filter(b => b !== "")
+    .sort();
+
+  const uniqueBrands = Array.from(new Set(brands));
+
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
@@ -58,6 +79,7 @@ export default async function NuevoProductoPage({ searchParams }: { searchParams
         branchId={branch?.id} 
         tenantId={branch?.tenantId}
         categories={uniqueCategories}
+        brands={uniqueBrands}
       />
     </div>
   );

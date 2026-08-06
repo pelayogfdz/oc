@@ -271,6 +271,201 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
 
 ## 23. Preferencia de Bloqueo de Crédito por Facturas Vencidas
 * **Requerimiento**: Solucionar el bloqueo de facturación/venta a crédito para clientes con facturas vencidas antiguas, dando la opción de flexibilizar o deshabilitar esta validación automática.
+* **Solución**:
+  * **Visibilidad del Método de Pago**: Modificamos `POSClient.tsx` para mostrar siempre la opción de "Crédito Cta." para cualquier cliente registrado (no anónimo / Público en General) cuando el método de crédito esté habilitado a nivel global en la configuración de la sucursal.
+  * **Alertas e Información Fiscal**: Si el cliente seleccionado tiene un límite de crédito de `$0.00`, ahora el modal de checkout muestra una alerta en rojo: `"⚠️ El cliente no tiene una línea de crédito autorizada (Límite: $0.00). Configura su límite en la sección de Clientes."` y deshabilita de forma proactiva el botón "Confirmar Pago".
+  * **Validación de Límites en Cliente**: Si el cliente excede su límite disponible, también se muestra una advertencia en rojo y se bloquea el botón "Confirmar Pago" en el navegador para evitar errores en el servidor.
+* **Resultado**: El flujo de venta a crédito es transparente, mostrando advertencias claras e impidiendo registrar créditos no autorizados antes de enviar la petición al servidor.
+
+---
+
+## 9. Registro de Límite de Crédito en Producción para Olivia Barrera Montiel
+* **Acción Realizada**: Actualizamos directamente en la base de datos de producción (`production_db`) el registro de la clienta `OLIVIA BARRERA MONTIEL` (ID `01b99184-5b3f-4972-8497-ee3cff1b5ec1`), asignándole un **Límite de Crédito de $100,000.00** con un plazo de **30 días**.
+* **Resultado**: Olivia Barrera Montiel ahora tiene habilitado el crédito en caja por hasta $100,000.00 de manera inmediata.
+
+---
+
+## 10. Mapeo de Métodos de Pago SAT en Facturación (Tarjeta y Transferencia)
+* **Identificación del Problema**: En la factura timbrada para las ventas pagadas con Tarjeta (como `SAN-1046` y `SAN-1051`), la forma de pago en el PDF del SAT se emitía incorrectamente como `"01 Efectivo"`.
+* **Causa**: La función `stampInvoice` en [facturacion.ts](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/actions/facturacion.ts) solo mapeaba a Facturapi la forma de pago `"99" (Por definir)` si la venta era a crédito (`CREDIT`). Para cualquier otro método, no realizaba mapeo y caía en el valor predeterminado `"01" (Efectivo)`.
+* **Solución**:
+  * Modificamos `stampInvoice` para normalizar el método de pago registrado en el POS y enviarlo correctamente al SAT:
+    * Si es **CARD** (o incluye "tarjeta") -> Forma de pago **"04"** (Tarjeta de crédito / débito).
+    * Si es **TRANSFER** (o incluye "transferencia" / "SPEI") -> Forma de pago **"03"** (Transferencia electrónica).
+    * Si es **CASH** -> Forma de pago **"01"** (Efectivo).
+  * Aplicamos la misma robustez y normalización en la función `stampMultipleSalesInvoice` para facturas globales o de ventas múltiples.
+* **Resultado**: Las facturas de ventas individuales ahora heredan y timbran el método de pago correspondiente del POS.
+
+---
+
+## 11. Solución al Conflicto de Guardado de Abonos (Branch 'GLOBAL')
+* **Identificación del Problema**: Cuando los usuarios ingresaban a la pestaña `"Cobranza y Abonos"` de un cliente estando en la vista general `"Todas las Sucursales"`, al intentar consolidar o registrar un abono, el sistema arrojaba un error rojo: `Foreign key constraint violated: 'CustomerPayment_branchId_fkey'`.
+* **Causa**: Al realizar el pago desde la vista de todas las sucursales, la sucursal activa devuelta por el servidor es `'GLOBAL'` (un ID virtual no existente físicamente en la tabla `Branch` de la base de datos). Al intentar insertar un registro en la tabla `CustomerPayment` vinculando `branchId: 'GLOBAL'`, la base de datos lanzaba una violación de clave foránea.
+* **Solución**:
+  * Modificamos la función `addCustomerPaymentBatch` en [customerPayment.ts](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/actions/customerPayment.ts):
+    * Si el usuario se encuentra en la vista de sucursal `'GLOBAL'`, el sistema detecta de forma automática y asocia el pago a la sucursal física de la venta (`sale.branchId`), a la sucursal asignada del cliente (`customer.branchId`) o, en su defecto, a la primera sucursal física activa del inquilino (tenant).
+    * Adaptamos de forma análoga la función de reversión y borrado `deleteCustomerPayment`.
+* **Resultado**: Los abonos se registran y eliminan correctamente sin importar si el usuario tiene seleccionada una sucursal específica o la vista global.
+
+---
+
+## 12. Cancelación y Re-emisión Correcta de Facturas (SAN-1046 y SAN-1051)
+* **Acciones Ejecutadas en Producción**:
+  1. **SAN-1046 (GALVA RACKS DE MEXICO)**:
+     * Cancelamos la factura incorrecta `6a46ce983c49adca98e42bf9` (mencionaba forma de pago Efectivo) en Facturapi bajo el motivo SAT `"02" (Comprobante emitido con errores sin relación)`.
+     * Emitimos y timbramos la nueva factura **`6a46e8f53c49adca98eb1740`** con la forma de pago correcta **`04 Tarjeta de crédito`** y vinculada al folio `SAN-1046`.
+     * Actualizamos la base de datos para referenciar el nuevo ID y folio fiscal.
+  2. **SAN-1051 (MANUFACTURAS KALTEX)**:
+     * Cancelamos la factura incorrecta `6a46e20d3c49adca98e960c6` (mencionaba forma de pago Efectivo) en Facturapi bajo el motivo SAT `"02"`.
+     * Emitimos y timbramos la nueva factura **`6a46e8fa5b9520751d10daf5`** con la forma de pago correcta **`04 Tarjeta de crédito`** y vinculada al folio `SAN-1051`.
+     * Sincronizamos la base de datos con los nuevos folios correctos.
+* **Resultado**: Las facturas de ambos clientes ya muestran de forma correcta la forma de pago **Tarjeta** en el portal del SAT y en sus representaciones impresas.
+
+---
+
+## 13. Habilitación de Ventas a Crédito en Todas las Sucursales (Office City)
+* **Acciones Ejecutadas**:
+  * Actualizamos las configuraciones de las 14 sucursales del cliente en la base de datos de producción (`officecity_db`).
+  * Para cada una de las sucursales, nos aseguramos de que el método `"CREDIT"` esté registrado y habilitado por defecto dentro del objeto `metodos` en el `configJson`.
+  * Modificamos el estado inicial de la preferencia de métodos de pago en [PaymentMethodsConfigClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/preferencias/metodos/PaymentMethodsConfigClient.tsx) para incluir `"CREDIT"` por defecto para futuras sucursales.
+* **Resultado**: La venta a crédito ahora está totalmente activa y disponible en las 14 sucursales del sistema de forma uniforme e inmediata.
+
+---
+
+## 14. Despliegue y Validación
+* **Compilación**: El proyecto compila limpiamente sin errores de TypeScript (`npx tsc --noEmit` exitoso).
+* **Despliegue a Producción**: Los cambios han sido subidos y desplegados a producción en la instancia de Hetzner reconstruyendo la imagen Docker limpia y liberando memoria swap.
+
+---
+
+## 15. Corrección de Impuestos en Compras y Edición (Exento/Ninguno)
+* **Identificación del Problema**: Al registrar productos sin IVA (Exentos, 0%), el sistema recalculaba e imponía un IVA del 16% automáticamente tanto en Compras como en el Punto de Venta.
+* **Causas Identificadas y Soluciones**:
+  1. **Servidor (Acciones de Producto)**: El guardado e importado de productos utilizaba un chequeo falsy (`parseFloat(val) || 16.0`) que convertía `0` (Exento) de vuelta en `16.0`. Se corrigió en [product.ts](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/actions/product.ts) e [import.ts](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/actions/import.ts) usando comprobaciones `isNaN` estrictas.
+  2. **Vistas de Compra (`CrearCompraForm.tsx` y `EditarCompraForm.tsx`)**: Las vistas calculaban impuestos en bloque sobre el total final aplicando multiplicaciones directas por `0.16` o divisiones por `1.16`. Se rediseñó para calcular subtotal, IVA e IEPS de forma granular y dinámica por cada producto individual del carrito.
+  3. **Queries de Productos en Compras (`page.tsx`)**: Los listados de productos en `/compras/nuevo/page.tsx` y `/compras/[id]/editar/page.tsx` omitían `taxRate`, `taxType`, y `iepsRate` de los campos seleccionados, provocando que el cliente de React usara valores predeterminados. Se agregaron estos campos a los selectores de Prisma.
+  4. **Detalle de Compra y Exportación a PDF (`page.tsx` y `purchasePdf.ts`)**: Se sustituyó la lógica de desglose rígida (`/ 1.16`) por bucles dinámicos a nivel de ítem. Se implementó una lógica de retrocompatibilidad que compara el total esperado con el total real guardado en la base de datos: si difieren por más de $0.05 (compras antiguas), el sistema cae automáticamente en el cálculo histórico para no romper facturas anteriores.
+* **Resultado**: Los productos marcados como Exentos (0% de IVA) se calculan y guardan con impuestos de $0.00 tanto en el Punto de Venta como en la sección de Compras y PDFs.
+
+---
+
+## 16. Módulo de Permisos de WhatsApp y CRM
+* **Requerimiento**: Poder asignar permisos individuales a los usuarios para el uso de WhatsApp y CRM, de forma que solo les aparezca el módulo de Kanban (Prospección), la Bandeja de WhatsApp (Inbox) y/o el Widget flotante a quienes se les decida asignar.
+* **Solución e Implementación**:
+  1. **Configuración de Permisos (`permissions.ts`)**: Agregamos un nuevo módulo de permisos llamado `WhatsApp y CRM` (`whatsapp`) con tres subgrupos diferenciados:
+     * **Bandeja y Chat (`whatsapp_chat`)**: Permisos para acceder a la bandeja (`whatsapp_bandeja`) y ver el widget flotante (`whatsapp_widget`).
+     * **Prospección y CRM (`whatsapp_kanban_crm`)**: Permiso para ver el tablero Kanban (`whatsapp_kanban`).
+     * **Configuración (`whatsapp_admin_config`)**: Permiso para gestionar la conexión y escaneo QR de WhatsApp (`whatsapp_config`).
+  2. **Menú de Navegación (`navigation.tsx`)**: Reemplazamos el requisito anterior (`pos_access`) por los nuevos permisos específicos para cada enlace del menú lateral:
+     * *Bandeja WhatsApp* -> requiere `whatsapp_bandeja`
+     * *Conexión WhatsApp* -> requiere `whatsapp_config`
+     * *Prospección (CRM)* -> requiere `whatsapp_kanban`
+  3. **Seguridad y Guards en Páginas**: Implementamos la verificación de permisos en el lado del servidor para las tres rutas principales:
+     * `/ventas/whatsapp/page.tsx`
+     * `/ventas/prospeccion/page.tsx`
+     * `/configuracion/whatsapp/page.tsx`
+     * Si un usuario intenta ingresar manualmente escribiendo la URL sin contar con el permiso asignado, el servidor lo redirige automáticamente a la página de inicio (`/`).
+  4. **Widget Flotante de WhatsApp (`layout.tsx`)**: Protegimos el renderizado del componente `<FloatingWhatsappWidget />` en el layout del dashboard. Ahora solo se renderiza si el usuario cuenta con el permiso `whatsapp_widget` (o es un superusuario/administrador).
+* **Resultado**: El administrador ahora puede habilitar o deshabilitar de forma independiente la bandeja, el tablero kanban y el widget flotante a cualquier usuario desde la pantalla de edición de usuarios en preferencias.
+
+---
+
+## 17. Gestión de Estatus de Solicitudes y Carga a Pedidos de Proveedor
+* **Requerimiento**: Permitir cambiar el estatus de las solicitudes de compra (de `Pendiente` a `Solicitado a Proveedor` y `Recibido`) desde la pantalla de solicitudes y poder cargar solicitudes directamente a un pedido pre-llenando sus artículos.
+* **Solución e Implementación**:
+  1. **Acciones de Servidor (`purchaseRequest.ts`)**: Implementamos la lógica de actualización individual `updatePurchaseRequestStatus` y las acciones en lote `batchUpdatePurchaseRequestStatus` y `batchDeletePurchaseRequests`.
+  2. **Control de Estatus y Selección en Lista de Solicitudes (`SolicitudesClient.tsx`)**:
+     * Sustituimos la etiqueta de estado estática por un elemento `<select>` interactivo y estilizado para cambiar el estatus en una sola interacción (Pendiente, Solicitado, Recibido).
+     * Agregamos checkboxes de selección de fila y selección múltiple global.
+     * Diseñamos una barra flotante de acciones masivas cuando hay elementos seleccionados, permitiendo: Cargar a pedido con proveedor, marcar lote como Solicitado, marcar lote como Recibido, o eliminar lote de forma conjunta.
+     * Añadimos un botón individual "Cargar a Pedido" en cada fila para facilitar el flujo uno a uno.
+  3. **Carga en Nuevo Pedido (`page.tsx` y `CrearPedidoForm.tsx`)**:
+     * Habilitamos que la página `/productos/pedidos/nuevo` lea los parámetros de búsqueda `requestId` y `requestIds`.
+     * El servidor busca automáticamente esas solicitudes y mapea sus productos y cantidades correspondientes en un arreglo pre-cargado.
+     * El formulario `CrearPedidoForm` inicializa los artículos del pedido pre-llenándolos con las solicitudes indicadas, permitiendo que el usuario guarde el pedido a proveedor sin tener que digitar los ítems manualmente.
+* **Resultado**: Los directivos e inspectores de compras ahora pueden gestionar, cambiar el estatus y cargar masiva o individualmente las solicitudes de compras a sus pedidos con proveedores con un solo clic.
+
+---
+
+## 18. Configuración Global de Correo Saliente (SMTP)
+* **Requerimiento**: Solucionar el error `SMTP credentials not configured` que impedía enviar tickets de venta por correo electrónico a los clientes.
+* **Solución**:
+  * Identificamos que las credenciales SMTP de Zoho (`soporte@caanma.com`) estaban configuradas en las variables de entorno de Hetzner pero no en el servidor de producción Hetzner.
+  * Agregamos y configuramos las variables SMTP correspondientes en el archivo `/home/ubuntu/oc/.env` del servidor Hetzner:
+    * `SMTP_HOST="smtp.zoho.com"`
+    * `SMTP_PORT="465"`
+    * `SMTP_USER="soporte@caanma.com"`
+    * `SMTP_PASS="Queretaro00."`
+  * Reiniciamos el contenedor de Docker (`caanma-app`) para que Next.js cargue y utilice las nuevas variables de entorno en tiempo de ejecución.
+* **Resultado**: El envío de correos salientes queda habilitado de forma global en producción. Las ventas, cotizaciones y facturas electrónicas ahora se envían de forma exitosa mediante la cuenta `soporte@caanma.com` (a menos que una sucursal configure una cuenta de correo SMTP personalizada propia en su panel de preferencias).
+
+---
+
+## 19. Corrección de Enlaces Públicos (Cotizaciones y Facturas Compartidas)
+* **Requerimiento**: Solucionar el problema por el cual los clientes no podían abrir los enlaces de cotizaciones compartidos por WhatsApp, y resolver el problema por el cual las facturas adjuntas no se podían abrir (o se descargaban corruptas).
+* **Soluciones Aplicadas**:
+  1. **Acceso Sin Sesión a Cotizaciones y Ventas (`prisma.ts`):**
+     * **Problema:** Al no estar autenticados, los clientes que hacían clic en los enlaces de cotizaciones o notas de venta no tenían una cookie de sesión activa. La capa multitenant de Prisma caía al cliente de base de datos *master* (que no contiene las cotizaciones/ventas de las sucursales), retornando un error `404 Not Found`.
+     * **Corrección:** Implementamos las funciones utilitarias `resolveClientForQuote` y mejoramos `resolveClientForSale` en [prisma.ts](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/lib/prisma.ts) para realizar búsquedas seguras en todas las bases de datos de inquilinos (tenants). 
+     * **Integración:** Actualizamos los archivos de carga del cliente:
+       * [/ventas/detalle/[id]/imprimir-cotizacion/page.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/ventas/detalle/[id]/imprimir-cotizacion/page.tsx)
+       * [/ventas/detalle/[id]/imprimir/page.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/ventas/detalle/[id]/imprimir/page.tsx)
+       * [/ventas/detalle/[id]/imprimir-ticket/page.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/ventas/detalle/[id]/imprimir-ticket/page.tsx)
+       * Ahora estas páginas públicas resuelven el inquilino correcto y muestran la cotización o venta de manera instantánea a los clientes sin pedirles iniciar sesión.
+  2. **Acceso Público a Descarga de Facturas (`middleware.ts`):**
+     * **Problema:** El enlace de descarga `/api/facturacion/download?invoiceId=...` enviado por WhatsApp a los clientes externos estaba bloqueado por el middleware de seguridad. Al intentar abrirlo, el cliente era redirigido a `/login`. La descarga recibía el código HTML de la página de inicio de sesión en lugar del archivo binario del PDF de Facturapi, resultando en un archivo PDF corrupto que no se podía abrir.
+     * **Corrección:** Agregamos el endpoint `/api/facturacion/download` a la lista de rutas públicas (`publicRoutes`) en el middleware de autenticación [middleware.ts](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/middleware.ts).
+     * **Resultado:** Los clientes que reciban sus enlaces de factura por WhatsApp podrán descargarlos directamente en formato PDF o XML binario y abrirlos perfectamente en cualquier dispositivo.
+  3. **Habilitación y Carga de SMTP en Producción (Docker):**
+      * Detuvimos y recreamos el contenedor de producción (`docker compose down && docker compose up -d`) para forzar la carga correcta de las variables SMTP definidas en el archivo `.env` del host. Verificamos mediante pruebas en la consola de Node que las credenciales de `soporte@caanma.com` ahora se resuelven y los correos electrónicos se envían adjuntando los buffers binarios del PDF y XML descargados de Facturapi en perfectas condiciones.
+
+---
+
+## 20. Corrección y Prevención de Sucursales Duplicadas
+* **Requerimiento**: Solucionar el problema de la sucursal duplicada `"IGNACIO PEREZ"` en el selector del panel principal, y evitar que se puedan registrar locaciones con nombres idénticos.
+* **Acciones Tomadas**:
+  1. **Diagnóstico e Identificación de Datos:**
+     * Consultamos la base de datos master (`master_db`) y la base de datos específica del inquilino (`officecity_db`), encontrando dos registros activos con el nombre de sucursal `"IGNACIO PEREZ"` y coordenadas/direcciones idénticas.
+     * Evaluamos el uso de cada registro en la base de datos (conteo de ventas, usuarios, cotizaciones, traspasos y solicitudes) y corroboramos que ambos registros estaban vacíos (0 ventas, 0 usuarios, y 10 productos de catálogo inicial con 0 stock).
+  2. **Resolución de Duplicidad (Desactivación):**
+     * Desactivamos el registro duplicado (ID `6bc6920e-bc8e-48ac-a8d3-6c480c70539c`) estableciendo `isActive: false` tanto en la base de datos master como en la de inquilinos. Esto eliminó de forma inmediata el elemento repetido del menú desplegable del sistema.
+  3. **Prevención de Duplicados (Reglas de Validación):**
+     * **Acciones de Backend (`branch.ts`):** Modificamos `createBranch` y `updateBranch` en [branch.ts](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/actions/branch.ts) para realizar una validación de duplicidad (case-insensitive y limpia de espacios en blanco). Si ya existe una sucursal activa para el inquilino con ese mismo nombre, el servidor aborta la operación y retorna un mensaje de error descriptivo: *"Ya existe una sucursal activa con este nombre."*
+     * **Interfaz de Sucursales (`page.tsx` y `BranchClient.tsx`):**
+       * Reemplazamos el formulario básico de servidor de [page.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/preferencias/sucursales/page.tsx) por una integración interactiva dentro del componente cliente [BranchClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/preferencias/sucursales/BranchClient.tsx).
+       * El nuevo formulario cliente captura la respuesta del servidor action, maneja estados de carga (`isProcessing`), limpia los inputs al crearse con éxito, y despliega notificaciones de error tipo `alert` en pantalla en caso de que se intente crear una sucursal duplicada.
+
+---
+
+## 21. Reportes de Cuentas por Cobrar (CxC) y Cuentas por Pagar (CxP)
+* **Requerimiento**: Generar dentro del módulo de reportes un reporte de cuentas por cobrar y otro de cuentas por pagar, con ordenación por antigüedad, monto y nombre, filtrado por sucursales y rangos, búsquedas textuales y detalles completos de facturas.
+* **Soluciones Aplicadas**:
+  1. **Registro en el Centro de Reportes:**
+     * Registramos los accesos para los nuevos reportes en [ReportesModuleClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/reportes/ReportesModuleClient.tsx) apuntando a `/reportes/cuentas-por-cobrar` y `/reportes/cuentas-por-pagar` y validando los permisos correspondientes de finanzas (`fin_cxc` y `fin_cxp` o acceso de administrador).
+  2. **Reporte de Cuentas por Cobrar (CxC):**
+     * **Página del Servidor (page.tsx):** Creamos [cuentas-por-cobrar/page.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/reportes/cuentas-por-cobrar/page.tsx) para recuperar ventas con método `CREDIT`, saldo pendiente (`balanceDue > 0`) y activas (excluyendo `CANCELLED`). Recuperamos también el catálogo de sucursales.
+     * **Interfaz Interactiva (CuentasPorCobrarReportClient.tsx):** Creamos [CuentasPorCobrarReportClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/reportes/cuentas-por-cobrar/CuentasPorCobrarReportClient.tsx) con tarjetas de KPI (Cartera Total, Saldo Vencido y Corriente), filtros por sucursal y antigüedad (buckets por rangos de días vencidos), ordenación por nombre de cliente, monto y antigüedad de la deuda, y modal con desglose detallado de documentos pendientes (con visor de PDF de estado de cuenta consolidado, botón de compartir en WhatsApp y copiar enlace).
+  3. **Reporte de Cuentas por Pagar (CxP):**
+     * **Página del Servidor (page.tsx):** Creamos [cuentas-por-pagar/page.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/reportes/cuentas-por-pagar/page.tsx) para consultar las compras a crédito pendientes de pago.
+     * **Interfaz Interactiva (CuentasPorPagarReportClient.tsx):** Creamos [CuentasPorPagarReportClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/reportes/cuentas-por-pagar/CuentasPorPagarReportClient.tsx) que agrupa por proveedor, calcula pasivos totales vencidos y corrientes, permite búsquedas y filtrados por sucursal, y desglosa las compras individuales en un modal interactivo que enlaza al módulo de abonos del proveedor.
+  4. **Exportación e Impresión Integradas:**
+     * Integramos el botón de exportar a Excel usando el helper `exportToExcel` de `lib/exportExcel.ts` y añadimos estilos CSS adaptados a impresión (`no-print` y clases de visibilidad) para garantizar la compatibilidad con impresión física o conversión a PDF nativa del navegador.
+  5. **Depuración de Sucursales Duplicadas en Filtros:**
+     * Corregimos la consulta de sucursales en la página de cobranza global `/clientes/cobranza` ([clientes/cobranza/page.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/clientes/cobranza/page.tsx)) para filtrar por `where: { isActive: true }`. Esto evita que sucursales inactivas o desactivadas anteriormente por duplicidad se desplieguen en el selector del reporte.
+
+---
+
+## 22. Exportación a Excel en el Historial de Ventas
+* **Requerimiento**: Permitir exportar las ventas filtradas en el Historial de Ventas (`/ventas`) a un archivo Excel para fines de conciliación y control de pagos.
+* **Soluciones Aplicadas**:
+  1. **Integración de Botón de Exportar:** Añadimos un botón interactivo de "Exportar Excel" en la sección de acciones de cabecera (`page-header-actions`) de [VentasHistoryClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/ventas/VentasHistoryClient.tsx).
+  2. **Función de Exportación Dinámica:** Implementamos la función `downloadExcel` que lee las ventas filtradas actualmente en pantalla y genera un archivo estructurado con columnas claras (ID Venta, Fecha / Hora, Cliente, Folio CFDI, Sucursal, Vendedor, Método de Pago, Total y Estado).
+  3. **Preservación de Filtros:** La exportación respeta todos los filtros activos (rango de fechas, cliente, sucursal, vendedor, método de pago, folio CFDI y estado), permitiendo descargar exactamente lo seleccionado por el usuario en tiempo real.
+
+---
+
+## 23. Preferencia de Bloqueo de Crédito por Facturas Vencidas
+* **Requerimiento**: Solucionar el bloqueo de facturación/venta a crédito para clientes con facturas vencidas antiguas, dando la opción de flexibilizar o deshabilitar esta validación automática.
 * **Soluciones Aplicadas**:
   1. **Configuración de Preferencia de Venta (`page.tsx`):**
      * Añadimos el nuevo campo interactivo `bloquearCreditoFacturasVencidas` (Bloquear nuevo crédito por facturas vencidas) tipo `boolean` en la sección de **Preferencias de Venta** ([page.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/preferencias/ventas/page.tsx)). Esto permite a los administradores del sistema desactivar esta restricción con un simple interruptor (toggle).
@@ -278,3 +473,21 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
      * Modificamos la validación de crédito en la acción de checkout ([sale.ts](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/actions/sale.ts)). Ahora, el sistema solo verifica y arroja el error de facturas vencidas si la preferencia `bloquearCreditoFacturasVencidas` está configurada como activa (que es el valor por defecto `true`). Si el administrador la desmarca, el Punto de Venta permite registrar la venta a crédito con éxito.
   3. **Despliegue a Producción:**
      * Sincronizamos las modificaciones a GitHub y ejecutamos la reconstrucción en el servidor de Hetzner para que la nueva preferencia esté disponible inmediatamente.
+
+---
+
+## 24. Panel de Mínimos por Artículo y Reporte de Reposición de Mínimos
+* **Requerimiento**: Crear un panel centralizado en forma de matriz tipo Excel para gestionar el stock mínimo de cada producto por sucursal, y un reporte de reposición que calcule la mercancía faltante para alcanzar dicho stock.
+* **Soluciones Aplicadas**:
+  1. **Matriz de Mínimos por Artículo:**
+     * **Página del Servidor (page.tsx):** Creamos [minimos/page.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/productos/minimos/page.tsx) para consultar todas las sucursales y productos activos del inquilino.
+     * **Interfaz tipo Excel (MinimosMatrixClient.tsx):** Creamos [MinimosMatrixClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/productos/minimos/MinimosMatrixClient.tsx) que agrupa los productos por SKU. Renderiza una tabla donde las columnas son las sucursales y las celdas muestran el stock y un input editable para cambiar el stock mínimo de cada tienda de forma masiva.
+     * **Servidor Action (minimos.ts):** Creamos [minimos.ts](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/actions/minimos.ts) para procesar las actualizaciones de stock mínimo mediante una transacción de Prisma.
+  2. **Reporte de Reposición de Mínimos:**
+     * **Servidor (page.tsx):** Creamos [reposicion-minimos/page.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/reportes/reposicion-minimos/page.tsx) para consultar los productos activos con stock inferior o igual al mínimo.
+     * **Interfaz Analítica (ReposicionMinimosClient.tsx):** Creamos [ReposicionMinimosClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/reportes/reposicion-minimos/ReposicionMinimosClient.tsx) que muestra tarjetas KPI (Artículos Críticos, Unidades Faltantes, Inversión Estimada) y un listado detallado del stock faltante, costo unitario, inversión de reposición por producto y su respectivo proveedor, con soporte de filtros por sucursal, exportación a Excel e impresión optimizada.
+  3. **Registro en Menús y Paneles:**
+     * Registramos la matriz en el menú sidebar de **Productos** ([navigation.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/config/navigation.tsx)).
+     * Registramos el reporte en el panel de control de **Reportes** ([ReportesModuleClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/reportes/ReportesModuleClient.tsx)).
+  4. **Corrección de Lints (ProductFormClient.tsx):**
+     * Restauramos los hooks de estado de categorías en [ProductFormClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/productos/nuevo/ProductFormClient.tsx) que causaban errores de compilación de TypeScript tras modificaciones previas.

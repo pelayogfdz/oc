@@ -44,6 +44,7 @@ export const navStructure: MenuNode[] = [
       { name: 'Ajustes de Inventario', path: '/productos/ajustes', requiredPermission: ['inv_adjust'] },
       { name: 'Toma Física de Inventario', path: '/productos/auditorias', requiredPermission: ['inv_adjust'] },
       { name: 'Creador de Catálogos', path: '/ventas/catalogos', requiredPermission: ['inv_view'] },
+      { name: 'Mínimos por Artículo', path: '/productos/minimos', badge: 'Matriz', requiredPermission: ['inv_edit'] },
     ]
   },
   { 

@@ -10,6 +10,9 @@ import ProductFinanceSection from '../ProductFinanceSection';
 import ProductImageSection from '../ProductImageSection';
 import SatKeyAutocomplete from "@/app/components/SatKeyAutocomplete";
 import SatUnitAutocomplete from "@/app/components/SatUnitAutocomplete";
+import CategorySelector from "@/app/components/CategorySelector";
+import BrandSelector from "@/app/components/BrandSelector";
+
 
 
 export default async function ProductDetailPage({ params }: { params: { id: string } }) {
@@ -75,6 +78,46 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
     include: { branch: true },
     orderBy: { branch: { name: 'asc' } }
   });
+
+  // Fetch distinct categories for the product's branch
+  const categoriesData = await prisma.product.findMany({
+    where: { 
+      branchId: product.branchId,
+      NOT: [
+        { category: null },
+        { category: "" }
+      ]
+    },
+    select: { category: true },
+    distinct: ['category']
+  });
+  const categories = categoriesData
+    .map(c => c.category)
+    .filter(Boolean)
+    .map(c => c!.trim())
+    .filter(c => c !== "")
+    .sort();
+  const uniqueCategories = Array.from(new Set(categories));
+
+  // Fetch distinct brands for the product's branch
+  const brandsData = await prisma.product.findMany({
+    where: { 
+      branchId: product.branchId,
+      NOT: [
+        { brand: null },
+        { brand: "" }
+      ]
+    },
+    select: { brand: true },
+    distinct: ['brand']
+  });
+  const brands = brandsData
+    .map(b => b.brand)
+    .filter(Boolean)
+    .map(b => b!.trim())
+    .filter(b => b !== "")
+    .sort();
+  const uniqueBrands = Array.from(new Set(brands));
 
   // Next.js Server Action with bound ID
   const updateProductWithId = updateProduct.bind(null, product.id);
@@ -255,11 +298,11 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Categoría / Departamento</label>
-                <input type="text" name="category" defaultValue={product.category || ''} placeholder="Ej. Abarrotes, Papelería..." style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+                <CategorySelector categories={uniqueCategories} defaultValue={product.category || ''} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Marca</label>
-                <input type="text" name="brand" defaultValue={product.brand || ''} placeholder="Ej. Coca Cola, BIC..." style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+                <BrandSelector brands={uniqueBrands} defaultValue={product.brand || ''} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>SKU (Código Interno) *</label>

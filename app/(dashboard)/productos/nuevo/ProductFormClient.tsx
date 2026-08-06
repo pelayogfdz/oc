@@ -10,6 +10,8 @@ import ProductFinanceSection from '../ProductFinanceSection';
 import ProductImageSection from '../ProductImageSection';
 import SatKeyAutocomplete from "@/app/components/SatKeyAutocomplete";
 import SatUnitAutocomplete from "@/app/components/SatUnitAutocomplete";
+import CategorySelector from "@/app/components/CategorySelector";
+import BrandSelector from "@/app/components/BrandSelector";
 
 
 const initialState = {
@@ -17,7 +19,7 @@ const initialState = {
   success: false
 };
 
-export default function ProductFormClient({ cloneProduct, suppliers, priceLists, branchId, tenantId, categories }: any) {
+export default function ProductFormClient({ cloneProduct, suppliers, priceLists, branchId, tenantId, categories, brands }: any) {
   const { isOnline, pushOfflineProduct } = useOfflineSync();
   const [state, formAction] = useFormState(createProduct, initialState);
   const [hasVariants, setHasVariants] = useState(false);
@@ -25,7 +27,6 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
   const [hasBatches, setHasBatches] = useState(false);
   const [batches, setBatches] = useState<{ batchNumber: string, expirationDate: string, stock: number }[]>([]);
   const [isService, setIsService] = useState(cloneProduct?.isService || false);
-
   const [categoriesList, setCategoriesList] = useState<string[]>(categories || []);
   const [selectedCategory, setSelectedCategory] = useState(cloneProduct?.category || '');
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
@@ -112,71 +113,11 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Categoría / Departamento</label>
-            {!showNewCategoryInput ? (
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <select 
-                  value={selectedCategory} 
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white', cursor: 'pointer' }}
-                >
-                  <option value="">-- Seleccionar Categoría --</option>
-                  {categoriesList.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-                <button 
-                  type="button" 
-                  onClick={() => setShowNewCategoryInput(true)}
-                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '42px', height: '42px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                  title="Nueva Categoría"
-                >
-                  <Plus size={20} />
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input 
-                  type="text" 
-                  value={newCategoryName} 
-                  onChange={(e) => setNewCategoryName(e.target.value)} 
-                  placeholder="Nueva categoría..."
-                  autoFocus
-                  style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
-                />
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    const trimmed = newCategoryName.trim();
-                    if (trimmed) {
-                      if (!categoriesList.some(c => c.toLowerCase() === trimmed.toLowerCase())) {
-                        setCategoriesList([...categoriesList, trimmed].sort());
-                      }
-                      setSelectedCategory(trimmed);
-                      setNewCategoryName('');
-                      setShowNewCategoryInput(false);
-                    }
-                  }}
-                  style={{ padding: '0.75rem 1rem', backgroundColor: '#22c55e', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-                >
-                  Agregar
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    setNewCategoryName('');
-                    setShowNewCategoryInput(false);
-                  }}
-                  style={{ padding: '0.75rem 1rem', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-                >
-                  Cancelar
-                </button>
-              </div>
-            )}
-            <input type="hidden" name="category" value={selectedCategory} />
+            <CategorySelector categories={categories} defaultValue={cloneProduct?.category || ''} />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Marca</label>
-            <input type="text" name="brand" defaultValue={cloneProduct?.brand || ''} placeholder="Ej. Coca Cola, BIC..." style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+            <BrandSelector brands={brands} defaultValue={cloneProduct?.brand || ''} />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>SKU Base (Código Interno) *</label>
