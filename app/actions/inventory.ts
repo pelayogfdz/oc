@@ -63,3 +63,60 @@ export async function adjustInventory(formData: FormData) {
   revalidatePath(`/productos/${productId}`);
   revalidatePath('/productos');
 }
+
+export async function registerSupplyUsage(items: Array<{ productId: string; variantId: string | null; quantity: number }>, reason: string) {
+  if (!items || items.length === 0) {
+    throw new Error('Debes seleccionar al menos un insumo.');
+  }
+
+  const branch = await getActiveBranch();
+  if (branch.id === 'GLOBAL') throw new Error('Debes seleccionar una sucursal específica para realizar esta acción.');
+  const user = await getActiveUser();
+
+  await prisma.$transaction(async (tx) => {
+    for (const item of items) {
+      if (item.variantId) {
+        // Update variant stock
+        const updatedVariant = await tx.productVariant.update({
+          where: { id: item.variantId },
+          data: {
+            stock: {
+              decrement: item.quantity
+            }
+          }
+        });
+        if (updatedVariant.stock < 0) {
+          throw new Error(`Stock insuficiente para la variante de insumo.`);
+        }
+      } else {
+        // Update product stock
+        const updatedProduct = await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            stock: {
+              decrement: item.quantity
+            }
+          }
+        });
+        if (updatedProduct.stock < 0) {
+          throw new Error(`Stock insuficiente para el insumo "${updatedProduct.name}".`);
+        }
+      }
+
+      // Create Kardex entry
+      await tx.inventoryMovement.create({
+        data: {
+          productId: item.productId,
+          variantId: item.variantId || null,
+          type: 'OUT',
+          quantity: -item.quantity, // OUT movements store negative quantity
+          reason: `Uso de insumo: ${reason} (por ${user.name})`,
+          userId: user.id
+        }
+      });
+    }
+  });
+
+  revalidatePath('/productos');
+  revalidatePath('/procesos/uso-insumos');
+}

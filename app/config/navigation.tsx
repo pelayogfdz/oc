@@ -118,6 +118,7 @@ export const navStructure: MenuNode[] = [
       { name: 'Tareas', path: '/procesos/tareas', requiredPermission: ['procesos_tareas'] },
       { name: 'Órdenes de Producción', path: '/procesos', badge: 'Activas', requiredPermission: ['panaderia_access'] },
       { name: 'Fórmulas e Insumos', path: '/procesos/formulas', requiredPermission: ['procesos_formulas'] },
+      { name: 'Uso de Insumos', path: '/procesos/uso-insumos', badge: 'POS', requiredPermission: ['panaderia_access'] },
     ]
   },
   { 
