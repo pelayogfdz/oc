@@ -10,7 +10,9 @@ export async function createQuote(
   paymentMethod: string = 'CASH',
   customerId: string | null = null,
   quoteId?: string,
-  breakdownDiscounts: boolean = false
+  breakdownDiscounts: boolean = false,
+  observations?: string | null,
+  observationImageUrl?: string | null
 ) {
   const branch = await getActiveBranch();
   if (!branch) throw new Error("No hay sucursal activa.");
@@ -38,6 +40,8 @@ export async function createQuote(
           branchId: branch.id,
           userId: user.id,
           breakdownDiscounts,
+          observations,
+          observationImageUrl,
           items: {
             create: items.map(item => ({
               quantity: item.quantity,
@@ -61,6 +65,8 @@ export async function createQuote(
           branchId: branch.id,
           userId: user.id,
           breakdownDiscounts,
+          observations,
+          observationImageUrl,
           items: {
             create: items.map(item => ({
               quantity: item.quantity,
@@ -123,6 +129,7 @@ export async function convertQuoteToSale(quoteId: string) {
       customerId: quote.customerId,
       branchId: quote.branchId,
       userId: quote.userId,
+      notes: quote.observations,
       cashSessionId: currentSession?.id || undefined,
       items: {
         create: quote.items.map(item => ({

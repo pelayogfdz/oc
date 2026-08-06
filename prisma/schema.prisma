@@ -477,6 +477,8 @@ model Quote {
   customer      Customer?   @relation(fields: [customerId], references: [id])
   user          User        @relation(fields: [userId], references: [id])
   breakdownDiscounts Boolean @default(false)
+  observations        String?
+  observationImageUrl String?
   items         QuoteItem[]
   @@index([branchId, status])
 }

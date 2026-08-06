@@ -363,6 +363,25 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
           </div>
         )}
 
+        {/* Observaciones e Imagen de Referencia */}
+        {quote.observations && (
+          <div style={{ marginTop: '2rem', padding: '1rem', borderTop: '1px solid #cbd5e1', fontSize: '0.85rem', color: '#1e293b', lineHeight: '1.5' }}>
+            <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.35rem', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.5px' }}>Observaciones de la Cotización:</strong>
+            <div style={{ whiteSpace: 'pre-wrap', fontStyle: 'italic', color: '#475569' }}>{quote.observations}</div>
+            
+            {quote.observationImageUrl && (
+              <div style={{ marginTop: '1rem' }}>
+                <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.5rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Imagen de Referencia:</strong>
+                <img 
+                  src={quote.observationImageUrl} 
+                  alt="Referencia de la cotización" 
+                  style={{ maxWidth: '100%', maxHeight: '250px', objectFit: 'contain', borderRadius: '6px', border: '1px solid #cbd5e1', display: 'block' }} 
+                />
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Footer QR Box matching reference */}
          <div className="qr-box">
           <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://caanma.com/clientes/portal?cotizacionId=${quote.id.slice(0, 8)}`} alt="QR Code" className="qr-img" />

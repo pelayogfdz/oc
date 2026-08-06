@@ -79,6 +79,7 @@ export default function POSClient({
       amountReceived: '',
       cardAmount: '',
       notes: '',
+      observationImageUrl: '',
       documentType: 'TICKET',
       transactionType: 'VENTA',
       appliedPromotionIds: null,
@@ -102,6 +103,7 @@ export default function POSClient({
         amountReceived,
         cardAmount,
         notes,
+        observationImageUrl,
         documentType,
         transactionType,
         appliedPromotionIds,
@@ -124,6 +126,7 @@ export default function POSClient({
         setAmountReceived((target.amountReceived || '') as number | "");
         setCardAmount((target.cardAmount || '') as number | "");
         setNotes(target.notes || '');
+        setObservationImageUrl(target.observationImageUrl || '');
         setDocumentType((target.documentType || 'TICKET') as 'TICKET' | 'FACTURA');
         setTransactionType((target.transactionType || 'VENTA') as 'VENTA' | 'PEDIDO');
         setAppliedPromotionIds(target.appliedPromotionIds !== undefined ? target.appliedPromotionIds : null);
@@ -193,6 +196,7 @@ export default function POSClient({
       amountReceived: '',
       cardAmount: '',
       notes: '',
+      observationImageUrl: '',
       documentType: 'TICKET',
       transactionType: 'VENTA',
       appliedPromotionIds: null,
@@ -216,6 +220,7 @@ export default function POSClient({
         amountReceived,
         cardAmount,
         notes,
+        observationImageUrl,
         documentType,
         transactionType,
         appliedPromotionIds,
@@ -236,6 +241,7 @@ export default function POSClient({
       setAmountReceived((newTab.amountReceived || '') as number | "");
       setCardAmount((newTab.cardAmount || '') as number | "");
       setNotes(newTab.notes);
+      setObservationImageUrl(newTab.observationImageUrl || '');
       setDocumentType(newTab.documentType as 'TICKET' | 'FACTURA');
       setTransactionType(newTab.transactionType as 'VENTA' | 'PEDIDO');
       setAppliedPromotionIds(null);
@@ -269,6 +275,7 @@ export default function POSClient({
         setAmountReceived((lastTab.amountReceived || '') as number | "");
         setCardAmount((lastTab.cardAmount || '') as number | "");
         setNotes(lastTab.notes || '');
+        setObservationImageUrl(lastTab.observationImageUrl || '');
         setDocumentType((lastTab.documentType || 'TICKET') as 'TICKET' | 'FACTURA');
         setTransactionType((lastTab.transactionType || 'VENTA') as 'VENTA' | 'PEDIDO');
         setAppliedPromotionIds(lastTab.appliedPromotionIds !== undefined ? lastTab.appliedPromotionIds : null);
@@ -301,6 +308,7 @@ export default function POSClient({
     setPriceList('price');
     setAppliedPromotionIds(null);
     setNotes('');
+    setObservationImageUrl('');
     setTipAmount(0);
     setPointsRedeemed(0);
     setManualDiscountValue('');
@@ -338,6 +346,7 @@ export default function POSClient({
       amountReceived: '',
       cardAmount: '',
       notes: '',
+      observationImageUrl: '',
       documentType: 'TICKET',
       transactionType: 'VENTA',
       appliedPromotionIds: null,
@@ -418,6 +427,7 @@ export default function POSClient({
         amountReceived,
         cardAmount,
         notes,
+        observationImageUrl,
         documentType,
         transactionType,
         appliedPromotionIds,
@@ -452,6 +462,7 @@ export default function POSClient({
             setAmountReceived(state.amountReceived || '');
             setCardAmount(state.cardAmount || '');
             setNotes(state.notes || '');
+            setObservationImageUrl(state.observationImageUrl || '');
             setDocumentType(state.documentType || 'TICKET');
             setTransactionType(state.transactionType || 'VENTA');
             setAppliedPromotionIds(state.appliedPromotionIds || null);
@@ -468,6 +479,7 @@ export default function POSClient({
               manualDiscountType: state.manualDiscountType || '$',
               manualDiscountValue: state.manualDiscountValue || '',
               notes: state.notes || '',
+              observationImageUrl: state.observationImageUrl || '',
               documentType: state.documentType || 'TICKET',
               transactionType: state.transactionType || 'VENTA',
               loadedQuoteId: state.loadedQuoteId || null,
@@ -688,6 +700,7 @@ export default function POSClient({
   const [amountReceived, setAmountReceived] = useState<number | ''>(''); // Used for pure CASH or MIXED cash amount
   const [cardAmount, setCardAmount] = useState<number | ''>(''); // Used for MIXED
   const [notes, setNotes] = useState<string>('');
+  const [observationImageUrl, setObservationImageUrl] = useState<string>('');
   const [loadedQuoteId, setLoadedQuoteId] = useState<string | null>(null);
   const [loadedQuoteTotal, setLoadedQuoteTotal] = useState<number | null>(null);
 
@@ -1001,7 +1014,8 @@ export default function POSClient({
         setManualDiscountValue('');
       }
       
-      setNotes('');
+      setNotes(quote.observations || '');
+      setObservationImageUrl(quote.observationImageUrl || '');
       
       setIsQuoteModalOpen(false);
       setQuoteSearchId('');
@@ -1012,6 +1026,47 @@ export default function POSClient({
     } finally {
       setIsLoadingQuote(false);
     }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 600;
+        const MAX_HEIGHT = 600;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          setObservationImageUrl(compressedBase64);
+          setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, observationImageUrl: compressedBase64 } : t));
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
   };
 
   const [loadedConsignmentId, setLoadedConsignmentId] = useState<string | null>(null);
@@ -2053,6 +2108,8 @@ export default function POSClient({
              customerId: selectedCustomerId || null,
              sessionId,
              notes,
+             observations: notes,
+             observationImageUrl,
              type: 'QUOTE',
              branchId,
              retryCount: 0,
@@ -2061,7 +2118,16 @@ export default function POSClient({
           } as any);
           saleId = `OFFLINE-QUOTE-${Date.now()}`;
         } else {
-          const quote = await createQuote(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null, loadedQuoteId || undefined, breakdownDiscounts);
+          const quote = await createQuote(
+            items,
+            finalTotalWithTip,
+            paymentMethod,
+            selectedCustomerId || null,
+            loadedQuoteId || undefined,
+            breakdownDiscounts,
+            notes,
+            observationImageUrl
+          );
           saleId = quote?.id;
           responseSale = quote;
         }
@@ -3916,15 +3982,96 @@ export default function POSClient({
             )}
 
             <div style={{ marginBottom: '1rem' }}>
-               <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', marginBottom: '0.4rem' }}>Notas del Ticket (Opcional)</label>
-               <input 
-                  type="text" 
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                  placeholder="Ej. Entregar pedido especial..."
-                  style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
-               />
+               <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', marginBottom: '0.4rem' }}>
+                 {mode === 'QUOTE' ? 'Observaciones de la Cotización' : 'Notas del Ticket (Opcional)'}
+               </label>
+               {mode === 'QUOTE' ? (
+                 <textarea 
+                    value={notes}
+                    onChange={e => {
+                      setNotes(e.target.value);
+                      setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, notes: e.target.value } : t));
+                    }}
+                    placeholder="Ej. Condiciones especiales de entrega, validez de stock, etc."
+                    rows={3}
+                    style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', resize: 'vertical' }}
+                 />
+               ) : (
+                 <input 
+                    type="text" 
+                    value={notes}
+                    onChange={e => {
+                      setNotes(e.target.value);
+                      setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, notes: e.target.value } : t));
+                    }}
+                    placeholder="Ej. Entregar pedido especial..."
+                    style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
+                 />
+               )}
             </div>
+
+            {mode === 'QUOTE' && (
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '0.4rem' }}>
+                  Imagen de Referencia (Opcional)
+                </label>
+                {observationImageUrl ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', border: '1px solid var(--caanma-border)', borderRadius: '6px', backgroundColor: '#f8fafc' }}>
+                    <img 
+                      src={observationImageUrl} 
+                      alt="Referencia" 
+                      style={{ height: '48px', width: '48px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} 
+                    />
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', fontWeight: '500' }}>Imagen cargada</span>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setObservationImageUrl('');
+                          setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, observationImageUrl: '' } : t));
+                        }}
+                        style={{ fontSize: '0.75rem', color: '#ef4444', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontWeight: 'bold' }}
+                      >
+                        Eliminar imagen
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ position: 'relative' }}>
+                    <label 
+                      htmlFor="quote-image-upload" 
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        gap: '0.5rem', 
+                        padding: '0.625rem', 
+                        border: '2px dashed #cbd5e1', 
+                        borderRadius: '6px', 
+                        cursor: 'pointer',
+                        color: '#475569',
+                        fontSize: '0.8rem',
+                        fontWeight: '500',
+                        backgroundColor: '#f8fafc',
+                        transition: 'border-color 0.2s'
+                      }}
+                    >
+                      <svg style={{ width: '14px', height: '14px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Subir imagen de referencia
+                    </label>
+                    <input 
+                      id="quote-image-upload"
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleImageUpload}
+                      style={{ display: 'none' }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             {documentType === 'FACTURA' && (
               <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>

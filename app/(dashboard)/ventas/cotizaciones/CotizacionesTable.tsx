@@ -240,6 +240,12 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                         <div><strong>Cliente:</strong> {quote.customer?.name || 'Público en General'}</div>
                         <div><strong>Fecha:</strong> {new Date(quote.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}</div>
                         <div><strong>Creado por:</strong> {quote.user?.name || ''}</div>
+                        {quote.observations && (
+                          <div style={{ marginTop: '0.35rem', paddingTop: '0.35rem', borderTop: '1px dashed #e2e8f0', color: '#475569', fontSize: '0.75rem', fontStyle: 'italic', wordBreak: 'break-word' }}>
+                            <strong>Obs:</strong> {quote.observations.slice(0, 100)}{quote.observations.length > 100 ? '...' : ''}
+                            {quote.observationImageUrl && <span style={{ color: '#10b981', marginLeft: '0.5rem', fontWeight: 'bold' }}>[✓ Imagen Ref]</span>}
+                          </div>
+                        )}
                       </div>
                       <div className="quote-tooltip-items">
                         <table className="tooltip-items-table">

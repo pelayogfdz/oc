@@ -17,8 +17,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'No se pudo obtener el token de Mercado Libre para la sucursal' }, { status: 401 });
     }
 
-    // Consultar la etiqueta a Mercado Libre con el token fresco
-    const meliUrl = `https://api.mercadolibre.com/shipments/${shipmentId}/labels?response_type=pdf`;
+    // Consultar la etiqueta a Mercado Libre con el token fresco y pasarlo en el query parameter de la URL
+    const meliUrl = `https://api.mercadolibre.com/shipments/${shipmentId}/labels?response_type=pdf&access_token=${token}`;
     console.log(`[MELI LABELS PROXY] Consultando etiqueta a Mercado Libre para envío ${shipmentId}...`);
 
     const response = await fetch(meliUrl, {
