@@ -88,7 +88,11 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
       const pmtId = group.payments[0].id;
       const res = await cancelPaymentComplement(pmtId);
       if (res.success) {
-        alert("Complemento de pago cancelado exitosamente en Facturapi.");
+        if (res.pending) {
+          alert(res.message || 'La solicitud de cancelación ha sido enviada al cliente. Pendiente de aceptación en el SAT.');
+        } else {
+          alert("Complemento de pago cancelado exitosamente en Facturapi.");
+        }
       } else {
         alert("Error al cancelar: " + res.error);
       }

@@ -570,54 +570,69 @@ export async function cancelInvoice(saleId: string, cancelSale: boolean = true) 
     }
 
     // Cancel invoice in Facturapi with motive "02" (Comprobante emitido con errores sin relación)
-    await facturapi.invoices.cancel(sale.invoiceId, { motive: "02" as any });
+    const cancelResult = await facturapi.invoices.cancel(sale.invoiceId, { motive: "02" as any });
 
-    // Buscar todas las ventas asociadas a este invoiceId
-    const associatedSales = await prisma.sale.findMany({
-      where: { invoiceId: sale.invoiceId }
-    });
+    const status = cancelResult.status; // 'valid' | 'canceled'
+    const cancellationStatus = cancelResult.cancellation_status; // 'none' | 'pending' | 'accepted' | 'rejected' | 'expired'
 
-    const user = await getActiveUser();
+    if (status === 'canceled') {
+      // Buscar todas las ventas asociadas a este invoiceId
+      const associatedSales = await prisma.sale.findMany({
+        where: { invoiceId: sale.invoiceId }
+      });
 
-    if (cancelSale) {
-      // Cancelar internamente cada una de las ventas (esto retorna stock y maneja caja/crédito)
-      for (const assocSale of associatedSales) {
-        if (assocSale.status !== 'CANCELLED') {
-          try {
-            await cancelSaleInternal(assocSale.id, user.id);
-          } catch (saleCancelError) {
-            console.error(`[CANCEL_INVOICE] Error cancelling associated sale ${assocSale.id}:`, saleCancelError);
-            // Fallback defensivo para cancelar saldo y deuda del cliente si cancelSaleInternal falla
-            if (assocSale.customerId && assocSale.balanceDue > 0) {
-              await prisma.customer.update({
-                where: { id: assocSale.customerId },
-                data: { creditBalance: { decrement: assocSale.balanceDue } }
+      const user = await getActiveUser();
+
+      if (cancelSale) {
+        // Cancelar internamente cada una de las ventas (esto retorna stock y maneja caja/crédito)
+        for (const assocSale of associatedSales) {
+          if (assocSale.status !== 'CANCELLED') {
+            try {
+              await cancelSaleInternal(assocSale.id, user.id);
+            } catch (saleCancelError) {
+              console.error(`[CANCEL_INVOICE] Error cancelling associated sale ${assocSale.id}:`, saleCancelError);
+              // Fallback defensivo para cancelar saldo y deuda del cliente si cancelSaleInternal falla
+              if (assocSale.customerId && assocSale.balanceDue > 0) {
+                await prisma.customer.update({
+                  where: { id: assocSale.customerId },
+                  data: { creditBalance: { decrement: assocSale.balanceDue } }
+                });
+              }
+              await prisma.sale.update({
+                where: { id: assocSale.id },
+                data: {
+                  status: 'CANCELLED',
+                  balanceDue: 0
+                }
               });
             }
-            await prisma.sale.update({
-              where: { id: assocSale.id },
-              data: {
-                status: 'CANCELLED',
-                balanceDue: 0
-              }
-            });
           }
         }
       }
+
+      // Limpiar el ID y folio de factura en todas las ventas asociadas
+      await prisma.sale.updateMany({
+        where: { invoiceId: sale.invoiceId },
+        data: { 
+          invoiceId: null,
+          invoiceFolio: null
+        }
+      });
+
+      revalidatePath('/facturas/ventas');
+      revalidatePath(`/ventas/detalle/${saleId}`);
+      return { success: true, status, cancellationStatus };
+    } else {
+      revalidatePath('/facturas/ventas');
+      revalidatePath(`/ventas/detalle/${saleId}`);
+      return {
+        success: true,
+        pending: true,
+        status,
+        cancellationStatus,
+        message: "La solicitud de cancelación ha sido enviada al cliente. Debido a las reglas del SAT, se requiere la aceptación del receptor. El CFDI y la venta continuarán activos en el sistema hasta que el cliente apruebe la solicitud."
+      };
     }
-
-    // Limpiar el ID y folio de factura en todas las ventas asociadas
-    await prisma.sale.updateMany({
-      where: { invoiceId: sale.invoiceId },
-      data: { 
-        invoiceId: null,
-        invoiceFolio: null
-      }
-    });
-
-    revalidatePath('/facturas/ventas');
-    revalidatePath(`/ventas/detalle/${saleId}`);
-    return { success: true };
   } catch (error: any) {
     console.error("Facturapi Cancel Error:", error);
     return { success: false, error: error.message || "Error desconocido al cancelar la factura." };
@@ -1471,8 +1486,13 @@ export async function stampPaymentBatch(paymentIds: string[], paymentDateStr?: s
     }
 
     // Ensure all belong to sales that have been invoiced (PPD)
-    if (payments.some(p => p.saleId && !p.sale?.invoiceId)) {
-      throw new Error("Uno o más abonos corresponden a ventas que aún no han sido facturadas.");
+    const uninvoicedPayments = payments.filter(p => p.saleId && !p.sale?.invoiceId);
+    if (uninvoicedPayments.length > 0) {
+      const ticketIds = uninvoicedPayments.map(p => {
+        if (p.sale?.folio) return p.sale.folio;
+        return `#${p.saleId?.slice(0, 8) || ''}`;
+      }).join(', ');
+      throw new Error(`Uno o más abonos corresponden a ventas que aún no han sido facturadas (${ticketIds}). Favor de facturarlas antes de timbrar el abono.`);
     }
 
     // Map payment method to SAT Payment Form (from the first payment's reason or custom logic)
@@ -1671,33 +1691,47 @@ export async function cancelPaymentComplement(paymentId: string) {
     const facturapi = new Facturapi(apiKey);
 
     // Cancel in Facturapi with motive "02" (Comprobante emitido con errores sin relación)
-    await facturapi.invoices.cancel(invoiceId, { motive: "02" as any });
+    const cancelResult = await facturapi.invoices.cancel(invoiceId, { motive: "02" as any });
 
-    // Update all payments in database that share this same invoiceId in their cfdiUrlPdf
-    const pdfPattern = `invoiceId=${invoiceId}&`;
-    const paymentsToUpdate = await prisma.customerPayment.findMany({
-      where: {
-        cfdiUrlPdf: {
-          contains: pdfPattern
+    const status = cancelResult.status; // 'valid' | 'canceled'
+    const cancellationStatus = cancelResult.cancellation_status; // 'none' | 'pending' | 'accepted' | 'rejected' | 'expired'
+
+    if (status === 'canceled') {
+      // Update all payments in database that share this same invoiceId in their cfdiUrlPdf
+      const pdfPattern = `invoiceId=${invoiceId}&`;
+      const paymentsToUpdate = await prisma.customerPayment.findMany({
+        where: {
+          cfdiUrlPdf: {
+            contains: pdfPattern
+          }
         }
-      }
-    });
+      });
 
-    const paymentIdsToUpdate = paymentsToUpdate.map(p => p.id);
+      const paymentIdsToUpdate = paymentsToUpdate.map(p => p.id);
 
-    await prisma.customerPayment.updateMany({
-      where: {
-        id: { in: paymentIdsToUpdate }
-      },
-      data: {
-        cfdiStatus: "NONE",
-        cfdiUrlPdf: null,
-        cfdiUrlXml: null
-      }
-    });
+      await prisma.customerPayment.updateMany({
+        where: {
+          id: { in: paymentIdsToUpdate }
+        },
+        data: {
+          cfdiStatus: "NONE",
+          cfdiUrlPdf: null,
+          cfdiUrlXml: null
+        }
+      });
 
-    revalidatePath(`/clientes/${payment.customerId}`);
-    return { success: true };
+      revalidatePath(`/clientes/${payment.customerId}`);
+      return { success: true, status, cancellationStatus };
+    } else {
+      revalidatePath(`/clientes/${payment.customerId}`);
+      return { 
+        success: true, 
+        pending: true, 
+        status, 
+        cancellationStatus,
+        message: "La solicitud de cancelación del complemento ha sido enviada al cliente. El complemento continuará activo en el sistema hasta que se acepte la cancelación."
+      };
+    }
   } catch (error: any) {
     console.error("Facturapi Cancel Payment Complement Error:", error);
     return { success: false, error: error.message || "Error desconocido al cancelar el complemento de pago." };

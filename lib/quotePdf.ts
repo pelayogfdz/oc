@@ -67,7 +67,7 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
           if (logoUrl.startsWith('data:image/')) {
             const base64Data = logoUrl.replace(/^data:image\/\w+;base64,/, '');
             const imgBuffer = Buffer.from(base64Data, 'base64');
-            doc.image(imgBuffer, 50, 45, { height: 50 });
+            doc.image(imgBuffer, 50, 45, { height: 75 });
             logoDrawn = true;
           }
         } catch (e) {
@@ -95,30 +95,30 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
       const branchName = quote.branch?.name || 'Matriz';
       const branchAddress = quote.branch?.location || '';
       doc.font(fontRegular).fontSize(8).fillColor('#64748b');
-      doc.text(`Sucursal: ${branchName}`, 50, 105);
+      doc.text(`Sucursal: ${branchName}`, 50, 135);
       if (branchAddress) {
-        doc.text(branchAddress.replace(/\n/g, ', '), 50, 117, { width: 300 });
+        doc.text(branchAddress.replace(/\n/g, ', '), 50, 147, { width: 300 });
       }
 
       // Colored rule line
-      doc.strokeColor(primaryColor).lineWidth(2).moveTo(50, 140).lineTo(562, 140).stroke();
+      doc.strokeColor(primaryColor).lineWidth(2).moveTo(50, 170).lineTo(562, 170).stroke();
 
       // 2. Info Cards (Customer and Operation details)
-      doc.font(fontBold).fontSize(9).fillColor(primaryColor).text('DATOS DEL CLIENTE', 50, 160);
-      doc.font(fontBold).fontSize(10).fillColor('#1e293b').text(quote.customer?.name || 'Público en General', 50, 175);
+      doc.font(fontBold).fontSize(9).fillColor(primaryColor).text('DATOS DEL CLIENTE', 50, 190);
+      doc.font(fontBold).fontSize(10).fillColor('#1e293b').text(quote.customer?.name || 'Público en General', 50, 205);
       doc.font(fontRegular).fontSize(9).fillColor('#475569');
-      if (quote.customer?.taxId) doc.text(`RFC: ${quote.customer.taxId}`, 50, 190);
-      if (quote.customer?.phone) doc.text(`Teléfono: ${quote.customer.phone}`, 50, 203);
-      if (quote.customer?.email) doc.text(`Email: ${quote.customer.email}`, 50, 216);
+      if (quote.customer?.taxId) doc.text(`RFC: ${quote.customer.taxId}`, 50, 220);
+      if (quote.customer?.phone) doc.text(`Teléfono: ${quote.customer.phone}`, 50, 233);
+      if (quote.customer?.email) doc.text(`Email: ${quote.customer.email}`, 50, 246);
 
-      doc.font(fontBold).fontSize(9).fillColor(primaryColor).text('DATOS DE LA COTIZACIÓN', 350, 160);
+      doc.font(fontBold).fontSize(9).fillColor(primaryColor).text('DATOS DE LA COTIZACIÓN', 350, 190);
       doc.font(fontRegular).fontSize(9).fillColor('#475569');
-      doc.text(`Vigencia: ${daysValid} días naturales`, 350, 175);
-      doc.text(`Moneda: MXN (Pesos Mexicanos)`, 350, 188);
-      doc.text(`Vendedor: ${quote.user?.name || 'Sistema'}`, 350, 201);
+      doc.text(`Vigencia: ${daysValid} días naturales`, 350, 205);
+      doc.text(`Moneda: MXN (Pesos Mexicanos)`, 350, 218);
+      doc.text(`Vendedor: ${quote.user?.name || 'Sistema'}`, 350, 231);
 
       // 3. Items Table Header
-      const tableTop = 250;
+      const tableTop = 280;
       doc.fillColor('#f8fafc').rect(50, tableTop, 512, 20).fill();
       doc.strokeColor('#e2e8f0').lineWidth(1).rect(50, tableTop, 512, 20).stroke();
 

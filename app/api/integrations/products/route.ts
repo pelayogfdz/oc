@@ -26,7 +26,12 @@ export async function GET(request: NextRequest) {
   const { branch } = auth;
 
   try {
-    // Fetch all active products in this branch including variants
+    const url = new URL(request.url);
+    const limitParam = url.searchParams.get('limit');
+    // Default to 15000 to fetch the full catalog now that the query is optimized (O(N+M))
+    const limit = limitParam ? parseInt(limitParam, 10) : 15000;
+
+    // Fetch active products in this branch including variants
     const products = await prisma.product.findMany({
       where: {
         branchId: branch.id,
@@ -34,6 +39,7 @@ export async function GET(request: NextRequest) {
         // @ts-ignore
         showInWeb: true
       },
+      take: limit,
       include: {
         variants: true
       },
@@ -42,22 +48,38 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Find all branches of this tenant to map their IDs
+    // Find all branches of this tenant
     const tenantBranches = await prisma.branch.findMany({
       where: { tenantId: branch.tenantId }
     });
 
-    const reformaBranch = tenantBranches.find(b => b.name.toLowerCase().includes('matriz') || b.name.toLowerCase().includes('reforma'));
-    const anteaBranch = tenantBranches.find(b => b.name.toLowerCase().includes('antea'));
-    const zibataBranch = tenantBranches.find(b => b.name.toLowerCase().includes('zibatá') || b.name.toLowerCase().includes('zibata'));
-    const juriquillaBranch = tenantBranches.find(b => b.name.toLowerCase().includes('juriquilla'));
+    // Determine the tenant type and prepare dynamic branch maps
+    const isOfficeCity = branch.tenantId === '8b52cbcd-c956-4717-a1bd-02e57386aaa2';
 
-    const reformaId = reformaBranch?.id;
-    const anteaId = anteaBranch?.id;
-    const zibataId = zibataBranch?.id;
-    const juriquillaId = juriquillaBranch?.id;
+    let branchesMap: Record<string, string | undefined> = {};
+    if (isOfficeCity) {
+      branchesMap = {
+        centro: tenantBranches.find(b => b.name.toLowerCase().includes('centro'))?.id,
+        piq: tenantBranches.find(b => b.name.toLowerCase().includes('piq') || b.name.toLowerCase().includes('industrial'))?.id,
+        elmarques: tenantBranches.find(b => b.name.toLowerCase().includes('marques'))?.id,
+        pradera: tenantBranches.find(b => b.name.toLowerCase().includes('pradera'))?.id,
+        zakia: tenantBranches.find(b => b.name.toLowerCase().includes('zakia'))?.id,
+        sonterra: tenantBranches.find(b => b.name.toLowerCase().includes('sonterra'))?.id,
+        mirador: tenantBranches.find(b => b.name.toLowerCase().includes('mirador'))?.id,
+        cerrito: tenantBranches.find(b => b.name.toLowerCase().includes('cerrito'))?.id,
+        sanjuan: tenantBranches.find(b => b.name.toLowerCase().includes('juan'))?.id,
+      };
+    } else {
+      // Default to Bakery/Petqro mapping
+      branchesMap = {
+        reforma: tenantBranches.find(b => b.name.toLowerCase().includes('matriz') || b.name.toLowerCase().includes('reforma'))?.id,
+        antea: tenantBranches.find(b => b.name.toLowerCase().includes('antea'))?.id,
+        zibata: tenantBranches.find(b => b.name.toLowerCase().includes('zibatá') || b.name.toLowerCase().includes('zibata'))?.id,
+        juriquilla: tenantBranches.find(b => b.name.toLowerCase().includes('juriquilla'))?.id,
+      };
+    }
 
-    // Fetch all active products of the tenant to aggregate stocks across branches
+    // Fetch all active products of the tenant to aggregate stocks (selecting only required columns to speed up DB transport)
     const tenantProducts = await prisma.product.findMany({
       where: {
         branch: {
@@ -65,19 +87,45 @@ export async function GET(request: NextRequest) {
         },
         isActive: true
       },
-      include: {
+      select: {
+        id: true,
+        sku: true,
+        branchId: true,
+        stock: true,
         variants: true
       }
     });
 
+    // Index tenant products by SKU for O(1) lookups
+    const skuMap = new Map<string, any[]>();
+    for (const tp of tenantProducts) {
+      if (!tp.sku) continue;
+      let list = skuMap.get(tp.sku);
+      if (!list) {
+        list = [];
+        skuMap.set(tp.sku, list);
+      }
+      list.push(tp);
+    }
+
     const productsWithStock = products.map((p: any) => {
       // Find matching products by SKU across the tenant
-      const sameSkuProducts = tenantProducts.filter((tp: any) => tp.sku === p.sku);
+      const sameSkuProducts = skuMap.get(p.sku) || [];
 
-      const stockReforma = sameSkuProducts.find((tp: any) => tp.branchId === reformaId)?.stock || 0;
-      const stockAntea = sameSkuProducts.find((tp: any) => tp.branchId === anteaId)?.stock || 0;
-      const stockZibata = sameSkuProducts.find((tp: any) => tp.branchId === zibataId)?.stock || 0;
-      const stockJuriquilla = sameSkuProducts.find((tp: any) => tp.branchId === juriquillaId)?.stock || 0;
+      // Resolve stock counts dynamically per branch
+      const branchStocks: Record<string, number> = {};
+      let totalStock = 0;
+
+      for (const [key, bId] of Object.entries(branchesMap)) {
+        if (bId) {
+          const match = sameSkuProducts.find((tp: any) => tp.branchId === bId);
+          const st = match?.stock || 0;
+          branchStocks[`stock_${key}`] = st;
+          totalStock += st;
+        } else {
+          branchStocks[`stock_${key}`] = 0;
+        }
+      }
 
       // Resolve variants: fallback to other branches of the same SKU if the active branch has none
       let activeVariants = p.variants || [];
@@ -90,16 +138,23 @@ export async function GET(request: NextRequest) {
 
       // Map variants to include stocks per branch
       const mappedVariants = activeVariants.map((v: any) => {
-        // Find variants with the same attribute name in the other branches
-        const sameAttrVariants = tenantProducts
-          .filter((tp: any) => tp.sku === p.sku)
+        // Collect same attribute variants from all branches of this SKU
+        const sameAttrVariants = sameSkuProducts
           .flatMap((tp: any) => (tp.variants || []).map((tv: any) => ({ ...tv, branchId: tp.branchId })))
           .filter((tv: any) => tv.attribute === v.attribute);
 
-        const vStockReforma = sameAttrVariants.find((tv: any) => tv.branchId === reformaId)?.stock || 0;
-        const vStockAntea = sameAttrVariants.find((tv: any) => tv.branchId === anteaId)?.stock || 0;
-        const vStockZibata = sameAttrVariants.find((tv: any) => tv.branchId === zibataId)?.stock || 0;
-        const vStockJuriquilla = sameAttrVariants.find((tv: any) => tv.branchId === juriquillaId)?.stock || 0;
+        const vBranchStocks: Record<string, number> = {};
+        let vTotalStock = 0;
+
+        for (const [key, bId] of Object.entries(branchesMap)) {
+          if (bId) {
+            const st = sameAttrVariants.find((tv: any) => tv.branchId === bId)?.stock || 0;
+            vBranchStocks[`stock_${key}`] = st;
+            vTotalStock += st;
+          } else {
+            vBranchStocks[`stock_${key}`] = 0;
+          }
+        }
 
         return {
           id: v.id,
@@ -111,15 +166,18 @@ export async function GET(request: NextRequest) {
           specialPrice: v.specialPrice,
           cost: v.cost,
           stock: v.stock,
-          stock_reforma: vStockReforma,
-          stock_antea: vStockAntea,
-          stock_zibata: vStockZibata,
-          stock_juriquilla: vStockJuriquilla,
-          stock_total: vStockReforma + vStockAntea + vStockZibata + vStockJuriquilla
+          ...vBranchStocks,
+          stock_total: vTotalStock
         };
       });
 
-      return {
+      // Prefix relative image URLs with the CAANMA origin
+      let finalImageUrl = p.imageUrl;
+      if (finalImageUrl && !finalImageUrl.startsWith('http') && !finalImageUrl.startsWith('data:')) {
+        finalImageUrl = `https://caanma.com${finalImageUrl.startsWith('/') ? '' : '/'}${finalImageUrl}`;
+      }
+
+      const baseProductObj: Record<string, any> = {
         id: p.id,
         sku: p.sku,
         barcode: p.barcode,
@@ -134,7 +192,7 @@ export async function GET(request: NextRequest) {
         stock: p.stock,
         category: p.category,
         brand: p.brand,
-        imageUrl: p.imageUrl,
+        imageUrl: finalImageUrl,
         allowProduction: p.allowProduction,
         isProductionInput: p.isProductionInput,
         isService: p.isService,
@@ -142,13 +200,12 @@ export async function GET(request: NextRequest) {
         satUnit: p.satUnit,
         updatedAt: p.updatedAt,
         showInWeb: p.showInWeb,
-        stock_reforma: stockReforma,
-        stock_antea: stockAntea,
-        stock_zibata: stockZibata,
-        stock_juriquilla: stockJuriquilla,
-        stock_total: stockReforma + stockAntea + stockZibata + stockJuriquilla,
+        ...branchStocks,
+        stock_total: totalStock,
         variants: mappedVariants
       };
+
+      return baseProductObj;
     });
 
     return NextResponse.json({

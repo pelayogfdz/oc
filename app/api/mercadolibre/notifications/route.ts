@@ -45,12 +45,16 @@ export async function GET(req: Request) {
       if (guideUrl && guideUrl.endsWith('.')) {
         guideUrl = guideUrl.slice(0, -1);
       }
-      if (guideUrl && guideUrl.includes('/shipments/') && !guideUrl.includes('response_type=')) {
-        if (guideUrl.includes('?')) {
-          guideUrl = guideUrl.replace('?', '?response_type=pdf&');
+      if (guideUrl && guideUrl.includes('/shipments/')) {
+        const shipmentMatch = guideUrl.match(/\/shipments\/(\d+)/);
+        const shipmentId = shipmentMatch ? shipmentMatch[1] : null;
+        if (shipmentId) {
+          guideUrl = `/api/mercadolibre/labels?shipmentId=${shipmentId}&branchId=${sale.branchId}`;
         } else {
-          guideUrl = guideUrl + '?response_type=pdf';
+          guideUrl = null;
         }
+      } else {
+        guideUrl = null;
       }
 
       const buyerMatch = notes.match(/Comprador:\s*([^\n\r]+)/);

@@ -5,6 +5,30 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getActiveBranch } from './auth';
 
+function cleanTaxId(taxId: string | null | undefined): string | null {
+  if (!taxId) return null;
+  const cleaned = taxId.toUpperCase().replace(/[\s-]/g, '').trim();
+  return cleaned || null;
+}
+
+async function validateUniqueTaxId(cleanedTaxId: string | null, excludeCustomerId?: string) {
+  if (!cleanedTaxId) return;
+  
+  const GENERIC_RFCS = ['XAXX010101000', 'XEXX010101000'];
+  if (GENERIC_RFCS.includes(cleanedTaxId)) return;
+
+  const existing = await prisma.customer.findFirst({
+    where: {
+      taxId: cleanedTaxId,
+      ...(excludeCustomerId ? { id: { not: excludeCustomerId } } : {})
+    }
+  });
+
+  if (existing) {
+    throw new Error(`Ya existe un cliente registrado con el RFC ${cleanedTaxId} (${existing.name}).`);
+  }
+}
+
 export async function createCustomer(formData: FormData) {
   const branch = await getActiveBranch();
   
@@ -21,6 +45,9 @@ export async function createCustomer(formData: FormData) {
     throw new Error('El correo proporcionado no es válido o está inactivo según el servidor de correos.');
   }
 
+  const taxId = cleanTaxId(formData.get('taxId') as string);
+  await validateUniqueTaxId(taxId);
+
   await prisma.customer.create({
     data: {
       name: formData.get('name') as string,
@@ -33,7 +60,7 @@ export async function createCustomer(formData: FormData) {
       neighborhood: (formData.get('neighborhood') as string) || null,
       city: (formData.get('city') as string) || null,
       state: (formData.get('state') as string) || null,
-      taxId: (formData.get('taxId') as string) || null,
+      taxId: taxId,
       legalName: (formData.get('legalName') as string) || null,
       taxRegime: (formData.get('taxRegime') as string) || null,
       zipCode: (formData.get('zipCode') as string) || null,
@@ -51,6 +78,9 @@ export async function createCustomer(formData: FormData) {
 }
 
 export async function updateCustomer(id: string, formData: FormData) {
+  const taxId = cleanTaxId(formData.get('taxId') as string);
+  await validateUniqueTaxId(taxId, id);
+
   await prisma.customer.update({
     where: { id },
     data: { 
@@ -64,7 +94,7 @@ export async function updateCustomer(id: string, formData: FormData) {
       neighborhood: (formData.get('neighborhood') as string) || null,
       city: (formData.get('city') as string) || null,
       state: (formData.get('state') as string) || null,
-      taxId: (formData.get('taxId') as string) || null,
+      taxId: taxId,
       legalName: (formData.get('legalName') as string) || null,
       taxRegime: (formData.get('taxRegime') as string) || null,
       zipCode: (formData.get('zipCode') as string) || null,
@@ -102,6 +132,9 @@ export async function createCustomerPOS(data: {
     throw new Error('El nombre es obligatorio.');
   }
 
+  const taxId = cleanTaxId(data.taxId);
+  await validateUniqueTaxId(taxId);
+
   const customer = await prisma.customer.create({
     data: {
       name: data.name,
@@ -109,7 +142,7 @@ export async function createCustomerPOS(data: {
       phone: data.phone || null,
       street: data.street || null,
       zipCode: data.zipCode || null,
-      taxId: data.taxId || null,
+      taxId: taxId,
       branchId: branch.id
     }
   });
@@ -133,11 +166,14 @@ export async function createCustomerBilling(data: {
     throw new Error('El nombre/Razón Social es obligatorio.');
   }
 
+  const taxId = cleanTaxId(data.taxId);
+  await validateUniqueTaxId(taxId);
+
   const customer = await prisma.customer.create({
     data: {
       name: data.name,
       legalName: data.legalName || data.name,
-      taxId: data.taxId || null,
+      taxId: taxId,
       taxRegime: data.taxRegime || null,
       zipCode: data.zipCode || null,
       cfdiUse: data.cfdiUse || null,

@@ -238,7 +238,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
       if (res.success && res.status && res.cancellationStatus) {
         alert(`Estado SAT: ${res.status.toUpperCase()}\nEstado de Cancelación: ${res.cancellationStatus.toUpperCase()}\n\n${res.message}`);
         if (res.status === 'canceled') {
-          setSales(prev => prev.map(s => s.id === saleId ? { ...s, invoiceId: null, invoiceFolio: null } : s));
+          setSales(prev => prev.filter(s => s.id !== saleId));
         }
       } else {
         alert("Error al verificar: " + (res.error || "Respuesta incompleta de Facturapi"));
@@ -412,12 +412,16 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
     startTransition(async () => {
       const res = await cancelInvoice(saleId, cancelSale);
       if (res.success) {
-        alert(cancelSale ? 'Factura y venta canceladas exitosamente.' : 'Factura cancelada exitosamente.');
-        // Refresh local state
-        if (cancelSale) {
-          setSales(prev => prev.filter(s => s.id !== saleId));
+        if (res.pending) {
+          alert(res.message || 'La solicitud de cancelación ha sido enviada al cliente y está pendiente de aceptación.');
         } else {
-          setSales(prev => prev.map(s => s.id === saleId ? { ...s, invoiceId: null, invoiceFolio: null } : s));
+          alert(cancelSale ? 'Factura y venta canceladas exitosamente.' : 'Factura cancelada exitosamente.');
+          // Refresh local state
+          if (cancelSale) {
+            setSales(prev => prev.filter(s => s.id !== saleId));
+          } else {
+            setSales(prev => prev.map(s => s.id === saleId ? { ...s, invoiceId: null, invoiceFolio: null } : s));
+          }
         }
       } else {
         alert('Error al cancelar factura: ' + res.error);
