@@ -13,6 +13,7 @@ export async function updateDeliveryOrder(
     lng?: number; 
     routeOrder?: number;
     maxDeliveryTime?: string | null;
+    street?: string | null;
   }
 ) {
   try {
@@ -25,6 +26,7 @@ export async function updateDeliveryOrder(
     if (data.lng !== undefined) updateData.lng = data.lng;
     if (data.routeOrder !== undefined) updateData.routeOrder = data.routeOrder;
     if (data.maxDeliveryTime !== undefined) updateData.maxDeliveryTime = data.maxDeliveryTime;
+    if (data.street !== undefined) updateData.street = data.street;
     
     // Allow unassigning driver if driverId is empty string, else connect
     if (data.driverId !== undefined) {

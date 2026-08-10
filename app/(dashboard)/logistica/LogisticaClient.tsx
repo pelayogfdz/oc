@@ -16,6 +16,7 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
   const [editStatus, setEditStatus] = useState('');
   const [editDriver, setEditDriver] = useState('');
   const [editMaxTime, setEditMaxTime] = useState('');
+  const [editStreet, setEditStreet] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
   // Smart Routing states
@@ -68,6 +69,7 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
     setEditStatus(order.status);
     setEditDriver(order.driverId || '');
     setEditMaxTime(order.maxDeliveryTime || '');
+    setEditStreet(order.street || '');
   };
 
   const handleUpdate = async () => {
@@ -77,7 +79,8 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
       const res = await updateDeliveryOrder(editingOrder.id, {
         status: editStatus,
         driverId: editDriver,
-        maxDeliveryTime: editMaxTime || null
+        maxDeliveryTime: editMaxTime || null,
+        street: editStreet || null
       });
       if (res.success) {
         setOrders(orders.map(o => o.id === editingOrder.id ? { 
@@ -85,7 +88,8 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
           status: editStatus, 
           driverId: editDriver || null, 
           driver: drivers.find(d => d.id === editDriver) || null,
-          maxDeliveryTime: editMaxTime || null
+          maxDeliveryTime: editMaxTime || null,
+          street: editStreet || null
         } : o));
         setEditingOrder(null);
       } else {
@@ -688,6 +692,27 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
                   <option key={d.id} value={d.id}>{d.name} ({d.role})</option>
                 ))}
               </select>
+            </div>
+
+            <div className="form-group">
+              <label>Lugar de Entrega (Dirección)</label>
+              <input 
+                type="text" 
+                value={editStreet} 
+                onChange={e => setEditStreet(e.target.value)} 
+                className="form-control"
+                placeholder="Dirección o punto de entrega"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Hora de Entrega (Límite)</label>
+              <input 
+                type="time" 
+                value={editMaxTime} 
+                onChange={e => setEditMaxTime(e.target.value)} 
+                className="form-control"
+              />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>

@@ -443,6 +443,23 @@ function OrderCard({ order, onAdvance }: { order: any, onAdvance: (id: string) =
         Creado por: {order.user?.name || order.user?.email?.split('@')[0]}
       </div>
 
+      {order.notes && (
+        <div style={{ 
+          fontSize: '0.8rem', 
+          color: order.notes.includes('Pedido #') ? '#b45309' : 'var(--caanma-text-muted)', 
+          backgroundColor: order.notes.includes('Pedido #') ? '#fef3c7' : '#f8fafc',
+          padding: '0.4rem 0.6rem',
+          borderRadius: '6px',
+          border: order.notes.includes('Pedido #') ? '1px solid #fde68a' : '1px solid var(--caanma-border)',
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '0.35rem',
+          fontWeight: order.notes.includes('Pedido #') ? '600' : 'normal'
+        }}>
+          {order.notes}
+        </div>
+      )}
+
       <button 
         onClick={() => onAdvance(order.id)}
         style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.65rem', backgroundColor: 'var(--caanma-bg)', color: 'var(--caanma-primary)', border: '1px solid var(--caanma-primary)', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem', transition: 'all 0.15s' }}

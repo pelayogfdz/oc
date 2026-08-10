@@ -18,7 +18,12 @@ export async function createSale(
   consignmentIdToConvert?: string,
   pointsRedeemed: number = 0,
   branchId?: string,
-  breakdownDiscounts: boolean = false
+  breakdownDiscounts: boolean = false,
+  isPedido: boolean = false,
+  deliveryDate?: string,
+  deliveryTime?: string,
+  deliveryStreet?: string,
+  deliveryType?: string
 ) {
   try {
     const activeBranch = await getActiveBranch();
@@ -175,7 +180,8 @@ export async function createSale(
             where: {
                customerId: resolvedCustId,
                balanceDue: { gt: 0 },
-               dueDate: { lt: new Date() }
+               dueDate: { lt: new Date() },
+               status: { notIn: ['CANCELLED', 'REFUNDED'] }
             }
           });
           if (overdueSales) {
@@ -186,6 +192,9 @@ export async function createSale(
         dueDate = new Date();
         dueDate.setDate(dueDate.getDate() + customer.creditDays);
         balanceDue = finalSaleTotal;
+      } else if (paymentMethod === 'PAY_ON_PICKUP' || paymentMethod === 'PAY_ON_DELIVERY') {
+        dueDate = deliveryDate ? new Date(`${deliveryDate}T12:00:00`) : new Date();
+        balanceDue = finalSaleTotal;
       }
 
       const { getNextFolio } = await import('./folios');
@@ -195,6 +204,7 @@ export async function createSale(
         data: {
           folio,
           total: finalSaleTotal,
+          status: isPedido ? 'PENDING' : 'COMPLETED',
           paymentMethod,
           customerId: resolvedCustId,
           cashSessionId,
@@ -216,6 +226,55 @@ export async function createSale(
           }
         }
       });
+
+      // If it is a PEDIDO, create a DeliveryOrder and trigger ProductionOrder if fabricable
+      if (isPedido) {
+        let finalDueDate: Date | null = null;
+        if (deliveryDate) {
+          finalDueDate = new Date(`${deliveryDate}T12:00:00`);
+        }
+        
+        await tx.deliveryOrder.create({
+          data: {
+            saleId: createdSale.id,
+            street: deliveryType === 'DELIVERY' ? (deliveryStreet || 'Envío a Domicilio') : 'Recoger en Tienda',
+            deliveryDate: finalDueDate,
+            maxDeliveryTime: deliveryTime || null,
+            status: 'PENDING',
+            branchId: finalBranchId
+          }
+        });
+
+        // Automatically create a ProductionOrder for each fabricable product
+        for (const item of items) {
+          const product = await tx.product.findUnique({
+            where: { id: item.productId },
+            include: { Recipe: true }
+          });
+          if (product && (product.allowProduction || product.Recipe)) {
+            let recipe = product.Recipe;
+            if (!recipe) {
+              recipe = await tx.recipe.findFirst({
+                where: { productId: product.id }
+              });
+            }
+            if (recipe) {
+              const formattedDate = deliveryDate ? `${deliveryDate}` : '';
+              const formattedTime = deliveryTime ? ` a las ${deliveryTime}` : '';
+              await tx.productionOrder.create({
+                data: {
+                  recipeId: recipe.id,
+                  targetQuantity: item.quantity,
+                  status: 'PENDING',
+                  branchId: finalBranchId,
+                  userId: user.id,
+                  notes: `Pedido #${folio || createdSale.id.slice(0, 8)} - Entrega: ${formattedDate}${formattedTime}`
+                }
+              });
+            }
+          }
+        }
+      }
 
       // Deduct stock & Register Kardex Movement (only if NOT converting from a consignment)
       if (!consignmentIdToConvert) {

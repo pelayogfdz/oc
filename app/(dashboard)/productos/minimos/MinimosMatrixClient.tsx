@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Search, Save, X, Download, Loader2 } from 'lucide-react';
+import { Search, Save, X, Download, Loader2, Upload } from 'lucide-react';
 import { exportToExcel } from '@/lib/exportExcel';
 import { updateProductMinStocks } from '@/app/actions/minimos';
 
@@ -124,6 +124,93 @@ export default function MinimosMatrixClient({
     exportToExcel(headers, rows, 'Matriz_Minimos_Stock');
   };
 
+  const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const data = evt.target?.result;
+        if (!data) return;
+
+        const XLSX = await import('xlsx');
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+        if (rows.length < 2) {
+          alert('El archivo Excel no tiene suficientes filas.');
+          return;
+        }
+
+        const headers = rows[0].map(h => String(h).trim().toLowerCase());
+        
+        const skuIdx = headers.findIndex(h => h.includes('sku') || h.includes('código') || h.includes('codigo'));
+        if (skuIdx === -1) {
+          alert('No se encontró la columna "Código (SKU)" en el archivo.');
+          return;
+        }
+
+        const branchMinColIndexes: Record<string, number> = {};
+        
+        branches.forEach((branch) => {
+          const idx = headers.findIndex(h => h.includes(branch.name.toLowerCase()) && (h.includes('mínimo') || h.includes('minimo') || h.includes('min')));
+          if (idx !== -1) {
+            branchMinColIndexes[branch.id] = idx;
+          }
+        });
+
+        if (Object.keys(branchMinColIndexes).length === 0) {
+          alert('No se encontraron columnas de stock mínimo correspondientes a ninguna sucursal activa.');
+          return;
+        }
+
+        const newUpdates: Record<string, number> = { ...pendingUpdates };
+        let updatedCount = 0;
+
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row || row.length === 0) continue;
+
+          const sku = String(row[skuIdx]).trim();
+          if (!sku) continue;
+
+          const matrixRow = matrixRows.find(r => r.sku === sku);
+          if (!matrixRow) continue;
+
+          Object.entries(branchMinColIndexes).forEach(([branchId, colIdx]) => {
+            const val = row[colIdx];
+            if (val !== undefined && val !== null && val !== '') {
+              const parsedVal = parseInt(String(val), 10);
+              if (!isNaN(parsedVal) && parsedVal >= 0) {
+                const branchCell = matrixRow.branchData[branchId];
+                if (branchCell) {
+                  newUpdates[branchCell.productId] = parsedVal;
+                  updatedCount++;
+                }
+              }
+            }
+          });
+        }
+
+        if (updatedCount > 0) {
+          setPendingUpdates(newUpdates);
+          alert(`Se cargaron con éxito ${updatedCount} valores de stock mínimo desde el archivo Excel. Revisa y haz clic en "Guardar Cambios" para confirmar.`);
+        } else {
+          alert('No se encontraron actualizaciones válidas en el archivo Excel.');
+        }
+
+      } catch (err: any) {
+        alert('Error al leer el archivo Excel: ' + err.message);
+      }
+      e.target.value = '';
+    };
+
+    reader.readAsBinaryString(file);
+  };
+
   const pendingCount = Object.keys(pendingUpdates).length;
 
   return (
@@ -140,6 +227,20 @@ export default function MinimosMatrixClient({
           />
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <input
+            type="file"
+            id="import-excel-input"
+            accept=".xlsx, .xls"
+            onChange={handleImportExcel}
+            style={{ display: 'none' }}
+          />
+          <button
+            onClick={() => document.getElementById('import-excel-input')?.click()}
+            className="btn-secondary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', border: '1px solid var(--caanma-border)', backgroundColor: 'white', color: '#334155' }}
+          >
+            <Upload size={18} /> Importar Excel
+          </button>
           <button
             onClick={handleExport}
             className="btn-secondary"
@@ -182,8 +283,8 @@ export default function MinimosMatrixClient({
         </div>
       )}
 
-      <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '900px' }}>
+      <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px', maxWidth: '100%' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: `${370 + branches.length * 170}px` }}>
           <thead>
             <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
               <th style={{ padding: '0.75rem 1rem', fontWeight: 'bold', color: '#475569', width: '150px' }}>Código (SKU)</th>

@@ -80,6 +80,10 @@ export default function POSClient({
       cardAmount: '',
       notes: '',
       observationImageUrl: '',
+      deliveryDate: '',
+      deliveryTime: '',
+      deliveryStreet: '',
+      deliveryType: 'PICKUP',
       documentType: 'TICKET',
       transactionType: 'VENTA',
       appliedPromotionIds: null,
@@ -104,6 +108,10 @@ export default function POSClient({
         cardAmount,
         notes,
         observationImageUrl,
+        deliveryDate,
+        deliveryTime,
+        deliveryStreet,
+        deliveryType,
         documentType,
         transactionType,
         appliedPromotionIds,
@@ -127,6 +135,10 @@ export default function POSClient({
         setCardAmount((target.cardAmount || '') as number | "");
         setNotes(target.notes || '');
         setObservationImageUrl(target.observationImageUrl || '');
+        setDeliveryDate(target.deliveryDate || '');
+        setDeliveryTime(target.deliveryTime || '');
+        setDeliveryStreet(target.deliveryStreet || '');
+        setDeliveryType((target.deliveryType || 'PICKUP') as 'PICKUP' | 'DELIVERY');
         setDocumentType((target.documentType || 'TICKET') as 'TICKET' | 'FACTURA');
         setTransactionType((target.transactionType || 'VENTA') as 'VENTA' | 'PEDIDO');
         setAppliedPromotionIds(target.appliedPromotionIds !== undefined ? target.appliedPromotionIds : null);
@@ -197,6 +209,10 @@ export default function POSClient({
       cardAmount: '',
       notes: '',
       observationImageUrl: '',
+      deliveryDate: '',
+      deliveryTime: '',
+      deliveryStreet: '',
+      deliveryType: 'PICKUP',
       documentType: 'TICKET',
       transactionType: 'VENTA',
       appliedPromotionIds: null,
@@ -221,6 +237,10 @@ export default function POSClient({
         cardAmount,
         notes,
         observationImageUrl,
+        deliveryDate,
+        deliveryTime,
+        deliveryStreet,
+        deliveryType,
         documentType,
         transactionType,
         appliedPromotionIds,
@@ -242,6 +262,10 @@ export default function POSClient({
       setCardAmount((newTab.cardAmount || '') as number | "");
       setNotes(newTab.notes);
       setObservationImageUrl(newTab.observationImageUrl || '');
+      setDeliveryDate(newTab.deliveryDate || '');
+      setDeliveryTime(newTab.deliveryTime || '');
+      setDeliveryStreet(newTab.deliveryStreet || '');
+      setDeliveryType((newTab.deliveryType || 'PICKUP') as 'PICKUP' | 'DELIVERY');
       setDocumentType(newTab.documentType as 'TICKET' | 'FACTURA');
       setTransactionType(newTab.transactionType as 'VENTA' | 'PEDIDO');
       setAppliedPromotionIds(null);
@@ -276,6 +300,10 @@ export default function POSClient({
         setCardAmount((lastTab.cardAmount || '') as number | "");
         setNotes(lastTab.notes || '');
         setObservationImageUrl(lastTab.observationImageUrl || '');
+        setDeliveryDate(lastTab.deliveryDate || '');
+        setDeliveryTime(lastTab.deliveryTime || '');
+        setDeliveryStreet(lastTab.deliveryStreet || '');
+        setDeliveryType((lastTab.deliveryType || 'PICKUP') as 'PICKUP' | 'DELIVERY');
         setDocumentType((lastTab.documentType || 'TICKET') as 'TICKET' | 'FACTURA');
         setTransactionType((lastTab.transactionType || 'VENTA') as 'VENTA' | 'PEDIDO');
         setAppliedPromotionIds(lastTab.appliedPromotionIds !== undefined ? lastTab.appliedPromotionIds : null);
@@ -309,6 +337,10 @@ export default function POSClient({
     setAppliedPromotionIds(null);
     setNotes('');
     setObservationImageUrl('');
+    setDeliveryDate('');
+    setDeliveryTime('');
+    setDeliveryStreet('');
+    setDeliveryType('PICKUP');
     setTipAmount(0);
     setPointsRedeemed(0);
     setManualDiscountValue('');
@@ -347,6 +379,10 @@ export default function POSClient({
       cardAmount: '',
       notes: '',
       observationImageUrl: '',
+      deliveryDate: '',
+      deliveryTime: '',
+      deliveryStreet: '',
+      deliveryType: 'PICKUP',
       documentType: 'TICKET',
       transactionType: 'VENTA',
       appliedPromotionIds: null,
@@ -428,6 +464,10 @@ export default function POSClient({
         cardAmount,
         notes,
         observationImageUrl,
+        deliveryDate,
+        deliveryTime,
+        deliveryStreet,
+        deliveryType,
         documentType,
         transactionType,
         appliedPromotionIds,
@@ -463,6 +503,10 @@ export default function POSClient({
             setCardAmount(state.cardAmount || '');
             setNotes(state.notes || '');
             setObservationImageUrl(state.observationImageUrl || '');
+            setDeliveryDate(state.deliveryDate || '');
+            setDeliveryTime(state.deliveryTime || '');
+            setDeliveryStreet(state.deliveryStreet || '');
+            setDeliveryType(state.deliveryType || 'PICKUP');
             setDocumentType(state.documentType || 'TICKET');
             setTransactionType(state.transactionType || 'VENTA');
             setAppliedPromotionIds(state.appliedPromotionIds || null);
@@ -480,6 +524,10 @@ export default function POSClient({
               manualDiscountValue: state.manualDiscountValue || '',
               notes: state.notes || '',
               observationImageUrl: state.observationImageUrl || '',
+              deliveryDate: state.deliveryDate || '',
+              deliveryTime: state.deliveryTime || '',
+              deliveryStreet: state.deliveryStreet || '',
+              deliveryType: state.deliveryType || 'PICKUP',
               documentType: state.documentType || 'TICKET',
               transactionType: state.transactionType || 'VENTA',
               loadedQuoteId: state.loadedQuoteId || null,
@@ -696,11 +744,18 @@ export default function POSClient({
     allowedMethods.push({ id: 'CREDIT', name: 'Crédito Cta.' });
   }
   allowedMethods.push({ id: 'MIXTO', name: 'Mixto' });
+  if (transactionType === 'PEDIDO') {
+    allowedMethods.push({ id: 'PAY_ON_PICKUP', name: 'Pagar al recoger' });
+  }
 
   const [amountReceived, setAmountReceived] = useState<number | ''>(''); // Used for pure CASH or MIXED cash amount
   const [cardAmount, setCardAmount] = useState<number | ''>(''); // Used for MIXED
   const [notes, setNotes] = useState<string>('');
   const [observationImageUrl, setObservationImageUrl] = useState<string>('');
+  const [deliveryDate, setDeliveryDate] = useState<string>('');
+  const [deliveryTime, setDeliveryTime] = useState<string>('');
+  const [deliveryStreet, setDeliveryStreet] = useState<string>('');
+  const [deliveryType, setDeliveryType] = useState<'PICKUP' | 'DELIVERY'>('PICKUP');
   const [loadedQuoteId, setLoadedQuoteId] = useState<string | null>(null);
   const [loadedQuoteTotal, setLoadedQuoteTotal] = useState<number | null>(null);
 
@@ -2032,6 +2087,21 @@ export default function POSClient({
   const handleCheckout = async () => {
     if (cart.length === 0) return;
 
+    if (transactionType === 'PEDIDO') {
+      if (!deliveryDate) {
+        alert('Por favor, selecciona una fecha de entrega o retiro.');
+        return;
+      }
+      if (!deliveryTime) {
+        alert('Por favor, selecciona una hora de entrega o retiro.');
+        return;
+      }
+      if (deliveryType === 'DELIVERY' && !deliveryStreet.trim()) {
+        alert('Por favor, escribe la dirección para el envío a domicilio.');
+        return;
+      }
+    }
+
     if (documentType === 'FACTURA') {
       const cleanRfc = (billRfc || '').trim();
       const cleanZip = (billZipCode || '').trim();
@@ -2185,7 +2255,12 @@ export default function POSClient({
                 billingData,
                 branchId,
                 type: 'SALE',
-                breakdownDiscounts
+                breakdownDiscounts,
+                isPedido: transactionType === 'PEDIDO',
+                deliveryDate,
+                deliveryTime,
+                deliveryStreet,
+                deliveryType
              },
              retryCount: 0,
              failed: false
@@ -2195,7 +2270,28 @@ export default function POSClient({
           // ONLINE MODE
           // Use the real dynamic total calculated by the POS (total + tipAmount) to preserve edits (quantities, customer, additional products)
           const saleTotal = total + tipAmount;
-          const response = await createSale(items, saleTotal, paymentMethod, selectedCustomerId || null, sessionId, finalNotes, cashValue, cardValue, billingData, loadedQuoteId || undefined, loadedConsignmentId || undefined, pointsRedeemed, branchId, breakdownDiscounts);
+          const isPedidoTx = transactionType === 'PEDIDO';
+          const response = await createSale(
+            items, 
+            saleTotal, 
+            paymentMethod, 
+            selectedCustomerId || null, 
+            sessionId, 
+            finalNotes, 
+            cashValue, 
+            cardValue, 
+            billingData, 
+            loadedQuoteId || undefined, 
+            loadedConsignmentId || undefined, 
+            pointsRedeemed, 
+            branchId, 
+            breakdownDiscounts,
+            isPedidoTx,
+            deliveryDate || undefined,
+            deliveryTime || undefined,
+            deliveryStreet || undefined,
+            deliveryType
+          );
           if (!response.success) {
             throw new Error(response.error);
           }
@@ -3204,7 +3300,12 @@ export default function POSClient({
                       )}
                       {mode === 'QUOTE' && (() => {
                         const purchasePrice = item.averageCost || item.cost || 0;
-                        const marginPercent = itemPrice > 0 ? ((itemPrice - purchasePrice) / itemPrice) * 100 : 0;
+                        const taxRate = item.taxRate ?? 16.0;
+                        const taxFactor = 1 + (taxRate / 100);
+                        const priceWithIvaVal = item.customPrice !== undefined ? item.customPrice : itemPrice;
+                        const priceWithIva = priceWithIvaVal !== '' && priceWithIvaVal !== null ? parseFloat(priceWithIvaVal as any) : 0;
+                        const priceBeforeIva = priceWithIva / taxFactor;
+                        const marginPercent = priceBeforeIva > 0 ? ((priceBeforeIva - purchasePrice) / priceBeforeIva) * 100 : 0;
                         return (
                           <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', marginTop: '0.25rem', color: '#64748b', flexWrap: 'wrap', alignItems: 'center' }}>
                             <span style={{ backgroundColor: '#f1f5f9', padding: '0.15rem 0.35rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
@@ -3221,7 +3322,7 @@ export default function POSClient({
                               Margen: <strong>{marginPercent.toFixed(1)}%</strong>
                             </span>
                             <span style={{ backgroundColor: '#f1f5f9', padding: '0.15rem 0.35rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
-                              Venta: <strong>${itemPrice.toFixed(2)}</strong>
+                              Venta (sin IVA): <strong>${priceBeforeIva.toFixed(2)}</strong>
                             </span>
                           </div>
                         );
@@ -3890,23 +3991,29 @@ export default function POSClient({
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', marginBottom: '0.4rem' }}>Método de Pago</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: '0.4rem' }}>
-                  {allowedMethods.map(method => (
-                    <button 
-                      key={method.id}
-                      onClick={() => setPaymentMethod(method.id)}
-                      style={{ 
-                        padding: '0.5rem', borderRadius: '4px', border: '1px solid', 
-                        borderColor: paymentMethod === method.id ? 'var(--caanma-primary)' : 'var(--caanma-border)',
-                        backgroundColor: paymentMethod === method.id ? '#eff6ff' : 'white',
-                        color: paymentMethod === method.id ? 'var(--caanma-primary)' : 'inherit',
-                        fontWeight: paymentMethod === method.id ? 'bold' : 'normal',
-                        fontSize: '0.85rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {method.name}
-                    </button>
-                  ))}
+                  {allowedMethods.map(method => {
+                    let displayName = method.name;
+                    if (method.id === 'PAY_ON_PICKUP') {
+                      displayName = deliveryType === 'DELIVERY' ? 'Pagar al recibir' : 'Pagar al recoger';
+                    }
+                    return (
+                      <button 
+                        key={method.id}
+                        onClick={() => setPaymentMethod(method.id)}
+                        style={{ 
+                          padding: '0.5rem', borderRadius: '4px', border: '1px solid', 
+                          borderColor: paymentMethod === method.id ? 'var(--caanma-primary)' : 'var(--caanma-border)',
+                          backgroundColor: paymentMethod === method.id ? '#eff6ff' : 'white',
+                          color: paymentMethod === method.id ? 'var(--caanma-primary)' : 'inherit',
+                          fontWeight: paymentMethod === method.id ? 'bold' : 'normal',
+                          fontSize: '0.85rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {displayName}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -3978,6 +4085,128 @@ export default function POSClient({
                     style={{ width: '100%', padding: '0.75rem', fontSize: '1.1rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', textAlign: 'right' }}
                   />
                 </div>
+              </div>
+            )}
+
+            {/* Campos de entrega para Pedidos */}
+            {transactionType === 'PEDIDO' && (
+              <div style={{ marginBottom: '1.25rem', padding: '1rem', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', margin: '0 0 1rem 0', color: 'var(--caanma-primary)', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+                  Detalles del Pedido / Entrega
+                </h3>
+                
+                {/* Tipo de Entrega */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.4rem' }}>
+                    Tipo de Entrega
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeliveryType('PICKUP');
+                        setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryType: 'PICKUP' } : t));
+                        if (paymentMethod === 'PAY_ON_DELIVERY') {
+                          setPaymentMethod('PAY_ON_PICKUP');
+                          setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, paymentMethod: 'PAY_ON_PICKUP' } : t));
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '0.5rem',
+                        fontSize: '0.85rem',
+                        borderRadius: '4px',
+                        border: '1px solid',
+                        borderColor: deliveryType === 'PICKUP' ? 'var(--caanma-primary)' : '#cbd5e1',
+                        backgroundColor: deliveryType === 'PICKUP' ? '#eff6ff' : 'white',
+                        color: deliveryType === 'PICKUP' ? 'var(--caanma-primary)' : '#475569',
+                        fontWeight: deliveryType === 'PICKUP' ? 'bold' : 'normal',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Recoger en Tienda
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeliveryType('DELIVERY');
+                        setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryType: 'DELIVERY' } : t));
+                        if (paymentMethod === 'PAY_ON_PICKUP') {
+                          setPaymentMethod('PAY_ON_DELIVERY');
+                          setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, paymentMethod: 'PAY_ON_DELIVERY' } : t));
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '0.5rem',
+                        fontSize: '0.85rem',
+                        borderRadius: '4px',
+                        border: '1px solid',
+                        borderColor: deliveryType === 'DELIVERY' ? 'var(--caanma-primary)' : '#cbd5e1',
+                        backgroundColor: deliveryType === 'DELIVERY' ? '#eff6ff' : 'white',
+                        color: deliveryType === 'DELIVERY' ? 'var(--caanma-primary)' : '#475569',
+                        fontWeight: deliveryType === 'DELIVERY' ? 'bold' : 'normal',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Envío a Domicilio
+                    </button>
+                  </div>
+                </div>
+
+                {/* Fecha y Hora de Entrega */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.35rem' }}>
+                      Fecha de Entrega/Retiro <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={deliveryDate}
+                      required
+                      onChange={e => {
+                        setDeliveryDate(e.target.value);
+                        setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryDate: e.target.value } : t));
+                      }}
+                      style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.35rem' }}>
+                      Hora de Entrega/Retiro <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type="time"
+                      value={deliveryTime}
+                      required
+                      onChange={e => {
+                        setDeliveryTime(e.target.value);
+                        setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryTime: e.target.value } : t));
+                      }}
+                      style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Dirección de Entrega (solo si es Domicilio) */}
+                {deliveryType === 'DELIVERY' && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.35rem' }}>
+                      Dirección de Entrega <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <textarea
+                      value={deliveryStreet}
+                      required
+                      rows={2}
+                      onChange={e => {
+                        setDeliveryStreet(e.target.value);
+                        setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryStreet: e.target.value } : t));
+                      }}
+                      placeholder="Calle, número, colonia, referencias de entrega..."
+                      style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1', resize: 'vertical' }}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -4906,7 +5135,10 @@ export default function POSClient({
                         </div>
                         {mode === 'QUOTE' && (() => {
                           const purchasePrice = p.averageCost || p.cost || 0;
-                          const marginPercent = pPrice > 0 ? ((pPrice - purchasePrice) / pPrice) * 100 : 0;
+                          const taxRate = p.taxRate ?? 16.0;
+                          const taxFactor = 1 + (taxRate / 100);
+                          const priceBeforeIva = pPrice / taxFactor;
+                          const marginPercent = priceBeforeIva > 0 ? ((priceBeforeIva - purchasePrice) / priceBeforeIva) * 100 : 0;
                           return (
                             <div style={{ display: 'flex', gap: '0.35rem', fontSize: '0.7rem', marginTop: '0.25rem', color: '#64748b', flexWrap: 'wrap', alignItems: 'center' }}>
                               <span style={{ backgroundColor: '#f1f5f9', padding: '0.1rem 0.25rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
@@ -4923,7 +5155,7 @@ export default function POSClient({
                                 Margen: <strong>{marginPercent.toFixed(1)}%</strong>
                               </span>
                               <span style={{ backgroundColor: '#f1f5f9', padding: '0.1rem 0.25rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
-                                Venta: <strong>${pPrice.toFixed(2)}</strong>
+                                Venta (sin IVA): <strong>${priceBeforeIva.toFixed(2)}</strong>
                               </span>
                             </div>
                           );
