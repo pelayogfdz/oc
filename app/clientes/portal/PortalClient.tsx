@@ -13,11 +13,18 @@ import { useSearchParams } from 'next/navigation';
 import { generateGoogleWalletPassUrl } from '@/app/actions/loyalty';
 
 
-export default function PortalClient() {
+export default function PortalClient({ defaultTab }: { defaultTab?: 'b2c' | 'b2b' | 'loyalty' } = {}) {
   const searchParams = useSearchParams();
   const ticketIdParam = searchParams.get('ticketId') || searchParams.get('id') || '';
 
-  const [tab, setTab] = useState<'b2c' | 'b2b' | 'loyalty'>('loyalty');
+  const [tab, setTab] = useState<'b2c' | 'b2b' | 'loyalty'>(defaultTab || 'loyalty');
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['b2c', 'b2b', 'loyalty'].includes(tabParam)) {
+      setTab(tabParam as any);
+    }
+  }, [searchParams]);
   const [ticketId, setTicketId] = useState('');
   const [rfc, setRfc] = useState('');
   const [emailOrPhone, setEmailOrPhone] = useState('');
