@@ -15,7 +15,7 @@ class S3Store {
     constructor({ bucketName, s3Client, dataPath }) {
         this.bucketName = bucketName;
         this.s3Client = s3Client;
-        this.dataPath = path.resolve(dataPath || './.wwebjs_auth');
+        this.dataPath = path.resolve(dataPath || './.wwebjs_cache');
     }
 
     async sessionExists({ session }) {
@@ -500,11 +500,11 @@ async function getClientForBranch(originalBranchId, forceRecreate = false) {
         const s3Store = new S3Store({
             bucketName: s3BucketName,
             s3Client: s3Client,
-            dataPath: './.wwebjs_auth'
+            dataPath: './.wwebjs_cache'
         });
         authStrategy = new RemoteAuth({
             clientId: `br-${shortBranchId}`,
-            dataPath: './.wwebjs_auth',
+            dataPath: './.wwebjs_cache',
             store: s3Store,
             backupSyncIntervalMs: 120000 // periodic backup every 2 minutes
         });
@@ -512,7 +512,7 @@ async function getClientForBranch(originalBranchId, forceRecreate = false) {
         console.log(`[WHATSAPP] [Branch: ${branchId}] Using LocalAuth strategy (Local Filesystem)...`);
         authStrategy = new LocalAuth({
             clientId: `br-${shortBranchId}`,
-            dataPath: './.wwebjs_auth'
+            dataPath: './.wwebjs_cache'
         });
     }
 
@@ -636,7 +636,7 @@ async function getClientForBranch(originalBranchId, forceRecreate = false) {
 
         // Clean folder
         const shortBranchId = branchId.split('-')[0];
-        const authPath = path.resolve(process.cwd(), `./.wwebjs_auth/session-br-${shortBranchId}`);
+        const authPath = path.resolve(process.cwd(), `./.wwebjs_cache/session-br-${shortBranchId}`);
         if (fs.existsSync(authPath)) {
             try {
                 fs.rmSync(authPath, { recursive: true, force: true });
@@ -982,7 +982,7 @@ app.post('/api/logout', async (req, res) => {
 
         // Clean branch-specific credentials folder
         const shortBranchId = resolvedBranchId.split('-')[0];
-        const authPath = path.resolve(process.cwd(), `./.wwebjs_auth/session-br-${shortBranchId}`);
+        const authPath = path.resolve(process.cwd(), `./.wwebjs_cache/session-br-${shortBranchId}`);
         if (fs.existsSync(authPath)) {
             try {
                 fs.rmSync(authPath, { recursive: true, force: true });
@@ -1591,7 +1591,7 @@ async function pollWhatsAppSessions() {
 
             // Clean credentials folder
             const shortBranchId = branchId.split('-')[0];
-            const authPath = path.resolve(process.cwd(), `./.wwebjs_auth/session-br-${shortBranchId}`);
+            const authPath = path.resolve(process.cwd(), `./.wwebjs_cache/session-br-${shortBranchId}`);
             if (fs.existsSync(authPath)) {
                 try {
                     fs.rmSync(authPath, { recursive: true, force: true });
