@@ -367,6 +367,19 @@ export const prisma = new Proxy({} as PrismaClient, {
       get(modelTarget, method) {
         if (typeof method !== 'string') return undefined;
 
+        const isWhatsAppModel = prop === 'whatsAppSession' || prop === 'whatsAppMessage' || prop === 'whatsAppMediaRequest' || prop === 'whatsAppSyncRequest' || prop === 'prospect';
+
+        if (isWhatsAppModel) {
+          if (method.startsWith('_') || method === 'fields') {
+            return async function (...args: any[]) {
+              return (masterClient as any)[prop][method](...args);
+            };
+          }
+          return async function (...args: any[]) {
+            return (masterClient as any)[prop][method](...args);
+          };
+        }
+
         if (method.startsWith('_') || method === 'fields') {
           return async function (...args: any[]) {
             const client = await getClientForRequest();
