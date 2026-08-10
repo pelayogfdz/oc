@@ -502,6 +502,47 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                 <Phone size={18} color="#94a3b8" /> <span>{customer.phone || 'No registrado'}</span>
               </div>
+              {(customer.phone || customer.email || customer.taxId) && (() => {
+                const searchVal = customer.phone || customer.email || customer.taxId;
+                return (
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.25rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem' }}>
+                    <ExternalLink size={18} color="var(--caanma-primary)" />
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', fontWeight: 'bold' }}>Enlace Directo Portal B2B:</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.2rem' }}>
+                        <a 
+                          href={`/clientes/portal?search=${encodeURIComponent(searchVal)}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          style={{ color: 'var(--caanma-primary)', textDecoration: 'underline', fontSize: '0.875rem', fontWeight: '600' }}
+                        >
+                          Abrir Portal ↗
+                        </a>
+                        <span style={{ color: '#cbd5e1' }}>|</span>
+                        <button
+                          onClick={() => {
+                            const fullUrl = `${window.location.origin}/clientes/portal?search=${encodeURIComponent(searchVal)}`;
+                            navigator.clipboard.writeText(fullUrl);
+                            alert('Enlace del portal B2B copiado al portapapeles');
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#475569',
+                            fontSize: '0.8rem',
+                            cursor: 'pointer',
+                            textDecoration: 'underline',
+                            padding: 0,
+                            fontWeight: '500'
+                          }}
+                        >
+                          Copiar Enlace 📋
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
           
