@@ -1772,6 +1772,100 @@ export async function getCostAndPricesData(branchIdFilter?: string, brandFilter?
   };
 }
 
+export async function getSupplyUsageReportData(
+  startDate: Date,
+  endDate: Date,
+  branchIdFilter?: string
+) {
+  const session = await getSession();
+  const branch = await getActiveBranch();
+  if (!branch) throw new Error('Unauthorized');
+
+  const tenantId = session?.tenantId || branch.tenantId;
+  if (!tenantId) throw new Error('Unauthorized: Tenant context missing');
+
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const tenantBranchIds = tenantBranches.map(b => b.id);
+
+  let branchCondition: any = branch.id === 'GLOBAL'
+    ? { branchId: { in: tenantBranchIds } }
+    : { branchId: branch.id };
+
+  if (branchIdFilter && branchIdFilter !== 'ALL') {
+    if (tenantBranchIds.includes(branchIdFilter)) {
+      branchCondition = { branchId: branchIdFilter };
+    } else {
+      branchCondition = { branchId: { in: tenantBranchIds } };
+    }
+  }
+
+  const movements = await prisma.inventoryMovement.findMany({
+    where: {
+      createdAt: { gte: startDate, lte: endDate },
+      type: 'OUT',
+      reason: { contains: 'Uso de insumo:' },
+      product: branchCondition
+    },
+    include: {
+      product: {
+        include: {
+          branch: true
+        }
+      },
+      variant: true,
+      user: true
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  });
+
+  let totalUnits = 0;
+  let totalCost = 0;
+
+  const items = movements.map(m => {
+    const qty = Math.abs(m.quantity);
+    const cost = m.variant?.cost ?? m.product.cost ?? m.product.averageCost ?? 0;
+    const itemTotalCost = qty * cost;
+
+    totalUnits += qty;
+    totalCost += itemTotalCost;
+
+    let cleanReason = m.reason;
+    if (cleanReason.startsWith('Uso de insumo: ')) {
+      cleanReason = cleanReason.replace('Uso de insumo: ', '');
+    }
+    const porIdx = cleanReason.lastIndexOf(' (por ');
+    if (porIdx !== -1) {
+      cleanReason = cleanReason.substring(0, porIdx);
+    }
+
+    return {
+      id: m.id,
+      date: m.createdAt,
+      productName: m.product.name,
+      variantAttribute: m.variant?.attribute || null,
+      sku: m.variant?.sku || m.product.sku,
+      quantity: qty,
+      cost: cost,
+      totalCost: itemTotalCost,
+      reason: cleanReason,
+      branchName: m.product.branch.name,
+      userName: m.user?.name || 'Sistema'
+    };
+  });
+
+  return {
+    items,
+    totalUnits,
+    totalCost
+  };
+}
+
+
 
 
 
