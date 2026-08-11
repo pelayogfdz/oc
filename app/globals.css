@@ -182,6 +182,24 @@ button {
     gap: 1rem !important;
   }
 
+  /* Intercept and stack layout grid containers that use inline styles on mobile screens */
+  .dashboard-main div[style*="grid-template-columns: 1fr 1fr"],
+  .dashboard-main div[style*="grid-template-columns: 1fr 1.2fr"],
+  .dashboard-main div[style*="grid-template-columns: minmax(0,1fr) minmax(0,1fr)"],
+  .dashboard-main div[style*="grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)"],
+  .dashboard-main div[style*="grid-template-columns: minmax(300px, 1fr) 3fr"],
+  .dashboard-main div[style*="grid-template-columns: minmax(300px, 1fr) 2fr"],
+  .dashboard-main div[style*="grid-template-columns: minmax(0,1.5fr) minmax(0,1fr)"],
+  .dashboard-main div[style*="grid-template-columns: minmax(0,1.5fr) minmax(0, 1fr)"],
+  .dashboard-main div[style*="grid-template-columns: minmax(0,2fr) minmax(0,1fr) minmax(0,1fr)"],
+  .dashboard-main div[style*="grid-template-columns: minmax(0,1fr) minmax(0,2fr)"],
+  .dashboard-main div[style*="grid-template-columns: minmax(0, 1fr) minmax(0, 2fr)"],
+  .dashboard-main div[style*="grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)"],
+  .dashboard-main div[style*="grid-template-columns: repeat(5, 1fr)"] {
+    grid-template-columns: 1fr !important;
+    gap: 1.25rem !important;
+  }
+
   .header-user-info {
     display: none !important;
   }
