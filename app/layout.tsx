@@ -89,6 +89,23 @@ export default async function RootLayout({
                 };
               })();
 
+              // Monkey-patch window.alert to automatically reload the page on Server Action mismatch/build update
+              (function() {
+                const originalAlert = window.alert;
+                window.alert = function(msg) {
+                  if (msg && typeof msg === 'string' && (
+                    msg.indexOf('was not found on the server') > -1 ||
+                    msg.indexOf('failed-to-find-server-action') > -1 ||
+                    (msg.indexOf('Server Action') > -1 && msg.indexOf('not found') > -1)
+                  )) {
+                    console.error('Server Action mismatch detected in alert. Reloading client to get latest build...');
+                    window.location.reload();
+                    return;
+                  }
+                  return originalAlert.apply(this, arguments);
+                };
+              })();
+
               window.addEventListener('error', function(e) {
                 if (e.target && e.target.tagName === 'IMG') {
                   e.target.style.display = 'none';
@@ -114,13 +131,16 @@ export default async function RootLayout({
               }, true);
 
               window.addEventListener('unhandledrejection', function(e) {
-                const reason = e.reason && e.reason.message;
-                if (reason && (
-                  reason.indexOf('ChunkLoadError') > -1 || 
-                  reason.indexOf('Loading chunk') > -1 ||
-                  reason.indexOf('failed to fetch') > -1
+                const reason = e.reason && (e.reason.message || e.reason);
+                const reasonStr = typeof reason === 'string' ? reason : '';
+                if (reasonStr && (
+                  reasonStr.indexOf('ChunkLoadError') > -1 || 
+                  reasonStr.indexOf('Loading chunk') > -1 ||
+                  reasonStr.indexOf('failed to fetch') > -1 ||
+                  reasonStr.indexOf('was not found on the server') > -1 ||
+                  reasonStr.indexOf('failed-to-find-server-action') > -1
                 )) {
-                  console.error('Critical dynamic chunk promise rejection detected. Auto-reloading client...');
+                  console.error('Critical dynamic chunk or server action error. Auto-reloading client...');
                   const lastReload = localStorage.getItem('caanma_last_reload');
                   const now = Date.now();
                   if (!lastReload || now - parseInt(lastReload) > 8000) {
