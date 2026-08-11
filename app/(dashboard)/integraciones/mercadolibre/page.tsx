@@ -136,10 +136,11 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
       },
       OR: search ? [
         { name: { contains: search, mode: 'insensitive' } },
-        { sku: { contains: search, mode: 'insensitive' } }
+        { sku: { contains: search, mode: 'insensitive' } },
+        { barcode: { contains: search, mode: 'insensitive' } }
       ] : undefined
     },
-    take: 20,
+    take: search ? 100 : 50,
     orderBy: search ? { name: 'asc' } : { id: 'asc' }
   });
 

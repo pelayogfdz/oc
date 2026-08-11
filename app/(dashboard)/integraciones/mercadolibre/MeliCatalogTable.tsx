@@ -11,6 +11,63 @@ interface MeliCatalogTableProps {
 export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps) {
   const [maps, setMaps] = useState(initialMaps);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const [tableWidth, setTableWidth] = useState(0);
+
+  useEffect(() => {
+    const tableContainer = tableContainerRef.current;
+    if (!tableContainer) return;
+
+    const updateWidth = () => {
+      setTableWidth(tableContainer.scrollWidth);
+    };
+
+    updateWidth();
+
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(tableContainer);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [maps]);
+
+  useEffect(() => {
+    const topScroll = topScrollRef.current;
+    const tableContainer = tableContainerRef.current;
+    if (!topScroll || !tableContainer) return;
+
+    let isSyncingTop = false;
+    let isSyncingContainer = false;
+
+    const handleTopScroll = () => {
+      if (isSyncingContainer) {
+        isSyncingContainer = false;
+        return;
+      }
+      isSyncingTop = true;
+      tableContainer.scrollLeft = topScroll.scrollLeft;
+    };
+
+    const handleContainerScroll = () => {
+      if (isSyncingTop) {
+        isSyncingTop = false;
+        return;
+      }
+      isSyncingContainer = true;
+      topScroll.scrollLeft = tableContainer.scrollLeft;
+    };
+
+    topScroll.addEventListener('scroll', handleTopScroll);
+    tableContainer.addEventListener('scroll', handleContainerScroll);
+
+    return () => {
+      topScroll.removeEventListener('scroll', handleTopScroll);
+      tableContainer.removeEventListener('scroll', handleContainerScroll);
+    };
+  }, [tableWidth]);
   
   // Selection state
   const [selectedIds, setSelectedIds] = useState<Record<string, boolean>>({});
@@ -182,8 +239,9 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
       const dMargenD = map.margenDinero !== null && map.margenDinero !== undefined ? map.margenDinero : (dPrecio - p.cost - dComision - dEnvio - dRetencion);
       const dMargenP = map.margenPorcentaje !== null && map.margenPorcentaje !== undefined ? map.margenPorcentaje : (dPrecio > 0 ? (dMargenD / dPrecio) * 100 : 0);
 
-      // 1. Name Filter
-      const nameMatch = map.product.name.toLowerCase().includes(filters.name.toLowerCase());
+      // 1. Name Filter (matches on name or barcode)
+      const nameMatch = map.product.name.toLowerCase().includes(filters.name.toLowerCase()) ||
+                        (map.product.barcode || '').toLowerCase().includes(filters.name.toLowerCase());
       
       // 2. SKU Filter
       const skuMatch = (map.product.sku || '').toLowerCase().includes(filters.sku.toLowerCase());
@@ -892,7 +950,16 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
       )}
 
       {/* Main Catalog Table */}
-      <div style={{ overflowX: 'auto' }}>
+      {/* Dummy top scrollbar */}
+      <div 
+        ref={topScrollRef} 
+        style={{ overflowX: 'auto', overflowY: 'hidden', width: '100%', height: '16px', marginBottom: '8px' }}
+      >
+        <div style={{ width: `${tableWidth}px`, height: '1px' }}></div>
+      </div>
+
+      {/* Main Catalog Table */}
+      <div ref={tableContainerRef} style={{ overflowX: 'auto', width: '100%' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid var(--caanma-border)', color: 'var(--caanma-text-muted)', fontWeight: 'bold' }}>
