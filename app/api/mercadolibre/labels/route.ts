@@ -18,7 +18,7 @@ export async function GET(req: Request) {
     }
 
     // Consultar la etiqueta a Mercado Libre con el token fresco y pasarlo en el query parameter de la URL
-    const meliUrl = `https://api.mercadolibre.com/shipments/${shipmentId}/labels?response_type=pdf&access_token=${token}`;
+    const meliUrl = `https://api.mercadolibre.com/shipment_labels?shipment_ids=${shipmentId}&response_type=pdf`;
     console.log(`[MELI LABELS PROXY] Consultando etiqueta a Mercado Libre para envío ${shipmentId}...`);
 
     const response = await fetch(meliUrl, {
