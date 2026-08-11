@@ -48,8 +48,21 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
          }
        });
     }
+
+    // Load draft from localStorage if available
+    try {
+      const localStorageKey = `audit_draft_${audit.id}_${audit.status}`;
+      const draft = localStorage.getItem(localStorageKey);
+      if (draft) {
+        const parsedDraft = JSON.parse(draft);
+        Object.assign(initialState, parsedDraft);
+      }
+    } catch (e) {
+      console.error("Error reading draft from localStorage:", e);
+    }
+
     setEditingCounts(initialState);
-  }, [audit.status, audit.items, products]);
+  }, [audit.status, audit.items, products, audit.id]);
 
   const getCurrentFilterTarget = () => {
     if (isCompleted) return audit.items.map((i: any) => ({ ...i.product, finalCount: i.finalCount, systemStock: i.systemStock, expectedDiff: i.finalCount - i.systemStock }));
@@ -62,7 +75,16 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
   const currentProducts = getCurrentFilterTarget();
 
   const handleUpdateCount = (productId: string, val: string) => {
-    setEditingCounts({ ...editingCounts, [productId]: val });
+    setEditingCounts(prev => {
+      const updated = { ...prev, [productId]: val };
+      try {
+        const localStorageKey = `audit_draft_${audit.id}_${audit.status}`;
+        localStorage.setItem(localStorageKey, JSON.stringify(updated));
+      } catch (e) {
+        console.error("Error saving draft to localStorage:", e);
+      }
+      return updated;
+    });
   };
 
   const processCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,6 +117,12 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
         }
       });
       setEditingCounts(newCounts);
+      try {
+        const localStorageKey = `audit_draft_${audit.id}_${audit.status}`;
+        localStorage.setItem(localStorageKey, JSON.stringify(newCounts));
+      } catch (err) {
+        console.error("Error saving draft to localStorage:", err);
+      }
       alert(`Se encontraron e importaron ${matchedCount} productos del archivo CSV exitosamente.`);
     };
     reader.readAsText(file);
@@ -146,6 +174,14 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
       } else {
          const nextPhase = isPhase1 ? 'COUNT_2' : 'COUNT_3';
          await updateAuditStatus(audit.id, nextPhase);
+      }
+      
+      // Clear draft since it was submitted successfully
+      try {
+        const localStorageKey = `audit_draft_${audit.id}_${audit.status}`;
+        localStorage.removeItem(localStorageKey);
+      } catch (err) {
+        console.error("Error removing draft from localStorage:", err);
       }
       
     } catch(err: any) {
