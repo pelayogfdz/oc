@@ -152,18 +152,25 @@ button {
   }
 
   .dashboard-main {
-    padding: 1rem !important;
-    padding-bottom: 90px !important; /* Make room for bottom nav */
+    padding-left: 2% !important;
+    padding-right: 2% !important;
+    padding-top: 1rem !important;
+    padding-bottom: 95px !important; /* Make room for bottom nav */
     max-width: 100vw !important;
     overflow-x: hidden !important;
   }
 
   .dashboard-header {
-    padding: 0 1rem !important;
+    padding-left: 2% !important;
+    padding-right: 2% !important;
     position: sticky;
     top: 0;
     z-index: 30;
     background-color: var(--caanma-card-bg);
+  }
+
+  .card {
+    padding: 1rem !important; /* Scale down card padding on mobile to maximize viewport area */
   }
 
   .header-user-info {

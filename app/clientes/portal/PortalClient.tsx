@@ -269,7 +269,8 @@ export default function PortalClient({ defaultTab }: { defaultTab?: 'b2c' | 'b2b
           }
           .portal-container {
             margin: 1rem auto !important;
-            padding: 0 0.5rem !important;
+            padding-left: 2% !important;
+            padding-right: 2% !important;
             max-width: 100% !important;
             overflow-x: hidden !important;
           }
