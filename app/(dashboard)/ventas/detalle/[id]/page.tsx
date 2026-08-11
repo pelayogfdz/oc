@@ -198,12 +198,45 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
         {/* Totals */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', alignItems: 'flex-start' }}>
           <div style={{ flex: 1, paddingRight: '2rem' }}>
-             {sale.notes && (
-               <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
-                 <p style={{ margin: 0, fontSize: '0.875rem', color: '#475569', fontWeight: 'bold' }}>Notas del Ticket:</p>
-                 <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: '#0f172a' }}>{sale.notes}</p>
-               </div>
-             )}
+             {sale.notes && (() => {
+               const shipmentMatch = sale.notes.match(/\/shipments\/(\d+)/);
+               const shipmentId = shipmentMatch ? shipmentMatch[1] : null;
+               const guideUrl = shipmentId ? `/api/mercadolibre/labels?shipmentId=${shipmentId}&branchId=${sale.branchId}` : null;
+               
+               return (
+                 <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                     <div>
+                       <p style={{ margin: 0, fontSize: '0.875rem', color: '#475569', fontWeight: 'bold' }}>Notas del Ticket:</p>
+                       <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: '#0f172a' }}>{sale.notes}</p>
+                     </div>
+                     {guideUrl && (
+                       <a
+                         href={guideUrl}
+                         target="_blank"
+                         rel="noopener noreferrer"
+                         style={{
+                           display: 'inline-flex',
+                           alignItems: 'center',
+                           backgroundColor: '#f59e0b',
+                           color: '#ffffff',
+                           padding: '0.5rem 1rem',
+                           borderRadius: '6px',
+                           fontWeight: 'bold',
+                           textDecoration: 'none',
+                           fontSize: '0.875rem',
+                           boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                           whiteSpace: 'nowrap',
+                           marginLeft: '1rem'
+                         }}
+                       >
+                         Imprimir Guía (Mercado Libre)
+                       </a>
+                     )}
+                   </div>
+                 </div>
+               );
+             })()}
           </div>
           <div style={{ width: '300px' }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #e2e8f0' }}>
