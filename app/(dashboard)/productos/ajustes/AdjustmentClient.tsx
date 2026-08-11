@@ -15,10 +15,16 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
   const [isPending, setIsPending] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [isMounted, setIsMounted] = useState(false);
+  const [hasDraft, setHasDraft] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+    // Check if there is an active draft in localStorage
+    if (typeof window !== 'undefined') {
+      const draft = localStorage.getItem(`inventory_adjustment_draft_${branchId}`);
+      setHasDraft(!!draft);
+    }
+  }, [branchId]);
 
   useEffect(() => {
     const delayFn = setTimeout(async () => {
@@ -63,12 +69,47 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
       await createInventoryAdjustment(payload, reason);
       alert('¡Ajuste de inventario aplicado correctamente!');
       setItems([]);
-      setReason('');
+      setReason('Ajuste General');
+      // Clear draft upon successful save
+      localStorage.removeItem(`inventory_adjustment_draft_${branchId}`);
+      setHasDraft(false);
     } catch (e: any) {
       alert(e.message || 'Error ajustando inventario');
     } finally {
       setIsPending(false);
     }
+  };
+
+  const handleSaveDraft = () => {
+    if (items.length === 0) return;
+    const draftData = {
+      items,
+      reason
+    };
+    localStorage.setItem(`inventory_adjustment_draft_${branchId}`, JSON.stringify(draftData));
+    setHasDraft(true);
+    alert('¡Borrador guardado localmente!');
+  };
+
+  const handleLoadDraft = () => {
+    const draft = localStorage.getItem(`inventory_adjustment_draft_${branchId}`);
+    if (draft) {
+      try {
+        const parsed = JSON.parse(draft);
+        if (parsed.items) setItems(parsed.items);
+        if (parsed.reason) setReason(parsed.reason);
+        alert('¡Borrador cargado con éxito!');
+      } catch (e) {
+        console.error('Failed to parse draft', e);
+        alert('Error al cargar el borrador');
+      }
+    }
+  };
+
+  const handleClearDraft = () => {
+    if (!confirm('¿Seguro que deseas eliminar el borrador guardado?')) return;
+    localStorage.removeItem(`inventory_adjustment_draft_${branchId}`);
+    setHasDraft(false);
   };
 
   return (
@@ -277,7 +318,80 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
           )}
         </div>
 
-        <div style={{ padding: '1.5rem', borderTop: '1px solid var(--caanma-border)', backgroundColor: '#f8fafc' }}>
+        <div style={{ padding: '1.5rem', borderTop: '1px solid var(--caanma-border)', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              onClick={handleSaveDraft}
+              disabled={items.length === 0}
+              className="btn-secondary"
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                fontSize: '0.9rem',
+                fontWeight: 'bold',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                backgroundColor: 'white',
+                border: '1px solid var(--caanma-border)',
+                opacity: items.length === 0 ? 0.5 : 1,
+                cursor: items.length === 0 ? 'not-allowed' : 'pointer'
+              }}
+            >
+              <Save size={16} /> Guardar Borrador
+            </button>
+            
+            {hasDraft && (
+              <>
+                <button
+                  onClick={handleLoadDraft}
+                  className="btn-secondary"
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    fontSize: '0.9rem',
+                    fontWeight: 'bold',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    backgroundColor: '#eff6ff',
+                    color: '#1d4ed8',
+                    border: '1px solid #bfdbfe',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <ArrowRightLeft size={16} /> Cargar Borrador
+                </button>
+                
+                <button
+                  onClick={handleClearDraft}
+                  className="btn-secondary"
+                  style={{
+                    padding: '0.75rem',
+                    fontSize: '0.9rem',
+                    fontWeight: 'bold',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#fee2e2',
+                    color: '#991b1b',
+                    border: '1px solid #fca5a5',
+                    cursor: 'pointer'
+                  }}
+                  title="Eliminar borrador guardado"
+                >
+                  <Trash size={16} />
+                </button>
+              </>
+            )}
+          </div>
+
           <button 
             onClick={handleSave} 
             disabled={isPending || items.length === 0} 
