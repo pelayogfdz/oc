@@ -3310,14 +3310,15 @@ export default function POSClient({
                         const purchasePrice = item.averageCost || item.cost || 0;
                         const taxRate = item.taxRate ?? 16.0;
                         const taxFactor = 1 + (taxRate / 100);
+                        const purchasePriceConIva = purchasePrice * taxFactor;
                         const priceWithIvaVal = item.customPrice !== undefined ? item.customPrice : itemPrice;
                         const priceWithIva = priceWithIvaVal !== '' && priceWithIvaVal !== null ? parseFloat(priceWithIvaVal as any) : 0;
                         const priceBeforeIva = priceWithIva / taxFactor;
                         const marginPercent = priceBeforeIva > 0 ? ((priceBeforeIva - purchasePrice) / priceBeforeIva) * 100 : 0;
                         return (
-                          <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', marginTop: '0.25rem', color: '#64748b', flexWrap: 'wrap', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', gap: '0.4rem', fontSize: '0.75rem', marginTop: '0.35rem', color: '#64748b', flexWrap: 'wrap', alignItems: 'center' }}>
                             <span style={{ backgroundColor: '#f1f5f9', padding: '0.15rem 0.35rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
-                              Compra (prom.): <strong>${purchasePrice.toFixed(2)}</strong>
+                              Compra (prom.): <strong>${purchasePrice.toFixed(2)} sin IVA</strong> (${purchasePriceConIva.toFixed(2)} con IVA)
                             </span>
                             <span style={{ 
                               backgroundColor: marginPercent >= 0 ? '#dcfce7' : '#fee2e2', 
@@ -3327,7 +3328,7 @@ export default function POSClient({
                               border: marginPercent >= 0 ? '1px solid #bbf7d0' : '1px solid #fca5a5',
                               fontWeight: 'bold'
                             }}>
-                              Margen: <strong>{marginPercent.toFixed(1)}%</strong>
+                              Margen (sin IVA): <strong>{marginPercent.toFixed(1)}%</strong>
                             </span>
                             <span style={{ backgroundColor: '#f1f5f9', padding: '0.15rem 0.35rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
                               Venta (sin IVA): <strong>${priceBeforeIva.toFixed(2)}</strong>
@@ -5145,12 +5146,13 @@ export default function POSClient({
                           const purchasePrice = p.averageCost || p.cost || 0;
                           const taxRate = p.taxRate ?? 16.0;
                           const taxFactor = 1 + (taxRate / 100);
+                          const purchasePriceConIva = purchasePrice * taxFactor;
                           const priceBeforeIva = pPrice / taxFactor;
                           const marginPercent = priceBeforeIva > 0 ? ((priceBeforeIva - purchasePrice) / priceBeforeIva) * 100 : 0;
                           return (
                             <div style={{ display: 'flex', gap: '0.35rem', fontSize: '0.7rem', marginTop: '0.25rem', color: '#64748b', flexWrap: 'wrap', alignItems: 'center' }}>
                               <span style={{ backgroundColor: '#f1f5f9', padding: '0.1rem 0.25rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
-                                Compra: <strong>${purchasePrice.toFixed(2)}</strong>
+                                Compra: <strong>${purchasePrice.toFixed(2)} sin IVA</strong> (${purchasePriceConIva.toFixed(2)} con IVA)
                               </span>
                               <span style={{ 
                                 backgroundColor: marginPercent >= 0 ? '#dcfce7' : '#fee2e2', 
@@ -5160,7 +5162,7 @@ export default function POSClient({
                                 border: marginPercent >= 0 ? '1px solid #bbf7d0' : '1px solid #fca5a5',
                                 fontWeight: 'bold'
                               }}>
-                                Margen: <strong>{marginPercent.toFixed(1)}%</strong>
+                                Margen (sin IVA): <strong>{marginPercent.toFixed(1)}%</strong>
                               </span>
                               <span style={{ backgroundColor: '#f1f5f9', padding: '0.1rem 0.25rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
                                 Venta (sin IVA): <strong>${priceBeforeIva.toFixed(2)}</strong>

@@ -103,7 +103,10 @@ export async function getGeneralAnalyticsData(
           product: {
             select: {
               cost: true,
-              brand: true
+              brand: true,
+              taxRate: true,
+              taxType: true,
+              iepsRate: true
             }
           }
         }
@@ -148,17 +151,34 @@ export async function getGeneralAnalyticsData(
 
   let totalRevenue = 0;
   let totalCost = 0;
+  let totalRevenueSinIva = 0;
 
   processedSales.forEach(sale => {
     const dStr = formatDateString(sale.createdAt, timezone);
     if (!dailyData[dStr]) dailyData[dStr] = { date: dStr, Ventas: 0, Ganancia: 0, Tickets: 0 };
     
     let saleCost = 0;
+    let saleRevenueSinIva = 0;
+    
     sale.items.forEach(item => {
+      const taxRate = item.product.taxRate ?? 16.0;
+      const taxType = item.product.taxType ?? 'IVA';
+      const iepsRate = (item.product as any).iepsRate ?? 0.0;
+      
+      let itemPriceSinIva = item.price;
+      if (taxType === 'IVA') {
+        itemPriceSinIva = item.price / (1 + taxRate / 100);
+      } else if (taxType === 'IEPS') {
+        itemPriceSinIva = item.price / (1 + iepsRate / 100);
+      } else if (taxType === 'IVA_IEPS') {
+        itemPriceSinIva = item.price / ((1 + iepsRate / 100) * (1 + taxRate / 100));
+      }
+      
+      saleRevenueSinIva += (itemPriceSinIva * item.quantity);
       saleCost += (item.product.cost * item.quantity);
     });
 
-    const profit = Math.max(0, sale.total - saleCost);
+    const profit = Math.max(0, saleRevenueSinIva - saleCost);
 
     dailyData[dStr].Ventas += sale.total;
     dailyData[dStr].Ganancia += profit;
@@ -166,11 +186,12 @@ export async function getGeneralAnalyticsData(
 
     totalRevenue += sale.total;
     totalCost += saleCost;
+    totalRevenueSinIva += saleRevenueSinIva;
   });
 
   const chartData = Object.values(dailyData);
-  const totalProfit = totalRevenue - totalCost;
-  const margin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+  const totalProfit = totalRevenueSinIva - totalCost;
+  const margin = totalRevenueSinIva > 0 ? (totalProfit / totalRevenueSinIva) * 100 : 0;
   const avgTicket = processedSales.length > 0 ? totalRevenue / processedSales.length : 0;
 
   return {
@@ -459,13 +480,29 @@ export async function getInventoryValuationData(branchIdFilter?: string, brandFi
       imageUrl: true,
       stock: true,
       cost: true,
-      price: true
+      price: true,
+      taxRate: true,
+      taxType: true,
+      iepsRate: true
     },
     orderBy: { stock: 'desc' },
     take: 1000
   });
 
   const mappedProducts = products.map(p => {
+    const taxRate = p.taxRate ?? 16.0;
+    const taxType = p.taxType ?? 'IVA';
+    const iepsRate = p.iepsRate ?? 0.0;
+    
+    let priceSinIva = p.price;
+    if (taxType === 'IVA') {
+      priceSinIva = p.price / (1 + taxRate / 100);
+    } else if (taxType === 'IEPS') {
+      priceSinIva = p.price / (1 + iepsRate / 100);
+    } else if (taxType === 'IVA_IEPS') {
+      priceSinIva = p.price / ((1 + iepsRate / 100) * (1 + taxRate / 100));
+    }
+    
     const costValue = p.cost * p.stock;
     const sellValue = p.price * p.stock;
 
@@ -480,7 +517,7 @@ export async function getInventoryValuationData(branchIdFilter?: string, brandFi
       price: p.price,
       costValue,
       sellValue,
-      margin: p.cost > 0 ? ((p.price - p.cost) / p.price) * 100 : 100
+      margin: priceSinIva > 0 ? ((priceSinIva - p.cost) / priceSinIva) * 100 : 0
     };
   });
 
@@ -969,18 +1006,33 @@ export async function getTopProductsReport(
       imageUrl: item.product?.imageUrl || null,
       quantitySold: 0,
       totalRevenue: 0,
+      totalRevenueSinIva: 0,
       totalCost: 0
     };
+
+    const taxRate = item.product?.taxRate ?? 16.0;
+    const taxType = item.product?.taxType ?? 'IVA';
+    const iepsRate = (item.product as any)?.iepsRate ?? 0.0;
+    let itemPriceSinIva = item.price;
+    if (taxType === 'IVA') {
+      itemPriceSinIva = item.price / (1 + taxRate / 100);
+    } else if (taxType === 'IEPS') {
+      itemPriceSinIva = item.price / (1 + iepsRate / 100);
+    } else if (taxType === 'IVA_IEPS') {
+      itemPriceSinIva = item.price / ((1 + iepsRate / 100) * (1 + taxRate / 100));
+    }
+
     existing.quantitySold += item.quantity;
     existing.totalRevenue += (item.quantity * item.price);
+    existing.totalRevenueSinIva += (item.quantity * itemPriceSinIva);
     existing.totalCost += (item.quantity * (item.product?.cost || 0));
     productMap.set(key, existing);
   });
 
   const result = Array.from(productMap.values())
     .map(p => {
-      const grossProfit = p.totalRevenue - p.totalCost;
-      const margin = p.totalRevenue > 0 ? (grossProfit / p.totalRevenue) * 100 : 0;
+      const grossProfit = p.totalRevenueSinIva - p.totalCost;
+      const margin = p.totalRevenueSinIva > 0 ? (grossProfit / p.totalRevenueSinIva) * 100 : 0;
       return {
         ...p,
         grossProfit,
@@ -1044,18 +1096,33 @@ export async function getTopCategoriesReport(
       category,
       quantitySold: 0,
       totalRevenue: 0,
+      totalRevenueSinIva: 0,
       totalCost: 0
     };
+
+    const taxRate = (item.product as any)?.taxRate ?? 16.0;
+    const taxType = (item.product as any)?.taxType ?? 'IVA';
+    const iepsRate = (item.product as any)?.iepsRate ?? 0.0;
+    let itemPriceSinIva = item.price;
+    if (taxType === 'IVA') {
+      itemPriceSinIva = item.price / (1 + taxRate / 100);
+    } else if (taxType === 'IEPS') {
+      itemPriceSinIva = item.price / (1 + iepsRate / 100);
+    } else if (taxType === 'IVA_IEPS') {
+      itemPriceSinIva = item.price / ((1 + iepsRate / 100) * (1 + taxRate / 100));
+    }
+
     existing.quantitySold += item.quantity;
     existing.totalRevenue += (item.quantity * item.price);
+    existing.totalRevenueSinIva += (item.quantity * itemPriceSinIva);
     existing.totalCost += (item.quantity * ((item.product as any)?.cost || 0));
     categoryMap.set(category, existing);
   });
 
   const result = Array.from(categoryMap.values())
     .map(c => {
-      const grossProfit = c.totalRevenue - c.totalCost;
-      const margin = c.totalRevenue > 0 ? (grossProfit / c.totalRevenue) * 100 : 0;
+      const grossProfit = c.totalRevenueSinIva - c.totalCost;
+      const margin = c.totalRevenueSinIva > 0 ? (grossProfit / c.totalRevenueSinIva) * 100 : 0;
       return {
         ...c,
         grossProfit,
