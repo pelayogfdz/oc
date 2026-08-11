@@ -333,7 +333,7 @@ export default function TareasClient({
       </div>
 
       {/* Task List Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.25rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
         {filteredTasks.map(task => {
           const isCompleted = task.status === 'COMPLETED';
           const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !isCompleted;
@@ -627,7 +627,7 @@ export default function TareasClient({
                 </select>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="tareas-modal-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '600', fontSize: '0.85rem', color: '#475569' }}>Frecuencia</label>
                   <select 

@@ -129,7 +129,7 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
         </div>
       </div>
 
-      <div style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.2s', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 400px', gap: '2rem', alignItems: 'start' }}>
+      <div className="inventario-grid" style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.2s', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 400px', gap: '2rem', alignItems: 'start' }}>
         
         {/* Tabla Analítica */}
         <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>

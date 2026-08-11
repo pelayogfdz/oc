@@ -173,6 +173,15 @@ button {
     padding: 1rem !important; /* Scale down card padding on mobile to maximize viewport area */
   }
 
+  .formulas-grid,
+  .comisiones-grid,
+  .inventario-grid,
+  .tareas-modal-grid,
+  .report-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
   .header-user-info {
     display: none !important;
   }

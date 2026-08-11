@@ -89,7 +89,7 @@ export default function FormulasClient({ initialProcesses, initialRecipes, produ
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+    <div className="formulas-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
       
       {/* Columna Procesos */}
       <div style={{ backgroundColor: 'var(--caanma-card-bg)', borderRadius: '12px', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>

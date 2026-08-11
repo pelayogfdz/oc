@@ -222,7 +222,7 @@ export default function ComisionesReportClient({
         </div>
 
         {/* Sellers Grid / Detail Layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: selectedUser ? '1fr 400px' : '1fr', gap: '2rem', alignItems: 'start', transition: 'all 0.3s' }}>
+        <div className="comisiones-grid" style={{ display: 'grid', gridTemplateColumns: selectedUser ? '1fr 400px' : '1fr', gap: '2rem', alignItems: 'start', transition: 'all 0.3s' }}>
           
           {/* Main Table */}
           <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
