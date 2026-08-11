@@ -1,4 +1,4 @@
-const { Client, LocalAuth, RemoteAuth, MessageMedia } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
@@ -8,66 +8,6 @@ const cors = require('cors');
 const qrcode = require('qrcode-terminal');
 const fs = require('fs');
 const path = require('path');
-const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
-
-// S3 store class for whatsapp-web.js RemoteAuth
-class S3Store {
-    constructor({ bucketName, s3Client, dataPath }) {
-        this.bucketName = bucketName;
-        this.s3Client = s3Client;
-        this.dataPath = path.resolve(dataPath || './.wwebjs_cache');
-    }
-
-    async sessionExists({ session }) {
-        try {
-            await this.s3Client.send(new HeadObjectCommand({
-                Bucket: this.bucketName,
-                Key: `whatsapp-sessions/${session}.zip`
-            }));
-            return true;
-        } catch (err) {
-            if (err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
-                return false;
-            }
-            throw err;
-        }
-    }
-
-    async save({ session }) {
-        const zipPath = path.join(this.dataPath, `${session}.zip`);
-        const fileStream = fs.createReadStream(zipPath);
-        await this.s3Client.send(new PutObjectCommand({
-            Bucket: this.bucketName,
-            Key: `whatsapp-sessions/${session}.zip`,
-            Body: fileStream
-        }));
-    }
-
-    async extract({ session, path: destPath }) {
-        const response = await this.s3Client.send(new GetObjectCommand({
-            Bucket: this.bucketName,
-            Key: `whatsapp-sessions/${session}.zip`
-        }));
-        
-        await new Promise((resolve, reject) => {
-            const fileStream = fs.createWriteStream(destPath);
-            response.Body.pipe(fileStream);
-            fileStream.on('finish', resolve);
-            fileStream.on('error', reject);
-        });
-    }
-
-    async delete({ session }) {
-        try {
-            await this.s3Client.send(new DeleteObjectCommand({
-                Bucket: this.bucketName,
-                Key: `whatsapp-sessions/${session}.zip`
-            }));
-        } catch (err) {
-            console.error(`[S3Store] Failed to delete session ${session} from S3:`, err.message);
-        }
-    }
-}
 
 // Manually load .env since Prisma outside of Next.js needs it
 try {
@@ -93,24 +33,6 @@ try {
 
 const prisma = new PrismaClient();
 const app = express();
-
-// Initialize AWS S3 Client if credentials are provided in .env
-let s3Client = null;
-let s3BucketName = null;
-
-if (process.env.AWS_S3_BUCKET && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
-    s3BucketName = process.env.AWS_S3_BUCKET;
-    s3Client = new S3Client({
-        region: process.env.AWS_REGION || 'us-east-1',
-        credentials: {
-            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-        }
-    });
-    console.log(`[WHATSAPP] AWS S3 remote store initialized for bucket: ${s3BucketName}`);
-} else {
-    console.log(`[WHATSAPP] AWS S3 credentials missing. Using local filesystem storage fallback.`);
-}
 
 app.use(cors());
 app.use(express.json());
@@ -409,7 +331,7 @@ async function syncRecentChatsHistory(branchId, client) {
                     }
                 }
                 
-                // Add a small 150ms throttle to prevent PostgreSQL connection spikes
+                // Add a small 150ms throttle to prevent PostgreSQL Neon connection spikes
                 await new Promise(resolve => setTimeout(resolve, 150));
             } catch (chatErr) {
                 console.error(`[WHATSAPP] Failed to sync messages for chat ${chat.id?._serialized} under branch ${branchId}:`, chatErr.message);
@@ -493,42 +415,32 @@ async function getClientForBranch(originalBranchId, forceRecreate = false) {
     }
 
     const shortBranchId = branchId.split('-')[0];
-    
-    let authStrategy;
-    if (s3Client && s3BucketName) {
-        console.log(`[WHATSAPP] [Branch: ${branchId}] Using RemoteAuth strategy with AWS S3...`);
-        const s3Store = new S3Store({
-            bucketName: s3BucketName,
-            s3Client: s3Client,
-            dataPath: './.wwebjs_cache'
-        });
-        authStrategy = new RemoteAuth({
-            clientId: `br-${shortBranchId}`,
-            dataPath: './.wwebjs_cache',
-            store: s3Store,
-            backupSyncIntervalMs: 120000 // periodic backup every 2 minutes
-        });
-    } else {
-        console.log(`[WHATSAPP] [Branch: ${branchId}] Using LocalAuth strategy (Local Filesystem)...`);
-        authStrategy = new LocalAuth({
-            clientId: `br-${shortBranchId}`,
-            dataPath: './.wwebjs_cache'
-        });
+
+    // Clean up stale Chromium lock files to prevent "profile in use" startup crash in Docker
+    const sessionDir = path.join(process.cwd(), '.wwebjs_auth', `session-br-${shortBranchId}`);
+    try {
+        const lockFile = path.join(sessionDir, 'SingletonLock');
+        if (fs.existsSync(lockFile)) {
+            fs.unlinkSync(lockFile);
+            console.log(`[WHATSAPP] Cleaned up stale SingletonLock for branch ${branchId}`);
+        }
+    } catch (err) {
+        console.warn(`[WHATSAPP] Failed to clean SingletonLock for branch ${branchId}:`, err.message);
     }
 
     const client = new Client({
-        authStrategy,
-        webVersionCache: {
-            type: 'remote',
-            remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html',
-        },
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        authStrategy: new LocalAuth({
+            clientId: `br-${shortBranchId}`,
+            dataPath: './.wwebjs_auth'
+        }),
         puppeteer: {
             launcher: puppeteer,
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
-                '--disable-blink-features=AutomationControlled'
+                '--disable-blink-features=AutomationControlled',
+                '--disable-gpu',
+                '--disable-dev-shm-usage'
             ],
             headless: true,
         }
@@ -641,7 +553,7 @@ async function getClientForBranch(originalBranchId, forceRecreate = false) {
 
         // Clean folder
         const shortBranchId = branchId.split('-')[0];
-        const authPath = path.resolve(process.cwd(), `./.wwebjs_cache/session-br-${shortBranchId}`);
+        const authPath = path.resolve(process.cwd(), `./.wwebjs_auth/session-br-${shortBranchId}`);
         if (fs.existsSync(authPath)) {
             try {
                 fs.rmSync(authPath, { recursive: true, force: true });
@@ -987,7 +899,7 @@ app.post('/api/logout', async (req, res) => {
 
         // Clean branch-specific credentials folder
         const shortBranchId = resolvedBranchId.split('-')[0];
-        const authPath = path.resolve(process.cwd(), `./.wwebjs_cache/session-br-${shortBranchId}`);
+        const authPath = path.resolve(process.cwd(), `./.wwebjs_auth/session-br-${shortBranchId}`);
         if (fs.existsSync(authPath)) {
             try {
                 fs.rmSync(authPath, { recursive: true, force: true });
@@ -1596,7 +1508,7 @@ async function pollWhatsAppSessions() {
 
             // Clean credentials folder
             const shortBranchId = branchId.split('-')[0];
-            const authPath = path.resolve(process.cwd(), `./.wwebjs_cache/session-br-${shortBranchId}`);
+            const authPath = path.resolve(process.cwd(), `./.wwebjs_auth/session-br-${shortBranchId}`);
             if (fs.existsSync(authPath)) {
                 try {
                     fs.rmSync(authPath, { recursive: true, force: true });
