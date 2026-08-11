@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { Filter, MapPin, ArrowDownUp, Search, MoreVertical, Camera, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { searchProducts, deleteProduct, getProductCategoriesAndBrands } from '@/app/actions/product';
+import { Filter, MapPin, ArrowDownUp, Search, MoreVertical, Camera, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw, Loader2 } from 'lucide-react';
+import { searchProducts, deleteProduct, getProductCategoriesAndBrands, syncCatalogAction } from '@/app/actions/product';
 import ProductTableUI from '@/app/components/ProductTableUI';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 import ImportButton from './ImportButton';
@@ -13,12 +13,37 @@ import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 
 export default function ProductListClient({ initialProducts, branchId, categories, brands }: { initialProducts: any[], branchId: string, categories: string[], brands: string[] }) {
   const { isOnline } = useOfflineSync();
+  const [isSyncing, setIsSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [displayedProducts, setDisplayedProducts] = useState<any[]>(initialProducts);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [showScanner, setShowScanner] = useState(false);
+
+  const handleSync = async () => {
+    if (!isOnline) {
+      alert("Debes estar conectado a internet para sincronizar el catálogo.");
+      return;
+    }
+    if (!confirm("¿Deseas sincronizar el catálogo de productos entre todas tus sucursales activas? Esto creará copias con stock en 0 de los productos que falten en alguna sucursal.")) {
+      return;
+    }
+    setIsSyncing(true);
+    try {
+      const res = await syncCatalogAction();
+      if (res.success) {
+        alert(`Sincronización completada exitosamente. Se crearon ${res.createdCount} productos faltantes en las otras sucursales.`);
+        window.location.reload();
+      } else {
+        alert("Error al sincronizar catálogo: " + ((res as any).error?.message || String((res as any).error || '')));
+      }
+    } catch (err: any) {
+      alert("Error inesperado al sincronizar catálogo: " + err.message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Advanced Filters
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -332,6 +357,19 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       <div className="page-header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h1 className="page-header-title" style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>Productos e Inventario</h1>
         <div className="page-header-actions" style={{ display: 'flex', gap: '0.75rem' }}>
+          <button
+            onClick={handleSync}
+            disabled={isSyncing}
+            className="btn-secondary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--caanma-border)', backgroundColor: 'white', color: '#475569', fontSize: '0.875rem', fontWeight: '500' }}
+          >
+            {isSyncing ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <RefreshCw size={18} />
+            )}
+            Sincronizar
+          </button>
           <ImportButton />
           <ExportButton selectedIds={selectedIds} />
           <Link href="/productos/nuevo" className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.5rem 1.5rem' }}>

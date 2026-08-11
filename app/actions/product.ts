@@ -498,7 +498,7 @@ export async function updateProduct(productId: string, formData: FormData) {
     }
 
     if (Object.keys(data).length > 0) {
-      await prisma.product.update({
+      const updatedProduct = await prisma.product.update({
         where: { id: productId },
         // @ts-ignore
         data
@@ -557,6 +557,52 @@ export async function updateProduct(productId: string, formData: FormData) {
             delete fieldsToPropagate.minStock;
             delete fieldsToPropagate.branchId;
             delete fieldsToPropagate.supplierId;
+
+            // Ensure missing sibling products are created in other branches
+            const existingSiblings = await prisma.product.findMany({
+              where: {
+                sku: updatedProduct.sku,
+                branchId: { in: siblingBranchIds }
+              },
+              select: { branchId: true }
+            });
+            const existingBranchIds = new Set(existingSiblings.map(s => s.branchId));
+
+            for (const bId of siblingBranchIds) {
+              if (bId !== updatedProduct.branchId && !existingBranchIds.has(bId)) {
+                await prisma.product.create({
+                  data: {
+                    branchId: bId,
+                    sku: updatedProduct.sku,
+                    barcode: updatedProduct.barcode,
+                    name: updatedProduct.name,
+                    description: updatedProduct.description,
+                    price: updatedProduct.price,
+                    cost: updatedProduct.cost,
+                    taxRate: updatedProduct.taxRate,
+                    taxType: updatedProduct.taxType,
+                    iepsRate: updatedProduct.iepsRate,
+                    brand: updatedProduct.brand,
+                    imageUrl: updatedProduct.imageUrl,
+                    youtubeUrl: updatedProduct.youtubeUrl,
+                    isActive: updatedProduct.isActive,
+                    allowProduction: updatedProduct.allowProduction,
+                    isProductionInput: updatedProduct.isProductionInput,
+                    isService: updatedProduct.isService,
+                    unit: updatedProduct.unit,
+                    stock: 0,
+                    minStock: 0,
+                    supplierId: null,
+                    satKey: updatedProduct.satKey,
+                    satUnit: updatedProduct.satUnit,
+                    expirationDate: updatedProduct.expirationDate,
+                    hasTraceability: updatedProduct.hasTraceability,
+                    // @ts-ignore
+                    showInWeb: updatedProduct.showInWeb
+                  }
+                });
+              }
+            }
 
             if (Object.keys(fieldsToPropagate).length > 0) {
               await prisma.product.updateMany({
@@ -1290,6 +1336,15 @@ export async function syncTenantCatalogs(tenantId: string) {
     console.error("[CATALOG SYNC] Error en syncTenantCatalogs:", error);
     return { success: false, error };
   }
+}
+
+export async function syncCatalogAction() {
+  const session = await getSession();
+  const tenantId = session?.tenantId;
+  if (!tenantId) {
+    return { success: false, error: 'No autorizado' };
+  }
+  return await syncTenantCatalogs(tenantId);
 }
 
 export async function createProductInline(data: {
