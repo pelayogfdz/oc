@@ -15,6 +15,7 @@ interface ProductPrice {
 
 interface ProductFinanceSectionProps {
   initialCost: number;
+  initialAverageCost?: number;
   initialPrice: number;
   initialTaxRate?: number;
   initialTaxType?: string;
@@ -27,6 +28,7 @@ interface ProductFinanceSectionProps {
 
 export default function ProductFinanceSection({
   initialCost,
+  initialAverageCost,
   initialPrice,
   initialTaxRate = 16.0,
   initialTaxType = 'IVA',
@@ -243,14 +245,14 @@ export default function ProductFinanceSection({
             type="number"
             step="0.01"
             name="averageCost"
-            defaultValue={initialCost}
+            defaultValue={initialAverageCost !== undefined && initialAverageCost !== null ? initialAverageCost : initialCost}
             readOnly
             title="Se calcula ponderadamente según historial de compras"
             style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: '#f3f4f6', cursor: 'not-allowed', color: 'var(--caanma-text-muted)', outline: 'none' }}
           />
-          {initialCost > 0 && (
+          {(initialAverageCost !== undefined && initialAverageCost !== null ? initialAverageCost : initialCost) > 0 && (
             <div style={{ marginTop: '0.4rem', fontSize: '0.775rem', color: '#64748b', fontWeight: '500' }}>
-              Con impuestos/IVA: <strong style={{ color: '#334155' }}>${(initialCost * taxMultiplier).toFixed(2)}</strong>
+              Con impuestos/IVA: <strong style={{ color: '#334155' }}>${((initialAverageCost !== undefined && initialAverageCost !== null ? initialAverageCost : initialCost) * taxMultiplier).toFixed(2)}</strong>
             </div>
           )}
         </div>

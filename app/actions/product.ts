@@ -382,7 +382,11 @@ export async function updateProduct(productId: string, formData: FormData) {
     if (price !== null) data.price = parseFloat(price as string) || 0;
 
     const cost = formData.get('cost');
-    if (cost !== null) data.cost = parseFloat(cost as string) || 0;
+    if (cost !== null) {
+      const parsedCost = parseFloat(cost as string) || 0;
+      data.cost = parsedCost;
+      data.averageCost = parsedCost;
+    }
 
     const taxRate = formData.get('taxRate');
     if (taxRate !== null) {

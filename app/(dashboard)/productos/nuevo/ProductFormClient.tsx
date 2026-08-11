@@ -235,6 +235,7 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
         <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Finanzas y Precios</h2>
         <ProductFinanceSection 
           initialCost={parseFloat(cloneProduct?.cost || "0")}
+          initialAverageCost={cloneProduct?.averageCost ? parseFloat(cloneProduct.averageCost) : undefined}
           initialPrice={parseFloat(cloneProduct?.price || "0")}
           initialTaxRate={parseFloat(cloneProduct?.taxRate || "16.0")}
           initialTaxType={cloneProduct?.taxType}

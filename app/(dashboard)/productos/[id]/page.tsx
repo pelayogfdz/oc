@@ -421,6 +421,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
             <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Finanzas y Precios</h2>
             <ProductFinanceSection 
               initialCost={product.cost}
+              initialAverageCost={product.averageCost}
               initialPrice={product.price}
               initialTaxRate={product.taxRate}
               initialTaxType={product.taxType}
