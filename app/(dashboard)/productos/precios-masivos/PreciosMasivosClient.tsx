@@ -98,7 +98,7 @@ export default function PreciosMasivosClient({
     };
 
     dynamicPriceLists.forEach(dl => {
-      const pp = p.productPrices?.find((x: any) => x.priceListId === dl.id);
+      const pp = p.prices?.find((x: any) => x.priceListId === dl.id);
       stateObj[`dynamic_${dl.id}`] = pp ? pp.price : '';
       stateObj[`_new_dynamic_${dl.id}`] = pp ? pp.price : '';
     });
