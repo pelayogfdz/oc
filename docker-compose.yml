@@ -47,7 +47,7 @@ services:
       - PORT=3001
       - DATABASE_URL=postgresql://postgres:caanma_postgres_secure_2026@db:5432/neondb?sslmode=disable
     volumes:
-      - whatsapp_session_cache:/app/.wwebjs_cache
+      - whatsapp_session_cache:/app/.wwebjs_auth
 
 volumes:
   postgres_data:
