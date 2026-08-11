@@ -1,6 +1,7 @@
 import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import ProductListClient from './ProductListClient';
+import { enrichProductsWithTenantExternalMaps } from "@/app/actions/product";
 
 export const dynamic = 'force-dynamic';
 
@@ -142,6 +143,8 @@ export default async function ProductosPage() {
       };
     });
   }
+
+  await enrichProductsWithTenantExternalMaps(displayedProducts, tenantBranchIds);
 
   const safeProducts = JSON.parse(JSON.stringify(displayedProducts));
   return (

@@ -927,7 +927,7 @@ export async function searchProducts(
       }
     });
 
-    return Array.from(mergedMap.values()).map(prod => {
+    const mergedList = Array.from(mergedMap.values()).map(prod => {
       const key = ((prod.sku && prod.sku.trim() !== "")
         ? prod.sku.trim()
         : (prod.barcode && prod.barcode.trim() !== "")
@@ -938,11 +938,13 @@ export async function searchProducts(
         branchStocks: branchStocksMap.get(key) || []
       };
     });
+    await enrichProductsWithTenantExternalMaps(mergedList, tenantBranchIds);
+    return mergedList;
   }
 
   // If specific branch is selected, filter matching tenant products to only display those belonging to this branch
   const localProducts = products.filter(p => p.branchId === branchId);
-  return localProducts.map(prod => {
+  const localList = localProducts.map(prod => {
     const key = ((prod.sku && prod.sku.trim() !== "")
       ? prod.sku.trim()
       : (prod.barcode && prod.barcode.trim() !== "")
@@ -953,6 +955,8 @@ export async function searchProducts(
       branchStocks: branchStocksMap.get(key) || []
     };
   });
+  await enrichProductsWithTenantExternalMaps(localList, tenantBranchIds);
+  return localList;
 }
 
 export async function deleteProduct(productId: string) {
@@ -1452,5 +1456,58 @@ export async function createProductInline(data: {
     console.error("Error in createProductInline:", error);
     return { error: error.message || "Error desconocido al crear producto." };
   }
+}
+
+export async function enrichProductsWithTenantExternalMaps(products: any[], tenantBranchIds: string[]) {
+  const skus = products.map(p => p.sku).filter((sku): sku is string => typeof sku === 'string' && sku.trim() !== '');
+  if (skus.length === 0) return products;
+
+  try {
+    const externalMaps = await prisma.externalProductMap.findMany({
+      where: {
+        product: {
+          sku: { in: skus },
+          branchId: { in: tenantBranchIds }
+        }
+      },
+      include: {
+        product: {
+          select: {
+            sku: true
+          }
+        }
+      }
+    });
+
+    const mapsBySku = new Map<string, any[]>();
+    externalMaps.forEach(map => {
+      const sku = map.product?.sku?.trim();
+      if (sku) {
+        if (!mapsBySku.has(sku)) {
+          mapsBySku.set(sku, []);
+        }
+        mapsBySku.get(sku)!.push(map);
+      }
+    });
+
+    products.forEach(prod => {
+      const sku = prod.sku?.trim();
+      if (sku && mapsBySku.has(sku)) {
+        const tenantMaps = mapsBySku.get(sku)!;
+        if (!prod.externalMaps) {
+          prod.externalMaps = [];
+        }
+        tenantMaps.forEach(map => {
+          if (!prod.externalMaps.some((em: any) => em.id === map.id)) {
+            prod.externalMaps.push(map);
+          }
+        });
+      }
+    });
+  } catch (e) {
+    console.error('Error enriching products with tenant external maps:', e);
+  }
+
+  return products;
 }
 
