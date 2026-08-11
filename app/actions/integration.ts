@@ -804,40 +804,11 @@ export async function searchCaanmaProducts(query: string) {
 
     const cleanQuery = query.trim();
 
-    // 1. Obtener todos los SKUs ya vinculados para esta plataforma en las sucursales del tenant
-    const linkedMaps = await prisma.externalProductMap.findMany({
-      where: {
-        platform: 'MERCADO_LIBRE',
-        product: {
-          branchId: { in: tenantBranchIds }
-        }
-      },
-      select: {
-        product: {
-          select: {
-            sku: true
-          }
-        }
-      }
-    });
-
-    const linkedSkus = new Set<string>();
-    for (const m of linkedMaps) {
-      if (m.product?.sku) {
-        linkedSkus.add(String(m.product.sku).trim());
-      }
-    }
-
-    // 2. Buscar productos locales
+    // 1. Buscar productos locales sin excluir ya vinculados para permitir vinculaciones múltiples
     const products = await prisma.product.findMany({
       where: {
         branchId: { in: tenantBranchIds },
         isActive: true,
-        externalMaps: {
-          none: {
-            platform: 'MERCADO_LIBRE'
-          }
-        },
         OR: [
           { name: { contains: cleanQuery, mode: 'insensitive' } },
           { sku: { contains: cleanQuery, mode: 'insensitive' } },
@@ -849,15 +820,11 @@ export async function searchCaanmaProducts(query: string) {
       orderBy: { name: 'asc' }
     });
 
-    // 3. Agrupar por SKU y omitir los que ya estén vinculados en cualquier sucursal
+    // 2. Agrupar por SKU sumando stock
     const grouped: any[] = [];
     const skuMap: Record<string, boolean> = {};
     for (const p of products) {
       const sku = p.sku ? String(p.sku).trim() : null;
-      
-      if (sku && linkedSkus.has(sku)) {
-        continue;
-      }
 
       const key = sku || `NOSKU-${p.id}`;
       if (!skuMap[key]) {
