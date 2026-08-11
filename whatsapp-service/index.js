@@ -306,7 +306,70 @@ async function saveWhatsAppMessage(branchId, client, msg) {
 async function syncRecentChatsHistory(branchId, client) {
     console.log(`[WHATSAPP] [Branch: ${branchId}] Starting Phase 1 Chats History Sync (top 30 chats, 50 messages each)...`);
     try {
-        const chats = await client.getChats();
+        let chats = [];
+        try {
+            chats = await client.getChats();
+        } catch (e) {
+            console.warn(`[WHATSAPP] [Branch: ${branchId}] Standard client.getChats() failed (${e.message || e}), attempting Store fallback...`);
+            try {
+                const rawChats = await client.pupPage.evaluate(() => {
+                    if (window.Store && window.Store.Chat && window.Store.Chat.models) {
+                        return window.Store.Chat.models.map(c => ({
+                            id: {
+                                server: c.id?.server,
+                                user: c.id?.user,
+                                _serialized: c.id?._serialized
+                            },
+                            name: c.name || c.formattedTitle || '',
+                            isGroup: !!c.isGroup,
+                            isReadOnly: !!c.isReadOnly,
+                            unreadCount: c.unreadCount || 0
+                        }));
+                    }
+                    return [];
+                });
+                console.log(`[WHATSAPP] [Branch: ${branchId}] Fallback retrieved ${rawChats.length} chats from Store.`);
+                
+                chats = rawChats.map(rc => ({
+                    id: rc.id,
+                    name: rc.name,
+                    isGroup: rc.isGroup,
+                    isReadOnly: rc.isReadOnly,
+                    unreadCount: rc.unreadCount,
+                    fetchMessages: async (options) => {
+                        const limit = options?.limit || 50;
+                        try {
+                            const rawMsgs = await client.pupPage.evaluate((jid, lim) => {
+                                const chatObj = window.Store.Chat.get(jid);
+                                if (chatObj && chatObj.msgs && chatObj.msgs.models) {
+                                    const msgs = chatObj.msgs.models.slice(-lim);
+                                    return msgs.map(m => ({
+                                        id: {
+                                            _serialized: m.id?._serialized
+                                        },
+                                        body: m.body || '',
+                                        type: m.type || 'chat',
+                                        timestamp: m.t || Math.floor(Date.now() / 1000),
+                                        fromMe: !!m.id?.fromMe,
+                                        from: m.from?._serialized || m.from || '',
+                                        to: m.to?._serialized || m.to || '',
+                                        isStatus: !!m.isStatus
+                                    }));
+                                }
+                                return [];
+                            }, rc.id._serialized, limit);
+                            return rawMsgs;
+                        } catch (err) {
+                            console.error(`[WHATSAPP] Error fetching fallback messages for ${rc.id._serialized}:`, err.message);
+                            return [];
+                        }
+                    }
+                }));
+            } catch (fallbackErr) {
+                console.error(`[WHATSAPP] [Branch: ${branchId}] Fallback chats retrieval failed:`, fallbackErr.message);
+                throw e; // Rethrow original error if fallback also fails
+            }
+        }
         console.log(`[WHATSAPP] [Branch: ${branchId}] Found ${chats.length} total chats on device.`);
         
         // Filter to standard direct message chats (excluding groups/broadcasts)
@@ -484,10 +547,12 @@ async function getClientForBranch(originalBranchId, forceRecreate = false) {
                 console.error(`[WHATSAPP] Background self-healing failed for branch ${branchId}:`, err);
             });
 
-            // Sync recent chats history in the background when ready
-            syncRecentChatsHistory(branchId, client).catch(err => {
-                console.error(`[WHATSAPP] Background history sync failed for branch ${branchId}:`, err);
-            });
+            // Sync recent chats history in the background when ready (delayed by 5s to avoid decryption timing errors)
+            setTimeout(() => {
+                syncRecentChatsHistory(branchId, client).catch(err => {
+                    console.error(`[WHATSAPP] Background history sync failed for branch ${branchId}:`, err);
+                });
+            }, 5000);
         } catch (e) {
             console.error(`[WHATSAPP] Failed to update Ready status in DB for branch ${branchId}`, e);
         }
