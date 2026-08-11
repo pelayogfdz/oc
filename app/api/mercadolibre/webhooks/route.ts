@@ -66,53 +66,125 @@ export async function POST(req: Request) {
       const itemsToSale: any[] = [];
       let totalSaleAmount = 0;
 
+      // Obtener todas las sucursales del tenant para enrutamiento de stock
+      const tenantBranchesList = await tenantClient.branch.findMany({
+        where: { tenantId, isActive: true },
+        select: { id: true }
+      });
+      const tenantBranchIds = tenantBranchesList.map(b => b.id);
+
       // 4. Procesar cada publicación de la orden
       for (const item of orderItems) {
         const externalId = item.item.id; // MLMxxxxxx
         const quantity = Number(item.quantity);
         const price = Number(item.unit_price);
+        const sellerSku = item.item.seller_sku ? String(item.item.seller_sku).trim() : null;
+
+        let targetProduct = null;
+        let resolvedSku = sellerSku;
 
         // Buscar si la publicación está mapeada en nuestro catálogo
         const mappedItem = await tenantClient.externalProductMap.findFirst({
           where: { externalId, platform: 'MERCADO_LIBRE' },
-          include: { product: { include: { variants: true } } }
+          include: { product: true }
         });
 
         if (mappedItem) {
-          const product = mappedItem.product;
-          console.log(`[MELI WEBHOOK] Publicación mapeada encontrada: ${product.name} (ID: ${product.id}). Cantidad: ${quantity}`);
+          targetProduct = mappedItem.product;
+          resolvedSku = mappedItem.product.sku;
+        }
+
+        // Buscar el producto en la sucursal que tiene stock
+        if (resolvedSku) {
+          const branchProducts = await tenantClient.product.findMany({
+            where: {
+              OR: [
+                { sku: { equals: resolvedSku.trim(), mode: 'insensitive' } },
+                { barcode: { equals: resolvedSku.trim(), mode: 'insensitive' } }
+              ],
+              branchId: { in: tenantBranchIds },
+              isActive: true
+            }
+          });
+
+          if (branchProducts.length > 0) {
+            // Priorizamos la sucursal preferida (integration.branchId) si tiene stock
+            const preferredProduct = branchProducts.find(p => p.branchId === integration.branchId && p.stock >= quantity);
+            if (preferredProduct) {
+              targetProduct = preferredProduct;
+            } else {
+              // Si no, buscamos la sucursal que tenga el stock más alto
+              branchProducts.sort((a, b) => b.stock - a.stock);
+              if (branchProducts[0].stock > 0) {
+                targetProduct = branchProducts[0];
+              } else if (!targetProduct) {
+                // Si ninguna tiene stock, usamos el primero que encontremos
+                targetProduct = branchProducts[0];
+              }
+            }
+          }
+        }
+
+        if (targetProduct) {
+          console.log(`[MELI WEBHOOK] Producto asignado para la venta: ${targetProduct.name} en sucursal ${targetProduct.branchId}. Cantidad: ${quantity}`);
           
-          // Descontar inventario local en la base de datos
+          // Descontar inventario local en la sucursal elegida
           await tenantClient.product.update({
-            where: { id: product.id },
+            where: { id: targetProduct.id },
             data: { stock: { decrement: quantity } }
           });
 
           // Registrar en Kardex
           await tenantClient.inventoryMovement.create({
             data: {
-              productId: product.id,
+              productId: targetProduct.id,
               type: 'OUT',
               quantity: -quantity,
               reason: `Venta Externa Mercado Libre (Pedido #${orderData.id})`
             }
           });
 
+          // Si no estaba mapeado, crearlo automáticamente para el futuro en la sucursal que tenía stock
+          if (!mappedItem) {
+            try {
+              await tenantClient.externalProductMap.create({
+                data: {
+                  productId: targetProduct.id,
+                  platform: 'MERCADO_LIBRE',
+                  externalId: externalId,
+                  syncStatus: 'active',
+                  precioMeli: price,
+                  comisionMeli: price * 0.1,
+                  envioMeli: 0,
+                  retencionMeli: 0,
+                  margenDinero: price - targetProduct.cost,
+                  margenPorcentaje: price > 0 ? ((price - targetProduct.cost) / price) * 100 : 0,
+                  isFixedPrice: false
+                }
+              });
+              console.log(`[MELI WEBHOOK] Vinculación creada automáticamente por SKU para item ${externalId} a producto ${targetProduct.name} en sucursal ${targetProduct.branchId}`);
+            } catch (mapErr) {
+              console.error('Error creating auto-mapping:', mapErr);
+            }
+          }
+
           itemsToSale.push({
-            productId: product.id,
+            productId: targetProduct.id,
+            branchId: targetProduct.branchId,
             quantity,
             price
           });
 
           totalSaleAmount += (price * quantity);
         } else {
-          console.warn(`[MELI WEBHOOK] Publicación vendida ${externalId} no está mapeada en el inventario local de Caanma. Se omitirá el descuento de stock.`);
+          console.warn(`[MELI WEBHOOK] Publicación vendida ${externalId} (SKU: ${sellerSku}) no se pudo mapear a ningún producto local. Se omitirá el descuento de stock.`);
         }
       }
 
-      // 5. Si logramos mapear al menos un producto, registrar la venta a nivel contable
+      // 5. Si logramos mapear al menos un producto, registrar la venta a nivel contable en la sucursal que aportó la existencia
       if (itemsToSale.length > 0) {
-        console.log(`[MELI WEBHOOK] Registrando venta contable en Caanma por un total de $${totalSaleAmount}...`);
+        const saleBranchId = itemsToSale[0].branchId || integration.branchId;
+        console.log(`[MELI WEBHOOK] Registrando venta contable en Caanma (sucursal: ${saleBranchId}) por un total de $${totalSaleAmount}...`);
         
         // Obtener el primer usuario de la base de datos para registrar la venta
         const defaultUser = await tenantClient.user.findFirst();
@@ -134,7 +206,7 @@ export async function POST(req: Request) {
             total: totalSaleAmount,
             status: 'COMPLETED',
             paymentMethod: 'MERCADO_PAGO',
-            branchId: integration.branchId,
+            branchId: saleBranchId,
             userId: defaultUser.id,
             notes: `Venta automática registrada desde Mercado Libre. Guía de Envío: ${shippingLabelUrl || 'No disponible'}. Comprador: ${orderData.buyer?.nickname || 'Desconocido'}.`,
             createdAt: orderData.date_created ? new Date(orderData.date_created) : new Date(),
@@ -149,7 +221,7 @@ export async function POST(req: Request) {
           }
         });
 
-        console.log(`[MELI WEBHOOK] Venta registrada exitosamente con Folio: ML-${orderData.id}`);
+        console.log(`[MELI WEBHOOK] Venta registrada exitosamente con Folio: ML-${orderData.id} en sucursal: ${saleBranchId}`);
       }
     }
 

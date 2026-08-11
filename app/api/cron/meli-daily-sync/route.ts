@@ -197,14 +197,81 @@ async function handleSync(onlyStock = false) {
                 const shippingLabelUrl = shipmentId 
                   ? `https://api.mercadolibre.com/shipments/${shipmentId}/labels?response_type=pdf&access_token=${token}`
                   : '';
+                const orderItems = order.order_items || [];
+                const processedItems = [];
+                let detectedBranchId = mainSaleBranchId;
 
-                // Crear venta en base de datos
+                for (const item of orderItems) {
+                  const externalId = item.item?.id || '';
+                  const sellerSku = item.item?.seller_sku ? String(item.item.seller_sku).trim() : null;
+                  const quantity = item.quantity || 1;
+                  const itemPrice = item.unit_price || 0;
+
+                  let targetProduct = null;
+                  let resolvedSku = sellerSku;
+
+                  const map = await tenantClient.externalProductMap.findUnique({
+                    where: { platform_externalId: { platform: 'MERCADO_LIBRE', externalId } },
+                    include: { product: true }
+                  });
+
+                  if (map) {
+                    targetProduct = map.product;
+                    resolvedSku = map.product.sku;
+                  }
+
+                  if (resolvedSku) {
+                    const branchProducts = await tenantClient.product.findMany({
+                      where: {
+                        OR: [
+                          { sku: { equals: resolvedSku.trim(), mode: 'insensitive' } },
+                          { barcode: { equals: resolvedSku.trim(), mode: 'insensitive' } }
+                        ],
+                        branchId: { in: stockBranchIds },
+                        isActive: true
+                      }
+                    });
+
+                    if (branchProducts.length > 0) {
+                      const preferredProduct = branchProducts.find(p => p.branchId === mainSaleBranchId && p.stock >= quantity);
+                      if (preferredProduct) {
+                        targetProduct = preferredProduct;
+                      } else {
+                        branchProducts.sort((a, b) => b.stock - a.stock);
+                        if (branchProducts[0].stock > 0) {
+                          targetProduct = branchProducts[0];
+                        } else if (!targetProduct) {
+                          targetProduct = branchProducts[0];
+                        }
+                      }
+                    }
+                  }
+
+                  if (targetProduct) {
+                    processedItems.push({
+                      productId: targetProduct.id,
+                      branchId: targetProduct.branchId,
+                      quantity,
+                      price: itemPrice,
+                      externalId,
+                      name: targetProduct.name,
+                      cost: targetProduct.cost,
+                      isNewMap: !map
+                    });
+                  }
+                }
+
+                if (processedItems.length > 0) {
+                  detectedBranchId = processedItems[0].branchId || mainSaleBranchId;
+                }
+
+                // Crear venta en base de datos con la sucursal correcta
                 const newSale = await tenantClient.sale.create({
                   data: {
                     total: order.total_amount || 0,
                     status: 'COMPLETED',
                     paymentMethod: 'CARD',
-                    branchId: mainSaleBranchId,
+                    branchId: detectedBranchId,
                     userId: onlineUser.id,
                     notes: `${checkNote}. Guía de Envío: ${shippingLabelUrl || 'No disponible'}. Comprador: ${order.buyer?.nickname || 'Mercado Libre Client'}`,
                     createdAt: order.date_created ? new Date(order.date_created) : new Date(),
@@ -212,50 +279,62 @@ async function handleSync(onlyStock = false) {
                   }
                 });
 
-                // Agregar items de la venta
-                const orderItems = order.order_items || [];
-                for (const item of orderItems) {
-                  const externalId = item.item?.id || '';
-                  
-                  // Mapear a producto local
-                  const map = await tenantClient.externalProductMap.findUnique({
-                    where: { platform_externalId: { platform: 'MERCADO_LIBRE', externalId } }
+                // Registrar items y descontar stock
+                for (const item of processedItems) {
+                  // Crear SaleItem
+                  await tenantClient.saleItem.create({
+                    data: {
+                      saleId: newSale.id,
+                      productId: item.productId,
+                      quantity: item.quantity,
+                      price: item.price
+                    }
                   });
 
-                  if (map) {
-                    const quantity = item.quantity || 1;
-                    const itemPrice = item.unit_price || 0;
+                  // Descontar inventario en la sucursal elegida
+                  await tenantClient.product.update({
+                    where: { id: item.productId },
+                    data: { stock: { decrement: item.quantity } }
+                  });
 
-                    await tenantClient.saleItem.create({
-                      data: {
-                        saleId: newSale.id,
-                        productId: map.productId,
-                        quantity,
-                        price: itemPrice
-                      }
-                    });
+                  // Registrar movimiento de inventario tipo OUT
+                  await tenantClient.inventoryMovement.create({
+                    data: {
+                      productId: item.productId,
+                      type: 'OUT',
+                      quantity: -item.quantity,
+                      reason: `Venta Mercado Libre Orden ${orderId}`,
+                      userId: onlineUser.id
+                    }
+                  });
 
-                    // Descontar inventario en la sucursal destino de ventas
-                    await tenantClient.product.update({
-                      where: { id: map.productId },
-                      data: { stock: { decrement: quantity } }
-                    });
-
-                    // Registrar movimiento de inventario tipo OUT
-                    await tenantClient.inventoryMovement.create({
-                      data: {
-                        productId: map.productId,
-                        type: 'OUT',
-                        quantity: -quantity,
-                        reason: `Venta Mercado Libre Orden ${orderId}`,
-                        userId: onlineUser.id
-                      }
-                    });
-
-                    console.log(`[MELI DAILY CRON] Descontado stock local (${quantity}) y registrado movimiento OUT para producto vinculado ${map.productId}`);
+                  // Crear mapeo automático para futuras ventas si no existía
+                  if (item.isNewMap) {
+                    try {
+                      await tenantClient.externalProductMap.create({
+                        data: {
+                          productId: item.productId,
+                          platform: 'MERCADO_LIBRE',
+                          externalId: item.externalId,
+                          syncStatus: 'active',
+                          precioMeli: item.price,
+                          comisionMeli: item.price * 0.1,
+                          envioMeli: 0,
+                          retencionMeli: 0,
+                          margenDinero: item.price - item.cost,
+                          margenPorcentaje: item.price > 0 ? ((item.price - item.cost) / item.price) * 100 : 0,
+                          isFixedPrice: false
+                        }
+                      });
+                      console.log(`[MELI DAILY CRON] Vinculación creada automáticamente por SKU para item ${item.externalId} a producto ${item.name} en sucursal ${item.branchId}`);
+                    } catch (mapErr) {
+                      console.error('Error creating auto-mapping in cron:', mapErr);
+                    }
                   }
+
+                  console.log(`[MELI DAILY CRON] Descontado stock local (${item.quantity}) y registrado movimiento OUT para producto ${item.productId} en sucursal ${item.branchId}`);
                 }
-                
+
                 totalSalesSynced++;
               }
             }
