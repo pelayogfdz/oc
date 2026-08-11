@@ -416,6 +416,14 @@ export default function POSClient({
 
   // Reset active tab and clear tabs list when changing active branch to prevent cross-branch cart sales
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hasRecovery = localStorage.getItem(`caanma_pos_recovery_${branchId}_${mode}`);
+      if (hasRecovery) {
+        console.log('[POS] Recovery data found, skipping default tab reset on branch change.');
+        return;
+      }
+    }
+
     resetActiveTab();
     setTabs([
       {
