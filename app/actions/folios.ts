@@ -21,6 +21,9 @@ export async function getNextFolio(
       where: { branchId }
     });
 
+    const branch = await dbCtx.branch.findUnique({ where: { id: branchId } });
+    const isPizca = branch?.tenantId === '0d246cea-0220-4328-92b0-8a1387ce6a6d';
+
     let config: any = {};
     if (settings?.configJson) {
       try {
@@ -34,17 +37,30 @@ export async function getNextFolio(
 
     // Default configuration if not present
     if (!config.folios[moduleKey]) {
-      const branch = await dbCtx.branch.findUnique({ where: { id: branchId } });
-      const prefix = branch ? branch.name.slice(0, 3).toUpperCase() : 'DOC';
+      const prefix = branch
+        ? (isPizca 
+            ? branch.name.replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase() 
+            : branch.name.slice(0, 3).toUpperCase())
+        : 'DOC';
       config.folios[moduleKey] = {
         prefix,
-        nextNumber: 1001
+        nextNumber: isPizca ? 1 : 1001
       };
     }
 
     const { prefix, nextNumber } = config.folios[moduleKey];
-    const folioNumber = nextNumber || 1001;
-    const formattedFolio = `${prefix}-${folioNumber}`;
+    const folioNumber = nextNumber || (isPizca ? 1 : 1001);
+    
+    let formattedFolio = '';
+    if (isPizca) {
+      const pizcaPrefix = branch
+        ? branch.name.replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase()
+        : (prefix || 'DOC');
+      const folioStr = folioNumber.toString().padStart(2, '0');
+      formattedFolio = `${pizcaPrefix}${folioStr}`;
+    } else {
+      formattedFolio = `${prefix}-${folioNumber}`;
+    }
 
     // Increment next consecutive number
     config.folios[moduleKey].nextNumber = folioNumber + 1;
@@ -78,7 +94,10 @@ export async function initializeRetroactiveFolios() {
   const branches = await prisma.branch.findMany();
 
   for (const branch of branches) {
-    const prefix = branch.name.slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, 'B'); // Guarantee alphanumeric
+    const isPizca = branch.tenantId === '0d246cea-0220-4328-92b0-8a1387ce6a6d';
+    const prefix = isPizca 
+      ? branch.name.replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase()
+      : branch.name.slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, 'B'); // Guarantee alphanumeric
 
     const settings = await prisma.branchSettings.findUnique({ where: { branchId: branch.id } });
     let config: any = {};
@@ -99,7 +118,7 @@ export async function initializeRetroactiveFolios() {
 
     for (const mod of modules) {
       if (!config.folios[mod]) {
-        config.folios[mod] = { prefix, nextNumber: 1001 };
+        config.folios[mod] = { prefix, nextNumber: isPizca ? 1 : 1001 };
       }
     }
 
@@ -114,11 +133,13 @@ export async function initializeRetroactiveFolios() {
       where: { branchId: branch.id, folio: null },
       orderBy: { createdAt: 'asc' }
     });
-    let currentSaleNum = 1001;
+    let currentSaleNum = isPizca ? 1 : 1001;
     for (const sale of sales) {
+      const folioStr = isPizca ? currentSaleNum.toString().padStart(2, '0') : currentSaleNum;
+      const formattedFolio = isPizca ? `${prefix}${folioStr}` : `${prefix}-${folioStr}`;
       await prisma.sale.update({
         where: { id: sale.id },
-        data: { folio: `${prefix}-${currentSaleNum}` }
+        data: { folio: formattedFolio }
       });
       currentSaleNum++;
     }
@@ -129,11 +150,13 @@ export async function initializeRetroactiveFolios() {
       where: { branchId: branch.id, folio: null },
       orderBy: { createdAt: 'asc' }
     });
-    let currentQuoteNum = 1001;
+    let currentQuoteNum = isPizca ? 1 : 1001;
     for (const quote of quotes) {
+      const folioStr = isPizca ? currentQuoteNum.toString().padStart(2, '0') : currentQuoteNum;
+      const formattedFolio = isPizca ? `${prefix}${folioStr}` : `${prefix}-${folioStr}`;
       await prisma.quote.update({
         where: { id: quote.id },
-        data: { folio: `${prefix}-${currentQuoteNum}` }
+        data: { folio: formattedFolio }
       });
       currentQuoteNum++;
     }
@@ -144,11 +167,13 @@ export async function initializeRetroactiveFolios() {
       where: { branchId: branch.id, folio: null },
       orderBy: { createdAt: 'asc' }
     });
-    let currentTransferNum = 1001;
+    let currentTransferNum = isPizca ? 1 : 1001;
     for (const transfer of transfers) {
+      const folioStr = isPizca ? currentTransferNum.toString().padStart(2, '0') : currentTransferNum;
+      const formattedFolio = isPizca ? `${prefix}${folioStr}` : `${prefix}-${folioStr}`;
       await prisma.transfer.update({
         where: { id: transfer.id },
-        data: { folio: `${prefix}-${currentTransferNum}` }
+        data: { folio: formattedFolio }
       });
       currentTransferNum++;
     }
@@ -159,11 +184,13 @@ export async function initializeRetroactiveFolios() {
       where: { branchId: branch.id, folio: null },
       orderBy: { createdAt: 'asc' }
     });
-    let currentPurchaseNum = 1001;
+    let currentPurchaseNum = isPizca ? 1 : 1001;
     for (const purchase of purchases) {
+      const folioStr = isPizca ? currentPurchaseNum.toString().padStart(2, '0') : currentPurchaseNum;
+      const formattedFolio = isPizca ? `${prefix}${folioStr}` : `${prefix}-${folioStr}`;
       await prisma.purchase.update({
         where: { id: purchase.id },
-        data: { folio: `${prefix}-${currentPurchaseNum}` }
+        data: { folio: formattedFolio }
       });
       currentPurchaseNum++;
     }
@@ -174,11 +201,13 @@ export async function initializeRetroactiveFolios() {
       where: { branchId: branch.id, folio: null },
       orderBy: { createdAt: 'asc' }
     });
-    let currentConsignmentNum = 1001;
+    let currentConsignmentNum = isPizca ? 1 : 1001;
     for (const consignment of consignments) {
+      const folioStr = isPizca ? currentConsignmentNum.toString().padStart(2, '0') : currentConsignmentNum;
+      const formattedFolio = isPizca ? `${prefix}${folioStr}` : `${prefix}-${folioStr}`;
       await prisma.consignment.update({
         where: { id: consignment.id },
-        data: { folio: `${prefix}-${currentConsignmentNum}` }
+        data: { folio: formattedFolio }
       });
       currentConsignmentNum++;
     }

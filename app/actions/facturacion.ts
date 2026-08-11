@@ -569,11 +569,31 @@ export async function cancelInvoice(saleId: string, cancelSale: boolean = true) 
       throw new Error("Esta venta no cuenta con una factura timbrada para cancelar.");
     }
 
-    // Cancel invoice in Facturapi with motive "02" (Comprobante emitido con errores sin relación)
-    const cancelResult = await facturapi.invoices.cancel(sale.invoiceId, { motive: "02" as any });
+    let status: string;
+    let cancellationStatus: string;
 
-    const status = cancelResult.status; // 'valid' | 'canceled'
-    const cancellationStatus = cancelResult.cancellation_status; // 'none' | 'pending' | 'accepted' | 'rejected' | 'expired'
+    try {
+      // Cancel invoice in Facturapi with motive "02" (Comprobante emitido con errores sin relación)
+      const cancelResult = await facturapi.invoices.cancel(sale.invoiceId, { motive: "02" as any });
+      status = cancelResult.status;
+      cancellationStatus = cancelResult.cancellation_status;
+    } catch (cancelError: any) {
+      console.error("[CANCEL_INVOICE] Facturapi cancel call failed, verifying current status:", cancelError);
+      
+      // Fallback: check if the invoice is already canceled in Facturapi
+      try {
+        const invoiceDetails = await facturapi.invoices.retrieve(sale.invoiceId);
+        if (invoiceDetails && invoiceDetails.status === 'canceled') {
+          console.log("[CANCEL_INVOICE] Invoice is already canceled in Facturapi, proceeding with local cancellation.");
+          status = 'canceled';
+          cancellationStatus = invoiceDetails.cancellation_status || 'none';
+        } else {
+          throw cancelError; // Rethrow original error if not canceled
+        }
+      } catch (fallbackError) {
+        throw cancelError; // Rethrow original error if retrieval fails or status is not canceled
+      }
+    }
 
     if (status === 'canceled') {
       // Buscar todas las ventas asociadas a este invoiceId
