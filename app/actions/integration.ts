@@ -840,7 +840,8 @@ export async function searchCaanmaProducts(query: string) {
         },
         OR: [
           { name: { contains: cleanQuery, mode: 'insensitive' } },
-          { sku: { contains: cleanQuery, mode: 'insensitive' } }
+          { sku: { contains: cleanQuery, mode: 'insensitive' } },
+          { barcode: { contains: cleanQuery, mode: 'insensitive' } }
         ]
       },
       select: { id: true, name: true, sku: true, stock: true },
