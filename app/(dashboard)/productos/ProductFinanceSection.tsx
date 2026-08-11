@@ -49,23 +49,37 @@ export default function ProductFinanceSection({
     initialSpecialPrice != null ? String(initialSpecialPrice) : ''
   );
 
-  // Helper to calculate margin from price and cost
-  const getMarginFromPrice = (p: number, c: number): string => {
-    if (p <= 0) return '0';
-    const m = ((p - c) / p) * 100;
+  const getTaxMultiplier = (type = taxType, rate = taxRate, ieps = iepsRate): number => {
+    if (type === 'IVA') {
+      return 1 + (rate / 100);
+    } else if (type === 'IEPS') {
+      return 1 + (ieps / 100);
+    } else if (type === 'IVA_IEPS') {
+      return (1 + (ieps / 100)) * (1 + (rate / 100));
+    }
+    return 1;
+  };
+
+  // Helper to calculate margin from price (con IVA) and cost (sin IVA)
+  const getMarginFromPrice = (pCon: number, cSin: number, type = taxType, rate = taxRate, ieps = iepsRate): string => {
+    const mult = getTaxMultiplier(type, rate, ieps);
+    const pSin = pCon / mult;
+    if (pSin <= 0) return '0';
+    const m = ((pSin - cSin) / pSin) * 100;
     return m.toFixed(1);
   };
 
-  // Helper to calculate price from margin and cost
-  const getPriceFromMargin = (m: number, c: number): number => {
-    if (m >= 100) return c; // Avoid division by zero/negative
-    const p = c / (1 - m / 100);
-    return Math.round(p * 100) / 100;
+  // Helper to calculate price (con IVA) from margin and cost (sin IVA)
+  const getPriceFromMargin = (m: number, cSin: number, type = taxType, rate = taxRate, ieps = iepsRate): number => {
+    if (m >= 100) return cSin * getTaxMultiplier(type, rate, ieps); // Avoid division by zero
+    const pSin = cSin / (1 - m / 100);
+    const pCon = pSin * getTaxMultiplier(type, rate, ieps);
+    return Math.round(pCon * 100) / 100;
   };
 
   // Base price margin state
   const [priceMargin, setPriceMargin] = useState<string>(() => 
-    getMarginFromPrice(initialPrice, initialCost)
+    getMarginFromPrice(initialPrice, initialCost, initialTaxType, initialTaxRate, initialIepsRate)
   );
 
   // Dynamic price lists states (stores raw input string for price and margin)
@@ -76,11 +90,33 @@ export default function ProductFinanceSection({
       const savedPrice = savedPriceObj ? savedPriceObj.price : 0;
       init[pl.id] = {
         price: savedPrice > 0 ? String(savedPrice) : '',
-        margin: savedPrice > 0 ? getMarginFromPrice(savedPrice, initialCost) : ''
+        margin: savedPrice > 0 ? getMarginFromPrice(savedPrice, initialCost, initialTaxType, initialTaxRate, initialIepsRate) : ''
       };
     });
     return init;
   });
+
+  // Recalculate margins when tax settings change
+  useEffect(() => {
+    const numCost = parseFloat(String(cost)) || 0;
+    const numPrice = parseFloat(String(price)) || 0;
+    setPriceMargin(getMarginFromPrice(numPrice, numCost));
+
+    setListPrices(prev => {
+      const updated = { ...prev };
+      priceLists.forEach(pl => {
+        const currentPl = prev[pl.id];
+        if (currentPl && currentPl.price !== '') {
+          const numPlPrice = parseFloat(currentPl.price) || 0;
+          updated[pl.id] = {
+            price: currentPl.price,
+            margin: getMarginFromPrice(numPlPrice, numCost)
+          };
+        }
+      });
+      return updated;
+    });
+  }, [taxRate, taxType, iepsRate]);
 
   // Handle Base Price change
   const handlePriceChange = (val: string) => {
@@ -145,7 +181,6 @@ export default function ProductFinanceSection({
     const numMargin = parseFloat(val) || 0;
     const numCost = parseFloat(String(cost)) || 0;
     setListPrices(prev => {
-      const currentPrice = prev[plId]?.price || '';
       if (val === '') {
         return {
           ...prev,
@@ -169,13 +204,19 @@ export default function ProductFinanceSection({
   const parsedPrice = parseFloat(String(price)) || 0;
   const parsedCost = parseFloat(String(cost)) || 0;
 
+  const taxMultiplier = getTaxMultiplier();
+  const costConIva = parsedCost * taxMultiplier;
+  const priceSinIva = parsedPrice / taxMultiplier;
+  const realUtility = priceSinIva - parsedCost;
+  const realMarkupPct = parsedCost > 0 ? (realUtility / parsedCost) * 100 : 100;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
         {/* Costo de Reposición */}
         <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem', color: '#1e293b' }}>
-            Costo de Reposición ($)
+            Costo de Reposición (Sin IVA) ($)
           </label>
           <input
             type="number"
@@ -186,12 +227,17 @@ export default function ProductFinanceSection({
             placeholder="0.00"
             style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', outline: 'none' }}
           />
+          {parsedCost > 0 && (
+            <div style={{ marginTop: '0.4rem', fontSize: '0.775rem', color: '#64748b', fontWeight: '500' }}>
+              Con impuestos/IVA: <strong style={{ color: '#334155' }}>${costConIva.toFixed(2)}</strong>
+            </div>
+          )}
         </div>
 
         {/* Costo Promedio */}
         <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem', color: 'var(--caanma-text-muted)' }}>
-            Costo Promedio ($)
+            Costo Promedio (Sin IVA) ($)
           </label>
           <input
             type="number"
@@ -202,12 +248,17 @@ export default function ProductFinanceSection({
             title="Se calcula ponderadamente según historial de compras"
             style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: '#f3f4f6', cursor: 'not-allowed', color: 'var(--caanma-text-muted)', outline: 'none' }}
           />
+          {initialCost > 0 && (
+            <div style={{ marginTop: '0.4rem', fontSize: '0.775rem', color: '#64748b', fontWeight: '500' }}>
+              Con impuestos/IVA: <strong style={{ color: '#334155' }}>${(initialCost * taxMultiplier).toFixed(2)}</strong>
+            </div>
+          )}
         </div>
 
         {/* Precio Público Normal */}
         <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem', color: '#1e293b' }}>
-            Precio Público normal ($) *
+            Precio Público normal (Con IVA) ($) *
           </label>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <input
@@ -233,8 +284,13 @@ export default function ProductFinanceSection({
             </div>
           </div>
           {parsedPrice > 0 && (
-            <div style={{ marginTop: '0.4rem', fontSize: '0.775rem', color: (parsedPrice - parsedCost) >= 0 ? '#16a34a' : '#dc2626', fontWeight: '500' }}>
-              Utilidad: ${(parsedPrice - parsedCost).toFixed(2)} ({parsedCost > 0 ? (((parsedPrice - parsedCost) / parsedCost) * 100).toFixed(0) : '100'}% sob. costo)
+            <div style={{ marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+              <div style={{ fontSize: '0.775rem', color: '#64748b', fontWeight: '500' }}>
+                Precio antes de IVA: <strong style={{ color: '#334155' }}>${priceSinIva.toFixed(2)}</strong>
+              </div>
+              <div style={{ fontSize: '0.775rem', color: realUtility >= 0 ? '#16a34a' : '#dc2626', fontWeight: '600' }}>
+                Utilidad real (sin IVA): ${realUtility.toFixed(2)} ({realMarkupPct.toFixed(0)}% sob. costo)
+              </div>
             </div>
           )}
         </div>
@@ -345,11 +401,21 @@ export default function ProductFinanceSection({
                     </div>
                   </div>
 
-                  {plVal > 0 && (
-                    <div style={{ marginTop: '0.4rem', fontSize: '0.75rem', color: (plVal - parsedCost) >= 0 ? '#16a34a' : '#dc2626', fontWeight: '500' }}>
-                      Ganancia: ${(plVal - parsedCost).toFixed(2)} ({parsedCost > 0 ? (((plVal - parsedCost) / parsedCost) * 100).toFixed(0) : '100'}% util.)
-                    </div>
-                  )}
+                  {plVal > 0 && (() => {
+                    const plPriceSinIva = plVal / taxMultiplier;
+                    const plRealUtility = plPriceSinIva - parsedCost;
+                    const plMarkupPct = parsedCost > 0 ? (plRealUtility / parsedCost) * 100 : 100;
+                    return (
+                      <div style={{ marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '500' }}>
+                          Antes de IVA: <strong style={{ color: '#334155' }}>${plPriceSinIva.toFixed(2)}</strong>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: plRealUtility >= 0 ? '#16a34a' : '#dc2626', fontWeight: '600' }}>
+                          Ganancia real: ${plRealUtility.toFixed(2)} ({plMarkupPct.toFixed(0)}% util.)
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}
