@@ -803,17 +803,21 @@ export async function searchCaanmaProducts(query: string) {
     }
 
     const cleanQuery = query.trim();
+    const words = cleanQuery.split(/\s+/).filter(w => w.length > 0);
+    const searchConditions = words.map(word => ({
+      OR: [
+        { name: { contains: word, mode: 'insensitive' as const } },
+        { sku: { contains: word, mode: 'insensitive' as const } },
+        { barcode: { contains: word, mode: 'insensitive' as const } }
+      ]
+    }));
 
     // 1. Buscar productos locales sin excluir ya vinculados para permitir vinculaciones múltiples
     const products = await prisma.product.findMany({
       where: {
         branchId: { in: tenantBranchIds },
         isActive: true,
-        OR: [
-          { name: { contains: cleanQuery, mode: 'insensitive' } },
-          { sku: { contains: cleanQuery, mode: 'insensitive' } },
-          { barcode: { contains: cleanQuery, mode: 'insensitive' } }
-        ]
+        AND: searchConditions
       },
       select: { id: true, name: true, sku: true, stock: true },
       take: 50,
