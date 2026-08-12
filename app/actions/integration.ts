@@ -383,26 +383,37 @@ export async function saveMeliProductPricing(
     let envioMeli = data.envioMeli;
     let retencionMeli = data.retencionMeli;
 
-    try {
-      const itemRes = await fetch(`https://api.mercadolibre.com/items/${map.externalId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (itemRes.ok) {
-        const itemData = await itemRes.json();
-        const calculatedCosts = await calculateMeliItemCosts(
-          integration.branchId,
-          map.externalId,
-          data.precioMeli,
-          itemData.category_id,
-          itemData.listing_type_id,
-          itemData.shipping ? itemData.shipping.free_shipping : false
-        );
-        comisionMeli = calculatedCosts.comisionMeli;
-        envioMeli = calculatedCosts.envioMeli;
-        retencionMeli = calculatedCosts.retencionMeli;
+    // Detectar si el usuario editó manualmente cada costo comparando con el mapa guardado en base de datos
+    const isComisionEdited = Number(data.comisionMeli) !== Number(map.comisionMeli);
+    const isEnvioEdited = Number(data.envioMeli) !== Number(map.envioMeli);
+    const isRetencionEdited = Number(data.retencionMeli) !== Number(map.retencionMeli);
+
+    // Si el precio cambió y alguno de los costos no fue editado manualmente, calculamos/actualizamos ese costo
+    const priceChanged = Number(map.precioMeli) !== Number(data.precioMeli);
+    const needsAutoCalc = priceChanged && (!isComisionEdited || !isEnvioEdited || !isRetencionEdited);
+
+    if (needsAutoCalc || (!comisionMeli && !envioMeli && !retencionMeli)) {
+      try {
+        const itemRes = await fetch(`https://api.mercadolibre.com/items/${map.externalId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (itemRes.ok) {
+          const itemData = await itemRes.json();
+          const calculatedCosts = await calculateMeliItemCosts(
+            integration.branchId,
+            map.externalId,
+            data.precioMeli,
+            itemData.category_id,
+            itemData.listing_type_id,
+            itemData.shipping ? itemData.shipping.free_shipping : false
+          );
+          if (!isComisionEdited) comisionMeli = calculatedCosts.comisionMeli;
+          if (!isEnvioEdited) envioMeli = calculatedCosts.envioMeli;
+          if (!isRetencionEdited) retencionMeli = calculatedCosts.retencionMeli;
+        }
+      } catch (e) {
+        console.error('Error fetching costs in saveMeliProductPricing:', e);
       }
-    } catch (e) {
-      console.error('Error fetching costs in saveMeliProductPricing:', e);
     }
 
     // Intentar empujar el precio a Mercado Libre en tiempo real

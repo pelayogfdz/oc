@@ -14,9 +14,16 @@ export async function getOrRefreshMeliToken(branchId: string): Promise<string | 
     console.error('[MELI TOKEN HELPER] Error resolving tenant client:', e);
   }
 
-  const integration = await dbClient.storeIntegration.findUnique({
+  let integration = await dbClient.storeIntegration.findUnique({
     where: { branchId_platform: { branchId, platform: 'MERCADO_LIBRE' } }
   });
+
+  if (!integration || !integration.accessToken) {
+    // Fallback: search for any active StoreIntegration for MERCADO_LIBRE in the current tenant
+    integration = await dbClient.storeIntegration.findFirst({
+      where: { platform: 'MERCADO_LIBRE', isActive: true, accessToken: { not: null } }
+    });
+  }
 
   if (!integration || !integration.accessToken) {
     return null;
