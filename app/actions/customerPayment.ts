@@ -87,16 +87,19 @@ export async function addCustomerPaymentBatch(
           data: { balanceDue: sale.balanceDue - deduct }
        });
 
+       const isSaleInvoiced = !!sale.invoiceId;
+       const pmtBatchId = isSaleInvoiced ? batchId : `${batchId}-un`;
+
        await prisma.customerPayment.create({
           data: {
              customerId,
              amount: deduct,
-             reason: `Abono a Ticket #${sale.id.slice(0,8)} (${paymentMethod}) [Batch: ${batchId}]`,
+             reason: `Abono a Ticket #${sale.id.slice(0,8)} (${paymentMethod}) [Batch: ${pmtBatchId}]`,
              userId: user.id,
              branchId: sale.branchId || paymentBranchId,
              saleId: sale.id,
              paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
-             cfdiStatus: requestCfdi ? "REQUESTED" : "NONE"
+             cfdiStatus: (requestCfdi && isSaleInvoiced) ? "REQUESTED" : "NONE"
           }
        });
     }

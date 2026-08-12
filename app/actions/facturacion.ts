@@ -1500,24 +1500,25 @@ export async function stampPaymentBatch(paymentIds: string[], paymentDateStr?: s
       throw new Error("No se encontraron los abonos.");
     }
 
-    // Verify if any is already invoiced
-    if (payments.some(p => p.cfdiStatus === 'INVOICED')) {
-      throw new Error("Uno o más abonos ya han sido facturados.");
-    }
+    // Filter payments to only include those belonging to sales that have been invoiced (PPD)
+    const validPayments = payments.filter(p => p.saleId && p.sale?.invoiceId);
 
-    // Ensure all belong to sales that have been invoiced (PPD)
-    const uninvoicedPayments = payments.filter(p => p.saleId && !p.sale?.invoiceId);
-    if (uninvoicedPayments.length > 0) {
-      const ticketIds = uninvoicedPayments.map(p => {
+    if (validPayments.length === 0) {
+      const ticketIds = payments.map(p => {
         if (p.sale?.folio) return p.sale.folio;
         return `#${p.saleId?.slice(0, 8) || ''}`;
       }).join(', ');
-      throw new Error(`Uno o más abonos corresponden a ventas que aún no han sido facturadas (${ticketIds}). Favor de facturarlas antes de timbrar el abono.`);
+      throw new Error(`Los abonos seleccionados corresponden a ventas que aún no han sido facturadas (${ticketIds}). Favor de facturarlas antes de timbrar.`);
+    }
+
+    // Verify if any of the valid ones is already invoiced
+    if (validPayments.some(p => p.cfdiStatus === 'INVOICED')) {
+      throw new Error("Uno o más abonos ya han sido facturados.");
     }
 
     // Map payment method to SAT Payment Form (from the first payment's reason or custom logic)
     let paymentForm = "03"; // Default Transfer
-    const firstReason = payments[0].reason || "";
+    const firstReason = validPayments[0].reason || "";
     if (firstReason.includes("(Efectivo)") || firstReason.includes("EFECTIVO") || firstReason.includes("CASH")) {
       paymentForm = "01";
     } else if (firstReason.includes("TRANSFERENCIA") || firstReason.includes("SPEI") || firstReason.includes("TRANSFER")) {
@@ -1529,7 +1530,7 @@ export async function stampPaymentBatch(paymentIds: string[], paymentDateStr?: s
     }
 
     // Format payment date
-    const defaultDateObj = payments[0].paymentDate || payments[0].createdAt;
+    const defaultDateObj = validPayments[0].paymentDate || validPayments[0].createdAt;
     const year = defaultDateObj.getFullYear();
     const month = String(defaultDateObj.getMonth() + 1).padStart(2, '0');
     const day = String(defaultDateObj.getDate()).padStart(2, '0');
@@ -1539,7 +1540,7 @@ export async function stampPaymentBatch(paymentIds: string[], paymentDateStr?: s
 
     const relatedDocuments: any[] = [];
 
-    for (const payment of payments) {
+    for (const payment of validPayments) {
       if (!payment.saleId || !payment.sale?.invoiceId) continue;
 
       const originalInvoice = await facturapi.invoices.retrieve(payment.sale.invoiceId);
@@ -1618,7 +1619,7 @@ export async function stampPaymentBatch(paymentIds: string[], paymentDateStr?: s
       throw new Error("No hay documentos válidos para timbrar en este pago.");
     }
 
-    const firstCustomer = payments[0].customer;
+    const firstCustomer = validPayments[0].customer;
 
     // Stamp the payment complement (type: "P")
     const receipt = await facturapi.invoices.create({
@@ -1648,9 +1649,9 @@ export async function stampPaymentBatch(paymentIds: string[], paymentDateStr?: s
     const receiptPdf = `/api/facturacion/download?invoiceId=${receipt.id}&format=pdf`;
     const receiptXml = `/api/facturacion/download?invoiceId=${receipt.id}&format=xml`;
 
-    // Update all payments in the database
+    // Update only valid payments in the database
     await prisma.customerPayment.updateMany({
-      where: { id: { in: paymentIds } },
+      where: { id: { in: validPayments.map(p => p.id) } },
       data: {
         cfdiStatus: "INVOICED",
         cfdiUrlPdf: receiptPdf,

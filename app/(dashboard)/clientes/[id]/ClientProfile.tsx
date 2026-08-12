@@ -289,6 +289,35 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
     setGlobalAmount(total > 0 ? total.toFixed(2) : '');
   };
 
+  const paymentBreakdown = useMemo(() => {
+    const globalAmountNum = parseFloat(globalAmount) || 0;
+    let remaining = globalAmountNum;
+    const applied: { id: string; folio: string; amount: number; isFactura: boolean }[] = [];
+    
+    const entries = Object.entries(selectedSales).map(([id, amount]) => {
+      const sale = sales.find((s: any) => s.id === id);
+      return { id, amount: Number(amount), sale };
+    });
+
+    for (const entry of entries) {
+      if (!entry.sale || remaining <= 0) continue;
+      const deduct = Math.min(remaining, entry.amount, entry.sale.balanceDue);
+      if (deduct <= 0) continue;
+      remaining -= deduct;
+      applied.push({
+        id: entry.id,
+        folio: entry.sale.folio || entry.id.slice(0, 8).toUpperCase(),
+        amount: deduct,
+        isFactura: !!entry.sale.invoiceFolio
+      });
+    }
+
+    return {
+      applied,
+      storeCredit: remaining
+    };
+  }, [globalAmount, selectedSales, sales]);
+
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!globalAmount) return;
@@ -724,6 +753,31 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
                     </div>
                   )}
                 </div>
+
+                {parseFloat(globalAmount) > 0 && (
+                  <div style={{ marginBottom: '1.5rem', padding: '1rem', border: '1px solid #cbd5e1', borderRadius: '6px', backgroundColor: '#f8fafc' }}>
+                    <h5 style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Resumen de Aplicación:
+                    </h5>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem' }}>
+                      {paymentBreakdown.applied.map((app) => (
+                        <div key={app.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ color: '#334155', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                            Abonar a #{app.folio} 
+                            {app.isFactura && <span style={{ fontSize: '0.65rem', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '0.1rem 0.3rem', borderRadius: '4px', fontWeight: 'bold' }}>CFDI</span>}
+                          </span>
+                          <span style={{ fontWeight: '600', color: '#0f172a' }}>{formatCurrency(app.amount)}</span>
+                        </div>
+                      ))}
+                      {paymentBreakdown.storeCredit > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #cbd5e1', paddingTop: '0.5rem', marginTop: '0.25rem' }}>
+                          <span style={{ color: '#059669', fontWeight: '500' }}>Remanente a Saldo a Favor</span>
+                          <span style={{ fontWeight: 'bold', color: '#059669' }}>{formatCurrency(paymentBreakdown.storeCredit)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', padding: '1rem', fontSize: '1.1rem', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
                   {loading ? 'Procesando...' : <><CheckCircle size={20}/> Confirmar Cobranza</>}
