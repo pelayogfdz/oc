@@ -291,10 +291,13 @@ export async function cancelPurchase(purchaseId: string) {
       });
     }
 
-    // Set status to CANCELLED
+    // Set status to CANCELLED and set balanceDue to 0
     await tx.purchase.update({
       where: { id: purchase.id },
-      data: { status: 'CANCELLED' }
+      data: { 
+        status: 'CANCELLED',
+        balanceDue: 0
+      }
     });
   });
 

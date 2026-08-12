@@ -73,7 +73,11 @@ export async function addSupplierPaymentBatch(
 
   if (purchaseIds.length > 0) {
     const purchases = await prisma.purchase.findMany({
-       where: { id: { in: purchaseIds }, balanceDue: { gt: 0 } },
+       where: { 
+         id: { in: purchaseIds }, 
+         balanceDue: { gt: 0 },
+         status: { not: 'CANCELLED' }
+       },
        orderBy: { createdAt: 'asc' } // Oldest first
     });
 

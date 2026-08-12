@@ -13,12 +13,12 @@ export default async function CuentasPorPagarPage() {
        },
        OR: [
           { creditBalance: { gte: 0.01 } },
-          { purchases: { some: { paymentMethod: 'CREDIT', balanceDue: { gte: 0.01 } } } }
+          { purchases: { some: { paymentMethod: 'CREDIT', balanceDue: { gte: 0.01 }, status: { not: 'CANCELLED' } } } }
        ]
     },
     include: {
       purchases: {
-        where: { paymentMethod: 'CREDIT', balanceDue: { gte: 0.01 } },
+        where: { paymentMethod: 'CREDIT', balanceDue: { gte: 0.01 }, status: { not: 'CANCELLED' } },
         orderBy: { dueDate: 'asc' }
       }
     }
