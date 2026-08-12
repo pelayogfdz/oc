@@ -2092,8 +2092,9 @@ export default function POSClient({
     localStorage.setItem(`caanma_on_hold_${branchId}_${mode}`, JSON.stringify(updated));
   };
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (overridePaymentMethod?: string) => {
     if (cart.length === 0) return;
+    const activePaymentMethod = overridePaymentMethod || paymentMethod;
 
     if (transactionType === 'PEDIDO') {
       if (!deliveryDate) {
@@ -2252,7 +2253,7 @@ export default function POSClient({
           await pushOfflineSale({
              items,
              total: finalTotalWithTip,
-             paymentMethod,
+             paymentMethod: activePaymentMethod,
              // Guardamos todo el payload que requeriría el backend:
              ...{
                 customerId: selectedCustomerId || null,
@@ -2282,7 +2283,7 @@ export default function POSClient({
           const response = await createSale(
             items, 
             saleTotal, 
-            paymentMethod, 
+            activePaymentMethod, 
             selectedCustomerId || null, 
             sessionId, 
             finalNotes, 
@@ -4397,32 +4398,80 @@ export default function POSClient({
               )
             )}
 
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
-              <button onClick={() => setIsCheckoutOpen(false)} style={{ flex: 1, padding: '0.75rem', fontSize: '0.95rem', border: '1px solid var(--caanma-border)', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', background: 'white' }}>
-                Cancelar
-              </button>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <button 
-                  onClick={handleCheckout} 
-                  disabled={
-                    isProcessing || 
-                    (mode === 'SALE' && paymentMethod === 'CASH' && (typeof amountReceived !== 'number' || amountReceived < finalTotalWithTip)) ||
-                    (mode === 'SALE' && paymentMethod === 'MIXTO' && (typeof amountReceived !== 'number' || typeof cardAmount !== 'number' || (amountReceived + cardAmount) < finalTotalWithTip)) ||
-                    (mode === 'SALE' && cart.some((item: any) => item.isFastItem)) ||
-                    (documentType === 'FACTURA' && (!billRfc.trim() || billRfc.trim().length < 12 || billRfc.trim().length > 13 || !billZipCode.trim() || billZipCode.trim().length !== 5 || !billName.trim())) ||
-                    (mode === 'SALE' && paymentMethod === 'CREDIT' && (!selectedCust || selectedCust.creditLimit <= 0 || total > (selectedCust.creditLimit - (selectedCust.creditBalance || 0))))
-                  }
-                  className="btn-primary" 
-                  style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem', opacity: isProcessing ? 0.5 : 1 }}
-                >
-                  {isProcessing ? 'Guardando...' : (mode === 'QUOTE' ? 'Guardar Cotización' : mode === 'CONSIGNMENT' ? 'Confirmar Consignación' : 'Confirmar Pago')}
-                </button>
-                {mode === 'SALE' && cart.some((item: any) => item.isFastItem) && (
-                  <div style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.4rem', fontWeight: 'bold', textAlign: 'center' }}>
-                    ⚠️ No se puede cerrar la venta porque incluye un artículo rápido. Regístralo en el catálogo primero.
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem', flexDirection: transactionType === 'PEDIDO' ? 'column' : 'row' }}>
+              {transactionType === 'PEDIDO' ? (
+                <>
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button 
+                      onClick={() => setIsCheckoutOpen(false)} 
+                      style={{ flex: 1, padding: '0.75rem', fontSize: '0.95rem', border: '1px solid var(--caanma-border)', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', background: 'white' }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={() => handleCheckout(deliveryType === 'DELIVERY' ? 'PAY_ON_DELIVERY' : 'PAY_ON_PICKUP')}
+                      disabled={
+                        isProcessing ||
+                        cart.some((item: any) => item.isFastItem) ||
+                        (documentType === 'FACTURA' && (!billRfc.trim() || billRfc.trim().length < 12 || billRfc.trim().length > 13 || !billZipCode.trim() || billZipCode.trim().length !== 5 || !billName.trim()))
+                      }
+                      className="btn-secondary"
+                      style={{ flex: 2, padding: '0.75rem', fontSize: '0.95rem', fontWeight: 'bold', border: '1px solid var(--caanma-primary)', color: 'var(--caanma-primary)', borderRadius: '4px', cursor: 'pointer', backgroundColor: '#eff6ff', opacity: isProcessing ? 0.5 : 1 }}
+                    >
+                      {isProcessing ? 'Guardando...' : 'Confirmar como Pendiente de Pago'}
+                    </button>
                   </div>
-                )}
-              </div>
+                  <button
+                    onClick={() => {
+                      if (paymentMethod === 'PAY_ON_PICKUP' || paymentMethod === 'PAY_ON_DELIVERY') {
+                        alert("Por favor, selecciona un método de pago (Efectivo, Tarjeta, etc.) para registrar el pedido como Pagado.");
+                        return;
+                      }
+                      handleCheckout();
+                    }}
+                    disabled={
+                      isProcessing ||
+                      (paymentMethod === 'CASH' && (typeof amountReceived !== 'number' || amountReceived < finalTotalWithTip)) ||
+                      (paymentMethod === 'MIXTO' && (typeof amountReceived !== 'number' || typeof cardAmount !== 'number' || (amountReceived + cardAmount) < finalTotalWithTip)) ||
+                      cart.some((item: any) => item.isFastItem) ||
+                      (documentType === 'FACTURA' && (!billRfc.trim() || billRfc.trim().length < 12 || billRfc.trim().length > 13 || !billZipCode.trim() || billZipCode.trim().length !== 5 || !billName.trim())) ||
+                      (paymentMethod === 'CREDIT' && (!selectedCust || selectedCust.creditLimit <= 0 || total > (selectedCust.creditLimit - (selectedCust.creditBalance || 0))))
+                    }
+                    className="btn-primary"
+                    style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer', opacity: isProcessing ? 0.5 : 1 }}
+                  >
+                    {isProcessing ? 'Guardando...' : 'Confirmar como Pagado'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => setIsCheckoutOpen(false)} style={{ flex: 1, padding: '0.75rem', fontSize: '0.95rem', border: '1px solid var(--caanma-border)', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', background: 'white' }}>
+                    Cancelar
+                  </button>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <button 
+                      onClick={() => handleCheckout()} 
+                      disabled={
+                        isProcessing || 
+                        (mode === 'SALE' && paymentMethod === 'CASH' && (typeof amountReceived !== 'number' || amountReceived < finalTotalWithTip)) ||
+                        (mode === 'SALE' && paymentMethod === 'MIXTO' && (typeof amountReceived !== 'number' || typeof cardAmount !== 'number' || (amountReceived + cardAmount) < finalTotalWithTip)) ||
+                        (mode === 'SALE' && cart.some((item: any) => item.isFastItem)) ||
+                        (documentType === 'FACTURA' && (!billRfc.trim() || billRfc.trim().length < 12 || billRfc.trim().length > 13 || !billZipCode.trim() || billZipCode.trim().length !== 5 || !billName.trim())) ||
+                        (mode === 'SALE' && paymentMethod === 'CREDIT' && (!selectedCust || selectedCust.creditLimit <= 0 || total > (selectedCust.creditLimit - (selectedCust.creditBalance || 0))))
+                      }
+                      className="btn-primary" 
+                      style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem', opacity: isProcessing ? 0.5 : 1 }}
+                    >
+                      {isProcessing ? 'Guardando...' : (mode === 'QUOTE' ? 'Guardar Cotización' : mode === 'CONSIGNMENT' ? 'Confirmar Consignación' : 'Confirmar Pago')}
+                    </button>
+                    {mode === 'SALE' && cart.some((item: any) => item.isFastItem) && (
+                      <div style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.4rem', fontWeight: 'bold', textAlign: 'center' }}>
+                        ⚠️ No se puede cerrar la venta porque incluye un artículo rápido. Regístralo en el catálogo primero.
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
