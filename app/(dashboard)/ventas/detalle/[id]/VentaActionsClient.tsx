@@ -366,6 +366,50 @@ export default function VentaActionsClient({
             <FileText size={18} />
             Descargar XML (CFDI)
           </a>
+
+          {/* Botones de Acuse de Cancelación */}
+          <a
+            href={`/api/facturacion/download?invoiceId=${invoiceId}&format=pdf&type=cancellation`}
+            download
+            className="btn-secondary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.75rem 1.25rem',
+              borderRadius: '4px',
+              backgroundColor: '#fef2f2',
+              color: '#dc2626',
+              border: '1px solid #fca5a5',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              textDecoration: 'none'
+            }}
+          >
+            <FileText size={18} />
+            Descargar Acuse PDF
+          </a>
+          <a
+            href={`/api/facturacion/download?invoiceId=${invoiceId}&format=xml&type=cancellation`}
+            download
+            className="btn-secondary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.75rem 1.25rem',
+              borderRadius: '4px',
+              backgroundColor: '#fff7ed',
+              color: '#c2410c',
+              border: '1px solid #ffedd5',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              textDecoration: 'none'
+            }}
+          >
+            <FileText size={18} />
+            Descargar Acuse XML
+          </a>
         </>
       )}
 

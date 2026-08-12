@@ -520,7 +520,7 @@ async function handleSync(onlyStock = false) {
                 }
               });
 
-              const totalStock = productInBranches.reduce((sum, p) => sum + p.stock, 0);
+              const totalStock = productInBranches.reduce((sum, p) => sum + Math.max(0, p.stock), 0);
               const clampedStock = Math.max(0, totalStock);
 
               // Actualizar stock en Mercado Libre y reactivar si es mayor a 0

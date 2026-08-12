@@ -73,6 +73,7 @@ export async function GET(request: Request) {
     const invoiceId = searchParams.get('invoiceId');
     const receiptId = searchParams.get('receiptId');
     const format = searchParams.get('format') || 'pdf'; // pdf or xml
+    const type = searchParams.get('type'); // cancellation, etc.
 
     if (!invoiceId && !receiptId) {
       return NextResponse.json({ error: 'Falta invoiceId o receiptId' }, { status: 400 });
@@ -136,14 +137,33 @@ export async function GET(request: Request) {
     // 2. Instantiate Facturapi SDK
     const facturapi = new Facturapi(apiKey);
     const id = (invoiceId || receiptId) as string;
+    const isCancellation = type === 'cancellation';
 
-    // 3. Fetch the file from Facturapi using SDK to prevent native fetch SSL SNI errors
+    // 3. Fetch the file from Facturapi using SDK or direct API fetch for cancellation receipts
     let blob: any;
     if (invoiceId) {
-      if (format === 'pdf') {
-        blob = await facturapi.invoices.downloadPdf(id);
+      if (isCancellation) {
+        const res = await fetch(`https://www.facturapi.io/v2/invoices/${id}/cancellation_receipt/${format}`, {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`
+          }
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          let parsedError = 'No se pudo obtener el acuse de cancelación del SAT.';
+          try {
+            const errJson = JSON.parse(errText);
+            parsedError = errJson.message || parsedError;
+          } catch (e) {}
+          return NextResponse.json({ error: `Facturapi: ${parsedError}` }, { status: res.status });
+        }
+        blob = await res.arrayBuffer();
       } else {
-        blob = await facturapi.invoices.downloadXml(id);
+        if (format === 'pdf') {
+          blob = await facturapi.invoices.downloadPdf(id);
+        } else {
+          blob = await facturapi.invoices.downloadXml(id);
+        }
       }
     } else {
       if (format === 'pdf') {
@@ -161,7 +181,8 @@ export async function GET(request: Request) {
 
     // 4. Return response with correct headers
     const contentType = format === 'pdf' ? 'application/pdf' : 'application/xml';
-    const filename = `${invoiceId ? 'factura' : 'complemento'}_${id}.${format}`;
+    const filenamePrefix = isCancellation ? 'acuse_cancelacion' : (invoiceId ? 'factura' : 'complemento');
+    const filename = `${filenamePrefix}_${id}.${format}`;
 
     return new Response(new Uint8Array(fileBuffer), {
       headers: {

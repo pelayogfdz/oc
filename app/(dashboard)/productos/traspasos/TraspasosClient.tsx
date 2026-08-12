@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Truck, Search, LayoutGrid, List, FileText, ArrowRight, MoreVertical, SlidersHorizontal, X, Hash, MapPin, Loader2, CheckCircle } from 'lucide-react';
+import { Truck, Search, LayoutGrid, List, FileText, ArrowRight, MoreVertical, SlidersHorizontal, X, Hash, MapPin, Loader2, CheckCircle, Download } from 'lucide-react';
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
 import { createDeliveryOrder } from '@/app/actions/logistica';
 
 export default function TraspasosClient({ 
@@ -23,7 +24,8 @@ export default function TraspasosClient({
   const [idFilter, setIdFilter] = useState('');
   const [fromBranchFilter, setFromBranchFilter] = useState('');
   const [toBranchFilter, setToBranchFilter] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
   // Delivery routing modal states
@@ -224,15 +226,21 @@ export default function TraspasosClient({
     const matchesStatus = statusFilter === '' || 
       transfer.status === statusFilter;
 
-    // Date Filter Match
+    // Date Range Filter Match
     let matchesDate = true;
-    if (dateFilter) {
+    if (startDateFilter || endDateFilter) {
       const transferDate = new Date(transfer.createdAt);
       const year = transferDate.getFullYear();
       const month = String(transferDate.getMonth() + 1).padStart(2, '0');
       const day = String(transferDate.getDate()).padStart(2, '0');
       const formattedTransferDate = `${year}-${month}-${day}`;
-      matchesDate = formattedTransferDate === dateFilter;
+
+      if (startDateFilter && formattedTransferDate < startDateFilter) {
+        matchesDate = false;
+      }
+      if (endDateFilter && formattedTransferDate > endDateFilter) {
+        matchesDate = false;
+      }
     }
 
     return matchesGeneral && matchesId && matchesFromBranch && matchesToBranch && matchesStatus && matchesDate;
@@ -242,12 +250,83 @@ export default function TraspasosClient({
     setIdFilter('');
     setFromBranchFilter('');
     setToBranchFilter('');
-    setDateFilter('');
+    setStartDateFilter('');
+    setEndDateFilter('');
     setStatusFilter('');
     setSearchTerm('');
   };
 
-  const hasActiveFilters = idFilter || fromBranchFilter || toBranchFilter || dateFilter || statusFilter || searchTerm;
+  const hasActiveFilters = idFilter || fromBranchFilter || toBranchFilter || startDateFilter || endDateFilter || statusFilter || searchTerm;
+
+  const handleExportExcel = () => {
+    const rows: any[] = [];
+
+    filteredTransfers.forEach((transfer) => {
+      const folio = transfer.folio || `#${transfer.id.substring(0, 8).toUpperCase()}`;
+      const fecha = new Date(transfer.createdAt).toLocaleString('es-MX');
+      const origen = transfer.branch?.name || 'Central';
+      const destino = transfer.toBranch?.name || 'N/A';
+      
+      let statusLabel = transfer.status;
+      switch (transfer.status) {
+        case 'REQUESTED': statusLabel = 'SOLICITADO'; break;
+        case 'CREATED': statusLabel = 'PREPARANDO'; break;
+        case 'DISPATCHED': statusLabel = 'EN TRÁNSITO'; break;
+        case 'RECEIVED': statusLabel = 'RECIBIDO'; break;
+        case 'CANCELLED': statusLabel = 'CANCELADO'; break;
+      }
+
+      const enviadoPor = transfer.createdBy?.name || 'N/A';
+
+      if (transfer.items && transfer.items.length > 0) {
+        transfer.items.forEach((item: any) => {
+          const sku = item.variant?.sku || item.product?.sku || 'N/A';
+          const prodName = item.product?.name || 'Producto';
+          const variantAttr = item.variant?.attribute ? ` (${item.variant.attribute})` : '';
+          const fullProduct = `${prodName}${variantAttr}`;
+          const cantidad = item.quantity || 0;
+          
+          const unitCost = Number(item.cost || item.averageCost || item.product?.cost || 0);
+          const totalCost = unitCost * cantidad;
+
+          rows.push({
+            'Folio / ID': folio,
+            'Fecha': fecha,
+            'Origen': origen,
+            'Destino': destino,
+            'Estatus': statusLabel,
+            'Enviado Por': enviadoPor,
+            'Código / SKU': sku,
+            'Producto': fullProduct,
+            'Cantidad': cantidad,
+            'Costo Unitario ($)': unitCost,
+            'Costo Total ($)': totalCost
+          });
+        });
+      } else {
+        rows.push({
+          'Folio / ID': folio,
+          'Fecha': fecha,
+          'Origen': origen,
+          'Destino': destino,
+          'Estatus': statusLabel,
+          'Enviado Por': enviadoPor,
+          'Código / SKU': 'N/A',
+          'Producto': 'Sin artículos registrados',
+          'Cantidad': 0,
+          'Costo Unitario ($)': 0,
+          'Costo Total ($)': 0
+        });
+      }
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Traspasos');
+    
+    const dateStr = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(workbook, `Reporte_Traspasos_Con_Costos_${dateStr}.xlsx`);
+  };
 
   const renderStatusBadge = (status: string) => {
     let label = status;
@@ -329,37 +408,62 @@ export default function TraspasosClient({
         marginBottom: '2rem', 
         boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, fontSize: '0.9rem', color: 'var(--caanma-text)' }}>
             <SlidersHorizontal size={16} color="var(--caanma-primary)" />
             <span>Filtros detallados</span>
           </div>
-          {hasActiveFilters && (
-            <button 
-              onClick={clearFilters}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <button
+              onClick={handleExportExcel}
               style={{
-                background: 'none',
+                backgroundColor: '#107c41',
+                color: 'white',
                 border: 'none',
-                color: 'var(--caanma-primary)',
-                fontSize: '0.8rem',
+                borderRadius: '6px',
+                padding: '0.4rem 0.85rem',
+                fontSize: '0.85rem',
                 fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.25rem',
-                padding: '0.25rem 0.5rem',
-                borderRadius: '4px',
-                backgroundColor: '#f8fafc'
+                gap: '0.4rem',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                transition: 'background-color 0.2s'
               }}
+              title="Exportar información de traspasos y productos con costos a Excel"
             >
-              <X size={12} /> Limpiar filtros
+              <Download size={14} /> Exportar
             </button>
-          )}
+
+            {hasActiveFilters && (
+              <button 
+                onClick={clearFilters}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--caanma-primary)',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  padding: '0.25rem 0.5rem',
+                  borderRadius: '4px',
+                  backgroundColor: '#f8fafc'
+                }}
+              >
+                <X size={12} /> Limpiar filtros
+              </button>
+            )}
+          </div>
         </div>
 
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
+          gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', 
           gap: '1rem' 
         }}>
           {/* ID Filter */}
@@ -433,13 +537,33 @@ export default function TraspasosClient({
             </select>
           </div>
 
-          {/* Date Filter */}
+          {/* Date Range Start Filter */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Fecha de creación</label>
+            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Fecha Inicio</label>
             <input 
               type="date" 
-              value={dateFilter}
-              onChange={e => setDateFilter(e.target.value)}
+              value={startDateFilter}
+              onChange={e => setStartDateFilter(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.4rem 0.75rem',
+                borderRadius: '6px',
+                border: '1px solid var(--caanma-border)',
+                fontSize: '0.85rem',
+                outline: 'none',
+                backgroundColor: '#f8fafc',
+                cursor: 'pointer'
+              }}
+            />
+          </div>
+
+          {/* Date Range End Filter */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Fecha Fin</label>
+            <input 
+              type="date" 
+              value={endDateFilter}
+              onChange={e => setEndDateFilter(e.target.value)}
               style={{
                 width: '100%',
                 padding: '0.4rem 0.75rem',

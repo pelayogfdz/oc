@@ -1351,7 +1351,7 @@ export async function syncMeliStockAction(productId: string, tenantId: string | 
         }
       });
 
-      const totalStock = productInBranches.reduce((sum, p) => sum + p.stock, 0);
+      const totalStock = productInBranches.reduce((sum, p) => sum + Math.max(0, p.stock), 0);
       const clampedStock = Math.max(0, totalStock);
 
       console.log(`[MELI STOCK SYNC] Publicación ${map.externalId}: Nuevo stock a enviar = ${totalStock} (clamped to ${clampedStock})`);
