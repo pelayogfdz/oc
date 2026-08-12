@@ -326,11 +326,26 @@ export async function saveMeliProductPricing(
       return { success: false, error: 'Sucursal activa no encontrada.' };
     }
     
-    // Buscar el mapa
-    const map = await prisma.externalProductMap.findUnique({
-      where: { id: mapId },
-      include: { product: true }
-    });
+    // Buscar el mapa por ID (UUID) o por externalId (MLM...) como fallback
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(mapId);
+    let map = null;
+    if (isUuid) {
+      map = await prisma.externalProductMap.findUnique({
+        where: { id: mapId },
+        include: { product: true }
+      });
+    } else {
+      const cleanExternalId = mapId.replace('meli-unlinked-', '');
+      map = await prisma.externalProductMap.findUnique({
+        where: {
+          platform_externalId: {
+            platform: 'MERCADO_LIBRE',
+            externalId: cleanExternalId
+          }
+        },
+        include: { product: true }
+      });
+    }
 
     if (!map) {
       return { success: false, error: 'Vinculación no encontrada.' };
@@ -735,7 +750,7 @@ export async function linkMeliItemToProduct(externalId: string, productId: strin
     const margenPorcentaje = itemPrice > 0 ? (margenDinero / itemPrice) * 100 : 0;
 
     // Crear el registro de mapeo
-    await prisma.externalProductMap.create({
+    const newMap = await prisma.externalProductMap.create({
       data: {
         productId: product.id,
         platform: 'MERCADO_LIBRE',
@@ -778,7 +793,7 @@ export async function linkMeliItemToProduct(externalId: string, productId: strin
     }
 
     revalidatePath('/integraciones/mercadolibre');
-    return { success: true };
+    return { success: true, mapId: newMap.id };
   } catch (error: any) {
     console.error('Error in linkMeliItemToProduct:', error);
     return { success: false, error: error.message || 'Error inesperado al vincular.' };
@@ -962,16 +977,34 @@ export async function syncMeliCatalogAction() {
       });
 
       if (existingMap) {
-        // 1. Obtener costos reales de Mercado Libre (solo si existe el mapeo)
-        const costs = await calculateMeliItemCosts(
-          integration.branchId,
-          item.id,
-          item.price,
-          item.category_id,
-          item.listing_type_id,
-          item.shipping ? item.shipping.free_shipping : false
-        );
+        // Recalcular costos de Mercado Libre solo si el precio cambió o si no están cargados
+        const priceChanged = Number(existingMap.precioMeli) !== Number(item.price);
+        const hasZeroCosts = !existingMap.comisionMeli && !existingMap.envioMeli && !existingMap.retencionMeli;
+        
+        let costs = {
+          comisionMeli: Number(existingMap.comisionMeli) || 0,
+          envioMeli: Number(existingMap.envioMeli) || 0,
+          retencionMeli: Number(existingMap.retencionMeli) || 0
+        };
 
+        if (priceChanged || hasZeroCosts) {
+          try {
+            const freshCosts = await calculateMeliItemCosts(
+              integration.branchId,
+              item.id,
+              item.price,
+              item.category_id,
+              item.listing_type_id,
+              item.shipping ? item.shipping.free_shipping : false
+            );
+            costs = freshCosts;
+          } catch (costErr) {
+            console.error(`[syncMeliCatalogAction] Error al calcular costos para ${item.id}:`, costErr);
+          }
+        }
+
+        const actualPrecio = existingMap.isFixedPrice ? (existingMap.precioMeli || item.price) : item.price;
+        
         const updateData: any = { 
           lastSync: new Date(), 
           syncStatus: item.status || 'active',
@@ -980,7 +1013,6 @@ export async function syncMeliCatalogAction() {
           retencionMeli: costs.retencionMeli
         };
 
-        const actualPrecio = existingMap.isFixedPrice ? (existingMap.precioMeli || item.price) : item.price;
         if (!existingMap.isFixedPrice) {
           updateData.precioMeli = item.price;
         }

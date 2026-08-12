@@ -46,35 +46,89 @@ export default async function ProductosPage() {
         { name: { in: productNames } }
       ]
     },
-    select: { sku: true, barcode: true, name: true, stock: true, branchId: true, branch: { select: { name: true } } }
+    select: { id: true, sku: true, barcode: true, name: true, stock: true, branchId: true, branch: { select: { name: true } } }
   });
 
-  // Build a map of key to branch stocks across the entire tenant
-  const branchStocksMap = new Map<string, any[]>();
-  otherBranchStocks.forEach(prod => {
-    const key = ((prod.sku && prod.sku.trim() !== "")
-      ? prod.sku.trim()
-      : (prod.barcode && prod.barcode.trim() !== "")
-        ? prod.barcode.trim()
-        : prod.name.trim()).toUpperCase();
+  // Build lookup maps of sku, barcode, and name to list of branch stock objects
+  const otherBranchSkuMap = new Map<string, any[]>();
+  const otherBranchBarcodeMap = new Map<string, any[]>();
+  const otherBranchNameMap = new Map<string, any[]>();
 
-    if (prod.stock > 0) {
-      if (!branchStocksMap.has(key)) {
-        branchStocksMap.set(key, []);
-      }
-      const list = branchStocksMap.get(key)!;
-      const existing = list.find(bs => bs.branchId === prod.branchId);
-      if (existing) {
-        existing.stock += prod.stock;
-      } else {
-        list.push({
-          branchId: prod.branchId,
-          branchName: prod.branch?.name || 'Desconocida',
-          stock: prod.stock
-        });
-      }
+  otherBranchStocks.forEach(prod => {
+    if (prod.stock <= 0) return;
+
+    const bsItem = {
+      productId: prod.id,
+      branchId: prod.branchId,
+      branchName: prod.branch?.name || 'Desconocida',
+      stock: prod.stock
+    };
+
+    if (prod.sku && prod.sku.trim() !== '') {
+      const skuKey = prod.sku.trim().toUpperCase();
+      if (!otherBranchSkuMap.has(skuKey)) otherBranchSkuMap.set(skuKey, []);
+      otherBranchSkuMap.get(skuKey)!.push(bsItem);
+    }
+    if (prod.barcode && prod.barcode.trim() !== '') {
+      const barcodeKey = prod.barcode.trim().toUpperCase();
+      if (!otherBranchBarcodeMap.has(barcodeKey)) otherBranchBarcodeMap.set(barcodeKey, []);
+      otherBranchBarcodeMap.get(barcodeKey)!.push(bsItem);
+    }
+    if (prod.name && prod.name.trim() !== '') {
+      const nameKey = prod.name.trim().toUpperCase();
+      if (!otherBranchNameMap.has(nameKey)) otherBranchNameMap.set(nameKey, []);
+      otherBranchNameMap.get(nameKey)!.push(bsItem);
     }
   });
+
+  // Helper function to resolve branch stocks for a given product
+  const getBranchStocksForProduct = (prod: any) => {
+    const matchedProductsMap = new Map<string, any>(); // Map productId -> bsItem to avoid counting the same product record twice
+
+    if (prod.sku && prod.sku.trim() !== '') {
+      const skuKey = prod.sku.trim().toUpperCase();
+      const skuMatches = otherBranchSkuMap.get(skuKey);
+      if (skuMatches) {
+        skuMatches.forEach(m => matchedProductsMap.set(m.productId, m));
+      }
+    }
+    if (prod.barcode && prod.barcode.trim() !== '') {
+      const barcodeKey = prod.barcode.trim().toUpperCase();
+      const barcodeMatches = otherBranchBarcodeMap.get(barcodeKey);
+      if (barcodeMatches) {
+        barcodeMatches.forEach(m => matchedProductsMap.set(m.productId, m));
+      }
+    }
+    // Only fall back to name match if we have no SKU and no barcode
+    const hasSkuOrBarcode = (prod.sku && prod.sku.trim() !== '') || (prod.barcode && prod.barcode.trim() !== '');
+    if (!hasSkuOrBarcode && prod.name && prod.name.trim() !== '') {
+      const nameKey = prod.name.trim().toUpperCase();
+      const nameMatches = otherBranchNameMap.get(nameKey);
+      if (nameMatches) {
+        nameMatches.forEach(m => matchedProductsMap.set(m.productId, m));
+      }
+    }
+
+    // Now group the unique matched products by branchId to sum up stock
+    const branchMerged = new Map<string, { branchId: string; branchName: string; stock: number }>();
+    matchedProductsMap.forEach(item => {
+      // Exclude current branch if not GLOBAL
+      if (branchId !== 'GLOBAL' && item.branchId === branchId) return;
+
+      const existing = branchMerged.get(item.branchId);
+      if (existing) {
+        existing.stock += item.stock;
+      } else {
+        branchMerged.set(item.branchId, {
+          branchId: item.branchId,
+          branchName: item.branchName,
+          stock: item.stock
+        });
+      }
+    });
+
+    return Array.from(branchMerged.values());
+  };
 
   let displayedProducts = [];
   if (isGlobal) {
@@ -120,26 +174,16 @@ export default async function ProductosPage() {
     });
 
     displayedProducts = Array.from(mergedMap.values()).map(prod => {
-      const key = ((prod.sku && prod.sku.trim() !== "")
-        ? prod.sku.trim()
-        : (prod.barcode && prod.barcode.trim() !== "")
-          ? prod.barcode.trim()
-          : prod.name.trim()).toUpperCase();
       return {
         ...prod,
-        branchStocks: branchStocksMap.get(key) || []
+        branchStocks: getBranchStocksForProduct(prod)
       };
     });
   } else {
     displayedProducts = displayedProductsRaw.map(prod => {
-      const key = ((prod.sku && prod.sku.trim() !== "")
-        ? prod.sku.trim()
-        : (prod.barcode && prod.barcode.trim() !== "")
-          ? prod.barcode.trim()
-          : prod.name.trim()).toUpperCase();
       return {
         ...prod,
-        branchStocks: branchStocksMap.get(key) || []
+        branchStocks: getBranchStocksForProduct(prod)
       };
     });
   }

@@ -1523,6 +1523,7 @@ export default function MeliCatalogTable({ initialMaps }: MeliCatalogTableProps)
                               const linkedProd = selectedRowProduct[map.externalId];
                               setMaps(prev => prev.map(m => m.externalId === map.externalId ? {
                                 ...m,
+                                id: res.mapId || m.id,
                                 productId: targetPid,
                                 syncStatus: 'active',
                                 product: {
