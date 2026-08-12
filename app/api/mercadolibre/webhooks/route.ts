@@ -183,6 +183,25 @@ export async function POST(req: Request) {
 
       // 5. Si logramos mapear al menos un producto, registrar la venta a nivel contable en la sucursal que aportó la existencia
       if (itemsToSale.length > 0) {
+        const orderIdStr = String(orderData.id);
+        const checkFolio = `ML-${orderIdStr}`;
+        const checkNote = `Mercado Libre Orden ${orderIdStr}`;
+
+        const existingSale = await tenantClient.sale.findFirst({
+          where: {
+            OR: [
+              { folio: checkFolio },
+              { notes: { contains: checkNote } },
+              { notes: { contains: `[Mercado Libre Orden: ${orderIdStr}]` } }
+            ]
+          }
+        });
+
+        if (existingSale) {
+          console.log(`[MELI WEBHOOK] La orden ${orderData.id} ya está registrada en el historial. Saltando.`);
+          return new NextResponse('OK', { status: 200 });
+        }
+
         const saleBranchId = itemsToSale[0].branchId || integration.branchId;
         console.log(`[MELI WEBHOOK] Registrando venta contable en Caanma (sucursal: ${saleBranchId}) por un total de $${totalSaleAmount}...`);
         
@@ -202,13 +221,13 @@ export async function POST(req: Request) {
         // Crear la venta
         await tenantClient.sale.create({
           data: {
-            folio: `ML-${orderData.id}`,
+            folio: checkFolio,
             total: totalSaleAmount,
             status: 'COMPLETED',
             paymentMethod: 'MERCADO_PAGO',
             branchId: saleBranchId,
             userId: defaultUser.id,
-            notes: `Venta automática registrada desde Mercado Libre. Guía de Envío: ${shippingLabelUrl || 'No disponible'}. Comprador: ${orderData.buyer?.nickname || 'Desconocido'}.`,
+            notes: `Venta automática registrada desde Mercado Libre [Mercado Libre Orden: ${orderIdStr}]. Guía de Envío: ${shippingLabelUrl || 'No disponible'}. Comprador: ${orderData.buyer?.nickname || 'Desconocido'}.`,
             createdAt: orderData.date_created ? new Date(orderData.date_created) : new Date(),
             updatedAt: orderData.date_created ? new Date(orderData.date_created) : new Date(),
             items: {

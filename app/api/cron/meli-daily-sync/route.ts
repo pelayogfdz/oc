@@ -180,8 +180,11 @@ async function handleSync(onlyStock = false) {
                 // Verificar si ya está registrada la venta
                 const existingSale = await tenantClient.sale.findFirst({
                   where: {
-                    branchId: mainSaleBranchId,
-                    notes: { contains: checkNote }
+                    OR: [
+                      { folio: `ML-${orderId}` },
+                      { notes: { contains: checkNote } },
+                      { notes: { contains: `[Mercado Libre Orden: ${orderId}]` } }
+                    ]
                   }
                 });
 
