@@ -23,9 +23,13 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
 
   const [startDateStr, setStartDateStr] = useState(defaultStart.toISOString().split('T')[0]);
   const [endDateStr, setEndDateStr] = useState(defaultEnd.toISOString().split('T')[0]);
+  const [selectedPreset, setSelectedPreset] = useState('LAST_30_DAYS');
 
   // Predefined Date Ranges
   const handlePresetChange = (preset: string) => {
+    setSelectedPreset(preset);
+    if (preset === 'CUSTOM') return;
+
     const today = new Date();
     let start = new Date();
     let end = new Date();
@@ -180,8 +184,8 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.4rem' }}>Filtros Rápidos</label>
             <select 
+              value={selectedPreset}
               onChange={e => handlePresetChange(e.target.value)} 
-              defaultValue="LAST_30_DAYS"
               style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem', outline: 'none' }}
             >
               <option value="TODAY">Hoy</option>
@@ -189,6 +193,7 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
               <option value="LAST_MONTH">Mes Anterior</option>
               <option value="LAST_30_DAYS">Últimos 30 días</option>
               <option value="LAST_90_DAYS">Últimos 90 días</option>
+              <option value="CUSTOM">Personalizado</option>
             </select>
           </div>
 
@@ -197,7 +202,10 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
             <input 
               type="date" 
               value={startDateStr} 
-              onChange={e => setStartDateStr(e.target.value)} 
+              onChange={e => {
+                setStartDateStr(e.target.value);
+                setSelectedPreset('CUSTOM');
+              }} 
               style={{ width: '100%', padding: '0.45rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem', outline: 'none' }} 
             />
           </div>
@@ -207,7 +215,10 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
             <input 
               type="date" 
               value={endDateStr} 
-              onChange={e => setEndDateStr(e.target.value)} 
+              onChange={e => {
+                setEndDateStr(e.target.value);
+                setSelectedPreset('CUSTOM');
+              }} 
               style={{ width: '100%', padding: '0.45rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem', outline: 'none' }} 
             />
           </div>
