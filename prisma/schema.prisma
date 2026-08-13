@@ -24,6 +24,8 @@ model Tenant {
   subscriptionStatus   String                 @default("TRIAL")
   customBasePrice      Float?
   customUserPrice      Float?
+  lastBilledAt         DateTime?
+  nextBillingAt        DateTime?
   branches             Branch[]
   HrLocation           HrLocation[]
   ManufacturingProcess ManufacturingProcess[]

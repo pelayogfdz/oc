@@ -171,8 +171,32 @@ export async function saveMercadoPagoCard(cardTokenId: string, paymentMethodId?:
   }
 }
 
-export async function processManualPayment(amount: number) {
+export async function processManualPayment(amount: number, appliedCredits: number, billingPeriod: 'MONTHLY' | 'ANNUAL') {
   const { user, tenant } = await requireTenantAdmin();
+
+  const now = new Date();
+  const nextBilling = new Date(now);
+  if (billingPeriod === 'ANNUAL') {
+    nextBilling.setFullYear(now.getFullYear() + 1);
+  } else {
+    nextBilling.setMonth(now.getMonth() + 1);
+  }
+
+  const newGiftCredits = Math.max(0, (tenant.giftCredits || 0) - appliedCredits);
+
+  // If amount is zero (completely covered by credits)
+  if (amount <= 0) {
+    await prisma.tenant.update({
+      where: { id: tenant.id },
+      data: {
+        subscriptionStatus: 'ACTIVE',
+        giftCredits: newGiftCredits,
+        lastBilledAt: now,
+        nextBillingAt: nextBilling
+      }
+    });
+    return { success: true, status: 'approved' };
+  }
 
   if (!tenant.mpCustomerId || !tenant.mpCardId) {
     throw new Error('No hay una tarjeta guardada para esta organización. Por favor, guarda una tarjeta primero.');
@@ -185,8 +209,8 @@ export async function processManualPayment(amount: number) {
 
   try {
     const paymentBody = {
-      transaction_amount: amount,
-      description: `Suscripción Mensual CAANMA PRO - ${tenant.name}`,
+      transaction_amount: Number(amount.toFixed(2)),
+      description: `Suscripción ${billingPeriod === 'ANNUAL' ? 'Anual' : 'Mensual'} CAANMA PRO - ${tenant.name}`,
       payment_method_id: 'master', // MP uses the saved card automatically if we pass payer.id
       payer: {
         type: 'customer',
@@ -210,11 +234,14 @@ export async function processManualPayment(amount: number) {
       throw new Error(paymentData.message || paymentData.status_detail || 'No se pudo procesar el pago con la tarjeta guardada.');
     }
 
-    // Actualizar el tenant a activo
+    // Actualizar el tenant a activo y descontar créditos/actualizar fechas
     await prisma.tenant.update({
       where: { id: tenant.id },
       data: {
         subscriptionStatus: 'ACTIVE',
+        giftCredits: newGiftCredits,
+        lastBilledAt: now,
+        nextBillingAt: nextBilling
       }
     });
 

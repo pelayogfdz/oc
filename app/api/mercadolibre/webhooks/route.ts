@@ -118,8 +118,9 @@ export async function POST(req: Request) {
               if (branchProducts[0].stock > 0) {
                 targetProduct = branchProducts[0];
               } else if (!targetProduct) {
-                // Si ninguna tiene stock, usamos el primero que encontremos
-                targetProduct = branchProducts[0];
+                // Si ninguna tiene stock, priorizamos el registro en la sucursal origen de la integración (integration.branchId)
+                const defaultProd = branchProducts.find(p => p.branchId === integration.branchId);
+                targetProduct = defaultProd || branchProducts[0];
               }
             }
           }

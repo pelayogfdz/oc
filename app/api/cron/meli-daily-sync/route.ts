@@ -244,7 +244,9 @@ async function handleSync(onlyStock = false) {
                         if (branchProducts[0].stock > 0) {
                           targetProduct = branchProducts[0];
                         } else if (!targetProduct) {
-                          targetProduct = branchProducts[0];
+                          // Si ninguna tiene stock, priorizamos el registro en la sucursal principal de ventas (mainSaleBranchId)
+                          const defaultProd = branchProducts.find(p => p.branchId === mainSaleBranchId);
+                          targetProduct = defaultProd || branchProducts[0];
                         }
                       }
                     }

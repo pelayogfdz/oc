@@ -14,9 +14,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'System MP credentials not configured' }, { status: 500 });
   }
 
-  // 3. Fetch all active tenants
+  const now = new Date();
+
+  // 3. Fetch active tenants whose billing period has expired or was never billed
   const tenants = await prisma.tenant.findMany({
-    where: { isActive: true },
+    where: {
+      isActive: true,
+      OR: [
+        { nextBillingAt: null },
+        { nextBillingAt: { lte: now } }
+      ]
+    },
     include: {
       _count: {
         select: { users: true }
@@ -54,13 +62,18 @@ export async function POST(request: Request) {
         }
       }
 
+      const nextBilling = new Date();
+      nextBilling.setMonth(nextBilling.getMonth() + 1); // monthly cycle
+
       // If fully covered by credits, no need to hit MP API
       if (chargeAmount === 0) {
         await prisma.tenant.update({
           where: { id: tenant.id },
           data: {
             giftCredits: newGiftCredits,
-            subscriptionStatus: 'ACTIVE'
+            subscriptionStatus: 'ACTIVE',
+            lastBilledAt: now,
+            nextBillingAt: nextBilling
           }
         });
         results.push({ tenant: tenant.name, status: 'PAID_WITH_CREDITS' });
@@ -109,7 +122,9 @@ export async function POST(request: Request) {
           where: { id: tenant.id },
           data: {
             giftCredits: newGiftCredits, // Deduct used credits
-            subscriptionStatus: 'ACTIVE'
+            subscriptionStatus: 'ACTIVE',
+            lastBilledAt: now,
+            nextBillingAt: nextBilling
           }
         });
         results.push({ tenant: tenant.name, status: 'PAID_CC', mpPaymentId: paymentData.id });

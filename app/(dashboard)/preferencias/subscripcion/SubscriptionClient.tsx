@@ -252,10 +252,11 @@ export default function SubscriptionClient({ initialData }: { initialData: any }
                       window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
                       return;
                     }
+                    const appliedCredits = Math.min(selectedPeriodAmount, tenant.giftCredits || 0);
                     if (!confirm(`¿Confirmas el pago manual de $${amountToPay.toFixed(2)} MXN a tu tarjeta guardada?`)) return;
                     setIsPaying(true);
                     try {
-                      await processManualPayment(amountToPay);
+                      await processManualPayment(amountToPay, appliedCredits, billingPeriod);
                       alert('¡Pago procesado con éxito!');
                       window.location.reload();
                     } catch (e: any) {
