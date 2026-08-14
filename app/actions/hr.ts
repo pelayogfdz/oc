@@ -788,13 +788,41 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
       }
     });
 
-    // Total days in period
-    const periodDiffTime = Math.abs(endDate.getTime() - startDate.getTime());
-    const periodDays = Math.ceil(periodDiffTime / (1000 * 60 * 60 * 24));
+    // Calculate scheduled working days in the period for this user
+    let scheduledWorkingDays = 0;
+    let hasParsedSchedule = false;
+    let sched: any = null;
+    if (u.workScheduleMatrix) {
+      try {
+        sched = JSON.parse(u.workScheduleMatrix);
+        hasParsedSchedule = true;
+      } catch (e) {}
+    }
 
-    // Assuming simple logic: absences = periodDays - workedDays - paidLeaveDays - unpaidLeaveDays (ignoring weekends for simplicity here)
-    // To be precise we need a working schedule, but we'll provide the data to the client.
-    let absences = periodDays - (workedDays + paidLeaveDays + unpaidLeaveDays);
+    const dayMap = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"];
+    const startMs = startDate.getTime();
+    const endMs = endDate.getTime();
+    const msInDay = 24 * 60 * 60 * 1000;
+
+    for (let currentMs = startMs; currentMs <= endMs; currentMs += msInDay) {
+      const d = new Date(currentMs);
+      const mxDateStr = d.toLocaleString("en-US", { timeZone: tenantTimezone });
+      const mxDate = new Date(mxDateStr);
+      const dayName = dayMap[mxDate.getDay()];
+
+      if (hasParsedSchedule && sched) {
+        if (sched[dayName] && sched[dayName].length >= 1) {
+          scheduledWorkingDays++;
+        }
+      } else {
+        // Default to Mon-Fri if no schedule matrix is configured
+        if (dayName !== 'Sabado' && dayName !== 'Domingo') {
+          scheduledWorkingDays++;
+        }
+      }
+    }
+
+    let absences = scheduledWorkingDays - (workedDays + paidLeaveDays);
     if (absences < 0) absences = 0;
     
     // Unpaid leave days are also considered absences in terms of pay
