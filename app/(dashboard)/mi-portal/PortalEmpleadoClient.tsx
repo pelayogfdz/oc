@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Clock, MapPin, CalendarDays, CheckCircle2, AlertTriangle, FileText, User, Camera, Fingerprint, Lock } from 'lucide-react';
+import { Clock, MapPin, CalendarDays, CheckCircle2, AlertTriangle, FileText, User, Camera, Fingerprint, Lock, DollarSign, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import { registerAttendance, createLeaveRequest, registerFaceDescriptor, registerFingerprintCredential } from '@/app/actions/hr';
 import { changeOwnPassword } from '@/app/actions/auth-actions';
+import { getEmployeeOwnCommissions } from '@/app/actions/commissions';
 import FaceRecognitionClient from './FaceRecognitionClient';
 import { formatTime12h } from '@/app/lib/timezone';
 
@@ -46,6 +47,33 @@ export default function PortalEmpleadoClient({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Commissions States
+  const nowObj = useMemo(() => new Date(), []);
+  const defaultCommStart = useMemo(() => new Date(nowObj.getFullYear(), nowObj.getMonth(), 1).toISOString().split('T')[0], [nowObj]);
+  const defaultCommEnd = useMemo(() => nowObj.toISOString().split('T')[0], [nowObj]);
+
+  const [commStartDate, setCommStartDate] = useState(defaultCommStart);
+  const [commEndDate, setCommEndDate] = useState(defaultCommEnd);
+  const [commData, setCommData] = useState<any>(null);
+  const [loadingComm, setLoadingComm] = useState(false);
+  const [showSalesList, setShowSalesList] = useState(false);
+
+  const fetchCommissions = async (sDate: string, eDate: string) => {
+    setLoadingComm(true);
+    try {
+      const data = await getEmployeeOwnCommissions(sDate, eDate);
+      setCommData(data);
+    } catch (err) {
+      console.error("Error loading employee commissions:", err);
+    } finally {
+      setLoadingComm(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCommissions(commStartDate, commEndDate);
+  }, []);
 
   const handleChangeOwnPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -963,7 +991,7 @@ export default function PortalEmpleadoClient({
             <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1rem' }}>Resumen Semanal</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                <span style={{ color: '#64748b' }}>Horas Trabajadas:</span>
+                <span style={{ color: '#64748b' }}>Horas Trabajadas (Últimos 7 días):</span>
                 <span style={{ fontWeight: 'bold', color: '#0f172a' }}>{weeklyStats.hoursStr}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
@@ -999,6 +1027,128 @@ export default function PortalEmpleadoClient({
               style={{ width: '100%', padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', color: '#334155' }}>
               <FileText size={18} /> Solicitar Permiso / Vacaciones
             </button>
+          </div>
+
+          {/* Section: Mis Comisiones y Bonos */}
+          <div className="card" style={{ gridColumn: '1 / -1', padding: '1.5rem', backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e293b' }}>
+                  <DollarSign size={22} style={{ color: '#16a34a' }} /> Mis Comisiones y Bonos
+                </h3>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                  Consulta el acumulado de tus comisiones y bonos acreditados en cualquier rango de fechas.
+                </p>
+              </div>
+
+              {/* Date Filter Controls */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b' }}>Desde:</span>
+                  <input
+                    type="date"
+                    value={commStartDate}
+                    onChange={(e) => setCommStartDate(e.target.value)}
+                    style={{ padding: '0.45rem 0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b' }}>Hasta:</span>
+                  <input
+                    type="date"
+                    value={commEndDate}
+                    onChange={(e) => setCommEndDate(e.target.value)}
+                    style={{ padding: '0.45rem 0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                  />
+                </div>
+                <button
+                  onClick={() => fetchCommissions(commStartDate, commEndDate)}
+                  disabled={loadingComm}
+                  style={{ padding: '0.45rem 0.85rem', borderRadius: '8px', border: 'none', backgroundColor: '#2563eb', color: 'white', fontWeight: '600', fontSize: '0.85rem', cursor: loadingComm ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <Filter size={14} /> {loadingComm ? 'Filtrando...' : 'Filtrar'}
+                </button>
+              </div>
+            </div>
+
+            {/* Metric Cards Grid */}
+            {commData ? (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+                  <div style={{ padding: '1rem', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>Ventas Realizadas</span>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a' }}>${commData.personalSales.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginTop: '0.2rem' }}>% Comisión: <strong>{commData.commissionPct}%</strong></span>
+                  </div>
+
+                  <div style={{ padding: '1rem', borderRadius: '12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '0.25rem' }}>Comisiones Ganadas</span>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#15803d' }}>${commData.commissionsEarned.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                    <span style={{ fontSize: '0.75rem', color: '#166534', display: 'block', marginTop: '0.2rem' }}>por ventas de tickets</span>
+                  </div>
+
+                  <div style={{ padding: '1rem', borderRadius: '12px', backgroundColor: '#fefce8', border: '1px solid #fef08a' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#854d0e', display: 'block', marginBottom: '0.25rem' }}>Bonos (Indiv. / Equipo)</span>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#a16207' }}>${(commData.bonusEarned + commData.teamBonusEarned).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                    <span style={{ fontSize: '0.75rem', color: '#854d0e', display: 'block', marginTop: '0.2rem' }}>{commData.unlockedBonus ? '🏆 Meta Alcanzada' : 'Sin bono de meta en período'}</span>
+                  </div>
+
+                  <div style={{ padding: '1rem', borderRadius: '12px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#1e40af', display: 'block', marginBottom: '0.25rem' }}>Total a Recibir</span>
+                    <span style={{ fontSize: '1.35rem', fontWeight: 'bold', color: '#1d4ed8' }}>${commData.totalEarned.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                    <span style={{ fontSize: '0.75rem', color: '#1e40af', display: 'block', marginTop: '0.2rem' }}>Comisión + Bonos</span>
+                  </div>
+                </div>
+
+                {/* Detailed Sales Toggle & Table */}
+                {commData.salesList && commData.salesList.length > 0 ? (
+                  <div>
+                    <button
+                      onClick={() => setShowSalesList(!showSalesList)}
+                      style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', padding: 0, marginBottom: '0.75rem' }}
+                    >
+                      {showSalesList ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      {showSalesList ? 'Ocultar desglose de ventas' : `Ver desglose de ${commData.salesList.length} ventas comisionadas`}
+                    </button>
+
+                    {showSalesList && (
+                      <div className="table-responsive" style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                          <thead>
+                            <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', textAlign: 'left' }}>
+                              <th style={{ padding: '0.6rem 0.75rem' }}>Fecha</th>
+                              <th style={{ padding: '0.6rem 0.75rem' }}>Cliente</th>
+                              <th style={{ padding: '0.6rem 0.75rem' }}>Folio CFDI</th>
+                              <th style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>Monto Venta</th>
+                              <th style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>Comisión ({commData.commissionPct}%)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {commData.salesList.map((s: any) => (
+                              <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '0.5rem 0.75rem' }}>{new Date(s.date).toLocaleDateString('es-MX', { timeZone: timezone })}</td>
+                                <td style={{ padding: '0.5rem 0.75rem', fontWeight: '500' }}>{s.customer}</td>
+                                <td style={{ padding: '0.5rem 0.75rem', fontFamily: 'monospace' }}>{s.invoiceId || '-'}</td>
+                                <td style={{ padding: '0.5rem 0.75rem', textAlign: 'right', fontWeight: '500' }}>${s.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                                <td style={{ padding: '0.5rem 0.75rem', textAlign: 'right', fontWeight: 'bold', color: '#16a34a' }}>${s.commissionEarned.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ padding: '0.75rem 1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', textAlign: 'center', fontSize: '0.8rem', color: '#64748b' }}>
+                    No hay ventas registradas a tu nombre en el rango de fechas seleccionado.
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b', fontSize: '0.9rem' }}>
+                {loadingComm ? 'Cargando información de comisiones...' : 'No se encontraron comisiones para el período seleccionado.'}
+              </div>
+            )}
           </div>
 
           {/* Change Password Card */}

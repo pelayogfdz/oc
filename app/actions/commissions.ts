@@ -441,3 +441,20 @@ export async function getCustomCommissionsReport(
   filteredStats.sort((a, b) => a.name.localeCompare(b.name));
   return filteredStats;
 }
+
+export async function getEmployeeOwnCommissions(startDateStr?: string, endDateStr?: string) {
+  const session = await getSession();
+  if (!session?.userId) throw new Error('Unauthorized');
+
+  const now = new Date();
+  const startDate = startDateStr 
+    ? new Date(`${startDateStr}T00:00:00`)
+    : new Date(now.getFullYear(), now.getMonth(), 1);
+  const endDate = endDateStr 
+    ? new Date(`${endDateStr}T23:59:59`)
+    : new Date();
+
+  const report = await getCustomCommissionsReport(startDate, endDate, 'ALL', session.userId);
+  const userReport = report.find(r => r.id === session.userId);
+  return userReport || null;
+}
