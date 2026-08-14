@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Share2, AlertTriangle, Send, Loader2, CheckCircle, Edit3, FileText } from 'lucide-react';
 import { cancelSale, updateSale } from '@/app/actions/sale';
-import { cancelInvoice, stampInvoice } from '@/app/actions/facturacion';
+import { cancelInvoice, stampInvoice, checkDocumentSatStatus } from '@/app/actions/facturacion';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 
 interface VentaActionsClientProps {
@@ -56,6 +56,26 @@ export default function VentaActionsClient({
   // Invoicing States
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [selectedCustomerIdForInvoice, setSelectedCustomerIdForInvoice] = useState(currentCustomerId || '');
+
+  // SAT Live Status States
+  const [satStatus, setSatStatus] = useState<string | null>(null);
+  const [satCancellationStatus, setSatCancellationStatus] = useState<string | null>(null);
+  const [isLoadingSat, setIsLoadingSat] = useState(false);
+
+  useEffect(() => {
+    if (invoiceId) {
+      setIsLoadingSat(true);
+      checkDocumentSatStatus(saleId, 'sale')
+        .then((res: any) => {
+          if (res.success) {
+            setSatStatus(res.status);
+            setSatCancellationStatus(res.cancellationStatus);
+          }
+        })
+        .catch((err) => console.error("Error fetching SAT status:", err))
+        .finally(() => setIsLoadingSat(false));
+    }
+  }, [invoiceId, saleId]);
 
   const handleSaveEdit = async () => {
     setIsSavingEdit(true);
@@ -195,6 +215,8 @@ export default function VentaActionsClient({
       try {
         const res = await cancelInvoice(saleId, cancelSale);
         if (res.success) {
+          setSatStatus(res.status || 'canceled');
+          setSatCancellationStatus(res.cancellationStatus || 'pending');
           alert(cancelSale ? 'Factura y venta canceladas exitosamente.' : 'Factura cancelada exitosamente.');
           router.refresh();
         } else {
@@ -368,53 +390,57 @@ export default function VentaActionsClient({
           </a>
 
           {/* Botones de Acuse de Cancelación */}
-          <a
-            href={`/api/facturacion/download?invoiceId=${invoiceId}&format=pdf&type=cancellation`}
-            download
-            className="btn-secondary"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.75rem 1.25rem',
-              borderRadius: '4px',
-              backgroundColor: '#fef2f2',
-              color: '#dc2626',
-              border: '1px solid #fca5a5',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              textDecoration: 'none'
-            }}
-          >
-            <FileText size={18} />
-            Descargar Acuse PDF
-          </a>
-          <a
-            href={`/api/facturacion/download?invoiceId=${invoiceId}&format=xml&type=cancellation`}
-            download
-            className="btn-secondary"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.75rem 1.25rem',
-              borderRadius: '4px',
-              backgroundColor: '#fff7ed',
-              color: '#c2410c',
-              border: '1px solid #ffedd5',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              textDecoration: 'none'
-            }}
-          >
-            <FileText size={18} />
-            Descargar Acuse XML
-          </a>
+          {(satStatus === 'canceled' || satCancellationStatus === 'pending') && (
+            <>
+              <a
+                href={`/api/facturacion/download?invoiceId=${invoiceId}&format=pdf&type=cancellation`}
+                download
+                className="btn-secondary"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.75rem 1.25rem',
+                  borderRadius: '4px',
+                  backgroundColor: '#fef2f2',
+                  color: '#dc2626',
+                  border: '1px solid #fca5a5',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  textDecoration: 'none'
+                }}
+              >
+                <FileText size={18} />
+                Descargar Acuse PDF
+              </a>
+              <a
+                href={`/api/facturacion/download?invoiceId=${invoiceId}&format=xml&type=cancellation`}
+                download
+                className="btn-secondary"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.75rem 1.25rem',
+                  borderRadius: '4px',
+                  backgroundColor: '#fff7ed',
+                  color: '#c2410c',
+                  border: '1px solid #ffedd5',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  textDecoration: 'none'
+                }}
+              >
+                <FileText size={18} />
+                Descargar Acuse XML
+              </a>
+            </>
+          )}
         </>
       )}
 
       {/* Cancel Invoice */}
-      {invoiceId && (
+      {invoiceId && satStatus !== 'canceled' && satCancellationStatus !== 'pending' && (
         <button
           onClick={handleCancelInvoice}
           disabled={isPending}

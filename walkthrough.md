@@ -491,3 +491,28 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
      * Registramos el reporte en el panel de control de **Reportes** ([ReportesModuleClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/reportes/ReportesModuleClient.tsx)).
   4. **Corrección de Lints (ProductFormClient.tsx):**
      * Restauramos los hooks de estado de categorías en [ProductFormClient.tsx](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/productos/nuevo/ProductFormClient.tsx) que causaban errores de compilación de TypeScript tras modificaciones previas.
+
+---
+
+## 25. Corrección de Enrutamiento de Stock de Mercado Libre (Office City)
+* **Identificación del Problema**: El usuario reportó que la venta de protectores de hojas Kinera (`7501428704516`) se registró automáticamente en la sucursal `OFFICE CITY` a pesar de no tener existencias allí, ignorando que las sucursales `El Marques` (stock 2) y `Querétaro Centro` (stock 1) sí tenían existencias físicas.
+* **Causa**: 
+  1. **Procesamiento Duplicado Concurrente**: La orden de Mercado Libre `2000017893940572` ingresó al sistema el día de ayer por la mañana y fue procesada de forma duplicada por concurrencia antes de que se aplicara y desplegara nuestro fix de prevención de duplicación.
+  2. En consecuencia, se crearon **dos ventas idénticas** en el sistema: la primera venta consumió correctamente la existencia en `Querétaro Centro` (stock bajó de 1 a 0). Al procesarse de forma concurrente la segunda venta duplicada, ya no se detectó stock en Querétaro Centro y cayó en la sucursal de fallback por defecto (`OFFICE CITY`), decrementando su stock a 0.
+* **Soluciones y Acciones Aplicadas**:
+  1. **Saneamiento Quirúrgico de Producción**: Eliminamos la venta duplicada (`d3d9a3b9-030d-443c-89b8-a706b0034fc7`) y su correspondiente movimiento de inventario en la base de datos `neondb_officecity`. Devolvimos `1` unidad de stock al producto de la sucursal `OFFICE CITY` para restaurar la existencia que se descontó erróneamente.
+  2. **Robustecimiento Preventivo del Fallback**: Modificamos el algoritmo de enrutamiento en el webhook de Mercado Libre ([route.ts](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/api/mercadolibre/webhooks/route.ts)) y en el cron de sincronización diaria ([route.ts](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/api/cron/meli-daily-sync/route.ts)) para que, cuando ninguna sucursal tenga existencias en stock, se priorice siempre registrar la venta en la sucursal preferida de la integración (`integration.branchId` / `mainSaleBranchId`) en lugar de caer en una sucursal al azar.
+  3. **Despliegue Exitoso**: Subimos los archivos corregidos a producción e iniciamos la reconstrucción en caliente del contenedor de Next.js, quedando 100% operativo.
+
+---
+
+## 26. Condicionamiento de Acciones de Facturación (Cancelar Factura y Descarga de Acuses SAT)
+* **Identificación del Problema**: El botón "Cancelar Factura (SAT)" se renderizaba indiscriminadamente siempre que existía un `invoiceId` (incluso si la factura ya estaba cancelada), y los botones "Descargar Acuse PDF/XML" también se mostraban en todas las facturas vigentes donde el acuse de cancelación aún no existía ni correspondía.
+* **Soluciones y Acciones Aplicadas**:
+  1. **Consulta de Estado SAT en Caliente**: Modificamos [VentaActionsClient.tsx](file:///c:/Users/barca2/./.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/ventas/detalle/[id]/VentaActionsClient.tsx) para importar `checkDocumentSatStatus` y consultar en caliente el estado fiscal de la factura (status y cancellationStatus en Facturapi) cuando se monta la vista de detalle.
+  2. **Renderizado de Botón Cancelar Factura**: Condicionamos la visualización del botón "Cancelar Factura (SAT)" para que **no** se muestre si la factura ya está cancelada o si su proceso de cancelación ya fue enviado y está pendiente en el buzón tributario (`satStatus !== 'canceled' && satCancellationStatus !== 'pending'`).
+  3. **Visibilidad de Acuses de Cancelación**: Condicionamos la visualización de los botones "Descargar Acuse PDF" y "Descargar Acuse XML" para que **solo** se muestren si la factura ha sido cancelada o si el proceso de cancelación se encuentra pendiente de aprobación (`satStatus === 'canceled' || satCancellationStatus === 'pending'`).
+  4. **Optimización de Estado Local**: Modificamos `handleCancelInvoice` para que el estado local se actualice a `canceled`/`pending` inmediatamente al procesarse con éxito la cancelación, previniendo retrasos visuales.
+  5. **Despliegue a Producción**: Sincronizamos y compilamos limpiamente, y actualizamos el contenedor `web` de producción en Hetzner con éxito.
+
+

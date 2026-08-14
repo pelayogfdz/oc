@@ -1,0 +1,3 @@
+file 'c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/docs/video_production_library/videos/slides/03_productos_variantes_sat.mp4_intro.mp4'
+file 'c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/docs/video_production_library/videos/slides/03_productos_variantes_sat.mp4_demo.mp4'
+file 'c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/docs/video_production_library/videos/slides/03_productos_variantes_sat.mp4_outro.mp4'

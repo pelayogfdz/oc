@@ -287,7 +287,6 @@ export async function getCustomCommissionsReport(
   const users = await prisma.user.findMany({
     where: {
       ...tenantIdClause,
-      ...userCondition,
       NOT: {
         email: {
           startsWith: 'inactivo_'
@@ -451,6 +450,10 @@ export async function getCustomCommissionsReport(
       }
       leader.totalEarned = leader.commissionsEarned + leader.bonusEarned + leader.teamBonusEarned;
     }
+  }
+
+  if (userIdFilter && userIdFilter !== 'ALL') {
+    return rawStats.filter(s => s.id === userIdFilter);
   }
 
   return rawStats;

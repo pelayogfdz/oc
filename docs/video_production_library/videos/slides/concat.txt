@@ -1,0 +1,3 @@
+file 'c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/docs/video_production_library/videos/slides/intro_segment.mp4'
+file 'c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/docs/video_production_library/videos/slides/main_segment.mp4'
+file 'c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/docs/video_production_library/videos/slides/outro_segment.mp4'

@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { updateCommissionProfile } from '@/app/actions/commissions';
 import { useRouter } from 'next/navigation';
-import { User, Shield, Briefcase, Save, ChevronDown, ChevronRight, Users, LayoutDashboard, Target, Award } from 'lucide-react';
+import { User, Shield, Briefcase, Save, ChevronDown, ChevronRight, Users, LayoutDashboard, Target, Award, Search, X } from 'lucide-react';
 
 export default function CommissionManagerClient({ initialUsers }: { initialUsers: any[] }) {
   const router = useRouter();
@@ -60,6 +60,8 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
     }
   };
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   const roles = [
     { label: 'Vendedor Base', value: 'VENDEDOR' },
     { label: 'Líder Secundario', value: 'LIDER_SECUNDARIO' },
@@ -67,12 +69,26 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
     { label: 'Coordinador General', value: 'COORDINADOR' }
   ];
 
+  const matchesSearch = (u: any) => {
+    if (!searchQuery) return true;
+    return u.name.toLowerCase().includes(searchQuery.toLowerCase());
+  };
+
   const coordinators = useMemo(() => users.filter(u => u.commissionRole === 'COORDINADOR'), [users]);
   const leaders = useMemo(() => users.filter(u => u.commissionRole === 'LIDER'), [users]);
   const vendors = useMemo(() => users.filter(u => u.commissionRole === 'VENDEDOR' || u.commissionRole === 'LIDER_SECUNDARIO'), [users]);
+  
+  // Vendedores sin líder (managerId === null o no apunta a un lider válido)
+  const unassignedVendors = useMemo(() => vendors.filter(v => !v.managerId || v.managerId === 'NONE' || !leaders.find(l => l.id === v.managerId)), [vendors, leaders]);
 
-  // Vendedores sin líder (managerId === null o no apunta a un lider v'alido)
-  const unassignedVendors = vendors.filter(v => !v.managerId || v.managerId === 'NONE' || !leaders.find(l => l.id === v.managerId));
+  const filteredCoordinators = useMemo(() => coordinators.filter(matchesSearch), [coordinators, searchQuery]);
+  const filteredLeaders = useMemo(() => {
+    return leaders.filter(leader => 
+      matchesSearch(leader) || 
+      vendors.filter(v => v.managerId === leader.id).some(v => matchesSearch(v))
+    );
+  }, [leaders, vendors, searchQuery]);
+  const filteredUnassignedVendors = useMemo(() => unassignedVendors.filter(matchesSearch), [unassignedVendors, searchQuery]);
 
   return (
     <div style={{ position: 'relative', paddingBottom: '80px' }}>
@@ -110,6 +126,39 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
         </p>
       </div>
 
+      {/* Buscador de Empleados */}
+      <div className="card" style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1rem' }}>
+        <div style={{ position: 'relative', flex: 1 }}>
+          <input 
+            type="text" 
+            placeholder="Buscar empleado por nombre..." 
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{ 
+              width: '100%', 
+              padding: '0.75rem 1rem 0.75rem 2.5rem', 
+              borderRadius: '6px', 
+              border: '1px solid #cbd5e1', 
+              fontSize: '0.95rem',
+              outline: 'none',
+              backgroundColor: 'white'
+            }} 
+          />
+          <Search size={18} style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery('')}
+              style={{
+                position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)',
+                border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8'
+              }}
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+      </div>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
 
         {/* ========================================================= */}
@@ -119,12 +168,12 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
             <Briefcase size={22} color="#6366f1" />
             <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: 0 }}>Cuentas de Coordinador</h3>
-            <span style={{ padding: '0.2rem 0.6rem', backgroundColor: '#e0e7ff', color: '#4338ca', borderRadius: '1rem', fontSize: '0.8rem', fontWeight: 'bold' }}>{coordinators.length} activo(s)</span>
+            <span style={{ padding: '0.2rem 0.6rem', backgroundColor: '#e0e7ff', color: '#4338ca', borderRadius: '1rem', fontSize: '0.8rem', fontWeight: 'bold' }}>{filteredCoordinators.length} activo(s)</span>
           </div>
           <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem' }}>Los coordinadores no tienen cuota grupal fija, perciben su ingreso como un porcentaje "Override" sobre la venta generada por las líneas de sus líderes.</p>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
-            {coordinators.map(user => (
+            {filteredCoordinators.map(user => (
               <div key={user.id} style={{ border: '1px solid #c7d2fe', backgroundColor: 'white', borderRadius: '8px', padding: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                   <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{user.name}</div>
@@ -144,9 +193,9 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
                 </div>
               </div>
             ))}
-            {coordinators.length === 0 && (
+            {filteredCoordinators.length === 0 && (
               <div style={{ padding: '2rem', border: '1px dashed #cbd5e1', borderRadius: '8px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
-                No tienes Coordinadores configurados.
+                {searchQuery ? 'No se encontraron coordinadores que coincidan con la búsqueda.' : 'No tienes Coordinadores configurados.'}
               </div>
             )}
           </div>
@@ -159,13 +208,14 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
             <Shield size={22} color="#10b981" />
             <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: 0 }}>Líderes y Estructura Organizacional</h3>
-            <span style={{ padding: '0.2rem 0.6rem', backgroundColor: '#d1fae5', color: '#047857', borderRadius: '1rem', fontSize: '0.8rem', fontWeight: 'bold' }}>{leaders.length} Equipo(s)</span>
+            <span style={{ padding: '0.2rem 0.6rem', backgroundColor: '#d1fae5', color: '#047857', borderRadius: '1rem', fontSize: '0.8rem', fontWeight: 'bold' }}>{filteredLeaders.length} Equipo(s)</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {leaders.map(leader => {
+            {filteredLeaders.map(leader => {
               const teamMembers = vendors.filter(v => v.managerId === leader.id);
-              const isExpanded = expandedLeaders.includes(leader.id);
+              const displayTeamMembers = searchQuery ? teamMembers.filter(v => matchesSearch(v) || matchesSearch(leader)) : teamMembers;
+              const isExpanded = expandedLeaders.includes(leader.id) || !!searchQuery; // Forzar expandido al buscar para ver los resultados
               
               return (
                 <div key={leader.id} style={{ border: '1px solid #10b981', borderRadius: '8px', backgroundColor: 'white', overflow: 'hidden' }}>
@@ -224,7 +274,7 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
                       style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', backgroundColor: '#f8fafc', border: 'none', cursor: 'pointer', outline: 'none' }}
                     >
                       <span style={{ fontWeight: 'bold', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Users size={18} /> Vendedores Asignados ({teamMembers.length})
+                        <Users size={18} /> Vendedores Asignados ({displayTeamMembers.length}{displayTeamMembers.length !== teamMembers.length ? ` de ${teamMembers.length}` : ''})
                       </span>
                       {isExpanded ? <ChevronDown size={20} color="#94a3b8" /> : <ChevronRight size={20} color="#94a3b8" />}
                     </button>
@@ -241,7 +291,7 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
                             </tr>
                           </thead>
                           <tbody>
-                            {teamMembers.map(vendor => (
+                            {displayTeamMembers.map(vendor => (
                               <tr key={vendor.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                                 <td data-label="Colaborador" style={{ padding: '0.75rem 1.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
@@ -293,12 +343,12 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
         {/* ========================================================= */}
         {/* VENDEDORES INDEPENDIENTES                                   */}
         {/* ========================================================= */}
-        {unassignedVendors.length > 0 && (
+        {filteredUnassignedVendors.length > 0 && (
           <section>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
               <User size={22} color="#f59e0b" />
               <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: 0, color: '#b45309' }}>Vendedores Independientes (Sin Equipo)</h3>
-              <span style={{ padding: '0.2rem 0.6rem', backgroundColor: '#fef3c7', color: '#b45309', borderRadius: '1rem', fontSize: '0.8rem', fontWeight: 'bold' }}>{unassignedVendors.length} usuario(s)</span>
+              <span style={{ padding: '0.2rem 0.6rem', backgroundColor: '#fef3c7', color: '#b45309', borderRadius: '1rem', fontSize: '0.8rem', fontWeight: 'bold' }}>{filteredUnassignedVendors.length} usuario(s)</span>
             </div>
             <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem' }}>Estos usuarios figuran debajo de nadie y operan exclusivamente para su bono/comisión personal.</p>
 
@@ -313,7 +363,7 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
                    </tr>
                  </thead>
                  <tbody>
-                   {unassignedVendors.map(vendor => (
+                   {filteredUnassignedVendors.map(vendor => (
                      <tr key={vendor.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                        <td data-label="Colaborador" style={{ padding: '0.75rem 1.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1' }}></div>
@@ -342,6 +392,22 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
               </table>
             </div>
           </section>
+        )}
+
+        {filteredCoordinators.length === 0 && filteredLeaders.length === 0 && filteredUnassignedVendors.length === 0 && (
+          <div style={{ padding: '3rem 2rem', border: '1px dashed #cbd5e1', borderRadius: '8px', textAlign: 'center', color: '#94a3b8', backgroundColor: 'white' }}>
+            <Users size={48} style={{ margin: '0 auto 1rem', color: '#cbd5e1' }} />
+            <p style={{ margin: 0, fontSize: '1rem', fontWeight: '500' }}>
+              No se encontraron empleados que coincidan con "{searchQuery}".
+            </p>
+            <button 
+              onClick={() => setSearchQuery('')}
+              className="btn-secondary"
+              style={{ marginTop: '1rem', padding: '0.4rem 1.25rem', fontSize: '0.85rem' }}
+            >
+              Limpiar búsqueda
+            </button>
+          </div>
         )}
 
       </div>
