@@ -30,11 +30,12 @@ export default function NominaClient() {
   const handleDownloadCSV = () => {
     if (!payrollData) return;
 
-    const headers = ['Empleado', 'RFC', 'Salario Diario / Hora', 'Tipo Nómina', 'Asistencias', 'Horas Trab.', 'Horas Dobles', 'Retardos', 'Permisos Pagados', 'Permisos Sin Goce', 'Faltas', 'Total a Pagar'];
+    const headers = ['Empleado', 'RFC', 'Salario Diario / Hora', 'SD IMSS', 'Tipo Nómina', 'Asistencias', 'Horas Trab.', 'Horas Dobles', 'Retardos', 'Permisos Pagados', 'Permisos Sin Goce', 'Faltas', 'Fondo Ahorro ($)', 'Fondo Ahorro (%)', 'Total a Pagar'];
     const rows = payrollData.map(p => [
       p.name,
       p.rfc || 'N/A',
       p.dailySalary.toFixed(2),
+      p.imssSalary ? p.imssSalary.toFixed(2) : '0.00',
       p.payrollType === 'POR_HORAS' ? 'Por Horas' : 'Fijo',
       p.workedDays,
       p.workedHours ? p.workedHours.toFixed(2) : '0.00',
@@ -43,6 +44,8 @@ export default function NominaClient() {
       p.paidLeaveDays,
       p.unpaidLeaveDays,
       p.absences,
+      p.savingsFundAmount ? p.savingsFundAmount.toFixed(2) : '0.00',
+      p.savingsFundPercent ? p.savingsFundPercent.toFixed(1) : '0.0',
       p.totalToPay.toFixed(2)
     ]);
 
@@ -95,19 +98,21 @@ export default function NominaClient() {
                 <tr style={{ backgroundColor: '#f8fafc' }}>
                   <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Empleado</th>
                   <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Salario Diario / Hora</th>
+                  <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>SD IMSS</th>
                   <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Asistencias</th>
                   <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Horas Trab.</th>
                   <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Horas Dobles</th>
                   <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Retardos</th>
                   <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Permisos Pagados</th>
                   <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Faltas / Sin Goce</th>
+                  <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Fondo Ahorro</th>
                   <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'right', fontWeight: 'bold' }}>Total a Pagar</th>
                 </tr>
               </thead>
               <tbody>
                 {payrollData.length === 0 && (
                   <tr>
-                    <td colSpan={9} style={{ textAlign: 'center', padding: '2rem', color: '#64748b', border: '1px solid #cbd5e1' }}>No se encontraron empleados con datos en este periodo.</td>
+                    <td colSpan={11} style={{ textAlign: 'center', padding: '2rem', color: '#64748b', border: '1px solid #cbd5e1' }}>No se encontraron empleados con datos en este periodo.</td>
                   </tr>
                 )}
                 {payrollData.map((row: any) => (
@@ -122,6 +127,9 @@ export default function NominaClient() {
                         {row.payrollType === 'POR_HORAS' ? 'por Hora' : 'por Día'}
                       </div>
                     </td>
+                    <td data-label="SD IMSS" style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1' }}>
+                      {row.imssSalary > 0 ? formatCurrency(row.imssSalary) : '-'}
+                    </td>
                     <td data-label="Asistencias" style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1' }}>{row.workedDays}</td>
                     <td data-label="Horas Trab." style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1' }}>{row.workedHours ? row.workedHours.toFixed(1) + ' hrs' : '-'}</td>
                     <td data-label="Horas Dobles" style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', color: row.doubleHours > 0 ? '#16a34a' : 'inherit', fontWeight: row.doubleHours > 0 ? 'bold' : 'normal' }}>
@@ -131,6 +139,14 @@ export default function NominaClient() {
                     <td data-label="Permisos Pagados" style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1' }}>{row.paidLeaveDays}</td>
                     <td data-label="Faltas / Sin Goce" style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', color: row.absences > 0 ? '#ea580c' : 'inherit' }}>
                       {row.absences}
+                    </td>
+                    <td data-label="Fondo Ahorro" style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1' }}>
+                      {row.savingsFundPercent > 0 ? (
+                        <div>
+                          <div style={{ fontWeight: '500' }}>{formatCurrency(row.savingsFundAmount)}</div>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>({row.savingsFundPercent}%)</div>
+                        </div>
+                      ) : '-'}
                     </td>
                     <td data-label="Total a Pagar" style={{ textAlign: 'right', fontWeight: 'bold', color: 'var(--caanma-primary)', fontSize: '1.1rem', padding: '1rem 1.25rem', border: '1px solid #cbd5e1' }}>
                       {formatCurrency(row.totalToPay)}

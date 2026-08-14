@@ -824,11 +824,21 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
       }
     }
 
+    let baseAmountForSavings = 0;
+    if (u.payrollType === 'POR_HORAS') {
+      baseAmountForSavings = workedHours * u.dailySalary;
+    } else {
+      baseAmountForSavings = workedDays * u.dailySalary;
+    }
+    const savingsFundAmount = baseAmountForSavings * (u.savingsFundPercent / 100);
+    const finalTotalToPay = baseAmount - savingsFundAmount;
+
     return {
       id: u.id,
       name: u.name,
       rfc: u.rfc,
       dailySalary: u.dailySalary,
+      imssSalary: u.imssSalary,
       payrollType: u.payrollType,
       workedDays,
       lates,
@@ -838,7 +848,9 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
       lunchDeduction,
       workedHours,
       doubleHours,
-      totalToPay: baseAmount
+      savingsFundPercent: u.savingsFundPercent,
+      savingsFundAmount,
+      totalToPay: finalTotalToPay
     };
   });
 

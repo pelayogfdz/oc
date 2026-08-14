@@ -1221,6 +1221,10 @@ export default function UserClient({ initialUsers, branches, hrLocations = [], c
                 <input type="number" step="0.01" name="overtimeBonus" defaultValue={editingUser?.overtimeBonus || 0} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
               </div>
               <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Salario Diario IMSS ($)</label>
+                <input type="number" step="0.01" name="imssSalary" defaultValue={editingUser?.imssSalary || 0} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
+              </div>
+              <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Banco</label>
                 <input type="text" name="bankName" defaultValue={editingUser?.bankName || ''} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
               </div>
@@ -1281,6 +1285,10 @@ export default function UserClient({ initialUsers, branches, hrLocations = [], c
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#8b5cf6' }}>Bono Equipo ($)</label>
                 <input type="number" step="10" name="teamBonusAmount" defaultValue={editingUser?.teamBonusAmount || 0} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #8b5cf6', backgroundColor: 'white' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#8b5cf6' }}>Fondo de Ahorro (%)</label>
+                <input type="number" step="0.1" min="0" max="100" name="savingsFundPercent" defaultValue={editingUser?.savingsFundPercent || 0} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #8b5cf6', backgroundColor: 'white' }} />
               </div>
             </div>
           </div>

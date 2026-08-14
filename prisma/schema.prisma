@@ -94,6 +94,8 @@ model User {
   homeRadius                Float?                   @default(50)
   isSuperAdmin              Boolean                  @default(false)
   deductLunchHour           Boolean                  @default(false)
+  imssSalary                Float                    @default(0)
+  savingsFundPercent        Float                    @default(0)
   strictCheckinTime         Boolean                  @default(false)
   currentSessionId          String?
   webauthnCredentialId      String?
