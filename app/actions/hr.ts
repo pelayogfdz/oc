@@ -671,7 +671,9 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
 
   const startDate = new Date(startDateStr);
   const endDate = new Date(endDateStr);
-  endDate.setHours(23, 59, 59, 999);
+  if (!endDateStr.includes('T') && !endDateStr.includes(':')) {
+    endDate.setHours(23, 59, 59, 999);
+  }
 
   // Get active branch users
   const user = await prisma.user.findUnique({ where: { id: session.userId } });
