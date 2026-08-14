@@ -70,6 +70,8 @@ export default function VentaActionsClient({
           if (res.success) {
             setSatStatus(res.status);
             setSatCancellationStatus(res.cancellationStatus);
+            // Refresh to sync the server component data (banner, totals, etc.) with the new SAT state
+            router.refresh();
           }
         })
         .catch((err) => console.error("Error fetching SAT status:", err))

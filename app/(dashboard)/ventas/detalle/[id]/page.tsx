@@ -68,6 +68,30 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
          </div>
       </div>
 
+      {sale.cancellationStatus === 'pending' && (
+        <div style={{ 
+          backgroundColor: '#fff7ed', 
+          border: '1px solid #fed7aa', 
+          borderRadius: '8px', 
+          padding: '1.25rem', 
+          marginBottom: '1.5rem', 
+          display: 'flex', 
+          alignItems: 'flex-start', 
+          gap: '0.75rem',
+          color: '#c2410c',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        }}>
+          <span style={{ fontSize: '1.5rem', lineHeight: 1 }}>⚠️</span>
+          <div>
+            <h4 style={{ margin: 0, fontWeight: 'bold', fontSize: '0.95rem', color: '#ea580c' }}>Cancelación de CFDI en Proceso</h4>
+            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: '#9a3412', lineHeight: '1.4' }}>
+              Esta factura tiene una solicitud de cancelación enviada al SAT pendiente de aprobación por parte del receptor. 
+              La venta continuará activa en el sistema hasta que el cliente acepte la solicitud en su buzón tributario.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="card" style={{ padding: '2rem' }}>
         {/* Header Membretado */}
         <div style={{ paddingBottom: '1rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #f1f5f9' }}>

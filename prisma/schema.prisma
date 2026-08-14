@@ -395,6 +395,7 @@ model Sale {
   cardAmount    Float?
   invoiceId     String?
   invoiceFolio  String?
+  cancellationStatus String?
   breakdownDiscounts Boolean @default(false)
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt

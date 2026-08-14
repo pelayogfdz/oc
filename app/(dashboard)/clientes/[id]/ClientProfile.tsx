@@ -806,13 +806,20 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
                         <td style={{ padding: '1rem', color: '#64748b' }}>{new Date(sale.createdAt).toLocaleDateString()}</td>
                         <td style={{ padding: '1rem', fontWeight: 'bold' }}>{formatCurrency(sale.total)}</td>
                         <td style={{ padding: '1rem' }}>
-                           {sale.status === 'CANCELLED' ? (
-                              <span style={{ padding: '0.25rem 0.5rem', backgroundColor: '#fee2e2', color: '#dc2626', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>CANCELADO</span>
-                           ) : sale.paymentMethod === 'CREDIT' ? (
-                              <span style={{ padding: '0.25rem 0.5rem', backgroundColor: '#fef3c7', color: '#d97706', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>CRÉDITO</span>
-                           ) : (
-                              <span style={{ padding: '0.25rem 0.5rem', backgroundColor: '#dcfce7', color: '#16a34a', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>PAGADO</span>
-                           )}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
+                               {sale.status === 'CANCELLED' ? (
+                                  <span style={{ padding: '0.25rem 0.5rem', backgroundColor: '#fee2e2', color: '#dc2626', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>CANCELADO</span>
+                               ) : sale.paymentMethod === 'CREDIT' ? (
+                                  <span style={{ padding: '0.25rem 0.5rem', backgroundColor: '#fef3c7', color: '#d97706', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>CRÉDITO</span>
+                               ) : (
+                                  <span style={{ padding: '0.25rem 0.5rem', backgroundColor: '#dcfce7', color: '#16a34a', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>PAGADO</span>
+                               )}
+                               {sale.cancellationStatus === 'pending' && (
+                                  <span style={{ padding: '0.15rem 0.35rem', backgroundColor: '#fff7ed', color: '#ea580c', border: '1px solid #fed7aa', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                                     Cancelación en proceso
+                                  </span>
+                               )}
+                            </div>
                         </td>
                      </tr>
                   ))}

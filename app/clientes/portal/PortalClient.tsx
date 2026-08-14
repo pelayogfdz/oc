@@ -591,16 +591,32 @@ export default function PortalClient({ defaultTab }: { defaultTab?: 'b2c' | 'b2b
                                       {isCredit ? '💳 A Crédito' : (isMixto ? '⚡ Mixto' : '💵 Contado')}
                                     </td>
                                     <td style={{ padding: '1rem' }}>
-                                      <span style={{
-                                        padding: '0.2rem 0.5rem',
-                                        borderRadius: '4px',
-                                        fontSize: '0.75rem',
-                                        fontWeight: 'bold',
-                                        backgroundColor: sale.status === 'COMPLETED' ? '#dcfce7' : (sale.status === 'REFUNDED' ? '#fee2e2' : '#fef3c7'),
-                                        color: sale.status === 'COMPLETED' ? '#15803d' : (sale.status === 'REFUNDED' ? '#b91c1c' : '#b45309')
-                                      }}>
-                                        {sale.status === 'COMPLETED' ? 'Completado' : (sale.status === 'REFUNDED' ? 'Devuelto' : 'Pendiente')}
-                                      </span>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
+                                        <span style={{
+                                          padding: '0.2rem 0.5rem',
+                                          borderRadius: '4px',
+                                          fontSize: '0.75rem',
+                                          fontWeight: 'bold',
+                                          backgroundColor: sale.status === 'COMPLETED' ? '#dcfce7' : (sale.status === 'REFUNDED' ? '#fee2e2' : '#fef3c7'),
+                                          color: sale.status === 'COMPLETED' ? '#15803d' : (sale.status === 'REFUNDED' ? '#b91c1c' : '#b45309')
+                                        }}>
+                                          {sale.status === 'COMPLETED' ? 'Completado' : (sale.status === 'REFUNDED' ? 'Devuelto' : 'Pendiente')}
+                                        </span>
+                                        {sale.cancellationStatus === 'pending' && (
+                                          <span style={{
+                                            padding: '0.15rem 0.35rem',
+                                            backgroundColor: '#fff7ed',
+                                            color: '#ea580c',
+                                            border: '1px solid #fed7aa',
+                                            borderRadius: '4px',
+                                            fontSize: '0.65rem',
+                                            fontWeight: 'bold',
+                                            whiteSpace: 'nowrap'
+                                          }}>
+                                            Cancelación en proceso
+                                          </span>
+                                        )}
+                                      </div>
                                     </td>
                                     <td style={{ padding: '1rem', fontWeight: 'bold', textAlign: 'right' }}>{formatCurrency(sale.total)}</td>
                                     <td style={{ padding: '1rem', textAlign: 'right', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', alignItems: 'center' }}>

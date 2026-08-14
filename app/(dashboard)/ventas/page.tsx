@@ -128,6 +128,7 @@ export default async function VentasPage(props: { searchParams: Promise<any> }) 
     paymentMethod: s.paymentMethod,
     invoiceId: s.invoiceId,
     invoiceFolio: s.invoiceFolio,
+    cancellationStatus: s.cancellationStatus,
     deliveryOrder: s.deliveryOrder ? {
       id: s.deliveryOrder.id,
       status: s.deliveryOrder.status

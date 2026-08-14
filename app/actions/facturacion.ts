@@ -643,6 +643,12 @@ export async function cancelInvoice(saleId: string, cancelSale: boolean = true) 
       revalidatePath(`/ventas/detalle/${saleId}`);
       return { success: true, status, cancellationStatus };
     } else {
+      // Guardar el estado de cancelación en todas las ventas asociadas
+      await prisma.sale.updateMany({
+        where: { invoiceId: sale.invoiceId },
+        data: { cancellationStatus }
+      });
+
       revalidatePath('/facturas/ventas');
       revalidatePath(`/ventas/detalle/${saleId}`);
       return {
@@ -1921,7 +1927,8 @@ export async function checkDocumentSatStatus(documentId: string, type: 'sale' | 
           where: { invoiceId },
           data: {
             invoiceId: null,
-            invoiceFolio: null
+            invoiceFolio: null,
+            cancellationStatus: null
           }
         });
       } else {
@@ -1943,6 +1950,14 @@ export async function checkDocumentSatStatus(documentId: string, type: 'sale' | 
             cfdiUrlPdf: null,
             cfdiUrlXml: null
           }
+        });
+      }
+    } else {
+      // Si la factura sigue vigente en Facturapi, actualizamos el estado de cancelación en la DB
+      if (type === 'sale') {
+        await prisma.sale.updateMany({
+          where: { invoiceId },
+          data: { cancellationStatus }
         });
       }
     }

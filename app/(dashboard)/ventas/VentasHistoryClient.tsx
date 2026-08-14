@@ -8,6 +8,7 @@ import { sendSaleByEmail } from '@/app/actions/sale';
 import { createDeliveryOrder } from '@/app/actions/logistica';
 import { formatCurrency } from '@/lib/utils';
 import { exportToExcel } from '@/lib/exportExcel';
+import { checkDocumentSatStatus } from '@/app/actions/facturacion';
 
 const getPaymentMethodLabel = (method: string) => {
   const mapping: Record<string, string> = {
@@ -133,6 +134,29 @@ export default function VentasHistoryClient({
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  const [checkingSatSaleId, setCheckingSatSaleId] = useState<string | null>(null);
+
+  const handleCheckSatStatus = async (saleId: string) => {
+    setCheckingSatSaleId(saleId);
+    try {
+      const res = await checkDocumentSatStatus(saleId, 'sale');
+      if (res.success && res.status && res.cancellationStatus) {
+        alert(`Estado SAT: ${res.status.toUpperCase()}\nEstado de Cancelación: ${res.cancellationStatus.toUpperCase()}\n\n${res.message}`);
+        if (res.status === 'canceled') {
+          setSales(prev => prev.filter(s => s.id !== saleId));
+        } else {
+          setSales(prev => prev.map(s => s.id === saleId ? { ...s, cancellationStatus: res.cancellationStatus } : s));
+        }
+      } else {
+        alert("Error al verificar: " + (res.error || "Respuesta incompleta de Facturapi"));
+      }
+    } catch (e: any) {
+      alert("Error: " + e.message);
+    } finally {
+      setCheckingSatSaleId(null);
+    }
+  };
 
   useEffect(() => {
     setSales(initialSales);
@@ -831,30 +855,61 @@ export default function VentasHistoryClient({
                     </div>
                   </td>
                   <td data-label="Folio CFDI" style={{ padding: '0.3rem 0.45rem' }}>
-                    {sale.invoiceId ? (
-                      <a 
-                        href={`/api/facturacion/download?invoiceId=${sale.invoiceId}&format=pdf`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="desktop-compact-inline"
-                        style={{ 
-                          fontFamily: 'monospace', 
-                          fontSize: '0.78rem', 
-                          fontWeight: 'bold', 
-                          color: '#1d4ed8', 
-                          backgroundColor: '#eff6ff', 
-                          border: '1px solid #bfdbfe',
-                          padding: '0.15rem 0.35rem', 
-                          borderRadius: '4px',
-                          textDecoration: 'none'
-                        }} 
-                        title="Ver PDF de la Factura (CFDI)"
-                      >
-                        {sale.invoiceFolio || sale.invoiceId.substring(0, 8).toUpperCase()}
-                      </a>
-                    ) : (
-                      <span style={{ color: 'var(--caanma-text-muted)', fontSize: '0.82rem' }}>-</span>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                      {sale.invoiceId ? (
+                        <>
+                          <a 
+                            href={`/api/facturacion/download?invoiceId=${sale.invoiceId}&format=pdf`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="desktop-compact-inline"
+                            style={{ 
+                              fontFamily: 'monospace', 
+                              fontSize: '0.78rem', 
+                              fontWeight: 'bold', 
+                              color: '#1d4ed8', 
+                              backgroundColor: '#eff6ff', 
+                              border: '1px solid #bfdbfe',
+                              padding: '0.15rem 0.35rem', 
+                              borderRadius: '4px',
+                              textDecoration: 'none'
+                            }} 
+                            title="Ver PDF de la Factura (CFDI)"
+                          >
+                            {sale.invoiceFolio || sale.invoiceId.substring(0, 8).toUpperCase()}
+                          </a>
+                          {sale.status === 'COMPLETED' && (
+                            <button
+                              onClick={() => handleCheckSatStatus(sale.id)}
+                              disabled={checkingSatSaleId === sale.id}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '22px',
+                                height: '22px',
+                                backgroundColor: '#f1f5f9',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                padding: 0,
+                                color: '#475569',
+                                transition: 'all 0.15s ease'
+                              }}
+                              title="Verificar estatus en el SAT"
+                            >
+                              {checkingSatSaleId === sale.id ? (
+                                <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
+                              ) : (
+                                <RotateCcw size={11} />
+                              )}
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <span style={{ color: 'var(--caanma-text-muted)', fontSize: '0.82rem' }}>-</span>
+                      )}
+                    </div>
                   </td>
                   <td data-label="Sucursal / Vendedor" style={{ padding: '0.3rem 0.45rem' }}>
                     <div className="desktop-compact-flex" style={{ flexDirection: 'column', alignItems: 'flex-end', minWidth: 0 }}>
@@ -884,16 +939,32 @@ export default function VentasHistoryClient({
                     </div>
                   </td>
                   <td data-label="Estado" style={{ padding: '0.3rem 0.45rem', textAlign: 'center' }}>
-                    <span style={{ 
-                      padding: '0.15rem 0.35rem', 
-                      borderRadius: '12px', 
-                      fontSize: '0.7rem',
-                      fontWeight: 'bold',
-                      backgroundColor: sale.status === 'COMPLETED' ? '#dcfce7' : sale.status === 'CANCELLED' ? '#fee2e2' : '#f1f5f9',
-                      color: sale.status === 'COMPLETED' ? '#166534' : sale.status === 'CANCELLED' ? '#991b1b' : '#334155'
-                    }}>
-                      {sale.status === 'COMPLETED' ? 'Completado' : sale.status === 'CANCELLED' ? 'Cancelado' : sale.status}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ 
+                        padding: '0.15rem 0.35rem', 
+                        borderRadius: '12px', 
+                        fontSize: '0.7rem',
+                        fontWeight: 'bold',
+                        backgroundColor: sale.status === 'COMPLETED' ? '#dcfce7' : sale.status === 'CANCELLED' ? '#fee2e2' : '#f1f5f9',
+                        color: sale.status === 'COMPLETED' ? '#166534' : sale.status === 'CANCELLED' ? '#991b1b' : '#334155'
+                      }}>
+                        {sale.status === 'COMPLETED' ? 'Completado' : sale.status === 'CANCELLED' ? 'Cancelado' : sale.status}
+                      </span>
+                      {sale.cancellationStatus === 'pending' && (
+                        <span style={{ 
+                          padding: '0.1rem 0.3rem', 
+                          borderRadius: '8px', 
+                          fontSize: '0.62rem',
+                          fontWeight: 'bold',
+                          backgroundColor: '#fff7ed',
+                          color: '#c2410c',
+                          border: '1px solid #ffedd5',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          Cancelación en proceso
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td data-label="Acciones" style={{ padding: '0.3rem 0.45rem', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '0.2rem', justifyContent: 'center', flexWrap: 'nowrap', alignItems: 'center' }}>
