@@ -246,6 +246,7 @@ export async function getCommissionReport(month: number, year: number) {
     }
   }
 
+  rawStats.sort((a, b) => a.name.localeCompare(b.name));
   return rawStats;
 }
 
@@ -465,5 +466,6 @@ export async function getCustomCommissionsReport(
     filteredStats = filteredStats.filter(s => s.personalSales > 0 || s.teamSales > 0);
   }
 
+  filteredStats.sort((a, b) => a.name.localeCompare(b.name));
   return filteredStats;
 }
