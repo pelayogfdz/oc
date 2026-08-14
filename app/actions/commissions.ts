@@ -455,9 +455,15 @@ export async function getCustomCommissionsReport(
     }
   }
 
+  let filteredStats = rawStats;
+
   if (userIdFilter && userIdFilter !== 'ALL') {
-    return rawStats.filter(s => s.id === userIdFilter);
+    filteredStats = filteredStats.filter(s => s.id === userIdFilter);
   }
 
-  return rawStats;
+  if (branchIdFilter && branchIdFilter !== 'ALL') {
+    filteredStats = filteredStats.filter(s => s.personalSales > 0 || s.teamSales > 0);
+  }
+
+  return filteredStats;
 }
