@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { calculatePayroll } from '@/app/actions/hr';
 import { Calendar, Calculator, Download } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 export default function NominaClient() {
   const [startDate, setStartDate] = useState('');
@@ -89,50 +90,53 @@ export default function NominaClient() {
           </div>
 
           <div className="table-container">
-            <table className="caanma-table">
+            <table className="caanma-table" style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #cbd5e1' }}>
               <thead>
-                <tr>
-                  <th>Empleado</th>
-                  <th>Salario Diario / Hora</th>
-                  <th>Asistencias</th>
-                  <th>Horas Trab.</th>
-                  <th>Horas Dobles</th>
-                  <th>Retardos</th>
-                  <th>Permisos Pagados</th>
-                  <th>Faltas / Sin Goce</th>
-                  <th style={{ textAlign: 'right' }}>Total a Pagar</th>
+                <tr style={{ backgroundColor: '#f8fafc' }}>
+                  <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Empleado</th>
+                  <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Salario Diario / Hora</th>
+                  <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Asistencias</th>
+                  <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Horas Trab.</th>
+                  <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Horas Dobles</th>
+                  <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Retardos</th>
+                  <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Permisos Pagados</th>
+                  <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Faltas / Sin Goce</th>
+                  <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'right', fontWeight: 'bold' }}>Total a Pagar</th>
                 </tr>
               </thead>
               <tbody>
                 {payrollData.length === 0 && (
                   <tr>
-                    <td colSpan={9} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No se encontraron empleados con datos en este periodo.</td>
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '2rem', color: '#64748b', border: '1px solid #cbd5e1' }}>No se encontraron empleados con datos en este periodo.</td>
                   </tr>
                 )}
                 {payrollData.map((row: any) => (
                   <tr key={row.id}>
-                    <td data-label="Empleado" style={{ fontWeight: '500' }}>{row.name} <div style={{ fontSize: '0.75rem', color: '#64748b' }}>RFC: {row.rfc || 'S/N'}</div></td>
-                    <td data-label="Salario Diario / Hora">
-                      ${row.dailySalary.toFixed(2)}
-                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    <td data-label="Empleado" style={{ fontWeight: '500', padding: '1rem 1.25rem', border: '1px solid #cbd5e1' }}>
+                      {row.name} 
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>RFC: {row.rfc || 'S/N'}</div>
+                    </td>
+                    <td data-label="Salario Diario / Hora" style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1' }}>
+                      {formatCurrency(row.dailySalary)}
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>
                         {row.payrollType === 'POR_HORAS' ? 'por Hora' : 'por Día'}
                       </div>
                     </td>
-                    <td data-label="Asistencias">{row.workedDays}</td>
-                    <td data-label="Horas Trab.">{row.workedHours ? row.workedHours.toFixed(1) + ' hrs' : '-'}</td>
-                    <td data-label="Horas Dobles" style={{ color: row.doubleHours > 0 ? '#16a34a' : 'inherit', fontWeight: row.doubleHours > 0 ? 'bold' : 'normal' }}>
+                    <td data-label="Asistencias" style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1' }}>{row.workedDays}</td>
+                    <td data-label="Horas Trab." style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1' }}>{row.workedHours ? row.workedHours.toFixed(1) + ' hrs' : '-'}</td>
+                    <td data-label="Horas Dobles" style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', color: row.doubleHours > 0 ? '#16a34a' : 'inherit', fontWeight: row.doubleHours > 0 ? 'bold' : 'normal' }}>
                       {row.doubleHours ? row.doubleHours.toFixed(1) + ' hrs' : '-'}
                     </td>
-                    <td data-label="Retardos" style={{ color: row.lates > 0 ? '#ef4444' : 'inherit' }}>{row.lates}</td>
-                    <td data-label="Permisos Pagados">{row.paidLeaveDays}</td>
-                    <td data-label="Faltas / Sin Goce" style={{ color: row.absences > 0 ? '#ea580c' : 'inherit' }}>
+                    <td data-label="Retardos" style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', color: row.lates > 0 ? '#ef4444' : 'inherit' }}>{row.lates}</td>
+                    <td data-label="Permisos Pagados" style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1' }}>{row.paidLeaveDays}</td>
+                    <td data-label="Faltas / Sin Goce" style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', color: row.absences > 0 ? '#ea580c' : 'inherit' }}>
                       {row.absences}
                     </td>
-                    <td data-label="Total a Pagar" style={{ textAlign: 'right', fontWeight: 'bold', color: 'var(--caanma-primary)', fontSize: '1.1rem' }}>
-                      ${row.totalToPay.toFixed(2)}
+                    <td data-label="Total a Pagar" style={{ textAlign: 'right', fontWeight: 'bold', color: 'var(--caanma-primary)', fontSize: '1.1rem', padding: '1rem 1.25rem', border: '1px solid #cbd5e1' }}>
+                      {formatCurrency(row.totalToPay)}
                       {row.lunchDeduction > 0 && (
                         <div style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 'normal', marginTop: '0.25rem' }}>
-                          - ${row.lunchDeduction.toFixed(2)} (Comida)
+                          - {formatCurrency(row.lunchDeduction)} (Comida)
                         </div>
                       )}
                     </td>
