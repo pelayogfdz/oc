@@ -1,0 +1,3 @@
+file 'c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/docs/video_production_library/videos/slides/09_masterclass_inventario_traspasos_almacen_CINEMATIC.mp4_intro.mp4'
+file 'c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/docs/video_production_library/videos/slides/09_masterclass_inventario_traspasos_almacen_CINEMATIC.mp4_demo.mp4'
+file 'c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/docs/video_production_library/videos/slides/09_masterclass_inventario_traspasos_almacen_CINEMATIC.mp4_outro.mp4'

@@ -17,6 +17,7 @@ model Tenant {
   updatedAt            DateTime               @updatedAt
   decimals             Int                    @default(2)
   timezone             String                 @default("America/Mexico_City")
+  overtimeLimitHours   Float                  @default(8)
   trialEndsAt          DateTime?
   giftCredits          Float                  @default(0)
   mpCardId             String?

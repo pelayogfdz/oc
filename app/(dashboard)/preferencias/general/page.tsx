@@ -111,6 +111,21 @@ export default async function GeneralPreferencesPage() {
               </optgroup>
             </select>
           </div>
+          <div style={{ display: 'flex', flexDirection: 'column', borderBottom: '1px solid #f3f4f6', paddingBottom: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>
+              Límite de Horas Diarias para Horas Extras/Dobles (hrs)
+            </label>
+            <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '-0.2rem', marginBottom: '0.5rem' }}>Define a partir de cuántas horas de trabajo en un día se considerará y pagará tiempo extra/doble.</p>
+            <input 
+              type="number" 
+              name="overtimeLimitHours" 
+              step="0.5" 
+              min="1" 
+              max="24" 
+              defaultValue={(tenantSettings as any).overtimeLimitHours !== undefined ? (tenantSettings as any).overtimeLimitHours : 8} 
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white' }} 
+            />
+          </div>
           <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'flex-end' }}>
             <button className="btn-primary" type="submit" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#4f46e5' }}>
               <Save size={18} /> Guardar Ajustes Globales

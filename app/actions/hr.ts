@@ -711,9 +711,10 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: session?.tenantId || undefined },
-    select: { timezone: true }
+    select: { timezone: true, overtimeLimitHours: true }
   });
   const tenantTimezone = tenant?.timezone || 'America/Mexico_City';
+  const overtimeLimitHours = tenant?.overtimeLimitHours !== undefined && tenant?.overtimeLimitHours !== null ? tenant.overtimeLimitHours : 8;
 
   const payrollData = users.map(u => {
     // 1. Calculate days worked and hours worked (matching CHECK_IN and CHECK_OUT on the same day)
@@ -759,9 +760,9 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
             netDayHours = Math.max(0, hours - 1);
           }
 
-          if (netDayHours > 8) {
-            regularHours += 8;
-            doubleHours += (netDayHours - 8);
+          if (netDayHours > overtimeLimitHours) {
+            regularHours += overtimeLimitHours;
+            doubleHours += (netDayHours - overtimeLimitHours);
           } else {
             regularHours += netDayHours;
           }
@@ -812,7 +813,7 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
       baseAmount = (regularHours * hourlyRate) + (doubleHours * doubleRate);
     } else {
       const totalDaysToPay = Math.max(0, workedDays + paidLeaveDays - lateAbsences);
-      const hourlyRate = u.dailySalary / 8;
+      const hourlyRate = u.dailySalary / overtimeLimitHours;
       const doubleRate = u.overtimeBonus > 0 ? u.overtimeBonus : hourlyRate * 2;
       
       baseAmount = (totalDaysToPay * u.dailySalary) + (doubleHours * doubleRate);

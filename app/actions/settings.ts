@@ -117,10 +117,11 @@ export async function updateTenantSettings(formData: FormData) {
 
   const decimals = parseInt(formData.get('decimals') as string) || 2;
   const timezone = (formData.get('timezone') as string) || "America/Mexico_City";
+  const overtimeLimitHours = parseFloat(formData.get('overtimeLimitHours') as string) || 8;
 
   await prisma.tenant.update({
     where: { id: branch.tenantId },
-    data: { decimals, timezone }
+    data: { decimals, timezone, overtimeLimitHours }
   });
 
   revalidateTag('tenant-settings-' + branch.tenantId, 'max');

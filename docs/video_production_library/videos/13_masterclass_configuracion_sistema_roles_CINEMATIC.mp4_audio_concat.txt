@@ -1,0 +1,4 @@
+file 'c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/docs/video_production_library/videos/13_masterclass_configuracion_sistema_roles_CINEMATIC.mp4_intro.mp3'
+file 'c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/docs/video_production_library/videos/13_masterclass_configuracion_sistema_roles_CINEMATIC.mp4_sec_0.mp3'
+file 'c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/docs/video_production_library/videos/13_masterclass_configuracion_sistema_roles_CINEMATIC.mp4_sec_1.mp3'
+file 'c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/docs/video_production_library/videos/13_masterclass_configuracion_sistema_roles_CINEMATIC.mp4_outro.mp3'
