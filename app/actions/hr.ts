@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/session';
 import { revalidatePath, revalidateTag } from 'next/cache';
+import { getActiveBranch } from './auth';
 
 export async function registerAttendance(data: {
   userId: string;
@@ -674,8 +675,24 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
 
   // Get active branch users
   const user = await prisma.user.findUnique({ where: { id: session.userId } });
+  const activeBranch = await getActiveBranch();
+  const tenantId = session.tenantId || user?.tenantId;
+
+  const whereClause: any = {
+    tenantId,
+    email: {
+      not: {
+        startsWith: 'inactivo_'
+      }
+    }
+  };
+
+  if (activeBranch.id !== 'GLOBAL') {
+    whereClause.branchId = activeBranch.id;
+  }
+
   const users = await prisma.user.findMany({
-    where: { branchId: user?.branchId },
+    where: whereClause,
     include: {
       attendanceLogs: {
         where: {
