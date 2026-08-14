@@ -144,25 +144,25 @@ export async function getCommissionReport(month: number, year: number) {
 
   // Roll-up logic (Assuming 3-tier: VENDEDOR -> LIDER -> COORDINADOR)
   
-  // A) Ventas de Equipo para Líderes
+  // A) Ventas de Equipo para Líderes, Coordinadores y Líderes Secundarios
   for (const stat of rawStats) {
     if (stat.managerId && statsMap.has(stat.managerId)) {
       const manager = statsMap.get(stat.managerId)!;
-      if (manager.role === 'LIDER' || manager.role === 'COORDINADOR') {
+      if (manager.role === 'LIDER' || manager.role === 'COORDINADOR' || manager.role === 'LIDER_SECUNDARIO') {
         manager.teamSales += stat.personalSales;
         manager.totalSalesBase += stat.personalSales; // Includes their team
       }
     }
   }
 
-  // B) Ventas de Organización para Coordinadores (Rollup from leaders)
+  // B) Ventas de Organización para Coordinadores y Líderes (Rollup desde líderes y líderes secundarios)
   for (const stat of rawStats) {
-    if (stat.role === 'LIDER' && stat.managerId && statsMap.has(stat.managerId)) {
+    if ((stat.role === 'LIDER' || stat.role === 'LIDER_SECUNDARIO') && stat.managerId && statsMap.has(stat.managerId)) {
        const director = statsMap.get(stat.managerId)!;
-       if (director.role === 'COORDINADOR') {
-          // Add the Leader's total team sales to the Coordinator
-          director.teamSales += stat.totalSalesBase;
-          director.totalSalesBase += stat.totalSalesBase;
+       if (director.role === 'COORDINADOR' || director.role === 'LIDER') {
+          // Add the Leader/Co-Leader's team sales (excluding their personal sales to avoid double counting)
+          director.teamSales += stat.teamSales;
+          director.totalSalesBase += stat.teamSales;
        }
     }
   }
@@ -182,8 +182,8 @@ export async function getCommissionReport(month: number, year: number) {
       // Bonus de equipo (Se inyecta abajo si su líder llega a la meta)
     } 
     else if (stat.role === 'LIDER_SECUNDARIO') {
-      // Ganan comisión sobre Venta Personal
-      stat.commissionsEarned = stat.personalSales * (stat.commissionPct / 100);
+      // Ganan comisión sobre Venta de la Sucursal/Equipo
+      stat.commissionsEarned = stat.totalSalesBase * (stat.commissionPct / 100);
       
       // Bono Individual si llega a cuota
       if (stat.monthlyGoal > 0 && stat.personalSales >= stat.monthlyGoal) {
@@ -192,8 +192,8 @@ export async function getCommissionReport(month: number, year: number) {
       }
     }
     else if (stat.role === 'LIDER') {
-      // Ganan comisión sobre Venta Personal (a veces cero si solo ganan por equipo, pero dejamos flexible)
-      stat.commissionsEarned = stat.personalSales * (stat.commissionPct / 100);
+      // Ganan comisión sobre Venta de la Sucursal/Equipo
+      stat.commissionsEarned = stat.totalSalesBase * (stat.commissionPct / 100);
       
       // Bono si el Equipo llega a cuota
       if (stat.monthlyGoal > 0 && stat.totalSalesBase >= stat.monthlyGoal) {
@@ -364,24 +364,25 @@ export async function getCustomCommissionsReport(
 
   // Roll-up logic (Assuming 3-tier: VENDEDOR -> LIDER -> COORDINADOR)
   
-  // A) Ventas de Equipo para Líderes
+  // A) Ventas de Equipo para Líderes, Coordinadores y Líderes Secundarios
   for (const stat of rawStats) {
     if (stat.managerId && statsMap.has(stat.managerId)) {
       const manager = statsMap.get(stat.managerId)!;
-      if (manager.role === 'LIDER' || manager.role === 'COORDINADOR') {
+      if (manager.role === 'LIDER' || manager.role === 'COORDINADOR' || manager.role === 'LIDER_SECUNDARIO') {
         manager.teamSales += stat.personalSales;
         manager.totalSalesBase += stat.personalSales; // Includes their team
       }
     }
   }
 
-  // B) Ventas de Organización para Coordinadores (Rollup from leaders)
+  // B) Ventas de Organización para Coordinadores y Líderes (Rollup desde líderes y líderes secundarios)
   for (const stat of rawStats) {
-    if (stat.role === 'LIDER' && stat.managerId && statsMap.has(stat.managerId)) {
+    if ((stat.role === 'LIDER' || stat.role === 'LIDER_SECUNDARIO') && stat.managerId && statsMap.has(stat.managerId)) {
        const director = statsMap.get(stat.managerId)!;
-       if (director.role === 'COORDINADOR') {
-          director.teamSales += stat.totalSalesBase;
-          director.totalSalesBase += stat.totalSalesBase;
+       if (director.role === 'COORDINADOR' || director.role === 'LIDER') {
+          // Add the Leader/Co-Leader's team sales (excluding their personal sales to avoid double counting)
+          director.teamSales += stat.teamSales;
+          director.totalSalesBase += stat.teamSales;
        }
     }
   }
@@ -396,14 +397,16 @@ export async function getCustomCommissionsReport(
       }
     } 
     else if (stat.role === 'LIDER_SECUNDARIO') {
-      stat.commissionsEarned = stat.personalSales * (stat.commissionPct / 100);
+      // Ganan comisión sobre Venta de la Sucursal/Equipo
+      stat.commissionsEarned = stat.totalSalesBase * (stat.commissionPct / 100);
       if (stat.monthlyGoal > 0 && stat.personalSales >= stat.monthlyGoal) {
         stat.bonusEarned = stat.bonusAmount;
         stat.unlockedBonus = true;
       }
     }
     else if (stat.role === 'LIDER') {
-      stat.commissionsEarned = stat.personalSales * (stat.commissionPct / 100);
+      // Ganan comisión sobre Venta de la Sucursal/Equipo
+      stat.commissionsEarned = stat.totalSalesBase * (stat.commissionPct / 100);
       if (stat.monthlyGoal > 0 && stat.totalSalesBase >= stat.monthlyGoal) {
         stat.bonusEarned = stat.bonusAmount;
         stat.unlockedBonus = true;

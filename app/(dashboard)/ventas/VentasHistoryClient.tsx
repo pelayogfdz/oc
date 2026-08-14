@@ -49,60 +49,53 @@ export default function VentasHistoryClient({
   branches,
   users,
   currentBranch,
-  timezone
+  timezone,
+  totalCount = 0,
+  currentPage = 1,
+  totalPages = 1,
+  pageSize = 50,
+  queryParams = {}
 }: {
   initialSales: any[];
   branches: any[];
   users: any[];
   currentBranch: any;
   timezone: string;
+  totalCount?: number;
+  currentPage?: number;
+  totalPages?: number;
+  pageSize?: number;
+  queryParams?: any;
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const isInitialMount = useRef(true);
 
   const [sales, setSales] = useState<any[]>(initialSales);
-  const [filterStartDate, setFilterStartDate] = useState('');
-  const [filterEndDate, setFilterEndDate] = useState('');
-  const [filterUser, setFilterUser] = useState('');
-  const [filterBranch, setFilterBranch] = useState(currentBranch.id === 'GLOBAL' ? '' : currentBranch.id);
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterClient, setFilterClient] = useState('');
-  const [filterCfdi, setFilterCfdi] = useState('');
-  const [filterPaymentMethod, setFilterPaymentMethod] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState(queryParams.startDate || '');
+  const [filterEndDate, setFilterEndDate] = useState(queryParams.endDate || '');
+  const [filterUser, setFilterUser] = useState(queryParams.userId || '');
+  const [filterBranch, setFilterBranch] = useState(queryParams.branchId || (currentBranch.id === 'GLOBAL' ? '' : currentBranch.id));
+  const [filterStatus, setFilterStatus] = useState(queryParams.status || '');
+  const [filterClient, setFilterClient] = useState(queryParams.client || '');
+  const [filterCfdi, setFilterCfdi] = useState(queryParams.cfdi || '');
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState(queryParams.paymentMethod || '');
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
-  // Sync date filter with URL search parameters
-  useEffect(() => {
-    if (isInitialMount.current) {
-      const params = new URLSearchParams(window.location.search);
-      const initialStartDate = params.get('startDate') || '';
-      const initialEndDate = params.get('endDate') || '';
-      if (initialStartDate) {
-        setFilterStartDate(initialStartDate);
-      }
-      if (initialEndDate) {
-        setFilterEndDate(initialEndDate);
-      }
-      isInitialMount.current = false;
-      return;
-    }
-
+  const updateUrlParams = (updates: Record<string, string>) => {
     const params = new URLSearchParams(window.location.search);
-    if (filterStartDate) {
-      params.set('startDate', filterStartDate);
-    } else {
-      params.delete('startDate');
-    }
-
-    if (filterEndDate) {
-      params.set('endDate', filterEndDate);
-    } else {
-      params.delete('endDate');
-    }
-
+    Object.entries(updates).forEach(([key, val]) => {
+      if (val && val !== 'ALL') {
+        params.set(key, val);
+      } else {
+        params.delete(key);
+      }
+    });
     router.push(`${pathname}?${params.toString()}`);
-  }, [filterStartDate, filterEndDate, router, pathname]);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    updateUrlParams({ page: String(newPage) });
+  };
 
   // WhatsApp Share States
   const [isWhatsappOpen, setIsWhatsappOpen] = useState(false);
@@ -462,60 +455,10 @@ export default function VentasHistoryClient({
     );
   }, [sales]);
 
-  // Filter logic
-  const filteredSales = useMemo(() => {
-    return sales.filter(sale => {
-      // Date filter (range)
-      if (filterStartDate) {
-        const saleDateStr = new Date(sale.createdAt).toLocaleDateString('sv-SE', { timeZone: timezone });
-        if (saleDateStr < filterStartDate) return false;
-      }
-      if (filterEndDate) {
-        const saleDateStr = new Date(sale.createdAt).toLocaleDateString('sv-SE', { timeZone: timezone });
-        if (saleDateStr > filterEndDate) return false;
-      }
-      
-      // User filter
-      if (filterUser && sale.userId !== filterUser) {
-        return false;
-      }
+  // Server-paginated sales array
+  const filteredSales = sales;
 
-      // Branch filter
-      if (filterBranch && sale.branchId !== filterBranch) {
-        return false;
-      }
-
-      // Status filter
-      if (filterStatus && sale.status !== filterStatus) {
-        return false;
-      }
-
-      // Client filter
-      if (filterClient) {
-        const clientName = sale.customer?.name || '';
-        if (!clientName.toLowerCase().includes(filterClient.toLowerCase())) {
-          return false;
-        }
-      }
-
-      // CFDI filter
-      if (filterCfdi) {
-        const folioCfdi = sale.invoiceId || '';
-        if (!folioCfdi.toLowerCase().includes(filterCfdi.toLowerCase())) {
-          return false;
-        }
-      }
-
-      // Payment Method filter
-      if (filterPaymentMethod && sale.paymentMethod !== filterPaymentMethod) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [sales, filterStartDate, filterEndDate, filterUser, filterBranch, filterStatus, filterClient, filterCfdi, filterPaymentMethod, timezone]);
-
-  const hasActiveFilters = filterStartDate || filterEndDate || filterUser || (currentBranch.id === 'GLOBAL' && filterBranch) || filterStatus || filterClient || filterCfdi || filterPaymentMethod;
+  const hasActiveFilters = Boolean(filterStartDate || filterEndDate || filterUser || (currentBranch.id === 'GLOBAL' && filterBranch) || filterStatus || filterClient || filterCfdi || filterPaymentMethod);
 
   const handleClearFilters = () => {
     setFilterStartDate('');
@@ -526,6 +469,7 @@ export default function VentasHistoryClient({
     setFilterClient('');
     setFilterCfdi('');
     setFilterPaymentMethod('');
+    router.push(pathname);
   };
 
   const downloadExcel = () => {
@@ -638,7 +582,10 @@ export default function VentasHistoryClient({
           <input 
             type="date" 
             value={filterStartDate} 
-            onChange={(e) => setFilterStartDate(e.target.value)} 
+            onChange={(e) => {
+              setFilterStartDate(e.target.value);
+              updateUrlParams({ startDate: e.target.value, page: '1' });
+            }} 
             style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
           />
         </div>
@@ -651,7 +598,10 @@ export default function VentasHistoryClient({
           <input 
             type="date" 
             value={filterEndDate} 
-            onChange={(e) => setFilterEndDate(e.target.value)} 
+            onChange={(e) => {
+              setFilterEndDate(e.target.value);
+              updateUrlParams({ endDate: e.target.value, page: '1' });
+            }} 
             style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
           />
         </div>
@@ -663,9 +613,15 @@ export default function VentasHistoryClient({
           </label>
           <input 
             type="text" 
-            placeholder="Buscar por cliente" 
+            placeholder="Buscar cliente y presionar Enter" 
             value={filterClient} 
             onChange={(e) => setFilterClient(e.target.value)} 
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                updateUrlParams({ client: filterClient, page: '1' });
+              }
+            }}
+            onBlur={() => updateUrlParams({ client: filterClient, page: '1' })}
             style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
           />
         </div>
@@ -677,9 +633,15 @@ export default function VentasHistoryClient({
           </label>
           <input 
             type="text" 
-            placeholder="Buscar folio CFDI" 
+            placeholder="Buscar CFDI y presionar Enter" 
             value={filterCfdi} 
             onChange={(e) => setFilterCfdi(e.target.value)} 
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                updateUrlParams({ cfdi: filterCfdi, page: '1' });
+              }
+            }}
+            onBlur={() => updateUrlParams({ cfdi: filterCfdi, page: '1' })}
             style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
           />
         </div>
@@ -691,11 +653,14 @@ export default function VentasHistoryClient({
           </label>
           <select 
             value={filterUser} 
-            onChange={(e) => setFilterUser(e.target.value)} 
+            onChange={(e) => {
+              setFilterUser(e.target.value);
+              updateUrlParams({ userId: e.target.value, page: '1' });
+            }} 
             style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }}
           >
             <option value="">Todos los vendedores</option>
-            {salesUsers.map((u) => (
+            {users.map((u) => (
               <option key={u.id} value={u.id}>{u.name}</option>
             ))}
           </select>
@@ -708,14 +673,17 @@ export default function VentasHistoryClient({
           </label>
           <select 
             value={filterBranch} 
-            onChange={(e) => setFilterBranch(e.target.value)} 
+            onChange={(e) => {
+              setFilterBranch(e.target.value);
+              updateUrlParams({ branchId: e.target.value, page: '1' });
+            }} 
             disabled={currentBranch.id !== 'GLOBAL'}
             style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: currentBranch.id !== 'GLOBAL' ? '#f1f5f9' : 'white', fontSize: '0.9rem' }}
           >
             {currentBranch.id === 'GLOBAL' ? (
               <>
                 <option value="">Todas las sucursales</option>
-                {salesBranches.map((b) => (
+                {branches.map((b) => (
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
               </>
@@ -732,7 +700,10 @@ export default function VentasHistoryClient({
           </label>
           <select 
             value={filterStatus} 
-            onChange={(e) => setFilterStatus(e.target.value)} 
+            onChange={(e) => {
+              setFilterStatus(e.target.value);
+              updateUrlParams({ status: e.target.value, page: '1' });
+            }} 
             style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }}
           >
             <option value="">Todos los estados</option>
@@ -751,7 +722,10 @@ export default function VentasHistoryClient({
           </label>
           <select 
             value={filterPaymentMethod} 
-            onChange={(e) => setFilterPaymentMethod(e.target.value)} 
+            onChange={(e) => {
+              setFilterPaymentMethod(e.target.value);
+              updateUrlParams({ paymentMethod: e.target.value, page: '1' });
+            }} 
             style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }}
           >
             <option value="">Todos los métodos</option>
@@ -762,18 +736,46 @@ export default function VentasHistoryClient({
         </div>
       </div>
 
-      {/* Clear Filters Button */}
-      {hasActiveFilters && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-          <button 
-            type="button" 
-            onClick={handleClearFilters}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 1rem', fontSize: '0.85rem', color: '#dc2626', backgroundColor: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', cursor: 'pointer', fontWeight: '500' }}
-          >
-            <RotateCcw size={14} /> Limpiar Filtros
-          </button>
+      {/* Clear Filters & Top Pagination Bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          {hasActiveFilters && (
+            <button 
+              type="button" 
+              onClick={handleClearFilters}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 1rem', fontSize: '0.85rem', color: '#dc2626', backgroundColor: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', cursor: 'pointer', fontWeight: '500' }}
+            >
+              <RotateCcw size={14} /> Limpiar Filtros
+            </button>
+          )}
         </div>
-      )}
+
+        {/* Pagination Bar (Top) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', backgroundColor: '#f8fafc', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>
+            Mostrando <strong>{totalCount > 0 ? (currentPage - 1) * pageSize + 1 : 0}</strong>-<strong>{Math.min(currentPage * pageSize, totalCount)}</strong> de <strong>{totalCount.toLocaleString()}</strong>
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <button
+              disabled={currentPage <= 1}
+              onClick={() => handlePageChange(currentPage - 1)}
+              style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: currentPage <= 1 ? '#f1f5f9' : 'white', color: currentPage <= 1 ? '#94a3b8' : '#334155', cursor: currentPage <= 1 ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '0.8rem' }}
+            >
+              &laquo;
+            </button>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#334155', padding: '0 0.25rem' }}>
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              disabled={currentPage >= totalPages}
+              onClick={() => handlePageChange(currentPage + 1)}
+              style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: currentPage >= totalPages ? '#f1f5f9' : 'white', color: currentPage >= totalPages ? '#94a3b8' : '#334155', cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '0.8rem' }}
+            >
+              &raquo;
+            </button>
+          </div>
+        </div>
+      </div>
 
       <div className="card" style={{ padding: '0', overflow: 'visible', width: '100%', maxWidth: '100%', height: 'auto' }}>
         <div className="table-responsive">
@@ -1125,6 +1127,32 @@ export default function VentasHistoryClient({
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination Bar (Bottom) */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', backgroundColor: '#f8fafc', borderTop: '1px solid #e2e8f0', borderRadius: '0 0 12px 12px' }}>
+        <div style={{ fontSize: '0.875rem', color: '#475569', fontWeight: '500' }}>
+          Mostrando <strong style={{ color: '#0f172a' }}>{totalCount > 0 ? (currentPage - 1) * pageSize + 1 : 0}</strong> a <strong style={{ color: '#0f172a' }}>{Math.min(currentPage * pageSize, totalCount)}</strong> de <strong style={{ color: '#0f172a' }}>{totalCount.toLocaleString()}</strong> ventas
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button
+            disabled={currentPage <= 1}
+            onClick={() => handlePageChange(currentPage - 1)}
+            style={{ padding: '0.45rem 0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: currentPage <= 1 ? '#f1f5f9' : 'white', color: currentPage <= 1 ? '#94a3b8' : '#334155', cursor: currentPage <= 1 ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '0.85rem' }}
+          >
+            &laquo; Anterior
+          </button>
+          <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#475569', padding: '0 0.5rem' }}>
+            Página {currentPage} de {totalPages}
+          </span>
+          <button
+            disabled={currentPage >= totalPages}
+            onClick={() => handlePageChange(currentPage + 1)}
+            style={{ padding: '0.45rem 0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: currentPage >= totalPages ? '#f1f5f9' : 'white', color: currentPage >= totalPages ? '#94a3b8' : '#334155', cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '0.85rem' }}
+          >
+            Siguiente &raquo;
+          </button>
+        </div>
       </div>
     </div>
 

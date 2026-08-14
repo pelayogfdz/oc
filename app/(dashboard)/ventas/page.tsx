@@ -2,7 +2,6 @@ export const dynamic = 'force-dynamic';
 
 import { prisma } from "@/lib/prisma";
 import { getActiveBranch, getSession } from "@/app/actions/auth";
-import { getBranchFilter } from "@/lib/utils";
 import VentasHistoryClient from "./VentasHistoryClient";
 import { getUtcDateFromLocal } from "@/app/lib/timezone";
 
@@ -10,6 +9,9 @@ export default async function VentasPage(props: { searchParams: Promise<any> }) 
   const branch = await getActiveBranch();
   const session = await getSession();
   const params = await props.searchParams;
+
+  const page = Math.max(1, parseInt(params?.page || '1', 10));
+  const pageSize = 50;
 
   // Fetch only branches of this tenant to populate branch selector
   const branches = await prisma.branch.findMany({
@@ -41,76 +43,78 @@ export default async function VentasPage(props: { searchParams: Promise<any> }) 
   });
   const timezone = tenant?.timezone || 'America/Mexico_City';
 
-  // Get current date components in tenant timezone
-  const now = new Date();
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  });
-  const parts = formatter.formatToParts(now);
-  const currentYear = parseInt(parts.find(p => p.type === 'year')!.value, 10);
-  const currentMonth = parseInt(parts.find(p => p.type === 'month')!.value, 10);
-  const currentDay = parseInt(parts.find(p => p.type === 'day')!.value, 10);
+  // Build dynamic where clause based on filters and searchParams
+  const where: any = {};
 
-  // Calculate default 30 days ago components in tenant timezone
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const partsAgo = formatter.formatToParts(thirtyDaysAgo);
-  const agoYear = parseInt(partsAgo.find(p => p.type === 'year')!.value, 10);
-  const agoMonth = parseInt(partsAgo.find(p => p.type === 'month')!.value, 10);
-  const agoDay = parseInt(partsAgo.find(p => p.type === 'day')!.value, 10);
+  // Branch filter
+  if (params?.branchId && params.branchId !== 'ALL' && params.branchId !== '') {
+    where.branchId = params.branchId;
+  } else if (branch.id === 'GLOBAL') {
+    where.branch = { tenantId: session?.tenantId || undefined };
+  } else {
+    where.branchId = branch.id;
+  }
 
-  let startUtc = getUtcDateFromLocal(agoYear, agoMonth, agoDay, 0, 0, 0, 0, timezone);
-  let endUtc = getUtcDateFromLocal(currentYear, currentMonth, currentDay, 23, 59, 59, 999, timezone);
+  // User filter
+  if (params?.userId && params.userId !== 'ALL' && params.userId !== '') {
+    where.userId = params.userId;
+  }
 
-  if (params?.startDate) {
-    const [sy, sm, sd] = params.startDate.split('-').map(Number);
-    startUtc = getUtcDateFromLocal(sy, sm, sd, 0, 0, 0, 0, timezone);
-    
+  // Status filter
+  if (params?.status && params.status !== '') {
+    where.status = params.status;
+  }
+
+  // Payment method filter
+  if (params?.paymentMethod && params.paymentMethod !== '') {
+    where.paymentMethod = params.paymentMethod;
+  }
+
+  // Client name filter
+  if (params?.client && params.client.trim() !== '') {
+    where.customer = {
+      name: {
+        contains: params.client.trim(),
+        mode: 'insensitive'
+      }
+    };
+  }
+
+  // CFDI filter
+  if (params?.cfdi && params.cfdi.trim() !== '') {
+    const cfdiTerm = params.cfdi.trim();
+    where.OR = [
+      { invoiceId: { contains: cfdiTerm, mode: 'insensitive' } },
+      { invoiceFolio: { contains: cfdiTerm, mode: 'insensitive' } }
+    ];
+  }
+
+  // Date range filter (ONLY applied if startDate or endDate are provided in searchParams)
+  if (params?.startDate || params?.endDate) {
+    where.createdAt = {};
+    if (params.startDate) {
+      const [sy, sm, sd] = params.startDate.split('-').map(Number);
+      where.createdAt.gte = getUtcDateFromLocal(sy, sm, sd, 0, 0, 0, 0, timezone);
+    }
     if (params.endDate) {
       const [ey, em, ed] = params.endDate.split('-').map(Number);
-      endUtc = getUtcDateFromLocal(ey, em, ed, 23, 59, 59, 999, timezone);
-    } else {
-      endUtc = getUtcDateFromLocal(sy, sm, sd, 23, 59, 59, 999, timezone);
+      where.createdAt.lte = getUtcDateFromLocal(ey, em, ed, 23, 59, 59, 999, timezone);
     }
   }
 
-  const baseWhere = {
-    ...(branch.id === 'GLOBAL'
-      ? { branch: { tenantId: session?.tenantId || undefined } }
-      : { branchId: branch.id }),
-    createdAt: {
-      gte: startUtc,
-      lte: endUtc
-    }
-  };
+  // Total matching sales count
+  const totalCount = await prisma.sale.count({ where });
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const currentPage = Math.min(page, totalPages);
 
-  // Obtener las ventas activas (no canceladas) en el rango de fechas
-  const activeSales = await prisma.sale.findMany({
-    where: {
-      ...baseWhere,
-      status: { not: 'CANCELLED' }
-    },
+  // Paginated query: 50 sales per page, ordered chronologically descending
+  const sales = await prisma.sale.findMany({
+    where,
+    skip: (currentPage - 1) * pageSize,
+    take: pageSize,
     include: commonInclude,
     orderBy: { createdAt: 'desc' }
   });
-
-  // Obtener las ventas canceladas en el rango de fechas
-  const cancelledSales = await prisma.sale.findMany({
-    where: {
-      ...baseWhere,
-      status: 'CANCELLED'
-    },
-    include: commonInclude,
-    orderBy: { createdAt: 'desc' }
-  });
-
-  // Unir ambas listas y ordenar por fecha de forma descendente
-  const sales = [...activeSales, ...cancelledSales].sort(
-    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-  );
 
   // Safe mapping to serialize data and avoid RSC warnings
   const serializedSales = sales.map(s => ({
@@ -177,7 +181,13 @@ export default async function VentasPage(props: { searchParams: Promise<any> }) 
       users={serializedUsers} 
       currentBranch={serializedBranch} 
       timezone={timezone}
+      totalCount={totalCount}
+      currentPage={currentPage}
+      totalPages={totalPages}
+      pageSize={pageSize}
+      queryParams={params || {}}
     />
   );
 }
+
 

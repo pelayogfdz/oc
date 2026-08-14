@@ -515,4 +515,17 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
   4. **Optimización de Estado Local**: Modificamos `handleCancelInvoice` para que el estado local se actualice a `canceled`/`pending` inmediatamente al procesarse con éxito la cancelación, previniendo retrasos visuales.
   5. **Despliegue a Producción**: Sincronizamos y compilamos limpiamente, y actualizamos el contenedor `web` de producción en Hetzner con éxito.
 
-
+## 27. Buscador Interactivo de Empleados en Fuerza de Ventas (Vendedores y Comisiones)
+* **Requerimiento**: El usuario solicitó agregar un buscador para encontrar y gestionar empleados de forma más ágil en la vista de Fuerza de Ventas y Comisiones.
+* **Soluciones y Acciones Aplicadas**:
+  1. **Buscador en Configuración Jerárquica**:
+     * Modificamos [CommissionManagerClient.tsx](file:///c:/Users/barca2/./.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/preferencias/vendedores/CommissionManagerClient.tsx) para importar `Search` y `X` de `lucide-react`.
+     * Agregamos el estado reactivo `searchQuery` y definimos filtros jerárquicos basados en `useMemo`.
+     * El buscador filtra coordinadores, líderes de equipo (se muestran si coinciden ellos mismos o cualquier miembro de su equipo asignado) y vendedores independientes de manera reactiva.
+     * Si la búsqueda está activa, fuerza la expansión de las listas de equipos para visibilidad inmediata de los resultados.
+     * Agregamos un estado de fallback global limpio con botón para limpiar la búsqueda en caso de no hallar coincidencias.
+  2. **Buscador en Cálculo y Liquidación de Comisiones**:
+     * Modificamos [CommissionReportClient.tsx](file:///c:/Users/barca2/./.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/preferencias/vendedores/CommissionReportClient.tsx) para añadir la misma interfaz interactiva de búsqueda.
+     * Filtramos reactivamente la tabla de liquidaciones del mes seleccionado mostrando un estado vacío específico para búsquedas infructuosas.
+  3. **Verificación y Pruebas**:
+     * Ejecutamos de forma exitosa el comando de compilación estática de TypeScript `npx.cmd tsc --noEmit` para garantizar la ausencia de regresiones o fallas de tipos.

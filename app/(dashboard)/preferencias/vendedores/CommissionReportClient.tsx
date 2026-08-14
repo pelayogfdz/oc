@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { getCommissionReport } from '@/app/actions/commissions';
-import { Calendar, Download, RefreshCw, DollarSign, Award, Target, Users } from 'lucide-react';
+import { Calendar, Download, RefreshCw, DollarSign, Award, Target, Users, Search, X } from 'lucide-react';
 
 export default function CommissionReportClient({ initialUsers }: { initialUsers: any[] }) {
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchReport = async () => {
     setLoading(true);
@@ -38,6 +39,7 @@ export default function CommissionReportClient({ initialUsers }: { initialUsers:
   };
 
   const grandTotal = reportData.reduce((acc, r) => acc + r.totalEarned, 0);
+  const filteredReportData = reportData.filter(r => r.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <div style={{ paddingBottom: '80px' }}>
@@ -98,6 +100,39 @@ export default function CommissionReportClient({ initialUsers }: { initialUsers:
         </div>
       </div>
 
+      {/* Buscador de Liquidaciones */}
+      <div className="card" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1rem' }}>
+        <div style={{ position: 'relative', flex: 1 }}>
+          <input 
+            type="text" 
+            placeholder="Buscar empleado en liquidaciones por nombre..." 
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{ 
+              width: '100%', 
+              padding: '0.75rem 1rem 0.75rem 2.5rem', 
+              borderRadius: '6px', 
+              border: '1px solid #cbd5e1', 
+              fontSize: '0.95rem',
+              outline: 'none',
+              backgroundColor: 'white'
+            }} 
+          />
+          <Search size={18} style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery('')}
+              style={{
+                position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)',
+                border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8'
+              }}
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -119,14 +154,16 @@ export default function CommissionReportClient({ initialUsers }: { initialUsers:
                     Calculando cifras...
                   </td>
                 </tr>
-              ) : reportData.length === 0 ? (
+              ) : filteredReportData.length === 0 ? (
                 <tr>
                   <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
-                    No hay empleados registrados en este periodo.
+                    {reportData.length === 0 
+                      ? 'No hay empleados registrados en este periodo.' 
+                      : `No se encontraron empleados que coincidan con "${searchQuery}".`}
                   </td>
                 </tr>
               ) : (
-                reportData.sort((a,b) => b.totalEarned - a.totalEarned).map(row => (
+                filteredReportData.sort((a,b) => b.totalEarned - a.totalEarned).map(row => (
                   <tr key={row.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                     <td data-label="Empleado" style={{ padding: '1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <div style={{ 
