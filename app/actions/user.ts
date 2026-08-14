@@ -52,6 +52,7 @@ export async function createUser(formData: FormData) {
     const imssSalary = parseFloat(formData.get('imssSalary') as string || '0');
     const savingsFundPercent = parseFloat(formData.get('savingsFundPercent') as string || '0');
     const strictCheckinTime = formData.get('strictCheckinTime') === 'on';
+    const seniorityPremium = parseFloat(formData.get('seniorityPremium') as string || '0');
     
     const reqGps = formData.get('reqGps') === 'on';
     const flexibleGps = formData.get('flexibleGps') === 'on';
@@ -95,7 +96,7 @@ export async function createUser(formData: FormData) {
         initialVacationDays, vacationStartDate,
         payrollType, dailySalary, bankName, bankAccount,
         bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus, deductLunchHour,
-        imssSalary, savingsFundPercent,
+        imssSalary, savingsFundPercent, seniorityPremium,
         reqGps, flexibleGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto, strictCheckinTime,
         homeLat, homeLng, homeRadius,
         hrLocations: {
@@ -160,6 +161,7 @@ export async function updateUser(id: string, formData: FormData) {
     const imssSalary = parseFloat(formData.get('imssSalary') as string || '0');
     const savingsFundPercent = parseFloat(formData.get('savingsFundPercent') as string || '0');
     const strictCheckinTime = formData.get('strictCheckinTime') === 'on';
+    const seniorityPremium = parseFloat(formData.get('seniorityPremium') as string || '0');
     
     const reqGps = formData.get('reqGps') === 'on';
     const flexibleGps = formData.get('flexibleGps') === 'on';
@@ -204,7 +206,7 @@ export async function updateUser(id: string, formData: FormData) {
       initialVacationDays, vacationStartDate,
       payrollType, dailySalary, bankName, bankAccount,
       bonusPunctuality, bonusRule, bonusMethod, overtimeBonus, groceryBonus, transportBonus, deductLunchHour,
-      imssSalary, savingsFundPercent,
+      imssSalary, savingsFundPercent, seniorityPremium,
       reqGps, flexibleGps, reqPhoto, workScheduleMatrix, faceDescriptor, baselinePhoto, strictCheckinTime,
       homeLat, homeLng, homeRadius
     };

@@ -30,7 +30,7 @@ export default function NominaClient() {
   const handleDownloadCSV = () => {
     if (!payrollData) return;
 
-    const headers = ['Empleado', 'RFC', 'Salario Diario / Hora', 'SD IMSS', 'Tipo Nómina', 'Asistencias', 'Horas Trab.', 'Horas Dobles', 'Retardos', 'Permisos Pagados', 'Permisos Sin Goce', 'Faltas', 'Fondo Ahorro ($)', 'Fondo Ahorro (%)', 'Total a Pagar'];
+    const headers = ['Empleado', 'RFC', 'Salario Diario / Hora', 'SD IMSS', 'Tipo Nómina', 'Asistencias', 'Horas Trab.', 'Horas Dobles', 'Retardos', 'Permisos Pagados', 'Permisos Sin Goce', 'Faltas', 'Fondo Ahorro ($)', 'Fondo Ahorro (%)', 'Prima Antigüedad ($)', 'Total a Pagar'];
     const rows = payrollData.map(p => [
       p.name,
       p.rfc || 'N/A',
@@ -46,6 +46,7 @@ export default function NominaClient() {
       p.absences,
       p.savingsFundAmount ? p.savingsFundAmount.toFixed(2) : '0.00',
       p.savingsFundPercent ? p.savingsFundPercent.toFixed(1) : '0.0',
+      p.seniorityPremiumPaid ? p.seniorityPremiumPaid.toFixed(2) : '0.00',
       p.totalToPay.toFixed(2)
     ]);
 
@@ -106,6 +107,7 @@ export default function NominaClient() {
                   <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Permisos Pagados</th>
                   <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Faltas / Sin Goce</th>
                   <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Fondo Ahorro</th>
+                  <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'left', fontWeight: 'bold' }}>Prima Antigüedad</th>
                   <th style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1', textAlign: 'right', fontWeight: 'bold' }}>Total a Pagar</th>
                 </tr>
               </thead>
@@ -147,6 +149,20 @@ export default function NominaClient() {
                           <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>({row.savingsFundPercent}%)</div>
                         </div>
                       ) : '-'}
+                    </td>
+                    <td data-label="Prima Antigüedad" style={{ padding: '1rem 1.25rem', border: '1px solid #cbd5e1' }}>
+                      {row.seniorityPremiumPaid > 0 ? (
+                        <div>
+                          <div style={{ fontWeight: 'bold', color: '#16a34a' }}>{formatCurrency(row.seniorityPremiumPaid)}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#16a34a', marginTop: '0.25rem' }}>🎉 ¡Aniversario!</div>
+                        </div>
+                      ) : (
+                        row.seniorityPremium > 0 ? (
+                          <span style={{ color: '#64748b', fontSize: '0.85rem' }}>
+                            {formatCurrency(row.seniorityPremium)} (Configurada)
+                          </span>
+                        ) : '-'
+                      )}
                     </td>
                     <td data-label="Total a Pagar" style={{ textAlign: 'right', fontWeight: 'bold', color: 'var(--caanma-primary)', fontSize: '1.1rem', padding: '1rem 1.25rem', border: '1px solid #cbd5e1' }}>
                       {formatCurrency(row.totalToPay)}

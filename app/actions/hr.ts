@@ -834,6 +834,25 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
     const lateAbsences = discountLates ? Math.floor(lates / 3) : 0;
     absences += lateAbsences;
 
+    // Check if the employment anniversary falls within the period
+    let seniorityPremiumPaid = 0;
+    if (u.hireDate && u.seniorityPremium > 0) {
+      const hDate = new Date(u.hireDate);
+      const periodStart = new Date(startDate);
+      periodStart.setHours(0, 0, 0, 0);
+      const periodEnd = new Date(endDate);
+      periodEnd.setHours(23, 59, 59, 999);
+      
+      for (let y = 1; y <= 50; y++) {
+        const annivDate = new Date(hDate.getFullYear() + y, hDate.getMonth(), hDate.getDate());
+        annivDate.setHours(12, 0, 0, 0); // avoid timezone shifts
+        if (annivDate >= periodStart && annivDate <= periodEnd) {
+          seniorityPremiumPaid = u.seniorityPremium;
+          break;
+        }
+      }
+    }
+
     let baseAmount = 0;
     let lunchDeduction = 0;
 
@@ -861,7 +880,7 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
       baseAmountForSavings = workedDays * u.dailySalary;
     }
     const savingsFundAmount = baseAmountForSavings * (u.savingsFundPercent / 100);
-    const finalTotalToPay = baseAmount - savingsFundAmount;
+    const finalTotalToPay = baseAmount - savingsFundAmount + seniorityPremiumPaid;
 
     return {
       id: u.id,
@@ -880,6 +899,8 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
       doubleHours,
       savingsFundPercent: u.savingsFundPercent,
       savingsFundAmount,
+      seniorityPremium: u.seniorityPremium,
+      seniorityPremiumPaid,
       totalToPay: finalTotalToPay
     };
   });

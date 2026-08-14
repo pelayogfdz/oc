@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Clock, MapPin, CalendarDays, CheckCircle2, AlertTriangle, FileText, User, Camera, Fingerprint, Lock, DollarSign, Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, MapPin, CalendarDays, CheckCircle2, AlertTriangle, FileText, User, Camera, Fingerprint, Lock, DollarSign, Filter, ChevronDown, ChevronUp, Gift } from 'lucide-react';
 import { registerAttendance, createLeaveRequest, registerFaceDescriptor, registerFingerprintCredential, getEmployeePayrollSummary } from '@/app/actions/hr';
 import { changeOwnPassword } from '@/app/actions/auth-actions';
 import { getEmployeeOwnCommissions } from '@/app/actions/commissions';
@@ -52,6 +52,47 @@ export default function PortalEmpleadoClient({
   const nowObj = useMemo(() => new Date(), []);
   const defaultCommStart = useMemo(() => new Date(nowObj.getFullYear(), nowObj.getMonth(), 1).toISOString().split('T')[0], [nowObj]);
   const defaultCommEnd = useMemo(() => nowObj.toISOString().split('T')[0], [nowObj]);
+
+  const anniversaryInfo = useMemo(() => {
+    if (!user.hireDate) return null;
+    const hireDate = new Date(user.hireDate);
+    if (isNaN(hireDate.getTime())) return null;
+
+    const now = new Date();
+    // Calculate the next anniversary date
+    let anniversaryYear = now.getFullYear();
+    let nextAnniversary = new Date(anniversaryYear, hireDate.getMonth(), hireDate.getDate());
+
+    // If the anniversary for this year has already passed, the next one is next year
+    // If it's today, we can count it as this year
+    nextAnniversary.setHours(23, 59, 59, 999); // set to end of day to check if passed
+    if (nextAnniversary < now) {
+      anniversaryYear++;
+      nextAnniversary = new Date(anniversaryYear, hireDate.getMonth(), hireDate.getDate());
+    }
+
+    const years = anniversaryYear - hireDate.getFullYear();
+    
+    // Calculate days remaining
+    const diffTime = nextAnniversary.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    return {
+      date: nextAnniversary,
+      years,
+      daysRemaining: diffDays,
+      formattedDate: nextAnniversary.toLocaleDateString('es-MX', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }),
+      formattedHireDate: hireDate.toLocaleDateString('es-MX', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      })
+    };
+  }, [user.hireDate]);
 
   const [commStartDate, setCommStartDate] = useState(defaultCommStart);
   const [commEndDate, setCommEndDate] = useState(defaultCommEnd);
@@ -1027,6 +1068,71 @@ export default function PortalEmpleadoClient({
               style={{ width: '100%', padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', color: '#334155' }}>
               <FileText size={18} /> Solicitar Permiso / Vacaciones
             </button>
+          </div>
+
+          <div className="card" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)', border: '1px solid #bfdbfe' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e3a8a' }}>
+              <Gift size={20} style={{ color: '#3b82f6' }} /> Prima de Antigüedad
+            </h3>
+            
+            {user.seniorityPremium > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                  <span style={{ color: '#64748b' }}>Monto de Prima:</span>
+                  <span style={{ fontWeight: 'bold', color: '#16a34a', fontSize: '1.05rem' }}>
+                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(user.seniorityPremium)}
+                  </span>
+                </div>
+                
+                {anniversaryInfo ? (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                      <span style={{ color: '#64748b' }}>Fecha de Ingreso:</span>
+                      <span style={{ fontWeight: '500', color: '#334155' }}>{anniversaryInfo.formattedHireDate}</span>
+                    </div>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                      <span style={{ color: '#64748b' }}>Próximo Aniversario:</span>
+                      <span style={{ fontWeight: 'bold', color: '#1e40af' }}>
+                        {anniversaryInfo.years}° Año
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                      <span style={{ color: '#64748b' }}>Fecha de Pago:</span>
+                      <span style={{ fontWeight: '500', color: '#334155' }}>
+                        Semana del {anniversaryInfo.formattedDate}
+                      </span>
+                    </div>
+
+                    <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#e0f2fe', borderRadius: '8px', border: '1px dashed #0284c7', textAlign: 'center', fontSize: '0.8rem', fontWeight: 'bold', color: '#0369a1' }}>
+                      {anniversaryInfo.daysRemaining === 0 ? (
+                        "🎉 ¡Hoy es tu aniversario! Se paga en esta nómina."
+                      ) : anniversaryInfo.daysRemaining <= 7 ? (
+                        `🎉 ¡Tu aniversario es en ${anniversaryInfo.daysRemaining} días! Se paga esta semana.`
+                      ) : (
+                        `Faltan ${anniversaryInfo.daysRemaining} días para tu próximo pago.`
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic', marginTop: '0.25rem' }}>
+                    Fecha de ingreso no configurada. Pide a administración registrar tu fecha de contratación.
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0, lineHeight: '1.4' }}>
+                  No tienes una prima de antigüedad configurada actualmente en tu contrato.
+                </p>
+                {user.hireDate && (
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
+                    <strong>Fecha de Ingreso:</strong> {new Date(user.hireDate).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Section: Mis Comisiones, Bonos y Cálculo de Nómina */}

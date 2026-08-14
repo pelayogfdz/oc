@@ -73,6 +73,7 @@ model User {
   dailySalary               Float                    @default(0)
   faceDescriptor            String?
   groceryBonus              Float                    @default(0)
+  seniorityPremium          Float                    @default(0)
   hireDate                  DateTime?
   initialVacationDays       Int                      @default(0)
   vacationStartDate         DateTime?

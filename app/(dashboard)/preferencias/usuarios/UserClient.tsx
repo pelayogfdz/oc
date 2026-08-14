@@ -1290,6 +1290,10 @@ export default function UserClient({ initialUsers, branches, hrLocations = [], c
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#8b5cf6' }}>Fondo de Ahorro (%)</label>
                 <input type="number" step="0.1" min="0" max="100" name="savingsFundPercent" defaultValue={editingUser?.savingsFundPercent || 0} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #8b5cf6', backgroundColor: 'white' }} />
               </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#8b5cf6' }}>Prima de Antigüedad ($)</label>
+                <input type="number" step="10" min="0" name="seniorityPremium" defaultValue={editingUser?.seniorityPremium || 0} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #8b5cf6', backgroundColor: 'white' }} />
+              </div>
             </div>
           </div>
 
