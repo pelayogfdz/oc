@@ -1209,11 +1209,16 @@ export default function UserClient({ initialUsers, branches, hrLocations = [], c
                   <option value="CATORCENAL">Catorcenal</option>
                   <option value="QUINCENAL">Quincenal</option>
                   <option value="MENSUAL">Mensual</option>
+                  <option value="POR_HORAS">Por Horas</option>
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Salario Diario ($)</label>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Salario Diario / Hora ($)</label>
                 <input type="number" step="0.01" name="dailySalary" defaultValue={editingUser?.dailySalary || 0} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Bono Hora Extra / Doble ($)</label>
+                <input type="number" step="0.01" name="overtimeBonus" defaultValue={editingUser?.overtimeBonus || 0} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Banco</label>

@@ -29,12 +29,15 @@ export default function NominaClient() {
   const handleDownloadCSV = () => {
     if (!payrollData) return;
 
-    const headers = ['Empleado', 'RFC', 'Salario Diario', 'Asistencias', 'Retardos', 'Permisos Pagados', 'Permisos Sin Goce', 'Faltas', 'Total a Pagar'];
+    const headers = ['Empleado', 'RFC', 'Salario Diario / Hora', 'Tipo Nómina', 'Asistencias', 'Horas Trab.', 'Horas Dobles', 'Retardos', 'Permisos Pagados', 'Permisos Sin Goce', 'Faltas', 'Total a Pagar'];
     const rows = payrollData.map(p => [
       p.name,
       p.rfc || 'N/A',
       p.dailySalary.toFixed(2),
+      p.payrollType === 'POR_HORAS' ? 'Por Horas' : 'Fijo',
       p.workedDays,
+      p.workedHours ? p.workedHours.toFixed(2) : '0.00',
+      p.doubleHours ? p.doubleHours.toFixed(2) : '0.00',
       p.lates,
       p.paidLeaveDays,
       p.unpaidLeaveDays,
@@ -90,8 +93,10 @@ export default function NominaClient() {
               <thead>
                 <tr>
                   <th>Empleado</th>
-                  <th>Salario Diario</th>
+                  <th>Salario Diario / Hora</th>
                   <th>Asistencias</th>
+                  <th>Horas Trab.</th>
+                  <th>Horas Dobles</th>
                   <th>Retardos</th>
                   <th>Permisos Pagados</th>
                   <th>Faltas / Sin Goce</th>
@@ -101,14 +106,23 @@ export default function NominaClient() {
               <tbody>
                 {payrollData.length === 0 && (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No se encontraron empleados con datos en este periodo.</td>
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No se encontraron empleados con datos en este periodo.</td>
                   </tr>
                 )}
                 {payrollData.map((row: any) => (
                   <tr key={row.id}>
                     <td data-label="Empleado" style={{ fontWeight: '500' }}>{row.name} <div style={{ fontSize: '0.75rem', color: '#64748b' }}>RFC: {row.rfc || 'S/N'}</div></td>
-                    <td data-label="Salario Diario">${row.dailySalary.toFixed(2)}</td>
+                    <td data-label="Salario Diario / Hora">
+                      ${row.dailySalary.toFixed(2)}
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        {row.payrollType === 'POR_HORAS' ? 'por Hora' : 'por Día'}
+                      </div>
+                    </td>
                     <td data-label="Asistencias">{row.workedDays}</td>
+                    <td data-label="Horas Trab.">{row.workedHours ? row.workedHours.toFixed(1) + ' hrs' : '-'}</td>
+                    <td data-label="Horas Dobles" style={{ color: row.doubleHours > 0 ? '#16a34a' : 'inherit', fontWeight: row.doubleHours > 0 ? 'bold' : 'normal' }}>
+                      {row.doubleHours ? row.doubleHours.toFixed(1) + ' hrs' : '-'}
+                    </td>
                     <td data-label="Retardos" style={{ color: row.lates > 0 ? '#ef4444' : 'inherit' }}>{row.lates}</td>
                     <td data-label="Permisos Pagados">{row.paidLeaveDays}</td>
                     <td data-label="Faltas / Sin Goce" style={{ color: row.absences > 0 ? '#ea580c' : 'inherit' }}>

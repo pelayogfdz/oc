@@ -1,0 +1,61 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+  body {
+    width: 1920px; height: 1080px;
+    background: radial-gradient(circle at 50% 30%, #2e1065 0%, #0f172a 70%, #020617 100%);
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    color: white; position: relative; overflow: hidden;
+  }
+  .glow {
+    position: absolute; width: 800px; height: 800px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, rgba(0,0,0,0) 70%);
+    top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;
+  }
+  .card {
+    background: rgba(255, 255, 255, 0.04); backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 32px;
+    padding: 64px 80px; max-width: 1400px; text-align: center;
+    box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.5); z-index: 10;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .brand { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }
+  .logo-box {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    border-radius: 18px; display: flex; align-items: center; justify-content: center;
+    font-size: 36px; font-weight: 900; box-shadow: 0 10px 25px rgba(139, 92, 246, 0.4);
+  }
+  .brand-name { font-size: 38px; font-weight: 800; letter-spacing: -1px; color: #a78bfa; }
+  .tag {
+    background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(167, 139, 250, 0.3);
+    color: #c4b5fd; padding: 8px 24px; border-radius: 999px; font-size: 16px;
+    font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 24px;
+  }
+  .title {
+    font-size: 50px; font-weight: 800; line-height: 1.15; margin-bottom: 24px;
+    background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .description { font-size: 22px; color: #94a3b8; max-width: 1000px; line-height: 1.6; font-weight: 400; }
+  .footer-bar { position: absolute; bottom: 40px; font-size: 18px; color: #64748b; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+  <div class="glow"></div>
+  <div class="card">
+    <div class="brand">
+      <div class="logo-box">C</div>
+      <div class="brand-name">CAANMA ERP</div>
+    </div>
+    <div class="tag">COTIZACIONES & FACTURACIÓN SAT</div>
+    <div class="title">Emisión de Cotizaciones, Conversión a Venta y Timbrado CFDI 4.0</div>
+    <div class="description">Aprende a presupuestar propuestas comerciales, enviarlas al cliente y convertirlas en facturas electrónicas timbradas ante el SAT.</div>
+  </div>
+  <div class="footer-bar">CAANMA ERP • Centro de Ayuda y Capacitación Oficial</div>
+</body>
+</html>

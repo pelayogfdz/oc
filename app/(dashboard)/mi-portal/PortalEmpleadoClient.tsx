@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Clock, MapPin, CalendarDays, CheckCircle2, AlertTriangle, FileText, User, Camera, Fingerprint, Lock } from 'lucide-react';
 import { registerAttendance, createLeaveRequest, registerFaceDescriptor, registerFingerprintCredential } from '@/app/actions/hr';
 import { changeOwnPassword } from '@/app/actions/auth-actions';
@@ -370,6 +370,53 @@ export default function PortalEmpleadoClient({
 
   const checkIn = todayLogs.find((l: any) => l.type === 'CHECK_IN');
   const checkOut = todayLogs.find((l: any) => l.type === 'CHECK_OUT');
+
+  // Compute Weekly Stats (Worked Hours & Delays)
+  const weeklyStats = useMemo(() => {
+    let totalMs = 0;
+    let retardos = 0;
+
+    const logsByDate: Record<string, any[]> = {};
+    allLogs.forEach((log: any) => {
+      const dateStr = new Date(log.timestamp).toLocaleDateString('sv-SE', { timeZone: timezone });
+      if (!logsByDate[dateStr]) logsByDate[dateStr] = [];
+      logsByDate[dateStr].push(log);
+    });
+
+    Object.values(logsByDate).forEach((dayLogs) => {
+      dayLogs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+      const cIn = dayLogs.find((l: any) => l.type === 'CHECK_IN');
+      const cOut = dayLogs.find((l: any) => l.type === 'CHECK_OUT');
+
+      if (cIn && cIn.status === 'LATE') {
+        retardos++;
+      }
+
+      if (cIn && cOut) {
+        const inTime = new Date(cIn.timestamp).getTime();
+        const outTime = new Date(cOut.timestamp).getTime();
+        if (outTime > inTime) {
+          totalMs += (outTime - inTime);
+        }
+      } else if (cIn && !cOut) {
+        const inTime = new Date(cIn.timestamp).getTime();
+        const nowMs = new Date().getTime();
+        if (nowMs > inTime) {
+          totalMs += (nowMs - inTime);
+        }
+      }
+    });
+
+    const totalHoursFloat = totalMs / (1000 * 60 * 60);
+    const formattedHours = totalHoursFloat > 0 ? totalHoursFloat.toFixed(1) : '0.0';
+
+    return {
+      hoursStr: `${formattedHours} hrs`,
+      retardos,
+      faltas: 0
+    };
+  }, [allLogs, timezone]);
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '1rem' }}>
@@ -917,15 +964,15 @@ export default function PortalEmpleadoClient({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                 <span style={{ color: '#64748b' }}>Horas Trabajadas:</span>
-                <span style={{ fontWeight: 'bold' }}>-- hrs</span>
+                <span style={{ fontWeight: 'bold', color: '#0f172a' }}>{weeklyStats.hoursStr}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                 <span style={{ color: '#64748b' }}>Faltas:</span>
-                <span style={{ fontWeight: 'bold', color: '#ef4444' }}>0</span>
+                <span style={{ fontWeight: 'bold', color: '#ef4444' }}>{weeklyStats.faltas}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                 <span style={{ color: '#64748b' }}>Retardos:</span>
-                <span style={{ fontWeight: 'bold', color: '#f59e0b' }}>0</span>
+                <span style={{ fontWeight: 'bold', color: '#f59e0b' }}>{weeklyStats.retardos}</span>
               </div>
             </div>
           </div>

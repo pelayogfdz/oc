@@ -716,27 +716,56 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
   const tenantTimezone = tenant?.timezone || 'America/Mexico_City';
 
   const payrollData = users.map(u => {
-    // 1. Calculate days worked (requiring BOTH CHECK_IN and CHECK_OUT on the same day)
-    const checkInDays = new Set<string>();
-    const checkOutDays = new Set<string>();
-    let lates = 0;
-
+    // 1. Calculate days worked and hours worked (matching CHECK_IN and CHECK_OUT on the same day)
+    const logsByDay: Record<string, { checkIn?: Date, checkOut?: Date, isLate?: boolean }> = {};
     const mxFormatter = new Intl.DateTimeFormat('es-MX', { timeZone: tenantTimezone, year: 'numeric', month: '2-digit', day: '2-digit' });
 
     u.attendanceLogs.forEach(log => {
       const dateStr = mxFormatter.format(log.timestamp);
+      if (!logsByDay[dateStr]) {
+        logsByDay[dateStr] = {};
+      }
       if (log.type === 'CHECK_IN') {
-        checkInDays.add(dateStr);
-        if (log.status === 'LATE') lates++;
+        if (!logsByDay[dateStr].checkIn || log.timestamp < logsByDay[dateStr].checkIn) {
+          logsByDay[dateStr].checkIn = log.timestamp;
+          logsByDay[dateStr].isLate = log.status === 'LATE';
+        }
       } else if (log.type === 'CHECK_OUT') {
-        checkOutDays.add(dateStr);
+        if (!logsByDay[dateStr].checkOut || log.timestamp > logsByDay[dateStr].checkOut) {
+          logsByDay[dateStr].checkOut = log.timestamp;
+        }
       }
     });
 
     let workedDays = 0;
-    checkInDays.forEach(day => {
-      if (checkOutDays.has(day)) {
+    let lates = 0;
+    let workedHours = 0;
+    let regularHours = 0;
+    let doubleHours = 0;
+
+    Object.keys(logsByDay).forEach(day => {
+      const dayLogs = logsByDay[day];
+      if (dayLogs.checkIn && dayLogs.checkOut) {
         workedDays++;
+        if (dayLogs.isLate) lates++;
+
+        const diffMs = dayLogs.checkOut.getTime() - dayLogs.checkIn.getTime();
+        const hours = diffMs / (1000 * 60 * 60);
+        if (hours > 0) {
+          workedHours += hours;
+
+          let netDayHours = hours;
+          if (u.deductLunchHour) {
+            netDayHours = Math.max(0, hours - 1);
+          }
+
+          if (netDayHours > 8) {
+            regularHours += 8;
+            doubleHours += (netDayHours - 8);
+          } else {
+            regularHours += netDayHours;
+          }
+        }
       }
     });
 
@@ -774,14 +803,24 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
     const lateAbsences = discountLates ? Math.floor(lates / 3) : 0;
     absences += lateAbsences;
 
-    const totalDaysToPay = Math.max(0, workedDays + paidLeaveDays - lateAbsences);
-    let baseAmount = totalDaysToPay * u.dailySalary;
-
+    let baseAmount = 0;
     let lunchDeduction = 0;
-    if (u.deductLunchHour) {
-      // Deduct 1 hour per worked day (assuming 8 hour standard shift for hourly rate calculation)
-      lunchDeduction = (u.dailySalary / 8) * workedDays;
-      baseAmount -= lunchDeduction;
+
+    if (u.payrollType === 'POR_HORAS') {
+      const hourlyRate = u.dailySalary;
+      const doubleRate = u.overtimeBonus > 0 ? u.overtimeBonus : hourlyRate * 2;
+      baseAmount = (regularHours * hourlyRate) + (doubleHours * doubleRate);
+    } else {
+      const totalDaysToPay = Math.max(0, workedDays + paidLeaveDays - lateAbsences);
+      const hourlyRate = u.dailySalary / 8;
+      const doubleRate = u.overtimeBonus > 0 ? u.overtimeBonus : hourlyRate * 2;
+      
+      baseAmount = (totalDaysToPay * u.dailySalary) + (doubleHours * doubleRate);
+      
+      if (u.deductLunchHour) {
+        lunchDeduction = hourlyRate * workedDays;
+        baseAmount -= lunchDeduction;
+      }
     }
 
     return {
@@ -789,12 +828,15 @@ export async function calculatePayroll(startDateStr: string, endDateStr: string,
       name: u.name,
       rfc: u.rfc,
       dailySalary: u.dailySalary,
+      payrollType: u.payrollType,
       workedDays,
       lates,
       paidLeaveDays,
       unpaidLeaveDays,
       absences,
       lunchDeduction,
+      workedHours,
+      doubleHours,
       totalToPay: baseAmount
     };
   });
