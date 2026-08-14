@@ -155,12 +155,12 @@ export async function getCommissionReport(month: number, year: number) {
     }
   }
 
-  // B) Ventas de Organización para Coordinadores y Líderes (Rollup desde líderes y líderes secundarios)
+  // B) Ventas de Organización para Coordinadores y Líderes (Rollup desde líderes, líderes secundarios y coordinadores)
   for (const stat of rawStats) {
-    if ((stat.role === 'LIDER' || stat.role === 'LIDER_SECUNDARIO') && stat.managerId && statsMap.has(stat.managerId)) {
+    if ((stat.role === 'LIDER' || stat.role === 'LIDER_SECUNDARIO' || stat.role === 'COORDINADOR') && stat.managerId && statsMap.has(stat.managerId)) {
        const director = statsMap.get(stat.managerId)!;
        if (director.role === 'COORDINADOR' || director.role === 'LIDER') {
-          // Add the Leader/Co-Leader's team sales (excluding their personal sales to avoid double counting)
+          // Add the Leader/Co-Leader/Coordinator's team sales (excluding their personal sales to avoid double counting)
           director.teamSales += stat.teamSales;
           director.totalSalesBase += stat.teamSales;
        }
@@ -362,12 +362,12 @@ export async function getCustomCommissionsReport(
     }
   }
 
-  // B) Ventas de Organización para Coordinadores y Líderes (Rollup desde líderes y líderes secundarios)
+  // B) Ventas de Organización para Coordinadores y Líderes (Rollup desde líderes, líderes secundarios y coordinadores)
   for (const stat of rawStats) {
-    if ((stat.role === 'LIDER' || stat.role === 'LIDER_SECUNDARIO') && stat.managerId && statsMap.has(stat.managerId)) {
+    if ((stat.role === 'LIDER' || stat.role === 'LIDER_SECUNDARIO' || stat.role === 'COORDINADOR') && stat.managerId && statsMap.has(stat.managerId)) {
        const director = statsMap.get(stat.managerId)!;
        if (director.role === 'COORDINADOR' || director.role === 'LIDER') {
-          // Add the Leader/Co-Leader's team sales (excluding their personal sales to avoid double counting)
+          // Add the Leader/Co-Leader/Coordinator's team sales (excluding their personal sales to avoid double counting)
           director.teamSales += stat.teamSales;
           director.totalSalesBase += stat.teamSales;
        }
