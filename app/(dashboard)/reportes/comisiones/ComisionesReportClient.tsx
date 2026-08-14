@@ -273,7 +273,14 @@ export default function ComisionesReportClient({
                           }}>
                             {u.name.substring(0, 2).toUpperCase()}
                           </div>
-                          {u.name}
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontWeight: 'bold' }}>{u.name}</span>
+                            {u.monthlyGoal > 0 && (
+                              <span style={{ fontSize: '0.75rem', marginTop: '0.15rem', color: u.totalSalesBase >= u.monthlyGoal ? '#16a34a' : '#ef4444', fontWeight: 'normal' }}>
+                                Meta: {formatCurrency(u.monthlyGoal)} (Bono: {formatCurrency(u.bonusAmount)}) {u.totalSalesBase >= u.monthlyGoal ? '✓' : '✗'}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td data-label="Puesto" style={{ padding: '1rem 0.5rem' }}>
                           <span style={{ 

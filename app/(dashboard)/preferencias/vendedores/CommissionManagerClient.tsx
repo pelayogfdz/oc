@@ -285,8 +285,10 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
                           <thead>
                             <tr style={{ backgroundColor: '#f1f5f9', color: '#64748b', fontSize: '0.8rem' }}>
                               <th style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--caanma-border)' }}>Colaborador</th>
-                              <th style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--caanma-border)', width: '130px' }}>% de Comisión</th>
-                              <th style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--caanma-border)', width: '200px' }}>Equipo Asignado</th>
+                              <th style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--caanma-border)', width: '110px' }}>% Comisión</th>
+                              <th style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--caanma-border)', width: '140px' }}>Meta Individual</th>
+                              <th style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--caanma-border)', width: '120px' }}>Bono Meta</th>
+                              <th style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--caanma-border)', width: '180px' }}>Equipo Asignado</th>
                               <th style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--caanma-border)', width: '130px' }}>Rol Actual</th>
                             </tr>
                           </thead>
@@ -297,10 +299,22 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
                                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
                                   {vendor.name}
                                 </td>
-                                <td data-label="% de Comisión" style={{ padding: '0.75rem 1.5rem' }}>
+                                <td data-label="% Comisión" style={{ padding: '0.75rem 1.5rem' }}>
                                   <div style={{ display: 'flex', alignItems: 'center' }}>
-                                    <input type="number" min="0" step="0.01" value={vendor.commissionPct || 0} onChange={e => handleChange(vendor.id, 'commissionPct', e.target.value)} style={{ width: '60px', padding: '0.4rem', border: '1px solid var(--caanma-border)', borderRadius: '4px 0 0 4px', borderRight: 'none', textAlign: 'center', outline: 'none' }} />
+                                    <input type="number" min="0" step="0.01" value={vendor.commissionPct || 0} onChange={e => handleChange(vendor.id, 'commissionPct', e.target.value)} style={{ width: '55px', padding: '0.4rem', border: '1px solid var(--caanma-border)', borderRadius: '4px 0 0 4px', borderRight: 'none', textAlign: 'center', outline: 'none' }} />
                                     <div style={{ padding: '0.4rem', backgroundColor: '#f8fafc', border: '1px solid var(--caanma-border)', borderRadius: '0 4px 4px 0', fontSize: '0.8rem' }}>%</div>
+                                  </div>
+                                </td>
+                                <td data-label="Meta Individual" style={{ padding: '0.75rem 1.5rem' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                                    <div style={{ padding: '0.4rem', backgroundColor: '#f8fafc', border: '1px solid var(--caanma-border)', borderRadius: '4px 0 0 4px', fontSize: '0.8rem', color: '#64748b' }}>$</div>
+                                    <input type="number" min="0" step="100" value={vendor.monthlyGoal || 0} onChange={e => handleChange(vendor.id, 'monthlyGoal', e.target.value)} style={{ width: '75px', padding: '0.4rem', border: '1px solid var(--caanma-border)', borderRadius: '0 4px 4px 0', borderLeft: 'none', textAlign: 'center', outline: 'none' }} />
+                                  </div>
+                                </td>
+                                <td data-label="Bono Meta" style={{ padding: '0.75rem 1.5rem' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                                    <div style={{ padding: '0.4rem', backgroundColor: '#f8fafc', border: '1px solid var(--caanma-border)', borderRadius: '4px 0 0 4px', fontSize: '0.8rem', color: '#64748b' }}>$</div>
+                                    <input type="number" min="0" step="10" value={vendor.bonusAmount || 0} onChange={e => handleChange(vendor.id, 'bonusAmount', e.target.value)} style={{ width: '65px', padding: '0.4rem', border: '1px solid var(--caanma-border)', borderRadius: '0 4px 4px 0', borderLeft: 'none', textAlign: 'center', outline: 'none' }} />
                                   </div>
                                 </td>
                                 <td data-label="Equipo Asignado" style={{ padding: '0.75rem 1.5rem' }}>
@@ -318,7 +332,7 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
                             ))}
                             {teamMembers.length === 0 && (
                               <tr>
-                                <td colSpan={4} style={{ padding: '1.5rem', textAlign: 'center', color: '#94a3b8', fontStyle: 'italic' }}>
+                                <td colSpan={6} style={{ padding: '1.5rem', textAlign: 'center', color: '#94a3b8', fontStyle: 'italic' }}>
                                   Este equipo no tiene vendedores asignados aún.
                                 </td>
                               </tr>
@@ -357,9 +371,11 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
                  <thead>
                    <tr style={{ backgroundColor: '#fffbeb', color: '#b45309', fontSize: '0.85rem' }}>
                      <th style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid #fde68a' }}>Colaborador</th>
-                     <th style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid #fde68a', width: '150px' }}>% de Comisión</th>
-                     <th style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid #fde68a', width: '250px' }}>Jefe Inmediato (Opcional)</th>
-                     <th style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid #fde68a', width: '150px' }}>Rol Actual</th>
+                     <th style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid #fde68a', width: '110px' }}>% Comisión</th>
+                     <th style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid #fde68a', width: '140px' }}>Meta Individual</th>
+                     <th style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid #fde68a', width: '120px' }}>Bono Meta</th>
+                     <th style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid #fde68a', width: '230px' }}>Jefe Inmediato (Opcional)</th>
+                     <th style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid #fde68a', width: '130px' }}>Rol Actual</th>
                    </tr>
                  </thead>
                  <tbody>
@@ -369,10 +385,22 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1' }}></div>
                          {vendor.name}
                        </td>
-                       <td data-label="% de Comisión" style={{ padding: '0.75rem 1.5rem' }}>
+                       <td data-label="% Comisión" style={{ padding: '0.75rem 1.5rem' }}>
                          <div style={{ display: 'flex', alignItems: 'center' }}>
-                           <input type="number" min="0" step="0.01" value={vendor.commissionPct || 0} onChange={e => handleChange(vendor.id, 'commissionPct', e.target.value)} style={{ width: '80px', padding: '0.4rem', border: '1px solid var(--caanma-border)', borderRadius: '4px 0 0 4px', borderRight: 'none', textAlign: 'center', outline: 'none' }} />
+                           <input type="number" min="0" step="0.01" value={vendor.commissionPct || 0} onChange={e => handleChange(vendor.id, 'commissionPct', e.target.value)} style={{ width: '55px', padding: '0.4rem', border: '1px solid var(--caanma-border)', borderRadius: '4px 0 0 4px', borderRight: 'none', textAlign: 'center', outline: 'none' }} />
                            <div style={{ padding: '0.4rem', backgroundColor: '#f8fafc', border: '1px solid var(--caanma-border)', borderRadius: '0 4px 4px 0', fontSize: '0.8rem' }}>%</div>
+                         </div>
+                       </td>
+                       <td data-label="Meta Individual" style={{ padding: '0.75rem 1.5rem' }}>
+                         <div style={{ display: 'flex', alignItems: 'center' }}>
+                           <div style={{ padding: '0.4rem', backgroundColor: '#f8fafc', border: '1px solid var(--caanma-border)', borderRadius: '4px 0 0 4px', fontSize: '0.8rem', color: '#64748b' }}>$</div>
+                           <input type="number" min="0" step="100" value={vendor.monthlyGoal || 0} onChange={e => handleChange(vendor.id, 'monthlyGoal', e.target.value)} style={{ width: '75px', padding: '0.4rem', border: '1px solid var(--caanma-border)', borderRadius: '0 4px 4px 0', borderLeft: 'none', textAlign: 'center', outline: 'none' }} />
+                         </div>
+                       </td>
+                       <td data-label="Bono Meta" style={{ padding: '0.75rem 1.5rem' }}>
+                         <div style={{ display: 'flex', alignItems: 'center' }}>
+                           <div style={{ padding: '0.4rem', backgroundColor: '#f8fafc', border: '1px solid var(--caanma-border)', borderRadius: '4px 0 0 4px', fontSize: '0.8rem', color: '#64748b' }}>$</div>
+                           <input type="number" min="0" step="10" value={vendor.bonusAmount || 0} onChange={e => handleChange(vendor.id, 'bonusAmount', e.target.value)} style={{ width: '65px', padding: '0.4rem', border: '1px solid var(--caanma-border)', borderRadius: '0 4px 4px 0', borderLeft: 'none', textAlign: 'center', outline: 'none' }} />
                          </div>
                        </td>
                        <td data-label="Jefe Inmediato (Opcional)" style={{ padding: '0.75rem 1.5rem' }}>

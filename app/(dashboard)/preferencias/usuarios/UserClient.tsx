@@ -1243,6 +1243,10 @@ export default function UserClient({ initialUsers, branches, hrLocations = [], c
                 <input type="number" step="100" min="0" name="monthlyGoal" defaultValue={editingUser?.monthlyGoal || 0} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #16a34a', backgroundColor: 'white' }} />
               </div>
               <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#16a34a' }}>Bono Meta Individual ($)</label>
+                <input type="number" step="10" min="0" name="bonusAmount" defaultValue={editingUser?.bonusAmount || 0} required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #16a34a', backgroundColor: 'white' }} />
+              </div>
+              <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#f59e0b' }}>Jefe Inmediato</label>
                 <select name="managerId" defaultValue={editingUser?.managerId || 'NONE'} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #f59e0b', backgroundColor: 'white' }}>
                   <option value="NONE">Ninguno / Independiente</option>
