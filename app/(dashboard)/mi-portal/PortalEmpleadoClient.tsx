@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Clock, MapPin, CalendarDays, CheckCircle2, AlertTriangle, FileText, User, Camera, Fingerprint, Lock, DollarSign, Filter, ChevronDown, ChevronUp } from 'lucide-react';
-import { registerAttendance, createLeaveRequest, registerFaceDescriptor, registerFingerprintCredential } from '@/app/actions/hr';
+import { registerAttendance, createLeaveRequest, registerFaceDescriptor, registerFingerprintCredential, getEmployeePayrollSummary } from '@/app/actions/hr';
 import { changeOwnPassword } from '@/app/actions/auth-actions';
 import { getEmployeeOwnCommissions } from '@/app/actions/commissions';
 import FaceRecognitionClient from './FaceRecognitionClient';
@@ -62,10 +62,10 @@ export default function PortalEmpleadoClient({
   const fetchCommissions = async (sDate: string, eDate: string) => {
     setLoadingComm(true);
     try {
-      const data = await getEmployeeOwnCommissions(sDate, eDate);
+      const data = await getEmployeePayrollSummary(sDate, eDate);
       setCommData(data);
     } catch (err) {
-      console.error("Error loading employee commissions:", err);
+      console.error("Error loading employee payroll & commissions:", err);
     } finally {
       setLoadingComm(false);
     }
@@ -1029,15 +1029,15 @@ export default function PortalEmpleadoClient({
             </button>
           </div>
 
-          {/* Section: Mis Comisiones y Bonos */}
+          {/* Section: Mis Comisiones, Bonos y Cálculo de Nómina */}
           <div className="card" style={{ gridColumn: '1 / -1', padding: '1.5rem', backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', marginTop: '1rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
               <div>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e293b' }}>
-                  <DollarSign size={22} style={{ color: '#16a34a' }} /> Mis Comisiones y Bonos
+                  <DollarSign size={22} style={{ color: '#16a34a' }} /> Cálculo de Nómina, Bonos y Comisiones por Fecha
                 </h3>
                 <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
-                  Consulta el acumulado de tus comisiones y bonos acreditados en cualquier rango de fechas.
+                  Consulta las horas trabajadas, sueldo base estimado, bonos acreditables y comisiones ganadas en cualquier rango de fechas.
                 </p>
               </div>
 
@@ -1066,37 +1066,156 @@ export default function PortalEmpleadoClient({
                   disabled={loadingComm}
                   style={{ padding: '0.45rem 0.85rem', borderRadius: '8px', border: 'none', backgroundColor: '#2563eb', color: 'white', fontWeight: '600', fontSize: '0.85rem', cursor: loadingComm ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                 >
-                  <Filter size={14} /> {loadingComm ? 'Filtrando...' : 'Filtrar'}
+                  <Filter size={14} /> {loadingComm ? 'Calculando...' : 'Filtrar'}
                 </button>
               </div>
             </div>
 
-            {/* Metric Cards Grid */}
             {commData ? (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+                {/* Payroll & Perceptions Cards Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                  
+                  {/* Card 1: Sueldo por Horas Trabajadas */}
                   <div style={{ padding: '1rem', borderRadius: '12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>Ventas Realizadas</span>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a' }}>${commData.personalSales.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginTop: '0.2rem' }}>% Comisión: <strong>{commData.commissionPct}%</strong></span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>
+                      ⏱️ Horas Trabajadas ({commData.workedHours.toFixed(1)} hrs)
+                    </span>
+                    <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#0f172a' }}>
+                      ${commData.basePay.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginTop: '0.2rem' }}>
+                      Tarifa: ${commData.hourlyRate.toFixed(2)}/hr | {commData.workedDays} días lab.
+                    </span>
                   </div>
 
+                  {/* Card 2: Comisiones Ganadas */}
                   <div style={{ padding: '1rem', borderRadius: '12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '0.25rem' }}>Comisiones Ganadas</span>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#15803d' }}>${commData.commissionsEarned.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-                    <span style={{ fontSize: '0.75rem', color: '#166534', display: 'block', marginTop: '0.2rem' }}>por ventas de tickets</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '0.25rem' }}>
+                      📈 Comisiones por Ventas
+                    </span>
+                    <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#15803d' }}>
+                      ${commData.commissionsEarned.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: '#166534', display: 'block', marginTop: '0.2rem' }}>
+                      Ventas: ${commData.totalSalesAmount.toLocaleString('es-MX')} ({commData.commissionPct}%)
+                    </span>
                   </div>
 
+                  {/* Card 3: Total Bonos Acreditados */}
                   <div style={{ padding: '1rem', borderRadius: '12px', backgroundColor: '#fefce8', border: '1px solid #fef08a' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#854d0e', display: 'block', marginBottom: '0.25rem' }}>Bonos (Indiv. / Equipo)</span>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#a16207' }}>${(commData.bonusEarned + commData.teamBonusEarned).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-                    <span style={{ fontSize: '0.75rem', color: '#854d0e', display: 'block', marginTop: '0.2rem' }}>{commData.unlockedBonus ? '🏆 Meta Alcanzada' : 'Sin bono de meta en período'}</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#854d0e', display: 'block', marginBottom: '0.25rem' }}>
+                      🎁 Bonos Acreditados
+                    </span>
+                    <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#a16207' }}>
+                      ${commData.totalBonusesEarned.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: '#854d0e', display: 'block', marginTop: '0.2rem' }}>
+                      Puntualidad, Meta, Despensa, etc.
+                    </span>
                   </div>
 
+                  {/* Card 4: Total Estimado Período */}
                   <div style={{ padding: '1rem', borderRadius: '12px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#1e40af', display: 'block', marginBottom: '0.25rem' }}>Total a Recibir</span>
-                    <span style={{ fontSize: '1.35rem', fontWeight: 'bold', color: '#1d4ed8' }}>${commData.totalEarned.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-                    <span style={{ fontSize: '0.75rem', color: '#1e40af', display: 'block', marginTop: '0.2rem' }}>Comisión + Bonos</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#1e40af', display: 'block', marginBottom: '0.25rem' }}>
+                      💵 Total Estimado a Cobrar
+                    </span>
+                    <span style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#1d4ed8' }}>
+                      ${commData.totalEstimatedEarnings.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: '#1e40af', display: 'block', marginTop: '0.2rem' }}>
+                      Sueldo + Comisiones + Bonos
+                    </span>
+                  </div>
+                </div>
+
+                {/* Section: Desglose de Todos los Bonos Acreditables */}
+                <div style={{ marginBottom: '1.5rem', padding: '1.25rem', backgroundColor: '#fafafa', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+                  <h4 style={{ margin: '0 0 0.85rem 0', fontSize: '0.95rem', color: '#1e293b', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    🏆 Desglose de Todos los Bonos que Puedes Ganar
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem' }}>
+                    
+                    {/* Bono 1: Puntualidad y Asistencia */}
+                    <div style={{ padding: '0.85rem', backgroundColor: 'white', borderRadius: '10px', border: commData.bonuses.punctuality.unlocked ? '1px solid #86efac' : '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#334155' }}>⏱️ Puntualidad y Asistencia</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 'bold', padding: '0.15rem 0.45rem', borderRadius: '12px', backgroundColor: commData.bonuses.punctuality.unlocked ? '#dcfce7' : '#f1f5f9', color: commData.bonuses.punctuality.unlocked ? '#166534' : '#64748b' }}>
+                          {commData.bonuses.punctuality.unlocked ? '🟢 Acreditado' : '🟡 Sin Acreditar'}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '1rem', fontWeight: 'bold', color: commData.bonuses.punctuality.unlocked ? '#15803d' : '#64748b', display: 'block' }}>
+                        ${commData.bonuses.punctuality.earned.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginTop: '0.15rem' }}>
+                        Monto asignado: ${commData.bonuses.punctuality.amount.toLocaleString('es-MX')} ({commData.lates} retardos / {commData.absences} faltas)
+                      </span>
+                    </div>
+
+                    {/* Bono 2: Meta Individual */}
+                    <div style={{ padding: '0.85rem', backgroundColor: 'white', borderRadius: '10px', border: commData.bonuses.individual.unlocked ? '1px solid #86efac' : '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#334155' }}>🎯 Meta Individual de Ventas</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 'bold', padding: '0.15rem 0.45rem', borderRadius: '12px', backgroundColor: commData.bonuses.individual.unlocked ? '#dcfce7' : '#f1f5f9', color: commData.bonuses.individual.unlocked ? '#166534' : '#64748b' }}>
+                          {commData.bonuses.individual.unlocked ? '🟢 Acreditado' : '🟡 En Progreso'}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '1rem', fontWeight: 'bold', color: commData.bonuses.individual.unlocked ? '#15803d' : '#64748b', display: 'block' }}>
+                        ${commData.bonuses.individual.earned.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginTop: '0.15rem' }}>
+                        Meta mensual: ${commData.bonuses.individual.monthlyGoal.toLocaleString('es-MX')} (Bono: ${commData.bonuses.individual.amount.toLocaleString('es-MX')})
+                      </span>
+                    </div>
+
+                    {/* Bono 3: Meta de Equipo / Sucursal */}
+                    <div style={{ padding: '0.85rem', backgroundColor: 'white', borderRadius: '10px', border: commData.bonuses.team.unlocked ? '1px solid #86efac' : '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#334155' }}>👥 Meta de Equipo / Sucursal</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 'bold', padding: '0.15rem 0.45rem', borderRadius: '12px', backgroundColor: commData.bonuses.team.unlocked ? '#dcfce7' : '#f1f5f9', color: commData.bonuses.team.unlocked ? '#166534' : '#64748b' }}>
+                          {commData.bonuses.team.unlocked ? '🟢 Acreditado' : '🟡 En Progreso'}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '1rem', fontWeight: 'bold', color: commData.bonuses.team.unlocked ? '#15803d' : '#64748b', display: 'block' }}>
+                        ${commData.bonuses.team.earned.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginTop: '0.15rem' }}>
+                        Monto asignado: ${commData.bonuses.team.amount.toLocaleString('es-MX')}
+                      </span>
+                    </div>
+
+                    {/* Bono 4: Vales de Despensa */}
+                    <div style={{ padding: '0.85rem', backgroundColor: 'white', borderRadius: '10px', border: commData.bonuses.grocery.unlocked ? '1px solid #86efac' : '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#334155' }}>🛒 Vales / Bono de Despensa</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 'bold', padding: '0.15rem 0.45rem', borderRadius: '12px', backgroundColor: commData.bonuses.grocery.unlocked ? '#dcfce7' : '#f1f5f9', color: commData.bonuses.grocery.unlocked ? '#166534' : '#64748b' }}>
+                          {commData.bonuses.grocery.unlocked ? '🟢 Asignado' : '⚪ N/A'}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '1rem', fontWeight: 'bold', color: commData.bonuses.grocery.unlocked ? '#15803d' : '#64748b', display: 'block' }}>
+                        ${commData.bonuses.grocery.earned.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginTop: '0.15rem' }}>
+                        Percepción fija de despensa
+                      </span>
+                    </div>
+
+                    {/* Bono 5: Transporte */}
+                    <div style={{ padding: '0.85rem', backgroundColor: 'white', borderRadius: '10px', border: commData.bonuses.transport.unlocked ? '1px solid #86efac' : '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#334155' }}>🚌 Bono de Transporte</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 'bold', padding: '0.15rem 0.45rem', borderRadius: '12px', backgroundColor: commData.bonuses.transport.unlocked ? '#dcfce7' : '#f1f5f9', color: commData.bonuses.transport.unlocked ? '#166534' : '#64748b' }}>
+                          {commData.bonuses.transport.unlocked ? '🟢 Asignado' : '⚪ N/A'}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '1rem', fontWeight: 'bold', color: commData.bonuses.transport.unlocked ? '#15803d' : '#64748b', display: 'block' }}>
+                        ${commData.bonuses.transport.earned.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginTop: '0.15rem' }}>
+                        Apoyo fijo de transporte
+                      </span>
+                    </div>
+
                   </div>
                 </div>
 
@@ -1146,7 +1265,7 @@ export default function PortalEmpleadoClient({
               </>
             ) : (
               <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b', fontSize: '0.9rem' }}>
-                {loadingComm ? 'Cargando información de comisiones...' : 'No se encontraron comisiones para el período seleccionado.'}
+                {loadingComm ? 'Cargando información de nómina y bonos...' : 'No se encontraron registros para el período seleccionado.'}
               </div>
             )}
           </div>

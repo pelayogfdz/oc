@@ -1105,4 +1105,253 @@ export async function registerAttendanceByFingerprint(data: {
   }
 }
 
+export async function getEmployeePayrollSummary(startDateStr?: string, endDateStr?: string) {
+  const sessionCookie = (await cookies()).get('session')?.value;
+  const session = await decrypt(sessionCookie);
+  if (!session?.userId) throw new Error("No autorizado");
+
+  const now = new Date();
+  const startDate = startDateStr 
+    ? new Date(`${startDateStr}T00:00:00`)
+    : new Date(now.getFullYear(), now.getMonth(), 1);
+  const endDate = endDateStr 
+    ? new Date(`${endDateStr}T23:59:59`)
+    : new Date();
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    include: {
+      attendanceLogs: {
+        where: {
+          timestamp: { gte: startDate, lte: endDate }
+        }
+      },
+      leaveRequests: {
+        where: {
+          status: 'APPROVED',
+          startDate: { lte: endDate },
+          endDate: { gte: startDate }
+        }
+      },
+      sales: {
+        where: {
+          createdAt: { gte: startDate, lte: endDate },
+          status: 'COMPLETED'
+        },
+        select: {
+          id: true,
+          total: true,
+          createdAt: true,
+          paymentMethod: true,
+          invoiceId: true,
+          customer: {
+            select: { name: true }
+          }
+        }
+      }
+    }
+  });
+
+  if (!user) throw new Error("Usuario no encontrado");
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: session.tenantId || user.tenantId || undefined },
+    select: { timezone: true }
+  });
+  const timezone = tenant?.timezone || 'America/Mexico_City';
+
+  // 1. Compute attendance logs
+  const logsByDay: Record<string, { checkIn?: Date, checkOut?: Date, isLate?: boolean }> = {};
+  const mxFormatter = new Intl.DateTimeFormat('es-MX', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
+
+  user.attendanceLogs.forEach(log => {
+    const dateStr = mxFormatter.format(log.timestamp);
+    if (!logsByDay[dateStr]) logsByDay[dateStr] = {};
+    if (log.type === 'CHECK_IN') {
+      if (!logsByDay[dateStr].checkIn || log.timestamp < logsByDay[dateStr].checkIn) {
+        logsByDay[dateStr].checkIn = log.timestamp;
+        logsByDay[dateStr].isLate = log.status === 'LATE';
+      }
+    } else if (log.type === 'CHECK_OUT') {
+      if (!logsByDay[dateStr].checkOut || log.timestamp > logsByDay[dateStr].checkOut) {
+        logsByDay[dateStr].checkOut = log.timestamp;
+      }
+    }
+  });
+
+  let workedDays = 0;
+  let lates = 0;
+  let workedHours = 0;
+  let regularHours = 0;
+  let doubleHours = 0;
+
+  Object.keys(logsByDay).forEach(day => {
+    const dayLogs = logsByDay[day];
+    if (dayLogs.checkIn && dayLogs.checkOut) {
+      workedDays++;
+      if (dayLogs.isLate) lates++;
+
+      const diffMs = dayLogs.checkOut.getTime() - dayLogs.checkIn.getTime();
+      const hours = diffMs / (1000 * 60 * 60);
+      if (hours > 0) {
+        workedHours += hours;
+
+        let netDayHours = hours;
+        if (user.deductLunchHour) {
+          netDayHours = Math.max(0, hours - 1);
+        }
+
+        if (netDayHours > 8) {
+          regularHours += 8;
+          doubleHours += (netDayHours - 8);
+        } else {
+          regularHours += netDayHours;
+        }
+      }
+    } else if (dayLogs.checkIn && !dayLogs.checkOut) {
+      workedDays++;
+      if (dayLogs.isLate) lates++;
+      const diffMs = new Date().getTime() - dayLogs.checkIn.getTime();
+      const hours = Math.max(0, diffMs / (1000 * 60 * 60));
+      workedHours += hours;
+      regularHours += Math.min(8, hours);
+      if (hours > 8) doubleHours += (hours - 8);
+    }
+  });
+
+  // Leave days calculation
+  let paidLeaveDays = 0;
+  let unpaidLeaveDays = 0;
+  user.leaveRequests.forEach(req => {
+    const start = req.startDate < startDate ? startDate : req.startDate;
+    const end = req.endDate > endDate ? endDate : req.endDate;
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    if (['VACATION', 'PAID_LEAVE', 'SICK_LEAVE', 'PATERNITY_LEAVE'].includes(req.type)) {
+      paidLeaveDays += diffDays;
+    } else if (req.type === 'UNPAID_LEAVE') {
+      unpaidLeaveDays += diffDays;
+    }
+  });
+
+  const periodDiffTime = Math.abs(endDate.getTime() - startDate.getTime());
+  const periodDays = Math.max(1, Math.ceil(periodDiffTime / (1000 * 60 * 60 * 24)));
+  let absences = Math.max(0, periodDays - (workedDays + paidLeaveDays));
+  absences += unpaidLeaveDays;
+
+  // Hourly Rate and Base Pay Calculation
+  const isPorHoras = user.payrollType === 'POR_HORAS';
+  const hourlyRate = isPorHoras ? (user.dailySalary || 0) : ((user.dailySalary || 0) / 8);
+  const doubleRate = user.overtimeBonus > 0 ? user.overtimeBonus : (hourlyRate * 2);
+
+  let basePay = 0;
+  if (isPorHoras) {
+    basePay = (regularHours * hourlyRate) + (doubleHours * doubleRate);
+  } else {
+    const paidDays = Math.max(0, workedDays + paidLeaveDays);
+    basePay = (paidDays * (user.dailySalary || 0)) + (doubleHours * doubleRate);
+    if (user.deductLunchHour) {
+      basePay -= (hourlyRate * workedDays);
+    }
+  }
+
+  // 2. Compute Sales & Commissions
+  const totalSalesAmount = user.sales.reduce((sum, s) => sum + s.total, 0);
+  const commissionPct = user.commissionPct || 0;
+  const commissionsEarned = totalSalesAmount * (commissionPct / 100);
+
+  // 3. Compute Bonuses
+  const punctualityBonusEligible = lates === 0 && absences === 0 && (workedDays > 0 || paidLeaveDays > 0);
+  const bonusPunctualityEarned = punctualityBonusEligible ? (user.bonusPunctuality || 0) : 0;
+
+  const monthlyGoal = user.monthlyGoal || 0;
+  const individualBonusEligible = monthlyGoal > 0 && totalSalesAmount >= monthlyGoal;
+  const bonusAmountEarned = individualBonusEligible ? (user.bonusAmount || 0) : 0;
+
+  let teamBonusEarned = 0;
+  let teamBonusEligible = false;
+  if (user.teamBonusAmount && user.teamBonusAmount > 0) {
+    if (user.managerId || user.commissionRole === 'LIDER' || user.commissionRole === 'COORDINADOR') {
+      teamBonusEligible = monthlyGoal > 0 && totalSalesAmount >= monthlyGoal;
+      if (teamBonusEligible) teamBonusEarned = user.teamBonusAmount;
+    }
+  }
+
+  const groceryBonusEarned = user.groceryBonus || 0;
+  const transportBonusEarned = user.transportBonus || 0;
+
+  const totalBonusesEarned = bonusPunctualityEarned + bonusAmountEarned + teamBonusEarned + groceryBonusEarned + transportBonusEarned;
+  const totalEstimatedEarnings = basePay + commissionsEarned + totalBonusesEarned;
+
+  const salesList = user.sales.map(s => ({
+    id: s.id,
+    total: s.total,
+    date: s.createdAt.toISOString(),
+    method: s.paymentMethod,
+    invoiceId: s.invoiceId,
+    customer: s.customer?.name || 'Público en General',
+    commissionPct,
+    commissionEarned: s.total * (commissionPct / 100)
+  }));
+
+  return {
+    startDateStr: startDate.toISOString().split('T')[0],
+    endDateStr: endDate.toISOString().split('T')[0],
+    payrollType: user.payrollType || 'SUELDO_DIARIO',
+    dailySalary: user.dailySalary || 0,
+    hourlyRate,
+    workedDays,
+    workedHours,
+    regularHours,
+    doubleHours,
+    lates,
+    absences,
+    paidLeaveDays,
+    basePay,
+
+    // Commissions
+    totalSalesAmount,
+    commissionPct,
+    commissionsEarned,
+    salesList,
+
+    // Bonuses
+    bonuses: {
+      punctuality: {
+        amount: user.bonusPunctuality || 0,
+        earned: bonusPunctualityEarned,
+        unlocked: punctualityBonusEligible,
+        label: "Bono de Puntualidad y Asistencia"
+      },
+      individual: {
+        amount: user.bonusAmount || 0,
+        earned: bonusAmountEarned,
+        unlocked: individualBonusEligible,
+        monthlyGoal,
+        label: "Bono Individual por Meta de Ventas"
+      },
+      team: {
+        amount: user.teamBonusAmount || 0,
+        earned: teamBonusEarned,
+        unlocked: teamBonusEligible,
+        label: "Bono de Equipo / Sucursal"
+      },
+      grocery: {
+        amount: user.groceryBonus || 0,
+        earned: groceryBonusEarned,
+        unlocked: groceryBonusEarned > 0,
+        label: "Vales / Bono de Despensa"
+      },
+      transport: {
+        amount: user.transportBonus || 0,
+        earned: transportBonusEarned,
+        unlocked: transportBonusEarned > 0,
+        label: "Bono de Transporte"
+      }
+    },
+    totalBonusesEarned,
+    totalEstimatedEarnings
+  };
+}
+
 
