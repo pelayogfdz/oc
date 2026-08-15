@@ -1662,33 +1662,46 @@ export default function POSClient({
             const itemDiscount = (itemSubtotal / applicableSubTotal) * promo.value;
             discountsMap[item.cartItemId] += itemDiscount;
           });
-        } else if (promo.type === 'BOGO') {
+        } else if (promo.type === 'BOGO' || promo.type === 'BOGO_PERCENT') {
+          const pay = meta.payQty || 1;
+          const rec = meta.receiveQty || 2;
+          const discountPct = promo.type === 'BOGO' ? 100 : (meta.discountPercent !== undefined ? meta.discountPercent : 50);
+
+          const units: { price: number; cartItemId: string }[] = [];
           applicableCartItems.forEach(item => {
-            const pay = meta.payQty || 1;
-            const rec = meta.receiveQty || 2;
-            const freeQty = Math.floor(item.quantity / rec) * (rec - pay);
-            if (freeQty > 0) {
-              const itemPrice = getProductPrice(item);
-              const itemDiscount = freeQty * itemPrice;
-              discountsMap[item.cartItemId] += itemDiscount;
+            const price = getProductPrice(item);
+            for (let i = 0; i < item.quantity; i++) {
+              units.push({ price, cartItemId: item.cartItemId });
+            }
+          });
+
+          // Sort units by price descending to charge full price for the most expensive ones
+          units.sort((a, b) => b.price - a.price);
+
+          units.forEach((unit, index) => {
+            const posInGroup = (index % rec) + 1;
+            if (posInGroup > pay) {
+              const discountAmount = unit.price * (discountPct / 100);
+              discountsMap[unit.cartItemId] += discountAmount;
             }
           });
         } else if (promo.type === 'LOYALTY_STAMP') {
           const targetLimit = Math.round(promo.value) || 10;
+          const discountPct = meta.discountPercent !== undefined ? meta.discountPercent : 100;
           applicableCartItems.forEach(item => {
             const pastCount = customerPurchaseCounts[item.id] || 0;
             const itemPrice = getProductPrice(item);
             
-            let freeQty = 0;
+            let discountedQty = 0;
             for (let i = 1; i <= item.quantity; i++) {
               const currentOverallCount = pastCount + i;
               if (currentOverallCount % targetLimit === 0) {
-                freeQty++;
+                discountedQty++;
               }
             }
             
-            if (freeQty > 0) {
-              const itemDiscount = freeQty * itemPrice;
+            if (discountedQty > 0) {
+              const itemDiscount = discountedQty * itemPrice * (discountPct / 100);
               discountsMap[item.cartItemId] += itemDiscount;
             }
           });
@@ -3218,11 +3231,21 @@ export default function POSClient({
                           const target = Math.round(itemLoyaltyPromo.value) || 10;
                           const pastCount = customerPurchaseCounts[item.id] || 0;
                           const currentStamps = pastCount % target;
+
+                          let discountPct = 100;
+                          try {
+                            const promoMeta = itemLoyaltyPromo.metadata ? JSON.parse(itemLoyaltyPromo.metadata) : {};
+                            if (promoMeta.discountPercent !== undefined) {
+                              discountPct = Number(promoMeta.discountPercent);
+                            }
+                          } catch (e) {}
+
+                          const rewardText = discountPct === 100 ? 'Gratis' : `${discountPct}% desc`;
                           
                           return (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 'bold', color: '#db2777' }}>
-                                <span>🎁 Tarjeta de Sellos: {currentStamps} de {target}</span>
+                                <span>🎁 Tarjeta de Sellos: {currentStamps} de {target} ({rewardText})</span>
                                 {pastCount > 0 && <span style={{ color: '#94a3b8', fontWeight: 'normal' }}>(Historial: {pastCount} compras)</span>}
                               </div>
                               <div style={{ display: 'flex', gap: '0.15rem' }}>

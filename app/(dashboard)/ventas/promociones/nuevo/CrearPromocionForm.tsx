@@ -43,6 +43,7 @@ export default function CrearPromocionForm({ products, branchId, categories, bra
   // BOGO configuration
   const [payQty, setPayQty] = useState<number>(2);
   const [receiveQty, setReceiveQty] = useState<number>(3);
+  const [discountPercent, setDiscountPercent] = useState<number>(50);
 
   // Validity
   const [startDate, setStartDate] = useState('');
@@ -148,11 +149,12 @@ export default function CrearPromocionForm({ products, branchId, categories, bra
         targetBrands: selectedBrands,
         targetBranches: selectedBranches,
         targetPriceLists: selectedPriceLists,
-        payQty: type === 'BOGO' ? Number(payQty) : null,
-        receiveQty: type === 'BOGO' ? Number(receiveQty) : null,
+        payQty: (type === 'BOGO' || type === 'BOGO_PERCENT') ? Number(payQty) : null,
+        receiveQty: (type === 'BOGO' || type === 'BOGO_PERCENT') ? Number(receiveQty) : null,
+        discountPercent: (type === 'BOGO_PERCENT' || type === 'LOYALTY_STAMP') ? Number(discountPercent) : null,
       };
 
-      const finalValue = type === 'BOGO' ? 0 : Number(value);
+      const finalValue = (type === 'BOGO' || type === 'BOGO_PERCENT') ? 0 : Number(value);
       await createPromotion(name, type, finalValue, JSON.stringify(metadata));
       
       router.push('/ventas/promociones');
@@ -194,13 +196,14 @@ export default function CrearPromocionForm({ products, branchId, categories, bra
             >
               <option value="PERCENTAGE">Porcentaje (%)</option>
               <option value="FIXED_AMOUNT">Monto Fijo de Descuento ($)</option>
-              <option value="BOGO">Paga tanto y recibe tantos (3x2, 2x1, etc.)</option>
-              <option value="LOYALTY_STAMP">Tarjeta de Lealtad / Sellos (N-ésima compra gratis)</option>
+              <option value="BOGO">Paga tanto y recibe tantos (3x2, 2x1, etc.) - Gratis</option>
+              <option value="BOGO_PERCENT">Paga tanto y recibe tantos con % de descuento (ej. 2do con 50% desc)</option>
+              <option value="LOYALTY_STAMP">Tarjeta de Lealtad / Sellos (N-ésima compra con % de desc.)</option>
             </select>
           </div>
 
           <div>
-            {type === 'BOGO' ? (
+            {(type === 'BOGO' || type === 'BOGO_PERCENT') ? (
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#334155' }}>Paga Qty *</label>
@@ -225,6 +228,20 @@ export default function CrearPromocionForm({ products, branchId, categories, bra
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none' }}
                   />
                 </div>
+                {type === 'BOGO_PERCENT' && (
+                  <div style={{ flex: 1.5 }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#334155' }}>% Desc en el siguiente *</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      required
+                      value={discountPercent}
+                      onChange={(e) => setDiscountPercent(parseInt(e.target.value) || 50)}
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none' }}
+                    />
+                  </div>
+                )}
               </div>
             ) : (
               <div>
@@ -232,19 +249,39 @@ export default function CrearPromocionForm({ products, branchId, categories, bra
                   {type === 'PERCENTAGE' 
                     ? 'Porcentaje de Descuento (%) *' 
                     : type === 'LOYALTY_STAMP'
-                    ? 'Número de compras acumuladas para servicio gratis (ej. 10) *'
+                    ? 'Número de Visitas Objetivo y % de Descuento (ej. cada 10 compras aplica 10% desc) *'
                     : 'Monto de Descuento ($) *'}
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  required
-                  placeholder="Ej. 10"
-                  value={value}
-                  onChange={(e) => setValue(parseFloat(e.target.value) || 0)}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none' }}
-                />
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div style={{ flex: 1 }}>
+                    {type === 'LOYALTY_STAMP' && <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748b', marginBottom: '0.25rem' }}>Visitas Objetivo</label>}
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      required
+                      placeholder="Ej. 10"
+                      value={value}
+                      onChange={(e) => setValue(parseFloat(e.target.value) || 0)}
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none' }}
+                    />
+                  </div>
+                  {type === 'LOYALTY_STAMP' && (
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748b', marginBottom: '0.25rem' }}>% Descuento Aplicado</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        required
+                        placeholder="% Desc (ej. 10)"
+                        value={discountPercent}
+                        onChange={(e) => setDiscountPercent(parseInt(e.target.value) || 100)}
+                        style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none' }}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
