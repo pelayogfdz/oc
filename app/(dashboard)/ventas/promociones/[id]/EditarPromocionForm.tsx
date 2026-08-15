@@ -252,6 +252,7 @@ export default function EditarPromocionForm({ promotion, products, branchId, cat
               <option value="PERCENTAGE">Porcentaje (%)</option>
               <option value="FIXED_AMOUNT">Monto Fijo de Descuento ($)</option>
               <option value="BOGO">Paga tanto y recibe tantos (3x2, 2x1, etc.)</option>
+              <option value="LOYALTY_STAMP">Tarjeta de Lealtad / Sellos (N-ésima compra gratis)</option>
             </select>
           </div>
 
@@ -285,7 +286,11 @@ export default function EditarPromocionForm({ promotion, products, branchId, cat
             ) : (
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#334155' }}>
-                  {type === 'PERCENTAGE' ? 'Porcentaje de Descuento (%) *' : 'Monto de Descuento ($) *'}
+                  {type === 'PERCENTAGE' 
+                    ? 'Porcentaje de Descuento (%) *' 
+                    : type === 'LOYALTY_STAMP'
+                    ? 'Número de compras acumuladas para servicio gratis (ej. 10) *'
+                    : 'Monto de Descuento ($) *'}
                 </label>
                 <input
                   type="number"

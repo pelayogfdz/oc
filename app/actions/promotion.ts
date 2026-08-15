@@ -390,3 +390,33 @@ export async function updatePromotion(id: string, name: string, type: string, va
   revalidatePath('/ventas/promociones');
   revalidatePath('/ventas/nueva');
 }
+
+export async function getProductPurchaseCounts(customerId: string, productIds: string[]) {
+  try {
+    const items = await prisma.saleItem.findMany({
+      where: {
+        sale: {
+          customerId,
+          status: { notIn: ['CANCELLED', 'RETURNED'] }
+        },
+        productId: { in: productIds }
+      },
+      select: {
+        productId: true,
+        quantity: true
+      }
+    });
+
+    const counts: Record<string, number> = {};
+    productIds.forEach(id => {
+      counts[id] = 0;
+    });
+    items.forEach(item => {
+      counts[item.productId] = (counts[item.productId] || 0) + item.quantity;
+    });
+
+    return { success: true, counts };
+  } catch (e: any) {
+    return { success: false, error: e.message || String(e) };
+  }
+}

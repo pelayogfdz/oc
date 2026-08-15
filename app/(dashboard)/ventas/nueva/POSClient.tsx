@@ -10,6 +10,7 @@ import { createQuote, getQuoteForPOS, createQuickProductsForQuote } from '@/app/
 import { createConsignment, getConsignmentForPOS } from '@/app/actions/consignment';
 import { searchProducts, getProductBranchStocks } from '@/app/actions/product';
 import { getMergedUserPermissions } from '@/app/actions/permissions';
+import { getProductPurchaseCounts } from '@/app/actions/promotion';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import ProductTableUI from '@/app/components/ProductTableUI';
@@ -621,6 +622,7 @@ export default function POSClient({
   }, [isAdminOrSuper, permissions]);
   const [priceList, setPriceList] = useState('price');
   const [appliedPromotionIds, setAppliedPromotionIds] = useState<string[] | null>(null);
+  const [customerPurchaseCounts, setCustomerPurchaseCounts] = useState<Record<string, number>>({});
   
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(initialCustomerId || null);
   const [customerSearchTerm, setCustomerSearchTerm] = useState(initialCustomer ? initialCustomer.name : '');
@@ -666,6 +668,27 @@ export default function POSClient({
       }
     }
   }, [activeCustomers, selectedCustomerId, hasDefaultedCustomer, branchId]);
+
+  // Load customer purchase counts for products in the cart when customer or cart changes
+  useEffect(() => {
+    if (!selectedCustomerId || cart.length === 0) {
+      setCustomerPurchaseCounts({});
+      return;
+    }
+
+    const productIds = Array.from(new Set(cart.map(item => item.id)));
+
+    let active = true;
+    getProductPurchaseCounts(selectedCustomerId, productIds).then(res => {
+      if (active && res.success && res.counts) {
+        setCustomerPurchaseCounts(res.counts);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedCustomerId, cart.map(item => item.id).join(',')]);
 
   // Advanced POS State
   const [stockFilter, setStockFilter] = useState<'ALL' | 'IN_STOCK' | 'OUT_OF_STOCK'>('ALL');
@@ -1650,12 +1673,31 @@ export default function POSClient({
               discountsMap[item.cartItemId] += itemDiscount;
             }
           });
+        } else if (promo.type === 'LOYALTY_STAMP') {
+          const targetLimit = Math.round(promo.value) || 10;
+          applicableCartItems.forEach(item => {
+            const pastCount = customerPurchaseCounts[item.id] || 0;
+            const itemPrice = getProductPrice(item);
+            
+            let freeQty = 0;
+            for (let i = 1; i <= item.quantity; i++) {
+              const currentOverallCount = pastCount + i;
+              if (currentOverallCount % targetLimit === 0) {
+                freeQty++;
+              }
+            }
+            
+            if (freeQty > 0) {
+              const itemDiscount = freeQty * itemPrice;
+              discountsMap[item.cartItemId] += itemDiscount;
+            }
+          });
         }
       }
     });
 
     return discountsMap;
-  }, [promotions, priceList, getProductPrice, appliedPromotionIds, loadedQuoteId]);
+  }, [promotions, priceList, getProductPrice, appliedPromotionIds, loadedQuoteId, customerPurchaseCounts]);
 
   const itemDiscounts = useMemo(() => getItemDiscounts(cart), [cart, getItemDiscounts]);
 
@@ -3142,6 +3184,65 @@ export default function POSClient({
                         <span>SKU: <strong style={{ color: '#334155' }}>{item.sku || '-'}</strong></span>
                         <span>| Código: <strong style={{ color: '#334155' }}>{item.barcode || '-'}</strong></span>
                       </div>
+                      {(() => {
+                        const itemLoyaltyPromo = promotions.find((promo: any) => {
+                          if (promo.type !== 'LOYALTY_STAMP' || !promo.active) return false;
+                          if (appliedPromotionIds !== null && !appliedPromotionIds.includes(promo.id)) return false;
+                          
+                          let meta: any = {};
+                          try {
+                            meta = promo.metadata ? JSON.parse(promo.metadata) : {};
+                          } catch (e) {
+                            return false;
+                          }
+                          
+                          const hasNewTargets = (meta.targetProducts?.length > 0) || (meta.targetCategories?.length > 0) || (meta.targetBrands?.length > 0);
+                          if (hasNewTargets) {
+                            const matchProduct = meta.targetProducts?.includes(item.id);
+                            const matchCategory = item.category && meta.targetCategories?.includes(item.category);
+                            const matchBrand = item.brand && meta.targetBrands?.includes(item.brand);
+                            return matchProduct || matchCategory || matchBrand;
+                          } else {
+                            if (meta.targetType === 'CATEGORY') {
+                              return meta.applyToCategories?.includes(item.category);
+                            } else if (meta.targetType === 'BRAND') {
+                              return meta.applyToBrands?.includes(item.brand);
+                            } else if (meta.targetType === 'PRODUCTS') {
+                              return meta.applyToProducts?.includes(item.id);
+                            }
+                          }
+                          return true;
+                        });
+
+                        if (itemLoyaltyPromo) {
+                          const target = Math.round(itemLoyaltyPromo.value) || 10;
+                          const pastCount = customerPurchaseCounts[item.id] || 0;
+                          const currentStamps = pastCount % target;
+                          
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 'bold', color: '#db2777' }}>
+                                <span>🎁 Tarjeta de Sellos: {currentStamps} de {target}</span>
+                                {pastCount > 0 && <span style={{ color: '#94a3b8', fontWeight: 'normal' }}>(Historial: {pastCount} compras)</span>}
+                              </div>
+                              <div style={{ display: 'flex', gap: '0.15rem' }}>
+                                {Array.from({ length: target }).map((_, idx) => {
+                                  const isFilled = idx < currentStamps;
+                                  return (
+                                    <Star 
+                                      key={idx} 
+                                      size={12} 
+                                      fill={isFilled ? '#eab308' : 'none'} 
+                                      color={isFilled ? '#eab308' : '#cbd5e1'} 
+                                    />
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                       {mode === 'QUOTE' ? (() => {
                         const taxRate = item.taxRate ?? 16.0;
                         const taxFactor = 1 + (taxRate / 100);
