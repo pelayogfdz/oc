@@ -672,7 +672,9 @@ export default function POSClient({
   // Load customer purchase counts for products in the cart when customer or cart changes
   useEffect(() => {
     if (!selectedCustomerId || cart.length === 0) {
-      setCustomerPurchaseCounts({});
+      if (Object.keys(customerPurchaseCounts).length > 0) {
+        setCustomerPurchaseCounts({});
+      }
       return;
     }
 

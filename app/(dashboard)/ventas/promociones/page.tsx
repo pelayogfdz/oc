@@ -74,7 +74,7 @@ export default async function Page() {
                   </td>
                 )}
                 <td style={{ padding: '1rem', fontWeight: 'bold' }}>
-                  {item.type === 'PERCENTAGE' ? `${item.value}%` : (item.type === 'BOGO' || item.type === 'BOGO_PERCENT') ? 'N/A' : item.type === 'LOYALTY_STAMP' ? `Cada ${item.value} visitas` : `$${item.value.toFixed(2)}`}
+                  {item.type === 'PERCENTAGE' ? `${item.value}%` : (item.type === 'BOGO' || item.type === 'BOGO_PERCENT') ? 'N/A' : item.type === 'LOYALTY_STAMP' ? `Cada ${item.value} visitas` : `$${(Number(item.value) || 0).toFixed(2)}`}
                 </td>
                 <td style={{ padding: '1rem' }}>
                   <span style={{ backgroundColor: item.active ? '#dcfce7' : '#fee2e2', color: item.active ? '#166534' : '#991b1b', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
