@@ -579,6 +579,7 @@ export function ProductDetailClient({
                   <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Fecha</th>
                   <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Tipo</th>
                   <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Motivo</th>
+                  <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500' }}>Usuario</th>
                   <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right' }}>Cantidad</th>
                   <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: '500', textAlign: 'right' }}>Saldo</th>
                 </tr>
@@ -610,6 +611,29 @@ export function ProductDetailClient({
                       </span>
                     </td>
                     <td data-label="Motivo" style={{ padding: '1rem' }}>{mov.reason}</td>
+                    <td data-label="Usuario" style={{ padding: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span style={{ 
+                          width: '24px', 
+                          height: '24px', 
+                          borderRadius: '999px', 
+                          backgroundColor: '#e0f2fe', 
+                          color: '#0284c7', 
+                          fontSize: '0.75rem', 
+                          fontWeight: 'bold', 
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          textTransform: 'uppercase',
+                          flexShrink: 0
+                        }}>
+                          {(mov.userName || 'S').substring(0, 1)}
+                        </span>
+                        <span style={{ fontWeight: '500', color: '#334155', fontSize: '0.85rem' }}>
+                          {mov.userName || 'Sistema'}
+                        </span>
+                      </div>
+                    </td>
                     <td data-label="Cantidad" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: mov.quantity > 0 ? '#16a34a' : '#dc2626' }}>
                       {mov.quantity > 0 ? '+' : ''}{mov.quantity}
                     </td>
@@ -620,7 +644,7 @@ export function ProductDetailClient({
                 ))}
                 {movements.length === 0 && (
                   <tr>
-                    <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
+                    <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                       No hay movimientos registrados para este artículo.
                     </td>
                   </tr>
