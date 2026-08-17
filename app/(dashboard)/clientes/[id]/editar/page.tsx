@@ -3,12 +3,9 @@ import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import Link from 'next/link';
 
-export const dynamic = 'force-dynamic';
-
 export default async function EditarClientePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const branch = await getActiveBranch();
-  const priceLists = await prisma.priceList.findMany();
 
   const customer = await prisma.customer.findUnique({
     where: { id }
@@ -16,6 +13,21 @@ export default async function EditarClientePage({ params }: { params: Promise<{ 
 
   if (!customer) {
     return <div>Cliente no encontrado.</div>;
+  }
+
+  const filterBranchId = customer.branchId || (branch?.id !== 'GLOBAL' ? branch?.id : undefined);
+  const rawPriceLists = await prisma.priceList.findMany({
+    where: filterBranchId ? { branchId: filterBranchId } : undefined
+  });
+
+  // Deduplicate by name to prevent duplicates if we retrieved all
+  const priceLists = [];
+  const seenNames = new Set();
+  for (const pl of rawPriceLists) {
+    if (!seenNames.has(pl.name)) {
+      seenNames.add(pl.name);
+      priceLists.push(pl);
+    }
   }
 
   const isGenericPublic = 

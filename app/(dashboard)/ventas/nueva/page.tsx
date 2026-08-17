@@ -46,7 +46,9 @@ export default async function NuevaVentaPage({ searchParams }: { searchParams: a
     prisma.promotion.findMany({
       where: { branchId, active: true }
     }),
-    prisma.priceList.findMany(),
+    prisma.priceList.findMany({
+      where: branchId !== 'GLOBAL' ? { branchId } : undefined
+    }),
     prisma.quote.findMany({
       where: { branchId, status: 'PENDING' },
       orderBy: { createdAt: 'desc' },

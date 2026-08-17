@@ -8,7 +8,9 @@ export default async function PreciosMasivosPage() {
   const branch = await getActiveBranch();
   if (!branch) return null;
 
-  const dynamicPriceLists = await prisma.priceList.findMany();
+  const dynamicPriceLists = await prisma.priceList.findMany({
+    where: branch.id !== 'GLOBAL' ? { branchId: branch.id } : undefined
+  });
 
   const initialProducts = await prisma.product.findMany({
     where: { branchId: branch.id, isActive: true },

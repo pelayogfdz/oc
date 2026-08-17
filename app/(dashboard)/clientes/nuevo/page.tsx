@@ -5,7 +5,9 @@ import Link from 'next/link';
 
 export default async function NuevoCliente() {
   const branch = await getActiveBranch();
-  const priceLists = await prisma.priceList.findMany();
+  const priceLists = await prisma.priceList.findMany({
+    where: branch.id !== 'GLOBAL' ? { branchId: branch.id } : undefined
+  });
 
   const saveAction = async (formData: FormData) => {
     'use server';

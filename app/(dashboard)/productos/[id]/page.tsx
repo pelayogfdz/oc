@@ -70,6 +70,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
   const suppliers = await getTenantSuppliers();
 
   const dynamicPriceLists = await prisma.priceList.findMany({
+    where: { branchId: product.branchId },
     orderBy: { name: 'asc' }
   });
 
