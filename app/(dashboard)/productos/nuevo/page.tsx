@@ -20,9 +20,25 @@ export default async function NuevoProductoPage({ searchParams }: { searchParams
   }
 
   const suppliers = await getTenantSuppliers();
-  const priceLists = await prisma.priceList.findMany({
-    where: branch?.id && branch.id !== 'GLOBAL' ? { branchId: branch.id } : undefined
+  const allPriceLists = await prisma.priceList.findMany({
+    orderBy: { name: 'asc' }
   });
+
+  const priceListsMap = new Map();
+  const targetBranchId = branch?.id;
+  if (targetBranchId && targetBranchId !== 'GLOBAL') {
+    for (const pl of allPriceLists) {
+      if (pl.branchId === targetBranchId) {
+        priceListsMap.set(pl.name, pl);
+      }
+    }
+  }
+  for (const pl of allPriceLists) {
+    if (!priceListsMap.has(pl.name)) {
+      priceListsMap.set(pl.name, pl);
+    }
+  }
+  const priceLists = Array.from(priceListsMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
 
   // Fetch distinct categories for the current branch
   const categoriesData = await prisma.product.findMany({

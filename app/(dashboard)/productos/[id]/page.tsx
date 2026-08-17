@@ -69,10 +69,22 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
 
   const suppliers = await getTenantSuppliers();
 
-  const dynamicPriceLists = await prisma.priceList.findMany({
-    where: { branchId: product.branchId },
+  const allPriceLists = await prisma.priceList.findMany({
     orderBy: { name: 'asc' }
   });
+
+  const priceListsMap = new Map();
+  for (const pl of allPriceLists) {
+    if (pl.branchId === product.branchId) {
+      priceListsMap.set(pl.name, pl);
+    }
+  }
+  for (const pl of allPriceLists) {
+    if (!priceListsMap.has(pl.name)) {
+      priceListsMap.set(pl.name, pl);
+    }
+  }
+  const dynamicPriceLists = Array.from(priceListsMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
 
   const siblingProducts = await prisma.product.findMany({
     where: { sku: product.sku },

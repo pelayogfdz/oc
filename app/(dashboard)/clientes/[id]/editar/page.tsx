@@ -15,20 +15,28 @@ export default async function EditarClientePage({ params }: { params: Promise<{ 
     return <div>Cliente no encontrado.</div>;
   }
 
-  const filterBranchId = customer.branchId || (branch?.id !== 'GLOBAL' ? branch?.id : undefined);
-  const rawPriceLists = await prisma.priceList.findMany({
-    where: filterBranchId ? { branchId: filterBranchId } : undefined
+  const allPriceLists = await prisma.priceList.findMany({
+    orderBy: { name: 'asc' }
   });
 
-  // Deduplicate by name to prevent duplicates if we retrieved all
-  const priceLists = [];
-  const seenNames = new Set();
-  for (const pl of rawPriceLists) {
-    if (!seenNames.has(pl.name)) {
-      seenNames.add(pl.name);
-      priceLists.push(pl);
+  const priceListsMap = new Map();
+  const targetBranchId = customer.branchId || (branch?.id !== 'GLOBAL' ? branch?.id : undefined);
+
+  if (targetBranchId) {
+    for (const pl of allPriceLists) {
+      if (pl.branchId === targetBranchId) {
+        priceListsMap.set(pl.name, pl);
+      }
     }
   }
+
+  for (const pl of allPriceLists) {
+    if (!priceListsMap.has(pl.name)) {
+      priceListsMap.set(pl.name, pl);
+    }
+  }
+
+  const priceLists = Array.from(priceListsMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
 
   const isGenericPublic = 
     (customer.name.toLowerCase().includes('publico') && customer.name.toLowerCase().includes('general')) ||

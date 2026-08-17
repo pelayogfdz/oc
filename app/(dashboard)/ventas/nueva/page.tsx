@@ -28,7 +28,7 @@ export default async function NuevaVentaPage({ searchParams }: { searchParams: a
     products,
     customers,
     promotions,
-    dynamicPriceLists,
+    allPriceLists,
     pendingQuotes,
     session,
     settings,
@@ -47,7 +47,7 @@ export default async function NuevaVentaPage({ searchParams }: { searchParams: a
       where: { branchId, active: true }
     }),
     prisma.priceList.findMany({
-      where: branchId !== 'GLOBAL' ? { branchId } : undefined
+      orderBy: { name: 'asc' }
     }),
     prisma.quote.findMany({
       where: { branchId, status: 'PENDING' },
@@ -58,6 +58,21 @@ export default async function NuevaVentaPage({ searchParams }: { searchParams: a
     getBranchSettings(),
     getTenantSuppliers()
   ]);
+
+  const priceListsMap = new Map();
+  if (branchId && branchId !== 'GLOBAL') {
+    for (const pl of allPriceLists) {
+      if (pl.branchId === branchId) {
+        priceListsMap.set(pl.name, pl);
+      }
+    }
+  }
+  for (const pl of allPriceLists) {
+    if (!priceListsMap.has(pl.name)) {
+      priceListsMap.set(pl.name, pl);
+    }
+  }
+  const dynamicPriceLists = Array.from(priceListsMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
   let ticketConfig: any = {};
   let metodosConfig = {};
   let ventasConfig: any = {};

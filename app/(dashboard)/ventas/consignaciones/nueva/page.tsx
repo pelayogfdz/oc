@@ -18,7 +18,7 @@ export default async function NuevaConsignacionPage({ searchParams }: { searchPa
     );
   }
 
-  const [products, customers, promotions, settings, suppliers, dynamicPriceLists] = await Promise.all([
+  const [products, customers, promotions, settings, suppliers, allPriceLists] = await Promise.all([
     prisma.product.findMany({
       where: { branchId: branch.id, isActive: true },
       include: { prices: true, variants: true },
@@ -29,9 +29,25 @@ export default async function NuevaConsignacionPage({ searchParams }: { searchPa
     getBranchSettings(),
     getTenantSuppliers(),
     prisma.priceList.findMany({
-      where: branch.id !== 'GLOBAL' ? { branchId: branch.id } : undefined
+      orderBy: { name: 'asc' }
     })
   ]);
+
+  const priceListsMap = new Map();
+  const targetBranchId = branch.id;
+  if (targetBranchId && targetBranchId !== 'GLOBAL') {
+    for (const pl of allPriceLists) {
+      if (pl.branchId === targetBranchId) {
+        priceListsMap.set(pl.name, pl);
+      }
+    }
+  }
+  for (const pl of allPriceLists) {
+    if (!priceListsMap.has(pl.name)) {
+      priceListsMap.set(pl.name, pl);
+    }
+  }
+  const dynamicPriceLists = Array.from(priceListsMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
 
   let ticketConfig: any = {};
   let ventasConfig: any = {};
