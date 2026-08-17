@@ -364,6 +364,8 @@ model ProductVariant {
   transferItems      TransferItem[]
 
   @@unique([productId, attribute])
+  @@index([barcode])
+  @@index([sku])
 }
 
 model InventoryMovement {
@@ -382,6 +384,9 @@ model InventoryMovement {
   product         Product                 @relation(fields: [productId], references: [id])
   user            User?                   @relation(fields: [userId], references: [id])
   variant         ProductVariant?         @relation(fields: [variantId], references: [id])
+
+  @@index([productId])
+  @@index([variantId])
 }
 
 model Sale {
@@ -418,6 +423,7 @@ model Sale {
   cartaPortes   CartaPorte[]
 
   @@index([branchId, createdAt(sort: Desc)])
+  @@index([customerId])
 }
 
 model SaleItem {
