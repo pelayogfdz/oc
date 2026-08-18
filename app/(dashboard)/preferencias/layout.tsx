@@ -17,6 +17,7 @@ const prefTabs = [
   { name: 'Cotizaciones', path: '/preferencias/cotizaciones', icon: <FileText size={18} /> },
   { name: 'Terminales y Cajas', path: '/preferencias/cajas', icon: <Shield size={18} /> },
   { name: 'Catálogo de Productos', path: '/preferencias/productos', icon: <Box size={18} /> },
+  { name: 'Categorías y Marcas', path: '/preferencias/categorias-marcas', icon: <Tag size={18} /> },
   { name: 'Facturación CFDI', path: '/preferencias/facturacion', icon: <FileText size={18} /> },
   { name: 'Listas de Precios', path: '/preferencias/listas-de-precios', icon: <List size={18} /> },
   { name: 'Cartera de Clientes', path: '/preferencias/clientes', icon: <Users size={18} /> },

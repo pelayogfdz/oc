@@ -39,14 +39,30 @@ export default function CommissionManagerClient({ initialUsers }: { initialUsers
       const updates = Array.from(modifiedUserIds).map(id => {
         const u = users.find(user => user.id === id);
         if (!u) return Promise.resolve(null);
-        return updateCommissionProfile(id, {
-          managerId: u.managerId === 'NONE' || !u.managerId ? null : u.managerId,
-          commissionRole: u.commissionRole || 'VENDEDOR',
-          commissionPct: parseFloat(u.commissionPct || 0),
-          monthlyGoal: parseFloat(u.monthlyGoal || 0),
-          bonusAmount: parseFloat(u.bonusAmount || 0),
-          teamBonusAmount: parseFloat(u.teamBonusAmount || 0)
-        });
+        
+        const role = u.commissionRole || 'VENDEDOR';
+        const payload: any = {
+          commissionRole: role,
+        };
+
+        if (role === 'COORDINADOR') {
+          payload.commissionPct = parseFloat(u.commissionPct || 0);
+          payload.managerId = null;
+        } else if (role === 'LIDER') {
+          payload.commissionPct = parseFloat(u.commissionPct || 0);
+          payload.managerId = u.managerId === 'NONE' || !u.managerId ? null : u.managerId;
+          payload.monthlyGoal = parseFloat(u.monthlyGoal || 0);
+          payload.bonusAmount = parseFloat(u.bonusAmount || 0);
+          payload.teamBonusAmount = parseFloat(u.teamBonusAmount || 0);
+        } else {
+          // VENDEDOR or LIDER_SECUNDARIO
+          payload.commissionPct = parseFloat(u.commissionPct || 0);
+          payload.managerId = u.managerId === 'NONE' || !u.managerId ? null : u.managerId;
+          payload.monthlyGoal = parseFloat(u.monthlyGoal || 0);
+          payload.bonusAmount = parseFloat(u.bonusAmount || 0);
+        }
+
+        return updateCommissionProfile(id, payload);
       });
 
       await Promise.all(updates);
