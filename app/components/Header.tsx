@@ -94,9 +94,10 @@ export default async function Header() {
     }
 
     // Restrict allowedBranchIds to ONLY the assigned branch if limited (non-global) and has one assigned
-    if (!isGlobal && currentUser.branchId) {
-      allowedBranchIds.splice(0, allowedBranchIds.length, currentUser.branchId);
-    }
+    // (Commented out to support multiple branch permissions)
+    // if (!isGlobal && currentUser.branchId) {
+    //   allowedBranchIds.splice(0, allowedBranchIds.length, currentUser.branchId);
+    // }
   }
 
   if (!isGlobal) {

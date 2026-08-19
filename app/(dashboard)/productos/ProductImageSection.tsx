@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Image as ImageIcon, UploadCloud, Trash2, Camera, Sparkles } from 'lucide-react';
+import { Image as ImageIcon, UploadCloud, Trash2, Camera, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
+import { updateProductMedia } from '@/app/actions/product';
 
 const YoutubeIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -21,26 +22,32 @@ const YoutubeIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 interface ProductImageSectionProps {
+  productId?: string;
   initialImageUrl: string;
   initialYoutubeUrl?: string;
   showYoutubeEmbed?: boolean;
   nameForImageUrl?: string;
   nameForYoutubeUrl?: string;
   stateError?: string;
+  showSaveButton?: boolean;
 }
 
 export default function ProductImageSection({
+  productId,
   initialImageUrl,
   initialYoutubeUrl = '',
   showYoutubeEmbed = true,
   nameForImageUrl = 'imageUrl',
   nameForYoutubeUrl = 'youtubeUrl',
-  stateError
+  stateError,
+  showSaveButton = false
 }: ProductImageSectionProps) {
   const [imageUrl, setImageUrl] = useState<string>(initialImageUrl);
   const [youtubeUrl, setYoutubeUrl] = useState<string>(initialYoutubeUrl);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [isCompresing, setIsCompressing] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [saveStatus, setSaveStatus] = useState<{ success?: boolean; message?: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync state if initial values change (e.g. when cloning/editing changes)
@@ -147,6 +154,24 @@ export default function ProductImageSection({
 
   const triggerFileInput = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleSaveMedia = async () => {
+    if (!productId) return;
+    setIsSaving(true);
+    setSaveStatus(null);
+    try {
+      const res = await updateProductMedia(productId, imageUrl, youtubeUrl);
+      if (res && res.success) {
+        setSaveStatus({ success: true, message: '✓ ¡Multimedia guardada exitosamente!' });
+      } else {
+        setSaveStatus({ success: false, message: res?.error || 'No se pudo guardar la multimedia.' });
+      }
+    } catch (err: any) {
+      setSaveStatus({ success: false, message: err.message || 'Error de conexión.' });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -407,6 +432,48 @@ export default function ProductImageSection({
 
       </div>
 
+      {/* Save Status Notification */}
+      {saveStatus && (
+        <div style={{ 
+          padding: '0.85rem 1.25rem', 
+          backgroundColor: saveStatus.success ? '#f0fdf4' : '#fef2f2', 
+          border: `1px solid ${saveStatus.success ? '#bbf7d0' : '#fecaca'}`, 
+          color: saveStatus.success ? '#15803d' : '#dc2626', 
+          borderRadius: '8px', 
+          fontWeight: '600', 
+          fontSize: '0.9rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem'
+        }}>
+          {saveStatus.success ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+          {saveStatus.message}
+        </div>
+      )}
+
+      {/* Save Button for direct interactive saving */}
+      {showSaveButton && productId && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+          <button 
+            type="button" 
+            onClick={handleSaveMedia}
+            disabled={isSaving}
+            className="btn-primary" 
+            style={{ 
+              padding: '0.75rem 2.5rem', 
+              fontSize: '1.1rem', 
+              cursor: isSaving ? 'wait' : 'pointer',
+              opacity: isSaving ? 0.7 : 1,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            {isSaving ? 'Guardando Multimedia...' : 'Guardar Multimedia'}
+          </button>
+        </div>
+      )}
+
       {/* State Error Message */}
       {stateError && (
         <div style={{ padding: '1rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.9rem' }}>
@@ -437,3 +504,4 @@ export default function ProductImageSection({
     </div>
   );
 }
+

@@ -5,6 +5,8 @@ import { ProductDetailClient } from "./ProductDetailClient";
 import { updateProduct, deleteProduct } from "@/app/actions/product";
 import { getActiveBranch } from "@/app/actions/auth";
 import { getTenantSuppliers } from "@/app/actions/supplier";
+import { getMergedUserPermissions } from "@/app/actions/permissions";
+import { hasNodeAccess } from "@/app/config/permissions";
 import { Image as ImageIcon } from 'lucide-react';
 import ProductFinanceSection from '../ProductFinanceSection';
 import ProductImageSection from '../ProductImageSection';
@@ -66,6 +68,12 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
       return notFound();
     }
   }
+
+  const permData = await getMergedUserPermissions();
+  const userPermissions = permData.permissions || {};
+  const isSuperAdmin = permData.success ? permData.isSuperAdmin : false;
+  const userRole = permData.success ? permData.role : 'USER';
+  const canDelete = hasNodeAccess(userPermissions, 'inv_delete', isSuperAdmin, userRole);
 
   const suppliers = await getTenantSuppliers();
 
@@ -257,11 +265,13 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
              Clonar
            </Link>
            {/* Note: since this is a server component, we pass the server action to a form. */}
-           <form action={handleDelete}>
-             <button type="submit" style={{ padding: '0.5rem 1rem', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
-               Eliminar
-             </button>
-           </form>
+           {canDelete && (
+             <form action={handleDelete}>
+               <button type="submit" style={{ padding: '0.5rem 1rem', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
+                 Eliminar
+               </button>
+             </form>
+           )}
         </div>
       </div>
 
@@ -274,25 +284,16 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
         siblingProducts={siblingProducts}
         tenantId={branch?.tenantId || undefined}
         mediaContent={
-          <form action={updateProductWithId}>
-            <input type="hidden" name="branchId" value={product.branchId} />
-            <input type="hidden" name="name" value={product.name} />
-            <input type="hidden" name="sku" value={product.sku} />
-            
-            <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Multimedia</h2>
-              <ProductImageSection 
-                initialImageUrl={product.imageUrl || ''}
-                initialYoutubeUrl={product.youtubeUrl || ''}
-                showYoutubeEmbed={true}
-              />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-              <button type="submit" className="btn-primary" style={{ padding: '0.75rem 2.5rem', fontSize: '1.1rem' }}>
-                Guardar Multimedia
-              </button>
-            </div>
-          </form>
+          <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
+            <h2 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Multimedia</h2>
+            <ProductImageSection 
+              productId={product.id}
+              initialImageUrl={product.imageUrl || ''}
+              initialYoutubeUrl={product.youtubeUrl || ''}
+              showYoutubeEmbed={true}
+              showSaveButton={true}
+            />
+          </div>
         }
       >
         <form action={updateProductWithId}>

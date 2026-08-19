@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { Eye, Printer, RotateCcw, Calendar, User, MapPin, Tag, Receipt, Send, Share2, Loader2, CheckCircle, Mail, Download, X, AlertTriangle, Filter, Truck } from 'lucide-react';
-import { sendSaleByEmail } from '@/app/actions/sale';
+import { sendSaleByEmail, getSalesForExport } from '@/app/actions/sale';
 import { createDeliveryOrder } from '@/app/actions/logistica';
 import { formatCurrency } from '@/lib/utils';
 import { exportToExcel } from '@/lib/exportExcel';
@@ -72,6 +72,7 @@ export default function VentasHistoryClient({
   const pathname = usePathname();
 
   const [sales, setSales] = useState<any[]>(initialSales);
+  const [isExporting, setIsExporting] = useState(false);
   const [filterStartDate, setFilterStartDate] = useState(queryParams.startDate || '');
   const [filterEndDate, setFilterEndDate] = useState(queryParams.endDate || '');
   const [filterUser, setFilterUser] = useState(queryParams.userId || '');
@@ -496,32 +497,55 @@ export default function VentasHistoryClient({
     router.push(pathname);
   };
 
-  const downloadExcel = () => {
-    const headers = [
-      "ID Venta",
-      "Fecha / Hora",
-      "Cliente",
-      "Folio CFDI",
-      "Sucursal",
-      "Vendedor",
-      "Método de Pago",
-      "Total",
-      "Estado"
-    ];
-    const rows = filteredSales.map(sale => {
-      return [
-        sale.folio || sale.id.slice(0, 8).toUpperCase(),
-        formatDateCompact(sale.createdAt, timezone),
-        sale.customer ? sale.customer.name : 'Público en General',
-        sale.invoiceFolio || sale.invoiceId || '-',
-        sale.branch ? sale.branch.name : '-',
-        sale.user ? sale.user.name : '-',
-        getPaymentMethodLabel(sale.paymentMethod),
-        sale.total,
-        sale.status === 'COMPLETED' ? 'Completado' : sale.status === 'CANCELLED' ? 'Cancelado' : sale.status
+  const downloadExcel = async () => {
+    setIsExporting(true);
+    try {
+      const res = await getSalesForExport({
+        startDate: filterStartDate,
+        endDate: filterEndDate,
+        userId: filterUser,
+        branchId: filterBranch,
+        status: filterStatus,
+        paymentMethod: filterPaymentMethod,
+        client: filterClient,
+        cfdi: filterCfdi
+      });
+
+      if (!res.success || !res.sales) {
+        alert("Error al exportar: " + (res.error || "Ocurrió un error inesperado."));
+        return;
+      }
+
+      const headers = [
+        "ID Venta",
+        "Fecha / Hora",
+        "Cliente",
+        "Folio CFDI",
+        "Sucursal",
+        "Vendedor",
+        "Método de Pago",
+        "Total",
+        "Estado"
       ];
-    });
-    exportToExcel(headers, rows, 'Historial_de_Ventas');
+      const rows = res.sales.map(sale => {
+        return [
+          sale.folio || sale.id.slice(0, 8).toUpperCase(),
+          formatDateCompact(sale.createdAt, timezone),
+          sale.customer ? sale.customer.name : 'Público en General',
+          sale.invoiceFolio || sale.invoiceId || '-',
+          sale.branch ? sale.branch.name : '-',
+          sale.user ? sale.user.name : '-',
+          getPaymentMethodLabel(sale.paymentMethod),
+          sale.total,
+          sale.status === 'COMPLETED' ? 'Completado' : sale.status === 'CANCELLED' ? 'Cancelado' : sale.status
+        ];
+      });
+      exportToExcel(headers, rows, 'Historial_de_Ventas');
+    } catch (e: any) {
+      alert("Error al exportar: " + e.message);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -534,6 +558,7 @@ export default function VentasHistoryClient({
         <div className="page-header-actions" style={{ display: 'flex', gap: '0.75rem' }}>
           <button 
             onClick={downloadExcel}
+            disabled={isExporting}
             className="btn-secondary"
             style={{ 
               display: 'inline-flex', 
@@ -542,16 +567,25 @@ export default function VentasHistoryClient({
               padding: '0.75rem 1.5rem', 
               borderRadius: '8px', 
               fontWeight: 'bold', 
-              cursor: 'pointer', 
+              cursor: isExporting ? 'not-allowed' : 'pointer', 
               border: '1px solid var(--caanma-border)', 
               backgroundColor: 'white', 
               color: '#334155', 
-              transition: 'all 0.2s' 
+              transition: 'all 0.2s',
+              opacity: isExporting ? 0.7 : 1
             }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor='#f8fafc'}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor='white'}
+            onMouseEnter={e => { if (!isExporting) e.currentTarget.style.backgroundColor='#f8fafc'; }}
+            onMouseLeave={e => { if (!isExporting) e.currentTarget.style.backgroundColor='white'; }}
           >
-            <Download size={18} /> Exportar Excel
+            {isExporting ? (
+              <>
+                <Loader2 className="animate-spin" size={18} /> Exportando...
+              </>
+            ) : (
+              <>
+                <Download size={18} /> Exportar Excel
+              </>
+            )}
           </button>
           <Link href="/ventas/nueva" className="btn-primary" style={{ padding: '0.75rem 1.5rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             + Nueva Venta / TPV

@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getSession, getActiveBranch, getActiveUser } from '@/app/actions/auth';
+import { getMergedUserPermissions } from './permissions';
+import { hasNodeAccess } from '@/app/config/permissions';
 
 export async function createProduct(prevState: any, formData: FormData) {
   let activeUser = null;
@@ -30,10 +32,10 @@ export async function createProduct(prevState: any, formData: FormData) {
   const imageUrl = formData.get('imageUrl') as string;
   const youtubeUrl = formData.get('youtubeUrl') as string;
   const isActive = formData.get('isActive') !== 'false';
-  const allowProduction = formData.get('allowProduction') === 'true';
-  const isProductionInput = formData.get('isProductionInput') === 'true';
-  const isService = formData.get('isService') === 'true';
-  const hasTraceability = formData.get('hasTraceability') === 'true';
+  const allowProduction = formData.getAll('allowProduction').includes('true');
+  const isProductionInput = formData.getAll('isProductionInput').includes('true');
+  const isService = formData.getAll('isService').includes('true');
+  const hasTraceability = formData.getAll('hasTraceability').includes('true');
   const unit = formData.get('unit') as string || 'Pza';
   const satKey = (formData.get('satKey') as string) || null;
   const satUnit = (formData.get('satUnit') as string) || null;
@@ -115,7 +117,7 @@ export async function createProduct(prevState: any, formData: FormData) {
   let showInWeb = true;
   const showInWebVal = formData.get('showInWeb');
   if (showInWebVal !== null) {
-    showInWeb = showInWebVal === 'true';
+    showInWeb = formData.getAll('showInWeb').includes('true');
   } else {
     // Default fallback
     showInWeb = !(isService && isTargetTenant);
@@ -170,6 +172,17 @@ export async function createProduct(prevState: any, formData: FormData) {
       }
     }
   }
+
+  // Log product creation movement in Kardex
+  await prisma.inventoryMovement.create({
+    data: {
+      productId: product.id,
+      type: 'IN',
+      quantity: 0,
+      reason: 'Creación de Producto',
+      userId: activeUser?.id || null
+    }
+  });
 
   if (hasBatches && batches.length > 0) {
     for (const b of batches) {
@@ -1004,6 +1017,15 @@ export async function searchProducts(
 }
 
 export async function deleteProduct(productId: string) {
+  const permData = await getMergedUserPermissions();
+  const userPermissions = permData.permissions || {};
+  const isSuperAdmin = permData.success ? permData.isSuperAdmin : false;
+  const userRole = permData.success ? permData.role : 'USER';
+
+  if (!hasNodeAccess(userPermissions, 'inv_delete', isSuperAdmin, userRole)) {
+    throw new Error('No tienes permisos para eliminar productos.');
+  }
+
   try {
     const productToDelete = await prisma.product.findUnique({
       where: { id: productId },
@@ -1553,5 +1575,65 @@ export async function enrichProductsWithTenantExternalMaps(products: any[], tena
   }
 
   return products;
+}
+
+export async function updateProductMedia(productId: string, imageUrl: string, youtubeUrl?: string) {
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { sku: true, branchId: true }
+    });
+
+    if (!product) {
+      return { success: false, error: 'Producto no encontrado.' };
+    }
+
+    const cleanImage = imageUrl ? imageUrl.trim() : null;
+    const cleanYoutube = youtubeUrl ? youtubeUrl.trim() : null;
+
+    // Update target product media
+    await prisma.product.update({
+      where: { id: productId },
+      data: {
+        imageUrl: cleanImage,
+        youtubeUrl: cleanYoutube
+      }
+    });
+
+    // Sync media across all tenant branch sibling products with same SKU
+    if (product.branchId) {
+      const branch = await prisma.branch.findUnique({
+        where: { id: product.branchId },
+        select: { tenantId: true }
+      });
+
+      if (branch?.tenantId) {
+        const tenantBranches = await prisma.branch.findMany({
+          where: { tenantId: branch.tenantId },
+          select: { id: true }
+        });
+
+        if (tenantBranches.length > 0) {
+          await prisma.product.updateMany({
+            where: {
+              sku: product.sku,
+              branchId: { in: tenantBranches.map(b => b.id) }
+            },
+            data: {
+              imageUrl: cleanImage,
+              youtubeUrl: cleanYoutube
+            }
+          });
+        }
+      }
+    }
+
+    revalidatePath(`/productos/${productId}`);
+    revalidatePath('/productos');
+    return { success: true };
+  } catch (err: any) {
+    console.error('Error in updateProductMedia:', err);
+    return { success: false, error: err.message || 'No se pudo guardar la multimedia del producto.' };
+  }
 }
 

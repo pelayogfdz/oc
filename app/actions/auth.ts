@@ -97,9 +97,10 @@ export const getActiveBranch = cache(async () => {
     }
 
     // Restrict allowedBranchIds to ONLY the assigned branch if limited (non-global) and has one assigned
-    if (!isGlobal && user.branchId) {
-      allowedBranchIds.splice(0, allowedBranchIds.length, user.branchId);
-    }
+    // (Commented out to support multiple branch permissions)
+    // if (!isGlobal && user.branchId) {
+    //   allowedBranchIds.splice(0, allowedBranchIds.length, user.branchId);
+    // }
   }
 
   const cookieStore = await cookies();

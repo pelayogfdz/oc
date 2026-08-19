@@ -2,7 +2,8 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { getActiveBranch, getActiveUser } from './auth';
+import { getActiveBranch, getActiveUser, getSession } from './auth';
+import { getUtcDateFromLocal } from '@/app/lib/timezone';
 
 export async function createSale(
   items: { productId: string; variantId?: string | null; quantity: number; price: number }[], 
@@ -826,6 +827,117 @@ export async function sendSaleByEmail(saleId: string, email: string) {
   } catch (error: any) {
     console.error("Error al enviar ticket de venta por correo:", error);
     return { success: false, error: error.message || "Error al procesar el envío del correo de venta." };
+  }
+}
+
+export async function getSalesForExport(params: {
+  startDate?: string;
+  endDate?: string;
+  userId?: string;
+  branchId?: string;
+  status?: string;
+  paymentMethod?: string;
+  client?: string;
+  cfdi?: string;
+}) {
+  try {
+    const branch = await getActiveBranch();
+    const session = await getSession();
+    if (!session) throw new Error('Unauthorized');
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: branch.tenantId || undefined },
+      select: { timezone: true }
+    });
+    const timezone = tenant?.timezone || 'America/Mexico_City';
+
+    const where: any = {};
+
+    // Branch filter
+    if (params?.branchId && params.branchId !== 'ALL' && params.branchId !== '') {
+      where.branchId = params.branchId;
+    } else if (branch.id === 'GLOBAL') {
+      where.branch = { tenantId: session?.tenantId || undefined };
+    } else {
+      where.branchId = branch.id;
+    }
+
+    // User filter
+    if (params?.userId && params.userId !== 'ALL' && params.userId !== '') {
+      where.userId = params.userId;
+    }
+
+    // Status filter
+    if (params?.status && params.status !== '') {
+      where.status = params.status;
+    }
+
+    // Payment method filter
+    if (params?.paymentMethod && params.paymentMethod !== '') {
+      where.paymentMethod = params.paymentMethod;
+    }
+
+    // Client name filter
+    if (params?.client && params.client.trim() !== '') {
+      where.customer = {
+        name: {
+          contains: params.client.trim(),
+          mode: 'insensitive'
+        }
+      };
+    }
+
+    // CFDI filter
+    if (params?.cfdi && params.cfdi.trim() !== '') {
+      const cfdiTerm = params.cfdi.trim();
+      where.OR = [
+        { invoiceId: { contains: cfdiTerm, mode: 'insensitive' } },
+        { invoiceFolio: { contains: cfdiTerm, mode: 'insensitive' } }
+      ];
+    }
+
+    // Date range filter
+    if (params?.startDate || params?.endDate) {
+      where.createdAt = {};
+      if (params.startDate) {
+        const [sy, sm, sd] = params.startDate.split('-').map(Number);
+        where.createdAt.gte = getUtcDateFromLocal(sy, sm, sd, 0, 0, 0, 0, timezone);
+      }
+      if (params.endDate) {
+        const [ey, em, ed] = params.endDate.split('-').map(Number);
+        where.createdAt.lte = getUtcDateFromLocal(ey, em, ed, 23, 59, 59, 999, timezone);
+      }
+    }
+
+    const sales = await prisma.sale.findMany({
+      where,
+      include: {
+        user: true,
+        branch: true,
+        customer: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return {
+      success: true,
+      sales: sales.map(s => ({
+        id: s.id,
+        folio: s.folio,
+        createdAt: s.createdAt.toISOString(),
+        total: s.total,
+        status: s.status,
+        paymentMethod: s.paymentMethod,
+        invoiceId: s.invoiceId,
+        invoiceFolio: s.invoiceFolio,
+        customer: s.customer ? { name: s.customer.name } : null,
+        user: s.user ? { name: s.user.name } : null,
+        branch: s.branch ? { name: s.branch.name } : null
+      }))
+    };
+  } catch (error: any) {
+    console.error("Error in getSalesForExport:", error);
+    return { success: false, error: error.message || String(error) };
   }
 }
 

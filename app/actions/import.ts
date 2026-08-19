@@ -275,6 +275,17 @@ export async function importProducts(records: any[]) {
         }
       });
 
+      // Log product creation movement in Kardex
+      await prisma.inventoryMovement.create({
+        data: {
+          productId: productObj.id,
+          type: 'IN',
+          quantity: 0,
+          reason: 'Creación de Producto (Importación)',
+          userId: user.id
+        }
+      });
+
       // Create or update product in sister branches to keep catalogs aligned
       for (const sisterId of sisterBranchIds) {
         const sisterExisting = await prisma.product.findFirst({

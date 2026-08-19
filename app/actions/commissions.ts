@@ -53,16 +53,30 @@ export async function updateCommissionProfile(userId: string, data: any) {
     throw new Error('A user cannot be their own manager.');
   }
 
+  const updateData: any = {};
+
+  if (data.commissionRole !== undefined) {
+    updateData.commissionRole = data.commissionRole || null;
+  }
+  if (data.commissionPct !== undefined) {
+    updateData.commissionPct = parseFloat(data.commissionPct) || 0;
+  }
+  if (data.managerId !== undefined) {
+    updateData.managerId = data.managerId || null;
+  }
+  if (data.monthlyGoal !== undefined) {
+    updateData.monthlyGoal = parseFloat(data.monthlyGoal) || 0;
+  }
+  if (data.bonusAmount !== undefined) {
+    updateData.bonusAmount = parseFloat(data.bonusAmount) || 0;
+  }
+  if (data.teamBonusAmount !== undefined) {
+    updateData.teamBonusAmount = parseFloat(data.teamBonusAmount) || 0;
+  }
+
   await prisma.user.update({
     where: { id: userId },
-    data: {
-      managerId: data.managerId || null,
-      commissionRole: data.commissionRole || null,
-      commissionPct: parseFloat(data.commissionPct) || 0,
-      monthlyGoal: parseFloat(data.monthlyGoal) || 0,
-      bonusAmount: parseFloat(data.bonusAmount) || 0,
-      teamBonusAmount: parseFloat(data.teamBonusAmount) || 0,
-    }
+    data: updateData
   });
 
   revalidateTag(`user-${userId}`, 'max');
