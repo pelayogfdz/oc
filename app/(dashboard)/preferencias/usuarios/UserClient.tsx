@@ -5,11 +5,17 @@ import { Users, Plus, Shield, Edit2, Trash2, CheckCircle2, ChevronDown, ChevronR
 import { createUser, updateUser, deleteUser } from '@/app/actions/user';
 import { createBranch } from '@/app/actions/branch';
 
+import { useRouter } from 'next/navigation';
 import { PERMISSION_MODULES } from '@/app/config/permissions';
 export { PERMISSION_MODULES };
 
 export default function UserClient({ initialUsers, branches, hrLocations = [], customRoles = [] }: { initialUsers: any[], branches: any[], hrLocations?: any[], customRoles?: any[] }) {
+  const router = useRouter();
   const [users, setUsers] = useState(initialUsers);
+
+  useEffect(() => {
+    setUsers(initialUsers);
+  }, [initialUsers]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -488,7 +494,8 @@ export default function UserClient({ initialUsers, branches, hrLocations = [], c
       try {
         const res = await deleteUser(id);
         if (res && res.success) {
-          setUsers(users.filter(u => u.id !== id));
+          setUsers(prev => prev.filter(u => u.id !== id));
+          router.refresh();
         } else {
           alert("No se pudo eliminar: " + (res?.error || "Ocurrió un error inesperado."));
         }

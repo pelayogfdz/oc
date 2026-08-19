@@ -270,12 +270,8 @@ export async function deleteUser(id: string) {
         return { success: true };
       }
 
-      // If it fails due to foreign key constraints, perform anonymization / soft-delete
-      const isConstraintError = 
-        deleteError.code === 'P2003' || 
-        String(deleteError).includes('foreign key constraint');
-
-      if (isConstraintError) {
+      // Perform anonymization / soft-delete for ANY foreign key, dependency or constraint error
+      try {
         const uniqueSuffix = id.substring(0, 8);
         const timestamp = Date.now();
         await prisma.user.update({
@@ -293,8 +289,10 @@ export async function deleteUser(id: string) {
         updateTag(`user-${id}`);
         revalidatePath('/preferencias/usuarios');
         return { success: true };
+      } catch (updateError: any) {
+        console.error("Error during soft-delete update of user:", updateError);
+        return { success: false, error: updateError.message || "No se pudo desactivar el usuario del sistema." };
       }
-      return { success: false, error: deleteError.message || "No se pudo eliminar el usuario del sistema." };
     }
   } catch (error: any) {
     console.error("Error in deleteUser:", error);
