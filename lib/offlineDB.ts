@@ -70,6 +70,9 @@ export interface OfflineProduct {
   averageCost: number;
   price: number;
   category: string | null;
+  imageUrl?: string | null;
+  wholesalePrice?: number | null;
+  specialPrice?: number | null;
   variants: any[];
   prices: any[]; // PriceLists links
 }

@@ -23,7 +23,8 @@ interface ProductFinanceSectionProps {
   initialWholesalePrice?: number | null;
   initialSpecialPrice?: number | null;
   priceLists: PriceList[];
-  initialPrices?: ProductPrice[];
+  initialPrices?: any[];
+  allPriceLists?: any[];
 }
 
 export default function ProductFinanceSection({
@@ -36,7 +37,8 @@ export default function ProductFinanceSection({
   initialWholesalePrice,
   initialSpecialPrice,
   priceLists = [],
-  initialPrices = []
+  initialPrices = [],
+  allPriceLists = []
 }: ProductFinanceSectionProps) {
   // Base states
   const [cost, setCost] = useState<string | number>(initialCost);
@@ -88,8 +90,22 @@ export default function ProductFinanceSection({
   const [listPrices, setListPrices] = useState<Record<string, { price: string; margin: string }>>(() => {
     const init: Record<string, { price: string; margin: string }> = {};
     priceLists.forEach(pl => {
-      const savedPriceObj = initialPrices.find(p => p.priceListId === pl.id);
-      const savedPrice = savedPriceObj ? savedPriceObj.price : 0;
+      const targetPlName = (pl.name || '').toLowerCase().trim();
+      const savedPriceObj = initialPrices.find((p: any) => {
+        if (p.priceListId === pl.id) return true;
+        if (p.priceList?.name && (p.priceList.name || '').toLowerCase().trim() === targetPlName) return true;
+        const matchingPl = allPriceLists?.find((apl: any) => apl.id === p.priceListId);
+        if (matchingPl && (matchingPl.name || '').toLowerCase().trim() === targetPlName) return true;
+        return false;
+      });
+      let savedPrice = savedPriceObj ? savedPriceObj.price : 0;
+      if (!savedPrice || savedPrice <= 0) {
+        if (targetPlName.includes('mayoreo') || targetPlName.includes('wholesale') || targetPlName.includes('mayorista')) {
+          if (initialWholesalePrice && initialWholesalePrice > 0) savedPrice = initialWholesalePrice;
+        } else if (targetPlName.includes('especial') || targetPlName.includes('special')) {
+          if (initialSpecialPrice && initialSpecialPrice > 0) savedPrice = initialSpecialPrice;
+        }
+      }
       init[pl.id] = {
         price: savedPrice > 0 ? String(savedPrice) : '',
         margin: savedPrice > 0 ? getMarginFromPrice(savedPrice, initialCost, initialTaxType, initialTaxRate, initialIepsRate) : ''
