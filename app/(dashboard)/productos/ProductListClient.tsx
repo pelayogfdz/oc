@@ -235,8 +235,9 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     if (filterStock === 'LOW_STOCK' && p.stock > (p.minStock || 0)) return false;
 
     // Image Filter
-    if (filterImage === 'WITH_IMAGE' && (!p.imageUrl || p.imageUrl.trim() === '')) return false;
-    if (filterImage === 'WITHOUT_IMAGE' && (p.imageUrl && p.imageUrl.trim() !== '')) return false;
+    const hasValidImage = Boolean(p.imageUrl && p.imageUrl.trim() !== '' && !p.imageUrl.includes('.svg') && !p.imageUrl.includes('placeholder'));
+    if (filterImage === 'WITH_IMAGE' && !hasValidImage) return false;
+    if (filterImage === 'WITHOUT_IMAGE' && hasValidImage) return false;
 
     // Brand Filter
     if (filterBrand !== 'ALL' && p.brand !== filterBrand) return false;

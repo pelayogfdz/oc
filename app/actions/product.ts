@@ -855,9 +855,23 @@ export async function searchProducts(
 
     if (options.image) {
       if (options.image === 'WITH_IMAGE') {
-        extraConditions.push({ imageUrl: { not: '' } });
+        extraConditions.push({
+          AND: [
+            { imageUrl: { not: null } },
+            { imageUrl: { not: '' } },
+            { NOT: { imageUrl: { contains: '.svg', mode: 'insensitive' } } },
+            { NOT: { imageUrl: { contains: 'placeholder', mode: 'insensitive' } } }
+          ]
+        });
       } else if (options.image === 'WITHOUT_IMAGE') {
-        extraConditions.push({ OR: [{ imageUrl: null }, { imageUrl: '' }] });
+        extraConditions.push({
+          OR: [
+            { imageUrl: null },
+            { imageUrl: '' },
+            { imageUrl: { contains: '.svg', mode: 'insensitive' } },
+            { imageUrl: { contains: 'placeholder', mode: 'insensitive' } }
+          ]
+        });
       }
     }
 
