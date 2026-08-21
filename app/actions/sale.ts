@@ -30,13 +30,14 @@ export async function createSale(
     const activeBranch = await getActiveBranch();
     let finalBranchId = branchId;
     
-    // Si no se pasó branchId explícitamente, intentar obtenerlo de la sesión de caja
-    if (!finalBranchId) {
-      if (cashSessionId) {
-        const sessionRecord = await prisma.cashSession.findUnique({
-          where: { id: cashSessionId }
-        });
-        if (sessionRecord && sessionRecord.branchId) {
+    let validCashSessionId: string | null = null;
+    if (cashSessionId) {
+      const sessionRecord = await prisma.cashSession.findUnique({
+        where: { id: cashSessionId }
+      });
+      if (sessionRecord) {
+        validCashSessionId = sessionRecord.id;
+        if (!finalBranchId && sessionRecord.branchId) {
           finalBranchId = sessionRecord.branchId;
         }
       }
@@ -48,6 +49,16 @@ export async function createSale(
         throw new Error('Debes seleccionar una sucursal específica para realizar esta acción.');
       }
       finalBranchId = activeBranch.id;
+    }
+
+    if (!validCashSessionId && finalBranchId) {
+      const activeSession = await prisma.cashSession.findFirst({
+        where: { branchId: finalBranchId, closedAt: null },
+        select: { id: true }
+      });
+      if (activeSession) {
+        validCashSessionId = activeSession.id;
+      }
     }
 
     const user = await getActiveUser();
@@ -208,7 +219,7 @@ export async function createSale(
           status: isPedido ? 'PENDING' : 'COMPLETED',
           paymentMethod,
           customerId: resolvedCustId,
-          cashSessionId,
+          cashSessionId: validCashSessionId,
           notes: notesAccumulated,
           cashAmount,
           cardAmount,

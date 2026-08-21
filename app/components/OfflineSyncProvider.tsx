@@ -193,9 +193,29 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       };
       await db.pendingSales.add(newSale);
       setPendingSales(prev => [...prev, newSale]);
+
+      // Deduct stock immediately from local IndexedDB mirror
+      if (saleParams.items && Array.isArray(saleParams.items)) {
+        for (const item of saleParams.items) {
+          if (item.productId) {
+            try {
+              const localProd = await db.products.get(item.productId);
+              if (localProd) {
+                const currentStock = Number(localProd.stock) || 0;
+                const soldQty = Number(item.quantity) || 0;
+                const newStock = Math.max(0, currentStock - soldQty);
+                await db.products.update(item.productId, { stock: newStock });
+              }
+            } catch (errStock) {
+              console.warn('[OfflineDB] Error updating local stock mirror:', errStock);
+            }
+          }
+        }
+      }
+
       if (!isOnline) {
         const typeLabel = saleParams.type === 'QUOTE' ? 'Cotización' : saleParams.type === 'CONSIGNMENT' ? 'Consignación' : 'Venta';
-        setShowToast({ message: `${typeLabel} guardada en modo Offline.`, type: 'warn' });
+        setShowToast({ message: `${typeLabel} registrada localmente y descontada de inventario (Modo Offline).`, type: 'warn' });
       } else {
         forceSync();
       }

@@ -72,6 +72,7 @@ export default function VentasHistoryClient({
   const pathname = usePathname();
 
   const [sales, setSales] = useState<any[]>(initialSales);
+  const [offlineSales, setOfflineSales] = useState<any[]>([]);
   const [isExporting, setIsExporting] = useState(false);
   const [filterStartDate, setFilterStartDate] = useState(queryParams.startDate || '');
   const [filterEndDate, setFilterEndDate] = useState(queryParams.endDate || '');
@@ -82,6 +83,34 @@ export default function VentasHistoryClient({
   const [filterCfdi, setFilterCfdi] = useState(queryParams.cfdi || '');
   const [filterPaymentMethod, setFilterPaymentMethod] = useState(queryParams.paymentMethod || '');
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    import('@/lib/offlineDB').then(({ db }) => {
+      db.pendingSales.toArray().then(pendingList => {
+        if (!isMounted) return;
+        const formattedOffline = pendingList.map(p => ({
+          id: p.id,
+          folio: `OFFLINE-${p.id.slice(0, 6)}`,
+          createdAt: p.timestamp,
+          total: p.total,
+          status: 'OFFLINE_PENDING',
+          paymentMethod: p.paymentMethod || 'CASH',
+          isOffline: true,
+          customer: { name: 'Público General' },
+          user: { name: 'Usuario Local' },
+          branch: { name: currentBranch?.name || 'Sucursal Local' },
+          items: p.items || []
+        }));
+        setOfflineSales(formattedOffline);
+      }).catch(err => console.warn('Error loading pending offline sales', err));
+    });
+    return () => { isMounted = false; };
+  }, [currentBranch]);
+
+  const allCombinedSales = useMemo(() => {
+    return [...offlineSales, ...sales];
+  }, [offlineSales, sales]);
 
   const updateUrlParams = (updates: Record<string, string>) => {
     const params = new URLSearchParams(window.location.search);
@@ -480,8 +509,8 @@ export default function VentasHistoryClient({
     );
   }, [sales]);
 
-  // Server-paginated sales array
-  const filteredSales = sales;
+  // Server-paginated sales array merged with pending offline sales
+  const filteredSales = allCombinedSales;
 
   const hasActiveFilters = Boolean(filterStartDate || filterEndDate || filterUser || (currentBranch.id === 'GLOBAL' && filterBranch) || filterStatus || filterClient || filterCfdi || filterPaymentMethod);
 
@@ -979,10 +1008,11 @@ export default function VentasHistoryClient({
                         borderRadius: '12px', 
                         fontSize: '0.7rem',
                         fontWeight: 'bold',
-                        backgroundColor: sale.status === 'COMPLETED' ? '#dcfce7' : sale.status === 'CANCELLED' ? '#fee2e2' : '#f1f5f9',
-                        color: sale.status === 'COMPLETED' ? '#166534' : sale.status === 'CANCELLED' ? '#991b1b' : '#334155'
+                        backgroundColor: sale.isOffline ? '#fef3c7' : sale.status === 'COMPLETED' ? '#dcfce7' : sale.status === 'CANCELLED' ? '#fee2e2' : '#f1f5f9',
+                        color: sale.isOffline ? '#92400e' : sale.status === 'COMPLETED' ? '#166534' : sale.status === 'CANCELLED' ? '#991b1b' : '#334155',
+                        border: sale.isOffline ? '1px solid #fde68a' : 'none'
                       }}>
-                        {sale.status === 'COMPLETED' ? 'Completado' : sale.status === 'CANCELLED' ? 'Cancelado' : sale.status}
+                        {sale.isOffline ? '⚡ Offline (En cola)' : sale.status === 'COMPLETED' ? 'Completado' : sale.status === 'CANCELLED' ? 'Cancelado' : sale.status}
                       </span>
                       {sale.cancellationStatus === 'pending' && (
                         <span style={{ 
