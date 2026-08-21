@@ -637,7 +637,7 @@ export async function updateProduct(productId: string, formData: FormData) {
       }
     }
 
-    // Upsert dynamic prices
+    // Upsert dynamic prices & propagate to all tenant sibling branches
     const keys = Array.from(formData.keys());
     for (const key of keys) {
       if (key.startsWith('priceList_')) {
@@ -652,11 +652,75 @@ export async function updateProduct(productId: string, formData: FormData) {
             update: { price: listPrice }
           });
 
-          // Check if this price list is the "Mercado Libre" price list to sync back
+          // Fetch current price list name & product SKU/branch to sync to all sibling branches of the tenant
           const priceListObj = await prisma.priceList.findUnique({
             where: { id: priceListId },
             select: { name: true, branchId: true }
           });
+
+          const currentProd = await prisma.product.findUnique({
+            where: { id: productId },
+            select: { sku: true, branchId: true }
+          });
+
+          if (priceListObj?.name && currentProd?.sku && currentProd.branchId) {
+            const currentBranch = await prisma.branch.findUnique({
+              where: { id: currentProd.branchId },
+              select: { tenantId: true }
+            });
+
+            if (currentBranch?.tenantId) {
+              const tenantBranches = await prisma.branch.findMany({
+                where: { tenantId: currentBranch.tenantId },
+                select: { id: true }
+              });
+
+              const siblingBranchIds = tenantBranches.map(b => b.id);
+              const siblingProducts = await prisma.product.findMany({
+                where: {
+                  sku: currentProd.sku,
+                  branchId: { in: siblingBranchIds },
+                  id: { not: productId }
+                },
+                select: { id: true, branchId: true }
+              });
+
+              for (const siblingProd of siblingProducts) {
+                let targetPriceList = await prisma.priceList.findFirst({
+                  where: {
+                    branchId: siblingProd.branchId,
+                    name: { equals: priceListObj.name, mode: 'insensitive' }
+                  }
+                });
+
+                if (!targetPriceList) {
+                  targetPriceList = await prisma.priceList.create({
+                    data: {
+                      branchId: siblingProd.branchId,
+                      name: priceListObj.name
+                    }
+                  });
+                }
+
+                await prisma.productPrice.upsert({
+                  where: {
+                    productId_priceListId: {
+                      productId: siblingProd.id,
+                      priceListId: targetPriceList.id
+                    }
+                  },
+                  create: {
+                    productId: siblingProd.id,
+                    priceListId: targetPriceList.id,
+                    price: listPrice
+                  },
+                  update: {
+                    price: listPrice
+                  }
+                });
+              }
+            }
+          }
 
           if (priceListObj && priceListObj.name.toLowerCase() === 'mercado libre') {
             const maps = await prisma.externalProductMap.findMany({
@@ -1060,6 +1124,27 @@ export async function deleteProduct(productId: string) {
 
       const productIdsToClear = productsToClear.map(p => p.id);
 
+      // Check if any of these products have historical transactions
+      const hasHistory = await prisma.$transaction(async (tx) => {
+        const saleCount = await tx.saleItem.count({ where: { productId: { in: productIdsToClear } } });
+        if (saleCount > 0) return true;
+
+        const consignmentCount = await tx.consignmentItem.count({ where: { productId: { in: productIdsToClear } } });
+        if (consignmentCount > 0) return true;
+
+        const purchaseCount = await tx.purchaseItem.count({ where: { productId: { in: productIdsToClear } } });
+        if (purchaseCount > 0) return true;
+
+        const transferCount = await tx.transferItem.count({ where: { productId: { in: productIdsToClear } } });
+        if (transferCount > 0) return true;
+
+        return false;
+      });
+
+      if (hasHistory) {
+        throw new Error('Este producto tiene historial de transacciones (ventas, compras, consignaciones o traspasos) y no puede ser eliminado permanentemente. Te recomendamos desactivarlo (marcarlo como inactivo) desde la edición del producto para conservar el historial contable.');
+      }
+
       // Eliminar dependencias y productos en lote
       await prisma.$transaction(async (tx) => {
         await tx.inventoryMovement.deleteMany({ where: { productId: { in: productIdsToClear } } });
@@ -1083,6 +1168,27 @@ export async function deleteProduct(productId: string) {
         await tx.product.deleteMany({ where: { id: { in: productIdsToClear } } });
       });
     } else {
+      // Check if product has historical transactions
+      const hasHistory = await prisma.$transaction(async (tx) => {
+        const saleCount = await tx.saleItem.count({ where: { productId } });
+        if (saleCount > 0) return true;
+
+        const consignmentCount = await tx.consignmentItem.count({ where: { productId } });
+        if (consignmentCount > 0) return true;
+
+        const purchaseCount = await tx.purchaseItem.count({ where: { productId } });
+        if (purchaseCount > 0) return true;
+
+        const transferCount = await tx.transferItem.count({ where: { productId } });
+        if (transferCount > 0) return true;
+
+        return false;
+      });
+
+      if (hasHistory) {
+        throw new Error('Este producto tiene historial de transacciones (ventas, compras, consignaciones o traspasos) y no puede ser eliminado permanentemente. Te recomendamos desactivarlo (marcarlo como inactivo) desde la edición del producto para conservar el historial contable.');
+      }
+
       // Eliminar solo el producto individual si no hay SKU o tenant
       await prisma.$transaction(async (tx) => {
         await tx.inventoryMovement.deleteMany({ where: { productId } });
