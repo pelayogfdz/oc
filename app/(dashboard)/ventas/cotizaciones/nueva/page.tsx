@@ -150,6 +150,7 @@ export default async function NuevaCotizacionPage({
         ticketConfig={ticketConfig}
         ventasConfig={ventasConfig}
         dynamicPriceLists={dynamicPriceLists}
+        allPriceLists={allPriceLists}
         userPermissions={userPermissions}
         userRole={userRole}
         isSuperAdmin={isSuperAdmin}

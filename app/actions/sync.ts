@@ -60,7 +60,52 @@ export async function syncBasicCatalogs() {
     }
   });
 
-  return { customers, suppliers, branches: tenantBranches, settings: settingsDb, totalProducts, users };
+  let recentSales: any[] = [];
+  if (branchId && branchId !== 'GLOBAL') {
+    const salesDb = await prisma.sale.findMany({
+      where: { branchId },
+      orderBy: { createdAt: 'desc' },
+      take: 150,
+      include: {
+        user: true,
+        customer: true,
+        branch: true,
+        items: {
+          include: { product: true, variant: true }
+        }
+      }
+    });
+    recentSales = salesDb.map(s => ({
+      id: s.id,
+      folio: s.folio,
+      createdAt: s.createdAt.toISOString(),
+      userId: s.userId,
+      userName: s.user?.name || null,
+      branchId: s.branchId,
+      branchName: s.branch?.name || null,
+      total: s.total,
+      status: s.status,
+      paymentMethod: s.paymentMethod,
+      invoiceId: s.invoiceId,
+      invoiceFolio: s.invoiceFolio,
+      cancellationStatus: s.cancellationStatus,
+      notes: s.notes,
+      customerId: s.customerId,
+      customerName: s.customer?.name || null,
+      items: s.items.map(item => ({
+        id: item.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        productName: item.product?.name || 'Producto',
+        productSku: item.product?.sku || null,
+        productBarcode: item.product?.barcode || null,
+        variantAttribute: item.variant?.attribute || null
+      }))
+    }));
+  }
+
+  return { customers, suppliers, branches: tenantBranches, settings: settingsDb, totalProducts, users, recentSales };
 }
 
 export async function syncProductsPage(page: number, limit: number) {

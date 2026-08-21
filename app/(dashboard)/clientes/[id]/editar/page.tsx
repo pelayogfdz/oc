@@ -42,13 +42,7 @@ export default async function EditarClientePage({ params }: { params: Promise<{ 
     (customer.name.toLowerCase().includes('publico') && customer.name.toLowerCase().includes('general')) ||
     customer.taxId === 'XAXX010101000';
 
-  const saveAction = async (formData: FormData) => {
-    'use server';
-    if (isGenericPublic) {
-      throw new Error("No se permite modificar el cliente genérico de Público en General.");
-    }
-    await updateCustomer(id, formData);
-  };
+  const updateCustomerWithId = updateCustomer.bind(null, id);
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
@@ -69,7 +63,7 @@ export default async function EditarClientePage({ params }: { params: Promise<{ 
         </div>
       )}
 
-      <form action={saveAction} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <form action={updateCustomerWithId} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         
         {/* Identificación */}
         <div className="card" style={{ padding: '1.5rem' }}>

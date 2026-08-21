@@ -51,8 +51,9 @@ export default async function NuevaVentaPage({ searchParams }: { searchParams: a
     }),
     prisma.quote.findMany({
       where: { branchId, status: 'PENDING' },
+      include: { customer: { select: { name: true } } },
       orderBy: { createdAt: 'desc' },
-      take: 20
+      take: 30
     }),
     getCurrentSession(),
     getBranchSettings(),
@@ -163,6 +164,7 @@ export default async function NuevaVentaPage({ searchParams }: { searchParams: a
       suppliers={suppliers}
       promotions={promotions}
       dynamicPriceLists={dynamicPriceLists}
+      allPriceLists={allPriceLists}
       pendingQuotes={pendingQuotes}
       session={session}
       branchId={branchId}

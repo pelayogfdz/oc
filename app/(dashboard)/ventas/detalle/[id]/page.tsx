@@ -28,6 +28,9 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
 
   if (!sale) return notFound();
 
+  const itemsTotal = sale.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const discount = Math.max(0, itemsTotal - sale.total);
+
   const customers = await prisma.customer.findMany({
     where: {
       branch: {
@@ -265,8 +268,14 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
           <div style={{ width: '300px' }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #e2e8f0' }}>
                 <span style={{ color: '#64748b', fontSize: '1.1rem' }}>Subtotal:</span>
-                <span style={{ fontSize: '1.1rem', color: '#0f172a' }}>${sale.total.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                <span style={{ fontSize: '1.1rem', color: '#0f172a' }}>${itemsTotal.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
              </div>
+             {discount > 0.01 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #e2e8f0', color: '#dc2626' }}>
+                   <span style={{ fontSize: '1.1rem' }}>Descuento:</span>
+                   <span style={{ fontSize: '1.1rem' }}>-${discount.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                </div>
+             )}
              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0', fontWeight: 'bold', fontSize: '1.5rem', color: '#0ea5e9' }}>
                 <span>Pago Total:</span>
                 <span>${sale.total.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>

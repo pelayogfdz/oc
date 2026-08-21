@@ -15,10 +15,42 @@ export default async function CotizacionesPage() {
   const quotes = await prisma.quote.findMany({
     where: baseWhere,
     orderBy: { createdAt: 'desc' },
-    include: {
-      user: true,
-      customer: true,
-      items: { include: { product: true } }
+    select: {
+      id: true,
+      folio: true,
+      total: true,
+      status: true,
+      paymentMethod: true,
+      customerId: true,
+      branchId: true,
+      userId: true,
+      createdAt: true,
+      updatedAt: true,
+      observations: true,
+      observationImageUrl: true,
+      customer: {
+        select: { id: true, name: true }
+      },
+      user: {
+        select: { id: true, name: true }
+      },
+      items: {
+        select: {
+          id: true,
+          quantity: true,
+          price: true,
+          productId: true,
+          variantId: true,
+          product: {
+            select: {
+              id: true,
+              name: true,
+              cost: true,
+              averageCost: true
+            }
+          }
+        }
+      }
     }
   });
 

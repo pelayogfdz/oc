@@ -86,7 +86,8 @@ export async function createQuote(
 }
 
 export async function getQuoteForPOS(quoteId: string) {
-  const quote = await prisma.quote.findUnique({
+  const cleanTerm = quoteId.replace(/^#/, '').trim();
+  let quote = await prisma.quote.findUnique({
     where: { id: quoteId },
     include: { 
       items: {
@@ -101,6 +102,30 @@ export async function getQuoteForPOS(quoteId: string) {
       } 
     }
   });
+
+  if (!quote) {
+    quote = await prisma.quote.findFirst({
+      where: {
+        OR: [
+          { folio: cleanTerm },
+          { folio: { equals: cleanTerm, mode: 'insensitive' } },
+          { id: { startsWith: cleanTerm, mode: 'insensitive' } }
+        ]
+      },
+      include: {
+        items: {
+          include: {
+            product: {
+              include: {
+                prices: true
+              }
+            },
+            variant: true
+          }
+        }
+      }
+    });
+  }
   
   if (!quote) throw new Error("Cotización no encontrada.");
   // Allow converting quote to sale multiple times as requested by user

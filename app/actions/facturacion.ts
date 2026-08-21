@@ -532,31 +532,6 @@ export async function createPaymentReceipt(invoiceId: string, amount: number, pa
 
 export async function cancelInvoice(saleId: string, cancelSale: boolean = true) {
   try {
-    const branch = await getActiveBranch();
-    
-    const branchSettings = await prisma.branchSettings.findUnique({
-      where: { branchId: branch.id }
-    });
-
-    if (!branchSettings || !branchSettings.configJson) {
-      throw new Error("La sucursal no tiene configuraciones establecidas.");
-    }
-
-    let config: any;
-    try {
-      config = JSON.parse(branchSettings.configJson);
-    } catch(e) {
-      throw new Error("El archivo de configuración de la sucursal es inválido.");
-    }
-
-    const apiKey = getFacturapiApiKey(config);
-
-    if (!apiKey) {
-      throw new Error("No hay llaves de Facturapi configuradas en las preferencias de esta Sucursal.");
-    }
-
-    const facturapi = new Facturapi(apiKey);
-
     const sale = await prisma.sale.findUnique({
       where: { id: saleId }
     });
@@ -569,30 +544,65 @@ export async function cancelInvoice(saleId: string, cancelSale: boolean = true) 
       throw new Error("Esta venta no cuenta con una factura timbrada para cancelar.");
     }
 
-    let status: string;
-    let cancellationStatus: string;
+    // Recolectar llaves de Facturapi candidatas (sucursal activa -> sucursal de la venta -> demás sucursales)
+    const candidateKeys: string[] = [];
 
     try {
-      // Cancel invoice in Facturapi with motive "02" (Comprobante emitido con errores sin relación)
-      const cancelResult = await facturapi.invoices.cancel(sale.invoiceId, { motive: "02" as any });
-      status = cancelResult.status;
-      cancellationStatus = cancelResult.cancellation_status;
-    } catch (cancelError: any) {
-      console.error("[CANCEL_INVOICE] Facturapi cancel call failed, verifying current status:", cancelError);
-      
-      // Fallback: check if the invoice is already canceled in Facturapi
-      try {
-        const invoiceDetails = await facturapi.invoices.retrieve(sale.invoiceId);
-        if (invoiceDetails && invoiceDetails.status === 'canceled') {
-          console.log("[CANCEL_INVOICE] Invoice is already canceled in Facturapi, proceeding with local cancellation.");
-          status = 'canceled';
-          cancellationStatus = invoiceDetails.cancellation_status || 'none';
-        } else {
-          throw cancelError; // Rethrow original error if not canceled
-        }
-      } catch (fallbackError) {
-        throw cancelError; // Rethrow original error if retrieval fails or status is not canceled
+      const activeBranch = await getActiveBranch();
+      const activeSettings = await prisma.branchSettings.findUnique({ where: { branchId: activeBranch.id } });
+      if (activeSettings?.configJson) {
+        const k = getFacturapiApiKey(JSON.parse(activeSettings.configJson));
+        if (k && !candidateKeys.includes(k)) candidateKeys.push(k);
       }
+    } catch (e) {}
+
+    if (sale.branchId) {
+      const saleBranchSettings = await prisma.branchSettings.findUnique({ where: { branchId: sale.branchId } });
+      if (saleBranchSettings?.configJson) {
+        const k = getFacturapiApiKey(JSON.parse(saleBranchSettings.configJson));
+        if (k && !candidateKeys.includes(k)) candidateKeys.push(k);
+      }
+    }
+
+    const allSettings = await prisma.branchSettings.findMany();
+    for (const s of allSettings) {
+      if (!s.configJson) continue;
+      try {
+        const k = getFacturapiApiKey(JSON.parse(s.configJson));
+        if (k && !candidateKeys.includes(k)) candidateKeys.push(k);
+      } catch (e) {}
+    }
+
+    if (candidateKeys.length === 0) {
+      throw new Error("No hay llaves de Facturapi configuradas en las preferencias de ninguna sucursal.");
+    }
+
+    let status: string | undefined;
+    let cancellationStatus: string | undefined;
+    let lastError: any;
+
+    for (const apiKey of candidateKeys) {
+      const facturapi = new Facturapi(apiKey);
+      try {
+        const cancelResult = await facturapi.invoices.cancel(sale.invoiceId, { motive: "02" as any });
+        status = cancelResult.status;
+        cancellationStatus = cancelResult.cancellation_status;
+        break;
+      } catch (cancelError: any) {
+        lastError = cancelError;
+        try {
+          const invoiceDetails = await facturapi.invoices.retrieve(sale.invoiceId);
+          if (invoiceDetails && invoiceDetails.status === 'canceled') {
+            status = 'canceled';
+            cancellationStatus = invoiceDetails.cancellation_status || 'none';
+            break;
+          }
+        } catch (fallbackError) {}
+      }
+    }
+
+    if (!status) {
+      throw lastError || new Error("No se pudo cancelar la factura en Facturapi con ninguna de las llaves configuradas.");
     }
 
     if (status === 'canceled') {

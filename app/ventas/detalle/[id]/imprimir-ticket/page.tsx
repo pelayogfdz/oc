@@ -116,7 +116,7 @@ export default async function PrintVentaTicketPage({ params }: { params: Promise
     : `${origin}/clientes/portal`;
 
   const separator = billingBaseUrl.includes('?') ? '&' : '?';
-  const finalUrl = `${billingBaseUrl}${separator}ticketId=${ticketIdParam}`;
+  const finalUrl = `${billingBaseUrl}${separator}ticketId=${sale.id}`;
 
   const showTax = ticketConfig.showTax !== false;
 
@@ -127,6 +127,7 @@ export default async function PrintVentaTicketPage({ params }: { params: Promise
 
   const itemsTotal = sale.items.reduce((sum: number, item: any) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
   const saleFactor = itemsTotal > 0 ? (sale.total || 0) / itemsTotal : 1;
+  const discount = Math.max(0, itemsTotal - (sale.total || 0));
 
   sale.items.forEach((item: any) => {
     const itemTotal = (item.price || 0) * (item.quantity || 0);
@@ -251,7 +252,17 @@ export default async function PrintVentaTicketPage({ params }: { params: Promise
               {tIeps > 0 && <div className="total-row" style={{ fontWeight: 'normal', fontSize: is58 ? '9px' : '12px' }}><span>IEPS Desglosado:</span><span>${tIeps.toFixed(2)}</span></div>}
               {tExento > 0 && <div className="total-row" style={{ fontWeight: 'normal', fontSize: is58 ? '9px' : '12px' }}><span>Sin Impuestos:</span><span>${tExento.toFixed(2)}</span></div>}
             </>
-          ) : null}
+          ) : (
+            <div className="total-row" style={{ fontWeight: 'normal', fontSize: is58 ? '9px' : '12px' }}><span>Subtotal:</span><span>${itemsTotal.toFixed(2)}</span></div>
+          )}
+          
+          {discount > 0.01 && (
+            <div className="total-row" style={{ fontWeight: 'normal', fontSize: is58 ? '9px' : '12px' }}>
+              <span>Descuento:</span>
+              <span>-${discount.toFixed(2)}</span>
+            </div>
+          )}
+          
           <div className="total-row" style={{ fontSize: is58 ? '13px' : '16px' }}>
             <span>TOTAL:</span>
             <span>${(sale.total || 0).toFixed(2)}</span>

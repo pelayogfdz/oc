@@ -78,6 +78,19 @@ export async function createCustomer(formData: FormData) {
 }
 
 export async function updateCustomer(id: string, formData: FormData) {
+  const customer = await prisma.customer.findUnique({ where: { id } });
+  if (!customer) {
+    throw new Error("Cliente no encontrado.");
+  }
+
+  const isGenericPublic = 
+    (customer.name.toLowerCase().includes('publico') && customer.name.toLowerCase().includes('general')) ||
+    customer.taxId === 'XAXX010101000';
+
+  if (isGenericPublic) {
+    throw new Error("No se permite modificar el cliente genérico de Público en General.");
+  }
+
   const taxId = cleanTaxId(formData.get('taxId') as string);
   await validateUniqueTaxId(taxId, id);
 

@@ -48,6 +48,7 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
 
   const itemsTotal = sale.items.reduce((sum: number, item: any) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
   const saleFactor = itemsTotal > 0 ? (sale.total || 0) / itemsTotal : 1;
+  const discount = Math.max(0, itemsTotal - (sale.total || 0));
 
   sale.items.forEach((item: any) => {
     const itemTotal = (item.price || 0) * (item.quantity || 0);
@@ -225,7 +226,22 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
               {tExento > 0 && <div className="total-row"><span>Sin Impuestos:</span><span>${tExento.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>}
             </>
           ) : (
-            <div className="total-row"><span>Subtotal:</span><span>${(sale.total || 0).toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
+            <>
+              <div className="total-row"><span>Subtotal:</span><span>${itemsTotal.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
+              {discount > 0.01 && (
+                <div className="total-row" style={{ color: '#dc2626' }}>
+                  <span>Descuento:</span>
+                  <span>-${discount.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                </div>
+              )}
+            </>
+          )}
+          
+          {showTaxBreakdown && discount > 0.01 && (
+            <div className="total-row" style={{ color: '#dc2626', borderTop: '1px dashed #cbd5e1', paddingTop: '0.25rem', marginTop: '0.25rem' }}>
+              <span>Descuento:</span>
+              <span>-${discount.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+            </div>
           )}
           
           <div className="total-final">
@@ -246,7 +262,7 @@ export default async function PrintVentaPage({ params }: { params: Promise<{ id:
         {/* Footer & QR */}
         <div style={{ marginTop: '4rem', paddingBottom: '1rem' }}>
           <div className="qr-section">
-            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`https://caanma.com/clientes/portal?ticketId=${sale.folio || sale.id.slice(0, 8)}`)}`} alt="QR Code" style={{ width: '80px', height: '80px' }} />
+            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`https://caanma.com/clientes/portal?ticketId=${sale.id}`)}`} alt="QR Code" style={{ width: '80px', height: '80px' }} />
             <div>
               <h4 style={{ margin: '0 0 0.25rem 0', color: '#0f172a', fontSize: '1rem' }}>¿Requieres Factura Electrónica?</h4>
               <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>

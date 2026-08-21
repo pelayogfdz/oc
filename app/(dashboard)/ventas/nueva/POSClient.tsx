@@ -28,6 +28,7 @@ export default function POSClient({
   ventasConfig = {}, 
   impresorasConfig = {}, 
   dynamicPriceLists = [], 
+  allPriceLists = [],
   pendingQuotes = [], 
   initialCustomerId, 
   qzCert,
@@ -47,6 +48,7 @@ export default function POSClient({
   ventasConfig?: any, 
   impresorasConfig?: any, 
   dynamicPriceLists?: any[], 
+  allPriceLists?: any[],
   pendingQuotes?: any[], 
   initialCustomerId?: string, 
   qzCert?: string,
@@ -88,7 +90,8 @@ export default function POSClient({
       documentType: 'TICKET',
       transactionType: 'VENTA',
       appliedPromotionIds: null,
-      breakdownDiscounts: false
+      breakdownDiscounts: true,
+      isQuoteClone: false
     }
   ]);
 
@@ -118,7 +121,8 @@ export default function POSClient({
         appliedPromotionIds,
         loadedQuoteId,
         loadedConsignmentId,
-        breakdownDiscounts
+        breakdownDiscounts,
+        isQuoteClone
       } : t);
       
       const target = updated.find(t => t.id === targetTabId);
@@ -145,7 +149,8 @@ export default function POSClient({
         setAppliedPromotionIds(target.appliedPromotionIds !== undefined ? target.appliedPromotionIds : null);
         setLoadedQuoteId(target.loadedQuoteId || null);
         setLoadedConsignmentId(target.loadedConsignmentId || null);
-        setBreakdownDiscounts(target.breakdownDiscounts || false);
+        setBreakdownDiscounts(target.breakdownDiscounts !== undefined ? target.breakdownDiscounts : true);
+        setIsQuoteClone(target.isQuoteClone || false);
         setActiveTabId(targetTabId);
 
         // Auto-fill or clear billing data for the target customer
@@ -219,7 +224,8 @@ export default function POSClient({
       appliedPromotionIds: null,
       loadedQuoteId: null,
       loadedConsignmentId: null,
-      breakdownDiscounts: false
+      breakdownDiscounts: true,
+      isQuoteClone: false
     };
 
     setTabs(prev => {
@@ -247,7 +253,8 @@ export default function POSClient({
         appliedPromotionIds,
         loadedQuoteId,
         loadedConsignmentId,
-        breakdownDiscounts
+        breakdownDiscounts,
+        isQuoteClone
       } : t);
       
       setCart(newTab.cart);
@@ -274,6 +281,7 @@ export default function POSClient({
       setLoadedQuoteTotal(null);
       setLoadedConsignmentId(null);
       setBreakdownDiscounts(newTab.breakdownDiscounts);
+      setIsQuoteClone(false);
       setActiveTabId(newId);
 
       return [...updated, newTab];
@@ -310,7 +318,8 @@ export default function POSClient({
         setAppliedPromotionIds(lastTab.appliedPromotionIds !== undefined ? lastTab.appliedPromotionIds : null);
         setLoadedQuoteId(lastTab.loadedQuoteId || null);
         setLoadedConsignmentId(lastTab.loadedConsignmentId || null);
-        setBreakdownDiscounts(lastTab.breakdownDiscounts || false);
+        setBreakdownDiscounts(lastTab.breakdownDiscounts !== undefined ? lastTab.breakdownDiscounts : true);
+        setIsQuoteClone(lastTab.isQuoteClone || false);
         setActiveTabId(lastTab.id);
       }
       return remaining;
@@ -348,11 +357,12 @@ export default function POSClient({
     setLoadedQuoteId(null);
     setLoadedQuoteTotal(null);
     setLoadedConsignmentId(null);
+    setIsQuoteClone(false);
     setAmountReceived('');
     setCardAmount('');
     setDocumentType('TICKET');
     setTransactionType('VENTA');
-    setBreakdownDiscounts(false);
+    setBreakdownDiscounts(true);
     
     // Clear billing data fields
     setBillRfc('');
@@ -389,7 +399,7 @@ export default function POSClient({
       appliedPromotionIds: null,
       loadedQuoteId: null,
       loadedConsignmentId: null,
-      breakdownDiscounts: false
+      breakdownDiscounts: true
     } : t));
   };
   
@@ -445,7 +455,7 @@ export default function POSClient({
         documentType: 'TICKET',
         transactionType: 'VENTA',
         appliedPromotionIds: null,
-        breakdownDiscounts: false
+        breakdownDiscounts: true
       }
     ]);
     setActiveTabId('1');
@@ -521,7 +531,7 @@ export default function POSClient({
             setAppliedPromotionIds(state.appliedPromotionIds || null);
             setLoadedQuoteId(state.loadedQuoteId || null);
             setLoadedConsignmentId(state.loadedConsignmentId || null);
-            setBreakdownDiscounts(state.breakdownDiscounts || false);
+            setBreakdownDiscounts(state.breakdownDiscounts !== undefined ? state.breakdownDiscounts : true);
 
             setTabs(prev => prev.map(t => t.id === '1' ? {
               ...t,
@@ -541,7 +551,7 @@ export default function POSClient({
               transactionType: state.transactionType || 'VENTA',
               loadedQuoteId: state.loadedQuoteId || null,
               loadedConsignmentId: state.loadedConsignmentId || null,
-              breakdownDiscounts: state.breakdownDiscounts || false
+               breakdownDiscounts: state.breakdownDiscounts !== undefined ? state.breakdownDiscounts : true
             } : t));
           }
         } catch (e) {
@@ -633,6 +643,7 @@ export default function POSClient({
   
   // Offline Data Mirrors
   const [activeCustomers, setActiveCustomers] = useState<any[]>(customers);
+  const [localOfflineQuotes, setLocalOfflineQuotes] = useState<any[]>([]);
   
   useEffect(() => {
     if (!isOnline) {
@@ -668,6 +679,7 @@ export default function POSClient({
       }
     }
   }, [activeCustomers, selectedCustomerId, hasDefaultedCustomer, branchId]);
+
 
   // Load customer purchase counts for products in the cart when customer or cart changes
   useEffect(() => {
@@ -733,6 +745,26 @@ export default function POSClient({
   const [quoteSearchId, setQuoteSearchId] = useState('');
   const [isLoadingQuote, setIsLoadingQuote] = useState(false);
 
+  useEffect(() => {
+    if (isQuoteModalOpen) {
+      import('@/lib/offlineDB').then(({ db }) => {
+        db.pendingSales
+          .filter(s => s.type === 'QUOTE')
+          .toArray()
+          .then(quotes => {
+            setLocalOfflineQuotes(quotes.map(q => ({
+              id: q.id,
+              folio: q.folio || null,
+              total: q.total,
+              createdAt: q.timestamp,
+              customerId: q.customerId,
+              customer: q.customerName ? { name: q.customerName } : null
+            })));
+          });
+      });
+    }
+  }, [isQuoteModalOpen]);
+
   // Variant Selection State
   const [selectedProductForVariant, setSelectedProductForVariant] = useState<any | null>(null);
 
@@ -744,7 +776,7 @@ export default function POSClient({
   const [manualDiscountValue, setManualDiscountValue] = useState<number | ''>('');
 
   // Breakdown discounts checkbox state
-  const [breakdownDiscounts, setBreakdownDiscounts] = useState<boolean>(false);
+  const [breakdownDiscounts, setBreakdownDiscounts] = useState<boolean>(true);
 
   
   let methodsList = (Array.isArray(metodosConfig?.methods) && metodosConfig.methods.length > 0) 
@@ -791,6 +823,7 @@ export default function POSClient({
   const [deliveryType, setDeliveryType] = useState<'PICKUP' | 'DELIVERY'>('PICKUP');
   const [loadedQuoteId, setLoadedQuoteId] = useState<string | null>(null);
   const [loadedQuoteTotal, setLoadedQuoteTotal] = useState<number | null>(null);
+  const [isQuoteClone, setIsQuoteClone] = useState<boolean>(false);
 
   // Loyalty / Points state
   const [loyaltySettings, setLoyaltySettings] = useState<any>(null);
@@ -958,7 +991,7 @@ export default function POSClient({
       setPriceList('price');
     }
     
-    if (!isProgrammatic && !loadedQuoteId) {
+    if (!isProgrammatic && !loadedQuoteId && !isQuoteClone) {
       setCart(prev => prev.map(item => {
         const { customPrice, ...rest } = item;
         return rest;
@@ -1034,11 +1067,54 @@ export default function POSClient({
     
     setIsLoadingQuote(true);
     try {
-      const quote = await getQuoteForPOS(idToLoad);
+      let quote: any = null;
+      
+      // Load offline quote from IndexedDB if offline or offline ID format
+      if (!isOnline || idToLoad.startsWith('OFFLINE-') || idToLoad.length > 30) {
+        const { db } = await import('@/lib/offlineDB');
+        const localQuote = await db.pendingSales.get(idToLoad);
+        if (localQuote && localQuote.type === 'QUOTE') {
+          const resolvedItems = [];
+          for (const item of localQuote.items) {
+            const localProduct = await db.products.get(item.productId);
+            if (localProduct) {
+              let resolvedVariant: any = null;
+              if (item.variantId && localProduct.variants) {
+                resolvedVariant = localProduct.variants.find((v: any) => v.id === item.variantId);
+              }
+              resolvedItems.push({
+                productId: item.productId,
+                variantId: item.variantId || null,
+                quantity: item.quantity,
+                price: item.price,
+                product: localProduct,
+                variant: resolvedVariant
+              });
+            }
+          }
+          quote = {
+            id: localQuote.id,
+            total: localQuote.total,
+            customerId: localQuote.customerId || null,
+            breakdownDiscounts: localQuote.breakdownDiscounts || false,
+            observations: localQuote.notes || '',
+            observationImageUrl: localQuote.observationImageUrl || '',
+            items: resolvedItems
+          };
+        }
+      }
+
+      if (!quote) {
+        if (!isOnline) {
+          throw new Error("No hay conexión a internet y esta cotización no se encuentra guardada localmente.");
+        }
+        quote = await getQuoteForPOS(idToLoad);
+      }
       
       setLoadedQuoteId(isClone ? null : quote.id);
+      setIsQuoteClone(isClone);
       setLoadedQuoteTotal(quote.total);
-      setBreakdownDiscounts(quote.breakdownDiscounts || false);
+      setBreakdownDiscounts(quote.breakdownDiscounts !== undefined ? quote.breakdownDiscounts : true);
       
       // Load cart preserving variantId, cartItemId, customPrice, variant attributes, SKU and stock details
       const newCart = quote.items.map((item: any) => {
@@ -1330,22 +1406,83 @@ export default function POSClient({
 
 
   const getProductPrice = useCallback((prod: any) => {
+    if (!prod) return 0;
     if (prod.customPrice !== undefined && prod.customPrice !== null && prod.customPrice !== '') {
-      return prod.customPrice;
+      const num = Number(prod.customPrice);
+      if (!isNaN(num)) return num;
     }
-    // Dynamic price lists check (fallback to base price if price is 0 or undefined)
+
+    // Default / public price
+    if (priceList === 'price' || !priceList) {
+      return prod.price ?? 0;
+    }
+
+    // Determine active price list name and all possible IDs (supporting multi-branch sync & sibling IDs)
+    let activeListName = '';
+    const targetPriceListIds = new Set<string>();
+
+    const listsToSearch = (allPriceLists && allPriceLists.length > 0) ? allPriceLists : dynamicPriceLists;
+
     if (priceList.startsWith('priceList_')) {
       const plId = priceList.replace('priceList_', '');
-      const dynamicPrice = prod.prices?.find((p: any) => p.priceListId === plId);
-      if (dynamicPrice && dynamicPrice.price > 0) return dynamicPrice.price;
+      targetPriceListIds.add(plId);
+
+      const foundPL = listsToSearch.find((pl: any) => pl.id === plId);
+      if (foundPL) {
+        activeListName = (foundPL.name || '').toLowerCase().trim();
+      }
+    } else if (priceList === 'wholesalePrice') {
+      activeListName = 'mayoreo';
+    } else if (priceList === 'specialPrice') {
+      activeListName = 'especial';
     }
-    
-    // Legacy fallback (optional since we're using dynamic mostly)
-    if (priceList === 'wholesalePrice' && prod.wholesalePrice && prod.wholesalePrice > 0) return prod.wholesalePrice;
-    if (priceList === 'specialPrice' && prod.specialPrice && prod.specialPrice > 0) return prod.specialPrice;
-    
-    return prod.price;
-  }, [priceList]);
+
+    if (activeListName) {
+      listsToSearch.forEach((pl: any) => {
+        const plName = (pl.name || '').toLowerCase().trim();
+        if (plName === activeListName || 
+            (activeListName.includes('mayoreo') && (plName.includes('mayoreo') || plName.includes('wholesale') || plName.includes('mayorista'))) ||
+            (activeListName.includes('especial') && (plName.includes('especial') || plName.includes('special')))) {
+          targetPriceListIds.add(pl.id);
+        }
+      });
+    }
+
+    // 1. Check dynamic prices array (prod.prices)
+    if (prod.prices && Array.isArray(prod.prices) && prod.prices.length > 0) {
+      // 1a. Direct ID match in targetPriceListIds
+      const byId = prod.prices.find((p: any) => targetPriceListIds.has(p.priceListId) && p.price !== undefined && p.price !== null && Number(p.price) > 0);
+      if (byId && Number(byId.price) > 0) return Number(byId.price);
+
+      // 1b. Match by priceList.name if relation was included
+      if (activeListName) {
+        const byName = prod.prices.find((p: any) => {
+          const pName = (p.priceList?.name || '').toLowerCase().trim();
+          return pName && (pName === activeListName || 
+            (activeListName.includes('mayoreo') && (pName.includes('mayoreo') || pName.includes('wholesale') || pName.includes('mayorista'))) || 
+            (activeListName.includes('especial') && (pName.includes('especial') || pName.includes('special')))) && 
+            Number(p.price) > 0;
+        });
+        if (byName && Number(byName.price) > 0) return Number(byName.price);
+      }
+    }
+
+    // 2. Mayoreo fallback on product/variant field
+    if (activeListName.includes('mayoreo') || activeListName.includes('wholesale') || activeListName.includes('mayorista') || priceList === 'wholesalePrice') {
+      if (prod.wholesalePrice !== undefined && prod.wholesalePrice !== null && Number(prod.wholesalePrice) > 0) {
+        return Number(prod.wholesalePrice);
+      }
+    }
+
+    // 3. Especial fallback on product/variant field
+    if (activeListName.includes('especial') || activeListName.includes('special') || priceList === 'specialPrice') {
+      if (prod.specialPrice !== undefined && prod.specialPrice !== null && Number(prod.specialPrice) > 0) {
+        return Number(prod.specialPrice);
+      }
+    }
+
+    return prod.price ?? 0;
+  }, [priceList, dynamicPriceLists, allPriceLists]);
 
   const addToCart = useCallback((product: any, variant: any = null) => {
     setCart(prevCart => {
@@ -1526,8 +1663,7 @@ export default function POSClient({
   }, [displayedProducts, stockFilter, filterCategory]);
 
   // Recalculate total dynamically with active price list
-  // Recalculate total dynamically with active price list
-  const subTotal = useMemo(() => cart.reduce((sum, item) => sum + (getProductPrice(item) * item.quantity), 0), [cart, priceList]);
+  const subTotal = useMemo(() => cart.reduce((sum, item) => sum + (getProductPrice(item) * item.quantity), 0), [cart, priceList, getProductPrice]);
 
   const hasActivePromotion = useCallback((product: any) => {
     if (!promotions || promotions.length === 0) return false;
@@ -1592,7 +1728,7 @@ export default function POSClient({
     });
 
     // When a quote is loaded for conversion, skip all promotions to preserve original quote prices
-    if (loadedQuoteId) return discountsMap;
+    if (loadedQuoteId || isQuoteClone) return discountsMap;
 
     if (!promotions || promotions.length === 0) return discountsMap;
 
@@ -1712,7 +1848,7 @@ export default function POSClient({
     });
 
     return discountsMap;
-  }, [promotions, priceList, getProductPrice, appliedPromotionIds, loadedQuoteId, customerPurchaseCounts]);
+  }, [promotions, priceList, getProductPrice, appliedPromotionIds, loadedQuoteId, isQuoteClone, customerPurchaseCounts]);
 
   const itemDiscounts = useMemo(() => getItemDiscounts(cart), [cart, getItemDiscounts]);
 
@@ -1802,16 +1938,16 @@ export default function POSClient({
     
     const ticketSubtotalSum = cartItems.reduce((sum, item) => {
       const basePrice = getProductPrice(item);
-      const itemDisc = breakdownDiscounts ? 0 : (getItemDiscounts([item])[item.cartItemId] || 0);
-      const p = breakdownDiscounts ? basePrice : (basePrice - itemDisc / item.quantity);
+      const itemDisc = (breakdownDiscounts || documentType === 'FACTURA') ? 0 : (getItemDiscounts([item])[item.cartItemId] || 0);
+      const p = (breakdownDiscounts || documentType === 'FACTURA') ? basePrice : (basePrice - itemDisc / item.quantity);
       return sum + (p * item.quantity);
     }, 0);
     const ticketFactor = ticketSubtotalSum > 0 ? (tTotal / ticketSubtotalSum) : 1;
 
     cartItems.forEach(item => {
       const basePrice = getProductPrice(item);
-      const itemDisc = breakdownDiscounts ? 0 : (getItemDiscounts([item])[item.cartItemId] || 0);
-      const itemPrice = breakdownDiscounts ? basePrice : (basePrice - itemDisc / item.quantity);
+      const itemDisc = (breakdownDiscounts || documentType === 'FACTURA') ? 0 : (getItemDiscounts([item])[item.cartItemId] || 0);
+      const itemPrice = (breakdownDiscounts || documentType === 'FACTURA') ? basePrice : (basePrice - itemDisc / item.quantity);
       const itemQty = item.quantity;
       const itemTotal = itemPrice * itemQty;
       
@@ -1848,8 +1984,8 @@ export default function POSClient({
     ticketExento *= ticketFactor;
     ticketBaseSubtotal *= ticketFactor;
 
-    const itemDiscountsMap = breakdownDiscounts ? getItemDiscounts(cartItems) : {};
-    const effectiveDiscount = breakdownDiscounts ? tDiscount : 0;
+    const itemDiscountsMap = (breakdownDiscounts || documentType === 'FACTURA') ? getItemDiscounts(cartItems) : {};
+    const effectiveDiscount = (breakdownDiscounts || documentType === 'FACTURA') ? tDiscount : 0;
     // Generate inner styling for the ticket
     const paperWidth = ticketConfig.anchoTicket === '58mm' || impresorasConfig.receiptWidth === '58mm' ? '58mm' : '80mm';
     const is58 = paperWidth === '58mm';
@@ -1862,7 +1998,7 @@ export default function POSClient({
         ? ticketConfig.autofacturacionUrl.trim() 
         : (window.location.origin + '/clientes/portal');
       const separator = billingBaseUrl.includes('?') ? '&' : '?';
-      const finalUrl = `${billingBaseUrl}${separator}ticketId=${ticketIdParam}`;
+      const finalUrl = `${billingBaseUrl}${separator}ticketId=${saleId}`;
       try {
         qrCodeBase64 = await QRCode.toDataURL(finalUrl, { width: 150, margin: 1 });
       } catch (err) {
@@ -1945,7 +2081,7 @@ export default function POSClient({
               const itemDisc = itemDiscountsMap[item.cartItemId] || 0;
               const discLabel = itemDisc > 0 ? `<div style="font-size: 0.85em; color: #555; padding-left: 25px; margin-top: -2px; margin-bottom: 4px;">* Promo desc: -$${itemDisc.toFixed(2)}</div>` : '';
               const basePrice = getProductPrice(item);
-              const displayedPrice = breakdownDiscounts 
+              const displayedPrice = (breakdownDiscounts || documentType === 'FACTURA') 
                 ? basePrice 
                 : (basePrice - (getItemDiscounts([item])[item.cartItemId] || 0) / item.quantity);
               return `
@@ -2215,7 +2351,7 @@ export default function POSClient({
       const items = finalCart.map(item => {
         const basePrice = getProductPrice(item);
         // Apply uniform proration so item prices remain mathematically consistent with the total sale/quote amount (unless breakdownDiscounts is active)
-        const savedPrice = breakdownDiscounts
+        const savedPrice = (breakdownDiscounts || documentType === 'FACTURA')
           ? basePrice
           : (subTotal > 0 ? (basePrice * (total / subTotal)) : 0);
         return { 
@@ -2321,7 +2457,7 @@ export default function POSClient({
                 billingData,
                 branchId,
                 type: 'SALE',
-                breakdownDiscounts,
+                breakdownDiscounts: breakdownDiscounts || documentType === 'FACTURA',
                 isPedido: transactionType === 'PEDIDO',
                 deliveryDate,
                 deliveryTime,
@@ -2351,7 +2487,7 @@ export default function POSClient({
             loadedConsignmentId || undefined, 
             pointsRedeemed, 
             branchId, 
-            breakdownDiscounts,
+            breakdownDiscounts || documentType === 'FACTURA',
             isPedidoTx,
             deliveryDate || undefined,
             deliveryTime || undefined,
@@ -2407,11 +2543,18 @@ export default function POSClient({
                 alert('¡Consignación creada con éxito! Imprimiendo Ticket...');
               }
            }
-           printTicket(cartBackup, totalBackup, changeBackup, discountBackup, saleId, responseSale?.folio);
            if (mode === 'QUOTE') {
+              if (saleId && !saleId.startsWith('OFFLINE')) {
+                 window.open(`/ventas/detalle/${saleId}/imprimir-cotizacion`, '_blank');
+              } else {
+                 alert('Cotización guardada localmente (modo offline). Se podrá imprimir una vez sincronizada.');
+              }
               router.push('/ventas/cotizaciones');
-           } else if (mode === 'CONSIGNMENT') {
-              router.push('/ventas/consignaciones');
+           } else {
+              printTicket(cartBackup, totalBackup, changeBackup, discountBackup, saleId, responseSale?.folio);
+              if (mode === 'CONSIGNMENT') {
+                 router.push('/ventas/consignaciones');
+              }
            }
            router.refresh();
         }, 100);
@@ -3098,6 +3241,12 @@ export default function POSClient({
                   {dynamicPriceLists.map(pl => (
                     <option key={pl.id} value={`priceList_${pl.id}`} style={{ color: '#1e293b' }}>{pl.name}</option>
                   ))}
+                  {priceList === 'wholesalePrice' && !dynamicPriceLists.some(pl => (pl.name || '').toLowerCase().includes('mayoreo')) && (
+                    <option value="wholesalePrice" style={{ color: '#1e293b' }}>Precio Mayoreo</option>
+                  )}
+                  {priceList === 'specialPrice' && !dynamicPriceLists.some(pl => (pl.name || '').toLowerCase().includes('especial')) && (
+                    <option value="specialPrice" style={{ color: '#1e293b' }}>Precio Especial</option>
+                  )}
                 </select>
               </div>
 
@@ -3419,7 +3568,7 @@ export default function POSClient({
                             </div>
                           ) : (
                             <div className="pos-cart-item-price">
-                              ${(breakdownDiscounts 
+                              ${((breakdownDiscounts || documentType === 'FACTURA') 
                                 ? itemPrice 
                                 : (itemPrice - (itemDiscounts[item.cartItemId] || 0) / item.quantity)
                               ).toFixed(2)}
@@ -3427,7 +3576,7 @@ export default function POSClient({
                           )}
                         </>
                       )}
-                      {breakdownDiscounts && itemDiscounts[item.cartItemId] > 0 && (
+                      {(breakdownDiscounts || documentType === 'FACTURA') && itemDiscounts[item.cartItemId] > 0 && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#db2777', fontSize: '0.8rem', fontWeight: 'bold', marginTop: '0.25rem' }}>
                           <Percent size={14} />
                           <span>Promoción: -${itemDiscounts[item.cartItemId].toFixed(2)}</span>
@@ -3490,7 +3639,7 @@ export default function POSClient({
 
                     {/* Subtotal */}
                     <div className="pos-cart-item-subtotal" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
-                      {breakdownDiscounts && itemDiscounts[item.cartItemId] > 0 ? (
+                      {(breakdownDiscounts || documentType === 'FACTURA') && itemDiscounts[item.cartItemId] > 0 ? (
                         <>
                           <span style={{ fontSize: '0.8rem', color: '#94a3b8', textDecoration: 'line-through' }}>
                             ${itemSubtotal.toFixed(2)}
@@ -3590,19 +3739,20 @@ export default function POSClient({
                 <input 
                   type="checkbox" 
                   id="breakdownDiscounts" 
-                  checked={breakdownDiscounts} 
+                  checked={breakdownDiscounts || documentType === 'FACTURA'} 
+                  disabled={documentType === 'FACTURA'}
                   onChange={(e) => setBreakdownDiscounts(e.target.checked)} 
-                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                  style={{ width: '16px', height: '16px', cursor: documentType === 'FACTURA' ? 'not-allowed' : 'pointer' }}
                 />
-                <label htmlFor="breakdownDiscounts" style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', cursor: 'pointer', userSelect: 'none' }}>
-                  Desglosar descuentos
+                <label htmlFor="breakdownDiscounts" style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', cursor: documentType === 'FACTURA' ? 'not-allowed' : 'pointer', userSelect: 'none' }}>
+                  Desglosar descuentos {documentType === 'FACTURA' && "(Obligatorio para facturas)"}
                 </label>
               </div>
             )}
             
             <div className="pos-subtotal-row">
               <span>Subtotal ({cart.reduce((s, i) => s + i.quantity, 0)} artículos)</span>
-              <span className="pos-subtotal-value">${(breakdownDiscounts ? subTotal : (subTotal - discount)).toFixed(2)}</span>
+              <span className="pos-subtotal-value">${((breakdownDiscounts || documentType === 'FACTURA') ? subTotal : (subTotal - discount)).toFixed(2)}</span>
             </div>
 
             {mode === 'QUOTE' && cart.length > 0 && (() => {
@@ -3634,7 +3784,7 @@ export default function POSClient({
               );
             })()}
 
-            {breakdownDiscounts && discount > 0 && (
+            {(breakdownDiscounts || documentType === 'FACTURA') && discount > 0 && (
               <div className="pos-subtotal-row" style={{ color: '#16a34a', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
                 <span>Descuento aplicado</span>
                 <span>-${discount.toFixed(2)}</span>
@@ -4614,43 +4764,79 @@ export default function POSClient({
                 type="text" 
                 value={quoteSearchId} 
                 onChange={(e) => setQuoteSearchId(e.target.value)}
-                placeholder="🔍 Buscar ID de Cotización..."
+                placeholder="🔍 Buscar por Folio, Cliente o ID..."
                 style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
                 autoFocus
               />
             </div>
 
             <div style={{ overflowY: 'auto', flex: 1, marginBottom: '1.5rem', border: '1px solid var(--caanma-border)', borderRadius: '4px' }}>
-               {pendingQuotes.filter(q => q.id.includes(quoteSearchId.trim())).map(quote => (
-                 <button 
-                    key={quote.id} 
-                    onClick={() => handleLoadQuote(quote.id)}
-                    style={{ 
-                      width: '100%', 
-                      padding: '1rem', 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center', 
-                      borderBottom: '1px solid var(--caanma-border)', 
-                      backgroundColor: 'white', 
-                      cursor: 'pointer',
-                      textAlign: 'left'
-                    }}
-                 >
-                    <div>
-                      <div style={{ fontWeight: 'bold', color: '#1e293b' }}>Cotización #{quote.id.slice(0, 8)}</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)' }}>{new Date(quote.createdAt).toLocaleString()}</div>
-                    </div>
-                    <div style={{ fontWeight: 'bold', color: 'var(--caanma-primary)' }}>
-                      ${quote.total.toFixed(2)}
-                    </div>
-                 </button>
-               ))}
-               {pendingQuotes.length === 0 && (
-                 <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
-                    No hay cotizaciones pendientes en esta sucursal.
-                 </div>
-               )}
+               {(() => {
+                 const allQuotes = [
+                   ...localOfflineQuotes,
+                   ...(pendingQuotes || []).filter(pq => !localOfflineQuotes.some(loq => loq.id === pq.id))
+                 ];
+                 const term = quoteSearchId.trim().toLowerCase().replace(/^#/, '');
+                 const filtered = allQuotes.filter(q => {
+                   if (!term) return true;
+                   const folioMatch = q.folio && q.folio.toLowerCase().includes(term);
+                   const idMatch = q.id.toLowerCase().includes(term);
+                   const customerMatch = q.customer?.name && q.customer.name.toLowerCase().includes(term);
+                   return folioMatch || idMatch || customerMatch;
+                 });
+                 if (filtered.length === 0) {
+                   return (
+                     <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
+                        No hay cotizaciones coincidentes en esta sucursal.
+                     </div>
+                   );
+                 }
+                 return filtered.map(quote => {
+                   const displayFolio = quote.folio ? `#${quote.folio}` : `#${quote.id.slice(0, 8).toUpperCase()}`;
+                   return (
+                     <button 
+                        key={quote.id} 
+                        onClick={() => handleLoadQuote(quote.id)}
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.85rem 1rem', 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center', 
+                          borderBottom: '1px solid var(--caanma-border)', 
+                          backgroundColor: 'white', 
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'background-color 0.15s'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
+                     >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <div style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.95rem' }}>
+                              Cotización {displayFolio}
+                            </div>
+                            {(quote.id.startsWith('OFFLINE-') || quote.id.length > 30) ? (
+                              <span style={{ fontSize: '0.7rem', backgroundColor: '#fef3c7', color: '#d97706', padding: '0.1rem 0.35rem', borderRadius: '4px', fontWeight: 'bold' }}>
+                                Offline
+                              </span>
+                            ) : null}
+                          </div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)', marginTop: '0.15rem' }}>
+                            {new Date(quote.createdAt).toLocaleString()}
+                            {quote.customer?.name && (
+                              <span style={{ color: '#475569', fontWeight: '500' }}> • {quote.customer.name}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div style={{ fontWeight: 'bold', color: 'var(--caanma-primary)', fontSize: '1.05rem' }}>
+                          ${quote.total.toFixed(2)}
+                        </div>
+                     </button>
+                   );
+                 });
+               })()}
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
@@ -4680,10 +4866,31 @@ export default function POSClient({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '50vh', overflowY: 'auto' }}>
               {selectedProductForVariant.variants.map((v: any) => {
                 const vPrice = (() => {
-                  if (priceList === 'wholesalePrice' && v.wholesalePrice && v.wholesalePrice > 0) return v.wholesalePrice;
-                  if (priceList === 'specialPrice' && v.specialPrice && v.specialPrice > 0) return v.specialPrice;
-                  if (v.price && v.price > 0) return v.price;
-                  return getProductPrice(selectedProductForVariant);
+                  const listsToSearch = (allPriceLists && allPriceLists.length > 0) ? allPriceLists : dynamicPriceLists;
+                  let activeListName = '';
+                  if (priceList.startsWith('priceList_')) {
+                    const plId = priceList.replace('priceList_', '');
+                    const foundPL = listsToSearch.find((pl: any) => pl.id === plId);
+                    if (foundPL) activeListName = (foundPL.name || '').toLowerCase().trim();
+                  } else if (priceList === 'wholesalePrice') {
+                    activeListName = 'mayoreo';
+                  } else if (priceList === 'specialPrice') {
+                    activeListName = 'especial';
+                  }
+
+                  const isWholesale = priceList === 'wholesalePrice' || activeListName.includes('mayoreo') || activeListName.includes('wholesale') || activeListName.includes('mayorista');
+                  const isSpecial = priceList === 'specialPrice' || activeListName.includes('especial') || activeListName.includes('special');
+
+                  if (isWholesale && v.wholesalePrice && Number(v.wholesalePrice) > 0) return Number(v.wholesalePrice);
+                  if (isSpecial && v.specialPrice && Number(v.specialPrice) > 0) return Number(v.specialPrice);
+
+                  const parentDynamic = getProductPrice(selectedProductForVariant);
+                  if (priceList !== 'price' && parentDynamic !== selectedProductForVariant.price) {
+                    return parentDynamic;
+                  }
+
+                  if (v.price && Number(v.price) > 0) return Number(v.price);
+                  return parentDynamic;
                 })();
 
                 return (

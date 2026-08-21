@@ -12,6 +12,7 @@ interface POSPageClientProps {
   suppliers: any[];
   promotions: any[];
   dynamicPriceLists: any[];
+  allPriceLists?: any[];
   pendingQuotes: any[];
   session: any;
   branchId: string;
@@ -32,6 +33,7 @@ export default function POSPageClient({
   suppliers,
   promotions,
   dynamicPriceLists,
+  allPriceLists = [],
   pendingQuotes,
   session,
   branchId,
@@ -111,6 +113,7 @@ export default function POSPageClient({
             suppliers={suppliers}
             promotions={promotions}
             dynamicPriceLists={dynamicPriceLists}
+            allPriceLists={allPriceLists}
             pendingQuotes={pendingQuotes}
             sessionId={activeSessionId} 
             branchId={branchId} 

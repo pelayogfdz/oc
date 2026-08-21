@@ -20,8 +20,12 @@ export interface OfflineSale extends DLQMetadata {
   timestamp: string;
   synced: boolean;
   branchId?: string;
-  type?: 'SALE' | 'QUOTE' | 'CONSIGNMENT';
+  type?: 'SALE' | 'QUOTE' | 'CONSIGNMENT' | 'CANCEL';
+  folio?: string | null;
+  customerName?: string | null;
   breakdownDiscounts?: boolean;
+  observations?: string | null;
+  observationImageUrl?: string | null;
 }
 
 export interface OfflineTransfer extends DLQMetadata {
@@ -162,6 +166,35 @@ export interface OfflinePendingProduct extends DLQMetadata {
   productId?: string;
 }
 
+export interface OfflineCompletedSale {
+  id: string;
+  folio: string | null;
+  createdAt: string;
+  userId: string;
+  branchId: string;
+  total: number;
+  status: string;
+  paymentMethod: string;
+  invoiceId: string | null;
+  invoiceFolio: string | null;
+  cancellationStatus: string | null;
+  notes?: string | null;
+  customerId?: string | null;
+  customerName?: string | null;
+  userName?: string | null;
+  branchName?: string | null;
+  items: {
+    id: string;
+    productId: string;
+    quantity: number;
+    price: number;
+    productName: string;
+    productSku: string | null;
+    productBarcode: string | null;
+    variantAttribute: string | null;
+  }[];
+}
+
 export class CAANMAOfflineDB extends Dexie {
   pendingSales!: Table<OfflineSale>;
   pendingTransfers!: Table<OfflineTransfer>;
@@ -175,10 +208,11 @@ export class CAANMAOfflineDB extends Dexie {
   branches!: Table<OfflineBranch>;
   settings!: Table<OfflineSettings>;
   users!: Table<OfflineUser>;
+  sales!: Table<OfflineCompletedSale>;
 
   constructor() {
     super('CAANMAOfflineDB');
-    this.version(18).stores({
+    this.version(19).stores({
       pendingSales: 'id, timestamp, synced, failed',
       pendingTransfers: 'id, timestamp, synced, failed',
       pendingPurchases: 'id, timestamp, synced, failed',
@@ -189,7 +223,8 @@ export class CAANMAOfflineDB extends Dexie {
       suppliers: 'id, name',
       branches: 'id, name',
       settings: 'id',
-      users: 'id, branchId, name'
+      users: 'id, branchId, name',
+      sales: 'id, folio, createdAt, status, customerId'
     });
   }
 }

@@ -9,6 +9,7 @@ import { createDeliveryOrder } from '@/app/actions/logistica';
 import { formatCurrency } from '@/lib/utils';
 import { exportToExcel } from '@/lib/exportExcel';
 import { checkDocumentSatStatus } from '@/app/actions/facturacion';
+import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 
 const getPaymentMethodLabel = (method: string) => {
   const mapping: Record<string, string> = {
@@ -45,6 +46,195 @@ const formatDateCompact = (dateStr: string, timezone: string) => {
   }
 };
 
+const printSaleOffline = (sale: any, isTicket: boolean) => {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+
+  const itemsTotal = sale.items.reduce((sum: number, item: any) => sum + ((item.quantity || 0) * (item.price || 0)), 0);
+  const discount = Math.max(0, itemsTotal - (sale.total || 0));
+
+  const itemsHtml = sale.items.map((item: any) => {
+    const desc = item.productName || item.product?.name || 'Producto';
+    const variantStr = item.variantAttribute || (item.variant && item.variant.attribute) ? `<div style="font-size: 0.85em; color: #555;">Var: ${item.variantAttribute || item.variant.attribute}</div>` : '';
+    const sku = item.productSku || (item.product && item.product.sku) || '';
+    const code = item.productBarcode || (item.product && item.product.barcode) || '';
+    const skuCodeStr = (sku || code) ? `<div style="font-size: 0.8em; color: #888;">SKU: ${sku || '-'} | Código: ${code || '-'}</div>` : '';
+    
+    if (isTicket) {
+      return `
+        <tr>
+          <td style="padding: 4px 0;">
+            <div>${desc}</div>
+            ${variantStr}
+            <div style="font-size: 0.9em;">${item.quantity} x ${item.price ? item.price.toFixed(2) : '0.00'}</div>
+          </td>
+          <td style="text-align: right; padding: 4px 0; vertical-align: bottom;">
+            ${((item.quantity || 0) * (item.price || 0)).toFixed(2)}
+          </td>
+        </tr>
+      `;
+    } else {
+      return `
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 12px 8px;">
+            <div style="font-weight: bold; color: #1e293b;">${desc}</div>
+            ${variantStr}
+            ${skuCodeStr}
+          </td>
+          <td style="padding: 12px 8px; text-align: center; font-weight: bold;">${item.quantity}</td>
+          <td style="padding: 12px 8px; text-align: right;">${item.price ? item.price.toFixed(2) : '0.00'}</td>
+          <td style="padding: 12px 8px; text-align: right; font-weight: bold;">${((item.quantity || 0) * (item.price || 0)).toFixed(2)}</td>
+        </tr>
+      `;
+    }
+  }).join('');
+
+  const htmlContent = isTicket ? `
+    <html>
+      <head>
+        <title>Imprimir Ticket</title>
+        <style>
+          body {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            width: 280px;
+            margin: 0;
+            padding: 10px;
+            color: black;
+          }
+          .center { text-align: center; }
+          .bold { font-weight: bold; }
+          hr { border: none; border-top: 1px dashed black; margin: 10px 0; }
+          table { width: 100%; border-collapse: collapse; }
+          th { text-align: left; }
+        </style>
+      </head>
+      <body>
+        <div class="center bold" style="font-size: 16px;">OFFICE CITY</div>
+        <div class="center">Folio: ${sale.folio}</div>
+        <div class="center">Fecha: ${new Date(sale.createdAt).toLocaleString()}</div>
+        <div class="center">Vendedor: ${sale.user?.name || sale.userName || 'Usuario'}</div>
+        <hr/>
+        <div><strong>Cliente:</strong> ${sale.customer?.name || sale.customerName || 'Público en General'}</div>
+        <hr/>
+        <table>
+          <thead>
+            <tr>
+              <th>Artículo</th>
+              <th style="text-align: right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+        <hr/>
+        <table style="font-weight: bold; font-size: 13px;">
+          <tr style="font-weight: normal; font-size: 11px;">
+            <td>Subtotal:</td>
+            <td style="text-align: right;">${itemsTotal.toFixed(2)}</td>
+          </tr>
+          ${discount > 0.01 ? `
+          <tr style="font-weight: normal; font-size: 11px; color: red;">
+            <td>Descuento:</td>
+            <td style="text-align: right;">-${discount.toFixed(2)}</td>
+          </tr>
+          ` : ''}
+          <tr>
+            <td>TOTAL:</td>
+            <td style="text-align: right;">${sale.total.toFixed(2)}</td>
+          </tr>
+        </table>
+        <hr/>
+        <div class="center bold">¡GRACIAS POR SU COMPRA!</div>
+        <script>
+          window.onload = function() {
+            window.print();
+            setTimeout(function() { window.close(); }, 500);
+          };
+        </script>
+      </body>
+    </html>
+  ` : `
+    <html>
+      <head>
+        <title>Nota de Venta</title>
+        <style>
+          body {
+            font-family: system-ui, -apple-system, sans-serif;
+            color: #1e293b;
+            margin: 0;
+            padding: 40px;
+            line-height: 1.5;
+          }
+          .header { display: flex; justify-content: space-between; margin-bottom: 40px; border-bottom: 2px solid #cbd5e1; padding-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th { background-color: #f8fafc; color: #475569; padding: 12px 8px; border-bottom: 2px solid #cbd5e1; text-align: left; }
+          td { border-bottom: 1px solid #e2e8f0; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <h1 style="margin: 0; color: #7c3aed; font-size: 28px;">Nota de Venta</h1>
+            <p style="margin: 5px 0 0 0; color: #64748b; font-weight: bold;">Folio: ${sale.folio}</p>
+            <p style="margin: 3px 0 0 0; color: #64748b;">Fecha: ${new Date(sale.createdAt).toLocaleString()}</p>
+          </div>
+          <div style="text-align: right;">
+            <h2 style="margin: 0; color: #1e293b; font-size: 20px;">OFFICE CITY</h2>
+            <p style="margin: 5px 0 0 0; font-size: 14px; color: #475569;">Cliente: ${sale.customer?.name || sale.customerName || 'Público en General'}</p>
+            <p style="margin: 3px 0 0 0; font-size: 14px; color: #475569;">Atendido por: ${sale.user?.name || sale.userName || 'Usuario'}</p>
+          </div>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Descripción del Artículo</th>
+              <th style="text-align: center;">Cant.</th>
+              <th style="text-align: right;">Precio Unit.</th>
+              <th style="text-align: right;">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+        
+        <div style="display: flex; justify-content: flex-end; margin-top: 30px;">
+          <div style="width: 250px; font-size: 16px;">
+            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
+              <span style="color: #64748b;">Subtotal:</span>
+              <span>${itemsTotal.toFixed(2)}</span>
+            </div>
+            ${discount > 0.01 ? `
+            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #dc2626;">
+              <span>Descuento:</span>
+              <span>-${discount.toFixed(2)}</span>
+            </div>
+            ` : ''}
+            <div style="display: flex; justify-content: space-between; padding: 12px 0; font-weight: bold; font-size: 20px; color: #0ea5e9;">
+              <span>Pago Total:</span>
+              <span>${sale.total.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+        
+        <script>
+          window.onload = function() {
+            window.print();
+            setTimeout(function() { window.close(); }, 500);
+          };
+        </script>
+      </body>
+    </html>
+  `;
+
+  printWindow.document.write(htmlContent);
+  printWindow.document.close();
+};
+
 export default function VentasHistoryClient({
   initialSales,
   branches,
@@ -71,7 +261,141 @@ export default function VentasHistoryClient({
   const router = useRouter();
   const pathname = usePathname();
 
+  const { isOnline } = useOfflineSync();
+  const [selectedSaleForOfflineDetail, setSelectedSaleForOfflineDetail] = useState<any | null>(null);
+  const [selectedSaleWithProducts, setSelectedSaleWithProducts] = useState<any | null>(null);
+  const [isOfflineCancelling, setIsOfflineCancelling] = useState(false);
+
   const [sales, setSales] = useState<any[]>(initialSales);
+
+  useEffect(() => {
+    if (!isOnline) {
+      import('@/lib/offlineDB').then(({ db }) => {
+        db.sales.orderBy('createdAt').reverse().toArray().then(localSales => {
+          if (localSales && localSales.length > 0) {
+            const mapped = localSales.map(ls => ({
+              id: ls.id,
+              folio: ls.folio,
+              createdAt: ls.createdAt,
+              userId: ls.userId,
+              branchId: ls.branchId,
+              total: ls.total,
+              status: ls.status,
+              paymentMethod: ls.paymentMethod,
+              invoiceId: ls.invoiceId,
+              invoiceFolio: ls.invoiceFolio,
+              cancellationStatus: ls.cancellationStatus,
+              notes: ls.notes || '',
+              customer: ls.customerId ? {
+                id: ls.customerId,
+                name: ls.customerName || 'Cliente'
+              } : null,
+              user: {
+                id: ls.userId,
+                name: ls.userName || 'Usuario'
+              },
+              branch: {
+                id: ls.branchId,
+                name: ls.branchName || 'Sucursal'
+              },
+              items: ls.items.map(item => ({
+                id: item.id,
+                productId: item.productId,
+                quantity: item.quantity,
+                price: item.price,
+                productName: item.productName,
+                productSku: item.productSku,
+                productBarcode: item.productBarcode,
+                variantAttribute: item.variantAttribute
+              }))
+            }));
+            setSales(mapped);
+          }
+        });
+      });
+    } else {
+      setSales(initialSales);
+    }
+  }, [isOnline, initialSales]);
+
+  useEffect(() => {
+    if (selectedSaleForOfflineDetail) {
+      const resolveSaleProducts = async () => {
+        const { db } = await import('@/lib/offlineDB');
+        const resolvedItems = [];
+        for (const item of selectedSaleForOfflineDetail.items) {
+          if (item.productName || (item.product && item.product.name)) {
+            resolvedItems.push({
+              ...item,
+              productName: item.productName || item.product.name,
+              productSku: item.productSku || item.product.sku || null,
+              productBarcode: item.productBarcode || item.product.barcode || null,
+              variantAttribute: item.variantAttribute || (item.variant && item.variant.attribute) || null
+            });
+            continue;
+          }
+          const localProd = await db.products.get(item.productId);
+          let resolvedVariant = null;
+          if (item.variantId && localProd && localProd.variants) {
+            resolvedVariant = localProd.variants.find((v: any) => v.id === item.variantId);
+          }
+          resolvedItems.push({
+            ...item,
+            productName: localProd ? localProd.name : 'Producto',
+            productSku: localProd ? localProd.sku : null,
+            productBarcode: localProd ? localProd.barcode : null,
+            variantAttribute: resolvedVariant ? resolvedVariant.attribute : null
+          });
+        }
+        setSelectedSaleWithProducts({
+          ...selectedSaleForOfflineDetail,
+          items: resolvedItems
+        });
+      };
+      resolveSaleProducts();
+    } else {
+      setSelectedSaleWithProducts(null);
+    }
+  }, [selectedSaleForOfflineDetail]);
+
+  const handleOfflineCancel = async (sale: any) => {
+    if (!confirm('¿ESTÁS SEGURO DE CANCELAR ESTA VENTA OFFLINE? El cambio se registrará en local y se sincronizará cuando recuperes conexión.')) return;
+    
+    setIsOfflineCancelling(true);
+    try {
+      const { db } = await import('@/lib/offlineDB');
+      const isOfflineCreated = sale.id.startsWith('OFFLINE-') || sale.isOffline;
+      
+      if (isOfflineCreated) {
+        await db.pendingSales.delete(sale.id);
+        setOfflineSales(prev => prev.filter(s => s.id !== sale.id));
+        alert('Venta offline descartada/cancelada exitosamente.');
+      } else {
+        await db.pendingSales.add({
+          id: sale.id,
+          type: 'CANCEL',
+          items: [],
+          total: sale.total,
+          paymentMethod: sale.paymentMethod,
+          timestamp: new Date().toISOString(),
+          synced: false,
+          retryCount: 0,
+          failed: false
+        } as any);
+        
+        await db.sales.update(sale.id, { status: 'CANCELLED' });
+        
+        setSales(prev => prev.map(s => s.id === sale.id ? { ...s, status: 'CANCELLED' } : s));
+        alert('Cancelación registrada localmente. Se aplicará en el servidor al sincronizar.');
+      }
+      
+      setSelectedSaleForOfflineDetail(null);
+    } catch (e: any) {
+      alert('Error: ' + e.message);
+    } finally {
+      setIsOfflineCancelling(false);
+    }
+  };
   const [offlineSales, setOfflineSales] = useState<any[]>([]);
   const [isExporting, setIsExporting] = useState(false);
   const [filterStartDate, setFilterStartDate] = useState(queryParams.startDate || '');
@@ -113,6 +437,21 @@ export default function VentasHistoryClient({
   }, [offlineSales, sales]);
 
   const updateUrlParams = (updates: Record<string, string>) => {
+    Object.entries(updates).forEach(([key, val]) => {
+      if (key === 'startDate') setFilterStartDate(val);
+      if (key === 'endDate') setFilterEndDate(val);
+      if (key === 'userId') setFilterUser(val);
+      if (key === 'branchId') setFilterBranch(val);
+      if (key === 'status') setFilterStatus(val);
+      if (key === 'client') setFilterClient(val);
+      if (key === 'cfdi') setFilterCfdi(val);
+      if (key === 'paymentMethod') setFilterPaymentMethod(val);
+    });
+
+    if (!isOnline) {
+      return;
+    }
+
     const params = new URLSearchParams(window.location.search);
     Object.entries(updates).forEach(([key, val]) => {
       if (val && val !== 'ALL') {
@@ -172,7 +511,7 @@ export default function VentasHistoryClient({
     try {
       const res = await checkDocumentSatStatus(saleId, 'sale');
       if (res.success && res.status && res.cancellationStatus) {
-        alert(`Estado SAT: ${res.status.toUpperCase()}\nEstado de Cancelación: ${res.cancellationStatus.toUpperCase()}\n\n${res.message}`);
+        alert(`Estado SAT: ${res.status.toUpperCase()}\r\nEstado de Cancelación: ${res.cancellationStatus.toUpperCase()}\r\n\r\n${res.message}`);
         if (res.status === 'canceled') {
           setSales(prev => prev.filter(s => s.id !== saleId));
         } else {
@@ -373,10 +712,10 @@ export default function VentasHistoryClient({
     const formattedTotal = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(sale.total);
     const link = `${window.location.origin}/ventas/detalle/${sale.id}/imprimir`;
     const displayFolio = sale.folio || sale.id.slice(0, 8).toUpperCase();
-    return `¡Hola ${sale.customer?.name || 'Cliente'}! Le comparto el comprobante de su compra en CAANMA.\n\n` +
-      `*Folio de Venta:* #${displayFolio}\n` +
-      `*Total:* ${formattedTotal}\n\n` +
-      `Puede ver e imprimir su nota de venta en el siguiente enlace:\n${link}\n\n` +
+    return `¡Hola ${sale.customer?.name || 'Cliente'}! Le comparto el comprobante de su compra en CAANMA.\r\n\r\n` +
+      `*Folio de Venta:* #${displayFolio}\r\n` +
+      `*Total:* ${formattedTotal}\r\n\r\n` +
+      `Puede ver e imprimir su nota de venta en el siguiente enlace:\r\n${link}\r\n\r\n` +
       `¡Muchas gracias por su preferencia! Excelente día.`;
   };
 
@@ -510,7 +849,41 @@ export default function VentasHistoryClient({
   }, [sales]);
 
   // Server-paginated sales array merged with pending offline sales
-  const filteredSales = allCombinedSales;
+  const filteredSales = useMemo(() => {
+    if (isOnline) {
+      return allCombinedSales;
+    }
+    return allCombinedSales.filter(sale => {
+      if (filterBranch && sale.branchId !== filterBranch) return false;
+      if (filterUser && sale.userId !== filterUser) return false;
+      if (filterStatus && sale.status !== filterStatus) return false;
+      if (filterPaymentMethod && sale.paymentMethod !== filterPaymentMethod) return false;
+      if (filterClient.trim()) {
+        const clientName = sale.customer?.name || '';
+        if (!clientName.toLowerCase().includes(filterClient.trim().toLowerCase())) return false;
+      }
+      if (filterCfdi.trim()) {
+        const cfdiTerm = filterCfdi.trim().toLowerCase();
+        const folioStr = (sale.folio || '').toLowerCase();
+        const invFolio = (sale.invoiceFolio || '').toLowerCase();
+        const invId = (sale.invoiceId || '').toLowerCase();
+        if (!folioStr.includes(cfdiTerm) && !invFolio.includes(cfdiTerm) && !invId.includes(cfdiTerm) && !sale.id.toLowerCase().includes(cfdiTerm)) {
+          return false;
+        }
+      }
+      if (filterStartDate) {
+        const start = new Date(filterStartDate);
+        start.setHours(0, 0, 0, 0);
+        if (new Date(sale.createdAt) < start) return false;
+      }
+      if (filterEndDate) {
+        const end = new Date(filterEndDate);
+        end.setHours(23, 59, 59, 999);
+        if (new Date(sale.createdAt) > end) return false;
+      }
+      return true;
+    });
+  }, [allCombinedSales, isOnline, filterBranch, filterUser, filterStatus, filterPaymentMethod, filterClient, filterCfdi, filterStartDate, filterEndDate]);
 
   const hasActiveFilters = Boolean(filterStartDate || filterEndDate || filterUser || (currentBranch.id === 'GLOBAL' && filterBranch) || filterStatus || filterClient || filterCfdi || filterPaymentMethod);
 
@@ -523,7 +896,9 @@ export default function VentasHistoryClient({
     setFilterClient('');
     setFilterCfdi('');
     setFilterPaymentMethod('');
-    router.push(pathname);
+    if (isOnline) {
+      router.push(pathname);
+    }
   };
 
   const downloadExcel = async () => {
@@ -1035,6 +1410,15 @@ export default function VentasHistoryClient({
                       {/* Detalle */}
                       <Link
                         href={`/ventas/detalle/${sale.id}`}
+                        onClick={(e) => {
+                          if (!isOnline) {
+                            e.preventDefault();
+                            const fullSale = allCombinedSales.find(s => s.id === sale.id);
+                            if (fullSale) {
+                              setSelectedSaleForOfflineDetail(fullSale);
+                            }
+                          }
+                        }}
                         title="Ver Detalle"
                         style={{
                           display: 'inline-flex',
@@ -1065,6 +1449,15 @@ export default function VentasHistoryClient({
                       {/* Imprimir A4 */}
                       <a
                         href={`/ventas/detalle/${sale.id}/imprimir`}
+                        onClick={(e) => {
+                          if (!isOnline) {
+                            e.preventDefault();
+                            const fullSale = allCombinedSales.find(s => s.id === sale.id);
+                            if (fullSale) {
+                              printSaleOffline(fullSale, false);
+                            }
+                          }
+                        }}
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Imprimir Nota (A4)"
@@ -1097,6 +1490,15 @@ export default function VentasHistoryClient({
                       {/* Ticket */}
                       <a
                         href={`/ventas/detalle/${sale.id}/imprimir-ticket`}
+                        onClick={(e) => {
+                          if (!isOnline) {
+                            e.preventDefault();
+                            const fullSale = allCombinedSales.find(s => s.id === sale.id);
+                            if (fullSale) {
+                              printSaleOffline(fullSale, true);
+                            }
+                          }
+                        }}
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Imprimir Ticket Térmico"
@@ -1935,6 +2337,251 @@ export default function VentasHistoryClient({
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Offline Sale Detail Modal */}
+      {selectedSaleWithProducts && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.45)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            animation: 'fadeIn 0.2s ease-out',
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '750px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              border: '1px solid #e2e8f0',
+              overflow: 'hidden',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                padding: '1.25rem 1.5rem',
+                borderBottom: '1px solid #f1f5f9',
+                background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
+                color: 'white',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold' }}>
+                  Detalle de Venta {selectedSaleWithProducts.isOffline ? 'Offline' : ''}
+                </h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', opacity: 0.85 }}>
+                  Folio: {selectedSaleWithProducts.folio || selectedSaleWithProducts.id}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedSaleForOfflineDetail(null)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '28px',
+                  height: '28px',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)')}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, color: 'black' }}>
+              
+              {/* Info Block */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', gap: '2rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
+                <div>
+                  <h4 style={{ margin: '0 0 4px 0', fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase' }}>Cliente:</h4>
+                  <p style={{ margin: 0, fontWeight: 'bold', fontSize: '1.05rem' }}>
+                    {selectedSaleWithProducts.customer?.name || selectedSaleWithProducts.customerName || 'Público en General'}
+                  </p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#475569' }}>
+                    Método de Pago: <span style={{ color: '#0ea5e9', fontWeight: 'bold' }}>{getPaymentMethodLabel(selectedSaleWithProducts.paymentMethod)}</span>
+                  </p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <h4 style={{ margin: '0 0 4px 0', fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase' }}>Emitido por:</h4>
+                  <p style={{ margin: 0, fontWeight: 'bold', fontSize: '1.05rem' }}>
+                    {selectedSaleWithProducts.branch?.name || selectedSaleWithProducts.branchName || 'Sucursal'}
+                  </p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
+                    Fecha: {new Date(selectedSaleWithProducts.createdAt).toLocaleString()}
+                  </p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#475569' }}>
+                    Estado: <span style={{ 
+                      fontWeight: 'bold', 
+                      color: selectedSaleWithProducts.status === 'COMPLETED' ? '#166534' : selectedSaleWithProducts.status === 'CANCELLED' ? '#991b1b' : '#b45309' 
+                    }}>
+                      {selectedSaleWithProducts.status === 'COMPLETED' ? 'Venta Concluida' : selectedSaleWithProducts.status === 'CANCELLED' ? 'Cancelada' : selectedSaleWithProducts.status}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', marginBottom: '1.5rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #cbd5e1', backgroundColor: '#f8fafc' }}>
+                    <th style={{ padding: '0.5rem 0.75rem', color: '#475569', fontWeight: '500', fontSize: '0.85rem' }}>Artículo</th>
+                    <th style={{ padding: '0.5rem 0.75rem', color: '#475569', textAlign: 'center', fontWeight: '500', fontSize: '0.85rem' }}>Cant.</th>
+                    <th style={{ padding: '0.5rem 0.75rem', color: '#475569', textAlign: 'right', fontWeight: '500', fontSize: '0.85rem' }}>Precio Unit.</th>
+                    <th style={{ padding: '0.5rem 0.75rem', color: '#475569', textAlign: 'right', fontWeight: '500', fontSize: '0.85rem' }}>Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedSaleWithProducts.items.map((item: any, idx: number) => {
+                    const desc = item.productName || item.product?.name || 'Producto';
+                    const sku = item.productSku || (item.product && item.product.sku) || '';
+                    const code = item.productBarcode || (item.product && item.product.barcode) || '';
+                    const variantStr = item.variantAttribute || (item.variant && item.variant.attribute) ? ` (Var: ${item.variantAttribute || item.variant.attribute})` : '';
+                    
+                    return (
+                      <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }}>
+                          <div style={{ fontWeight: 'bold' }}>{desc}{variantStr}</div>
+                          {(sku || code) && (
+                            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                              SKU: {sku || '-'} | Código: {code || '-'}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                          {item.quantity}
+                        </td>
+                        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'right', fontSize: '0.85rem' }}>
+                          ${item.price ? item.price.toLocaleString('es-MX', { minimumFractionDigits: 2 }) : '0.00'}
+                        </td>
+                        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'right', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                          ${((item.quantity || 0) * (item.price || 0)).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              {/* Totals */}
+              {(() => {
+                const modalItemsTotal = selectedSaleWithProducts.items.reduce((sum: number, item: any) => sum + ((item.quantity || 0) * (item.price || 0)), 0);
+                const modalDiscount = Math.max(0, modalItemsTotal - selectedSaleWithProducts.total);
+                return (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                    <div style={{ width: '220px', fontSize: '0.95rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0' }}>
+                        <span style={{ color: '#64748b' }}>Subtotal:</span>
+                        <span>${modalItemsTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      {modalDiscount > 0.01 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0', color: '#dc2626' }}>
+                          <span>Descuento:</span>
+                          <span>-${modalDiscount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', fontWeight: 'bold', fontSize: '1.25rem', color: '#7c3aed' }}>
+                        <span>Pago Total:</span>
+                        <span>${selectedSaleWithProducts.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {selectedSaleWithProducts.notes && (
+                <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}>
+                  <strong>Notas del Ticket:</strong>
+                  <p style={{ margin: '4px 0 0 0', color: '#334155' }}>{selectedSaleWithProducts.notes}</p>
+                </div>
+              )}
+
+            </div>
+
+            {/* Footer Buttons */}
+            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
+              <div>
+                {selectedSaleWithProducts.status !== 'CANCELLED' && (
+                  <button
+                    onClick={() => handleOfflineCancel(selectedSaleWithProducts)}
+                    disabled={isOfflineCancelling}
+                    className="btn-danger"
+                    style={{
+                      padding: '0.625rem 1.25rem',
+                      borderRadius: '8px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      border: 'none',
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    {isOfflineCancelling ? 'Cancelando...' : 'Cancelar Venta'}
+                  </button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  onClick={() => printSaleOffline(selectedSaleWithProducts, false)}
+                  style={{
+                    padding: '0.625rem 1.25rem',
+                    border: '1px solid var(--caanma-border)',
+                    borderRadius: '8px',
+                    backgroundColor: 'white',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    color: '#334155',
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  Imprimir Nota (A4)
+                </button>
+                <button
+                  onClick={() => printSaleOffline(selectedSaleWithProducts, true)}
+                  style={{
+                    padding: '0.625rem 1.25rem',
+                    border: '1px solid var(--caanma-border)',
+                    borderRadius: '8px',
+                    backgroundColor: 'white',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    color: '#334155',
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  Imprimir Ticket
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}

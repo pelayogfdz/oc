@@ -99,6 +99,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
     };
   });
 
+  const manualDiscount = Math.max(0, (netSubtotalExcludingIva + totalIva) - quote.total);
   const quoteIdUpper = quote.folio || quote.id.slice(0, 8).toUpperCase();
 
   return (
@@ -349,6 +350,12 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
             <span>IVA 16%</span>
             <span>${totalIva.toFixed(2)}</span>
           </div>
+          {manualDiscount > 0.01 && (
+            <div className="total-row discount-row">
+              <span>Descuento Adicional</span>
+              <span>-${manualDiscount.toFixed(2)}</span>
+            </div>
+          )}
           <div className="total-final" style={{ borderTop: '2px solid #1e293b', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
             <span>Total</span>
             <span>${quote.total.toFixed(2)}</span>
@@ -384,7 +391,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
 
         {/* Footer QR Box matching reference */}
          <div className="qr-box">
-          <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://caanma.com/clientes/portal?cotizacionId=${quote.id.slice(0, 8)}`} alt="QR Code" className="qr-img" />
+          <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://caanma.com/clientes/portal?cotizacionId=${quote.id}`} alt="QR Code" className="qr-img" />
           <div>
             <h4 className="qr-title">Escanea para Ver tu Cotización, Solicitar Cambios o Aprobarla</h4>
             <p className="qr-text">

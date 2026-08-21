@@ -54,15 +54,40 @@ export default async function Page() {
 
   const data = await prisma.transfer.findMany({ 
     where: whereClause,
-    include: { 
-      toBranch: true, 
-      branch: true, 
-      createdBy: true, 
-      receivedBy: true,
+    select: {
+      id: true,
+      folio: true,
+      status: true,
+      createdAt: true,
+      branchId: true,
+      toBranchId: true,
+      branch: {
+        select: { id: true, name: true }
+      },
+      toBranch: {
+        select: { id: true, name: true }
+      },
+      createdBy: {
+        select: { id: true, name: true }
+      },
+      receivedBy: {
+        select: { id: true, name: true }
+      },
+      deliveryOrder: {
+        select: { id: true, status: true }
+      },
       items: {
-        include: {
-          product: true,
-          variant: true
+        select: {
+          id: true,
+          quantity: true,
+          productId: true,
+          variantId: true,
+          product: {
+            select: { id: true, name: true, sku: true, cost: true }
+          },
+          variant: {
+            select: { id: true, attribute: true, sku: true }
+          }
         }
       }
     },

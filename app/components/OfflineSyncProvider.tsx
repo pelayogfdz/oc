@@ -379,6 +379,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
             await createQuote(
               sale.items.map(item => ({
                 productId: item.productId,
+                variantId: item.variantId || null,
                 quantity: item.quantity,
                 price: item.price
               })),
@@ -386,8 +387,17 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
               sale.paymentMethod,
               sale.customerId,
               undefined,
-              sale.breakdownDiscounts
+              sale.breakdownDiscounts,
+              sale.notes || null,
+              sale.observationImageUrl || null
             );
+          } else if (sale.type === 'CANCEL') {
+            const { cancelSaleInternal } = await import('../actions/sale');
+            const { getActiveUser } = await import('../actions/auth');
+            const user = await getActiveUser();
+            if (user) {
+              await cancelSaleInternal(sale.id, user.id);
+            }
           } else if (sale.type === 'CONSIGNMENT') {
             const { createConsignment } = await import('../actions/consignment');
             await createConsignment(
@@ -603,7 +613,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       const totalPages = Math.ceil(totalProducts / pageSize);
       
       // Perform a transaction to clear and update basic tables first, including clearing products
-      await db.transaction('rw', [db.customers, db.suppliers, db.branches, db.settings, db.users, db.products], async () => {
+      await db.transaction('rw', [db.customers, db.suppliers, db.branches, db.settings, db.users, db.products, db.sales], async () => {
         await db.customers.clear();
         await db.customers.bulkAdd(basicData.customers);
         
@@ -625,6 +635,9 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
             metodosConfig: JSON.parse(basicData.settings.configJson || '{}').metodos || {}
           });
         }
+
+        await db.sales.clear();
+        await db.sales.bulkAdd(basicData.recentSales || []);
 
         await db.products.clear();
       });

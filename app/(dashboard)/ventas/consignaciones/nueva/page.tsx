@@ -138,6 +138,7 @@ export default async function NuevaConsignacionPage({ searchParams }: { searchPa
         ticketConfig={ticketConfig}
         ventasConfig={ventasConfig}
         dynamicPriceLists={dynamicPriceLists}
+        allPriceLists={allPriceLists}
         userPermissions={userPermissions}
         userRole={userRole}
         isSuperAdmin={isSuperAdmin}

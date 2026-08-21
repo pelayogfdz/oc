@@ -604,7 +604,26 @@ export async function resolveClientForSale(saleIdOrFolio: string): Promise<{ cli
   const cleanId = saleIdOrFolio.trim().replace(/^#+/, '').trim();
   const clients = getAllTenantClients();
 
-  // Phase 1: Exact matches (Folio or full UUID)
+  // Phase 0: Direct full UUID lookup (100% precise for QR codes with full sale.id)
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId) || /^[0-9a-f]{32}$/i.test(cleanId);
+  if (isUuid) {
+    for (const client of clients) {
+      try {
+        const sale = await client.sale.findUnique({
+          where: { id: cleanId },
+          include: {
+            user: true,
+            customer: true,
+            branch: { include: { settings: true, tenant: true } },
+            items: { include: { product: true, variant: true } }
+          }
+        });
+        if (sale) return { client, sale };
+      } catch (e) {}
+    }
+  }
+
+  // Phase 1: Exact matches (Folio or ID)
   const exactWhere = buildExactSearchConditions(cleanId);
   for (const client of clients) {
     try {
@@ -622,7 +641,7 @@ export async function resolveClientForSale(saleIdOrFolio: string): Promise<{ cli
           }
         }
       });
-      const sale = sales.find(s => s.folio && isFolioMatch(s.folio, cleanId)) || sales.find(s => s.id === cleanId);
+      const sale = sales.find(s => s.id === cleanId) || sales.find(s => s.folio && isFolioMatch(s.folio, cleanId));
       if (sale) {
         return { client, sale };
       }
@@ -666,7 +685,26 @@ export async function resolveClientForQuote(quoteIdOrFolio: string): Promise<{ c
   const cleanId = quoteIdOrFolio.trim().replace(/^#+/, '').trim();
   const clients = getAllTenantClients();
 
-  // Phase 1: Exact matches (Folio or full UUID)
+  // Phase 0: Direct full UUID lookup (100% precise for QR codes with full quote.id)
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId) || /^[0-9a-f]{32}$/i.test(cleanId);
+  if (isUuid) {
+    for (const client of clients) {
+      try {
+        const quote = await client.quote.findUnique({
+          where: { id: cleanId },
+          include: {
+            user: true,
+            customer: true,
+            branch: { include: { settings: true, tenant: true } },
+            items: { include: { product: true } }
+          }
+        });
+        if (quote) return { client, quote };
+      } catch (e) {}
+    }
+  }
+
+  // Phase 1: Exact matches (Folio or ID)
   const exactWhere = buildExactSearchConditions(cleanId);
   for (const client of clients) {
     try {
@@ -684,7 +722,7 @@ export async function resolveClientForQuote(quoteIdOrFolio: string): Promise<{ c
           }
         }
       });
-      const quote = quotes.find(q => q.folio && isFolioMatch(q.folio, cleanId)) || quotes.find(q => q.id === cleanId);
+      const quote = quotes.find(q => q.id === cleanId) || quotes.find(q => q.folio && isFolioMatch(q.folio, cleanId));
       if (quote) {
         return { client, quote };
       }
@@ -723,4 +761,5 @@ export async function resolveClientForQuote(quoteIdOrFolio: string): Promise<{ c
 
   return null;
 }
+
 
