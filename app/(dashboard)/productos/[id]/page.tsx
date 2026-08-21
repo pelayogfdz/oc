@@ -46,9 +46,8 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
         orderBy: { expirationDate: 'asc' }
       },
       prices: {
-        select: {
-          priceListId: true,
-          price: true
+        include: {
+          priceList: true
         }
       }
     }
@@ -252,26 +251,27 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
     })
   );
 
+  const cleanImageUrl = (url: string | null | undefined) => (!url || url.includes('.svg') || url.includes('placeholder')) ? '' : url;
+  const sanitizedImageUrl = cleanImageUrl(product.imageUrl);
+
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
-        <Link href="/productos" style={{ textDecoration: 'none', color: 'var(--caanma-text-muted)', fontSize: '1.25rem' }}>← Volver</Link>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>
-          {product.name} <span style={{ color: 'var(--caanma-text-muted)', fontSize: '1rem', fontWeight: 'normal' }}>({product.sku})</span>
-        </h1>
-        
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.75rem' }}>
-           <Link href={`/productos/nuevo?cloneId=${product.id}`} style={{ padding: '0.5rem 1rem', backgroundColor: 'white', border: '1px solid var(--caanma-border)', borderRadius: '6px', fontWeight: 'bold', textDecoration: 'none', color: 'var(--caanma-text)' }}>
-             Clonar
-           </Link>
-           {/* Note: since this is a server component, we pass the server action to a form. */}
-           {canDelete && (
-             <form action={handleDelete}>
-               <button type="submit" style={{ padding: '0.5rem 1rem', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
-                 Eliminar
-               </button>
-             </form>
-           )}
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <Link href="/productos" style={{ color: 'var(--caanma-text-muted)', textDecoration: 'none' }}>
+          &larr; Volver
+        </Link>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <Link href={`/productos/nuevo?cloneFrom=${product.id}`} style={{ padding: '0.5rem 1rem', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 'bold', textDecoration: 'none', display: 'inline-block' }}>
+            Clonar
+          </Link>
+          {/* Note: since this is a server component, we pass the server action to a form. */}
+          {canDelete && (
+            <form action={handleDelete}>
+              <button type="submit" style={{ padding: '0.5rem 1rem', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
+                Eliminar
+              </button>
+            </form>
+          )}
         </div>
       </div>
 
@@ -288,7 +288,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
             <h2 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Multimedia</h2>
             <ProductImageSection 
               productId={product.id}
-              initialImageUrl={product.imageUrl || ''}
+              initialImageUrl={sanitizedImageUrl}
               initialYoutubeUrl={product.youtubeUrl || ''}
               showYoutubeEmbed={true}
               showSaveButton={true}
@@ -298,7 +298,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
       >
         <form action={updateProductWithId}>
           <input type="hidden" name="branchId" value={product.branchId} />
-          <input type="hidden" name="imageUrl" defaultValue={product.imageUrl || ''} id="details-imageUrl-input" />
+          <input type="hidden" name="imageUrl" defaultValue={sanitizedImageUrl} id="details-imageUrl-input" />
           <input type="hidden" name="youtubeUrl" defaultValue={product.youtubeUrl || ''} id="details-youtubeUrl-input" />
           
           {/* Identificación */}
@@ -444,6 +444,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
               initialSpecialPrice={product.specialPrice}
               priceLists={dynamicPriceLists}
               initialPrices={product.prices}
+              allPriceLists={allPriceLists}
             />
           </div>
 
@@ -491,6 +492,6 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
           </div>
         </form>
       </ProductDetailClient>
-    </div>
+    </>
   );
 }

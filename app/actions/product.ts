@@ -420,7 +420,10 @@ export async function updateProduct(productId: string, formData: FormData) {
     if (brand !== null) data.brand = (brand as string) || null;
 
     const imageUrl = formData.get('imageUrl');
-    if (imageUrl !== null) data.imageUrl = (imageUrl as string) || null;
+    if (imageUrl !== null) {
+      const urlStr = (imageUrl as string).trim();
+      data.imageUrl = (urlStr.includes('.svg') || urlStr.includes('placeholder')) ? null : (urlStr || null);
+    }
 
     const youtubeUrl = formData.get('youtubeUrl');
     if (youtubeUrl !== null) data.youtubeUrl = (youtubeUrl as string) || null;
@@ -1694,7 +1697,10 @@ export async function updateProductMedia(productId: string, imageUrl: string, yo
       return { success: false, error: 'Producto no encontrado.' };
     }
 
-    const cleanImage = imageUrl ? imageUrl.trim() : null;
+    let cleanImage = imageUrl ? imageUrl.trim() : null;
+    if (cleanImage && (cleanImage.includes('.svg') || cleanImage.includes('placeholder') || cleanImage.includes('/placeholders/'))) {
+      cleanImage = null;
+    }
     const cleanYoutube = youtubeUrl ? youtubeUrl.trim() : null;
 
     // Update target product media

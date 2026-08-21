@@ -32,6 +32,12 @@ interface ProductImageSectionProps {
   showSaveButton?: boolean;
 }
 
+const cleanInitialImage = (url: string | undefined | null) => {
+  if (!url) return '';
+  if (url.includes('.svg') || url.includes('placeholder') || url.includes('/placeholders/')) return '';
+  return url;
+};
+
 export default function ProductImageSection({
   productId,
   initialImageUrl,
@@ -42,7 +48,7 @@ export default function ProductImageSection({
   stateError,
   showSaveButton = false
 }: ProductImageSectionProps) {
-  const [imageUrl, setImageUrl] = useState<string>(initialImageUrl);
+  const [imageUrl, setImageUrl] = useState<string>(() => cleanInitialImage(initialImageUrl));
   const [youtubeUrl, setYoutubeUrl] = useState<string>(initialYoutubeUrl);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [isCompresing, setIsCompressing] = useState<boolean>(false);
@@ -52,7 +58,7 @@ export default function ProductImageSection({
 
   // Sync state if initial values change (e.g. when cloning/editing changes)
   useEffect(() => {
-    setImageUrl(initialImageUrl);
+    setImageUrl(cleanInitialImage(initialImageUrl));
   }, [initialImageUrl]);
 
   useEffect(() => {

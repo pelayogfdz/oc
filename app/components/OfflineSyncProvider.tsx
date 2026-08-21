@@ -69,6 +69,8 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       if (ts) {
         setLastSyncTime(parseInt(ts));
       }
+      // Purge any legacy SVG placeholder URLs from local Dexie IndexedDB cache
+      db.products.filter((p: any) => !!p.imageUrl && (p.imageUrl.includes('.svg') || p.imageUrl.includes('placeholder') || p.imageUrl.includes('/placeholders/'))).modify({ imageUrl: null } as any).catch(() => {});
     }
     
     const handleOnline = () => {
