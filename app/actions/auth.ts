@@ -1,8 +1,10 @@
+'use server';
+
 import { prisma, masterClient } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { unstable_cache } from 'next/cache';
 import { cache } from 'react';
-import { decrypt } from '@/lib/session';
+import { decrypt } from '@/lib/session-crypto';
 
 import { redirect } from 'next/navigation';
 
