@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { decrypt } from './session';
-import { execSync } from 'child_process';
+import { decrypt } from './session-crypto';
 import { URL } from 'url';
 import { cache } from 'react';
 
@@ -251,7 +250,8 @@ export async function createDatabaseForTenant(tenantId: string, slug: string, na
   try {
     const originalDbUrl = process.env.DATABASE_URL;
     process.env.DATABASE_URL = tenantUrl;
-    execSync('npx prisma db push --skip-generate', { stdio: 'inherit' });
+    const cp = require('child_process');
+    cp.execSync('npx prisma db push --skip-generate', { stdio: 'inherit' });
     process.env.DATABASE_URL = originalDbUrl;
     console.log(`[Multi-Tenant] Prisma schema pushed successfully to ${dbName}.`);
   } catch (err) {
