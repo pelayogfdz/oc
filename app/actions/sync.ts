@@ -129,8 +129,12 @@ export async function syncProductsPage(page: number, limit: number) {
   });
 
   return products.map(product => {
-    if (product.imageUrl && product.imageUrl.startsWith('data:')) {
-      product.imageUrl = `https://caanma.com/api/catalog/image?id=${product.id}`;
+    if (product.imageUrl) {
+      if (product.imageUrl.includes('.svg') || product.imageUrl.includes('placeholder')) {
+        product.imageUrl = null;
+      } else if (product.imageUrl.startsWith('data:')) {
+        product.imageUrl = `https://caanma.com/api/catalog/image?id=${product.id}`;
+      }
     }
     return product;
   });

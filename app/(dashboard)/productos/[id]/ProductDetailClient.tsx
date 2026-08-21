@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 
 const getFormattedImageUrl = (url: string | null) => {
   if (!url) return '';
+  if (url.includes('.svg') || url.includes('placeholder')) return '';
   return url.replace(/#/g, '%23');
 };
 
