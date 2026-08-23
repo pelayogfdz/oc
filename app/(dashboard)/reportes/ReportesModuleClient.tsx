@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, TrendingUp, Package, Calculator, Users, Clock, ArrowRight, ChefHat } from 'lucide-react';
+import { BarChart3, TrendingUp, Package, Calculator, Users, Clock, ArrowRight, ChefHat, Tag } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -19,6 +19,7 @@ export default function ReportesModuleClient({
 }) {
   const reports = [
     { title: 'Resumen de Ventas', icon: <TrendingUp size={24} color="#16a34a" />, description: 'Ventas totales, devoluciones y tickets promedio.', route: '/reportes/ventas-desglose', requiredPermission: 'report_sales_breakdown' },
+    { title: 'Descuentos y Promociones', icon: <Tag size={24} color="#dc2626" />, description: 'Auditoría de artículos vendidos con promociones, listas preferenciales o rebajas.', route: '/reportes/descuentos-promociones', requiredPermission: 'report_sales_breakdown' },
     { title: 'Ventas por Producto', icon: <Package size={24} color="#0ea5e9" />, description: 'Análisis detallado de ventas a nivel producto.', route: '/reportes/top-productos', requiredPermission: 'report_sales_by_product' },
     { title: 'Utilidad', icon: <Calculator size={24} color="#d946ef" />, description: 'Márgenes de ganancia y rentabilidad.', route: '/reportes/general', requiredPermission: 'report_utility' },
     { title: 'Impuestos', icon: <BarChart3 size={24} color="#f59e0b" />, description: 'Desglose de IVA, retenciones y otros impuestos.', route: '/reportes/facturacion', requiredPermission: 'report_taxes' },

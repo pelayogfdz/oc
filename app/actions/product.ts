@@ -372,11 +372,21 @@ export async function createProduct(prevState: any, formData: FormData) {
 
 export async function updateProduct(productId: string, formData: FormData) {
   try {
+    console.log(`[DEBUG] updateProduct called for ${productId}`);
+    console.log(`[DEBUG] form keys:`, Array.from(formData.keys()));
     const sku = formData.get('sku');
     const name = formData.get('name');
+    const price = formData.get('price');
+    console.log(`[DEBUG] received sku: ${sku}, name: ${name}, price: ${price}`);
 
-    if (sku !== null && !sku) return;
-    if (name !== null && !name) return;
+    if (sku !== null && !sku) {
+      console.log(`[DEBUG] early return because sku is empty`);
+      return;
+    }
+    if (name !== null && !name) {
+      console.log(`[DEBUG] early return because name is empty`);
+      return;
+    }
 
     const data: any = {};
     if (sku !== null) data.sku = sku as string;
@@ -391,7 +401,6 @@ export async function updateProduct(productId: string, formData: FormData) {
     const location = formData.get('location');
     if (location !== null) data.location = (location as string) || null;
 
-    const price = formData.get('price');
     if (price !== null) data.price = parseFloat(price as string) || 0;
 
     const cost = formData.get('cost');

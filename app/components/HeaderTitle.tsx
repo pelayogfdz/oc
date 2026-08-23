@@ -38,6 +38,7 @@ const routeMap: Record<string, RouteInfo> = {
   '/rh/tramites': { title: 'Trámites', subtitle: 'Trámites y Solicitudes' },
   '/rh/calendario': { title: 'Calendario', subtitle: 'Calendario de Incidencias' },
   '/reportes': { title: 'Reportes', subtitle: 'Reportes Generales' },
+  '/reportes/descuentos-promociones': { title: 'Descuentos y Promociones', subtitle: 'Auditoría de Artículos Vendidos con Descuentos y Ofertas' },
   '/reportes/ventas-desglose': { title: 'Desglose de Ventas', subtitle: 'Reporte de Ventas Detalladas' },
   '/reportes/asistencia': { title: 'Reporte Asistencia', subtitle: 'Asistencia del personal' },
   '/reportes/corte': { title: 'Corte de Caja', subtitle: 'Corte financiero' },
