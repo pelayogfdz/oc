@@ -80,13 +80,47 @@ export default async function VentasPage(props: { searchParams: Promise<any> }) 
     };
   }
 
-  // CFDI filter
-  if (params?.cfdi && params.cfdi.trim() !== '') {
-    const cfdiTerm = params.cfdi.trim();
-    where.OR = [
-      { invoiceId: { contains: cfdiTerm, mode: 'insensitive' } },
-      { invoiceFolio: { contains: cfdiTerm, mode: 'insensitive' } }
-    ];
+  // Helper to generate search variants for folios (e.g. EL-2156, EL -2156, 2156, #EL-2156)
+  function getFolioVariants(term: string): string[] {
+    if (!term || !term.trim()) return [];
+    const raw = term.trim();
+    const clean = raw.replace(/^#/, '').trim();
+    const noSpace = clean.replace(/\s+/g, '');
+
+    const match = clean.match(/^([a-zA-Z]+)\s*-?\s*(\d+)$/);
+    const variants = new Set<string>([raw, clean, noSpace]);
+
+    if (match) {
+      const prefix = match[1];
+      const num = match[2];
+      variants.add(`${prefix}-${num}`);
+      variants.add(`${prefix} -${num}`);
+      variants.add(`${prefix} - ${num}`);
+      variants.add(`${prefix} ${num}`);
+      variants.add(`${prefix}${num}`);
+    }
+    return Array.from(variants).filter(Boolean);
+  }
+
+  // CFDI / Folio / Ticket / ID search filter
+  const searchTerm = (params?.cfdi || params?.folio || '').trim();
+  if (searchTerm !== '') {
+    const variants = getFolioVariants(searchTerm);
+    const orConditions: any[] = [];
+
+    for (const v of variants) {
+      orConditions.push({ folio: { contains: v, mode: 'insensitive' } });
+      orConditions.push({ invoiceFolio: { contains: v, mode: 'insensitive' } });
+      orConditions.push({ invoiceId: { contains: v, mode: 'insensitive' } });
+      orConditions.push({ id: { startsWith: v, mode: 'insensitive' } });
+    }
+
+    const digitsOnly = searchTerm.replace(/\D/g, '');
+    if (digitsOnly && digitsOnly.length >= 2) {
+      orConditions.push({ folio: { contains: digitsOnly, mode: 'insensitive' } });
+    }
+
+    where.OR = orConditions;
   }
 
   // Date range filter (ONLY applied if startDate or endDate are provided in searchParams)

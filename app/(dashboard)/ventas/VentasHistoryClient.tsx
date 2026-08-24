@@ -405,6 +405,7 @@ export default function VentasHistoryClient({
   const [filterStatus, setFilterStatus] = useState(queryParams.status || '');
   const [filterClient, setFilterClient] = useState(queryParams.client || '');
   const [filterCfdi, setFilterCfdi] = useState(queryParams.cfdi || '');
+  const [filterFolio, setFilterFolio] = useState(queryParams.folio || '');
   const [filterPaymentMethod, setFilterPaymentMethod] = useState(queryParams.paymentMethod || '');
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
@@ -446,6 +447,7 @@ export default function VentasHistoryClient({
       if (key === 'client') setFilterClient(val);
       if (key === 'cfdi') setFilterCfdi(val);
       if (key === 'paymentMethod') setFilterPaymentMethod(val);
+      if (key === 'folio') setFilterFolio(val);
     });
 
     if (!isOnline) {
@@ -863,13 +865,46 @@ export default function VentasHistoryClient({
         if (!clientName.toLowerCase().includes(filterClient.trim().toLowerCase())) return false;
       }
       if (filterCfdi.trim()) {
-        const cfdiTerm = filterCfdi.trim().toLowerCase();
+        const rawTerm = filterCfdi.trim().toLowerCase();
+        const cleanTerm = rawTerm.replace(/^#/, '').trim();
+        const noSpaceTerm = cleanTerm.replace(/\s+/g, '');
+        const digitsOnly = cleanTerm.replace(/\D/g, '');
+
         const folioStr = (sale.folio || '').toLowerCase();
+        const folioNoSpace = folioStr.replace(/\s+/g, '');
         const invFolio = (sale.invoiceFolio || '').toLowerCase();
         const invId = (sale.invoiceId || '').toLowerCase();
-        if (!folioStr.includes(cfdiTerm) && !invFolio.includes(cfdiTerm) && !invId.includes(cfdiTerm) && !sale.id.toLowerCase().includes(cfdiTerm)) {
+        const saleId = (sale.id || '').toLowerCase();
+
+        const matches = 
+          folioStr.includes(cleanTerm) ||
+          folioNoSpace.includes(noSpaceTerm) ||
+          (digitsOnly.length >= 2 && folioStr.includes(digitsOnly)) ||
+          invFolio.includes(cleanTerm) ||
+          invId.includes(cleanTerm) ||
+          saleId.includes(cleanTerm);
+
+        if (!matches) {
           return false;
         }
+      }
+      if (filterFolio.trim()) {
+        const rawTerm = filterFolio.trim().toLowerCase();
+        const cleanTerm = rawTerm.replace(/^#/, '').trim();
+        const noSpaceTerm = cleanTerm.replace(/\s+/g, '');
+        const digitsOnly = cleanTerm.replace(/\D/g, '');
+
+        const folioStr = (sale.folio || '').toLowerCase();
+        const folioNoSpace = folioStr.replace(/\s+/g, '');
+        const saleId = (sale.id || '').toLowerCase();
+
+        const matches = 
+          folioStr.includes(cleanTerm) ||
+          folioNoSpace.includes(noSpaceTerm) ||
+          (digitsOnly.length >= 2 && folioStr.includes(digitsOnly)) ||
+          saleId.includes(cleanTerm);
+
+        if (!matches) return false;
       }
       if (filterStartDate) {
         const start = new Date(filterStartDate);
@@ -883,9 +918,9 @@ export default function VentasHistoryClient({
       }
       return true;
     });
-  }, [allCombinedSales, isOnline, filterBranch, filterUser, filterStatus, filterPaymentMethod, filterClient, filterCfdi, filterStartDate, filterEndDate]);
+  }, [allCombinedSales, isOnline, filterBranch, filterUser, filterStatus, filterPaymentMethod, filterClient, filterCfdi, filterStartDate, filterEndDate, filterFolio]);
 
-  const hasActiveFilters = Boolean(filterStartDate || filterEndDate || filterUser || (currentBranch.id === 'GLOBAL' && filterBranch) || filterStatus || filterClient || filterCfdi || filterPaymentMethod);
+  const hasActiveFilters = Boolean(filterStartDate || filterEndDate || filterUser || (currentBranch.id === 'GLOBAL' && filterBranch) || filterStatus || filterClient || filterCfdi || filterPaymentMethod || filterFolio);
 
   const handleClearFilters = () => {
     setFilterStartDate('');
@@ -896,6 +931,7 @@ export default function VentasHistoryClient({
     setFilterClient('');
     setFilterCfdi('');
     setFilterPaymentMethod('');
+    setFilterFolio('');
     if (isOnline) {
       router.push(pathname);
     }
@@ -912,7 +948,8 @@ export default function VentasHistoryClient({
         status: filterStatus,
         paymentMethod: filterPaymentMethod,
         client: filterClient,
-        cfdi: filterCfdi
+        cfdi: filterCfdi,
+        folio: filterFolio
       });
 
       if (!res.success || !res.sales) {
@@ -1068,6 +1105,26 @@ export default function VentasHistoryClient({
           />
         </div>
 
+        {/* Folio/ID Venta Filter */}
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
+            <Tag size={14} /> Folio / Ticket
+          </label>
+          <input 
+            type="text" 
+            placeholder="Buscar ticket (#EL-2156) o ID" 
+            value={filterFolio} 
+            onChange={(e) => setFilterFolio(e.target.value)} 
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                updateUrlParams({ folio: filterFolio, page: '1' });
+              }
+            }}
+            onBlur={() => updateUrlParams({ folio: filterFolio, page: '1' })}
+            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
+          />
+        </div>
+
         {/* Client Filter */}
         <div>
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
@@ -1091,11 +1148,11 @@ export default function VentasHistoryClient({
         {/* CFDI Filter */}
         <div>
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
-            <Receipt size={14} /> Folio CFDI
+            <Receipt size={14} /> Factura CFDI
           </label>
           <input 
             type="text" 
-            placeholder="Buscar CFDI y presionar Enter" 
+            placeholder="Buscar folio fiscal (#) o UUID" 
             value={filterCfdi} 
             onChange={(e) => setFilterCfdi(e.target.value)} 
             onKeyDown={(e) => {

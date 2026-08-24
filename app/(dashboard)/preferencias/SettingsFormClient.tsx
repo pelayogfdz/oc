@@ -11,6 +11,7 @@ export type FieldConfig = {
   placeholder?: string;
   options?: { label: string, value: string }[];
   description?: string;
+  defaultValue?: any;
 };
 
 export default function SettingsFormClient({ 
@@ -26,7 +27,15 @@ export default function SettingsFormClient({
   description: string, 
   fields: FieldConfig[]
 }) {
-  const [formDataState, setFormDataState] = useState<Record<string, any>>(initialConfig || {});
+  const [formDataState, setFormDataState] = useState<Record<string, any>>(() => {
+    const init = { ...(initialConfig || {}) };
+    fields.forEach(f => {
+      if (init[f.name] === undefined && f.defaultValue !== undefined) {
+        init[f.name] = f.defaultValue;
+      }
+    });
+    return init;
+  });
   const [isPending, setIsPending] = useState(false);
   const [showToast, setShowToast] = useState(false);
 

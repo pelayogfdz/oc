@@ -22,7 +22,8 @@ export default async function Page() {
       name: 'bloquearCreditoFacturasVencidas',
       label: 'Bloquear nuevo crédito por facturas vencidas',
       description: 'Prevenir que se autorice nuevo crédito en el punto de venta a clientes que tengan cuentas o facturas vencidas sin liquidar.',
-      type: 'boolean'
+      type: 'boolean',
+      defaultValue: true
     },
     { 
       name: 'bloquearDescuentos', 

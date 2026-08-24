@@ -269,15 +269,30 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
   );
 
   const filteredSales = sales.filter((sale) => {
-    const query = searchQuery.toLowerCase();
-    const folio = (sale.folio || sale.id.substring(0, 8)).toLowerCase();
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return true;
+
+    const cleanQuery = query.replace(/^#/, '').trim();
+    const noSpaceQuery = cleanQuery.replace(/\s+/g, '');
+    const digitsOnly = cleanQuery.replace(/\D/g, '');
+
+    const folio = (sale.folio || '').toLowerCase();
+    const folioNoSpace = folio.replace(/\s+/g, '');
+    const saleId = (sale.id || '').toLowerCase();
+    const invFolio = (sale.invoiceFolio || '').toLowerCase();
+    const invId = (sale.invoiceId || '').toLowerCase();
     const clientName = (sale.customer?.name || '').toLowerCase();
     const clientLegalName = (sale.customer?.legalName || '').toLowerCase();
     const clientTaxId = (sale.customer?.taxId || '').toLowerCase();
     const sellerName = (sale.user?.name || '').toLowerCase();
 
     return (
-      folio.includes(query) ||
+      folio.includes(cleanQuery) ||
+      folioNoSpace.includes(noSpaceQuery) ||
+      (digitsOnly.length >= 2 && folio.includes(digitsOnly)) ||
+      saleId.includes(cleanQuery) ||
+      invFolio.includes(cleanQuery) ||
+      invId.includes(cleanQuery) ||
       clientName.includes(query) ||
       clientLegalName.includes(query) ||
       clientTaxId.includes(query) ||

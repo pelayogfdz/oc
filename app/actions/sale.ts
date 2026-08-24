@@ -850,6 +850,7 @@ export async function getSalesForExport(params: {
   paymentMethod?: string;
   client?: string;
   cfdi?: string;
+  folio?: string;
 }) {
   try {
     const branch = await getActiveBranch();
@@ -905,6 +906,27 @@ export async function getSalesForExport(params: {
         { invoiceId: { contains: cfdiTerm, mode: 'insensitive' } },
         { invoiceFolio: { contains: cfdiTerm, mode: 'insensitive' } }
       ];
+    }
+
+    // Folio/ID Venta filter
+    if (params?.folio && params.folio.trim() !== '') {
+      const folioTerm = params.folio.trim();
+      if (where.OR) {
+        where.AND = [
+          { OR: where.OR },
+          { OR: [
+              { folio: { contains: folioTerm, mode: 'insensitive' } },
+              { id: { contains: folioTerm, mode: 'insensitive' } }
+            ]
+          }
+        ];
+        delete where.OR;
+      } else {
+        where.OR = [
+          { folio: { contains: folioTerm, mode: 'insensitive' } },
+          { id: { contains: folioTerm, mode: 'insensitive' } }
+        ];
+      }
     }
 
     // Date range filter
