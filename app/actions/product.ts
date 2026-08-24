@@ -6,6 +6,39 @@ import { redirect } from 'next/navigation';
 import { getSession, getActiveBranch, getActiveUser } from '@/app/actions/auth';
 import { getMergedUserPermissions } from './permissions';
 import { hasNodeAccess } from '@/app/config/permissions';
+import fs from 'fs';
+import path from 'path';
+
+function saveProductImageToFile(productId: string, barcode: string | null | undefined, sku: string | null | undefined, imageUrl: string | null | undefined): string | null {
+  if (!imageUrl) return null;
+  const cleanImage = imageUrl.trim();
+  if (cleanImage.includes('.svg') || cleanImage.includes('placeholder') || cleanImage.includes('/placeholders/')) {
+    return null;
+  }
+  if (cleanImage.startsWith('data:image/')) {
+    const match = cleanImage.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+    if (match) {
+      const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
+      const base64Data = match[2];
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      // Filename base: barcode if present, otherwise sku, otherwise productId. Remove any non-alphanumeric chars.
+      const filenameBase = ((barcode || '').trim() || (sku || '').trim() || productId).replace(/[^a-zA-Z0-9-_]/g, '');
+      const filename = `${filenameBase}.${ext}`;
+      
+      const publicDir = path.join(process.cwd(), 'public', 'img', 'products');
+      if (!fs.existsSync(publicDir)) {
+        fs.mkdirSync(publicDir, { recursive: true });
+      }
+      
+      const filePath = path.join(publicDir, filename);
+      fs.writeFileSync(filePath, buffer);
+      
+      return `/img/products/${filename}`;
+    }
+  }
+  return cleanImage;
+}
 
 export async function createProduct(prevState: any, formData: FormData) {
   let activeUser = null;
@@ -29,7 +62,9 @@ export async function createProduct(prevState: any, formData: FormData) {
   
   const category = formData.get('category') as string;
   const brand = formData.get('brand') as string;
-  const imageUrl = formData.get('imageUrl') as string;
+  const imageUrlRaw = formData.get('imageUrl') as string;
+  const tempId = Math.random().toString(36).substring(7);
+  const imageUrl = saveProductImageToFile(tempId, barcode, sku, imageUrlRaw) || '';
   const youtubeUrl = formData.get('youtubeUrl') as string;
   const isActive = formData.get('isActive') !== 'false';
   const allowProduction = formData.getAll('allowProduction').includes('true');
@@ -379,6 +414,12 @@ export async function updateProduct(productId: string, formData: FormData) {
     const price = formData.get('price');
     console.log(`[DEBUG] received sku: ${sku}, name: ${name}, price: ${price}`);
 
+    const currentProduct = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { sku: true, price: true, branchId: true, cost: true, barcode: true }
+    });
+    if (!currentProduct) return;
+
     if (sku !== null && !sku) {
       console.log(`[DEBUG] early return because sku is empty`);
       return;
@@ -430,8 +471,9 @@ export async function updateProduct(productId: string, formData: FormData) {
 
     const imageUrl = formData.get('imageUrl');
     if (imageUrl !== null) {
-      const urlStr = (imageUrl as string).trim();
-      data.imageUrl = (urlStr.includes('.svg') || urlStr.includes('placeholder')) ? null : (urlStr || null);
+      const barcodeVal = barcode !== null ? (barcode as string) : (currentProduct.barcode || null);
+      const skuVal = sku !== null ? (sku as string) : (currentProduct.sku || null);
+      data.imageUrl = saveProductImageToFile(productId, barcodeVal, skuVal, imageUrl as string);
     }
 
     const youtubeUrl = formData.get('youtubeUrl');
@@ -485,13 +527,7 @@ export async function updateProduct(productId: string, formData: FormData) {
       data.hasTraceability = formData.getAll('hasTraceability').includes('true');
     }
 
-    // Get current product details before update (to find siblings by old SKU)
-    const currentProduct = await prisma.product.findUnique({
-      where: { id: productId },
-      select: { sku: true, price: true, branchId: true, cost: true }
-    });
 
-    if (!currentProduct) return;
 
     // Cross-match check to prevent duplicates in the same branch during update
     const newBarcode = data.barcode;
@@ -587,18 +623,31 @@ export async function updateProduct(productId: string, formData: FormData) {
             delete fieldsToPropagate.branchId;
             delete fieldsToPropagate.supplierId;
 
-            // Ensure missing sibling products are created in other branches
-            const existingSiblings = await prisma.product.findMany({
+            // 1. Find branches that already have the product with the OLD SKU
+            const siblingsByOldSku = await prisma.product.findMany({
+              where: {
+                sku: currentProduct.sku,
+                branchId: { in: siblingBranchIds },
+                id: { not: productId }
+              },
+              select: { id: true, branchId: true }
+            });
+            const branchesWithOldSku = new Set(siblingsByOldSku.map(s => s.branchId));
+
+            // 2. Find branches that already have a product with the NEW SKU
+            const siblingsByNewSku = await prisma.product.findMany({
               where: {
                 sku: updatedProduct.sku,
-                branchId: { in: siblingBranchIds }
+                branchId: { in: siblingBranchIds },
+                id: { not: productId }
               },
-              select: { branchId: true }
+              select: { id: true, branchId: true }
             });
-            const existingBranchIds = new Set(existingSiblings.map(s => s.branchId));
+            const branchesWithNewSku = new Set(siblingsByNewSku.map(s => s.branchId));
 
+            // 3. Create missing products only in branches that have NEITHER the old SKU nor the new SKU
             for (const bId of siblingBranchIds) {
-              if (bId !== updatedProduct.branchId && !existingBranchIds.has(bId)) {
+              if (bId !== updatedProduct.branchId && !branchesWithOldSku.has(bId) && !branchesWithNewSku.has(bId)) {
                 await prisma.product.create({
                   data: {
                     branchId: bId,
@@ -633,7 +682,8 @@ export async function updateProduct(productId: string, formData: FormData) {
               }
             }
 
-            if (Object.keys(fieldsToPropagate).length > 0) {
+            // 4. Update the products that have the OLD SKU in other branches to the NEW SKU and fields
+            if (Object.keys(fieldsToPropagate).length > 0 && siblingsByOldSku.length > 0) {
               await prisma.product.updateMany({
                 where: {
                   sku: currentProduct.sku,
@@ -1713,17 +1763,14 @@ export async function updateProductMedia(productId: string, imageUrl: string, yo
   try {
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      select: { sku: true, branchId: true }
+      select: { sku: true, branchId: true, barcode: true }
     });
 
     if (!product) {
       return { success: false, error: 'Producto no encontrado.' };
     }
 
-    let cleanImage = imageUrl ? imageUrl.trim() : null;
-    if (cleanImage && (cleanImage.includes('.svg') || cleanImage.includes('placeholder') || cleanImage.includes('/placeholders/'))) {
-      cleanImage = null;
-    }
+    let cleanImage = saveProductImageToFile(productId, product.barcode, product.sku, imageUrl);
     const cleanYoutube = youtubeUrl ? youtubeUrl.trim() : null;
 
     // Update target product media

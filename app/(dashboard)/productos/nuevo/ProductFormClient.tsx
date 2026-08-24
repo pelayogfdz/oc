@@ -121,11 +121,11 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>SKU Base (Código Interno) *</label>
-            <input type="text" name="sku" defaultValue="" required placeholder="Nuevo SKU" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+            <input type="text" name="sku" defaultValue="" required placeholder="Nuevo SKU" autoComplete="off" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Código de Barras</label>
-            <input type="text" name="barcode" defaultValue="" placeholder="(Opcional)" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+            <input type="text" name="barcode" defaultValue="" placeholder="(Opcional)" autoComplete="off" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Ubicación</label>

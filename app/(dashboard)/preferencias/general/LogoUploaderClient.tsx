@@ -44,7 +44,11 @@ export default function LogoUploaderClient({ initialLogoUrl }: { initialLogoUrl:
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
+        if (ctx) {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+        }
         
         // Compress as JPEG at 0.75 quality for lightweight storage
         const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);

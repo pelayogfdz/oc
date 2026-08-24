@@ -714,8 +714,8 @@ export function ProductDetailClient({
           <form action={createVariant} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
              <input type="hidden" name="productId" value={product.id} />
              <input type="text" name="attribute" placeholder="Atributo (Ej. Talla M - Color Rojo)" required style={{ flex: 2, minWidth: '200px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
-             <input type="text" name="sku" placeholder="SKU" style={{ flex: 1, minWidth: '120px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
-             <input type="text" name="barcode" placeholder="Cod. Barras" style={{ flex: 1, minWidth: '120px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+             <input type="text" name="sku" placeholder="SKU" autoComplete="off" style={{ flex: 1, minWidth: '120px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+             <input type="text" name="barcode" placeholder="Cod. Barras" autoComplete="off" style={{ flex: 1, minWidth: '120px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
              <input type="number" step="any" name="cost" placeholder="Costo" style={{ width: '110px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
              <input type="number" step="any" name="price" placeholder="Precio Púb." style={{ width: '110px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
              <input type="number" step="any" name="wholesalePrice" placeholder="Mayoreo" style={{ width: '110px', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
@@ -1098,6 +1098,7 @@ export function ProductDetailClient({
                     name="sku" 
                     defaultValue={editingVariant.sku || ''} 
                     placeholder="Opcional"
+                    autoComplete="off"
                     style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} 
                   />
                 </div>
@@ -1111,6 +1112,7 @@ export function ProductDetailClient({
                     name="barcode" 
                     defaultValue={editingVariant.barcode || ''} 
                     placeholder="Opcional"
+                    autoComplete="off"
                     style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} 
                   />
                 </div>

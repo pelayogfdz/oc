@@ -529,3 +529,51 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
      * Filtramos reactivamente la tabla de liquidaciones del mes seleccionado mostrando un estado vacío específico para búsquedas infructuosas.
   3. **Verificación y Pruebas**:
      * Ejecutamos de forma exitosa el comando de compilación estática de TypeScript `npx.cmd tsc --noEmit` para garantizar la ausencia de regresiones o fallas de tipos.
+
+---
+
+## 28. Solución a Error de Servidor (500) al Cambiar el SKU de un Producto
+* **Identificación del Problema**: Al intentar modificar el SKU de un producto y guardar cambios, la página devolvía un error HTTP 500 de Next.js y el cambio no se persistía.
+* **Causa**: La función de acción `updateProduct` en `app/actions/product.ts` cuenta con un mecanismo de propagación multicanal para replicar las propiedades del producto en el catálogo de las demás sucursales del mismo inquilino (tenant).
+  * Al cambiar el SKU (de "A" a "B"), el sistema consultaba si la sucursal hermana ya tenía un producto con el *nuevo* SKU ("B"). Como no existía, procedía a crearlo desde cero.
+  * Inmediatamente después, ejecutaba una actualización masiva (`updateMany`) en las sucursales hermanas buscando los productos por el *viejo* SKU ("A") para asignarles las nuevas propiedades (incluyendo la actualización de su SKU a "B").
+  * Al intentar actualizar el SKU de "A" a "B" en una sucursal hermana donde se acababa de crear un producto con el SKU "B" en el paso anterior, la base de datos lanzaba una excepción de restricción de clave única (Unique Constraint Violation) en la clave compuesta `@@unique([sku, branchId])`. Esto provocaba el fallo con error 500 del servidor.
+* **Solución**:
+  * Modificamos la lógica de validación de existencias y propagación en [app/actions/product.ts](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/actions/product.ts).
+  * Ahora el sistema realiza búsquedas separadas por sucursal para constatar tanto si existe el SKU anterior (`currentProduct.sku`) como el SKU nuevo (`updatedProduct.sku`).
+  * Solo se crean nuevos productos en las sucursales que **no** tengan registrado el producto con el SKU viejo ni con el nuevo.
+  * Para las sucursales que ya poseen el producto con el SKU viejo, simplemente actualizamos sus datos (incluyendo el cambio de SKU de "A" a "B") sin intentar duplicar el producto, previniendo de raíz la colisión por clave única y garantizando una sincronización limpia.
+* **Resultado**: El cambio de SKU ahora funciona de forma correcta y fluida en todo el sistema sin provocar caídas de servidor.
+
+---
+
+## 29. Forzado de Fondo Blanco en Imágenes Guardadas (Formatos Transparentes PNG/SVG)
+* **Identificación del Problema**: Al cargar y guardar logotipos, fotos de productos, evidencias de tareas o adjuntos de cotización en formato PNG o SVG con canal de transparencia, la conversión automática a formato JPEG para almacenamiento optimizado provocaba que el fondo transparente se tiñera de color negro por limitación física del formato JPEG.
+* **Solución**:
+  * Modificamos los módulos de compresión y procesamiento basados en canvas en todo el cliente:
+    * **Imágenes de Producto**: [`ProductImageSection.tsx`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/productos/ProductImageSection.tsx)
+    * **Logotipo de Sucursal/General**: [`LogoUploaderClient.tsx`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/preferencias/general/LogoUploaderClient.tsx)
+    * **Imágenes de Evidencia de Tareas**: [`CollaboratorTaskPopup.tsx`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/components/CollaboratorTaskPopup.tsx)
+    * **Imágenes de Observación en Caja (Cotizaciones/Ventas)**: [`POSClient.tsx`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/ventas/nueva/POSClient.tsx)
+  * Implementamos el dibujado de un rectángulo de fondo color blanco sólido (`ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height)`) sobre el lienzo del canvas justo antes de plasmar el archivo de imagen original.
+* **Resultado**: Todas las imágenes transparentes que se optimizan y guardan en la base de datos se almacenan ahora con un fondo blanco limpio en lugar de negro.
+
+---
+
+## 30. Almacenamiento de Imágenes de Producto en Servidor con Nombre de Código de Barras / SKU
+* **Requerimiento**: Para evitar saturación en la base de datos y estandarizar la gestión de archivos, todas las imágenes de productos se deben guardar como archivos físicos en el servidor en lugar de almacenar texto base64. El nombre del archivo debe corresponder al **código de barras** del producto, respetando el catálogo de imágenes existentes y las que se vayan guardando a futuro.
+* **Solución e Implementación**:
+  1. **Helper de Guardado en Disco (`saveProductImageToFile`)**:
+     * Diseñamos una función utilitaria en `app/actions/product.ts` que intercepta las imágenes en formato data URL base64 (`data:image/...`).
+     * Decodifica la información base64 y la escribe como archivo físico dentro de la carpeta pública del servidor `public/img/products/`.
+     * **Nombramiento**: El nombre del archivo se genera priorizando: `Código de Barras` -> `SKU` -> `ID del Producto` (removiendo cualquier caracter no alfanumérico) con la extensión del tipo de archivo correspondiente (ej: `.jpg`, `.png`).
+     * Retorna la ruta relativa de la imagen `/img/products/[codigo_barras].jpg` para guardarla de forma ligera en el campo `imageUrl` de la base de datos.
+     * Si la imagen ya es una ruta de archivo o una URL web (ej: `/img/products/000043774.jpg`), la conserva intacta sin procesar de nuevo.
+  2. **Actualización de Flujos de Edición y Creación**:
+     * Modificamos la creación de productos (`createProduct`), actualización general (`updateProduct`) y actualización de multimedia (`updateProductMedia`) en [`app/actions/product.ts`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/actions/product.ts) para usar la función `saveProductImageToFile` antes de insertar o modificar registros en la base de datos.
+  3. **Script de Migración Retroactiva (`scripts/extract_base64_images.js`)**:
+     * Creamos un script de Node.js independiente ([`scripts/extract_base64_images.js`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/scripts/extract_base64_images.js)) para procesar las imágenes previamente guardadas como base64.
+     * Al ejecutarse en producción, el script escanea toda la tabla de productos en busca de imágenes base64, las convierte en archivos físicos en `public/img/products/` con el nombre de su respectivo código de barras o SKU, y actualiza los registros de la base de datos a sus rutas estáticas relativas.
+* **Resultado**: La base de datos queda liberada del almacenamiento pesado de base64, y tanto las imágenes existentes como las futuras quedan centralizadas de forma física en el servidor bajo el nombre de su código de barras.
+
+

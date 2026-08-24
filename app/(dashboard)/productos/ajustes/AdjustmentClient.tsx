@@ -113,10 +113,10 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
   };
 
   return (
-    <div style={{ display: 'flex', gap: '2rem', minHeight: 'calc(100vh - 120px)', boxSizing: 'border-box' }}>
+    <div className="flex flex-col lg:flex-row gap-6 min-h-[calc(100vh-120px)] box-border w-full">
       
       {/* Columna Izquierda: Buscador */}
-      <div style={{ flex: 1, backgroundColor: 'white', border: '1px solid var(--caanma-border)', borderRadius: '12px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="flex-1 bg-white border border-[var(--caanma-border)] rounded-xl flex flex-col overflow-hidden w-full">
         <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f8fafc' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Package size={20} /> Catálogo de Productos
@@ -225,14 +225,14 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
       </div>
 
       {/* Columna Derecha: Manifiesto de Ajuste */}
-      <div style={{ flex: 1.5, display: 'flex', flexDirection: 'column', backgroundColor: 'white', border: '1px solid var(--caanma-border)', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+      <div className="flex-[1.5] bg-white border border-[var(--caanma-border)] rounded-xl flex flex-col overflow-hidden shadow-sm w-full">
         
-        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#ffffff', display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
-          <div style={{ flex: 1 }}>
+        <div className="p-6 border-b border-[var(--caanma-border)] bg-white flex flex-col md:flex-row gap-4 items-start md:items-center">
+          <div className="flex-1">
             <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.25rem', fontWeight: 'bold' }}>Manifiesto de Ajuste</h3>
             <p style={{ color: 'var(--caanma-text-muted)', margin: 0, fontSize: '0.875rem' }}>Los cambios aplicados sobrescribirán el stock actual.</p>
           </div>
-          <div style={{ width: '300px' }}>
+          <div className="w-full md:w-72">
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem', color: '#475569', fontSize: '0.85rem' }}>Motivo de la Bitácora (Obligatorio)</label>
             <input type="text" value={reason} onChange={e => setReason(e.target.value)} required placeholder="Ej. Merma / Robo / Conteo Físico" style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', fontWeight: '500' }} />
           </div>

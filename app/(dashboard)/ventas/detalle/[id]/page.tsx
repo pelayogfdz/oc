@@ -42,17 +42,17 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
   });
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', fontFamily: 'sans-serif', color: 'black' }}>
+    <div style={{ maxWidth: '900px', margin: '0 auto', fontFamily: 'sans-serif', color: 'black' }} className="px-2 sm:px-0">
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 w-full">
          <Link href="/ventas" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--caanma-text-muted)', textDecoration: 'none', fontWeight: 'bold' }}>
             <ArrowLeft size={20} /> Volver a Ventas
          </Link>
-         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir`} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px' }}>
+         <div className="flex flex-wrap gap-2 items-center w-full sm:w-auto">
+            <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir`} className="btn-primary flex-1 sm:flex-none justify-center" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1rem', borderRadius: '4px' }}>
                <Printer size={20} /> Imprimir Nota (A4)
             </Link>
-            <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir-ticket`} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: '#fff', color: '#334155', fontWeight: 'bold' }}>
+            <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir-ticket`} className="btn-secondary flex-1 sm:flex-none justify-center" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: '#fff', color: '#334155', fontWeight: 'bold' }}>
                <Receipt size={20} /> Imprimir Ticket
             </Link>
             <VentaActionsClient 
@@ -95,9 +95,9 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
         </div>
       )}
 
-      <div className="card" style={{ padding: '2rem' }}>
+      <div className="card p-4 sm:p-8">
         {/* Header Membretado */}
-        <div style={{ paddingBottom: '1rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #f1f5f9' }}>
+        <div className="pb-4 mb-8 flex flex-col sm:flex-row justify-between items-start border-b-2 border-slate-100 gap-4">
           <div>
             <h1 style={{ fontSize: '2rem', fontWeight: 'bold', margin: '0 0 0.5rem 0', color: '#1e293b' }}>Resumen de Venta</h1>
             <div style={{ fontSize: '1.2rem', color: '#64748b' }}>Folio: #{sale.folio || sale.id.slice(0, 8).toUpperCase()}</div>
@@ -106,27 +106,27 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
             </div>
           </div>
 
-          <div style={{ textAlign: 'right' }}>
+          <div className="text-left sm:text-right w-full sm:w-auto break-all">
              <div style={{ fontSize: '1rem', color: '#64748b' }}>Fecha de Emisión</div>
              <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{new Date(sale.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
              <div style={{ fontSize: '1rem', color: '#64748b', marginTop: '0.5rem' }}>Método de Pago</div>
-             <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#0ea5e9' }}>
+             <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#0ea5e9' }} className="break-all">
                 {sale.paymentMethod === 'CASH' ? 'Efectivo' : sale.paymentMethod === 'CARD' ? 'Tarjeta' : sale.paymentMethod === 'CARD_CREDIT' ? 'Tarjeta de Crédito' : sale.paymentMethod === 'CARD_DEBIT' ? 'Tarjeta de Débito' : sale.paymentMethod === 'TRANSFER' ? 'Transferencia' : sale.paymentMethod === 'CHECK' || sale.paymentMethod === 'CHEQUE' ? 'Cheque' : sale.paymentMethod}
              </div>
           </div>
         </div>
 
         {/* Customer Info */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3rem', gap: '2rem' }}>
+        <div className="flex flex-col sm:flex-row justify-between mb-8 sm:mb-12 gap-6 w-full">
           <div style={{ flex: 1 }}>
              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <h3 style={{ margin: 0, fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase' }}>Cliente:</h3>
                 {sale.customer && (
                   (() => {
-                    const isGenericPublic = 
-                      (sale.customer.name.toLowerCase().includes('publico') && sale.customer.name.toLowerCase().includes('general')) ||
-                      sale.customer.taxId === 'XAXX010101000';
-                    return isGenericPublic ? (
+                    const isGenericCustomer = sale.customer.name.trim().toLowerCase() === 'público general' || 
+                                              sale.customer.name.trim().toLowerCase() === 'publico general' ||
+                                              sale.customer.name.trim().toLowerCase() === 'público en general';
+                    return isGenericCustomer ? (
                       <span 
                         style={{ 
                           fontSize: '0.75rem', 
@@ -175,7 +175,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
              {sale.customer?.email && <p style={{ margin: 0, fontSize: '0.9rem', color: '#475569' }}>{sale.customer.email}</p>}
              {sale.customer?.phone && <p style={{ margin: 0, fontSize: '0.9rem', color: '#475569' }}>Tel: {sale.customer.phone}</p>}
           </div>
-          <div style={{ flex: 1, textAlign: 'right' }}>
+          <div className="text-left sm:text-right" style={{ flex: 1 }}>
              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase' }}>Emitido por:</h3>
              <p style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold', fontSize: '1.2rem' }}>{sale.branch?.name || 'Sucursal Matriz'}</p>
              <p style={{ margin: 0, fontSize: '0.9rem', color: '#475569' }}>Atendido por: {sale.user?.name}</p>
@@ -196,23 +196,25 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
             {sale.items.map((item) => (
               <tr key={item.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                 <td data-label="Descripción del Artículo" style={{ padding: '0.4rem 0.75rem' }}>
-                  {item.product ? (
-                    <Link 
-                      href={`/productos/${item.productId}`} 
-                      style={{ 
-                        fontWeight: 'bold', 
-                        color: 'var(--caanma-primary, #8b5cf6)', 
-                        textDecoration: 'none' 
-                      }}
-                      className="hover:underline"
-                    >
-                      {item.product.name}
-                    </Link>
-                  ) : (
-                    <div style={{ fontWeight: 'bold', color: '#0f172a' }}>Desconocido</div>
-                  )}
-                  {item.variant && <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Var: {item.variant.attribute}</div>}
-                  <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>SKU: {item.product?.sku || '-'} | Código: {item.product?.barcode || '-'}</div>
+                  <div className="flex flex-col text-right sm:text-left min-w-0 break-words">
+                    {item.product ? (
+                      <Link 
+                        href={`/productos/${item.productId}`} 
+                        style={{ 
+                          fontWeight: 'bold', 
+                          color: 'var(--caanma-primary, #8b5cf6)', 
+                          textDecoration: 'none' 
+                        }}
+                        className="hover:underline break-words"
+                      >
+                        {item.product.name}
+                      </Link>
+                    ) : (
+                      <div style={{ fontWeight: 'bold', color: '#0f172a' }}>Desconocido</div>
+                    )}
+                    {item.variant && <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Var: {item.variant.attribute}</div>}
+                    <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>SKU: {item.product?.sku || '-'} | Código: {item.product?.barcode || '-'}</div>
+                  </div>
                 </td>
                 <td data-label="Cant." style={{ padding: '0.4rem 0.75rem', fontWeight: 'bold', textAlign: 'center', color: '#0f172a' }}>{item.quantity}</td>
                 <td data-label="Precio Unit." style={{ padding: '0.4rem 0.75rem', textAlign: 'right', color: '#0f172a' }}>${item.price.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>

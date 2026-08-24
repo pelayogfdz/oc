@@ -355,11 +355,13 @@ button {
   table.responsive-table td {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 0 !important;
+    align-items: flex-start;
+    padding: 0.6rem 0 !important;
     border-bottom: 1px solid #f8fafc !important;
     text-align: right !important;
     min-width: 0;
+    word-break: break-word;
+    overflow-wrap: anywhere;
   }
   table.responsive-table td:last-child {
     border-bottom: none !important;
@@ -372,6 +374,7 @@ button {
     text-align: left;
     margin-right: 1rem;
     flex-shrink: 0;
+    max-width: 40%;
   }
   table.responsive-table td > div,
   table.responsive-table td > span,
@@ -382,7 +385,7 @@ button {
     margin-left: auto;
     text-align: right;
     min-width: 0;
-    flex-shrink: 1;
+    max-width: 100%;
   }
   /* Don't show data-label for specific cells if they are pure actions */
   table.responsive-table td.no-label::before {
@@ -391,6 +394,13 @@ button {
   table.responsive-table td.full-width {
     flex-direction: column;
     align-items: flex-start;
+  }
+  table.responsive-table td.full-width > div,
+  table.responsive-table td.full-width > span,
+  table.responsive-table td.full-width > a {
+    margin-left: 0;
+    text-align: left;
+    width: 100%;
   }
 
   .cart-slideout {

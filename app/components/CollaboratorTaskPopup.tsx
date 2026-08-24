@@ -237,6 +237,8 @@ export default function CollaboratorTaskPopup({ userId }: { userId: string }) {
             resolve(event.target?.result as string);
             return;
           }
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, width, height);
           ctx.drawImage(img, 0, 0, width, height);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
           resolve(dataUrl);
