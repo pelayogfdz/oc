@@ -30,6 +30,8 @@ services:
       - PORT=3000
     depends_on:
       - db
+    volumes:
+      - ./public/img/products:/app/public/img/products
 
   whatsapp:
     build:

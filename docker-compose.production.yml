@@ -48,6 +48,8 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - DATABASE_URL=postgresql://postgres:${DB_ROOT_PASSWORD:-caanma_prod_password}@postgres-db:5432/neondb?sslmode=disable
+    volumes:
+      - ./public/img/products:/app/public/img/products
 
   # WhatsApp microservice (headless Puppeteer)
   whatsapp-worker:
