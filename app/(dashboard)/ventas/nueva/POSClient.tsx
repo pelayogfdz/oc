@@ -2392,6 +2392,15 @@ export default function POSClient({
           } as any);
           saleId = `OFFLINE-QUOTE-${Date.now()}`;
         } else {
+          console.log("CLIENT CHECKOUT - mode: QUOTE", {
+            itemsSum: items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+            finalTotalWithTip,
+            subTotal,
+            total,
+            discount,
+            manualDiscountValue,
+            breakdownDiscounts
+          });
           const quote = await createQuote(
             items,
             finalTotalWithTip,

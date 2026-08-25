@@ -12,30 +12,32 @@ import path from 'path';
 function saveProductImageToFile(productId: string, barcode: string | null | undefined, sku: string | null | undefined, imageUrl: string | null | undefined): string | null {
   if (!imageUrl) return null;
   const cleanImage = imageUrl.trim();
-  if (cleanImage.includes('.svg') || cleanImage.includes('placeholder') || cleanImage.includes('/placeholders/')) {
+  if (!cleanImage) return null;
+
+  if (cleanImage === 'placeholder' || cleanImage === '/placeholder.svg' || cleanImage.endsWith('/placeholders/default.png')) {
     return null;
   }
+
   if (cleanImage.startsWith('data:image/')) {
-    const match = cleanImage.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
-    if (match) {
-      const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
-      const base64Data = match[2];
-      const buffer = Buffer.from(base64Data, 'base64');
-      
-      // Filename base: barcode if present, otherwise sku, otherwise productId. Remove any non-alphanumeric chars.
-      const filenameBase = ((barcode || '').trim() || (sku || '').trim() || productId).replace(/[^a-zA-Z0-9-_]/g, '');
-      const filename = `${filenameBase}.${ext}`;
-      
-      const publicDir = path.join(process.cwd(), 'public', 'img', 'products');
-      if (!fs.existsSync(publicDir)) {
-        fs.mkdirSync(publicDir, { recursive: true });
+    try {
+      const match = cleanImage.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+      if (match) {
+        const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
+        const base64Data = match[2];
+        const buffer = Buffer.from(base64Data, 'base64');
+        const filenameBase = ((barcode || '').trim() || (sku || '').trim() || productId).replace(/[^a-zA-Z0-9-_]/g, '');
+        if (filenameBase) {
+          const filename = `${filenameBase}.${ext}`;
+          const publicDir = path.join(process.cwd(), 'public', 'img', 'products');
+          if (!fs.existsSync(publicDir)) {
+            fs.mkdirSync(publicDir, { recursive: true });
+          }
+          const filePath = path.join(publicDir, filename);
+          fs.writeFileSync(filePath, buffer);
+        }
       }
-      
-      const filePath = path.join(publicDir, filename);
-      fs.writeFileSync(filePath, buffer);
-      
-      return `/img/products/${filename}`;
-    }
+    } catch (e) {}
+    return cleanImage;
   }
   return cleanImage;
 }
@@ -1095,11 +1097,12 @@ export async function searchProducts(
   if (isGlobal) {
     const mergedMap = new Map<string, any>();
     products.forEach(prod => {
-      const key = ((prod.sku && prod.sku.trim() !== "")
+      const codeKey = ((prod.sku && prod.sku.trim() !== "")
         ? prod.sku.trim()
         : (prod.barcode && prod.barcode.trim() !== "")
           ? prod.barcode.trim()
-          : prod.name.trim()).toUpperCase();
+          : prod.id).toUpperCase();
+      const key = `${prod.name.trim().toUpperCase()}_${codeKey}`;
 
       if (mergedMap.has(key)) {
         const existing = mergedMap.get(key);
@@ -1214,20 +1217,19 @@ export async function deleteProduct(productId: string) {
         const transferCount = await tx.transferItem.count({ where: { productId: { in: productIdsToClear } } });
         if (transferCount > 0) return true;
 
+        const quoteCount = await tx.quoteItem.count({ where: { productId: { in: productIdsToClear } } });
+        if (quoteCount > 0) return true;
+
         return false;
       });
 
       if (hasHistory) {
-        throw new Error('Este producto tiene historial de transacciones (ventas, compras, consignaciones o traspasos) y no puede ser eliminado permanentemente. Te recomendamos desactivarlo (marcarlo como inactivo) desde la edición del producto para conservar el historial contable.');
+        throw new Error('Este producto tiene historial de transacciones (ventas, cotizaciones, compras, consignaciones o traspasos) y no puede ser eliminado permanentemente. Te recomendamos desactivarlo (marcarlo como inactivo) desde la edición del producto para conservar el historial contable.');
       }
 
       // Eliminar dependencias y productos en lote
       await prisma.$transaction(async (tx) => {
-        await tx.inventoryMovement.deleteMany({ where: { productId: { in: productIdsToClear } } });
-        await tx.saleItem.deleteMany({ where: { productId: { in: productIdsToClear } } });
         await tx.quoteItem.deleteMany({ where: { productId: { in: productIdsToClear } } });
-        await tx.transferItem.deleteMany({ where: { productId: { in: productIdsToClear } } });
-        await tx.purchaseItem.deleteMany({ where: { productId: { in: productIdsToClear } } });
         await tx.recipeIngredient.deleteMany({ where: { productId: { in: productIdsToClear } } });
         
         const recipes = await tx.recipe.findMany({ where: { productId: { in: productIdsToClear } } });
@@ -1236,10 +1238,6 @@ export async function deleteProduct(productId: string) {
           await tx.productionOrder.deleteMany({ where: { recipeId: { in: recipeIds } } });
           await tx.recipe.deleteMany({ where: { id: { in: recipeIds } } });
         }
-
-        await tx.fuelTraceability.deleteMany({ where: { productId: { in: productIdsToClear } } });
-        await tx.purchaseOrderItem.deleteMany({ where: { productId: { in: productIdsToClear } } });
-        await tx.consignmentItem.deleteMany({ where: { productId: { in: productIdsToClear } } });
 
         await tx.product.deleteMany({ where: { id: { in: productIdsToClear } } });
       });
@@ -1258,20 +1256,19 @@ export async function deleteProduct(productId: string) {
         const transferCount = await tx.transferItem.count({ where: { productId } });
         if (transferCount > 0) return true;
 
+        const quoteCount = await tx.quoteItem.count({ where: { productId } });
+        if (quoteCount > 0) return true;
+
         return false;
       });
 
       if (hasHistory) {
-        throw new Error('Este producto tiene historial de transacciones (ventas, compras, consignaciones o traspasos) y no puede ser eliminado permanentemente. Te recomendamos desactivarlo (marcarlo como inactivo) desde la edición del producto para conservar el historial contable.');
+        throw new Error('Este producto tiene historial de transacciones (ventas, cotizaciones, compras, consignaciones o traspasos) y no puede ser eliminado permanentemente. Te recomendamos desactivarlo (marcarlo como inactivo) desde la edición del producto para conservar el historial contable.');
       }
 
       // Eliminar solo el producto individual si no hay SKU o tenant
       await prisma.$transaction(async (tx) => {
-        await tx.inventoryMovement.deleteMany({ where: { productId } });
-        await tx.saleItem.deleteMany({ where: { productId } });
         await tx.quoteItem.deleteMany({ where: { productId } });
-        await tx.transferItem.deleteMany({ where: { productId } });
-        await tx.purchaseItem.deleteMany({ where: { productId } });
         await tx.recipeIngredient.deleteMany({ where: { productId } });
         
         const recipe = await tx.recipe.findUnique({ where: { productId } });
@@ -1279,10 +1276,6 @@ export async function deleteProduct(productId: string) {
           await tx.productionOrder.deleteMany({ where: { recipeId: recipe.id } });
           await tx.recipe.delete({ where: { id: recipe.id } });
         }
-
-        await tx.fuelTraceability.deleteMany({ where: { productId } });
-        await tx.purchaseOrderItem.deleteMany({ where: { productId } });
-        await tx.consignmentItem.deleteMany({ where: { productId } });
 
         await tx.product.delete({ where: { id: productId } });
       });

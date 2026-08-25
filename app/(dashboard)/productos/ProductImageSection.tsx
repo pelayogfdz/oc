@@ -34,8 +34,9 @@ interface ProductImageSectionProps {
 
 const cleanInitialImage = (url: string | undefined | null) => {
   if (!url) return '';
-  if (url.includes('.svg') || url.includes('placeholder') || url.includes('/placeholders/')) return '';
-  return url;
+  const trimmed = url.trim();
+  if (trimmed === 'placeholder' || trimmed === '/placeholder.svg' || trimmed.endsWith('/placeholders/default.png')) return '';
+  return trimmed;
 };
 
 export default function ProductImageSection({

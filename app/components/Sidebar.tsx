@@ -17,15 +17,20 @@ type MenuItem = {
 };
 
 import { MenuNode, navStructure, footerNodes } from '../config/navigation';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, WifiOff } from 'lucide-react';
 import { hasNodeAccess } from '@/app/config/permissions';
+import { useOfflineSync } from './OfflineSyncProvider';
 
 export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole = 'USER' }: { isSuperAdmin?: boolean; userPermissions?: Record<string, boolean>; userRole?: string }) {
   const pathname = usePathname();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const { isMobileMenuOpen, closeMenu } = useMobileMenu();
+  const { isOnline } = useOfflineSync();
 
   const hasNodeVisible = (node: MenuNode) => {
+    if (!isOnline && node.requiresOnline) {
+      return false;
+    }
     if (isSuperAdmin || userRole === 'OWNER' || userRole === 'ADMIN') {
       return true;
     }
@@ -33,7 +38,10 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
       return hasNodeAccess(userPermissions, node.requiredPermission, isSuperAdmin, userRole);
     }
     if (node.items) {
-      return node.items.some(item => hasNodeAccess(userPermissions, item.requiredPermission, isSuperAdmin, userRole));
+      return node.items.some(item => {
+        if (!isOnline && item.requiresOnline) return false;
+        return hasNodeAccess(userPermissions, item.requiredPermission, isSuperAdmin, userRole);
+      });
     }
     return true;
   };
@@ -98,7 +106,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
       fontSize: '0.98rem'
     }}>
       {/* Brand Header */}
-      <div style={{ padding: '1.125rem 1rem', marginBottom: '0.375rem' }}>
+      <div style={{ padding: '1.125rem 1rem 0.5rem 1rem', marginBottom: '0.25rem' }}>
         <Link href="/" style={{ textDecoration: 'none', color: 'var(--caanma-text)', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', flexWrap: 'nowrap' }}>
           <div style={{
             width: '38px',
@@ -118,6 +126,26 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
           <span style={{ fontWeight: 'bold', fontSize: '1.45rem', flexShrink: 0, letterSpacing: '-0.025em' }}>CAANMA</span>
           <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#94a3b8', marginLeft: '0.15rem', flexShrink: 0 }}>PRO</span>
         </Link>
+
+        {!isOnline && (
+          <div style={{
+            marginTop: '0.75rem',
+            padding: '0.4rem 0.6rem',
+            backgroundColor: '#fffbeb',
+            border: '1px solid #fef3c7',
+            borderRadius: '6px',
+            color: '#b45309',
+            fontSize: '0.75rem',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            lineHeight: '1.3'
+          }}>
+            <WifiOff size={14} style={{ flexShrink: 0 }} />
+            <span>Sin Conexión: Ocultando módulos de red</span>
+          </div>
+        )}
       </div>
 
       {/* Main Navigation */}
@@ -206,6 +234,9 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
                 {isOpen && node.items && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingLeft: '3.6rem', marginTop: '0.3rem', marginBottom: '0.6rem' }}>
                     {node.items.map(item => {
+                      if (!isOnline && item.requiresOnline) {
+                        return null;
+                      }
                       if (!hasNodeAccess(userPermissions, item.requiredPermission, isSuperAdmin, userRole)) {
                         return null;
                       }

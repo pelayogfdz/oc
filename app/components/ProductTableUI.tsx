@@ -17,8 +17,12 @@ interface ProductTableUIProps {
 
 const getFormattedImageUrl = (url: string | null) => {
   if (!url) return '';
-  if (url.includes('.svg') || url.includes('placeholder')) return '';
-  return url.replace(/#/g, '%23');
+  const trimmed = url.trim();
+  const lower = trimmed.toLowerCase();
+  const isRealUrl = lower.startsWith('data:image/') || lower.startsWith('http://') || lower.startsWith('https://');
+  const isPlaceholder = lower === 'placeholder' || lower === '/placeholder.svg' || lower.endsWith('/placeholders/default.png') || lower.includes('.svg');
+  if (!isRealUrl || isPlaceholder) return '';
+  return trimmed.replace(/#/g, '%23');
 };
 
 const ProductTableUI = memo(function ProductTableUI({

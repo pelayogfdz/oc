@@ -251,7 +251,12 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
     })
   );
 
-  const cleanImageUrl = (url: string | null | undefined) => (!url || url.includes('.svg') || url.includes('placeholder')) ? '' : url;
+  const cleanImageUrl = (url: string | null | undefined) => {
+    if (!url) return '';
+    const trimmed = url.trim();
+    if (trimmed === 'placeholder' || trimmed === '/placeholder.svg' || trimmed.endsWith('/placeholders/default.png')) return '';
+    return trimmed;
+  };
   const sanitizedImageUrl = cleanImageUrl(product.imageUrl);
 
   return (

@@ -29,95 +29,249 @@ async function validateUniqueTaxId(cleanedTaxId: string | null, excludeCustomerI
   }
 }
 
-export async function createCustomer(formData: FormData) {
-  const branch = await getActiveBranch();
-  
-  const email = formData.get('email') as string;
-  const phone = formData.get('phone') as string;
+export interface CustomerCreatePayload {
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  additionalEmails?: string | null;
+  street?: string | null;
+  exteriorNumber?: string | null;
+  interiorNumber?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  state?: string | null;
+  taxId?: string | null;
+  legalName?: string | null;
+  taxRegime?: string | null;
+  zipCode?: string | null;
+  cfdiUse?: string | null;
+  creditLimit?: number;
+  creditDays?: number;
+  priceList?: string;
+}
 
-  if (!email || !phone) {
-    throw new Error('El correo y teléfono son obligatorios.');
-  }
+export async function createCustomerAction(payload: CustomerCreatePayload | FormData) {
+  try {
+    const branch = await getActiveBranch();
+    const targetBranchId = (branch && branch.id && branch.id !== 'GLOBAL') ? branch.id : null;
 
-  // Temporary API trigger for Mailing validation
-  console.log(`[MAILING_API_CHECK] Validando buzón para: ${email}`);
-  if (email.includes('no-existe') || email.includes('fake')) {
-    throw new Error('El correo proporcionado no es válido o está inactivo según el servidor de correos.');
-  }
-
-  const taxId = cleanTaxId(formData.get('taxId') as string);
-  await validateUniqueTaxId(taxId);
-
-  await prisma.customer.create({
-    data: {
-      name: formData.get('name') as string,
-      email: email,
-      additionalEmails: (formData.get('additionalEmails') as string) || null,
-      phone: phone,
-      street: (formData.get('street') as string) || null,
-      exteriorNumber: (formData.get('exteriorNumber') as string) || null,
-      interiorNumber: (formData.get('interiorNumber') as string) || null,
-      neighborhood: (formData.get('neighborhood') as string) || null,
-      city: (formData.get('city') as string) || null,
-      state: (formData.get('state') as string) || null,
-      taxId: taxId,
-      legalName: (formData.get('legalName') as string) || null,
-      taxRegime: (formData.get('taxRegime') as string) || null,
-      zipCode: (formData.get('zipCode') as string) || null,
-      cfdiUse: (formData.get('cfdiUse') as string) || null,
-      creditLimit: parseFloat(formData.get('creditLimit') as string) || 0,
-      creditDays: parseInt(formData.get('creditDays') as string, 10) || 0,
-      priceList: (formData.get('priceList') as string) || 'price',
-      branchId: branch.id
+    let data: CustomerCreatePayload;
+    if (payload instanceof FormData) {
+      data = {
+        name: (payload.get('name') as string)?.trim() || '',
+        phone: (payload.get('phone') as string)?.trim() || null,
+        email: (payload.get('email') as string)?.trim() || null,
+        additionalEmails: (payload.get('additionalEmails') as string)?.trim() || null,
+        street: (payload.get('street') as string)?.trim() || null,
+        exteriorNumber: (payload.get('exteriorNumber') as string)?.trim() || null,
+        interiorNumber: (payload.get('interiorNumber') as string)?.trim() || null,
+        neighborhood: (payload.get('neighborhood') as string)?.trim() || null,
+        city: (payload.get('city') as string)?.trim() || null,
+        state: (payload.get('state') as string)?.trim() || null,
+        taxId: (payload.get('taxId') as string)?.trim() || null,
+        legalName: (payload.get('legalName') as string)?.trim() || null,
+        taxRegime: (payload.get('taxRegime') as string)?.trim() || null,
+        zipCode: (payload.get('zipCode') as string)?.trim() || null,
+        cfdiUse: (payload.get('cfdiUse') as string)?.trim() || null,
+        creditLimit: parseFloat(payload.get('creditLimit') as string) || 0,
+        creditDays: parseInt(payload.get('creditDays') as string, 10) || 0,
+        priceList: (payload.get('priceList') as string) || 'price',
+      };
+    } else {
+      data = payload;
     }
-  });
 
+    const name = data.name?.trim();
+    if (!name) {
+      return { error: 'El Nombre Comercial o Identificador es obligatorio.' };
+    }
+
+    const cleanedTaxId = cleanTaxId(data.taxId);
+    if (cleanedTaxId) {
+      const GENERIC_RFCS = ['XAXX010101000', 'XEXX010101000'];
+      if (!GENERIC_RFCS.includes(cleanedTaxId)) {
+        const existing = await prisma.customer.findFirst({
+          where: {
+            taxId: { equals: cleanedTaxId, mode: 'insensitive' }
+          }
+        });
+        if (existing) {
+          return { error: `Ya existe un cliente registrado con el RFC ${cleanedTaxId} (${existing.name}).` };
+        }
+      }
+    }
+
+    const newCustomer = await prisma.customer.create({
+      data: {
+        name: name,
+        email: data.email?.trim() || null,
+        additionalEmails: data.additionalEmails?.trim() || null,
+        phone: data.phone?.trim() || null,
+        street: data.street?.trim() || null,
+        exteriorNumber: data.exteriorNumber?.trim() || null,
+        interiorNumber: data.interiorNumber?.trim() || null,
+        neighborhood: data.neighborhood?.trim() || null,
+        city: data.city?.trim() || null,
+        state: data.state?.trim() || null,
+        taxId: cleanedTaxId,
+        legalName: data.legalName?.trim() || name,
+        taxRegime: data.taxRegime?.trim() || null,
+        zipCode: data.zipCode?.trim() || null,
+        cfdiUse: data.cfdiUse?.trim() || null,
+        creditLimit: typeof data.creditLimit === 'number' ? data.creditLimit : parseFloat(data.creditLimit as any) || 0,
+        creditDays: typeof data.creditDays === 'number' ? data.creditDays : parseInt(data.creditDays as any, 10) || 0,
+        priceList: data.priceList || 'price',
+        branchId: targetBranchId
+      }
+    });
+
+    revalidatePath('/clientes');
+    revalidatePath('/ventas/nueva');
+    return { success: true, customer: JSON.parse(JSON.stringify(newCustomer)) };
+  } catch (error: any) {
+    console.error('Error in createCustomerAction:', error);
+    if (error.code === 'P2002') {
+      return { error: "El RFC o dato ingresado ya pertenece a otro cliente registrado." };
+    }
+    return { error: error.message || 'Error al crear el cliente.' };
+  }
+}
+
+export async function createCustomer(formData: FormData) {
+  const res = await createCustomerAction(formData);
+  if (res.error) {
+    throw new Error(res.error);
+  }
   revalidatePath('/clientes');
   revalidatePath('/ventas/nueva');
   redirect('/clientes');
 }
 
-export async function updateCustomer(id: string, formData: FormData) {
-  const customer = await prisma.customer.findUnique({ where: { id } });
-  if (!customer) {
-    throw new Error("Cliente no encontrado.");
-  }
+export interface CustomerUpdatePayload {
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  additionalEmails?: string | null;
+  street?: string | null;
+  exteriorNumber?: string | null;
+  interiorNumber?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  state?: string | null;
+  taxId?: string | null;
+  legalName?: string | null;
+  taxRegime?: string | null;
+  zipCode?: string | null;
+  cfdiUse?: string | null;
+  creditLimit?: number;
+  creditDays?: number;
+  priceList?: string;
+}
 
-  const isGenericPublic = 
-    (customer.name.toLowerCase().includes('publico') && customer.name.toLowerCase().includes('general')) ||
-    customer.taxId === 'XAXX010101000';
-
-  if (isGenericPublic) {
-    throw new Error("No se permite modificar el cliente genérico de Público en General.");
-  }
-
-  const taxId = cleanTaxId(formData.get('taxId') as string);
-  await validateUniqueTaxId(taxId, id);
-
-  await prisma.customer.update({
-    where: { id },
-    data: { 
-      name: formData.get('name') as string,
-      email: (formData.get('email') as string) || null,
-      additionalEmails: (formData.get('additionalEmails') as string) || null,
-      phone: (formData.get('phone') as string) || null,
-      street: (formData.get('street') as string) || null,
-      exteriorNumber: (formData.get('exteriorNumber') as string) || null,
-      interiorNumber: (formData.get('interiorNumber') as string) || null,
-      neighborhood: (formData.get('neighborhood') as string) || null,
-      city: (formData.get('city') as string) || null,
-      state: (formData.get('state') as string) || null,
-      taxId: taxId,
-      legalName: (formData.get('legalName') as string) || null,
-      taxRegime: (formData.get('taxRegime') as string) || null,
-      zipCode: (formData.get('zipCode') as string) || null,
-      cfdiUse: (formData.get('cfdiUse') as string) || null,
-      creditLimit: parseFloat(formData.get('creditLimit') as string) || 0,
-      creditDays: parseInt(formData.get('creditDays') as string, 10) || 0,
-      priceList: (formData.get('priceList') as string) || 'price',
+export async function updateCustomerAction(id: string, payload: CustomerUpdatePayload | FormData) {
+  try {
+    const customer = await prisma.customer.findUnique({ where: { id } });
+    if (!customer) {
+      return { error: "Cliente no encontrado." };
     }
-  });
 
+    const isGenericPublic = 
+      customer.name.toLowerCase().includes('publico') && 
+      customer.name.toLowerCase().includes('general');
+
+    if (isGenericPublic) {
+      return { error: "No se permite modificar el cliente genérico de Público en General." };
+    }
+
+    let data: CustomerUpdatePayload;
+    if (payload instanceof FormData) {
+      data = {
+        name: (payload.get('name') as string)?.trim() || '',
+        phone: (payload.get('phone') as string)?.trim() || null,
+        email: (payload.get('email') as string)?.trim() || null,
+        additionalEmails: (payload.get('additionalEmails') as string)?.trim() || null,
+        street: (payload.get('street') as string)?.trim() || null,
+        exteriorNumber: (payload.get('exteriorNumber') as string)?.trim() || null,
+        interiorNumber: (payload.get('interiorNumber') as string)?.trim() || null,
+        neighborhood: (payload.get('neighborhood') as string)?.trim() || null,
+        city: (payload.get('city') as string)?.trim() || null,
+        state: (payload.get('state') as string)?.trim() || null,
+        taxId: (payload.get('taxId') as string)?.trim() || null,
+        legalName: (payload.get('legalName') as string)?.trim() || null,
+        taxRegime: (payload.get('taxRegime') as string)?.trim() || null,
+        zipCode: (payload.get('zipCode') as string)?.trim() || null,
+        cfdiUse: (payload.get('cfdiUse') as string)?.trim() || null,
+        creditLimit: parseFloat(payload.get('creditLimit') as string) || 0,
+        creditDays: parseInt(payload.get('creditDays') as string, 10) || 0,
+        priceList: (payload.get('priceList') as string) || 'price',
+      };
+    } else {
+      data = payload;
+    }
+
+    const name = data.name?.trim();
+    if (!name) {
+      return { error: "El Nombre Comercial o Identificador es obligatorio." };
+    }
+
+    const cleanedTaxId = cleanTaxId(data.taxId);
+    if (cleanedTaxId) {
+      const GENERIC_RFCS = ['XAXX010101000', 'XEXX010101000'];
+      if (!GENERIC_RFCS.includes(cleanedTaxId)) {
+        const existing = await prisma.customer.findFirst({
+          where: {
+            taxId: { equals: cleanedTaxId, mode: 'insensitive' },
+            id: { not: id }
+          }
+        });
+        if (existing) {
+          return { error: `Ya existe otro cliente registrado con el RFC ${cleanedTaxId} (${existing.name}).` };
+        }
+      }
+    }
+
+    const updatedCustomer = await prisma.customer.update({
+      where: { id },
+      data: { 
+        name: name,
+        email: data.email?.trim() || null,
+        additionalEmails: data.additionalEmails?.trim() || null,
+        phone: data.phone?.trim() || null,
+        street: data.street?.trim() || null,
+        exteriorNumber: data.exteriorNumber?.trim() || null,
+        interiorNumber: data.interiorNumber?.trim() || null,
+        neighborhood: data.neighborhood?.trim() || null,
+        city: data.city?.trim() || null,
+        state: data.state?.trim() || null,
+        taxId: cleanedTaxId,
+        legalName: data.legalName?.trim() || null,
+        taxRegime: data.taxRegime?.trim() || null,
+        zipCode: data.zipCode?.trim() || null,
+        cfdiUse: data.cfdiUse?.trim() || null,
+        creditLimit: typeof data.creditLimit === 'number' ? data.creditLimit : parseFloat(data.creditLimit as any) || 0,
+        creditDays: typeof data.creditDays === 'number' ? data.creditDays : parseInt(data.creditDays as any, 10) || 0,
+        priceList: data.priceList || 'price',
+      }
+    });
+
+    revalidatePath('/clientes');
+    revalidatePath(`/clientes/${id}`);
+    revalidatePath(`/clientes/${id}/editar`);
+    return { success: true, customer: JSON.parse(JSON.stringify(updatedCustomer)) };
+  } catch (error: any) {
+    console.error('Error in updateCustomerAction:', error);
+    if (error.code === 'P2002') {
+      return { error: "El RFC o dato ingresado ya pertenece a otro cliente registrado." };
+    }
+    return { error: error.message || "Error al guardar los datos del cliente." };
+  }
+}
+
+export async function updateCustomer(id: string, formData: FormData) {
+  const res = await updateCustomerAction(id, formData);
+  if (res.error) {
+    throw new Error(res.error);
+  }
   revalidatePath('/clientes');
   redirect('/clientes');
 }
@@ -141,6 +295,8 @@ export async function createCustomerPOS(data: {
   taxId?: string;
 }) {
   const branch = await getActiveBranch();
+  const targetBranchId = (branch && branch.id && branch.id !== 'GLOBAL') ? branch.id : null;
+
   if (!data.name) {
     throw new Error('El nombre es obligatorio.');
   }
@@ -156,7 +312,7 @@ export async function createCustomerPOS(data: {
       street: data.street || null,
       zipCode: data.zipCode || null,
       taxId: taxId,
-      branchId: branch.id
+      branchId: targetBranchId
     }
   });
 
@@ -175,6 +331,8 @@ export async function createCustomerBilling(data: {
   phone?: string;
 }) {
   const branch = await getActiveBranch();
+  const targetBranchId = (branch && branch.id && branch.id !== 'GLOBAL') ? branch.id : null;
+
   if (!data.name) {
     throw new Error('El nombre/Razón Social es obligatorio.');
   }
@@ -192,7 +350,7 @@ export async function createCustomerBilling(data: {
       cfdiUse: data.cfdiUse || null,
       email: data.email || null,
       phone: data.phone || null,
-      branchId: branch.id
+      branchId: targetBranchId
     }
   });
 

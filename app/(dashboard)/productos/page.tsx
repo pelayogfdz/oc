@@ -134,11 +134,12 @@ export default async function ProductosPage() {
   if (isGlobal) {
     const mergedMap = new Map<string, any>();
     displayedProductsRaw.forEach(prod => {
-      const key = ((prod.sku && prod.sku.trim() !== "")
+      const codeKey = ((prod.sku && prod.sku.trim() !== "")
         ? prod.sku.trim()
         : (prod.barcode && prod.barcode.trim() !== "")
           ? prod.barcode.trim()
-          : prod.name.trim()).toUpperCase();
+          : prod.id).toUpperCase();
+      const key = `${prod.name.trim().toUpperCase()}_${codeKey}`;
 
       if (mergedMap.has(key)) {
         const existing = mergedMap.get(key);

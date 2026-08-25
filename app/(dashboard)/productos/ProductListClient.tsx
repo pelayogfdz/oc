@@ -235,7 +235,9 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     if (filterStock === 'LOW_STOCK' && p.stock > (p.minStock || 0)) return false;
 
     // Image Filter
-    const hasValidImage = Boolean(p.imageUrl && p.imageUrl.trim() !== '' && !p.imageUrl.includes('.svg') && !p.imageUrl.includes('placeholder'));
+    const trimmedImg = (p.imageUrl || '').trim().toLowerCase();
+    const isPlaceholder = trimmedImg === 'placeholder' || trimmedImg === '/placeholder.svg' || trimmedImg.endsWith('/placeholders/default.png') || trimmedImg.includes('.svg');
+    const hasValidImage = Boolean(trimmedImg !== '' && !isPlaceholder);
     if (filterImage === 'WITH_IMAGE' && !hasValidImage) return false;
     if (filterImage === 'WITHOUT_IMAGE' && hasValidImage) return false;
 

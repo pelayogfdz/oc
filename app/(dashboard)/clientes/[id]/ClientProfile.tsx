@@ -388,8 +388,8 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
               {customer.taxId && <div style={{ display: 'inline-block', backgroundColor: '#eef2ff', color: '#4f46e5', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '1rem' }}>RFC: {customer.taxId}</div>}
               {(() => {
                 const isGenericPublic = 
-                  (customer.name.toLowerCase().includes('publico') && customer.name.toLowerCase().includes('general')) ||
-                  customer.taxId === 'XAXX010101000';
+                  customer.name.toLowerCase().includes('publico') && 
+                  customer.name.toLowerCase().includes('general');
                 return isGenericPublic && (
                   <div style={{ backgroundColor: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', padding: '0.75rem 1rem', borderRadius: '8px', marginTop: '0.5rem', fontSize: '0.9rem', fontWeight: '500' }}>
                     ⚠️ **Registro Genérico de Público en General:** Este registro no debe ser editado ni reasignado para representar a un cliente específico.
@@ -400,8 +400,8 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               {(() => {
                 const isGenericPublic = 
-                  (customer.name.toLowerCase().includes('publico') && customer.name.toLowerCase().includes('general')) ||
-                  customer.taxId === 'XAXX010101000';
+                  customer.name.toLowerCase().includes('publico') && 
+                  customer.name.toLowerCase().includes('general');
                 return !isGenericPublic && (
                   <>
                     <button 

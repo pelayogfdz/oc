@@ -19,7 +19,21 @@ export async function createQuote(
   if (branch.id === 'GLOBAL') throw new Error("Debes seleccionar una sucursal específica para realizar esta acción.");
   const user = await getActiveUser();
   
+  console.log("SERVER ACTION - createQuote called with:", {
+    itemsCount: items.length,
+    itemsSum: items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+    total,
+    paymentMethod,
+    customerId,
+    quoteId,
+    breakdownDiscounts
+  });
+  
   if (items.length === 0) throw new Error("Quote is empty");
+
+  const calculatedTotal = breakdownDiscounts
+    ? total
+    : items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   let quote: any;
 
@@ -34,7 +48,7 @@ export async function createQuote(
       return await tx.quote.update({
         where: { id: quoteId },
         data: {
-          total,
+          total: calculatedTotal,
           paymentMethod,
           customerId,
           branchId: branch.id,
@@ -59,7 +73,7 @@ export async function createQuote(
       return await tx.quote.create({
         data: {
           folio,
-          total,
+          total: calculatedTotal,
           paymentMethod,
           customerId,
           branchId: branch.id,
