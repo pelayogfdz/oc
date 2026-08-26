@@ -91,6 +91,7 @@ export function ProductDetailClient({
   }, [product.id, pushOfflineProduct]);
 
   useEffect(() => {
+    setHeaderImageError(false);
     const checkImage = () => {
       const img = document.querySelector('img[data-header-img="true"]') as HTMLImageElement | null;
       if (img && img.complete && img.naturalWidth === 0) {

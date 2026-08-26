@@ -177,7 +177,9 @@ export default function ProductImageSection({
       if (res && res.success) {
         setSaveStatus({ success: true, message: '✓ ¡Multimedia guardada exitosamente!' });
         if (res.imageUrl !== undefined) {
-          setImageUrl(res.imageUrl || '');
+          const cleanSavedUrl = res.imageUrl || '';
+          const freshUrl = cleanSavedUrl ? `${cleanSavedUrl}?t=${Date.now()}` : '';
+          setImageUrl(freshUrl);
         }
         try {
           const { db } = await import('@/lib/offlineDB');
