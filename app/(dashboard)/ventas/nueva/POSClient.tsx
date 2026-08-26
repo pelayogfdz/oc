@@ -1953,16 +1953,16 @@ export default function POSClient({
     
     const ticketSubtotalSum = cartItems.reduce((sum, item) => {
       const basePrice = getProductPrice(item);
-      const itemDisc = (breakdownDiscounts || documentType === 'FACTURA') ? 0 : (getItemDiscounts([item])[item.cartItemId] || 0);
-      const p = (breakdownDiscounts || documentType === 'FACTURA') ? basePrice : (basePrice - itemDisc / item.quantity);
+      const itemDisc = (breakdownDiscounts) ? 0 : (getItemDiscounts([item])[item.cartItemId] || 0);
+      const p = (breakdownDiscounts) ? basePrice : (basePrice - itemDisc / item.quantity);
       return sum + (p * item.quantity);
     }, 0);
     const ticketFactor = ticketSubtotalSum > 0 ? (tTotal / ticketSubtotalSum) : 1;
 
     cartItems.forEach(item => {
       const basePrice = getProductPrice(item);
-      const itemDisc = (breakdownDiscounts || documentType === 'FACTURA') ? 0 : (getItemDiscounts([item])[item.cartItemId] || 0);
-      const itemPrice = (breakdownDiscounts || documentType === 'FACTURA') ? basePrice : (basePrice - itemDisc / item.quantity);
+      const itemDisc = (breakdownDiscounts) ? 0 : (getItemDiscounts([item])[item.cartItemId] || 0);
+      const itemPrice = (breakdownDiscounts) ? basePrice : (basePrice - itemDisc / item.quantity);
       const itemQty = item.quantity;
       const itemTotal = itemPrice * itemQty;
       
@@ -1999,8 +1999,8 @@ export default function POSClient({
     ticketExento *= ticketFactor;
     ticketBaseSubtotal *= ticketFactor;
 
-    const itemDiscountsMap = (breakdownDiscounts || documentType === 'FACTURA') ? getItemDiscounts(cartItems) : {};
-    const effectiveDiscount = (breakdownDiscounts || documentType === 'FACTURA') ? tDiscount : 0;
+    const itemDiscountsMap = (breakdownDiscounts) ? getItemDiscounts(cartItems) : {};
+    const effectiveDiscount = (breakdownDiscounts) ? tDiscount : 0;
     // Generate inner styling for the ticket
     const paperWidth = ticketConfig.anchoTicket === '58mm' || impresorasConfig.receiptWidth === '58mm' ? '58mm' : '80mm';
     const is58 = paperWidth === '58mm';
@@ -2096,7 +2096,7 @@ export default function POSClient({
               const itemDisc = itemDiscountsMap[item.cartItemId] || 0;
               const discLabel = itemDisc > 0 ? `<div style="font-size: 0.85em; color: #555; padding-left: 25px; margin-top: -2px; margin-bottom: 4px;">* Promo desc: -$${itemDisc.toFixed(2)}</div>` : '';
               const basePrice = getProductPrice(item);
-              const displayedPrice = (breakdownDiscounts || documentType === 'FACTURA') 
+              const displayedPrice = (breakdownDiscounts) 
                 ? basePrice 
                 : (basePrice - (getItemDiscounts([item])[item.cartItemId] || 0) / item.quantity);
               return `
@@ -2366,7 +2366,7 @@ export default function POSClient({
       const items = finalCart.map(item => {
         const basePrice = getProductPrice(item);
         // Apply uniform proration so item prices remain mathematically consistent with the total sale/quote amount (unless breakdownDiscounts is active)
-        const savedPrice = (breakdownDiscounts || documentType === 'FACTURA')
+        const savedPrice = (breakdownDiscounts)
           ? basePrice
           : (subTotal > 0 ? (basePrice * (total / subTotal)) : 0);
         return { 
@@ -2482,7 +2482,7 @@ export default function POSClient({
                 billingData,
                 branchId,
                 type: 'SALE',
-                breakdownDiscounts: breakdownDiscounts || documentType === 'FACTURA',
+                breakdownDiscounts: breakdownDiscounts,
                 isPedido: transactionType === 'PEDIDO',
                 deliveryDate,
                 deliveryTime,
@@ -2513,7 +2513,7 @@ export default function POSClient({
             loadedConsignmentId || undefined, 
             pointsRedeemed, 
             branchId, 
-            breakdownDiscounts || documentType === 'FACTURA',
+            breakdownDiscounts,
             isPedidoTx,
             deliveryDate || undefined,
             deliveryTime || undefined,
@@ -3594,7 +3594,7 @@ export default function POSClient({
                             </div>
                           ) : (
                             <div className="pos-cart-item-price">
-                              ${((breakdownDiscounts || documentType === 'FACTURA') 
+                              ${((breakdownDiscounts) 
                                 ? itemPrice 
                                 : (itemPrice - (itemDiscounts[item.cartItemId] || 0) / item.quantity)
                               ).toFixed(2)}
@@ -3602,7 +3602,7 @@ export default function POSClient({
                           )}
                         </>
                       )}
-                      {(breakdownDiscounts || documentType === 'FACTURA') && itemDiscounts[item.cartItemId] > 0 && (
+                      {(breakdownDiscounts) && itemDiscounts[item.cartItemId] > 0 && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#db2777', fontSize: '0.8rem', fontWeight: 'bold', marginTop: '0.25rem' }}>
                           <Percent size={14} />
                           <span>Promoción: -${itemDiscounts[item.cartItemId].toFixed(2)}</span>
@@ -3665,7 +3665,7 @@ export default function POSClient({
 
                     {/* Subtotal */}
                     <div className="pos-cart-item-subtotal" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
-                      {(breakdownDiscounts || documentType === 'FACTURA') && itemDiscounts[item.cartItemId] > 0 ? (
+                      {(breakdownDiscounts) && itemDiscounts[item.cartItemId] > 0 ? (
                         <>
                           <span style={{ fontSize: '0.8rem', color: '#94a3b8', textDecoration: 'line-through' }}>
                             ${itemSubtotal.toFixed(2)}
@@ -3765,20 +3765,19 @@ export default function POSClient({
                 <input 
                   type="checkbox" 
                   id="breakdownDiscounts" 
-                  checked={breakdownDiscounts || documentType === 'FACTURA'} 
-                  disabled={documentType === 'FACTURA'}
+                  checked={breakdownDiscounts} 
                   onChange={(e) => setBreakdownDiscounts(e.target.checked)} 
-                  style={{ width: '16px', height: '16px', cursor: documentType === 'FACTURA' ? 'not-allowed' : 'pointer' }}
+                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                 />
-                <label htmlFor="breakdownDiscounts" style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', cursor: documentType === 'FACTURA' ? 'not-allowed' : 'pointer', userSelect: 'none' }}>
-                  Desglosar descuentos {documentType === 'FACTURA' && "(Obligatorio para facturas)"}
+                <label htmlFor="breakdownDiscounts" style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', cursor: 'pointer', userSelect: 'none' }}>
+                  Desglosar descuentos
                 </label>
               </div>
             )}
             
             <div className="pos-subtotal-row">
               <span>Subtotal ({cart.reduce((s, i) => s + i.quantity, 0)} artículos)</span>
-              <span className="pos-subtotal-value">${((breakdownDiscounts || documentType === 'FACTURA') ? subTotal : (subTotal - discount)).toFixed(2)}</span>
+              <span className="pos-subtotal-value">${((breakdownDiscounts) ? subTotal : (subTotal - discount)).toFixed(2)}</span>
             </div>
 
             {mode === 'QUOTE' && cart.length > 0 && (() => {
@@ -3810,7 +3809,7 @@ export default function POSClient({
               );
             })()}
 
-            {(breakdownDiscounts || documentType === 'FACTURA') && discount > 0 && (
+            {(breakdownDiscounts) && discount > 0 && (
               <div className="pos-subtotal-row" style={{ color: '#16a34a', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
                 <span>Descuento aplicado</span>
                 <span>-${discount.toFixed(2)}</span>

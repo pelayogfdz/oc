@@ -1427,7 +1427,7 @@ export default function VentasHistoryClient({
                   </td>
                   <td data-label="Total" style={{ padding: '0.3rem 0.45rem', textAlign: 'right', fontWeight: 'bold', fontSize: '0.82rem' }}>
                     <div className="desktop-compact-flex" style={{ flexDirection: 'column', alignItems: 'flex-end', minWidth: 0 }}>
-                      <div style={{ whiteSpace: 'nowrap' }}>{formatCurrency(sale.total)}</div>
+                      <div style={{ whiteSpace: 'nowrap' }}>{formatCurrency(sale.total, 2)}</div>
                       <div style={{ fontSize: '0.72rem', color: 'var(--caanma-text-muted)', fontWeight: 'normal', marginTop: '0.1rem', whiteSpace: 'nowrap' }}>
                         {getPaymentMethodLabel(sale.paymentMethod)}
                       </div>
@@ -2665,3 +2665,4 @@ export default function VentasHistoryClient({
     </div>
   );
 }
+
