@@ -3,18 +3,12 @@ const prisma = new PrismaClient();
 
 async function main() {
   const products = await prisma.product.findMany({
-    where: {
-      OR: [
-        { sku: { contains: '+' } },
-        { sku: { contains: '#' } },
-        { sku: { contains: '%' } }
-      ]
-    },
     select: { id: true, sku: true, name: true, branchId: true }
   });
   
-  console.log(`Found ${products.length} products with special characters in SKU:`);
-  for (const p of products) {
+  const withPlus = products.filter(p => p.sku && p.sku.includes('+'));
+  console.log(`Found ${withPlus.length} products with plus in SKU:`);
+  for (const p of withPlus.slice(0, 50)) {
     console.log(`- ID: ${p.id}, SKU: ${p.sku}, Name: ${p.name}, Branch: ${p.branchId}`);
   }
 }
