@@ -49,6 +49,16 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
     select: { id: true, name: true }
   });
 
+  const isGeneric = sale.customer?.name ? (
+    sale.customer.name.trim().toLowerCase() === 'público general' || 
+    sale.customer.name.trim().toLowerCase() === 'publico general' ||
+    sale.customer.name.trim().toLowerCase() === 'público en general'
+  ) : true;
+  
+  const customerHasCredit = sale.customer && !isGeneric ? (
+    (sale.customer.creditLimit > 0 || sale.customer.creditDays > 0) && !sale.customer.isBlocked
+  ) : false;
+
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', fontFamily: 'sans-serif', color: 'black' }} className="px-2 sm:px-0">
       
@@ -76,6 +86,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
               currentNotes={sale.notes}
               customers={customers}
               deliveryOrder={sale.deliveryOrder ? { id: sale.deliveryOrder.id, status: sale.deliveryOrder.status } : null}
+              customerHasCredit={customerHasCredit}
             />
          </div>
       </div>

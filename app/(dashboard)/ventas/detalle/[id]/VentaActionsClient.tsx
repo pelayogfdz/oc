@@ -21,6 +21,7 @@ interface VentaActionsClientProps {
   currentNotes?: string | null;
   customers: { id: string; name: string }[];
   deliveryOrder?: { id: string; status: string } | null;
+  customerHasCredit?: boolean;
 }
 
 export default function VentaActionsClient({
@@ -35,7 +36,8 @@ export default function VentaActionsClient({
   currentCustomerId = '',
   currentNotes = '',
   customers = [],
-  deliveryOrder = null
+  deliveryOrder = null,
+  customerHasCredit = false
 }: VentaActionsClientProps) {
   const router = useRouter();
   const { refreshCatalogs } = useOfflineSync();
@@ -1173,7 +1175,7 @@ export default function VentaActionsClient({
                   { id: 'CHEQUE', label: '📑 Cheque' },
                   { id: 'VALES', label: '🎟️ Vales de Despensa / Monedero' },
                   { id: 'DEPOSIT', label: '🏛️ Depósito Bancario' },
-                  { id: 'CREDIT', label: '📋 Crédito Cta. (A Cuenta del Cliente)' },
+                  ...(customerHasCredit ? [{ id: 'CREDIT', label: '📋 Crédito Cta. (A Cuenta del Cliente)' }] : []),
                   { id: 'OTHER', label: '🔄 Otro Método de Pago' },
                 ].map((method) => {
                   const isSelected = selectedPaymentMethod === method.id;
