@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Search, History, ArrowRight, X, FileText, Send, Copy, Check, ExternalLink, RefreshCw } from 'lucide-react';
+import { Search, History, ArrowRight, X, FileText, Send, Copy, Check, ExternalLink, RefreshCw, Mail } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
 export default function CobranzaGlobalClient({ 
@@ -18,6 +18,7 @@ export default function CobranzaGlobalClient({
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'NOT_OVERDUE' | '0_15' | '15_30' | '30_60' | '60_90' | '90_PLUS'>('ALL');
   const [selectedGroup, setSelectedGroup] = useState<any | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const [selectedBranchId, setSelectedBranchId] = useState<string>('ALL');
   const [selectedSellerId, setSelectedSellerId] = useState<string>('ALL');
@@ -153,6 +154,41 @@ export default function CobranzaGlobalClient({
     const msgText = `Hola, le compartimos su Estado de Cuenta. Su saldo total pendiente es ${formatCurrency(client.totalBalanceDue)}. Puede consultarlo e imprimirlo en el siguiente enlace: ${window.location.origin}/api/clientes/${client.customer.id}/estado-de-cuenta`;
     const waUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msgText)}`;
     window.open(waUrl, '_blank');
+  };
+
+  const handleSendEmail = async (clientGroup: any) => {
+    const customer = clientGroup.customer;
+    if (!customer || customer.id === 'public') {
+      alert('No se puede enviar correo a Público General.');
+      return;
+    }
+
+    const defaultEmail = customer.email || '';
+    const targetEmail = prompt(
+      `Confirmar o ingresar el correo para enviar el Estado de Cuenta a ${customer.name}:`,
+      defaultEmail
+    );
+
+    if (targetEmail === null) return;
+    if (!targetEmail.trim()) {
+      alert('Por favor ingresa un correo electrónico válido.');
+      return;
+    }
+
+    setIsSendingEmail(true);
+    try {
+      const { sendCustomerAccountStatementEmail } = await import('@/app/actions/customer');
+      const res = await sendCustomerAccountStatementEmail(customer.id, targetEmail.trim());
+      if (res.success) {
+        alert(`Estado de Cuenta enviado exitosamente a ${targetEmail.trim()}`);
+      } else {
+        alert(`Error al enviar correo: ${res.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error al procesar el envío: ${err.message || String(err)}`);
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   const handleViewPdf = (customerId: string) => {
@@ -370,6 +406,13 @@ export default function CobranzaGlobalClient({
                     style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.75rem', backgroundColor: '#25d366', border: 'none', borderRadius: '6px', color: 'white', fontWeight: 'bold', fontSize: '0.825rem', cursor: 'pointer' }}
                   >
                     <Send size={15} /> WhatsApp
+                  </button>
+                  <button 
+                    onClick={() => handleSendEmail(selectedGroup)}
+                    disabled={isSendingEmail}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.75rem', backgroundColor: '#0284c7', border: 'none', borderRadius: '6px', color: 'white', fontWeight: 'bold', fontSize: '0.825rem', cursor: isSendingEmail ? 'wait' : 'pointer', opacity: isSendingEmail ? 0.7 : 1 }}
+                  >
+                    <Mail size={15} /> {isSendingEmail ? 'Enviando...' : 'Correo'}
                   </button>
                   <button 
                     onClick={() => handleCopyLink(selectedGroup.customer.id)}

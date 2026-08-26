@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Search, Calculator, ArrowRight, X, FileText, Send, Copy, Check, ExternalLink, Printer, Download, ArrowUpDown } from 'lucide-react';
+import { Search, Calculator, ArrowRight, X, FileText, Send, Copy, Check, ExternalLink, Printer, Download, ArrowUpDown, Mail } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { exportToExcel } from '@/lib/exportExcel';
 
@@ -42,6 +42,7 @@ export default function CuentasPorCobrarReportClient({
   const [copied, setCopied] = useState(false);
   const [sortBy, setSortBy] = useState<'NAME' | 'AMOUNT' | 'ANTIQUITY'>('AMOUNT');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const getDaysOverdue = (dueDateStr: string | null | undefined): number => {
     if (!dueDateStr) return -1;
@@ -142,7 +143,15 @@ export default function CuentasPorCobrarReportClient({
 
   // Step 4: Group filtered sales by customer
   const groupedClients = useMemo(() => {
-    const groups: { [customerId: string]: { customer: any; sales: Sale[]; totalBalanceDue: number; oldestDueDate: string | null; branches: Set<string> } } = {};
+    const groups: { [customerId: string]: { 
+      customer: any; 
+      sales: Sale[]; 
+      totalBalanceDue: number; 
+      overdueBalance: number;
+      currentBalance: number;
+      oldestDueDate: string | null; 
+      branches: Set<string> 
+    } } = {};
     
     activeBucketSales.forEach(sale => {
       const customerId = sale.customer?.id || 'public';
@@ -151,12 +160,22 @@ export default function CuentasPorCobrarReportClient({
           customer: sale.customer || { id: 'public', name: 'Público en General', phone: '' },
           sales: [],
           totalBalanceDue: 0,
+          overdueBalance: 0,
+          currentBalance: 0,
           oldestDueDate: null,
           branches: new Set<string>()
         };
       }
       groups[customerId].sales.push(sale);
       groups[customerId].totalBalanceDue += sale.balanceDue || 0;
+      
+      const days = getDaysOverdue(sale.dueDate);
+      if (days > 0) {
+        groups[customerId].overdueBalance += sale.balanceDue || 0;
+      } else {
+        groups[customerId].currentBalance += sale.balanceDue || 0;
+      }
+
       groups[customerId].branches.add(sale.branch.name);
       
       if (sale.dueDate) {
@@ -228,12 +247,47 @@ export default function CuentasPorCobrarReportClient({
     window.open(waUrl, '_blank');
   };
 
+  const handleSendEmail = async (clientGroup: any) => {
+    const customer = clientGroup.customer;
+    if (!customer || customer.id === 'public') {
+      alert('No se puede enviar correo a Público General.');
+      return;
+    }
+
+    const defaultEmail = customer.email || '';
+    const targetEmail = prompt(
+      `Confirmar o ingresar el correo para enviar el Estado de Cuenta a ${customer.name}:`,
+      defaultEmail
+    );
+
+    if (targetEmail === null) return;
+    if (!targetEmail.trim()) {
+      alert('Por favor ingresa un correo electrónico válido.');
+      return;
+    }
+
+    setIsSendingEmail(true);
+    try {
+      const { sendCustomerAccountStatementEmail } = await import('@/app/actions/customer');
+      const res = await sendCustomerAccountStatementEmail(customer.id, targetEmail.trim());
+      if (res.success) {
+        alert(`Estado de Cuenta enviado exitosamente a ${targetEmail.trim()}`);
+      } else {
+        alert(`Error al enviar correo: ${res.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error al procesar el envío: ${err.message || String(err)}`);
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   const handleViewPdf = (customerId: string) => {
     window.open(`/api/clientes/${customerId}/estado-de-cuenta`, '_blank');
   };
 
   const downloadExcel = () => {
-    const headers = ["Cliente", "Sucursal(es)", "Documentos Pendientes", "Vencimiento Más Antiguo", "Deuda Total"];
+    const headers = ["Cliente", "Sucursal(es)", "Documentos Pendientes", "Vencimiento Más Antiguo", "Deuda al Corriente", "Deuda Vencida", "Deuda Total"];
     const rows = groupedClients.map(client => {
       const overdueInfo = getOldestDueDateText(client.oldestDueDate);
       return [
@@ -241,6 +295,8 @@ export default function CuentasPorCobrarReportClient({
         Array.from(client.branches).join(', '),
         client.sales.length,
         overdueInfo.text,
+        client.currentBalance || 0,
+        client.overdueBalance || 0,
         client.totalBalanceDue
       ];
     });
@@ -403,6 +459,8 @@ export default function CuentasPorCobrarReportClient({
                   Vencimiento Más Antiguo <ArrowUpDown size={14} />
                 </div>
               </th>
+              <th style={{ padding: '0.85rem 1rem', fontWeight: 'bold', fontSize: '0.85rem', color: '#475569', textAlign: 'right' }}>Deuda al Corriente</th>
+              <th style={{ padding: '0.85rem 1rem', fontWeight: 'bold', fontSize: '0.85rem', color: '#475569', textAlign: 'right' }}>Deuda Vencida</th>
               <th 
                 onClick={() => toggleSort('AMOUNT')} 
                 style={{ padding: '0.85rem 1rem', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}
@@ -435,7 +493,13 @@ export default function CuentasPorCobrarReportClient({
                   <td data-label="Vencimiento" style={{ padding: '0.85rem 1rem', fontWeight: '500', color: overdueInfo.isOverdue ? '#dc2626' : '#16a34a' }}>
                     {overdueInfo.text}
                   </td>
-                  <td data-label="Deuda" style={{ padding: '0.85rem 1rem', fontWeight: 'bold', color: '#dc2626', textAlign: 'right' }}>
+                  <td data-label="Corriente" style={{ padding: '0.85rem 1rem', color: '#16a34a', fontWeight: '500', textAlign: 'right' }}>
+                    {formatCurrency(client.currentBalance || 0)}
+                  </td>
+                  <td data-label="Vencida" style={{ padding: '0.85rem 1rem', color: '#dc2626', fontWeight: '500', textAlign: 'right' }}>
+                    {formatCurrency(client.overdueBalance || 0)}
+                  </td>
+                  <td data-label="Deuda" style={{ padding: '0.85rem 1rem', fontWeight: 'bold', color: '#0f172a', textAlign: 'right' }}>
                     {formatCurrency(client.totalBalanceDue)}
                   </td>
                   <td data-label="Acciones" className="no-print" style={{ padding: '0.85rem 1rem' }}>
@@ -458,7 +522,7 @@ export default function CuentasPorCobrarReportClient({
             })}
             {groupedClients.length === 0 && (
               <tr>
-                <td colSpan={selectedBranchId === 'ALL' ? 6 : 5} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                <td colSpan={selectedBranchId === 'ALL' ? 8 : 7} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
                   No hay deudas o coincidencia con los filtros.
                 </td>
               </tr>
@@ -502,6 +566,13 @@ export default function CuentasPorCobrarReportClient({
                   style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.45rem 0.65rem', backgroundColor: '#25d366', border: 'none', borderRadius: '6px', color: 'white', fontWeight: 'bold', fontSize: '0.8rem', cursor: 'pointer' }}
                 >
                   <Send size={14} /> WhatsApp
+                </button>
+                <button 
+                  onClick={() => handleSendEmail(selectedGroup)}
+                  disabled={isSendingEmail}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.45rem 0.65rem', backgroundColor: '#0284c7', border: 'none', borderRadius: '6px', color: 'white', fontWeight: 'bold', fontSize: '0.8rem', cursor: isSendingEmail ? 'wait' : 'pointer', opacity: isSendingEmail ? 0.7 : 1 }}
+                >
+                  <Mail size={14} /> {isSendingEmail ? 'Enviando...' : 'Correo'}
                 </button>
                 <button 
                   onClick={() => handleCopyLink(selectedGroup.customer.id)}
