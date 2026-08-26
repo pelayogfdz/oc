@@ -1502,17 +1502,20 @@ export async function syncTenantCatalogs(tenantId: string) {
 
     let createdCount = 0;
 
-    // 4. Asegurar que cada SKU exista en todas las sucursales
+    // 4. Asegurar que cada SKU exista en todas las sucursales y sincronizar precios/detalles de los existentes
     for (const [sku, prods] of Object.entries(productsBySku)) {
+      if (prods.length === 0) continue;
+
+      // Ordenar por fecha de actualización descendente para tomar el registro más reciente como plantilla
+      prods.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      const template = prods[0];
+
       const existingBranchIds = new Set(prods.map(p => p.branchId));
       const missingBranchIds = branchIds.filter(id => !existingBranchIds.has(id));
 
+      // 4a. Crear producto en las sucursales faltantes
       if (missingBranchIds.length > 0) {
-        // Usar el primer producto encontrado como plantilla/representativo
-        const template = prods[0];
-
         for (const missingBranchId of missingBranchIds) {
-          // Crear el producto en la sucursal faltante
           const newProduct = await prisma.product.create({
             data: {
               branchId: missingBranchId,
@@ -1521,6 +1524,8 @@ export async function syncTenantCatalogs(tenantId: string) {
               name: template.name,
               description: template.description,
               price: template.price,
+              wholesalePrice: template.wholesalePrice,
+              specialPrice: template.specialPrice,
               cost: template.cost,
               taxRate: template.taxRate,
               taxType: template.taxType,
@@ -1533,7 +1538,7 @@ export async function syncTenantCatalogs(tenantId: string) {
               isProductionInput: template.isProductionInput,
               isService: template.isService,
               unit: template.unit,
-              stock: 0, // Stock inicial en 0
+              stock: 0,
               minStock: 0,
               supplierId: null,
               satKey: template.satKey,
@@ -1576,6 +1581,82 @@ export async function syncTenantCatalogs(tenantId: string) {
           }
 
           createdCount++;
+        }
+      }
+
+      // 4b. Sincronizar precios y metadatos en productos que ya existen en otras sucursales
+      const existingProductsToSync = prods.filter(p => p.id !== template.id);
+      for (const existingProd of existingProductsToSync) {
+        await prisma.product.update({
+          where: { id: existingProd.id },
+          data: {
+            name: template.name,
+            barcode: template.barcode,
+            description: template.description,
+            price: template.price,
+            wholesalePrice: template.wholesalePrice,
+            specialPrice: template.specialPrice,
+            cost: template.cost,
+            taxRate: template.taxRate,
+            taxType: template.taxType,
+            iepsRate: template.iepsRate,
+            brand: template.brand,
+            imageUrl: template.imageUrl,
+            youtubeUrl: template.youtubeUrl,
+            isActive: template.isActive,
+            allowProduction: template.allowProduction,
+            isProductionInput: template.isProductionInput,
+            isService: template.isService,
+            unit: template.unit,
+            satKey: template.satKey,
+            satUnit: template.satUnit,
+            expirationDate: template.expirationDate,
+            location: template.location,
+            hasTraceability: template.hasTraceability,
+            showInWeb: template.showInWeb
+          }
+        });
+
+        // Sincronizar listas de precios dinámicos para los productos existentes
+        if (template.prices && template.prices.length > 0) {
+          for (const p of template.prices) {
+            const templatePriceList = await prisma.priceList.findUnique({
+              where: { id: p.priceListId }
+            });
+            if (templatePriceList) {
+              let targetPriceList = await prisma.priceList.findFirst({
+                where: {
+                  branchId: existingProd.branchId,
+                  name: { equals: templatePriceList.name, mode: 'insensitive' }
+                }
+              });
+              if (!targetPriceList) {
+                targetPriceList = await prisma.priceList.create({
+                  data: {
+                    branchId: existingProd.branchId,
+                    name: templatePriceList.name
+                  }
+                });
+              }
+
+              await prisma.productPrice.upsert({
+                where: {
+                  productId_priceListId: {
+                    productId: existingProd.id,
+                    priceListId: targetPriceList.id
+                  }
+                },
+                create: {
+                  productId: existingProd.id,
+                  priceListId: targetPriceList.id,
+                  price: p.price
+                },
+                update: {
+                  price: p.price
+                }
+              });
+            }
+          }
         }
       }
     }
