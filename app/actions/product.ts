@@ -34,10 +34,11 @@ function saveProductImageToFile(productId: string, barcode: string | null | unde
           }
           const filePath = path.join(publicDir, filename);
           fs.writeFileSync(filePath, buffer);
+          return `/img/products/${filename}`;
         }
       }
     } catch (e) {}
-    return cleanImage;
+    return null; // Return null if it was base64 but extraction failed
   }
   return cleanImage;
 }
