@@ -14,6 +14,7 @@ export async function createSale(
   notes?: string,
   cashAmount?: number,
   cardAmount?: number,
+  transferAmount?: number,
   billingData?: { rfc: string; name: string; zipCode: string; regime: string; use: string },
   quoteIdToConvert?: string,
   consignmentIdToConvert?: string,
@@ -223,6 +224,7 @@ export async function createSale(
           notes: notesAccumulated,
           cashAmount,
           cardAmount,
+          transferAmount,
           branchId: finalBranchId,
           userId: user.id,
           dueDate,
@@ -973,5 +975,60 @@ export async function getSalesForExport(params: {
     return { success: false, error: error.message || String(error) };
   }
 }
+
+export async function confirmSalePayment(
+  saleId: string,
+  paymentMethod: string
+) {
+  try {
+    const user = await getActiveUser();
+    if (!user) throw new Error("No autenticado");
+
+    const sale = await prisma.sale.findUnique({
+      where: { id: saleId }
+    });
+
+    if (!sale) throw new Error("Venta no encontrada");
+    if (sale.status === 'CANCELLED') throw new Error("No se puede cobrar una venta cancelada");
+
+    // Find active cash session for the sale's branch
+    let validCashSessionId = sale.cashSessionId;
+    if (sale.branchId) {
+      const activeSession = await prisma.cashSession.findFirst({
+        where: { branchId: sale.branchId, closedAt: null },
+        select: { id: true }
+      });
+      if (activeSession) {
+        validCashSessionId = activeSession.id;
+      }
+    }
+
+    const cashAmount = paymentMethod === 'CASH' ? sale.total : 0;
+    const cardAmount = (paymentMethod === 'CARD' || paymentMethod === 'CARD_CREDIT' || paymentMethod === 'CARD_DEBIT') ? sale.total : 0;
+    const transferAmount = paymentMethod === 'TRANSFER' ? sale.total : 0;
+
+    const updatedSale = await prisma.sale.update({
+      where: { id: saleId },
+      data: {
+        status: 'COMPLETED',
+        paymentMethod,
+        cashSessionId: validCashSessionId,
+        cashAmount,
+        cardAmount,
+        transferAmount,
+        balanceDue: 0
+      }
+    });
+
+    revalidatePath('/ventas');
+    revalidatePath(`/ventas/detalle/${saleId}`);
+
+    return { success: true, sale: updatedSale };
+  } catch (error: any) {
+    console.error("Error in confirmSalePayment:", error);
+    return { success: false, error: error.message || String(error) };
+  }
+}
+
 
 

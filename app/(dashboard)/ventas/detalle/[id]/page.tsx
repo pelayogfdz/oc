@@ -20,6 +20,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
       user: true,
       customer: true,
       branch: true,
+      deliveryOrder: true,
       items: {
         include: { product: true, variant: true }
       }
@@ -29,7 +30,9 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
   if (!sale) return notFound();
 
   const itemsTotal = sale.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const unallocatedAmount = sale.total > (itemsTotal + 0.01) ? (sale.total - itemsTotal) : 0;
   const discount = Math.max(0, itemsTotal - sale.total);
+  const finalSubtotal = itemsTotal + unallocatedAmount;
 
   const customers = await prisma.customer.findMany({
     where: {
@@ -67,6 +70,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
               currentCustomerId={sale.customerId}
               currentNotes={sale.notes}
               customers={customers}
+              deliveryOrder={sale.deliveryOrder ? { id: sale.deliveryOrder.id, status: sale.deliveryOrder.status } : null}
             />
          </div>
       </div>
@@ -210,7 +214,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
                         {item.product.name}
                       </Link>
                     ) : (
-                      <div style={{ fontWeight: 'bold', color: '#0f172a' }}>Desconocido</div>
+                      <div style={{ fontWeight: 'bold', color: '#0f172a' }}>Artículo Retirado del Catálogo</div>
                     )}
                     {item.variant && <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Var: {item.variant.attribute}</div>}
                     <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>SKU: {item.product?.sku || '-'} | Código: {item.product?.barcode || '-'}</div>
@@ -221,6 +225,24 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
                 <td data-label="Subtotal" style={{ padding: '0.4rem 0.75rem', textAlign: 'right', fontWeight: 'bold', color: '#0f172a' }}>${(item.price * item.quantity).toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
               </tr>
             ))}
+
+            {unallocatedAmount > 0.009 && (
+              <tr style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '#fffbeb' }}>
+                <td data-label="Descripción del Artículo" style={{ padding: '0.45rem 0.75rem' }}>
+                  <div className="flex flex-col text-right sm:text-left min-w-0 break-words">
+                    <div style={{ fontWeight: 'bold', color: '#b45309' }}>
+                      📦 Ajuste por Artículo(s) Eliminado(s) del Catálogo
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#d97706' }}>
+                      Diferencia por artículo(s) retirado(s) de inventario para cuadrar con la factura/cobro.
+                    </div>
+                  </div>
+                </td>
+                <td data-label="Cant." style={{ padding: '0.45rem 0.75rem', fontWeight: 'bold', textAlign: 'center', color: '#b45309' }}>1</td>
+                <td data-label="Precio Unit." style={{ padding: '0.45rem 0.75rem', textAlign: 'right', color: '#b45309' }}>${unallocatedAmount.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                <td data-label="Subtotal" style={{ padding: '0.45rem 0.75rem', textAlign: 'right', fontWeight: 'bold', color: '#b45309' }}>${unallocatedAmount.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+              </tr>
+            )}
           </tbody>
         </table>
 
@@ -270,7 +292,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
           <div style={{ width: '300px' }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #e2e8f0' }}>
                 <span style={{ color: '#64748b', fontSize: '1.1rem' }}>Subtotal:</span>
-                <span style={{ fontSize: '1.1rem', color: '#0f172a' }}>${itemsTotal.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                <span style={{ fontSize: '1.1rem', color: '#0f172a' }}>${finalSubtotal.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
              </div>
              {discount > 0.01 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #e2e8f0', color: '#dc2626' }}>

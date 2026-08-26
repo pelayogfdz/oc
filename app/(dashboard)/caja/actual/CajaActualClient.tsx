@@ -211,7 +211,10 @@ export default function CajaActualClient({
       return totalSalesCard + totalSalesMixtoCard;
     } else {
       const matchingSales = activeSales.filter((s: any) => s.paymentMethod === id);
-      return matchingSales.reduce((acc: number, sale: any) => acc + sale.total, 0);
+      const totalSales = matchingSales.reduce((acc: number, sale: any) => acc + sale.total, 0);
+      const mixtoSales = activeSales.filter((s: any) => s.paymentMethod === 'MIXTO');
+      const totalSalesMixtoTransfer = id === 'TRANSFER' ? mixtoSales.reduce((acc: number, sale: any) => acc + (sale.transferAmount || 0), 0) : 0;
+      return totalSales + totalSalesMixtoTransfer;
     }
   };
 

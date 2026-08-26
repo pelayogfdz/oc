@@ -311,9 +311,9 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
             <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Identificación</h2>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Nombre del Producto *</label>
-                <input type="text" name="name" defaultValue={product.name} required autoComplete="off" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '1rem' }}>Nombre del Producto *</label>
+                <input type="text" name="name" defaultValue={product.name} required autoComplete="off" style={{ width: '100%', padding: '0.85rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', fontSize: '1.15rem', fontWeight: '500' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Categoría / Departamento</label>

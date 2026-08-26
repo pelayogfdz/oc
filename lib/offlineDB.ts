@@ -16,6 +16,7 @@ export interface OfflineSale extends DLQMetadata {
   notes?: string;
   cashValue?: number;
   cardValue?: number;
+  transferValue?: number;
   billingData?: any;
   timestamp: string;
   synced: boolean;

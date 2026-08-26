@@ -81,6 +81,7 @@ export default function POSClient({
       paymentMethod: 'CASH',
       amountReceived: '',
       cardAmount: '',
+      transferAmount: '',
       notes: '',
       observationImageUrl: '',
       deliveryDate: '',
@@ -110,6 +111,7 @@ export default function POSClient({
         paymentMethod,
         amountReceived,
         cardAmount,
+        transferAmount,
         notes,
         observationImageUrl,
         deliveryDate,
@@ -138,6 +140,7 @@ export default function POSClient({
         setPaymentMethod(target.paymentMethod || 'CASH');
         setAmountReceived((target.amountReceived || '') as number | "");
         setCardAmount((target.cardAmount || '') as number | "");
+        setTransferAmount((target.transferAmount || '') as number | "");
         setNotes(target.notes || '');
         setObservationImageUrl(target.observationImageUrl || '');
         setDeliveryDate(target.deliveryDate || '');
@@ -213,6 +216,7 @@ export default function POSClient({
       paymentMethod: 'CASH',
       amountReceived: '',
       cardAmount: '',
+      transferAmount: '',
       notes: '',
       observationImageUrl: '',
       deliveryDate: '',
@@ -242,6 +246,7 @@ export default function POSClient({
         paymentMethod,
         amountReceived,
         cardAmount,
+        transferAmount,
         notes,
         observationImageUrl,
         deliveryDate,
@@ -268,6 +273,7 @@ export default function POSClient({
       setPaymentMethod(newTab.paymentMethod);
       setAmountReceived((newTab.amountReceived || '') as number | "");
       setCardAmount((newTab.cardAmount || '') as number | "");
+      setTransferAmount((newTab.transferAmount || '') as number | "");
       setNotes(newTab.notes);
       setObservationImageUrl(newTab.observationImageUrl || '');
       setDeliveryDate(newTab.deliveryDate || '');
@@ -307,6 +313,7 @@ export default function POSClient({
         setPaymentMethod(lastTab.paymentMethod || 'CASH');
         setAmountReceived((lastTab.amountReceived || '') as number | "");
         setCardAmount((lastTab.cardAmount || '') as number | "");
+        setTransferAmount((lastTab.transferAmount || '') as number | "");
         setNotes(lastTab.notes || '');
         setObservationImageUrl(lastTab.observationImageUrl || '');
         setDeliveryDate(lastTab.deliveryDate || '');
@@ -388,6 +395,7 @@ export default function POSClient({
       paymentMethod: 'CASH',
       amountReceived: '',
       cardAmount: '',
+      transferAmount: '',
       notes: '',
       observationImageUrl: '',
       deliveryDate: '',
@@ -451,6 +459,7 @@ export default function POSClient({
         paymentMethod: 'CASH',
         amountReceived: '',
         cardAmount: '',
+        transferAmount: '',
         notes: '',
         documentType: 'TICKET',
         transactionType: 'VENTA',
@@ -481,6 +490,7 @@ export default function POSClient({
         paymentMethod,
         amountReceived,
         cardAmount,
+        transferAmount,
         notes,
         observationImageUrl,
         deliveryDate,
@@ -520,6 +530,7 @@ export default function POSClient({
             setPaymentMethod(state.paymentMethod || 'CASH');
             setAmountReceived(state.amountReceived || '');
             setCardAmount(state.cardAmount || '');
+            setTransferAmount(state.transferAmount || '');
             setNotes(state.notes || '');
             setObservationImageUrl(state.observationImageUrl || '');
             setDeliveryDate(state.deliveryDate || '');
@@ -815,6 +826,7 @@ export default function POSClient({
 
   const [amountReceived, setAmountReceived] = useState<number | ''>(''); // Used for pure CASH or MIXED cash amount
   const [cardAmount, setCardAmount] = useState<number | ''>(''); // Used for MIXED
+  const [transferAmount, setTransferAmount] = useState<number | ''>(''); // Used for MIXED
   const [notes, setNotes] = useState<string>('');
   const [observationImageUrl, setObservationImageUrl] = useState<string>('');
   const [deliveryDate, setDeliveryDate] = useState<string>('');
@@ -2437,6 +2449,7 @@ export default function POSClient({
       } else {
         const cashValue = typeof amountReceived === 'number' ? amountReceived : undefined;
         const cardValue = typeof cardAmount === 'number' ? cardAmount : undefined;
+        const transferValue = typeof transferAmount === 'number' ? transferAmount : undefined;
         
         let finalNotes = notes;
         let billingData = undefined;
@@ -2493,6 +2506,7 @@ export default function POSClient({
             finalNotes, 
             cashValue, 
             cardValue, 
+            transferValue, 
             billingData, 
             loadedQuoteId || undefined, 
             loadedConsignmentId || undefined, 
@@ -4357,22 +4371,42 @@ export default function POSClient({
             )}
             
             {paymentMethod === 'MIXTO' && (
-              <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.75rem' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '0.35rem' }}>Pago en Tarjeta</label>
-                  <input 
-                    type="number" 
-                    value={cardAmount}
-                    onChange={e => {
-                       const v = e.target.value === '' ? '' : parseFloat(e.target.value);
-                       setCardAmount(v);
-                       if (typeof v === 'number' && v <= finalTotalWithTip) setAmountReceived(finalTotalWithTip - v);
-                    }}
-                    placeholder={`Monto`}
-                    style={{ width: '100%', padding: '0.75rem', fontSize: '1.1rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', textAlign: 'right' }}
-                  />
+              <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '0.35rem' }}>Pago en Tarjeta</label>
+                    <input 
+                      type="number" 
+                      value={cardAmount}
+                      onChange={e => {
+                         const v = e.target.value === '' ? '' : parseFloat(e.target.value);
+                         setCardAmount(v);
+                         const cVal = typeof v === 'number' ? v : 0;
+                         const tVal = typeof transferAmount === 'number' ? transferAmount : 0;
+                         if (cVal + tVal <= finalTotalWithTip) setAmountReceived(finalTotalWithTip - cVal - tVal);
+                      }}
+                      placeholder={`Monto`}
+                      style={{ width: '100%', padding: '0.75rem', fontSize: '1.1rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', textAlign: 'right' }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '0.35rem' }}>Pago en Transferencia</label>
+                    <input 
+                      type="number" 
+                      value={transferAmount}
+                      onChange={e => {
+                         const v = e.target.value === '' ? '' : parseFloat(e.target.value);
+                         setTransferAmount(v);
+                         const tVal = typeof v === 'number' ? v : 0;
+                         const cVal = typeof cardAmount === 'number' ? cardAmount : 0;
+                         if (cVal + tVal <= finalTotalWithTip) setAmountReceived(finalTotalWithTip - cVal - tVal);
+                      }}
+                      placeholder={`Monto`}
+                      style={{ width: '100%', padding: '0.75rem', fontSize: '1.1rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', textAlign: 'right' }}
+                    />
+                  </div>
                 </div>
-                <div style={{ flex: 1 }}>
+                <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '0.35rem' }}>Pago en Efectivo</label>
                   <input 
                     type="number" 
@@ -4719,7 +4753,7 @@ export default function POSClient({
                     disabled={
                       isProcessing ||
                       (paymentMethod === 'CASH' && (typeof amountReceived !== 'number' || amountReceived < finalTotalWithTip)) ||
-                      (paymentMethod === 'MIXTO' && (typeof amountReceived !== 'number' || typeof cardAmount !== 'number' || (amountReceived + cardAmount) < finalTotalWithTip)) ||
+                      (paymentMethod === 'MIXTO' && ((typeof amountReceived === 'number' ? amountReceived : 0) + (typeof cardAmount === 'number' ? cardAmount : 0) + (typeof transferAmount === 'number' ? transferAmount : 0)) < finalTotalWithTip) ||
                       cart.some((item: any) => item.isFastItem) ||
                       (documentType === 'FACTURA' && (!billRfc.trim() || billRfc.trim().length < 12 || billRfc.trim().length > 13 || !billZipCode.trim() || billZipCode.trim().length !== 5 || !billName.trim())) ||
                       (paymentMethod === 'CREDIT' && (!selectedCust || selectedCust.creditLimit <= 0 || total > (selectedCust.creditLimit - (selectedCust.creditBalance || 0))))
@@ -4741,7 +4775,7 @@ export default function POSClient({
                       disabled={
                         isProcessing || 
                         (mode === 'SALE' && paymentMethod === 'CASH' && (typeof amountReceived !== 'number' || amountReceived < finalTotalWithTip)) ||
-                        (mode === 'SALE' && paymentMethod === 'MIXTO' && (typeof amountReceived !== 'number' || typeof cardAmount !== 'number' || (amountReceived + cardAmount) < finalTotalWithTip)) ||
+                        (mode === 'SALE' && paymentMethod === 'MIXTO' && ((typeof amountReceived === 'number' ? amountReceived : 0) + (typeof cardAmount === 'number' ? cardAmount : 0) + (typeof transferAmount === 'number' ? transferAmount : 0)) < finalTotalWithTip) ||
                         (mode === 'SALE' && cart.some((item: any) => item.isFastItem)) ||
                         (documentType === 'FACTURA' && (!billRfc.trim() || billRfc.trim().length < 12 || billRfc.trim().length > 13 || !billZipCode.trim() || billZipCode.trim().length !== 5 || !billName.trim())) ||
                         (mode === 'SALE' && paymentMethod === 'CREDIT' && (!selectedCust || selectedCust.creditLimit <= 0 || total > (selectedCust.creditLimit - (selectedCust.creditBalance || 0))))

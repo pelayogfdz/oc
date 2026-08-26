@@ -2546,19 +2546,39 @@ export default function VentasHistoryClient({
                       </tr>
                     );
                   })}
+                  {(() => {
+                    const modalItemsTotal = selectedSaleWithProducts.items.reduce((sum: number, item: any) => sum + ((item.quantity || 0) * (item.price || 0)), 0);
+                    const unallocatedModal = selectedSaleWithProducts.total > (modalItemsTotal + 0.01) ? (selectedSaleWithProducts.total - modalItemsTotal) : 0;
+                    if (unallocatedModal > 0.009) {
+                      return (
+                        <tr style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '#fffbeb' }}>
+                          <td style={{ padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}>
+                            <div style={{ fontWeight: 'bold', color: '#b45309' }}>📦 Ajuste por Artículo(s) Eliminado(s) del Catálogo</div>
+                            <div style={{ fontSize: '0.75rem', color: '#d97706' }}>Diferencia por producto(s) retirado(s) para cuadrar con el cobro.</div>
+                          </td>
+                          <td style={{ padding: '0.45rem 0.75rem', textAlign: 'center', fontWeight: 'bold', fontSize: '0.85rem', color: '#b45309' }}>1</td>
+                          <td style={{ padding: '0.45rem 0.75rem', textAlign: 'right', fontSize: '0.85rem', color: '#b45309' }}>${unallocatedModal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                          <td style={{ padding: '0.45rem 0.75rem', textAlign: 'right', fontWeight: 'bold', fontSize: '0.85rem', color: '#b45309' }}>${unallocatedModal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                      );
+                    }
+                    return null;
+                  })()}
                 </tbody>
               </table>
 
               {/* Totals */}
               {(() => {
                 const modalItemsTotal = selectedSaleWithProducts.items.reduce((sum: number, item: any) => sum + ((item.quantity || 0) * (item.price || 0)), 0);
-                const modalDiscount = Math.max(0, modalItemsTotal - selectedSaleWithProducts.total);
+                const unallocatedModal = selectedSaleWithProducts.total > (modalItemsTotal + 0.01) ? (selectedSaleWithProducts.total - modalItemsTotal) : 0;
+                const modalSubtotal = modalItemsTotal + unallocatedModal;
+                const modalDiscount = Math.max(0, modalSubtotal - selectedSaleWithProducts.total);
                 return (
                   <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
                     <div style={{ width: '220px', fontSize: '0.95rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0' }}>
                         <span style={{ color: '#64748b' }}>Subtotal:</span>
-                        <span>${modalItemsTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                        <span>${modalSubtotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
                       </div>
                       {modalDiscount > 0.01 && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0', color: '#dc2626' }}>

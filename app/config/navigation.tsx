@@ -134,7 +134,7 @@ export const navStructure: MenuNode[] = [
       { name: 'Monitoreo de Asistencia', path: '/rh/monitoreo', requiredPermission: ['rh_monitoreo'], requiresOnline: true },
       { name: 'Calendario de Incidencias', path: '/rh/calendario', requiredPermission: ['rh_calendario'], requiresOnline: true },
       { name: 'Reportes Históricos', path: '/rh/reportes', requiredPermission: ['rh_reportes'], requiresOnline: true },
-      { name: 'Ubicaciones GPS', path: '/rh/gps', badge: 'Nuevo', requiredPermission: ['rh_gps'], requiresOnline: true },
+      { name: 'Ubicaciones GPS', path: '/rh/ubicaciones', badge: 'Nuevo', requiredPermission: ['rh_gps'], requiresOnline: true },
       { name: 'Trámites y Avisos', path: '/rh/tramites', requiredPermission: ['rh_tramites'], requiresOnline: true },
       { name: 'Cálculo de Nómina', path: '/rh/nomina', badge: 'Nuevo', requiredPermission: ['rh_nomina'], requiresOnline: true },
     ]

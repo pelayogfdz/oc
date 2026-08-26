@@ -1805,7 +1805,7 @@ export async function updateProductMedia(productId: string, imageUrl: string, yo
 
     revalidatePath(`/productos/${productId}`);
     revalidatePath('/productos');
-    return { success: true };
+    return { success: true, imageUrl: cleanImage };
   } catch (err: any) {
     console.error('Error in updateProductMedia:', err);
     return { success: false, error: err.message || 'No se pudo guardar la multimedia del producto.' };

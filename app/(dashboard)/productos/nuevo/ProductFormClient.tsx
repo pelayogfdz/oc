@@ -107,9 +107,9 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
         <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Identificación</h2>
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Nombre del Producto *</label>
-            <input type="text" name="name" defaultValue={cloneProduct ? `${cloneProduct.name} (Copia)` : ''} required style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '1rem' }}>Nombre del Producto *</label>
+            <input type="text" name="name" defaultValue={cloneProduct ? `${cloneProduct.name} (Copia)` : ''} required style={{ width: '100%', padding: '0.85rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', fontSize: '1.15rem', fontWeight: '500' }} />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Categoría / Departamento</label>
@@ -130,6 +130,15 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Ubicación</label>
             <input type="text" name="location" defaultValue={cloneProduct?.location || ''} placeholder="Ej. Pasillo 3, Estante B" style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Proveedor Sugerido</label>
+            <select name="supplierId" defaultValue={cloneProduct?.supplierId || ""} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }}>
+              <option value="">-- PÚBLICO / NINGUNO --</option>
+              {suppliers.map((s: any) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
           </div>
           <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '2rem', flexWrap: 'wrap', marginTop: '0.5rem', marginBottom: '0.5rem', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '6px', border: '1px solid var(--caanma-border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -370,15 +379,6 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Proveedor Sugerido</label>
-              <select name="supplierId" defaultValue={cloneProduct?.supplierId || ""} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }}>
-                <option value="">-- PÚBLICO / NINGUNO --</option>
-                {suppliers.map((s: any) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Estado</label>
               <select name="isActive" defaultValue={cloneProduct ? (cloneProduct.isActive ? "true" : "false") : "true"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }}>
                 <option value="true">🟢 Activo</option>
@@ -410,15 +410,6 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Proveedor Sugerido</label>
-                <select name="supplierId" defaultValue={cloneProduct?.supplierId || ""} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }}>
-                  <option value="">-- PÚBLICO / NINGUNO --</option>
-                  {suppliers.map((s: any) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Estado</label>
                 <select name="isActive" defaultValue={cloneProduct ? (cloneProduct.isActive ? "true" : "false") : "true"} style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white' }}>
                   <option value="true">🟢 Activo</option>
@@ -439,9 +430,6 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
       )}
       {hasVariants && !isService && (
         <input type="hidden" name="unit" value={cloneProduct?.unit || "Pza"} />
-      )}
-      {hasVariants && !isService && (
-        <input type="hidden" name="supplierId" value={cloneProduct?.supplierId || ""} />
       )}
       {hasVariants && !isService && (
         <input type="hidden" name="isActive" value="true" />

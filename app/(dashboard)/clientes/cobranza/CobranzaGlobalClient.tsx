@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Search, History, ArrowRight, X, FileText, Send, Copy, Check, ExternalLink } from 'lucide-react';
+import { Search, History, ArrowRight, X, FileText, Send, Copy, Check, ExternalLink, RefreshCw } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
 export default function CobranzaGlobalClient({ 
@@ -198,6 +198,35 @@ export default function CobranzaGlobalClient({
                   ))}
                 </select>
             </div>
+
+            <button
+                onClick={async () => {
+                  if (confirm('¿Deseas auditar y sincronizar todas las ventas facturadas y saldos a crédito con el SAT?')) {
+                    const { syncAndFixAllSalesAndCreditBalancesAction } = await import('@/app/actions/facturacion');
+                    const res = await syncAndFixAllSalesAndCreditBalancesAction();
+                    if (res.success) {
+                      alert(`Sincronización completada exitosamente.\nVentas corregidas: ${res.fixedSalesCount}\nClientes ajustados: ${res.fixedCustomersCount}`);
+                      window.location.reload();
+                    } else {
+                      alert('Error durante la sincronización: ' + res.error);
+                    }
+                  }
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#8b5cf6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                <RefreshCw size={16} /> Sincronizar y Cuadrar CxC
+              </button>
 
             <div style={{ padding: '0.75rem 1.5rem', backgroundColor: '#fee2e2', color: '#b91c1c', borderRadius: '8px', fontWeight: 'bold', marginLeft: 'auto' }}>
                 Deuda Global Filtrada: {formatCurrency(totalDeudaGlobal, 2)}

@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Share2, AlertTriangle, Send, Loader2, CheckCircle, Edit3, FileText } from 'lucide-react';
-import { cancelSale, updateSale } from '@/app/actions/sale';
+import { Share2, AlertTriangle, Send, Loader2, CheckCircle, Edit3, FileText, CheckSquare, Square, DollarSign } from 'lucide-react';
+import { cancelSale, updateSale, confirmSalePayment } from '@/app/actions/sale';
 import { cancelInvoice, stampInvoice, checkDocumentSatStatus } from '@/app/actions/facturacion';
+import { updateDeliveryOrder } from '@/app/actions/logistica';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 
 interface VentaActionsClientProps {
@@ -19,6 +20,7 @@ interface VentaActionsClientProps {
   currentCustomerId?: string | null;
   currentNotes?: string | null;
   customers: { id: string; name: string }[];
+  deliveryOrder?: { id: string; status: string } | null;
 }
 
 export default function VentaActionsClient({
@@ -32,7 +34,8 @@ export default function VentaActionsClient({
   invoiceId,
   currentCustomerId = '',
   currentNotes = '',
-  customers = []
+  customers = [],
+  deliveryOrder = null
 }: VentaActionsClientProps) {
   const router = useRouter();
   const { refreshCatalogs } = useOfflineSync();
@@ -61,6 +64,47 @@ export default function VentaActionsClient({
   const [satStatus, setSatStatus] = useState<string | null>(null);
   const [satCancellationStatus, setSatCancellationStatus] = useState<string | null>(null);
   const [isLoadingSat, setIsLoadingSat] = useState(false);
+
+  // Delivery and Payment Confirmation States
+  const [isConfirmPaymentModalOpen, setIsConfirmPaymentModalOpen] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('CASH');
+
+  const handleToggleDeliveryStatus = () => {
+    if (!deliveryOrder) return;
+    const nextStatus = deliveryOrder.status === 'DELIVERED' ? 'PENDING' : 'DELIVERED';
+    
+    startTransition(async () => {
+      try {
+        const res = await updateDeliveryOrder(deliveryOrder.id, { status: nextStatus });
+        if (res.success) {
+          alert(`Estatus de entrega actualizado a: ${nextStatus === 'DELIVERED' ? 'Entregado' : 'Pendiente de entrega'}`);
+          router.refresh();
+        } else {
+          alert(res.error || 'Error al actualizar el estatus de entrega');
+        }
+      } catch (err: any) {
+        alert(err.message || 'Error de red al actualizar entrega.');
+      }
+    });
+  };
+
+  const handleConfirmPayment = () => {
+    startTransition(async () => {
+      try {
+        const res = await confirmSalePayment(saleId, selectedPaymentMethod);
+        if (res.success) {
+          alert('Pago confirmado exitosamente.');
+          setIsConfirmPaymentModalOpen(false);
+          router.refresh();
+        } else {
+          alert(res.error || 'Error al confirmar el pago');
+        }
+      } catch (err: any) {
+        alert(err.message || 'Error de red al confirmar el pago.');
+      }
+    });
+  };
+
 
   useEffect(() => {
     if (invoiceId) {
@@ -295,6 +339,58 @@ export default function VentaActionsClient({
           Editar Venta
         </button>
       )}
+
+      {/* Botones de Pedido (Estatus de Entrega y Confirmar Pago) */}
+      {deliveryOrder && status !== 'CANCELLED' && (
+        <>
+          <button
+            onClick={handleToggleDeliveryStatus}
+            disabled={isPending}
+            className="btn-secondary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.75rem 1.25rem',
+              borderRadius: '4px',
+              backgroundColor: deliveryOrder.status === 'DELIVERED' ? '#fff7ed' : '#eff6ff',
+              color: deliveryOrder.status === 'DELIVERED' ? '#c2410c' : '#1d4ed8',
+              border: `1px solid ${deliveryOrder.status === 'DELIVERED' ? '#fde68a' : '#bfdbfe'}`,
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              opacity: isPending ? 0.7 : 1
+            }}
+          >
+            {deliveryOrder.status === 'DELIVERED' ? <Square size={18} /> : <CheckSquare size={18} />}
+            {deliveryOrder.status === 'DELIVERED' ? 'Marcar como Pendiente de Entrega' : 'Marcar como Entregado'}
+          </button>
+
+          {status === 'PENDING' && (
+            <button
+              onClick={() => setIsConfirmPaymentModalOpen(true)}
+              disabled={isPending}
+              className="btn-secondary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.75rem 1.25rem',
+                borderRadius: '4px',
+                backgroundColor: '#fef3c7',
+                color: '#b45309',
+                border: '1px solid #fde68a',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                opacity: isPending ? 0.7 : 1
+              }}
+            >
+              <DollarSign size={18} />
+              Confirmar Pago
+            </button>
+          )}
+        </>
+      )}
+
 
       {/* Cancel Sale */}
       {status === 'COMPLETED' && (
@@ -974,6 +1070,131 @@ export default function VentaActionsClient({
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Payment Modal */}
+      {isConfirmPaymentModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.45)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            color: '#1e293b'
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '450px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+              border: '1px solid #e2e8f0',
+              overflow: 'hidden',
+              textAlign: 'left'
+            }}
+          >
+            {/* Header */}
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold', color: '#0f172a' }}>Confirmar Pago de Pedido</h3>
+              <button 
+                onClick={() => setIsConfirmPaymentModalOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: '#94a3b8' }}
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: '1.5rem' }}>
+              <p style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: '#475569', lineHeight: '1.4' }}>
+                Selecciona el método de pago utilizado por el cliente para liquidar el pedido por un total de <strong>${saleTotal.toLocaleString('es-MX', {minimumFractionDigits: 2})}</strong>:
+              </p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }} className="hover:bg-slate-50">
+                  <input 
+                    type="radio" 
+                    name="paymentMethodSelect" 
+                    value="CASH" 
+                    checked={selectedPaymentMethod === 'CASH'}
+                    onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                  />
+                  <span>Efectivo (Caja)</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }} className="hover:bg-slate-50">
+                  <input 
+                    type="radio" 
+                    name="paymentMethodSelect" 
+                    value="CARD" 
+                    checked={selectedPaymentMethod === 'CARD'}
+                    onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                  />
+                  <span>Tarjeta (Débito/Crédito)</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }} className="hover:bg-slate-50">
+                  <input 
+                    type="radio" 
+                    name="paymentMethodSelect" 
+                    value="TRANSFER" 
+                    checked={selectedPaymentMethod === 'TRANSFER'}
+                    onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                  />
+                  <span>Transferencia Electrónica</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: '1rem 1.5rem', backgroundColor: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                onClick={() => setIsConfirmPaymentModalOpen(false)}
+                style={{
+                  padding: '0.6rem 1.25rem',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px',
+                  backgroundColor: 'white',
+                  color: '#64748b',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmPayment}
+                disabled={isPending}
+                style={{
+                  padding: '0.6rem 1.5rem',
+                  border: 'none',
+                  borderRadius: '8px',
+                  backgroundColor: '#16a34a',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  fontSize: '0.875rem',
+                  opacity: isPending ? 0.7 : 1
+                }}
+              >
+                {isPending ? <Loader2 size={16} className="animate-spin" /> : null}
+                Confirmar Pago
+              </button>
             </div>
           </div>
         </div>

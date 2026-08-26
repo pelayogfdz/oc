@@ -402,6 +402,7 @@ model Sale {
   notes         String?
   cashAmount    Float?
   cardAmount    Float?
+  transferAmount Float?
   invoiceId     String?
   invoiceFolio  String?
   cancellationStatus String?

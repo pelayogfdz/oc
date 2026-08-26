@@ -425,6 +425,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
               sale.notes, 
               sale.cashValue, 
               sale.cardValue, 
+              sale.transferValue,
               sale.billingData,
               undefined,
               undefined,

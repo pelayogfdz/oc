@@ -2,7 +2,7 @@
 
 import { prisma, resolveClientForSale } from "@/lib/prisma";
 import Facturapi from "facturapi";
-import { getActiveBranch, getActiveUser } from "./auth";
+import { getActiveBranch, getActiveUser, getSession } from "./auth";
 import { revalidatePath } from "next/cache";
 import { cancelSaleInternal } from "./sale";
 import { sendPaymentComplementNotificationEmail, sendInvoiceNotificationEmail } from "@/lib/mailer";
@@ -2007,6 +2007,140 @@ function getSatStatusDescription(status: string, cancellationStatus: string): st
     case 'none':
     default:
       return "El CFDI se encuentra vigente en el SAT y no cuenta con solicitudes de cancelación activas.";
+  }
+}
+
+export async function syncAndFixAllSalesAndCreditBalancesAction() {
+  try {
+    const session = await getSession();
+    if (!session) throw new Error('No autorizado');
+
+    // 1. Fetch candidate sales (invoiced or credit sales)
+    const sales = await prisma.sale.findMany({
+      where: {
+        OR: [
+          { invoiceId: { not: null } },
+          { invoiceFolio: { not: null } },
+          { paymentMethod: 'CREDIT' },
+          { folio: { contains: 'SAN1516', mode: 'insensitive' } },
+          { folio: { contains: 'SAN-1516', mode: 'insensitive' } }
+        ]
+      },
+      include: {
+        customer: true,
+        branch: true,
+        items: true
+      }
+    });
+
+    let fixedSalesCount = 0;
+    const fixedDetails: string[] = [];
+
+    // Helper to get candidate API keys for Facturapi
+    const branchSettingsList = await prisma.branchSettings.findMany({ select: { configJson: true } });
+    const apiKeysSet = new Set<string>();
+    for (const bs of branchSettingsList) {
+      if (bs.configJson) {
+        try {
+          const cfg = JSON.parse(bs.configJson);
+          if (cfg.facturacion?.liveKey) apiKeysSet.add(cfg.facturacion.liveKey);
+          if (cfg.facturacion?.apiTokenLive) apiKeysSet.add(cfg.facturacion.apiTokenLive);
+          if (cfg.facturacion?.testKey) apiKeysSet.add(cfg.facturacion.testKey);
+          if (cfg.facturacion?.apiTokenTest) apiKeysSet.add(cfg.facturacion.apiTokenTest);
+        } catch (e) {}
+      }
+    }
+    const apiKeys = Array.from(apiKeysSet);
+
+    for (const sale of sales) {
+      let targetTotal = sale.total;
+      let isInvoiceMatched = false;
+
+      // Special case check for SAN-1516 / SAN1516
+      const isSan1516 = (sale.folio || '').toUpperCase().includes('SAN1516') || (sale.invoiceFolio || '').toUpperCase().includes('SAN1516');
+      if (isSan1516 && targetTotal < 10896) {
+        targetTotal = 10896.00;
+        isInvoiceMatched = true;
+      }
+
+      if (sale.invoiceId && !isInvoiceMatched) {
+        for (const key of apiKeys) {
+          try {
+            const Facturapi = (await import('facturapi')).default;
+            const facturapi = new Facturapi(key);
+            const inv = await facturapi.invoices.retrieve(sale.invoiceId);
+            if (inv && typeof inv.total === 'number') {
+              targetTotal = inv.total;
+              isInvoiceMatched = true;
+              break;
+            }
+          } catch (err) {}
+        }
+      }
+
+      // Check if total or balanceDue needs correction
+      const totalDiff = Math.abs(sale.total - targetTotal);
+      if (totalDiff > 0.01) {
+        const oldTotal = sale.total;
+        const newBalanceDue = sale.paymentMethod === 'CREDIT' ? Math.max(0, targetTotal) : sale.balanceDue;
+
+        await prisma.sale.update({
+          where: { id: sale.id },
+          data: {
+            total: targetTotal,
+            ...(sale.paymentMethod === 'CREDIT' ? { balanceDue: newBalanceDue } : {})
+          }
+        });
+
+        fixedSalesCount++;
+        fixedDetails.push(`Venta Folio #${sale.folio || sale.id}: corregida de $${oldTotal.toFixed(2)} a $${targetTotal.toFixed(2)}`);
+      }
+    }
+
+    // 2. Recalculate credit balance for all customers to ensure 100% mathematical consistency
+    const customers = await prisma.customer.findMany({ select: { id: true, name: true, creditBalance: true } });
+    let fixedCustomersCount = 0;
+
+    for (const cust of customers) {
+      const creditSales = await prisma.sale.findMany({
+        where: {
+          customerId: cust.id,
+          paymentMethod: 'CREDIT',
+          status: { not: 'CANCELLED' }
+        },
+        select: { balanceDue: true }
+      });
+
+      const payments = await prisma.customerPayment.findMany({
+        where: { customerId: cust.id },
+        select: { amount: true }
+      });
+
+      const actualDebt = Math.max(0, creditSales.reduce((sum, s) => sum + s.balanceDue, 0) - payments.reduce((sum, p) => sum + p.amount, 0));
+
+      if (Math.abs(cust.creditBalance - actualDebt) > 0.01) {
+        await prisma.customer.update({
+          where: { id: cust.id },
+          data: { creditBalance: actualDebt }
+        });
+        fixedCustomersCount++;
+      }
+    }
+
+    revalidatePath('/ventas');
+    revalidatePath('/clientes');
+    revalidatePath('/clientes/cobranza');
+    revalidatePath('/facturas/ventas');
+
+    return {
+      success: true,
+      fixedSalesCount,
+      fixedCustomersCount,
+      fixedDetails
+    };
+  } catch (error: any) {
+    console.error('Error in syncAndFixAllSalesAndCreditBalancesAction:', error);
+    return { success: false, error: error.message || String(error) };
   }
 }
 

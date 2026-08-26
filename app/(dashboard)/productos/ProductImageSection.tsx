@@ -169,12 +169,24 @@ export default function ProductImageSection({
 
   const handleSaveMedia = async () => {
     if (!productId) return;
+    if (isCompresing) return;
     setIsSaving(true);
     setSaveStatus(null);
     try {
       const res = await updateProductMedia(productId, imageUrl, youtubeUrl);
       if (res && res.success) {
         setSaveStatus({ success: true, message: '✓ ¡Multimedia guardada exitosamente!' });
+        if (res.imageUrl !== undefined) {
+          setImageUrl(res.imageUrl || '');
+        }
+        try {
+          const { db } = await import('@/lib/offlineDB');
+          await db.products.update(productId, {
+            imageUrl: res.imageUrl !== undefined ? res.imageUrl : imageUrl
+          });
+        } catch (e) {
+          console.warn('[OfflineDB] Error al sincronizar imagen del producto local:', e);
+        }
       } else {
         setSaveStatus({ success: false, message: res?.error || 'No se pudo guardar la multimedia.' });
       }
@@ -468,19 +480,19 @@ export default function ProductImageSection({
           <button 
             type="button" 
             onClick={handleSaveMedia}
-            disabled={isSaving}
+            disabled={isSaving || isCompresing}
             className="btn-primary" 
             style={{ 
               padding: '0.75rem 2.5rem', 
               fontSize: '1.1rem', 
-              cursor: isSaving ? 'wait' : 'pointer',
-              opacity: isSaving ? 0.7 : 1,
+              cursor: (isSaving || isCompresing) ? 'wait' : 'pointer',
+              opacity: (isSaving || isCompresing) ? 0.7 : 1,
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.5rem'
             }}
           >
-            {isSaving ? 'Guardando Multimedia...' : 'Guardar Multimedia'}
+            {isCompresing ? 'Procesando imagen...' : isSaving ? 'Guardando Multimedia...' : 'Guardar Multimedia'}
           </button>
         </div>
       )}
