@@ -60,35 +60,41 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
   ) : false;
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', fontFamily: 'sans-serif', color: 'black' }} className="px-2 sm:px-0">
+    <div style={{ maxWidth: '1100px', width: '100%', margin: '0 auto', fontFamily: 'sans-serif', color: 'black', boxSizing: 'border-box' }} className="px-2 sm:px-4">
       
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 w-full">
-         <Link href="/ventas" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--caanma-text-muted)', textDecoration: 'none', fontWeight: 'bold' }}>
-            <ArrowLeft size={20} /> Volver a Ventas
+      {/* Top Header & Navigation */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem', width: '100%' }}>
+         <Link href="/ventas" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--caanma-text-muted)', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem' }}>
+            <ArrowLeft size={18} /> Volver a Ventas
          </Link>
-         <div className="flex flex-wrap gap-2 items-center w-full sm:w-auto">
-            <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir`} className="btn-primary flex-1 sm:flex-none justify-center" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1rem', borderRadius: '4px' }}>
-               <Printer size={20} /> Imprimir Nota (A4)
-            </Link>
-            <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir-ticket`} className="btn-secondary flex-1 sm:flex-none justify-center" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: '#fff', color: '#334155', fontWeight: 'bold' }}>
-               <Receipt size={20} /> Imprimir Ticket
-            </Link>
-            <VentaActionsClient 
-              saleId={sale.id}
-              saleFolio={sale.folio}
-              status={sale.status}
-              paymentMethod={sale.paymentMethod}
-              customerPhone={sale.customer?.phone}
-              customerName={sale.customer?.name}
-              saleTotal={sale.total}
-              invoiceId={sale.invoiceId}
-              currentCustomerId={sale.customerId}
-              currentNotes={sale.notes}
-              customers={customers}
-              deliveryOrder={sale.deliveryOrder ? { id: sale.deliveryOrder.id, status: sale.deliveryOrder.status } : null}
-              customerHasCredit={customerHasCredit}
-            />
+         <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+            Folio: <strong style={{ color: '#0f172a' }}>#{sale.folio || sale.id.slice(0, 8).toUpperCase()}</strong>
          </div>
+      </div>
+
+      {/* Action Buttons Toolbar */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', alignItems: 'center', width: '100%', marginBottom: '1.5rem' }}>
+         <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir`} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none', padding: '0.5rem 0.85rem', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold' }}>
+            <Printer size={16} /> Imprimir Nota (A4)
+         </Link>
+         <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir-ticket`} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none', padding: '0.5rem 0.85rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: '#fff', color: '#334155', fontSize: '0.85rem', fontWeight: 'bold' }}>
+            <Receipt size={16} /> Imprimir Ticket
+         </Link>
+         <VentaActionsClient 
+           saleId={sale.id}
+           saleFolio={sale.folio}
+           status={sale.status}
+           paymentMethod={sale.paymentMethod}
+           customerPhone={sale.customer?.phone}
+           customerName={sale.customer?.name}
+           saleTotal={sale.total}
+           invoiceId={sale.invoiceId}
+           currentCustomerId={sale.customerId}
+           currentNotes={sale.notes}
+           customers={customers}
+           deliveryOrder={sale.deliveryOrder ? { id: sale.deliveryOrder.id, status: sale.deliveryOrder.status } : null}
+           customerHasCredit={customerHasCredit}
+         />
       </div>
 
       {sale.cancellationStatus === 'pending' && (
@@ -203,68 +209,70 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
         </div>
 
         {/* Items Table */}
-        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', marginBottom: '2rem' }}>
-          <thead>
-            <tr style={{ borderBottom: '2px solid #cbd5e1', backgroundColor: '#f8fafc' }}>
-              <th style={{ padding: '0.5rem 0.75rem', color: '#475569', fontWeight: '500' }}>Descripción del Artículo</th>
-              <th style={{ padding: '0.5rem 0.75rem', color: '#475569', textAlign: 'center', fontWeight: '500' }}>Cant.</th>
-              <th style={{ padding: '0.5rem 0.75rem', color: '#475569', textAlign: 'right', fontWeight: '500' }}>Precio Unit.</th>
-              <th style={{ padding: '0.5rem 0.75rem', color: '#475569', textAlign: 'right', fontWeight: '500' }}>Subtotal</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sale.items.map((item) => (
-              <tr key={item.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <td data-label="Descripción del Artículo" style={{ padding: '0.4rem 0.75rem' }}>
-                  <div className="flex flex-col text-right sm:text-left min-w-0 break-words">
-                    {item.product ? (
-                      <Link 
-                        href={`/productos/${item.productId}`} 
-                        style={{ 
-                          fontWeight: 'bold', 
-                          color: 'var(--caanma-primary, #8b5cf6)', 
-                          textDecoration: 'none' 
-                        }}
-                        className="hover:underline break-words"
-                      >
-                        {item.product.name}
-                      </Link>
-                    ) : (
-                      <div style={{ fontWeight: 'bold', color: '#0f172a' }}>Artículo Retirado del Catálogo</div>
-                    )}
-                    {item.variant && <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Var: {item.variant.attribute}</div>}
-                    <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>SKU: {item.product?.sku || '-'} | Código: {item.product?.barcode || '-'}</div>
-                  </div>
-                </td>
-                <td data-label="Cant." style={{ padding: '0.4rem 0.75rem', fontWeight: 'bold', textAlign: 'center', color: '#0f172a' }}>{item.quantity}</td>
-                <td data-label="Precio Unit." style={{ padding: '0.4rem 0.75rem', textAlign: 'right', color: '#0f172a' }}>${item.price.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
-                <td data-label="Subtotal" style={{ padding: '0.4rem 0.75rem', textAlign: 'right', fontWeight: 'bold', color: '#0f172a' }}>${(item.price * item.quantity).toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+        <div style={{ overflowX: 'auto', width: '100%', marginBottom: '2rem' }}>
+          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid #cbd5e1', backgroundColor: '#f8fafc' }}>
+                <th style={{ padding: '0.5rem 0.75rem', color: '#475569', fontWeight: '500' }}>Descripción del Artículo</th>
+                <th style={{ padding: '0.5rem 0.75rem', color: '#475569', textAlign: 'center', fontWeight: '500' }}>Cant.</th>
+                <th style={{ padding: '0.5rem 0.75rem', color: '#475569', textAlign: 'right', fontWeight: '500' }}>Precio Unit.</th>
+                <th style={{ padding: '0.5rem 0.75rem', color: '#475569', textAlign: 'right', fontWeight: '500' }}>Subtotal</th>
               </tr>
-            ))}
+            </thead>
+            <tbody>
+              {sale.items.map((item) => (
+                <tr key={item.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td data-label="Descripción del Artículo" style={{ padding: '0.4rem 0.75rem' }}>
+                    <div className="flex flex-col text-right sm:text-left min-w-0 break-words">
+                      {item.product ? (
+                        <Link 
+                          href={`/productos/${item.productId}`} 
+                          style={{ 
+                            fontWeight: 'bold', 
+                            color: 'var(--caanma-primary, #8b5cf6)', 
+                            textDecoration: 'none' 
+                          }}
+                          className="hover:underline break-words"
+                        >
+                          {item.product.name}
+                        </Link>
+                      ) : (
+                        <div style={{ fontWeight: 'bold', color: '#0f172a' }}>Artículo Retirado del Catálogo</div>
+                      )}
+                      {item.variant && <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Var: {item.variant.attribute}</div>}
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>SKU: {item.product?.sku || '-'} | Código: {item.product?.barcode || '-'}</div>
+                    </div>
+                  </td>
+                  <td data-label="Cant." style={{ padding: '0.4rem 0.75rem', fontWeight: 'bold', textAlign: 'center', color: '#0f172a' }}>{item.quantity}</td>
+                  <td data-label="Precio Unit." style={{ padding: '0.4rem 0.75rem', textAlign: 'right', color: '#0f172a' }}>${item.price.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                  <td data-label="Subtotal" style={{ padding: '0.4rem 0.75rem', textAlign: 'right', fontWeight: 'bold', color: '#0f172a' }}>${(item.price * item.quantity).toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                </tr>
+              ))}
 
-            {unallocatedAmount > 0.009 && (
-              <tr style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '#fffbeb' }}>
-                <td data-label="Descripción del Artículo" style={{ padding: '0.45rem 0.75rem' }}>
-                  <div className="flex flex-col text-right sm:text-left min-w-0 break-words">
-                    <div style={{ fontWeight: 'bold', color: '#b45309' }}>
-                      📦 Ajuste por Artículo(s) Eliminado(s) del Catálogo
+              {unallocatedAmount > 0.009 && (
+                <tr style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '#fffbeb' }}>
+                  <td data-label="Descripción del Artículo" style={{ padding: '0.45rem 0.75rem' }}>
+                    <div className="flex flex-col text-right sm:text-left min-w-0 break-words">
+                      <div style={{ fontWeight: 'bold', color: '#b45309' }}>
+                        📦 Ajuste por Artículo(s) Eliminado(s) del Catálogo
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#d97706' }}>
+                        Diferencia por artículo(s) retirado(s) de inventario para cuadrar con la factura/cobro.
+                      </div>
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: '#d97706' }}>
-                      Diferencia por artículo(s) retirado(s) de inventario para cuadrar con la factura/cobro.
-                    </div>
-                  </div>
-                </td>
-                <td data-label="Cant." style={{ padding: '0.45rem 0.75rem', fontWeight: 'bold', textAlign: 'center', color: '#b45309' }}>1</td>
-                <td data-label="Precio Unit." style={{ padding: '0.45rem 0.75rem', textAlign: 'right', color: '#b45309' }}>${unallocatedAmount.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
-                <td data-label="Subtotal" style={{ padding: '0.45rem 0.75rem', textAlign: 'right', fontWeight: 'bold', color: '#b45309' }}>${unallocatedAmount.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                  </td>
+                  <td data-label="Cant." style={{ padding: '0.45rem 0.75rem', fontWeight: 'bold', textAlign: 'center', color: '#b45309' }}>1</td>
+                  <td data-label="Precio Unit." style={{ padding: '0.45rem 0.75rem', textAlign: 'right', color: '#b45309' }}>${unallocatedAmount.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                  <td data-label="Subtotal" style={{ padding: '0.45rem 0.75rem', textAlign: 'right', fontWeight: 'bold', color: '#b45309' }}>${unallocatedAmount.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
         {/* Totals */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', alignItems: 'flex-start' }}>
-          <div style={{ flex: 1, paddingRight: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.5rem', width: '100%' }}>
+          <div style={{ flex: 1, minWidth: '260px' }}>
              {sale.notes && (() => {
                const shipmentMatch = sale.notes.match(/\/shipments\/(\d+)/);
                const shipmentId = shipmentMatch ? shipmentMatch[1] : null;
@@ -272,7 +280,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
                
                return (
                  <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
-                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
                      <div>
                        <p style={{ margin: 0, fontSize: '0.875rem', color: '#475569', fontWeight: 'bold' }}>Notas del Ticket:</p>
                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: '#0f172a' }}>{sale.notes}</p>
@@ -287,14 +295,13 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
                            alignItems: 'center',
                            backgroundColor: '#f59e0b',
                            color: '#ffffff',
-                           padding: '0.5rem 1rem',
+                           padding: '0.4rem 0.85rem',
                            borderRadius: '6px',
                            fontWeight: 'bold',
                            textDecoration: 'none',
-                           fontSize: '0.875rem',
+                           fontSize: '0.85rem',
                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                           whiteSpace: 'nowrap',
-                           marginLeft: '1rem'
+                           whiteSpace: 'nowrap'
                          }}
                        >
                          Imprimir Guía (Mercado Libre)
@@ -305,7 +312,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
                );
              })()}
           </div>
-          <div style={{ width: '300px' }}>
+          <div style={{ minWidth: '260px', width: '100%', maxWidth: '320px' }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #e2e8f0' }}>
                 <span style={{ color: '#64748b', fontSize: '1.1rem' }}>Subtotal:</span>
                 <span style={{ fontSize: '1.1rem', color: '#0f172a' }}>${finalSubtotal.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>

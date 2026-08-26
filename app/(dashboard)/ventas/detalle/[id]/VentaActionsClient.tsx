@@ -321,19 +321,20 @@ export default function VentaActionsClient({
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.75rem 1.25rem',
-            borderRadius: '4px',
+            gap: '0.4rem',
+            padding: '0.5rem 0.85rem',
+            borderRadius: '6px',
             backgroundColor: '#f0fdf4',
             color: '#16a34a',
             border: '1px solid #bbf7d0',
             cursor: 'pointer',
             fontWeight: 'bold',
+            fontSize: '0.85rem',
             opacity: isPending ? 0.7 : 1
           }}
           title="Sincronizar total y saldos de CxC con el comprobante fiscal SAT"
         >
-          <CheckCircle size={18} />
+          <CheckCircle size={16} />
           {isPending ? 'Sincronizando...' : 'Cuadrar Venta con SAT'}
         </button>
       )}
@@ -345,17 +346,18 @@ export default function VentaActionsClient({
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.75rem 1.25rem',
-            borderRadius: '4px',
+            gap: '0.4rem',
+            padding: '0.5rem 0.85rem',
+            borderRadius: '6px',
             backgroundColor: '#e6f4ea',
             color: '#137333',
             border: '1px solid #c2e7cc',
             cursor: 'pointer',
             fontWeight: 'bold',
+            fontSize: '0.85rem',
           }}
         >
-          <Share2 size={18} />
+          <Share2 size={16} />
           Enviar Venta (WhatsApp)
         </button>
       )}
@@ -368,17 +370,18 @@ export default function VentaActionsClient({
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.75rem 1.25rem',
-            borderRadius: '4px',
+            gap: '0.4rem',
+            padding: '0.5rem 0.85rem',
+            borderRadius: '6px',
             backgroundColor: '#f1f5f9',
             color: '#475569',
             border: '1px solid #cbd5e1',
             cursor: 'pointer',
             fontWeight: 'bold',
+            fontSize: '0.85rem',
           }}
         >
-          <Edit3 size={18} />
+          <Edit3 size={16} />
           Editar Venta
         </button>
       )}
@@ -393,19 +396,20 @@ export default function VentaActionsClient({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.75rem 1.25rem',
-              borderRadius: '4px',
+              gap: '0.4rem',
+              padding: '0.5rem 0.85rem',
+              borderRadius: '6px',
               backgroundColor: deliveryOrder.status === 'DELIVERED' ? '#fff7ed' : '#eff6ff',
               color: deliveryOrder.status === 'DELIVERED' ? '#c2410c' : '#1d4ed8',
               border: `1px solid ${deliveryOrder.status === 'DELIVERED' ? '#fde68a' : '#bfdbfe'}`,
               cursor: 'pointer',
               fontWeight: 'bold',
+              fontSize: '0.85rem',
               opacity: isPending ? 0.7 : 1
             }}
           >
-            {deliveryOrder.status === 'DELIVERED' ? <Square size={18} /> : <CheckSquare size={18} />}
-            {deliveryOrder.status === 'DELIVERED' ? 'Marcar como Pendiente de Entrega' : 'Marcar como Entregado'}
+            {deliveryOrder.status === 'DELIVERED' ? <Square size={16} /> : <CheckSquare size={16} />}
+            {deliveryOrder.status === 'DELIVERED' ? 'Marcar Pendiente' : 'Marcar Entregado'}
           </button>
 
           {status === 'PENDING' && (
@@ -416,18 +420,19 @@ export default function VentaActionsClient({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.75rem 1.25rem',
-                borderRadius: '4px',
+                gap: '0.4rem',
+                padding: '0.5rem 0.85rem',
+                borderRadius: '6px',
                 backgroundColor: '#fef3c7',
                 color: '#b45309',
                 border: '1px solid #fde68a',
                 cursor: 'pointer',
                 fontWeight: 'bold',
+                fontSize: '0.85rem',
                 opacity: isPending ? 0.7 : 1
               }}
             >
-              <DollarSign size={18} />
+              <DollarSign size={16} />
               Confirmar Pago
             </button>
           )}
@@ -444,16 +449,17 @@ export default function VentaActionsClient({
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.75rem 1.25rem',
-            borderRadius: '4px',
+            gap: '0.4rem',
+            padding: '0.5rem 0.85rem',
+            borderRadius: '6px',
             cursor: 'pointer',
             fontWeight: 'bold',
+            fontSize: '0.85rem',
             border: 'none',
             opacity: isPending ? 0.7 : 1
           }}
         >
-          <AlertTriangle size={18} />
+          <AlertTriangle size={16} />
           {isPending ? 'Cancelando...' : 'Cancelar Venta'}
         </button>
       )}
@@ -470,16 +476,17 @@ export default function VentaActionsClient({
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.75rem 1.25rem',
-            borderRadius: '4px',
+            gap: '0.4rem',
+            padding: '0.5rem 0.85rem',
+            borderRadius: '6px',
             cursor: 'pointer',
             fontWeight: 'bold',
+            fontSize: '0.85rem',
             border: 'none',
             opacity: isPending ? 0.7 : 1
           }}
         >
-          <FileText size={18} />
+          <FileText size={16} />
           {isPending ? 'Facturando...' : 'Timbrar Factura (SAT)'}
         </button>
       )}
@@ -494,18 +501,19 @@ export default function VentaActionsClient({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.75rem 1.25rem',
-              borderRadius: '4px',
+              gap: '0.4rem',
+              padding: '0.5rem 0.85rem',
+              borderRadius: '6px',
               backgroundColor: '#eff6ff',
               color: '#1d4ed8',
               border: '1px solid #bfdbfe',
               cursor: 'pointer',
               fontWeight: 'bold',
+              fontSize: '0.85rem',
               textDecoration: 'none'
             }}
           >
-            <FileText size={18} />
+            <FileText size={16} />
             Descargar PDF (CFDI)
           </a>
           <a
@@ -515,18 +523,19 @@ export default function VentaActionsClient({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.75rem 1.25rem',
-              borderRadius: '4px',
+              gap: '0.4rem',
+              padding: '0.5rem 0.85rem',
+              borderRadius: '6px',
               backgroundColor: '#f8fafc',
               color: '#475569',
               border: '1px solid #cbd5e1',
               cursor: 'pointer',
               fontWeight: 'bold',
+              fontSize: '0.85rem',
               textDecoration: 'none'
             }}
           >
-            <FileText size={18} />
+            <FileText size={16} />
             Descargar XML (CFDI)
           </a>
 
@@ -540,18 +549,19 @@ export default function VentaActionsClient({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.75rem 1.25rem',
-                  borderRadius: '4px',
+                  gap: '0.4rem',
+                  padding: '0.5rem 0.85rem',
+                  borderRadius: '6px',
                   backgroundColor: '#fef2f2',
                   color: '#dc2626',
                   border: '1px solid #fca5a5',
                   cursor: 'pointer',
                   fontWeight: 'bold',
+                  fontSize: '0.85rem',
                   textDecoration: 'none'
                 }}
               >
-                <FileText size={18} />
+                <FileText size={16} />
                 Descargar Acuse PDF
               </a>
               <a
@@ -561,18 +571,19 @@ export default function VentaActionsClient({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.75rem 1.25rem',
-                  borderRadius: '4px',
+                  gap: '0.4rem',
+                  padding: '0.5rem 0.85rem',
+                  borderRadius: '6px',
                   backgroundColor: '#fff7ed',
                   color: '#c2410c',
                   border: '1px solid #ffedd5',
                   cursor: 'pointer',
                   fontWeight: 'bold',
+                  fontSize: '0.85rem',
                   textDecoration: 'none'
                 }}
               >
-                <FileText size={18} />
+                <FileText size={16} />
                 Descargar Acuse XML
               </a>
             </>
@@ -589,18 +600,19 @@ export default function VentaActionsClient({
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.75rem 1.25rem',
-            borderRadius: '4px',
+            gap: '0.4rem',
+            padding: '0.5rem 0.85rem',
+            borderRadius: '6px',
             cursor: 'pointer',
             fontWeight: 'bold',
+            fontSize: '0.85rem',
             border: 'none',
             backgroundColor: '#dc2626',
             color: 'white',
             opacity: isPending ? 0.7 : 1
           }}
         >
-          <AlertTriangle size={18} />
+          <AlertTriangle size={16} />
           {isPending ? 'Cancelando Factura...' : 'Cancelar Factura (SAT)'}
         </button>
       )}
