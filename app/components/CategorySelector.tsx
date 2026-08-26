@@ -37,13 +37,13 @@ export default function CategorySelector({ categories, defaultValue = '', name =
   };
 
   return (
-    <div>
+    <div style={{ width: '100%', minWidth: 0 }}>
       {!showNewInput ? (
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', width: '100%', minWidth: 0 }}>
           <select 
             value={selectedCategory} 
             onChange={(e) => setSelectedCategory(e.target.value)}
-            style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white', cursor: 'pointer' }}
+            style={{ flex: 1, minWidth: 0, width: '100%', padding: '0.75rem 0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', backgroundColor: 'white', cursor: 'pointer', textOverflow: 'ellipsis' }}
           >
             <option value="">-- Seleccionar Categoría --</option>
             {categoriesList.map((cat) => (
@@ -53,14 +53,14 @@ export default function CategorySelector({ categories, defaultValue = '', name =
           <button 
             type="button" 
             onClick={() => setShowNewInput(true)}
-            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '42px', height: '42px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+            style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '38px', height: '38px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
             title="Nueva Categoría"
           >
-            <Plus size={20} />
+            <Plus size={18} />
           </button>
         </div>
       ) : (
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', width: '100%', minWidth: 0 }}>
           <input 
             type="text" 
             value={newCategoryName} 
@@ -73,12 +73,12 @@ export default function CategorySelector({ categories, defaultValue = '', name =
                 handleAddCategory();
               }
             }}
-            style={{ flex: 1, padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
+            style={{ flex: 1, minWidth: 0, width: '100%', padding: '0.65rem 0.5rem', borderRadius: '4px', border: '1px solid var(--caanma-border)' }}
           />
           <button 
             type="button" 
             onClick={handleAddCategory}
-            style={{ padding: '0.75rem 1rem', backgroundColor: '#22c55e', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+            style={{ flexShrink: 0, padding: '0.65rem 0.75rem', backgroundColor: '#22c55e', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem' }}
           >
             Agregar
           </button>
@@ -88,7 +88,7 @@ export default function CategorySelector({ categories, defaultValue = '', name =
               setNewCategoryName('');
               setShowNewInput(false);
             }}
-            style={{ padding: '0.75rem 1rem', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+            style={{ flexShrink: 0, padding: '0.65rem 0.75rem', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem' }}
           >
             Cancelar
           </button>

@@ -2015,15 +2015,17 @@ export async function syncAndFixAllSalesAndCreditBalancesAction() {
     const session = await getSession();
     if (!session) throw new Error('No autorizado');
 
-    // 1. Fetch candidate sales (invoiced or credit sales)
+    const jul1Date = new Date('2026-07-01T00:00:00.000Z');
+
+    // 1. Fetch candidate sales (all since July 1, 2026 or invoiced/credit sales)
     const sales = await prisma.sale.findMany({
       where: {
         OR: [
+          { createdAt: { gte: jul1Date } },
           { invoiceId: { not: null } },
           { invoiceFolio: { not: null } },
           { paymentMethod: 'CREDIT' },
-          { folio: { contains: 'SAN1516', mode: 'insensitive' } },
-          { folio: { contains: 'SAN-1516', mode: 'insensitive' } }
+          { folio: { contains: '1516', mode: 'insensitive' } }
         ]
       },
       include: {
@@ -2056,9 +2058,11 @@ export async function syncAndFixAllSalesAndCreditBalancesAction() {
       let targetTotal = sale.total;
       let isInvoiceMatched = false;
 
-      // Special case check for SAN-1516 / SAN1516
-      const isSan1516 = (sale.folio || '').toUpperCase().includes('SAN1516') || (sale.invoiceFolio || '').toUpperCase().includes('SAN1516');
-      if (isSan1516 && targetTotal < 10896) {
+      const cleanFolio = (sale.folio || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+      const cleanInvoiceFolio = (sale.invoiceFolio || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+      const isSan1516 = cleanFolio.includes('SAN1516') || cleanInvoiceFolio.includes('SAN1516') || sale.id === '01339ebd-3382-4c7f-9e59-39ed75c09c48';
+
+      if (isSan1516) {
         targetTotal = 10896.00;
         isInvoiceMatched = true;
       }
@@ -2080,7 +2084,7 @@ export async function syncAndFixAllSalesAndCreditBalancesAction() {
 
       // Check if total or balanceDue needs correction
       const totalDiff = Math.abs(sale.total - targetTotal);
-      if (totalDiff > 0.01) {
+      if (totalDiff > 0.01 || isSan1516) {
         const oldTotal = sale.total;
         const newBalanceDue = sale.paymentMethod === 'CREDIT' ? Math.max(0, targetTotal) : sale.balanceDue;
 
@@ -2092,8 +2096,10 @@ export async function syncAndFixAllSalesAndCreditBalancesAction() {
           }
         });
 
-        fixedSalesCount++;
-        fixedDetails.push(`Venta Folio #${sale.folio || sale.id}: corregida de $${oldTotal.toFixed(2)} a $${targetTotal.toFixed(2)}`);
+        if (totalDiff > 0.01 || isSan1516) {
+          fixedSalesCount++;
+          fixedDetails.push(`Venta Folio #${sale.folio || sale.id.substring(0,8)}: ajustado total a $${targetTotal.toFixed(2)} (antes $${oldTotal.toFixed(2)})`);
+        }
       }
     }
 
@@ -2124,6 +2130,7 @@ export async function syncAndFixAllSalesAndCreditBalancesAction() {
           data: { creditBalance: actualDebt }
         });
         fixedCustomersCount++;
+        fixedDetails.push(`Cliente ${cust.name}: saldo en CxC actualizado a $${actualDebt.toFixed(2)}`);
       }
     }
 
@@ -2140,6 +2147,96 @@ export async function syncAndFixAllSalesAndCreditBalancesAction() {
     };
   } catch (error: any) {
     console.error('Error in syncAndFixAllSalesAndCreditBalancesAction:', error);
+    return { success: false, error: error.message || String(error) };
+  }
+}
+
+export async function syncSingleSaleWithInvoiceAction(saleId: string) {
+  try {
+    const session = await getSession();
+    if (!session) throw new Error('No autorizado');
+
+    const sale = await prisma.sale.findUnique({
+      where: { id: saleId },
+      include: { items: true, customer: true }
+    });
+
+    if (!sale) throw new Error('Venta no encontrada');
+
+    let targetTotal = sale.total;
+    let isInvoiceMatched = false;
+
+    const cleanFolio = (sale.folio || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    const cleanInvoiceFolio = (sale.invoiceFolio || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    const isSan1516 = cleanFolio.includes('SAN1516') || cleanInvoiceFolio.includes('SAN1516') || sale.id === '01339ebd-3382-4c7f-9e59-39ed75c09c48';
+
+    if (isSan1516) {
+      targetTotal = 10896.00;
+      isInvoiceMatched = true;
+    }
+
+    if (sale.invoiceId && !isInvoiceMatched) {
+      const branchSettingsList = await prisma.branchSettings.findMany({ select: { configJson: true } });
+      const apiKeysSet = new Set<string>();
+      for (const bs of branchSettingsList) {
+        if (bs.configJson) {
+          try {
+            const cfg = JSON.parse(bs.configJson);
+            if (cfg.facturacion?.liveKey) apiKeysSet.add(cfg.facturacion.liveKey);
+            if (cfg.facturacion?.apiTokenLive) apiKeysSet.add(cfg.facturacion.apiTokenLive);
+            if (cfg.facturacion?.testKey) apiKeysSet.add(cfg.facturacion.testKey);
+            if (cfg.facturacion?.apiTokenTest) apiKeysSet.add(cfg.facturacion.apiTokenTest);
+          } catch (e) {}
+        }
+      }
+      for (const key of Array.from(apiKeysSet)) {
+        try {
+          const Facturapi = (await import('facturapi')).default;
+          const facturapi = new Facturapi(key);
+          const inv = await facturapi.invoices.retrieve(sale.invoiceId);
+          if (inv && typeof inv.total === 'number') {
+            targetTotal = inv.total;
+            isInvoiceMatched = true;
+            break;
+          }
+        } catch (err) {}
+      }
+    }
+
+    const newBalanceDue = sale.paymentMethod === 'CREDIT' ? Math.max(0, targetTotal) : sale.balanceDue;
+
+    await prisma.sale.update({
+      where: { id: sale.id },
+      data: {
+        total: targetTotal,
+        ...(sale.paymentMethod === 'CREDIT' ? { balanceDue: newBalanceDue } : {})
+      }
+    });
+
+    if (sale.customerId) {
+      const creditSales = await prisma.sale.findMany({
+        where: { customerId: sale.customerId, paymentMethod: 'CREDIT', status: { not: 'CANCELLED' } },
+        select: { balanceDue: true }
+      });
+      const payments = await prisma.customerPayment.findMany({
+        where: { customerId: sale.customerId },
+        select: { amount: true }
+      });
+      const actualDebt = Math.max(0, creditSales.reduce((sum, s) => sum + s.balanceDue, 0) - payments.reduce((sum, p) => sum + p.amount, 0));
+
+      await prisma.customer.update({
+        where: { id: sale.customerId },
+        data: { creditBalance: actualDebt }
+      });
+    }
+
+    revalidatePath('/ventas');
+    revalidatePath(`/ventas/detalle/${saleId}`);
+    revalidatePath('/clientes/cobranza');
+
+    return { success: true, targetTotal };
+  } catch (error: any) {
+    console.error('Error in syncSingleSaleWithInvoiceAction:', error);
     return { success: false, error: error.message || String(error) };
   }
 }

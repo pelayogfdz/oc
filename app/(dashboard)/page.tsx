@@ -308,12 +308,12 @@ export default async function DashboardPage(props: Props) {
           { title: 'Ventas de Hoy', value: totalOrders.toLocaleString('es-MX'), icon: <ShoppingCart size={24} color="#3b82f6" /> },
           { title: 'Ticket Promedio', value: formatter.format(avgTicket), icon: <DollarSign size={24} color="#f59e0b" /> },
         ].map(stat => (
-          <div key={stat.title} style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-              <h3 style={{ color: '#6b7280', fontSize: '0.875rem', fontWeight: 'bold' }}>{stat.title}</h3>
+          <div key={stat.title} style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+              <h3 style={{ color: '#6b7280', fontSize: '0.875rem', fontWeight: 'bold', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stat.title}</h3>
               {stat.icon}
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#1f2937' }}>{stat.value}</div>
+            <div style={{ fontSize: 'clamp(1.2rem, 1.8vw, 1.6rem)', fontWeight: '900', color: '#1f2937', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={stat.value}>{stat.value}</div>
           </div>
         ))}
       </div>

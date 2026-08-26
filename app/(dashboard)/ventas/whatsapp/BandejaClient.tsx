@@ -69,6 +69,17 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
     });
   };
 
+  // Función para marcar todos los chats como leídos
+  const handleMarkAllAsRead = () => {
+    const updated = { ...readStatus };
+    const now = Date.now();
+    prospects.forEach((p: any) => {
+      updated[p.id] = now;
+    });
+    setReadStatus(updated);
+    localStorage.setItem("whatsapp_chats_read_status", JSON.stringify(updated));
+  };
+
   // Marcar chat seleccionado como leído automáticamente
   useEffect(() => {
     if (selectedProspectId) {
@@ -1260,6 +1271,19 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
               )}
             </button>
           </div>
+          
+          {filterTab === 'unread' && prospects.filter((p: any) => isProspectUnread(p)).length > 0 && (
+            <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fef2f2', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #fecaca' }}>
+              <span style={{ fontSize: '0.725rem', color: '#991b1b', fontWeight: '500' }}>Sin abrir acumulados en historial</span>
+              <button
+                type="button"
+                onClick={handleMarkAllAsRead}
+                style={{ fontSize: '0.725rem', fontWeight: 'bold', color: '#b91c1c', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                Marcar todos como leídos
+              </button>
+            </div>
+          )}
         </div>
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {filteredProspects.map((prospect: any) => {

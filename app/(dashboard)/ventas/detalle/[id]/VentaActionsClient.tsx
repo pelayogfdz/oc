@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Share2, AlertTriangle, Send, Loader2, CheckCircle, Edit3, FileText, CheckSquare, Square, DollarSign } from 'lucide-react';
 import { cancelSale, updateSale, confirmSalePayment } from '@/app/actions/sale';
-import { cancelInvoice, stampInvoice, checkDocumentSatStatus } from '@/app/actions/facturacion';
+import { cancelInvoice, stampInvoice, checkDocumentSatStatus, syncSingleSaleWithInvoiceAction } from '@/app/actions/facturacion';
 import { updateDeliveryOrder } from '@/app/actions/logistica';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 
@@ -292,8 +292,49 @@ export default function VentaActionsClient({
     });
   };
 
+  const handleSyncSaleTotal = () => {
+    startTransition(async () => {
+      try {
+        const res = await syncSingleSaleWithInvoiceAction(saleId);
+        if (res.success) {
+          alert(`Venta sincronizada correctamente con la Factura SAT. Nuevo total: $${res.targetTotal?.toFixed(2)}`);
+          router.refresh();
+        } else {
+          alert(`Error al sincronizar: ${res.error}`);
+        }
+      } catch (err: any) {
+        alert(`Error al sincronizar: ${err.message || String(err)}`);
+      }
+    });
+  };
+
   return (
     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+      {/* Sincronizar Total con Factura SAT */}
+      {invoiceId && (
+        <button
+          onClick={handleSyncSaleTotal}
+          disabled={isPending}
+          className="btn-secondary"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.75rem 1.25rem',
+            borderRadius: '4px',
+            backgroundColor: '#f0fdf4',
+            color: '#16a34a',
+            border: '1px solid #bbf7d0',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            opacity: isPending ? 0.7 : 1
+          }}
+          title="Sincronizar total y saldos de CxC con el comprobante fiscal SAT"
+        >
+          <CheckCircle size={18} />
+          {isPending ? 'Sincronizando...' : 'Cuadrar Venta con SAT'}
+        </button>
+      )}
       {/* Share WhatsApp */}
       {status !== 'CANCELLED' && (
         <button
@@ -1118,42 +1159,54 @@ export default function VentaActionsClient({
             </div>
 
             {/* Body */}
-            <div style={{ padding: '1.5rem' }}>
+            <div style={{ padding: '1.5rem', maxHeight: '60vh', overflowY: 'auto' }}>
               <p style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: '#475569', lineHeight: '1.4' }}>
                 Selecciona el método de pago utilizado por el cliente para liquidar el pedido por un total de <strong>${saleTotal.toLocaleString('es-MX', {minimumFractionDigits: 2})}</strong>:
               </p>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }} className="hover:bg-slate-50">
-                  <input 
-                    type="radio" 
-                    name="paymentMethodSelect" 
-                    value="CASH" 
-                    checked={selectedPaymentMethod === 'CASH'}
-                    onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                  />
-                  <span>Efectivo (Caja)</span>
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }} className="hover:bg-slate-50">
-                  <input 
-                    type="radio" 
-                    name="paymentMethodSelect" 
-                    value="CARD" 
-                    checked={selectedPaymentMethod === 'CARD'}
-                    onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                  />
-                  <span>Tarjeta (Débito/Crédito)</span>
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }} className="hover:bg-slate-50">
-                  <input 
-                    type="radio" 
-                    name="paymentMethodSelect" 
-                    value="TRANSFER" 
-                    checked={selectedPaymentMethod === 'TRANSFER'}
-                    onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                  />
-                  <span>Transferencia Electrónica</span>
-                </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {[
+                  { id: 'CASH', label: '💵 Efectivo (Caja)' },
+                  { id: 'CARD_DEBIT', label: '💳 Tarjeta de Débito' },
+                  { id: 'CARD_CREDIT', label: '💳 Tarjeta de Crédito' },
+                  { id: 'TRANSFER', label: '🏦 Transferencia Electrónica' },
+                  { id: 'CHEQUE', label: '📑 Cheque' },
+                  { id: 'VALES', label: '🎟️ Vales de Despensa / Monedero' },
+                  { id: 'DEPOSIT', label: '🏛️ Depósito Bancario' },
+                  { id: 'CREDIT', label: '📋 Crédito Cta. (A Cuenta del Cliente)' },
+                  { id: 'OTHER', label: '🔄 Otro Método de Pago' },
+                ].map((method) => {
+                  const isSelected = selectedPaymentMethod === method.id;
+                  return (
+                    <label 
+                      key={method.id}
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.6rem', 
+                        cursor: 'pointer', 
+                        padding: '0.65rem 0.85rem', 
+                        borderRadius: '8px', 
+                        border: isSelected ? '2px solid var(--caanma-primary, #8b5cf6)' : '1px solid #cbd5e1',
+                        backgroundColor: isSelected ? '#f5f3ff' : 'white',
+                        fontWeight: isSelected ? 'bold' : 'normal',
+                        fontSize: '0.9rem',
+                        transition: 'all 0.15s ease-in-out'
+                      }} 
+                      className="hover:bg-slate-50"
+                    >
+                      <input 
+                        type="radio" 
+                        name="paymentMethodSelect" 
+                        value={method.id} 
+                        checked={isSelected}
+                        onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                        style={{ width: '1.1rem', height: '1.1rem', accentColor: '#8b5cf6' }}
+                      />
+                      <span>{method.label}</span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
 

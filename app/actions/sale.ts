@@ -1003,9 +1003,11 @@ export async function confirmSalePayment(
       }
     }
 
-    const cashAmount = paymentMethod === 'CASH' ? sale.total : 0;
+    const isCredit = paymentMethod === 'CREDIT';
+    const cashAmount = (paymentMethod === 'CASH' || paymentMethod === 'EFECTIVO') ? sale.total : 0;
     const cardAmount = (paymentMethod === 'CARD' || paymentMethod === 'CARD_CREDIT' || paymentMethod === 'CARD_DEBIT') ? sale.total : 0;
     const transferAmount = paymentMethod === 'TRANSFER' ? sale.total : 0;
+    const balanceDue = isCredit ? sale.total : 0;
 
     const updatedSale = await prisma.sale.update({
       where: { id: saleId },
@@ -1016,12 +1018,20 @@ export async function confirmSalePayment(
         cashAmount,
         cardAmount,
         transferAmount,
-        balanceDue: 0
+        balanceDue
       }
     });
 
+    if (isCredit && sale.customerId) {
+      await prisma.customer.update({
+        where: { id: sale.customerId },
+        data: { creditBalance: { increment: sale.total } }
+      });
+    }
+
     revalidatePath('/ventas');
     revalidatePath(`/ventas/detalle/${saleId}`);
+    revalidatePath('/clientes/cobranza');
 
     return { success: true, sale: updatedSale };
   } catch (error: any) {

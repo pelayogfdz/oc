@@ -189,34 +189,34 @@ export default function ComisionesReportClient({
       <div style={{ opacity: loading ? 0.6 : 1, transition: 'opacity 0.2s', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         
         {/* Metrics Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
-              <TrendingUp size={16} color="#16a34a" /> Venta Personal Acumulada
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <TrendingUp size={16} color="#16a34a" style={{ flexShrink: 0 }} /> Venta Personal Acumulada
             </span>
-            <span style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#16a34a' }}>{formatCurrency(metrics.totalSales)}</span>
+            <span style={{ fontSize: 'clamp(1.2rem, 1.8vw, 1.6rem)', fontWeight: 'bold', color: '#16a34a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatCurrency(metrics.totalSales)}>{formatCurrency(metrics.totalSales)}</span>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
-              <DollarSign size={16} color="var(--caanma-primary)" /> Comisiones Generadas
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <DollarSign size={16} color="var(--caanma-primary)" style={{ flexShrink: 0 }} /> Comisiones Generadas
             </span>
-            <span style={{ fontSize: '1.75rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>{formatCurrency(metrics.totalCommissions)}</span>
+            <span style={{ fontSize: 'clamp(1.2rem, 1.8vw, 1.6rem)', fontWeight: 'bold', color: 'var(--caanma-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatCurrency(metrics.totalCommissions)}>{formatCurrency(metrics.totalCommissions)}</span>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
-              <Award size={16} color="#f59e0b" /> Bonos Asignados
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <Award size={16} color="#f59e0b" style={{ flexShrink: 0 }} /> Bonos Asignados
             </span>
-            <span style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#d97706' }}>{formatCurrency(metrics.totalBonuses)}</span>
+            <span style={{ fontSize: 'clamp(1.2rem, 1.8vw, 1.6rem)', fontWeight: 'bold', color: '#d97706', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatCurrency(metrics.totalBonuses)}>{formatCurrency(metrics.totalBonuses)}</span>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
-              <Users size={16} color="#8b5cf6" /> Vendedores con Venta
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <Users size={16} color="#8b5cf6" style={{ flexShrink: 0 }} /> Vendedores con Venta
             </span>
-            <span style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#7c3aed' }}>
-              {metrics.activeSellersCount} <span style={{ fontSize: '1rem', color: 'var(--caanma-text-muted)', fontWeight: 'normal' }}>de {data.length}</span>
+            <span style={{ fontSize: 'clamp(1.2rem, 1.8vw, 1.6rem)', fontWeight: 'bold', color: '#7c3aed', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {metrics.activeSellersCount} <span style={{ fontSize: '0.9rem', color: 'var(--caanma-text-muted)', fontWeight: 'normal' }}>de {data.length}</span>
             </span>
           </div>
         </div>

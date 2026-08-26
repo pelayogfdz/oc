@@ -132,7 +132,7 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
           </ResponsiveContainer>
         </div>
 
-        <div className="report-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 350px', gap: '2rem', alignItems: 'start' }}>
+        <div className="report-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem', alignItems: 'start' }}>
           
           {/* Tabla Analítica */}
           <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>

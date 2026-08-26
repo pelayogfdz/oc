@@ -285,43 +285,43 @@ export default function CombustiblesClient({
       {activeTab === 'embarques' && (
         <>
           {/* Summary Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-            <div className="card" style={{ padding: '1.25rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '100px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+            <div className="card" style={{ padding: '1.25rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '100px', minWidth: 0 }}>
               <div>
-                <p style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: '500' }}>Embarques Totales</p>
-                <h3 style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#1e293b', marginTop: '0.25rem' }}>{totalShipments}</h3>
+                <p style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: '500', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Embarques Totales</p>
+                <h3 style={{ fontSize: 'clamp(1.2rem, 1.8vw, 1.6rem)', fontWeight: 'bold', color: '#1e293b', marginTop: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{totalShipments}</h3>
               </div>
               <Truck size={24} style={{ alignSelf: 'flex-end', color: '#64748b' }} />
             </div>
 
-            <div className="card" style={{ padding: '1.25rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '100px' }}>
+            <div className="card" style={{ padding: '1.25rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '100px', minWidth: 0 }}>
               <div>
-                <p style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: '500' }}>Venta Total (Ingresos)</p>
-                <h3 style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#10b981', marginTop: '0.25rem' }}>${totalVentas.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</h3>
+                <p style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: '500', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Venta Total (Ingresos)</p>
+                <h3 style={{ fontSize: 'clamp(1.1rem, 1.6vw, 1.5rem)', fontWeight: 'bold', color: '#10b981', marginTop: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={`$${totalVentas.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`}>${totalVentas.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</h3>
               </div>
               <Coins size={24} style={{ alignSelf: 'flex-end', color: '#10b981' }} />
             </div>
 
-            <div className="card" style={{ padding: '1.25rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '100px' }}>
+            <div className="card" style={{ padding: '1.25rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '100px', minWidth: 0 }}>
               <div>
-                <p style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: '500' }}>Costo Combustible (Compra)</p>
-                <h3 style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#ef4444', marginTop: '0.25rem' }}>${totalCompras.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</h3>
+                <p style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: '500', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Costo Combustible (Compra)</p>
+                <h3 style={{ fontSize: 'clamp(1.1rem, 1.6vw, 1.5rem)', fontWeight: 'bold', color: '#ef4444', marginTop: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={`$${totalCompras.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`}>${totalCompras.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</h3>
               </div>
               <DollarSign size={24} style={{ alignSelf: 'flex-end', color: '#ef4444' }} />
             </div>
 
-            <div className="card" style={{ padding: '1.25rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '100px' }}>
+            <div className="card" style={{ padding: '1.25rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '100px', minWidth: 0 }}>
               <div>
-                <p style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: '500' }}>Costos Logísticos Viajes</p>
-                <h3 style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#f59e0b', marginTop: '0.25rem' }}>${totalLogistica.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</h3>
+                <p style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: '500', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Costos Logísticos Viajes</p>
+                <h3 style={{ fontSize: 'clamp(1.1rem, 1.6vw, 1.5rem)', fontWeight: 'bold', color: '#f59e0b', marginTop: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={`$${totalLogistica.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`}>${totalLogistica.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</h3>
               </div>
               <MapPin size={24} style={{ alignSelf: 'flex-end', color: '#f59e0b' }} />
             </div>
 
-            <div className="card" style={{ padding: '1.25rem', borderRadius: '12px', borderLeft: '4px solid #0284c7', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.15)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '100px', backgroundColor: '#f0f9ff' }}>
+            <div className="card" style={{ padding: '1.25rem', borderRadius: '12px', borderLeft: '4px solid #0284c7', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.15)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '100px', backgroundColor: '#f0f9ff', minWidth: 0 }}>
               <div>
-                <p style={{ color: '#0284c7', fontSize: '0.85rem', fontWeight: '600' }}>Utilidad Neta Est. total</p>
-                <h3 style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#0369a1', marginTop: '0.25rem' }}>${totalNetProfit.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</h3>
+                <p style={{ color: '#0284c7', fontSize: '0.85rem', fontWeight: '600', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Utilidad Neta Est. total</p>
+                <h3 style={{ fontSize: 'clamp(1.1rem, 1.6vw, 1.5rem)', fontWeight: 'bold', color: '#0369a1', marginTop: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={`$${totalNetProfit.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`}>${totalNetProfit.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</h3>
               </div>
               <TrendingUp size={24} style={{ alignSelf: 'flex-end', color: '#0284c7' }} />
             </div>

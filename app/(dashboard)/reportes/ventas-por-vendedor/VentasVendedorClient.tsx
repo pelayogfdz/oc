@@ -265,45 +265,45 @@ export default function VentasVendedorClient({ initialData, initialBranchId, ava
 
       <div style={{ opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
         {/* KPI Panel Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#eff6ff', borderRadius: '8px' }}><Users size={20} color="#3b82f6" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Vendedores Activos</h3>
+              <div style={{ padding: '0.5rem', backgroundColor: '#eff6ff', borderRadius: '8px', flexShrink: 0 }}><Users size={20} color="#3b82f6" /></div>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Vendedores Activos</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#1e293b' }}>{stats.totalSellers}</div>
+            <div style={{ fontSize: 'clamp(1.2rem, 1.8vw, 1.6rem)', fontWeight: '900', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stats.totalSellers}</div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#fdf2f8', borderRadius: '8px' }}><TrendingUp size={20} color="#be185d" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Ventas Totales</h3>
+              <div style={{ padding: '0.5rem', backgroundColor: '#fdf2f8', borderRadius: '8px', flexShrink: 0 }}><TrendingUp size={20} color="#be185d" /></div>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Ventas Totales</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#be185d' }}>{stats.totalTransactions} cobros</div>
+            <div style={{ fontSize: 'clamp(1.2rem, 1.8vw, 1.6rem)', fontWeight: '900', color: '#be185d', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stats.totalTransactions} cobros</div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#f0fdf4', borderRadius: '8px' }}><DollarSign size={20} color="#16a34a" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Monto Consol.</h3>
+              <div style={{ padding: '0.5rem', backgroundColor: '#f0fdf4', borderRadius: '8px', flexShrink: 0 }}><DollarSign size={20} color="#16a34a" /></div>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Monto Consol.</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#16a34a' }}>{formatter.format(stats.totalSalesValue)}</div>
+            <div style={{ fontSize: 'clamp(1.1rem, 1.6vw, 1.5rem)', fontWeight: '900', color: '#16a34a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatter.format(stats.totalSalesValue)}>{formatter.format(stats.totalSalesValue)}</div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#fef3c7', borderRadius: '8px' }}><Award size={20} color="#d97706" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Ticket Prom. Gral</h3>
+              <div style={{ padding: '0.5rem', backgroundColor: '#fef3c7', borderRadius: '8px', flexShrink: 0 }}><Award size={20} color="#d97706" /></div>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Ticket Prom. Gral</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#d97706' }}>{formatter.format(stats.overallAvgTicket)}</div>
+            <div style={{ fontSize: 'clamp(1.1rem, 1.6vw, 1.5rem)', fontWeight: '900', color: '#d97706', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatter.format(stats.overallAvgTicket)}>{formatter.format(stats.overallAvgTicket)}</div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#f5f3ff', borderRadius: '8px' }}><DollarSign size={20} color="#7c3aed" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Comisiones Gral</h3>
+              <div style={{ padding: '0.5rem', backgroundColor: '#f5f3ff', borderRadius: '8px', flexShrink: 0 }}><DollarSign size={20} color="#7c3aed" /></div>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Comisiones Gral</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#7c3aed' }}>{formatter.format(stats.totalCommissions)}</div>
+            <div style={{ fontSize: 'clamp(1.1rem, 1.6vw, 1.5rem)', fontWeight: '900', color: '#7c3aed', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatter.format(stats.totalCommissions)}>{formatter.format(stats.totalCommissions)}</div>
           </div>
         </div>
 

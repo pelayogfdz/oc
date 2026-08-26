@@ -340,23 +340,23 @@ export default function CuentasPorCobrarReportClient({
       </div>
 
       {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
-          <h3 style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Cartera Total (CxC)</h3>
-          <div style={{ fontSize: '1.85rem', fontWeight: '900', color: 'var(--caanma-text)' }}>{formatCurrency(totals.totalCobrar)}</div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)', marginTop: '0.5rem' }}>{totals.totalDocs} documentos pendientes</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+        <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', minWidth: 0 }}>
+          <h3 style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Cartera Total (CxC)</h3>
+          <div style={{ fontSize: 'clamp(1.2rem, 1.8vw, 1.6rem)', fontWeight: '900', color: 'var(--caanma-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatCurrency(totals.totalCobrar)}>{formatCurrency(totals.totalCobrar)}</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)', marginTop: '0.5rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{totals.totalDocs} documentos pendientes</div>
         </div>
-        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
-          <h3 style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Saldo Vencido</h3>
-          <div style={{ fontSize: '1.85rem', fontWeight: '900', color: '#dc2626' }}>{formatCurrency(totals.totalVencido)}</div>
-          <div style={{ fontSize: '0.8rem', color: '#dc2626', marginTop: '0.5rem', fontWeight: '500' }}>
+        <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', minWidth: 0 }}>
+          <h3 style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Saldo Vencido</h3>
+          <div style={{ fontSize: 'clamp(1.2rem, 1.8vw, 1.6rem)', fontWeight: '900', color: '#dc2626', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatCurrency(totals.totalVencido)}>{formatCurrency(totals.totalVencido)}</div>
+          <div style={{ fontSize: '0.8rem', color: '#dc2626', marginTop: '0.5rem', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {totals.totalCobrar > 0 ? `${((totals.totalVencido / totals.totalCobrar) * 100).toFixed(1)}%` : '0%'} de la cartera
           </div>
         </div>
-        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
-          <h3 style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Saldo al Corriente</h3>
-          <div style={{ fontSize: '1.85rem', fontWeight: '900', color: '#16a34a' }}>{formatCurrency(totals.totalCorriente)}</div>
-          <div style={{ fontSize: '0.8rem', color: '#16a34a', marginTop: '0.5rem', fontWeight: '500' }}>
+        <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', minWidth: 0 }}>
+          <h3 style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Saldo al Corriente</h3>
+          <div style={{ fontSize: 'clamp(1.2rem, 1.8vw, 1.6rem)', fontWeight: '900', color: '#16a34a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatCurrency(totals.totalCorriente)}>{formatCurrency(totals.totalCorriente)}</div>
+          <div style={{ fontSize: '0.8rem', color: '#16a34a', marginTop: '0.5rem', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {totals.totalCobrar > 0 ? `${((totals.totalCorriente / totals.totalCobrar) * 100).toFixed(1)}%` : '0%'} al día
           </div>
         </div>
