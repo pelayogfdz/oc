@@ -813,9 +813,19 @@ export default function POSClient({
   const [paymentMethod, setPaymentMethod] = useState(customMethods[0]?.id || 'CASH');
   
   const selectedCust = activeCustomers.find((c: any) => c.id === selectedCustomerId);
-  const allowedMethods = [...customMethods];
+  let allowedMethods = [...customMethods];
   const isCreditEnabled = metodosConfig?.enabledIds ? metodosConfig.enabledIds.includes('CREDIT') : true;
   const isDefaultCust = !selectedCust || selectedCust.name.toLowerCase().includes('público en general') || selectedCust.name.toLowerCase().includes('publico en general');
+  
+  if (selectedCust && selectedCust.paymentMethods && !isDefaultCust) {
+    const custMethods = selectedCust.paymentMethods.split(',');
+    allowedMethods = allowedMethods.filter(m => {
+      if (custMethods.includes(m.id)) return true;
+      if (m.id === 'CARD_CREDIT' || m.id === 'CARD_DEBIT') return custMethods.includes('CARD') || custMethods.includes('CARD_CREDIT') || custMethods.includes('CARD_DEBIT');
+      return false;
+    });
+  }
+
   const hasCredit = selectedCust && (selectedCust.creditLimit > 0 || selectedCust.creditDays > 0) && !selectedCust.isBlocked;
   if (isCreditEnabled && selectedCust && !isDefaultCust && hasCredit) {
     allowedMethods.push({ id: 'CREDIT', name: 'Crédito Cta.' });
@@ -824,6 +834,13 @@ export default function POSClient({
   if (transactionType === 'PEDIDO') {
     allowedMethods.push({ id: 'PAY_ON_PICKUP', name: 'Pagar al recoger' });
   }
+
+  useEffect(() => {
+    if (allowedMethods.length > 0 && !allowedMethods.find(m => m.id === paymentMethod)) {
+      setPaymentMethod(allowedMethods[0].id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCustomerId, transactionType]);
 
   const [amountReceived, setAmountReceived] = useState<number | ''>(''); // Used for pure CASH or MIXED cash amount
   const [cardAmount, setCardAmount] = useState<number | ''>(''); // Used for MIXED
@@ -1951,9 +1968,11 @@ export default function POSClient({
     let ticketExento = 0;
     let ticketBaseSubtotal = 0;
     
+    const ticketDiscountsMap = getItemDiscounts(cartItems);
+
     const ticketSubtotalSum = cartItems.reduce((sum, item) => {
       const basePrice = getProductPrice(item);
-      const itemDisc = (breakdownDiscounts) ? 0 : (getItemDiscounts([item])[item.cartItemId] || 0);
+      const itemDisc = (breakdownDiscounts) ? 0 : (ticketDiscountsMap[item.cartItemId] || 0);
       const p = (breakdownDiscounts) ? basePrice : (basePrice - itemDisc / item.quantity);
       return sum + (p * item.quantity);
     }, 0);
@@ -1961,7 +1980,7 @@ export default function POSClient({
 
     cartItems.forEach(item => {
       const basePrice = getProductPrice(item);
-      const itemDisc = (breakdownDiscounts) ? 0 : (getItemDiscounts([item])[item.cartItemId] || 0);
+      const itemDisc = (breakdownDiscounts) ? 0 : (ticketDiscountsMap[item.cartItemId] || 0);
       const itemPrice = (breakdownDiscounts) ? basePrice : (basePrice - itemDisc / item.quantity);
       const itemQty = item.quantity;
       const itemTotal = itemPrice * itemQty;
@@ -1999,7 +2018,7 @@ export default function POSClient({
     ticketExento *= ticketFactor;
     ticketBaseSubtotal *= ticketFactor;
 
-    const itemDiscountsMap = (breakdownDiscounts) ? getItemDiscounts(cartItems) : {};
+    const itemDiscountsMap = (breakdownDiscounts) ? ticketDiscountsMap : {};
     const effectiveDiscount = (breakdownDiscounts) ? tDiscount : 0;
     // Generate inner styling for the ticket
     const paperWidth = ticketConfig.anchoTicket === '58mm' || impresorasConfig.receiptWidth === '58mm' ? '58mm' : '80mm';
