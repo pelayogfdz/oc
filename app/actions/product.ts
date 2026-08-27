@@ -344,7 +344,10 @@ export async function createProduct(prevState: any, formData: FormData) {
               description,
               price,
               cost,
+              averageCost: cost,
               taxRate,
+              taxType,
+              iepsRate,
               brand,
               imageUrl,
               youtubeUrl,
@@ -359,6 +362,7 @@ export async function createProduct(prevState: any, formData: FormData) {
               satKey,
               satUnit,
               expirationDate,
+              location,
               hasTraceability,
               // @ts-ignore
               showInWeb
