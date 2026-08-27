@@ -1936,3 +1936,59 @@ export async function getSupplyUsageReportData(
 
 
 
+
+export async function getPriceChangeHistory(branchIdFilter: string, searchQuery: string = '', page: number = 1, limit: number = 50) {
+  const activeBranch = await getActiveBranch();
+  const tenantId = activeBranch?.tenantId;
+  if (!tenantId) return { logs: [], total: 0 };
+
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const tenantBranchIds = tenantBranches.map(b => b.id);
+
+  let branchCondition: any = { in: tenantBranchIds };
+  if (branchIdFilter && branchIdFilter !== 'ALL') {
+    branchCondition = branchIdFilter;
+  }
+
+  let productFilter: any = {};
+  if (searchQuery) {
+    productFilter = {
+      OR: [
+        { name: { contains: searchQuery, mode: 'insensitive' } },
+        { sku: { contains: searchQuery, mode: 'insensitive' } },
+        { barcode: { contains: searchQuery, mode: 'insensitive' } }
+      ]
+    };
+  }
+
+  const where: any = {
+    branchId: branchCondition,
+    product: productFilter
+  };
+
+  const [logs, total] = await Promise.all([
+    prisma.priceChangeLog.findMany({
+      where,
+      include: {
+        product: {
+          select: { name: true, sku: true, barcode: true }
+        },
+        user: {
+          select: { name: true }
+        },
+        branch: {
+          select: { name: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit
+    }),
+    prisma.priceChangeLog.count({ where })
+  ]);
+
+  return { logs, total, page, limit };
+}

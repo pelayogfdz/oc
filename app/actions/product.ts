@@ -413,6 +413,11 @@ export async function createProduct(prevState: any, formData: FormData) {
 }
 
 export async function updateProduct(productId: string, formData: FormData) {
+  let activeUser = null;
+  try {
+    activeUser = await getActiveUser();
+  } catch (e) {}
+
   try {
     console.log(`[DEBUG] updateProduct called for ${productId}`);
     console.log(`[DEBUG] form keys:`, Array.from(formData.keys()));
@@ -615,7 +620,9 @@ export async function updateProduct(productId: string, formData: FormData) {
                     productId: p.id,
                     oldPrice: p.price,
                     newPrice: data.price,
-                    branchId: p.branchId
+                    branchId: p.branchId,
+                    userId: activeUser?.id || null,
+                    priceListName: 'Precio Público'
                   }
                 });
               }
@@ -713,6 +720,10 @@ export async function updateProduct(productId: string, formData: FormData) {
         const priceListId = key.replace('priceList_', '');
         const listPrice = parseFloat(formData.get(key) as string);
         if (!isNaN(listPrice)) {
+          const oldPriceRecord = await prisma.productPrice.findUnique({
+            where: { productId_priceListId: { productId, priceListId } }
+          });
+          
           await prisma.productPrice.upsert({
             where: { 
               productId_priceListId: { productId, priceListId }
@@ -721,11 +732,25 @@ export async function updateProduct(productId: string, formData: FormData) {
             update: { price: listPrice }
           });
 
-          // Fetch current price list name & product SKU/branch to sync to all sibling branches of the tenant
+          // Fetch current price list name
           const priceListObj = await prisma.priceList.findUnique({
             where: { id: priceListId },
             select: { name: true, branchId: true }
           });
+
+          if (!oldPriceRecord || oldPriceRecord.price !== listPrice) {
+            await prisma.priceChangeLog.create({
+              data: {
+                productId,
+                priceListId,
+                priceListName: priceListObj?.name || 'Lista de Precios',
+                oldPrice: oldPriceRecord ? oldPriceRecord.price : 0,
+                newPrice: listPrice,
+                branchId: priceListObj?.branchId || currentProduct.branchId,
+                userId: activeUser?.id || null
+              }
+            });
+          }
 
           const currentProd = await prisma.product.findUnique({
             where: { id: productId },
@@ -771,6 +796,10 @@ export async function updateProduct(productId: string, formData: FormData) {
                   });
                 }
 
+                const sibOldPriceRecord = await prisma.productPrice.findUnique({
+                  where: { productId_priceListId: { productId: siblingProd.id, priceListId: targetPriceList.id } }
+                });
+
                 await prisma.productPrice.upsert({
                   where: {
                     productId_priceListId: {
@@ -787,6 +816,20 @@ export async function updateProduct(productId: string, formData: FormData) {
                     price: listPrice
                   }
                 });
+
+                if (!sibOldPriceRecord || sibOldPriceRecord.price !== listPrice) {
+                  await prisma.priceChangeLog.create({
+                    data: {
+                      productId: siblingProd.id,
+                      priceListId: targetPriceList.id,
+                      priceListName: targetPriceList.name || 'Lista de Precios',
+                      oldPrice: sibOldPriceRecord ? sibOldPriceRecord.price : 0,
+                      newPrice: listPrice,
+                      branchId: siblingProd.branchId,
+                      userId: activeUser?.id || null
+                    }
+                  });
+                }
               }
             }
           }
