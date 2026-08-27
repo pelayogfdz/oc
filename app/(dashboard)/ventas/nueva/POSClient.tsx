@@ -1401,11 +1401,11 @@ export default function POSClient({
            const queryChain = branchId === 'GLOBAL' ? db.products : db.products.where('branchId').equals(branchId);
            const results = await queryChain
              .filter(p => 
-               Boolean(p.name.toLowerCase().includes(lowerTerm) || 
-               (p.sku && p.sku.toLowerCase().includes(lowerTerm)) || 
-               (p.barcode && p.barcode.includes(lowerTerm)) ||
-               (p.variants && p.variants.some((v: any) => typeof v.sku === 'string' && v.sku.toLowerCase().includes(lowerTerm))) ||
-               (p.variants && p.variants.some((v: any) => typeof v.barcode === 'string' && v.barcode.toLowerCase().includes(lowerTerm))))
+               Boolean((p.name && String(p.name).toLowerCase().includes(lowerTerm)) || 
+               (p.sku && String(p.sku).toLowerCase().includes(lowerTerm)) || 
+               (p.barcode && String(p.barcode).toLowerCase().includes(lowerTerm)) ||
+               (p.variants && p.variants.some((v: any) => v.sku && String(v.sku).toLowerCase().includes(lowerTerm))) ||
+               (p.variants && p.variants.some((v: any) => v.barcode && String(v.barcode).toLowerCase().includes(lowerTerm))))
              ).limit(50).toArray();
            setDisplayedProducts(results);
         } else if (searchTerm.trim() !== '') {
@@ -1559,9 +1559,11 @@ export default function POSClient({
         const queryChain = branchId === 'GLOBAL' ? db.products : db.products.where('branchId').equals(branchId);
         results = await queryChain
           .filter(p => 
-            Boolean(p.name.toLowerCase().includes(lowerTerm) || 
-            (p.sku && p.sku.toLowerCase().includes(lowerTerm)) || 
-            (p.barcode && p.barcode.includes(lowerTerm)))
+            Boolean((p.name && String(p.name).toLowerCase().includes(lowerTerm)) || 
+            (p.sku && String(p.sku).toLowerCase().includes(lowerTerm)) || 
+            (p.barcode && String(p.barcode).toLowerCase().includes(lowerTerm)) ||
+            (p.variants && p.variants.some((v: any) => v.sku && String(v.sku).toLowerCase().includes(lowerTerm))) ||
+            (p.variants && p.variants.some((v: any) => v.barcode && String(v.barcode).toLowerCase().includes(lowerTerm))))
           ).limit(50).toArray();
       } else {
         results = await searchProducts(term.trim(), branchId);

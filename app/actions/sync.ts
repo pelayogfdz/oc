@@ -33,7 +33,10 @@ export async function syncBasicCatalogs() {
   }
   
   const totalProducts = await prisma.product.count({ 
-    where: { branchId: { in: branchIds }, isActive: true } 
+    where: { 
+      branchId: { in: [branchId, 'GLOBAL'] }, 
+      isActive: true 
+    } 
   });
   
   // Fetch active users in the tenant for offline Kiosk Mode
@@ -111,17 +114,13 @@ export async function syncBasicCatalogs() {
 export async function syncProductsPage(page: number, limit: number) {
   const branch = await getActiveBranch();
   if (!branch) return [];
-  const tenantId = branch.tenantId;
-  
-  const tenantBranches = await prisma.branch.findMany({
-    where: { tenantId, isActive: true },
-    select: { id: true }
-  });
-  const branchIds = tenantBranches.map(b => b.id);
   
   const skip = (page - 1) * limit;
   const products = await prisma.product.findMany({
-    where: { branchId: { in: branchIds }, isActive: true },
+    where: { 
+      branchId: { in: [branch.id, 'GLOBAL'] }, 
+      isActive: true 
+    },
     include: { variants: true, prices: true },
     orderBy: { id: 'asc' },
     skip,
@@ -153,7 +152,10 @@ export async function syncAllCatalogs() {
 
   // 1. Productos
   const products = await prisma.product.findMany({
-    where: { branchId: { in: branchIds }, isActive: true },
+    where: { 
+      branchId: { in: [branchId, 'GLOBAL'] }, 
+      isActive: true 
+    },
     include: { variants: true, prices: true },
     take: 1000
   });
