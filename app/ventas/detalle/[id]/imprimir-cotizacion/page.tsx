@@ -43,6 +43,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
   const cotizacionesConfig = config.cotizaciones || {};
   const incluirImagenes = cotizacionesConfig.incluirImagenes === true || cotizacionesConfig.incluirImagenes === 'true';
   const diasVigencia = parseInt(cotizacionesConfig.diasVigencia || '15', 10);
+  const isBreakdownDiscounts = quote.breakdownDiscounts === true;
 
   // Auto-print script
   const printScript = `
@@ -293,7 +294,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
                       </span>
                       
                       {/* Discount Badge if applicable */}
-                      {item.discountPerUnit > 0 && (
+                      {isBreakdownDiscounts && item.discountPerUnit > 0 && (
                         <span className="discount-badge">
                           -${item.discountPerUnit.toFixed(2)} de Descuento
                         </span>
@@ -312,7 +313,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
                   {item.quantity} {item.product?.unit || 'unidad'}
                 </td>
                 <td style={{ textAlign: 'right', verticalAlign: 'top' }}>
-                  {item.originalPriceExcludingIva > item.finalPriceExcludingIva ? (
+                  {(isBreakdownDiscounts && item.originalPriceExcludingIva > item.finalPriceExcludingIva) ? (
                     <>
                       <span className="original-price">${item.originalPriceExcludingIva.toFixed(2)}</span>
                       <span className="final-price">${item.finalPriceExcludingIva.toFixed(2)}</span>
@@ -334,18 +335,27 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
 
         {/* Totals Section */}
         <div className="totals-box">
-          <div className="total-row">
-            <span>Subtotal</span>
-            <span>${grossSubtotalExcludingIva.toFixed(2)}</span>
-          </div>
-          <div className="total-row discount-row">
-            <span>Descuento</span>
-            <span>-${totalDiscountExcludingIva.toFixed(2)}</span>
-          </div>
-          <div className="total-row" style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '0.25rem', marginTop: '0.25rem', fontWeight: '600' }}>
-            <span>Subtotal</span>
-            <span>${netSubtotalExcludingIva.toFixed(2)}</span>
-          </div>
+          {isBreakdownDiscounts ? (
+            <>
+              <div className="total-row">
+                <span>Subtotal</span>
+                <span>${grossSubtotalExcludingIva.toFixed(2)}</span>
+              </div>
+              <div className="total-row discount-row">
+                <span>Descuento</span>
+                <span>-${totalDiscountExcludingIva.toFixed(2)}</span>
+              </div>
+              <div className="total-row" style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '0.25rem', marginTop: '0.25rem', fontWeight: '600' }}>
+                <span>Subtotal Neto</span>
+                <span>${netSubtotalExcludingIva.toFixed(2)}</span>
+              </div>
+            </>
+          ) : (
+            <div className="total-row">
+              <span>Subtotal</span>
+              <span>${netSubtotalExcludingIva.toFixed(2)}</span>
+            </div>
+          )}
           <div className="total-row">
             <span>IVA 16%</span>
             <span>${totalIva.toFixed(2)}</span>
