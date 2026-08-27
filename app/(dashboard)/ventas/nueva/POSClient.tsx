@@ -2377,10 +2377,8 @@ export default function POSClient({
 
       const items = finalCart.map(item => {
         const basePrice = getProductPrice(item);
-        // Apply uniform proration so item prices remain mathematically consistent with the total sale/quote amount (unless breakdownDiscounts is active)
-        const savedPrice = (breakdownDiscounts)
-          ? basePrice
-          : (subTotal > 0 ? (basePrice * (total / subTotal)) : 0);
+        // Always save the prorated discounted price in the database so item pricing is accurate
+        const savedPrice = (subTotal > 0 ? (basePrice * (total / subTotal)) : 0);
         return { 
           productId: item.id, 
           variantId: item.variantId || null,
