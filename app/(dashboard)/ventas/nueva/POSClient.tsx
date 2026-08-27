@@ -817,15 +817,6 @@ export default function POSClient({
   const isCreditEnabled = metodosConfig?.enabledIds ? metodosConfig.enabledIds.includes('CREDIT') : true;
   const isDefaultCust = !selectedCust || selectedCust.name.toLowerCase().includes('público en general') || selectedCust.name.toLowerCase().includes('publico en general');
   
-  if (selectedCust && selectedCust.paymentMethods && !isDefaultCust) {
-    const custMethods = selectedCust.paymentMethods.split(',');
-    allowedMethods = allowedMethods.filter(m => {
-      if (custMethods.includes(m.id)) return true;
-      if (m.id === 'CARD_CREDIT' || m.id === 'CARD_DEBIT') return custMethods.includes('CARD') || custMethods.includes('CARD_CREDIT') || custMethods.includes('CARD_DEBIT');
-      return false;
-    });
-  }
-
   const hasCredit = selectedCust && (selectedCust.creditLimit > 0 || selectedCust.creditDays > 0) && !selectedCust.isBlocked;
   if (isCreditEnabled && selectedCust && !isDefaultCust && hasCredit) {
     allowedMethods.push({ id: 'CREDIT', name: 'Crédito Cta.' });

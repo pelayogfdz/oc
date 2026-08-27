@@ -19,7 +19,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
     include: {
       user: true,
       customer: true,
-      branch: true,
+      branch: { include: { settings: true } },
       deliveryOrder: true,
       items: {
         include: { product: true, variant: true }
@@ -59,6 +59,13 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
     (sale.customer.creditLimit > 0 || sale.customer.creditDays > 0) && !sale.customer.isBlocked
   ) : false;
 
+  let metodosConfig = null;
+  if ((sale.branch as any)?.settings?.configJson) {
+    try {
+      metodosConfig = JSON.parse((sale.branch as any).settings.configJson).metodos || null;
+    } catch (e) {}
+  }
+
   return (
     <div style={{ maxWidth: '1100px', width: '100%', margin: '0 auto', fontFamily: 'sans-serif', color: 'black', boxSizing: 'border-box' }} className="px-2 sm:px-4">
       
@@ -94,6 +101,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
            customers={customers}
            deliveryOrder={sale.deliveryOrder ? { id: sale.deliveryOrder.id, status: sale.deliveryOrder.status } : null}
            customerHasCredit={customerHasCredit}
+           metodosConfig={metodosConfig}
          />
       </div>
 

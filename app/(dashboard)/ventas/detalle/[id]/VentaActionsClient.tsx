@@ -22,6 +22,7 @@ interface VentaActionsClientProps {
   customers: { id: string; name: string }[];
   deliveryOrder?: { id: string; status: string } | null;
   customerHasCredit?: boolean;
+  metodosConfig?: any;
 }
 
 export default function VentaActionsClient({
@@ -37,7 +38,8 @@ export default function VentaActionsClient({
   currentNotes = '',
   customers = [],
   deliveryOrder = null,
-  customerHasCredit = false
+  customerHasCredit = false,
+  metodosConfig = null
 }: VentaActionsClientProps) {
   const router = useRouter();
   const { refreshCatalogs } = useOfflineSync();
@@ -1179,18 +1181,46 @@ export default function VentaActionsClient({
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {[
-                  { id: 'CASH', label: '💵 Efectivo (Caja)' },
-                  { id: 'CARD_DEBIT', label: '💳 Tarjeta de Débito' },
-                  { id: 'CARD_CREDIT', label: '💳 Tarjeta de Crédito' },
-                  { id: 'TRANSFER', label: '🏦 Transferencia Electrónica' },
-                  { id: 'CHEQUE', label: '📑 Cheque' },
-                  { id: 'VALES', label: '🎟️ Vales de Despensa / Monedero' },
-                  { id: 'DEPOSIT', label: '🏛️ Depósito Bancario' },
-                  ...(customerHasCredit ? [{ id: 'CREDIT', label: '📋 Crédito Cta. (A Cuenta del Cliente)' }] : []),
-                  { id: 'OTHER', label: '🔄 Otro Método de Pago' },
-                ].map((method) => {
-                  const isSelected = selectedPaymentMethod === method.id;
+                {(() => {
+                  let allowedMethods = [
+                    { id: 'CASH', label: '💵 Efectivo (Caja)' },
+                    { id: 'CARD_DEBIT', label: '💳 Tarjeta de Débito' },
+                    { id: 'CARD_CREDIT', label: '💳 Tarjeta de Crédito' },
+                    { id: 'TRANSFER', label: '🏦 Transferencia Electrónica' },
+                    { id: 'CHEQUE', label: '📑 Cheque' },
+                    { id: 'VALES', label: '🎟️ Vales de Despensa / Monedero' },
+                    { id: 'DEPOSIT', label: '🏛️ Depósito Bancario' }
+                  ];
+
+                  if (metodosConfig?.methods && Array.isArray(metodosConfig.methods)) {
+                    allowedMethods = metodosConfig.methods.map((m: any) => ({
+                      id: m.id,
+                      label: m.name
+                    }));
+                  } else if (metodosConfig?.enabledIds && Array.isArray(metodosConfig.enabledIds)) {
+                     allowedMethods = allowedMethods.filter(m => {
+                        if (metodosConfig.enabledIds.includes(m.id)) return true;
+                        if (m.id === 'CARD_CREDIT' || m.id === 'CARD_DEBIT') return metodosConfig.enabledIds.includes('CARD') || metodosConfig.enabledIds.includes('CARD_CREDIT');
+                        return false;
+                     });
+                     if (metodosConfig.customMethods && Array.isArray(metodosConfig.customMethods)) {
+                         metodosConfig.customMethods.forEach((cm: any) => {
+                             if (metodosConfig.enabledIds.includes(cm.id)) allowedMethods.push({ id: cm.id, label: cm.name });
+                         });
+                     }
+                  }
+
+                  const isCreditEnabled = metodosConfig?.enabledIds ? metodosConfig.enabledIds.includes('CREDIT') : true;
+                  if (customerHasCredit && isCreditEnabled && !allowedMethods.find(m => m.id === 'CREDIT')) {
+                    allowedMethods.push({ id: 'CREDIT', label: '📋 Crédito Cta. (A Cuenta del Cliente)' });
+                  }
+                  
+                  if (!allowedMethods.find(m => m.id === 'OTHER')) {
+                    allowedMethods.push({ id: 'OTHER', label: '🔄 Otro Método de Pago' });
+                  }
+
+                  return allowedMethods.map((method) => {
+                    const isSelected = selectedPaymentMethod === method.id;
                   return (
                     <label 
                       key={method.id}
@@ -1220,7 +1250,7 @@ export default function VentaActionsClient({
                       <span>{method.label}</span>
                     </label>
                   );
-                })}
+                })})()}
               </div>
             </div>
 
