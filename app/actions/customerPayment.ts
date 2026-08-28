@@ -148,10 +148,14 @@ export async function deleteCustomerPayment(paymentId: string) {
   }
   
   if (payment.saleId) {
-      await prisma.sale.update({
-          where: { id: payment.saleId },
-          data: { balanceDue: { increment: payment.amount } }
-      });
+      const sale = await prisma.sale.findUnique({ where: { id: payment.saleId }, select: { balanceDue: true, total: true } });
+      if (sale) {
+         const newBalanceDue = Math.min(sale.total, sale.balanceDue + payment.amount);
+         await prisma.sale.update({
+             where: { id: payment.saleId },
+             data: { balanceDue: newBalanceDue }
+         });
+      }
       
       await prisma.customer.update({
           where: { id: payment.customerId },
