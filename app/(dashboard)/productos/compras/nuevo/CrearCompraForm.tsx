@@ -155,9 +155,10 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
 
   useEffect(() => {
     if (!isOnline) {
+      import('@/lib/offlineSearch').then(({ searchOfflineProducts }) => {
+        searchOfflineProducts('', branchId, { limit: 500 }).then(res => setAvailableProducts(res.length ? res : products));
+      });
       import('@/lib/offlineDB').then(({ db }) => {
-        const queryChain = branchId === 'GLOBAL' ? db.products : db.products.where('branchId').equals(branchId);
-        queryChain.toArray().then(res => setAvailableProducts(res.length ? res : products));
         db.suppliers.toArray().then(res => setAvailableSuppliers(res.length ? res : suppliers));
       });
     } else {

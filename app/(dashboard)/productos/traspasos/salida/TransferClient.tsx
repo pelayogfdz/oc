@@ -49,8 +49,10 @@ export default function TransferClient({ originBranchId, originBranchName, other
 
   useEffect(() => {
     if (!isOnline) {
+      import('@/lib/offlineSearch').then(({ searchOfflineProducts }) => {
+        searchOfflineProducts('', originBranchId, { limit: 500 }).then(res => setInventory(res.length ? res : initialInventory));
+      });
       import('@/lib/offlineDB').then(({ db }) => {
-        db.products.where('branchId').equals(originBranchId).toArray().then(res => setInventory(res.length ? res : initialInventory));
         db.branches.toArray().then(res => {
           if (res.length) {
             setOtherBranches(res.filter(b => b.id !== originBranchId && b.id !== 'GLOBAL'));

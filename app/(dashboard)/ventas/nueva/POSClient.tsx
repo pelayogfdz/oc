@@ -660,10 +660,10 @@ export default function POSClient({
     if (!isOnline) {
       import('@/lib/offlineDB').then(({ db }) => {
         db.customers.toArray().then(res => setActiveCustomers(res.length ? res : customers));
-        const queryChain = branchId === 'GLOBAL' ? db.products : db.products.where('branchId').equals(branchId);
-        queryChain.toArray().then(res => {
-          const sorted = res.sort((a, b) => a.name.localeCompare(b.name)).slice(0, 50);
-          if (sorted.length) setDisplayedProducts(sorted);
+      });
+      import('@/lib/offlineSearch').then(({ searchOfflineProducts }) => {
+        searchOfflineProducts('', branchId, { limit: 50 }).then(res => {
+          if (res.length) setDisplayedProducts(res);
         });
       });
     } else {
@@ -1396,23 +1396,20 @@ export default function POSClient({
       setIsSearching(true);
       try {
         if (!isOnline && searchTerm.trim() !== '') {
-           const { db } = await import('@/lib/offlineDB');
-           const lowerTerm = searchTerm.toLowerCase();
-           const queryChain = branchId === 'GLOBAL' ? db.products : db.products.where('branchId').equals(branchId);
-           const results = await queryChain
-             .filter(p => 
-               Boolean((p.name && String(p.name).toLowerCase().includes(lowerTerm)) || 
-               (p.sku && String(p.sku).toLowerCase().includes(lowerTerm)) || 
-               (p.barcode && String(p.barcode).toLowerCase().includes(lowerTerm)) ||
-               (p.variants && p.variants.some((v: any) => v.sku && String(v.sku).toLowerCase().includes(lowerTerm))) ||
-               (p.variants && p.variants.some((v: any) => v.barcode && String(v.barcode).toLowerCase().includes(lowerTerm))))
-             ).limit(50).toArray();
+           const { searchOfflineProducts } = await import('@/lib/offlineSearch');
+           const results = await searchOfflineProducts(searchTerm, branchId, { limit: 50 });
            setDisplayedProducts(results);
         } else if (searchTerm.trim() !== '') {
            const results = await searchProducts(searchTerm, branchId);
            setDisplayedProducts(results);
         } else {
-           if (isOnline) setDisplayedProducts(initialProducts);
+           if (isOnline) {
+             setDisplayedProducts(initialProducts);
+           } else {
+             const { searchOfflineProducts } = await import('@/lib/offlineSearch');
+             const results = await searchOfflineProducts('', branchId, { limit: 50 });
+             if (results.length) setDisplayedProducts(results);
+           }
         }
       } catch (e) {
         console.error(e);
@@ -1422,7 +1419,7 @@ export default function POSClient({
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, branchId, isOnline]);
+  }, [searchTerm, branchId, isOnline, initialProducts]);
 
 
 
@@ -1554,17 +1551,8 @@ export default function POSClient({
     try {
       let results = [];
       if (!isOnline) {
-        const { db } = await import('@/lib/offlineDB');
-        const lowerTerm = term.trim().toLowerCase();
-        const queryChain = branchId === 'GLOBAL' ? db.products : db.products.where('branchId').equals(branchId);
-        results = await queryChain
-          .filter(p => 
-            Boolean((p.name && String(p.name).toLowerCase().includes(lowerTerm)) || 
-            (p.sku && String(p.sku).toLowerCase().includes(lowerTerm)) || 
-            (p.barcode && String(p.barcode).toLowerCase().includes(lowerTerm)) ||
-            (p.variants && p.variants.some((v: any) => v.sku && String(v.sku).toLowerCase().includes(lowerTerm))) ||
-            (p.variants && p.variants.some((v: any) => v.barcode && String(v.barcode).toLowerCase().includes(lowerTerm))))
-          ).limit(50).toArray();
+        const { searchOfflineProducts } = await import('@/lib/offlineSearch');
+        results = await searchOfflineProducts(term.trim(), branchId, { limit: 50 });
       } else {
         results = await searchProducts(term.trim(), branchId);
       }

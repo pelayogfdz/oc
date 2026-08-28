@@ -154,8 +154,15 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     const loadOfflineProducts = async () => {
       if (typeof window !== 'undefined' && !isOnline) {
         try {
-          const { db } = await import('@/lib/offlineDB');
-          const localProducts = await db.products.toArray();
+          const { searchOfflineProducts } = await import('@/lib/offlineSearch');
+          const localProducts = await searchOfflineProducts('', branchId, {
+            category: filterCategory,
+            status: filterStatus,
+            stock: filterStock,
+            brand: filterBrand,
+            type: filterType,
+            limit: 500
+          });
           setDisplayedProducts(localProducts);
         } catch (err) {
           console.error('[Offline] Failed to load local products:', err);
@@ -163,7 +170,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       }
     };
     loadOfflineProducts();
-  }, [isOnline]);
+  }, [isOnline, branchId]);
 
   useEffect(() => {
     if (!isInitialized) return;
@@ -184,17 +191,16 @@ export default function ProductListClient({ initialProducts, branchId, categorie
           });
           setDisplayedProducts(results);
         } else {
-          // Offline search! Filter Dexie database
-          const { db } = await import('@/lib/offlineDB');
-          const term = searchTerm.toLowerCase().trim();
-          const results = await db.products.filter(p => {
-            const nameMatch = p.name.toLowerCase().includes(term);
-            const skuMatch = typeof p.sku === 'string' && p.sku.toLowerCase().includes(term);
-            const barcodeMatch = typeof p.barcode === 'string' && p.barcode.toLowerCase().includes(term);
-            const variantSkuMatch = p.variants && p.variants.some((v: any) => typeof v.sku === 'string' && v.sku.toLowerCase().includes(term));
-            const variantBarcodeMatch = p.variants && p.variants.some((v: any) => typeof v.barcode === 'string' && v.barcode.toLowerCase().includes(term));
-            return nameMatch || skuMatch || barcodeMatch || variantSkuMatch || variantBarcodeMatch;
-          }).toArray();
+          // Offline search using unified searchOfflineProducts
+          const { searchOfflineProducts } = await import('@/lib/offlineSearch');
+          const results = await searchOfflineProducts(searchTerm, branchId, {
+            category: filterCategory,
+            status: filterStatus,
+            stock: filterStock,
+            brand: filterBrand,
+            type: filterType,
+            limit: 500
+          });
           setDisplayedProducts(results);
         }
         setHasSearched(true);

@@ -1614,16 +1614,35 @@ export async function syncTenantCatalogs(tenantId: string) {
             }
           }
 
-          // Copiar precios dinámicos
+          // Copiar precios dinámicos mapeando las listas a la sucursal destino
           if (template.prices && template.prices.length > 0) {
             for (const p of template.prices) {
-              await prisma.productPrice.create({
-                data: {
-                  productId: newProduct.id,
-                  priceListId: p.priceListId,
-                  price: p.price
-                }
+              const templatePriceList = await prisma.priceList.findUnique({
+                where: { id: p.priceListId }
               });
+              if (templatePriceList) {
+                let targetPriceList = await prisma.priceList.findFirst({
+                  where: {
+                    branchId: bId,
+                    name: { equals: templatePriceList.name, mode: 'insensitive' }
+                  }
+                });
+                if (!targetPriceList) {
+                  targetPriceList = await prisma.priceList.create({
+                    data: {
+                      branchId: bId,
+                      name: templatePriceList.name
+                    }
+                  });
+                }
+                await prisma.productPrice.create({
+                  data: {
+                    productId: newProduct.id,
+                    priceListId: targetPriceList.id,
+                    price: p.price
+                  }
+                });
+              }
             }
           }
 

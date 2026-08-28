@@ -91,13 +91,31 @@ export default function ProductFinanceSection({
     const init: Record<string, { price: string; margin: string }> = {};
     priceLists.forEach(pl => {
       const targetPlName = (pl.name || '').toLowerCase().trim();
-      const savedPriceObj = initialPrices.find((p: any) => {
-        if (p.priceListId === pl.id) return true;
-        if (p.priceList?.name && (p.priceList.name || '').toLowerCase().trim() === targetPlName) return true;
-        const matchingPl = allPriceLists?.find((apl: any) => apl.id === p.priceListId);
-        if (matchingPl && (matchingPl.name || '').toLowerCase().trim() === targetPlName) return true;
-        return false;
-      });
+      
+      // 1. Try exact ID match first
+      let savedPriceObj = initialPrices.find((p: any) => p.priceListId === pl.id);
+      
+      // 2. Try to match by name on the active branch
+      if (!savedPriceObj) {
+        savedPriceObj = initialPrices.find((p: any) => {
+          const matchingPl = allPriceLists?.find((apl: any) => apl.id === p.priceListId);
+          const plBranchId = (pl as any).branchId;
+          if (matchingPl && plBranchId && matchingPl.branchId === plBranchId) {
+            return (matchingPl.name || '').toLowerCase().trim() === targetPlName;
+          }
+          return false;
+        });
+      }
+
+      // 3. Fallback to any name match (different branch)
+      if (!savedPriceObj) {
+        savedPriceObj = initialPrices.find((p: any) => {
+          if (p.priceList?.name && (p.priceList.name || '').toLowerCase().trim() === targetPlName) return true;
+          const matchingPl = allPriceLists?.find((apl: any) => apl.id === p.priceListId);
+          if (matchingPl && (matchingPl.name || '').toLowerCase().trim() === targetPlName) return true;
+          return false;
+        });
+      }
       let savedPrice = savedPriceObj ? savedPriceObj.price : 0;
       if (!savedPrice || savedPrice <= 0) {
         if (targetPlName.includes('mayoreo') || targetPlName.includes('wholesale') || targetPlName.includes('mayorista')) {
