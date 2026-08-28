@@ -2031,7 +2031,8 @@ export async function syncAndFixAllSalesAndCreditBalancesAction() {
       include: {
         customer: true,
         branch: true,
-        items: true
+        items: true,
+        payments: true
       }
     });
 
@@ -2083,23 +2084,24 @@ export async function syncAndFixAllSalesAndCreditBalancesAction() {
       }
 
       // Check if total or balanceDue needs correction
+      const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
+      const expectedBalanceDue = sale.paymentMethod === 'CREDIT' ? Math.max(0, targetTotal - totalPaid) : 0;
       const totalDiff = Math.abs(sale.total - targetTotal);
-      if (totalDiff > 0.01 || isSan1516) {
+      const balanceDiff = Math.abs(sale.balanceDue - expectedBalanceDue);
+
+      if (totalDiff > 0.01 || balanceDiff > 0.01 || isSan1516) {
         const oldTotal = sale.total;
-        const newBalanceDue = sale.paymentMethod === 'CREDIT' ? Math.max(0, targetTotal) : sale.balanceDue;
 
         await prisma.sale.update({
           where: { id: sale.id },
           data: {
             total: targetTotal,
-            ...(sale.paymentMethod === 'CREDIT' ? { balanceDue: newBalanceDue } : {})
+            ...(sale.paymentMethod === 'CREDIT' ? { balanceDue: expectedBalanceDue } : {})
           }
         });
 
-        if (totalDiff > 0.01 || isSan1516) {
-          fixedSalesCount++;
-          fixedDetails.push(`Venta Folio #${sale.folio || sale.id.substring(0,8)}: ajustado total a $${targetTotal.toFixed(2)} (antes $${oldTotal.toFixed(2)})`);
-        }
+        fixedSalesCount++;
+        fixedDetails.push(`Venta Folio #${sale.folio || sale.id.substring(0,8)}: ajustado total a $${targetTotal.toFixed(2)} (antes $${oldTotal.toFixed(2)}), Deuda a $${expectedBalanceDue.toFixed(2)}`);
       }
     }
 
@@ -2117,12 +2119,12 @@ export async function syncAndFixAllSalesAndCreditBalancesAction() {
         select: { balanceDue: true }
       });
 
-      const payments = await prisma.customerPayment.findMany({
-        where: { customerId: cust.id },
+      const unallocatedPayments = await prisma.customerPayment.findMany({
+        where: { customerId: cust.id, saleId: null },
         select: { amount: true }
       });
 
-      const actualDebt = Math.max(0, creditSales.reduce((sum, s) => sum + s.balanceDue, 0) - payments.reduce((sum, p) => sum + p.amount, 0));
+      const actualDebt = Math.max(0, creditSales.reduce((sum, s) => sum + s.balanceDue, 0) - unallocatedPayments.reduce((sum, p) => sum + p.amount, 0));
 
       if (Math.abs(cust.creditBalance - actualDebt) > 0.01) {
         await prisma.customer.update({
@@ -2158,7 +2160,7 @@ export async function syncSingleSaleWithInvoiceAction(saleId: string) {
 
     const sale = await prisma.sale.findUnique({
       where: { id: saleId },
-      include: { items: true, customer: true }
+      include: { items: true, customer: true, payments: true }
     });
 
     if (!sale) throw new Error('Venta no encontrada');
@@ -2203,7 +2205,8 @@ export async function syncSingleSaleWithInvoiceAction(saleId: string) {
       }
     }
 
-    const newBalanceDue = sale.paymentMethod === 'CREDIT' ? Math.max(0, targetTotal) : sale.balanceDue;
+    const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
+    const newBalanceDue = sale.paymentMethod === 'CREDIT' ? Math.max(0, targetTotal - totalPaid) : 0;
 
     await prisma.sale.update({
       where: { id: sale.id },
@@ -2218,11 +2221,11 @@ export async function syncSingleSaleWithInvoiceAction(saleId: string) {
         where: { customerId: sale.customerId, paymentMethod: 'CREDIT', status: { not: 'CANCELLED' } },
         select: { balanceDue: true }
       });
-      const payments = await prisma.customerPayment.findMany({
-        where: { customerId: sale.customerId },
+      const unallocatedPayments = await prisma.customerPayment.findMany({
+        where: { customerId: sale.customerId, saleId: null },
         select: { amount: true }
       });
-      const actualDebt = Math.max(0, creditSales.reduce((sum, s) => sum + s.balanceDue, 0) - payments.reduce((sum, p) => sum + p.amount, 0));
+      const actualDebt = Math.max(0, creditSales.reduce((sum, s) => sum + s.balanceDue, 0) - unallocatedPayments.reduce((sum, p) => sum + p.amount, 0));
 
       await prisma.customer.update({
         where: { id: sale.customerId },

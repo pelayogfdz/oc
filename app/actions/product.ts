@@ -1623,14 +1623,14 @@ export async function syncTenantCatalogs(tenantId: string) {
               if (templatePriceList) {
                 let targetPriceList = await prisma.priceList.findFirst({
                   where: {
-                    branchId: bId,
+                    branchId: missingBranchId,
                     name: { equals: templatePriceList.name, mode: 'insensitive' }
                   }
                 });
                 if (!targetPriceList) {
                   targetPriceList = await prisma.priceList.create({
                     data: {
-                      branchId: bId,
+                      branchId: missingBranchId,
                       name: templatePriceList.name
                     }
                   });
