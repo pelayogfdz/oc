@@ -196,6 +196,9 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
       let discountExcludingIva = 0;
       let totalIva = 0;
 
+      const storedTotalIncludingIva = quote.items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+      const prorationRatio = (breakdownDiscounts && storedTotalIncludingIva > quote.total + 0.01) ? (quote.total / storedTotalIncludingIva) : 1.0;
+
       quote.items.forEach((item: any) => {
         const taxRate = item.product?.taxRate ?? 16.0;
         const taxType = item.product?.taxType || 'IVA';
@@ -203,7 +206,7 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
         const rate = isIva ? taxRate : 0;
 
         const originalPrice = breakdownDiscounts ? (item.product?.price || item.price) : item.price;
-        const finalPrice = item.price;
+        const finalPrice = item.price * prorationRatio;
 
         originalListTotalWithIva += originalPrice * item.quantity;
 

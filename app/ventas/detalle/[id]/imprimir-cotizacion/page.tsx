@@ -67,10 +67,14 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
   let netSubtotalExcludingIva = 0;
   let totalIva = 0;
 
+  const storedTotalIncludingIva = quote.items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+  const quoteTotal = quote.total;
+  const prorationRatio = storedTotalIncludingIva > quoteTotal + 0.01 ? (quoteTotal / storedTotalIncludingIva) : 1.0;
+
   const processedItems = quote.items.map((item: any) => {
     const originalPriceIncludingIva = item.product?.price || item.price;
-    const finalPriceIncludingIva = item.price;
-    const discountPerUnitIncludingIva = originalPriceIncludingIva - finalPriceIncludingIva;
+    const finalPriceIncludingIva = item.price * prorationRatio;
+    const discountPerUnitIncludingIva = Math.max(0, originalPriceIncludingIva - finalPriceIncludingIva);
 
     const taxRate = item.product?.taxRate ?? 16.0;
     const taxType = item.product?.taxType || 'IVA';

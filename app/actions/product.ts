@@ -1686,22 +1686,24 @@ export async function syncTenantCatalogs(tenantId: string) {
                 });
               }
 
-              await prisma.productPrice.upsert({
+              // Only sync dynamic prices if they do not exist in the target branch to prevent overwriting branch-specific custom prices
+              const existingPrice = await prisma.productPrice.findUnique({
                 where: {
                   productId_priceListId: {
                     productId: existingProd.id,
                     priceListId: targetPriceList.id
                   }
-                },
-                create: {
-                  productId: existingProd.id,
-                  priceListId: targetPriceList.id,
-                  price: p.price
-                },
-                update: {
-                  price: p.price
                 }
               });
+              if (!existingPrice) {
+                await prisma.productPrice.create({
+                  data: {
+                    productId: existingProd.id,
+                    priceListId: targetPriceList.id,
+                    price: p.price
+                  }
+                });
+              }
             }
           }
         }
