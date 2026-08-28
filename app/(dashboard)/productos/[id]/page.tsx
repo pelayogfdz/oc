@@ -2,7 +2,8 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ProductDetailClient } from "./ProductDetailClient";
-import { updateProduct, deleteProduct } from "@/app/actions/product";
+import { updateProduct } from "@/app/actions/product";
+import DeleteProductButton from "./DeleteProductButton";
 import { getActiveBranch } from "@/app/actions/auth";
 import { getTenantSuppliers } from "@/app/actions/supplier";
 import { getMergedUserPermissions } from "@/app/actions/permissions";
@@ -142,12 +143,6 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
   // Next.js Server Action with bound ID
   const updateProductWithId = updateProduct.bind(null, product.id);
   
-  const handleDelete = async () => {
-    'use server';
-    await deleteProduct(product.id);
-    redirect('/productos');
-  };
-
   const enrichedMovements = await Promise.all(
     product.inventoryMovements.map(async (mov) => {
       let detailUrl = null;
@@ -269,13 +264,8 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
           <Link href={`/productos/nuevo?cloneFrom=${product.id}`} style={{ padding: '0.5rem 1rem', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 'bold', textDecoration: 'none', display: 'inline-block' }}>
             Clonar
           </Link>
-          {/* Note: since this is a server component, we pass the server action to a form. */}
           {canDelete && (
-            <form action={handleDelete}>
-              <button type="submit" style={{ padding: '0.5rem 1rem', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
-                Eliminar
-              </button>
-            </form>
+            <DeleteProductButton productId={product.id} />
           )}
         </div>
       </div>

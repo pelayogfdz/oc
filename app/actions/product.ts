@@ -1214,7 +1214,7 @@ export async function deleteProduct(productId: string) {
   const userRole = permData.success ? permData.role : 'USER';
 
   if (!hasNodeAccess(userPermissions, 'inv_delete', isSuperAdmin, userRole)) {
-    throw new Error('No tienes permisos para eliminar productos.');
+    return { success: false, error: 'No tienes permisos para eliminar productos.' };
   }
 
   try {
@@ -1223,7 +1223,9 @@ export async function deleteProduct(productId: string) {
       select: { sku: true, branchId: true }
     });
 
-    if (!productToDelete) return;
+    if (!productToDelete) {
+      return { success: false, error: 'El producto no existe.' };
+    }
 
     // Obtener la sucursal para determinar el tenantId
     const branch = await prisma.branch.findUnique({
@@ -1268,17 +1270,26 @@ export async function deleteProduct(productId: string) {
         const quoteCount = await tx.quoteItem.count({ where: { productId: { in: productIdsToClear } } });
         if (quoteCount > 0) return true;
 
+        const purchaseOrderCount = await tx.purchaseOrderItem.count({ where: { productId: { in: productIdsToClear } } });
+        if (purchaseOrderCount > 0) return true;
+
         return false;
       });
 
       if (hasHistory) {
-        throw new Error('Este producto tiene historial de transacciones (ventas, cotizaciones, compras, consignaciones o traspasos) y no puede ser eliminado permanentemente. Te recomendamos desactivarlo (marcarlo como inactivo) desde la edición del producto para conservar el historial contable.');
+        return {
+          success: false,
+          error: 'Este producto tiene historial de transacciones (ventas, cotizaciones, compras, consignaciones o traspasos) y no puede ser eliminado permanentemente. Te recomendamos desactivarlo (marcarlo como inactivo) desde la edición del producto para conservar el historial contable.'
+        };
       }
 
       // Eliminar dependencias y productos en lote
       await prisma.$transaction(async (tx) => {
         await tx.quoteItem.deleteMany({ where: { productId: { in: productIdsToClear } } });
         await tx.recipeIngredient.deleteMany({ where: { productId: { in: productIdsToClear } } });
+        await tx.inventoryMovement.deleteMany({ where: { productId: { in: productIdsToClear } } });
+        await tx.inventoryAuditItem.deleteMany({ where: { productId: { in: productIdsToClear } } });
+        await tx.fuelTraceability.deleteMany({ where: { productId: { in: productIdsToClear } } });
         
         const recipes = await tx.recipe.findMany({ where: { productId: { in: productIdsToClear } } });
         if (recipes.length > 0) {
@@ -1307,17 +1318,26 @@ export async function deleteProduct(productId: string) {
         const quoteCount = await tx.quoteItem.count({ where: { productId } });
         if (quoteCount > 0) return true;
 
+        const purchaseOrderCount = await tx.purchaseOrderItem.count({ where: { productId } });
+        if (purchaseOrderCount > 0) return true;
+
         return false;
       });
 
       if (hasHistory) {
-        throw new Error('Este producto tiene historial de transacciones (ventas, cotizaciones, compras, consignaciones o traspasos) y no puede ser eliminado permanentemente. Te recomendamos desactivarlo (marcarlo como inactivo) desde la edición del producto para conservar el historial contable.');
+        return {
+          success: false,
+          error: 'Este producto tiene historial de transacciones (ventas, cotizaciones, compras, consignaciones o traspasos) y no puede ser eliminado permanentemente. Te recomendamos desactivarlo (marcarlo como inactivo) desde la edición del producto para conservar el historial contable.'
+        };
       }
 
       // Eliminar solo el producto individual si no hay SKU o tenant
       await prisma.$transaction(async (tx) => {
         await tx.quoteItem.deleteMany({ where: { productId } });
         await tx.recipeIngredient.deleteMany({ where: { productId } });
+        await tx.inventoryMovement.deleteMany({ where: { productId } });
+        await tx.inventoryAuditItem.deleteMany({ where: { productId } });
+        await tx.fuelTraceability.deleteMany({ where: { productId } });
         
         const recipe = await tx.recipe.findUnique({ where: { productId } });
         if (recipe) {
@@ -1328,11 +1348,12 @@ export async function deleteProduct(productId: string) {
         await tx.product.delete({ where: { id: productId } });
       });
     }
-  } catch(e) {
+  } catch(e: any) {
     console.error("Error eliminando producto:", e);
-    throw e;
+    return { success: false, error: e.message || 'Error interno del servidor al eliminar.' };
   }
   revalidatePath('/productos');
+  return { success: true };
 }
 
 export async function getPriceChangesInLast24Hours() {

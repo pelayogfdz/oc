@@ -348,9 +348,15 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             }
             if(confirm('¿Eliminar producto definitivamente?')) {
               try {
-                await deleteProduct(prod.id);
-                setDisplayedProducts(prev => prev.filter(p => p.id !== prod.id));
-              } catch (e: any) { alert("Error eliminando: " + e.message); }
+                const res = await deleteProduct(prod.id);
+                if (res && !res.success) {
+                  alert("Error al eliminar: " + res.error);
+                } else {
+                  setDisplayedProducts(prev => prev.filter(p => p.id !== prod.id));
+                }
+              } catch (err: any) {
+                alert("Error de conexión al eliminar: " + (err.message || 'Error desconocido'));
+              }
             }
           }} style={{ width: '100%', display: 'block', padding: '0.75rem 1rem', border: 'none', background: 'none', color: '#ef4444', textAlign: 'left', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' }}>
             Eliminar
