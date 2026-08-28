@@ -762,4 +762,28 @@ export async function resolveClientForQuote(quoteIdOrFolio: string): Promise<{ c
   return null;
 }
 
+export async function resolveClientForDeliveryOrder(orderId: string): Promise<{ client: PrismaClient; order: any } | null> {
+  const cleanId = orderId.trim();
+  const clients = getAllTenantClients();
 
+  for (const client of clients) {
+    try {
+      const order = await client.deliveryOrder.findUnique({
+        where: { id: cleanId },
+        include: {
+          sale: {
+            include: {
+              customer: true,
+              items: {
+                include: { product: true }
+              }
+            }
+          },
+          driver: true
+        }
+      });
+      if (order) return { client, order };
+    } catch (e) {}
+  }
+  return null;
+}

@@ -15,8 +15,32 @@ export default function DeliveryDriverClient({ initialOrder }: { initialOrder: a
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoBase64(reader.result as string);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 1200;
+          let width = img.width;
+          let height = img.height;
+          if (width > height && width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressed = canvas.toDataURL('image/jpeg', 0.8);
+            setPhotoBase64(compressed);
+          } else {
+            setPhotoBase64(event.target?.result as string);
+          }
+        };
+        img.src = event.target?.result as string;
       };
       reader.readAsDataURL(file);
     }
@@ -54,15 +78,20 @@ export default function DeliveryDriverClient({ initialOrder }: { initialOrder: a
       });
 
       if (!res.ok) {
-        throw new Error("Error al completar la entrega");
+        let errMsg = "Error al registrar la entrega";
+        try {
+          const errJson = await res.json();
+          if (errJson?.error) errMsg = errJson.error;
+        } catch (err) {}
+        throw new Error(errMsg);
       }
 
       const updatedOrder = await res.json();
       setOrder(updatedOrder);
       alert("¡Entrega registrada con éxito!");
-    } catch (e) {
-      console.error(e);
-      alert("Hubo un error al registrar la entrega. Intente de nuevo.");
+    } catch (e: any) {
+      console.error("Error al registrar entrega:", e);
+      alert(e.message || "Hubo un error al registrar la entrega. Intente de nuevo.");
     } finally {
       setIsSubmitting(false);
     }

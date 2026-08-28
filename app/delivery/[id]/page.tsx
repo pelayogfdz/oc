@@ -1,24 +1,12 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, resolveClientForDeliveryOrder } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import DeliveryDriverClient from "./DeliveryDriverClient";
 
 export default async function DeliveryDriverPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   
-  const order = await prisma.deliveryOrder.findUnique({
-    where: { id },
-    include: {
-      sale: {
-        include: {
-          customer: true,
-          items: {
-            include: { product: true }
-          }
-        }
-      },
-      driver: true
-    }
-  });
+  const resolved = await resolveClientForDeliveryOrder(id);
+  const order = resolved?.order;
 
   if (!order) {
     notFound();
