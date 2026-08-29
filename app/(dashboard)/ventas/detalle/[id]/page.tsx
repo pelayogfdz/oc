@@ -20,7 +20,9 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
       user: true,
       customer: true,
       branch: { include: { settings: true } },
-      deliveryOrder: true,
+      deliveryOrder: {
+        include: { driver: true }
+      },
       items: {
         include: { product: true, variant: true }
       }
@@ -39,15 +41,24 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
   const discount = Math.max(0, itemsTotal - effectiveTotal);
   const finalSubtotal = itemsTotal + unallocatedAmount;
 
-  const customers = await prisma.customer.findMany({
-    where: {
-      branch: {
-        tenantId: branch?.tenantId || sale.branch?.tenantId || undefined
-      }
-    },
-    orderBy: { name: 'asc' },
-    select: { id: true, name: true }
-  });
+  const [customers, drivers] = await Promise.all([
+    prisma.customer.findMany({
+      where: {
+        branch: {
+          tenantId: branch?.tenantId || sale.branch?.tenantId || undefined
+        }
+      },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, street: true, exteriorNumber: true, interiorNumber: true, neighborhood: true, city: true, zipCode: true, phone: true }
+    }),
+    prisma.user.findMany({
+      where: {
+        branchId: branch?.id && branch.id !== 'GLOBAL' ? branch.id : (sale.branchId || undefined)
+      },
+      select: { id: true, name: true, role: true },
+      orderBy: { name: 'asc' }
+    })
+  ]);
 
   const isGeneric = sale.customer?.name ? (
     sale.customer.name.trim().toLowerCase() === 'público general' || 
@@ -94,12 +105,21 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
            paymentMethod={sale.paymentMethod}
            customerPhone={sale.customer?.phone}
            customerName={sale.customer?.name}
+           customerAddress={{
+             street: sale.customer?.street || '',
+             exteriorNumber: sale.customer?.exteriorNumber || '',
+             interiorNumber: sale.customer?.interiorNumber || '',
+             neighborhood: sale.customer?.neighborhood || '',
+             city: sale.customer?.city || '',
+             zipCode: sale.customer?.zipCode || '',
+           }}
            saleTotal={sale.total}
            invoiceId={sale.invoiceId}
            currentCustomerId={sale.customerId}
            currentNotes={sale.notes}
            customers={customers}
-           deliveryOrder={sale.deliveryOrder ? { id: sale.deliveryOrder.id, status: sale.deliveryOrder.status } : null}
+           deliveryOrder={sale.deliveryOrder ? JSON.parse(JSON.stringify(sale.deliveryOrder)) : null}
+           drivers={drivers}
            customerHasCredit={customerHasCredit}
            metodosConfig={metodosConfig}
          />

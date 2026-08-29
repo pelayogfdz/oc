@@ -414,9 +414,42 @@ export async function createProduct(prevState: any, formData: FormData) {
 
 export async function updateProduct(productId: string, formData: FormData) {
   let activeUser = null;
+  let validUserId: string | null = null;
   try {
     activeUser = await getActiveUser();
+    if (activeUser?.id) {
+      const userInDb = await prisma.user.findUnique({
+        where: { id: activeUser.id },
+        select: { id: true }
+      });
+      if (userInDb) validUserId = userInDb.id;
+    }
   } catch (e) {}
+
+  const safeLogPriceChange = async (data: {
+    productId: string;
+    priceListId?: string | null;
+    priceListName?: string | null;
+    oldPrice: number;
+    newPrice: number;
+    branchId: string;
+  }) => {
+    try {
+      await prisma.priceChangeLog.create({
+        data: {
+          productId: data.productId,
+          priceListId: data.priceListId || null,
+          priceListName: data.priceListName || null,
+          oldPrice: data.oldPrice,
+          newPrice: data.newPrice,
+          branchId: data.branchId,
+          userId: validUserId
+        }
+      });
+    } catch (logErr) {
+      console.warn('[PRICE LOG WARNING] Could not record PriceChangeLog:', logErr);
+    }
+  };
 
   try {
     console.log(`[DEBUG] updateProduct called for ${productId}`);
@@ -615,15 +648,12 @@ export async function updateProduct(productId: string, formData: FormData) {
 
             for (const p of affectedProducts) {
               if (p.price !== data.price) {
-                await prisma.priceChangeLog.create({
-                  data: {
-                    productId: p.id,
-                    oldPrice: p.price,
-                    newPrice: data.price,
-                    branchId: p.branchId,
-                    userId: activeUser?.id || null,
-                    priceListName: 'Precio Público'
-                  }
+                await safeLogPriceChange({
+                  productId: p.id,
+                  oldPrice: p.price,
+                  newPrice: data.price,
+                  branchId: p.branchId,
+                  priceListName: 'Precio Público'
                 });
               }
             }
@@ -717,89 +747,143 @@ export async function updateProduct(productId: string, formData: FormData) {
     const keys = Array.from(formData.keys());
     for (const key of keys) {
       if (key.startsWith('priceList_')) {
-        const priceListId = key.replace('priceList_', '');
-        const listPrice = parseFloat(formData.get(key) as string);
-        if (!isNaN(listPrice)) {
-          const oldPriceRecord = await prisma.productPrice.findUnique({
-            where: { productId_priceListId: { productId, priceListId } }
-          });
-          
-          await prisma.productPrice.upsert({
-            where: { 
-              productId_priceListId: { productId, priceListId }
-            },
-            create: { productId, priceListId, price: listPrice },
-            update: { price: listPrice }
-          });
+        const rawPriceListId = key.replace('priceList_', '');
+        const rawVal = formData.get(key);
+        const listPrice = (rawVal !== null && rawVal !== '') ? parseFloat(rawVal as string) : null;
+        
+        // Find the source price list to get its name
+        const sourcePriceList = await prisma.priceList.findUnique({
+          where: { id: rawPriceListId },
+          select: { id: true, name: true, branchId: true }
+        });
 
-          // Fetch current price list name
-          const priceListObj = await prisma.priceList.findUnique({
-            where: { id: priceListId },
-            select: { name: true, branchId: true }
-          });
+        if (!sourcePriceList) continue;
 
-          if (!oldPriceRecord || oldPriceRecord.price !== listPrice) {
-            await prisma.priceChangeLog.create({
+        // Ensure price list exists in the product's branch
+        let productPriceList = sourcePriceList;
+        if (sourcePriceList.branchId !== currentProduct.branchId) {
+          let matchingPl = await prisma.priceList.findFirst({
+            where: {
+              branchId: currentProduct.branchId,
+              name: { equals: sourcePriceList.name, mode: 'insensitive' }
+            }
+          });
+          if (!matchingPl) {
+            matchingPl = await prisma.priceList.create({
               data: {
-                productId,
-                priceListId,
-                priceListName: priceListObj?.name || 'Lista de Precios',
-                oldPrice: oldPriceRecord ? oldPriceRecord.price : 0,
-                newPrice: listPrice,
-                branchId: priceListObj?.branchId || currentProduct.branchId,
-                userId: activeUser?.id || null
+                branchId: currentProduct.branchId,
+                name: sourcePriceList.name
               }
             });
           }
+          productPriceList = matchingPl;
+        }
 
-          const currentProd = await prisma.product.findUnique({
-            where: { id: productId },
-            select: { sku: true, branchId: true }
+        const oldPriceRecord = await prisma.productPrice.findUnique({
+          where: { productId_priceListId: { productId, priceListId: productPriceList.id } }
+        });
+
+        if (listPrice === null || isNaN(listPrice) || listPrice <= 0) {
+          // Clear / delete price if set to blank/0
+          if (oldPriceRecord) {
+            await prisma.productPrice.deleteMany({
+              where: { productId, priceListId: productPriceList.id }
+            });
+            await safeLogPriceChange({
+              productId,
+              priceListId: productPriceList.id,
+              priceListName: productPriceList.name,
+              oldPrice: oldPriceRecord.price,
+              newPrice: 0,
+              branchId: currentProduct.branchId
+            });
+          }
+        } else {
+          // Upsert price
+          await prisma.productPrice.upsert({
+            where: { 
+              productId_priceListId: { productId, priceListId: productPriceList.id }
+            },
+            create: { productId, priceListId: productPriceList.id, price: listPrice },
+            update: { price: listPrice }
           });
 
-          if (priceListObj?.name && currentProd?.sku && currentProd.branchId) {
-            const currentBranch = await prisma.branch.findUnique({
-              where: { id: currentProd.branchId },
-              select: { tenantId: true }
+          if (!oldPriceRecord || oldPriceRecord.price !== listPrice) {
+            await safeLogPriceChange({
+              productId,
+              priceListId: productPriceList.id,
+              priceListName: productPriceList.name,
+              oldPrice: oldPriceRecord ? oldPriceRecord.price : 0,
+              newPrice: listPrice,
+              branchId: currentProduct.branchId
+            });
+          }
+        }
+
+        // Propagate dynamic price to sibling products in other branches
+        const currentProd = await prisma.product.findUnique({
+          where: { id: productId },
+          select: { sku: true, branchId: true }
+        });
+
+        if (productPriceList.name && currentProd?.sku && currentProd.branchId) {
+          const currentBranch = await prisma.branch.findUnique({
+            where: { id: currentProd.branchId },
+            select: { tenantId: true }
+          });
+
+          if (currentBranch?.tenantId) {
+            const tenantBranches = await prisma.branch.findMany({
+              where: { tenantId: currentBranch.tenantId },
+              select: { id: true }
             });
 
-            if (currentBranch?.tenantId) {
-              const tenantBranches = await prisma.branch.findMany({
-                where: { tenantId: currentBranch.tenantId },
-                select: { id: true }
-              });
+            const siblingBranchIds = tenantBranches.map(b => b.id);
+            const siblingProducts = await prisma.product.findMany({
+              where: {
+                sku: currentProd.sku,
+                branchId: { in: siblingBranchIds },
+                id: { not: productId }
+              },
+              select: { id: true, branchId: true }
+            });
 
-              const siblingBranchIds = tenantBranches.map(b => b.id);
-              const siblingProducts = await prisma.product.findMany({
+            for (const siblingProd of siblingProducts) {
+              let targetPriceList = await prisma.priceList.findFirst({
                 where: {
-                  sku: currentProd.sku,
-                  branchId: { in: siblingBranchIds },
-                  id: { not: productId }
-                },
-                select: { id: true, branchId: true }
+                  branchId: siblingProd.branchId,
+                  name: { equals: productPriceList.name, mode: 'insensitive' }
+                }
               });
 
-              for (const siblingProd of siblingProducts) {
-                let targetPriceList = await prisma.priceList.findFirst({
-                  where: {
+              if (!targetPriceList) {
+                targetPriceList = await prisma.priceList.create({
+                  data: {
                     branchId: siblingProd.branchId,
-                    name: { equals: priceListObj.name, mode: 'insensitive' }
+                    name: productPriceList.name
                   }
                 });
+              }
 
-                if (!targetPriceList) {
-                  targetPriceList = await prisma.priceList.create({
-                    data: {
-                      branchId: siblingProd.branchId,
-                      name: priceListObj.name
-                    }
+              const sibOldPriceRecord = await prisma.productPrice.findUnique({
+                where: { productId_priceListId: { productId: siblingProd.id, priceListId: targetPriceList.id } }
+              });
+
+              if (listPrice === null || isNaN(listPrice) || listPrice <= 0) {
+                if (sibOldPriceRecord) {
+                  await prisma.productPrice.deleteMany({
+                    where: { productId: siblingProd.id, priceListId: targetPriceList.id }
+                  });
+                  await safeLogPriceChange({
+                    productId: siblingProd.id,
+                    priceListId: targetPriceList.id,
+                    priceListName: targetPriceList.name,
+                    oldPrice: sibOldPriceRecord.price,
+                    newPrice: 0,
+                    branchId: siblingProd.branchId
                   });
                 }
-
-                const sibOldPriceRecord = await prisma.productPrice.findUnique({
-                  where: { productId_priceListId: { productId: siblingProd.id, priceListId: targetPriceList.id } }
-                });
-
+              } else {
                 await prisma.productPrice.upsert({
                   where: {
                     productId_priceListId: {
@@ -818,68 +902,65 @@ export async function updateProduct(productId: string, formData: FormData) {
                 });
 
                 if (!sibOldPriceRecord || sibOldPriceRecord.price !== listPrice) {
-                  await prisma.priceChangeLog.create({
-                    data: {
-                      productId: siblingProd.id,
-                      priceListId: targetPriceList.id,
-                      priceListName: targetPriceList.name || 'Lista de Precios',
-                      oldPrice: sibOldPriceRecord ? sibOldPriceRecord.price : 0,
-                      newPrice: listPrice,
-                      branchId: siblingProd.branchId,
-                      userId: activeUser?.id || null
-                    }
+                  await safeLogPriceChange({
+                    productId: siblingProd.id,
+                    priceListId: targetPriceList.id,
+                    priceListName: targetPriceList.name,
+                    oldPrice: sibOldPriceRecord ? sibOldPriceRecord.price : 0,
+                    newPrice: listPrice,
+                    branchId: siblingProd.branchId
                   });
                 }
               }
             }
           }
+        }
 
-          if (priceListObj && priceListObj.name.toLowerCase() === 'mercado libre') {
-            const maps = await prisma.externalProductMap.findMany({
-              where: { productId, platform: 'MERCADO_LIBRE' }
+        if (productPriceList.name.toLowerCase() === 'mercado libre' && listPrice !== null && listPrice > 0) {
+          const maps = await prisma.externalProductMap.findMany({
+            where: { productId, platform: 'MERCADO_LIBRE' }
+          });
+
+          for (const map of maps) {
+            const productCost = currentProduct.cost || 0;
+            const comisionMeli = map.comisionMeli || 0;
+            const envioMeli = map.envioMeli || 0;
+            const retencionMeli = map.retencionMeli || 0;
+            const margenDinero = listPrice - productCost - comisionMeli - envioMeli - retencionMeli;
+            const margenPorcentaje = listPrice > 0 ? (margenDinero / listPrice) * 100 : 0;
+
+            // Update local map price and margins
+            await prisma.externalProductMap.update({
+              where: { id: map.id },
+              data: {
+                precioMeli: listPrice,
+                margenDinero,
+                margenPorcentaje,
+                lastSync: new Date()
+              }
             });
 
-            for (const map of maps) {
-              const productCost = currentProduct.cost || 0;
-              const comisionMeli = map.comisionMeli || 0;
-              const envioMeli = map.envioMeli || 0;
-              const retencionMeli = map.retencionMeli || 0;
-              const margenDinero = listPrice - productCost - comisionMeli - envioMeli - retencionMeli;
-              const margenPorcentaje = listPrice > 0 ? (margenDinero / listPrice) * 100 : 0;
-
-              // Update local map price and margins
-              await prisma.externalProductMap.update({
-                where: { id: map.id },
-                data: {
-                  precioMeli: listPrice,
-                  margenDinero,
-                  margenPorcentaje,
-                  lastSync: new Date()
+            // Push the new price to Mercado Libre API in real-time
+            const { getOrRefreshMeliToken, fetchMeliWithRetry } = await import('@/app/utils/meliToken');
+            const token = await getOrRefreshMeliToken(productPriceList.branchId);
+            if (token) {
+              try {
+                const response = await fetchMeliWithRetry(`https://api.mercadolibre.com/items/${map.externalId}`, {
+                  method: 'PUT',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ price: listPrice })
+                });
+                if (!response.ok) {
+                  const errBody = await response.json().catch(() => ({}));
+                  console.error(`[MELI PRICE SYNC BACK] Error pushing price to ML for ${map.externalId}:`, errBody);
+                } else {
+                  console.log(`[MELI PRICE SYNC BACK] Price successfully pushed to ML for ${map.externalId}: ${listPrice}`);
                 }
-              });
-
-              // Push the new price to Mercado Libre API in real-time
-              const { getOrRefreshMeliToken, fetchMeliWithRetry } = await import('@/app/utils/meliToken');
-              const token = await getOrRefreshMeliToken(priceListObj.branchId);
-              if (token) {
-                try {
-                  const response = await fetchMeliWithRetry(`https://api.mercadolibre.com/items/${map.externalId}`, {
-                    method: 'PUT',
-                    headers: {
-                      'Authorization': `Bearer ${token}`,
-                      'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ price: listPrice })
-                  });
-                  if (!response.ok) {
-                    const errBody = await response.json().catch(() => ({}));
-                    console.error(`[MELI PRICE SYNC BACK] Error pushing price to ML for ${map.externalId}:`, errBody);
-                  } else {
-                    console.log(`[MELI PRICE SYNC BACK] Price successfully pushed to ML for ${map.externalId}: ${listPrice}`);
-                  }
-                } catch (e) {
-                  console.error(`[MELI PRICE SYNC BACK] Network error pushing price to ML:`, e);
-                }
+              } catch (e) {
+                console.error(`[MELI PRICE SYNC BACK] Network error pushing price to ML:`, e);
               }
             }
           }

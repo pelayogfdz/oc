@@ -133,14 +133,19 @@ export async function importProducts(records: any[]) {
     if (existing) {
       // Log price changes if public price is modified
       if (existing.price !== price) {
-        await prisma.priceChangeLog.create({
-          data: {
-            productId: existing.id,
-            oldPrice: existing.price,
-            newPrice: price,
-            branchId: branch.id
-          }
-        });
+        try {
+          await prisma.priceChangeLog.create({
+            data: {
+              productId: existing.id,
+              oldPrice: existing.price,
+              newPrice: price,
+              branchId: branch.id,
+              priceListName: 'Precio Público'
+            }
+          });
+        } catch (e) {
+          console.warn('[IMPORT PRICE LOG WARNING]', e);
+        }
 
         // Log for sister branches too
         if (sisterBranchIds.length > 0) {
@@ -150,14 +155,19 @@ export async function importProducts(records: any[]) {
           });
           for (const sp of sisterProducts) {
             if (sp.price !== price) {
-              await prisma.priceChangeLog.create({
-                data: {
-                  productId: sp.id,
-                  oldPrice: sp.price,
-                  newPrice: price,
-                  branchId: sp.branchId
-                }
-              });
+              try {
+                await prisma.priceChangeLog.create({
+                  data: {
+                    productId: sp.id,
+                    oldPrice: sp.price,
+                    newPrice: price,
+                    branchId: sp.branchId,
+                    priceListName: 'Precio Público'
+                  }
+                });
+              } catch (e) {
+                console.warn('[IMPORT PRICE LOG WARNING]', e);
+              }
             }
           }
         }

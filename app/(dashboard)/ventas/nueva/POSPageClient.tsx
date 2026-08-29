@@ -25,6 +25,7 @@ interface POSPageClientProps {
   userPermissions?: Record<string, boolean>;
   userRole?: string;
   isSuperAdmin?: boolean;
+  drivers?: any[];
 }
 
 export default function POSPageClient({
@@ -45,7 +46,8 @@ export default function POSPageClient({
   qzCert,
   userPermissions = {},
   userRole = 'USER',
-  isSuperAdmin = false
+  isSuperAdmin = false,
+  drivers = []
 }: POSPageClientProps) {
   const { isOnline } = useOfflineSync();
   const [mounted, setMounted] = useState(false);
@@ -125,6 +127,7 @@ export default function POSPageClient({
             userPermissions={userPermissions}
             userRole={userRole}
             isSuperAdmin={isSuperAdmin}
+            drivers={drivers}
           />
         </Suspense>
       </div>

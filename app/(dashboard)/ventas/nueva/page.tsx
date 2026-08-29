@@ -32,7 +32,8 @@ export default async function NuevaVentaPage({ searchParams }: { searchParams: a
     pendingQuotes,
     session,
     settings,
-    suppliers
+    suppliers,
+    drivers
   ] = await Promise.all([
     prisma.product.findMany({
       where: { branchId, isActive: true },
@@ -57,7 +58,14 @@ export default async function NuevaVentaPage({ searchParams }: { searchParams: a
     }),
     getCurrentSession(),
     getBranchSettings(),
-    getTenantSuppliers()
+    getTenantSuppliers(),
+    prisma.user.findMany({
+      where: {
+        branchId: branchId && branchId !== 'GLOBAL' ? branchId : undefined
+      },
+      select: { id: true, name: true, role: true },
+      orderBy: { name: 'asc' }
+    })
   ]);
 
   const priceListsMap = new Map();
@@ -177,6 +185,7 @@ export default async function NuevaVentaPage({ searchParams }: { searchParams: a
       userPermissions={userPermissions}
       userRole={userRole}
       isSuperAdmin={isSuperAdmin}
+      drivers={drivers}
     />
   );
 }

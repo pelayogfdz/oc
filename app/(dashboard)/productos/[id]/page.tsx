@@ -84,12 +84,21 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
   const priceListsMap = new Map();
   for (const pl of allPriceLists) {
     if (pl.branchId === product.branchId) {
-      priceListsMap.set(pl.name, pl);
+      priceListsMap.set(pl.name.toLowerCase().trim(), pl);
     }
   }
   for (const pl of allPriceLists) {
-    if (!priceListsMap.has(pl.name)) {
-      priceListsMap.set(pl.name, pl);
+    const key = pl.name.toLowerCase().trim();
+    if (!priceListsMap.has(key)) {
+      let localPl = await prisma.priceList.findFirst({
+        where: { branchId: product.branchId, name: { equals: pl.name, mode: 'insensitive' } }
+      });
+      if (!localPl) {
+        localPl = await prisma.priceList.create({
+          data: { branchId: product.branchId, name: pl.name }
+        });
+      }
+      priceListsMap.set(key, localPl);
     }
   }
   const dynamicPriceLists = Array.from(priceListsMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));

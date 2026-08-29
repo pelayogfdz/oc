@@ -5,6 +5,21 @@ import { revalidatePath } from 'next/cache';
 import { getActiveBranch, getActiveUser, getSession } from './auth';
 import { getUtcDateFromLocal } from '@/app/lib/timezone';
 
+export interface DeliveryDataInput {
+  isDelivery?: boolean;
+  street?: string;
+  exteriorNumber?: string;
+  interiorNumber?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  notes?: string;
+  deliveryDate?: string;
+  deliveryTime?: string;
+  driverId?: string | null;
+}
+
 export async function createSale(
   items: { productId: string; variantId?: string | null; quantity: number; price: number }[], 
   total: number,
@@ -25,7 +40,8 @@ export async function createSale(
   deliveryDate?: string,
   deliveryTime?: string,
   deliveryStreet?: string,
-  deliveryType?: string
+  deliveryType?: string,
+  deliveryData?: DeliveryDataInput
 ) {
   try {
     const activeBranch = await getActiveBranch();
@@ -241,50 +257,66 @@ export async function createSale(
         }
       });
 
-      // If it is a PEDIDO, create a DeliveryOrder and trigger ProductionOrder if fabricable
-      if (isPedido) {
+      // If it is a Delivery or PEDIDO, create a DeliveryOrder and trigger ProductionOrder if fabricable
+      const requiresDelivery = deliveryData?.isDelivery || deliveryType === 'DELIVERY' || isPedido;
+      if (requiresDelivery) {
         let finalDueDate: Date | null = null;
-        if (deliveryDate) {
-          finalDueDate = new Date(`${deliveryDate}T12:00:00`);
+        const targetDate = deliveryData?.deliveryDate || deliveryDate;
+        if (targetDate) {
+          finalDueDate = new Date(targetDate.includes('T') ? targetDate : `${targetDate}T12:00:00`);
         }
+
+        const assignedDriverId = deliveryData?.driverId && deliveryData.driverId !== '' ? deliveryData.driverId : null;
+        const initialDeliveryStatus = assignedDriverId ? 'IN_PROGRESS' : 'PENDING';
         
         await tx.deliveryOrder.create({
           data: {
             saleId: createdSale.id,
-            street: deliveryType === 'DELIVERY' ? (deliveryStreet || 'Envío a Domicilio') : 'Recoger en Tienda',
+            street: deliveryData?.street || deliveryStreet || (deliveryType === 'DELIVERY' || deliveryData?.isDelivery ? 'Envío a Domicilio' : 'Recoger en Tienda'),
+            exteriorNumber: deliveryData?.exteriorNumber || null,
+            interiorNumber: deliveryData?.interiorNumber || null,
+            neighborhood: deliveryData?.neighborhood || null,
+            city: deliveryData?.city || null,
+            state: deliveryData?.state || null,
+            zipCode: deliveryData?.zipCode || null,
+            notes: deliveryData?.notes || null,
+            driverId: assignedDriverId,
             deliveryDate: finalDueDate,
-            maxDeliveryTime: deliveryTime || null,
-            status: 'PENDING',
+            maxDeliveryTime: deliveryData?.deliveryTime || deliveryTime || null,
+            status: initialDeliveryStatus,
             branchId: finalBranchId
           }
         });
 
         // Automatically create a ProductionOrder for each fabricable product
-        for (const item of items) {
-          const product = await tx.product.findUnique({
-            where: { id: item.productId },
-            include: { Recipe: true }
-          });
-          if (product && (product.allowProduction || product.Recipe)) {
-            let recipe = product.Recipe;
-            if (!recipe) {
-              recipe = await tx.recipe.findFirst({
-                where: { productId: product.id }
-              });
-            }
-            if (recipe) {
-              const formattedDate = deliveryDate ? `${deliveryDate}` : '';
-              const formattedTime = deliveryTime ? ` a las ${deliveryTime}` : '';
-              await tx.productionOrder.create({
-                data: {
-                  recipeId: recipe.id,
-                  targetQuantity: item.quantity,
-                  status: 'PENDING',
-                  branchId: finalBranchId,
-                  userId: user.id,
-                  notes: `Pedido #${folio || createdSale.id.slice(0, 8)} - Entrega: ${formattedDate}${formattedTime}`
-                }
-              });
+        if (isPedido) {
+          for (const item of items) {
+            const product = await tx.product.findUnique({
+              where: { id: item.productId },
+              include: { Recipe: true }
+            });
+            if (product && (product.allowProduction || product.Recipe)) {
+              let recipe = product.Recipe;
+              if (!recipe) {
+                recipe = await tx.recipe.findFirst({
+                  where: { productId: product.id }
+                });
+              }
+              if (recipe) {
+                const formattedDate = targetDate ? `${targetDate}` : '';
+                const targetTime = deliveryData?.deliveryTime || deliveryTime;
+                const formattedTime = targetTime ? ` a las ${targetTime}` : '';
+                await tx.productionOrder.create({
+                  data: {
+                    recipeId: recipe.id,
+                    targetQuantity: item.quantity,
+                    status: 'PENDING',
+                    branchId: finalBranchId,
+                    userId: user.id,
+                    notes: `Pedido #${folio || createdSale.id.slice(0, 8)} - Entrega: ${formattedDate}${formattedTime}`
+                  }
+                });
+              }
             }
           }
         }

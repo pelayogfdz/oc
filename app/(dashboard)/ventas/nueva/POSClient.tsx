@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star, X, Clock, FolderOpen, Trash2, ShoppingBag, Plus, Percent, Tag, PlusCircle, MoreVertical } from 'lucide-react';
+import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star, X, Clock, FolderOpen, Trash2, ShoppingBag, Plus, Percent, Tag, PlusCircle, MoreVertical, Truck } from 'lucide-react';
 import QRCode from 'qrcode';
 import { createSale, sendSaleByEmail } from '@/app/actions/sale';
 import { sendInvoiceByEmail } from '@/app/actions/facturacion';
@@ -34,7 +34,8 @@ export default function POSClient({
   qzCert,
   userPermissions = {},
   userRole = 'USER',
-  isSuperAdmin = false
+  isSuperAdmin = false,
+  drivers = []
 }: { 
   products: any[], 
   customers: any[], 
@@ -54,7 +55,8 @@ export default function POSClient({
   qzCert?: string,
   userPermissions?: Record<string, boolean>,
   userRole?: string,
-  isSuperAdmin?: boolean
+  isSuperAdmin?: boolean,
+  drivers?: any[]
 }) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -88,6 +90,14 @@ export default function POSClient({
       deliveryTime: '',
       deliveryStreet: '',
       deliveryType: 'PICKUP',
+      isDelivery: false,
+      deliveryExtNumber: '',
+      deliveryIntNumber: '',
+      deliveryColonia: '',
+      deliveryCity: '',
+      deliveryZipCode: '',
+      deliveryNotes: '',
+      deliveryDriverId: '',
       documentType: 'TICKET',
       transactionType: 'VENTA',
       appliedPromotionIds: null,
@@ -118,6 +128,14 @@ export default function POSClient({
         deliveryTime,
         deliveryStreet,
         deliveryType,
+        isDelivery,
+        deliveryExtNumber,
+        deliveryIntNumber,
+        deliveryColonia,
+        deliveryCity,
+        deliveryZipCode,
+        deliveryNotes,
+        deliveryDriverId,
         documentType,
         transactionType,
         appliedPromotionIds,
@@ -147,6 +165,14 @@ export default function POSClient({
         setDeliveryTime(target.deliveryTime || '');
         setDeliveryStreet(target.deliveryStreet || '');
         setDeliveryType((target.deliveryType || 'PICKUP') as 'PICKUP' | 'DELIVERY');
+        setIsDelivery(target.isDelivery || false);
+        setDeliveryExtNumber(target.deliveryExtNumber || '');
+        setDeliveryIntNumber(target.deliveryIntNumber || '');
+        setDeliveryColonia(target.deliveryColonia || '');
+        setDeliveryCity(target.deliveryCity || '');
+        setDeliveryZipCode(target.deliveryZipCode || '');
+        setDeliveryNotes(target.deliveryNotes || '');
+        setDeliveryDriverId(target.deliveryDriverId || '');
         setDocumentType((target.documentType || 'TICKET') as 'TICKET' | 'FACTURA');
         setTransactionType((target.transactionType || 'VENTA') as 'VENTA' | 'PEDIDO');
         setAppliedPromotionIds(target.appliedPromotionIds !== undefined ? target.appliedPromotionIds : null);
@@ -223,6 +249,14 @@ export default function POSClient({
       deliveryTime: '',
       deliveryStreet: '',
       deliveryType: 'PICKUP',
+      isDelivery: false,
+      deliveryExtNumber: '',
+      deliveryIntNumber: '',
+      deliveryColonia: '',
+      deliveryCity: '',
+      deliveryZipCode: '',
+      deliveryNotes: '',
+      deliveryDriverId: '',
       documentType: 'TICKET',
       transactionType: 'VENTA',
       appliedPromotionIds: null,
@@ -358,6 +392,14 @@ export default function POSClient({
     setDeliveryTime('');
     setDeliveryStreet('');
     setDeliveryType('PICKUP');
+    setIsDelivery(false);
+    setDeliveryExtNumber('');
+    setDeliveryIntNumber('');
+    setDeliveryColonia('');
+    setDeliveryCity('');
+    setDeliveryZipCode('');
+    setDeliveryNotes('');
+    setDeliveryDriverId('');
     setTipAmount(0);
     setPointsRedeemed(0);
     setManualDiscountValue('');
@@ -402,6 +444,14 @@ export default function POSClient({
       deliveryTime: '',
       deliveryStreet: '',
       deliveryType: 'PICKUP',
+      isDelivery: false,
+      deliveryExtNumber: '',
+      deliveryIntNumber: '',
+      deliveryColonia: '',
+      deliveryCity: '',
+      deliveryZipCode: '',
+      deliveryNotes: '',
+      deliveryDriverId: '',
       documentType: 'TICKET',
       transactionType: 'VENTA',
       appliedPromotionIds: null,
@@ -461,6 +511,18 @@ export default function POSClient({
         cardAmount: '',
         transferAmount: '',
         notes: '',
+        deliveryDate: '',
+        deliveryTime: '',
+        deliveryStreet: '',
+        deliveryType: 'PICKUP',
+        isDelivery: false,
+        deliveryExtNumber: '',
+        deliveryIntNumber: '',
+        deliveryColonia: '',
+        deliveryCity: '',
+        deliveryZipCode: '',
+        deliveryNotes: '',
+        deliveryDriverId: '',
         documentType: 'TICKET',
         transactionType: 'VENTA',
         appliedPromotionIds: null,
@@ -497,6 +559,14 @@ export default function POSClient({
         deliveryTime,
         deliveryStreet,
         deliveryType,
+        isDelivery,
+        deliveryExtNumber,
+        deliveryIntNumber,
+        deliveryColonia,
+        deliveryCity,
+        deliveryZipCode,
+        deliveryNotes,
+        deliveryDriverId,
         documentType,
         transactionType,
         appliedPromotionIds,
@@ -842,6 +912,14 @@ export default function POSClient({
   const [deliveryTime, setDeliveryTime] = useState<string>('');
   const [deliveryStreet, setDeliveryStreet] = useState<string>('');
   const [deliveryType, setDeliveryType] = useState<'PICKUP' | 'DELIVERY'>('PICKUP');
+  const [isDelivery, setIsDelivery] = useState<boolean>(false);
+  const [deliveryExtNumber, setDeliveryExtNumber] = useState<string>('');
+  const [deliveryIntNumber, setDeliveryIntNumber] = useState<string>('');
+  const [deliveryColonia, setDeliveryColonia] = useState<string>('');
+  const [deliveryCity, setDeliveryCity] = useState<string>('');
+  const [deliveryZipCode, setDeliveryZipCode] = useState<string>('');
+  const [deliveryNotes, setDeliveryNotes] = useState<string>('');
+  const [deliveryDriverId, setDeliveryDriverId] = useState<string>('');
   const [loadedQuoteId, setLoadedQuoteId] = useState<string | null>(null);
   const [loadedQuoteTotal, setLoadedQuoteTotal] = useState<number | null>(null);
   const [isQuoteClone, setIsQuoteClone] = useState<boolean>(false);
@@ -1030,6 +1108,13 @@ export default function POSClient({
        setBillZipCode(customer.zipCode || '');
        if (customer.taxRegime) setBillRegime(customer.taxRegime);
        if (customer.cfdiUse) setBillUse(customer.cfdiUse);
+       
+       if (customer.street) setDeliveryStreet(customer.street);
+       if (customer.exteriorNumber) setDeliveryExtNumber(customer.exteriorNumber);
+       if (customer.interiorNumber) setDeliveryIntNumber(customer.interiorNumber);
+       if (customer.neighborhood) setDeliveryColonia(customer.neighborhood);
+       if (customer.city) setDeliveryCity(customer.city);
+       if (customer.zipCode) setDeliveryZipCode(customer.zipCode);
     } else {
        setBillRfc('');
        setBillName('');
@@ -2485,7 +2570,15 @@ export default function POSClient({
                 deliveryDate,
                 deliveryTime,
                 deliveryStreet,
-                deliveryType
+                deliveryType,
+                isDelivery,
+                deliveryExtNumber,
+                deliveryIntNumber,
+                deliveryColonia,
+                deliveryCity,
+                deliveryZipCode,
+                deliveryNotes,
+                deliveryDriverId
              },
              retryCount: 0,
              failed: false
@@ -2496,6 +2589,21 @@ export default function POSClient({
           // Use the real dynamic total calculated by the POS (total + tipAmount) to preserve edits (quantities, customer, additional products)
           const saleTotal = total + tipAmount;
           const isPedidoTx = transactionType === 'PEDIDO';
+          const isDeliveryRequested = isDelivery || isPedidoTx;
+          const deliveryData = isDeliveryRequested ? {
+            isDelivery: true,
+            street: deliveryStreet,
+            exteriorNumber: deliveryExtNumber,
+            interiorNumber: deliveryIntNumber,
+            neighborhood: deliveryColonia,
+            city: deliveryCity,
+            zipCode: deliveryZipCode,
+            notes: deliveryNotes,
+            deliveryDate: deliveryDate || undefined,
+            deliveryTime: deliveryTime || undefined,
+            driverId: deliveryDriverId || null
+          } : undefined;
+
           const response = await createSale(
             items, 
             saleTotal, 
@@ -2516,7 +2624,8 @@ export default function POSClient({
             deliveryDate || undefined,
             deliveryTime || undefined,
             deliveryStreet || undefined,
-            deliveryType
+            deliveryType,
+            deliveryData
           );
           if (!response.success) {
             throw new Error(response.error);
@@ -4417,123 +4526,321 @@ export default function POSClient({
               </div>
             )}
 
-            {/* Campos de entrega para Pedidos */}
-            {transactionType === 'PEDIDO' && (
-              <div style={{ marginBottom: '1.25rem', padding: '1rem', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', margin: '0 0 1rem 0', color: 'var(--caanma-primary)', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
-                  Detalles del Pedido / Entrega
-                </h3>
-                
-                {/* Tipo de Entrega */}
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.4rem' }}>
-                    Tipo de Entrega
-                  </label>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDeliveryType('PICKUP');
-                        setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryType: 'PICKUP' } : t));
-                        if (paymentMethod === 'PAY_ON_DELIVERY') {
-                          setPaymentMethod('PAY_ON_PICKUP');
-                          setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, paymentMethod: 'PAY_ON_PICKUP' } : t));
+            {/* Campos de entrega para Pedidos y Ventas con Envío a Domicilio */}
+            {mode === 'SALE' && (
+              <div style={{ marginBottom: '1.25rem', padding: '1rem', border: `1.5px solid ${isDelivery || transactionType === 'PEDIDO' ? '#93c5fd' : '#e2e8f0'}`, borderRadius: '8px', backgroundColor: isDelivery || transactionType === 'PEDIDO' ? '#f8fafc' : '#ffffff', transition: 'all 0.2s' }}>
+                {transactionType === 'PEDIDO' ? (
+                  <>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', margin: '0 0 1rem 0', color: 'var(--caanma-primary)', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <Truck size={18} /> Detalles del Pedido / Entrega
+                    </h3>
+                    
+                    {/* Tipo de Entrega */}
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.4rem' }}>
+                        Tipo de Entrega
+                      </label>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeliveryType('PICKUP');
+                            setIsDelivery(false);
+                            setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryType: 'PICKUP', isDelivery: false } : t));
+                            if (paymentMethod === 'PAY_ON_DELIVERY') {
+                              setPaymentMethod('PAY_ON_PICKUP');
+                              setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, paymentMethod: 'PAY_ON_PICKUP' } : t));
+                            }
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: '0.5rem',
+                            fontSize: '0.85rem',
+                            borderRadius: '4px',
+                            border: '1px solid',
+                            borderColor: deliveryType === 'PICKUP' ? 'var(--caanma-primary)' : '#cbd5e1',
+                            backgroundColor: deliveryType === 'PICKUP' ? '#eff6ff' : 'white',
+                            color: deliveryType === 'PICKUP' ? 'var(--caanma-primary)' : '#475569',
+                            fontWeight: deliveryType === 'PICKUP' ? 'bold' : 'normal',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Recoger en Tienda
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeliveryType('DELIVERY');
+                            setIsDelivery(true);
+                            setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryType: 'DELIVERY', isDelivery: true } : t));
+                            if (paymentMethod === 'PAY_ON_PICKUP') {
+                              setPaymentMethod('PAY_ON_DELIVERY');
+                              setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, paymentMethod: 'PAY_ON_DELIVERY' } : t));
+                            }
+                            if (selectedCust) {
+                              if (!deliveryStreet && selectedCust.street) setDeliveryStreet(selectedCust.street);
+                              if (!deliveryExtNumber && selectedCust.exteriorNumber) setDeliveryExtNumber(selectedCust.exteriorNumber);
+                              if (!deliveryIntNumber && selectedCust.interiorNumber) setDeliveryIntNumber(selectedCust.interiorNumber);
+                              if (!deliveryColonia && selectedCust.neighborhood) setDeliveryColonia(selectedCust.neighborhood);
+                              if (!deliveryCity && selectedCust.city) setDeliveryCity(selectedCust.city);
+                              if (!deliveryZipCode && selectedCust.zipCode) setDeliveryZipCode(selectedCust.zipCode);
+                            }
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: '0.5rem',
+                            fontSize: '0.85rem',
+                            borderRadius: '4px',
+                            border: '1px solid',
+                            borderColor: deliveryType === 'DELIVERY' ? 'var(--caanma-primary)' : '#cbd5e1',
+                            backgroundColor: deliveryType === 'DELIVERY' ? '#eff6ff' : 'white',
+                            color: deliveryType === 'DELIVERY' ? 'var(--caanma-primary)' : '#475569',
+                            fontWeight: deliveryType === 'DELIVERY' ? 'bold' : 'normal',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Envío a Domicilio
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => {
+                    const next = !isDelivery;
+                    setIsDelivery(next);
+                    setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, isDelivery: next } : t));
+                    if (next && selectedCust) {
+                      if (!deliveryStreet && selectedCust.street) setDeliveryStreet(selectedCust.street);
+                      if (!deliveryExtNumber && selectedCust.exteriorNumber) setDeliveryExtNumber(selectedCust.exteriorNumber);
+                      if (!deliveryIntNumber && selectedCust.interiorNumber) setDeliveryIntNumber(selectedCust.interiorNumber);
+                      if (!deliveryColonia && selectedCust.neighborhood) setDeliveryColonia(selectedCust.neighborhood);
+                      if (!deliveryCity && selectedCust.city) setDeliveryCity(selectedCust.city);
+                      if (!deliveryZipCode && selectedCust.zipCode) setDeliveryZipCode(selectedCust.zipCode);
+                    }
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <div style={{ padding: '0.35rem', borderRadius: '6px', backgroundColor: isDelivery ? '#dbeafe' : '#f1f5f9', color: isDelivery ? '#1d4ed8' : '#64748b' }}>
+                        <Truck size={20} />
+                      </div>
+                      <div>
+                        <span style={{ fontWeight: 'bold', fontSize: '0.95rem', color: isDelivery ? '#1e40af' : '#1e293b', display: 'block' }}>
+                          ¿Requiere Envío a Domicilio?
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                          {isDelivery ? 'Se registrará para entrega en ruta con chofer' : 'La venta se entregará de inmediato en mostrador'}
+                        </span>
+                      </div>
+                    </div>
+                    <input 
+                      type="checkbox" 
+                      checked={isDelivery} 
+                      onChange={e => {
+                        setIsDelivery(e.target.checked);
+                        setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, isDelivery: e.target.checked } : t));
+                        if (e.target.checked && selectedCust) {
+                          if (!deliveryStreet && selectedCust.street) setDeliveryStreet(selectedCust.street);
+                          if (!deliveryExtNumber && selectedCust.exteriorNumber) setDeliveryExtNumber(selectedCust.exteriorNumber);
+                          if (!deliveryIntNumber && selectedCust.interiorNumber) setDeliveryIntNumber(selectedCust.interiorNumber);
+                          if (!deliveryColonia && selectedCust.neighborhood) setDeliveryColonia(selectedCust.neighborhood);
+                          if (!deliveryCity && selectedCust.city) setDeliveryCity(selectedCust.city);
+                          if (!deliveryZipCode && selectedCust.zipCode) setDeliveryZipCode(selectedCust.zipCode);
                         }
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: '0.5rem',
-                        fontSize: '0.85rem',
-                        borderRadius: '4px',
-                        border: '1px solid',
-                        borderColor: deliveryType === 'PICKUP' ? 'var(--caanma-primary)' : '#cbd5e1',
-                        backgroundColor: deliveryType === 'PICKUP' ? '#eff6ff' : 'white',
-                        color: deliveryType === 'PICKUP' ? 'var(--caanma-primary)' : '#475569',
-                        fontWeight: deliveryType === 'PICKUP' ? 'bold' : 'normal',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Recoger en Tienda
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDeliveryType('DELIVERY');
-                        setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryType: 'DELIVERY' } : t));
-                        if (paymentMethod === 'PAY_ON_PICKUP') {
-                          setPaymentMethod('PAY_ON_DELIVERY');
-                          setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, paymentMethod: 'PAY_ON_DELIVERY' } : t));
-                        }
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: '0.5rem',
-                        fontSize: '0.85rem',
-                        borderRadius: '4px',
-                        border: '1px solid',
-                        borderColor: deliveryType === 'DELIVERY' ? 'var(--caanma-primary)' : '#cbd5e1',
-                        backgroundColor: deliveryType === 'DELIVERY' ? '#eff6ff' : 'white',
-                        color: deliveryType === 'DELIVERY' ? 'var(--caanma-primary)' : '#475569',
-                        fontWeight: deliveryType === 'DELIVERY' ? 'bold' : 'normal',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Envío a Domicilio
-                    </button>
+                      }} 
+                      style={{ width: '1.25rem', height: '1.25rem', cursor: 'pointer' }} 
+                    />
                   </div>
-                </div>
+                )}
 
-                {/* Fecha y Hora de Entrega */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.35rem' }}>
-                      Fecha de Entrega/Retiro <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <input
-                      type="date"
-                      value={deliveryDate}
-                      required
-                      onChange={e => {
-                        setDeliveryDate(e.target.value);
-                        setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryDate: e.target.value } : t));
-                      }}
-                      style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.35rem' }}>
-                      Hora de Entrega/Retiro <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <input
-                      type="time"
-                      value={deliveryTime}
-                      required
-                      onChange={e => {
-                        setDeliveryTime(e.target.value);
-                        setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryTime: e.target.value } : t));
-                      }}
-                      style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-                    />
-                  </div>
-                </div>
+                {/* Formulario de Dirección y Chofer cuando aplica envío */}
+                {(isDelivery || (transactionType === 'PEDIDO' && deliveryType === 'DELIVERY')) && (
+                  <div style={{ marginTop: '0.85rem', paddingTop: '0.85rem', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {selectedCust && (selectedCust.street || selectedCust.phone) && (
+                      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (selectedCust.street) setDeliveryStreet(selectedCust.street);
+                            if (selectedCust.exteriorNumber) setDeliveryExtNumber(selectedCust.exteriorNumber);
+                            if (selectedCust.interiorNumber) setDeliveryIntNumber(selectedCust.interiorNumber);
+                            if (selectedCust.neighborhood) setDeliveryColonia(selectedCust.neighborhood);
+                            if (selectedCust.city) setDeliveryCity(selectedCust.city);
+                            if (selectedCust.zipCode) setDeliveryZipCode(selectedCust.zipCode);
+                            setTabs(prev => prev.map(t => t.id === activeTabId ? {
+                              ...t,
+                              deliveryStreet: selectedCust.street || t.deliveryStreet,
+                              deliveryExtNumber: selectedCust.exteriorNumber || t.deliveryExtNumber,
+                              deliveryIntNumber: selectedCust.interiorNumber || t.deliveryIntNumber,
+                              deliveryColonia: selectedCust.neighborhood || t.deliveryColonia,
+                              deliveryCity: selectedCust.city || t.deliveryCity,
+                              deliveryZipCode: selectedCust.zipCode || t.deliveryZipCode,
+                            } : t));
+                          }}
+                          style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.8rem', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                        >
+                          📋 Autocompletar con dirección de {selectedCust.name}
+                        </button>
+                      </div>
+                    )}
 
-                {/* Dirección de Entrega (solo si es Domicilio) */}
-                {deliveryType === 'DELIVERY' && (
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.35rem' }}>
-                      Dirección de Entrega <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <textarea
-                      value={deliveryStreet}
-                      required
-                      rows={2}
-                      onChange={e => {
-                        setDeliveryStreet(e.target.value);
-                        setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryStreet: e.target.value } : t));
-                      }}
-                      placeholder="Calle, número, colonia, referencias de entrega..."
-                      style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1', resize: 'vertical' }}
-                    />
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>
+                        Calle / Dirección <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={deliveryStreet}
+                        onChange={e => {
+                          setDeliveryStreet(e.target.value);
+                          setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryStreet: e.target.value } : t));
+                        }}
+                        placeholder="Nombre de la calle"
+                        style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>No. Exterior</label>
+                        <input
+                          type="text"
+                          value={deliveryExtNumber}
+                          onChange={e => {
+                            setDeliveryExtNumber(e.target.value);
+                            setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryExtNumber: e.target.value } : t));
+                          }}
+                          placeholder="Ej: 123"
+                          style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>No. Interior</label>
+                        <input
+                          type="text"
+                          value={deliveryIntNumber}
+                          onChange={e => {
+                            setDeliveryIntNumber(e.target.value);
+                            setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryIntNumber: e.target.value } : t));
+                          }}
+                          placeholder="Ej: Depto 4"
+                          style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr', gap: '0.5rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Colonia</label>
+                        <input
+                          type="text"
+                          value={deliveryColonia}
+                          onChange={e => {
+                            setDeliveryColonia(e.target.value);
+                            setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryColonia: e.target.value } : t));
+                          }}
+                          placeholder="Colonia"
+                          style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Ciudad</label>
+                        <input
+                          type="text"
+                          value={deliveryCity}
+                          onChange={e => {
+                            setDeliveryCity(e.target.value);
+                            setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryCity: e.target.value } : t));
+                          }}
+                          placeholder="Ciudad"
+                          style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>C.P.</label>
+                        <input
+                          type="text"
+                          value={deliveryZipCode}
+                          onChange={e => {
+                            setDeliveryZipCode(e.target.value);
+                            setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryZipCode: e.target.value } : t));
+                          }}
+                          placeholder="C.P."
+                          style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>Referencias / Indicaciones de Entrega</label>
+                      <input
+                        type="text"
+                        value={deliveryNotes}
+                        onChange={e => {
+                          setDeliveryNotes(e.target.value);
+                          setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryNotes: e.target.value } : t));
+                        }}
+                        placeholder="Ej: Entre calles X y Y, portón gris, timbre blanco"
+                        style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>
+                          Fecha de Entrega {transactionType === 'PEDIDO' && <span style={{ color: '#ef4444' }}>*</span>}
+                        </label>
+                        <input
+                          type="date"
+                          value={deliveryDate}
+                          required={transactionType === 'PEDIDO'}
+                          onChange={e => {
+                            setDeliveryDate(e.target.value);
+                            setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryDate: e.target.value } : t));
+                          }}
+                          style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>
+                          Hora de Entrega {transactionType === 'PEDIDO' && <span style={{ color: '#ef4444' }}>*</span>}
+                        </label>
+                        <input
+                          type="time"
+                          value={deliveryTime}
+                          required={transactionType === 'PEDIDO'}
+                          onChange={e => {
+                            setDeliveryTime(e.target.value);
+                            setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryTime: e.target.value } : t));
+                          }}
+                          style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Asignación de Chofer */}
+                    <div style={{ backgroundColor: '#eff6ff', padding: '0.75rem', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#1e40af', marginBottom: '0.3rem' }}>
+                        🚚 Asignar Chofer / Repartidor
+                      </label>
+                      <select
+                        value={deliveryDriverId}
+                        onChange={e => {
+                          setDeliveryDriverId(e.target.value);
+                          setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryDriverId: e.target.value } : t));
+                        }}
+                        style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #93c5fd', backgroundColor: 'white', fontWeight: '500' }}
+                      >
+                        <option value="">-- Sin asignar (Asignar después en Logística/Rutas) --</option>
+                        {drivers && drivers.map((d: any) => (
+                          <option key={d.id} value={d.id}>
+                            {d.name} {d.role ? `(${d.role})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.72rem', color: '#2563eb' }}>
+                        * Si no asignas chofer ahora, podrás asignarlo más tarde desde el Historial de Ventas o el módulo de Logística.
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
