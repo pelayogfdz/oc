@@ -206,7 +206,7 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
             {isCompleted && <CheckCircle color="#10b981" size={24} />}
           </h1>
           <p style={{ color: 'var(--caanma-text-muted)', margin: 0 }}>
-             Id de Auditoría: {audit.id}
+             Sucursal: <strong style={{ color: '#0f172a' }}>{audit.branch?.name || 'Sucursal Principal'}</strong> &bull; Id: {audit.id}
           </p>
         </div>
 
@@ -306,8 +306,15 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
                  const editedOrCounted = currentProducts.filter((p: any) => editingCounts[p.id] !== undefined || audit.items.some((i: any) => i.productId === p.id));
                  const others = currentProducts.filter((p: any) => editingCounts[p.id] === undefined && !audit.items.some((i: any) => i.productId === p.id));
                  displayList = [...editedOrCounted, ...others.slice(0, 50)];
-              } else if (isPhase1 && searchQuery.trim() !== '') {
-                 displayList = currentProducts.filter((p:any) => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 100);
+              } else if (searchQuery.trim() !== '') {
+                 const normQuery = searchQuery.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+                 const searchWords = normQuery.split(/\s+/).filter(w => w.length > 0);
+                 displayList = currentProducts.filter((p: any) => {
+                   const normName = (p.name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                   const normSku = (p.sku || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                   const normBarcode = (p.barcode || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                   return searchWords.every(w => normName.includes(w) || normSku.includes(w) || normBarcode.includes(w));
+                 }).slice(0, 150);
               }
               return displayList.map((p: any) => {
               // Pre-fetch related audit item info for phase 2/3

@@ -231,8 +231,8 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     if (filterCategory !== 'ALL' && p.category !== filterCategory) return false;
     
     // Status Filter
-    if (filterStatus === 'ACTIVE' && p.status === 'INACTIVE') return false;
-    if (filterStatus === 'INACTIVE' && p.status !== 'INACTIVE') return false;
+    if (filterStatus === 'ACTIVE' && p.isActive === false) return false;
+    if (filterStatus === 'INACTIVE' && p.isActive !== false) return false;
 
     // Stock Filter
     if (filterStock !== 'ALL' && p.isService) return false;

@@ -63,9 +63,9 @@ export async function searchOfflineProducts(
     const results: any[] = [];
 
     for (const p of allProducts) {
-      // 1. Filtro de Sucursal (Permisivo para GLOBAL y sucursal activa)
-      if (branchId && branchId !== 'GLOBAL') {
-        if (p.branchId && p.branchId !== 'GLOBAL' && p.branchId !== branchId) {
+      // 1. Filtro de Sucursal (Permisivo para GLOBAL, ALL y sucursal activa)
+      if (branchId && branchId !== 'GLOBAL' && branchId !== 'ALL') {
+        if (p.branchId && p.branchId !== 'GLOBAL' && p.branchId !== 'ALL' && p.branchId !== branchId) {
           continue;
         }
       }

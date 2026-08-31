@@ -9,8 +9,9 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
   if (!branch) redirect('/login');
 
   const audit = await prisma.inventoryAudit.findUnique({
-    where: { id: id, branchId: branch.id },
+    where: { id: id },
     include: {
+      branch: { select: { id: true, name: true } },
       items: {
         include: { product: true }
       }
@@ -20,8 +21,9 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
   if (!audit) redirect('/productos/auditorias');
 
   const products = await prisma.product.findMany({
-    where: { branchId: branch.id, isActive: true },
-    select: { id: true, name: true, sku: true, barcode: true, stock: true }
+    where: { branchId: audit.branchId, isActive: true },
+    select: { id: true, name: true, sku: true, barcode: true, stock: true },
+    orderBy: { name: 'asc' }
   });
 
   return (

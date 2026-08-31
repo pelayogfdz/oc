@@ -6,27 +6,53 @@ import { createAudit } from '@/app/actions/audit';
 import { ClipboardList, Plus, ChevronRight, Calendar } from 'lucide-react';
 import Link from 'next/link';
 
-export default function AuditListClient({ initialAudits }: { initialAudits: any[] }) {
+export default function AuditListClient({ 
+  initialAudits, 
+  branches = [], 
+  currentBranchId = 'GLOBAL' 
+}: { 
+  initialAudits: any[]; 
+  branches?: { id: string; name: string }[]; 
+  currentBranchId?: string; 
+}) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [auditName, setAuditName] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const defaultBranchId = currentBranchId !== 'GLOBAL' && currentBranchId 
+    ? currentBranchId 
+    : (branches.length > 0 ? branches[0].id : '');
+  const [selectedBranchId, setSelectedBranchId] = useState(defaultBranchId);
+
+  const handleOpenModal = () => {
+    setAuditName('');
+    setErrorMessage(null);
+    setSelectedBranchId(defaultBranchId);
+    setIsModalOpen(true);
+  };
 
   const handleCreate = async () => {
     if (!auditName.trim()) return;
+    if (!selectedBranchId || selectedBranchId === 'GLOBAL') {
+      setErrorMessage("Por favor selecciona una sucursal para realizar el inventario.");
+      return;
+    }
     
     setIsPending(true);
+    setErrorMessage(null);
     try {
-      const audit = await createAudit(auditName);
+      const audit = await createAudit(auditName.trim(), selectedBranchId);
       router.push(`/productos/auditorias/${audit.id}`);
     } catch (e: any) {
-      alert(e.message);
+      setErrorMessage(e.message || "Error al crear la auditoría");
       setIsPending(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+    <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
@@ -40,7 +66,7 @@ export default function AuditListClient({ initialAudits }: { initialAudits: any[
         </div>
 
         <button 
-          onClick={() => setIsModalOpen(true)} 
+          onClick={handleOpenModal} 
           disabled={isPending}
           className="btn-primary" 
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: isPending ? 0.7 : 1 }}
@@ -64,6 +90,7 @@ export default function AuditListClient({ initialAudits }: { initialAudits: any[
             <thead>
               <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b' }}>Nombre</th>
+                <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b' }}>Sucursal</th>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b' }}>Estado y Fase</th>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b' }}>Fecha</th>
                 <th style={{ padding: '1rem', fontWeight: 'bold', color: '#64748b' }}>Productos Contados</th>
@@ -74,6 +101,9 @@ export default function AuditListClient({ initialAudits }: { initialAudits: any[
               {initialAudits.map(audit => (
                 <tr key={audit.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                   <td data-label="Nombre" style={{ padding: '1rem', fontWeight: 'bold', color: '#0f172a' }}>{audit.name}</td>
+                  <td data-label="Sucursal" style={{ padding: '1rem', color: '#475569', fontWeight: '500' }}>
+                    {audit.branch?.name || 'Sucursal Principal'}
+                  </td>
                   <td data-label="Estado y Fase" style={{ padding: '1rem' }}>
                     <span style={{ 
                       padding: '0.25rem 0.75rem', 
@@ -95,7 +125,7 @@ export default function AuditListClient({ initialAudits }: { initialAudits: any[
                     </div>
                   </td>
                   <td data-label="Productos Contados" style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold' }}>
-                    {audit._count.items}
+                    {audit._count?.items || 0}
                   </td>
                   <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'right' }}>
                     <Link href={`/productos/auditorias/${audit.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#3b82f6', fontWeight: 'bold', textDecoration: 'none' }}>
@@ -112,14 +142,20 @@ export default function AuditListClient({ initialAudits }: { initialAudits: any[
       {/* Create Audit Modal */}
       {isModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', width: '450px', maxWidth: '90%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', width: '480px', maxWidth: '90%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 'bold', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <ClipboardList color="#10b981" />
               Nueva Auditoría
             </h2>
+
+            {errorMessage && (
+              <div style={{ padding: '0.75rem 1rem', backgroundColor: '#fee2e2', color: '#b91c1c', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.9rem', fontWeight: '500' }}>
+                {errorMessage}
+              </div>
+            )}
             
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem', color: '#475569' }}>
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#334155', fontSize: '0.9rem' }}>
                 Nombre de la Auditoría Físico:
               </label>
               <input 
@@ -127,23 +163,41 @@ export default function AuditListClient({ initialAudits }: { initialAudits: any[
                 autoFocus
                 value={auditName}
                 onChange={e => setAuditName(e.target.value)}
-                placeholder="Ej. Conteo Mensual Abril"
-                style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', outline: 'none' }}
+                placeholder="Ej. Inventario Anual, Conteo Pasillo 1"
+                style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none' }}
               />
             </div>
+
+            {branches.length > 0 && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#334155', fontSize: '0.9rem' }}>
+                  Sucursal a Auditar:
+                </label>
+                <select
+                  value={selectedBranchId}
+                  onChange={e => setSelectedBranchId(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white' }}
+                >
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
               <button 
                 onClick={() => setIsModalOpen(false)} 
-                style={{ flex: 1, padding: '0.75rem', border: '1px solid var(--caanma-border)', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', background: 'white' }}
+                disabled={isPending}
+                style={{ flex: 1, padding: '0.75rem', border: '1px solid var(--caanma-border)', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', background: 'white', color: '#64748b' }}
               >
                 Cancelar
               </button>
               <button 
                 onClick={handleCreate} 
-                disabled={isPending || !auditName.trim()}
+                disabled={isPending || !auditName.trim() || !selectedBranchId}
                 className="btn-primary" 
-                style={{ flex: 1, padding: '0.75rem', fontSize: '1rem', opacity: isPending || !auditName.trim() ? 0.5 : 1 }}
+                style={{ flex: 1, padding: '0.75rem', fontSize: '0.95rem', borderRadius: '8px', opacity: isPending || !auditName.trim() || !selectedBranchId ? 0.5 : 1 }}
               >
                 {isPending ? 'Iniciando...' : 'Comenzar Conteo'}
               </button>

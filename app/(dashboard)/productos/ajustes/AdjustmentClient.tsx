@@ -66,7 +66,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
         difference: i.newStock - i.oldStock,
         checkOldStock: i.oldStock
       }));
-      await createInventoryAdjustment(payload, reason);
+      await createInventoryAdjustment(payload, reason, branchId);
       alert('¡Ajuste de inventario aplicado correctamente!');
       setItems([]);
       setReason('Ajuste General');

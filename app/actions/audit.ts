@@ -4,15 +4,27 @@ import { prisma } from '@/lib/prisma';
 import { getActiveBranch, getActiveUser } from './auth';
 import { revalidatePath } from 'next/cache';
 
-export async function createAudit(name: string) {
+export async function createAudit(name: string, targetBranchId?: string) {
   const branch = await getActiveBranch();
   if (!branch) throw new Error("Branch not found");
-  if (branch.id === 'GLOBAL') throw new Error("Debes seleccionar una sucursal específica para realizar esta acción.");
+  
+  let branchId = targetBranchId || branch.id;
+  if (branchId === 'GLOBAL' || !branchId) {
+    throw new Error("Debes seleccionar una sucursal específica para realizar la auditoría.");
+  }
+
+  // Verify branch exists and is valid
+  const targetBranch = await prisma.branch.findUnique({
+    where: { id: branchId }
+  });
+  if (!targetBranch) {
+    throw new Error("Sucursal no encontrada");
+  }
 
   const audit = await prisma.inventoryAudit.create({
     data: {
       name,
-      branchId: branch.id,
+      branchId,
       status: "COUNT_1",
     }
   });
@@ -29,7 +41,7 @@ export async function getAudits() {
     where: branch.id === 'GLOBAL' ? {} : { branchId: branch.id },
     orderBy: { createdAt: 'desc' },
     include: {
-      branch: true,
+      branch: { select: { id: true, name: true } },
       _count: { select: { items: true } }
     }
   });
@@ -45,14 +57,15 @@ export async function updateAuditStatus(auditId: string, status: string) {
 }
 
 export async function submitAuditCount(auditId: string, countPhase: 1 | 2 | 3, items: { productId: string, count: number }[]) {
-  const branch = await getActiveBranch();
-  if (!branch) throw new Error("Branch not found");
-  if (branch.id === 'GLOBAL') throw new Error("Debes seleccionar una sucursal específica para realizar esta acción.");
+  const audit = await prisma.inventoryAudit.findUnique({
+    where: { id: auditId }
+  });
+  if (!audit) throw new Error("Auditoría no encontrada");
 
-  // 1. Get all targeted products to fetch their current system stock
+  // 1. Get all targeted products to fetch their current system stock for the audit's branch
   const productIds = items.map(i => i.productId);
   const products = await prisma.product.findMany({
-    where: { id: { in: productIds }, branchId: branch.id }
+    where: { id: { in: productIds }, branchId: audit.branchId }
   });
   
   const productStocks = new Map(products.map(p => [p.id, p.stock]));
@@ -60,27 +73,26 @@ export async function submitAuditCount(auditId: string, countPhase: 1 | 2 | 3, i
   // 2. Insert or update AuditItems
   for (const item of items) {
     const systemStock = productStocks.get(item.productId) || 0;
-    
     const countField = countPhase === 1 ? 'count1' : countPhase === 2 ? 'count2' : 'count3';
     
     const auditItem = await prisma.inventoryAuditItem.findFirst({
-        where: { auditId, productId: item.productId }
+      where: { auditId, productId: item.productId }
     });
 
     if (auditItem) {
-        await prisma.inventoryAuditItem.update({
-            where: { id: auditItem.id },
-            data: { [countField]: item.count }
-        });
+      await prisma.inventoryAuditItem.update({
+        where: { id: auditItem.id },
+        data: { [countField]: item.count }
+      });
     } else {
-        await prisma.inventoryAuditItem.create({
-            data: {
-                auditId,
-                productId: item.productId,
-                systemStock,
-                [countField]: item.count
-            }
-        });
+      await prisma.inventoryAuditItem.create({
+        data: {
+          auditId,
+          productId: item.productId,
+          systemStock,
+          [countField]: item.count
+        }
+      });
     }
   }
 
@@ -88,9 +100,6 @@ export async function submitAuditCount(auditId: string, countPhase: 1 | 2 | 3, i
 }
 
 export async function finalizeAudit(auditId: string) {
-  const branch = await getActiveBranch();
-  if (!branch) throw new Error("Branch not found");
-  if (branch.id === 'GLOBAL') throw new Error("Debes seleccionar una sucursal específica para realizar esta acción.");
   const user = await getActiveUser();
 
   const audit = await prisma.inventoryAudit.findUnique({
@@ -98,7 +107,18 @@ export async function finalizeAudit(auditId: string) {
     include: { items: { include: { product: true } } }
   });
 
-  if (!audit) throw new Error("Audit not found");
+  if (!audit) throw new Error("Auditoría no encontrada");
+
+  // Safely find or fallback to a valid user in tenant database
+  let validUserId: string | null = null;
+  if (user?.id) {
+    const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { id: true } });
+    if (dbUser) validUserId = dbUser.id;
+  }
+  if (!validUserId) {
+    const firstUser = await prisma.user.findFirst({ select: { id: true } });
+    validUserId = firstUser?.id || null;
+  }
 
   for (const item of audit.items) {
     // Determine the final count to apply
@@ -117,21 +137,25 @@ export async function finalizeAudit(auditId: string) {
       data: { stock: finalVal }
     });
 
-    // Record Movement
-    await prisma.inventoryMovement.create({
-      data: {
-        productId: item.productId,
-        type: "ADJUSTMENT",
-        quantity: Math.abs(diff),
-        reason: diff > 0 ? `Auditoría (Ajuste Positivo) - ${audit.name}` : `Auditoría (Merma Quirúrgica) - ${audit.name}`,
-        userId: user.id
-      }
-    });
+    // Record Movement safely
+    try {
+      await prisma.inventoryMovement.create({
+        data: {
+          productId: item.productId,
+          type: "ADJUSTMENT",
+          quantity: Math.abs(diff),
+          reason: diff > 0 ? `Auditoría (Ajuste Positivo) - ${audit.name}` : `Auditoría (Merma Quirúrgica) - ${audit.name}`,
+          userId: validUserId
+        }
+      });
+    } catch (movErr) {
+      console.warn('[AUDIT MOVEMENT LOG WARNING]', movErr);
+    }
     
     // Save final state
     await prisma.inventoryAuditItem.update({
-        where: { id: item.id },
-        data: { finalCount: finalVal }
+      where: { id: item.id },
+      data: { finalCount: finalVal }
     });
   }
 

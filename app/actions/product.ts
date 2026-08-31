@@ -977,6 +977,40 @@ export async function updateProduct(productId: string, formData: FormData) {
   redirect('/productos');
 }
 
+function getWordSearchVariations(word: string): string[] {
+  const clean = word.trim();
+  if (!clean) return [];
+  const set = new Set<string>();
+  set.add(clean);
+
+  // Unaccented version
+  const unaccented = clean.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  set.add(unaccented);
+
+  // Common Spanish accent maps
+  const accentMap: Record<string, string[]> = {
+    'a': ['a', 'á'],
+    'e': ['e', 'é'],
+    'i': ['i', 'í'],
+    'o': ['o', 'ó'],
+    'u': ['u', 'ú', 'ü']
+  };
+
+  if (unaccented.length <= 15) {
+    for (let i = 0; i < unaccented.length; i++) {
+      const char = unaccented[i].toLowerCase();
+      if (accentMap[char]) {
+        for (const replacement of accentMap[char]) {
+          const variant = unaccented.substring(0, i) + replacement + unaccented.substring(i + 1);
+          set.add(variant);
+        }
+      }
+    }
+  }
+
+  return Array.from(set);
+}
+
 export async function searchProducts(
   query: string,
   branchId: string,
@@ -991,7 +1025,7 @@ export async function searchProducts(
     sortOrder?: 'asc' | 'desc';
   }
 ) {
-  const isGlobal = branchId === 'GLOBAL';
+  const isGlobal = branchId === 'GLOBAL' || branchId === 'ALL' || !branchId;
   const session = await getSession();
   const activeBranch = await getActiveBranch();
   if (!activeBranch) return [];
@@ -1103,15 +1137,20 @@ export async function searchProducts(
     });
   } else {
     const words = query.trim().split(/\s+/).filter(w => w.length > 0);
-    const searchConditions = words.map(word => ({
-      OR: [
-        { name: { contains: word, mode: 'insensitive' as const } },
-        { sku: { contains: word, mode: 'insensitive' as const } },
-        { barcode: { contains: word, mode: 'insensitive' as const } },
-        { variants: { some: { sku: { contains: word, mode: 'insensitive' as const } } } },
-        { variants: { some: { barcode: { contains: word, mode: 'insensitive' as const } } } }
-      ]
-    }));
+    const searchConditions = words.map(word => {
+      const variations = getWordSearchVariations(word);
+      return {
+        OR: variations.flatMap(v => [
+          { name: { contains: v, mode: 'insensitive' as const } },
+          { sku: { contains: v, mode: 'insensitive' as const } },
+          { barcode: { contains: v, mode: 'insensitive' as const } },
+          { brand: { contains: v, mode: 'insensitive' as const } },
+          { category: { contains: v, mode: 'insensitive' as const } },
+          { variants: { some: { sku: { contains: v, mode: 'insensitive' as const } } } },
+          { variants: { some: { barcode: { contains: v, mode: 'insensitive' as const } } } }
+        ])
+      };
+    });
 
     products = await prisma.product.findMany({
       where: {

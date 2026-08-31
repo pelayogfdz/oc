@@ -13,7 +13,7 @@ export default async function Page() {
   // Fetch only adjustments
   const data = await prisma.inventoryMovement.findMany({ 
     where: { 
-      product: { branchId: branch.id },
+      product: branch.id === 'GLOBAL' ? { branch: { tenantId: branch.tenantId } } : { branchId: branch.id },
       type: "ADJUSTMENT"
     }, 
     include: { 

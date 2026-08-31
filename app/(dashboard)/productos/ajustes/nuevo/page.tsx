@@ -5,8 +5,20 @@ import { prisma } from '@/lib/prisma';
 
 export default async function Nuevo() {
   const branch = await getActiveBranch();
+  if (!branch) return null;
+
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId: branch.tenantId, isActive: true },
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' }
+  });
+  const tenantBranchIds = tenantBranches.map(b => b.id);
+
   const products = await prisma.product.findMany({ 
-    where: { branchId: branch?.id, isActive: true }, 
+    where: { 
+      branchId: branch.id === 'GLOBAL' ? { in: tenantBranchIds } : branch.id, 
+      isActive: true 
+    }, 
     take: 50,
     orderBy: { name: 'asc' } 
   });
