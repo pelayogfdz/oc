@@ -2015,124 +2015,128 @@ export async function syncAndFixAllSalesAndCreditBalancesAction() {
     const session = await getSession();
     if (!session) throw new Error('No autorizado');
 
+    const { getAllTenantClients } = await import('@/lib/prisma');
+    const clients = getAllTenantClients();
+
     const jul1Date = new Date('2026-07-01T00:00:00.000Z');
-
-    // 1. Fetch candidate sales (all since July 1, 2026 or invoiced/credit sales)
-    const sales = await prisma.sale.findMany({
-      where: {
-        OR: [
-          { createdAt: { gte: jul1Date } },
-          { invoiceId: { not: null } },
-          { invoiceFolio: { not: null } },
-          { paymentMethod: 'CREDIT' },
-          { folio: { contains: '1516', mode: 'insensitive' } }
-        ]
-      },
-      include: {
-        customer: true,
-        branch: true,
-        items: true,
-        payments: true
-      }
-    });
-
     let fixedSalesCount = 0;
+    let fixedCustomersCount = 0;
     const fixedDetails: string[] = [];
 
-    // Helper to get candidate API keys for Facturapi
-    const branchSettingsList = await prisma.branchSettings.findMany({ select: { configJson: true } });
-    const apiKeysSet = new Set<string>();
-    for (const bs of branchSettingsList) {
-      if (bs.configJson) {
-        try {
-          const cfg = JSON.parse(bs.configJson);
-          if (cfg.facturacion?.liveKey) apiKeysSet.add(cfg.facturacion.liveKey);
-          if (cfg.facturacion?.apiTokenLive) apiKeysSet.add(cfg.facturacion.apiTokenLive);
-          if (cfg.facturacion?.testKey) apiKeysSet.add(cfg.facturacion.testKey);
-          if (cfg.facturacion?.apiTokenTest) apiKeysSet.add(cfg.facturacion.apiTokenTest);
-        } catch (e) {}
-      }
-    }
-    const apiKeys = Array.from(apiKeysSet);
+    for (const client of clients) {
+      // 1. Fetch candidate sales (all since July 1, 2026 or invoiced/credit sales)
+      const sales = await client.sale.findMany({
+        where: {
+          OR: [
+            { createdAt: { gte: jul1Date } },
+            { invoiceId: { not: null } },
+            { invoiceFolio: { not: null } },
+            { paymentMethod: 'CREDIT' },
+            { folio: { contains: '1516', mode: 'insensitive' } }
+          ]
+        },
+        include: {
+          customer: true,
+          branch: true,
+          items: true,
+          payments: true
+        }
+      });
 
-    for (const sale of sales) {
-      let targetTotal = sale.total;
-      let isInvoiceMatched = false;
-
-      const cleanFolio = (sale.folio || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
-      const cleanInvoiceFolio = (sale.invoiceFolio || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
-      const isSan1516 = cleanFolio.includes('SAN1516') || cleanInvoiceFolio.includes('SAN1516') || sale.id === '01339ebd-3382-4c7f-9e59-39ed75c09c48';
-
-      if (isSan1516) {
-        targetTotal = 10896.00;
-        isInvoiceMatched = true;
-      }
-
-      if (sale.invoiceId && !isInvoiceMatched) {
-        for (const key of apiKeys) {
+      // Helper to get candidate API keys for Facturapi
+      const branchSettingsList = await client.branchSettings.findMany({ select: { configJson: true } });
+      const apiKeysSet = new Set<string>();
+      for (const bs of branchSettingsList) {
+        if (bs.configJson) {
           try {
-            const Facturapi = (await import('facturapi')).default;
-            const facturapi = new Facturapi(key);
-            const inv = await facturapi.invoices.retrieve(sale.invoiceId);
-            if (inv && typeof inv.total === 'number') {
-              targetTotal = inv.total;
-              isInvoiceMatched = true;
-              break;
+            const cfg = JSON.parse(bs.configJson);
+            if (cfg.facturacion?.liveKey) apiKeysSet.add(cfg.facturacion.liveKey);
+            if (cfg.facturacion?.apiTokenLive) apiKeysSet.add(cfg.facturacion.apiTokenLive);
+            if (cfg.facturacion?.testKey) apiKeysSet.add(cfg.facturacion.testKey);
+            if (cfg.facturacion?.apiTokenTest) apiKeysSet.add(cfg.facturacion.apiTokenTest);
+          } catch (e) {}
+        }
+      }
+      const apiKeys = Array.from(apiKeysSet);
+
+      for (const sale of sales) {
+        let targetTotal = sale.total;
+        let isInvoiceMatched = false;
+
+        const cleanFolio = (sale.folio || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+        const cleanInvoiceFolio = (sale.invoiceFolio || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+        const isSan1516 = cleanFolio.includes('SAN1516') || cleanInvoiceFolio.includes('SAN1516') || sale.id === '01339ebd-3382-4c7f-9e59-39ed75c09c48';
+
+        if (isSan1516) {
+          targetTotal = 10896.00;
+          isInvoiceMatched = true;
+        }
+
+        if (sale.invoiceId && !isInvoiceMatched) {
+          for (const key of apiKeys) {
+            try {
+              const Facturapi = (await import('facturapi')).default;
+              const facturapi = new Facturapi(key);
+              const inv = await facturapi.invoices.retrieve(sale.invoiceId);
+              if (inv && typeof inv.total === 'number') {
+                targetTotal = inv.total;
+                isInvoiceMatched = true;
+                break;
+              }
+            } catch (err) {}
+          }
+        }
+
+        // Check if total or balanceDue needs correction
+        const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
+        const expectedBalanceDue = sale.paymentMethod === 'CREDIT' ? Math.max(0, targetTotal - totalPaid) : 0;
+        const totalDiff = Math.abs(sale.total - targetTotal);
+        const balanceDiff = Math.abs(sale.balanceDue - expectedBalanceDue);
+
+        if (totalDiff > 0.01 || balanceDiff > 0.01 || isSan1516) {
+          const oldTotal = sale.total;
+
+          await client.sale.update({
+            where: { id: sale.id },
+            data: {
+              total: targetTotal,
+              ...(sale.paymentMethod === 'CREDIT' ? { balanceDue: expectedBalanceDue } : {})
             }
-          } catch (err) {}
+          });
+
+          fixedSalesCount++;
+          fixedDetails.push(`Venta Folio #${sale.folio || sale.id.substring(0,8)}: ajustado total a $${targetTotal.toFixed(2)} (antes $${oldTotal.toFixed(2)}), Deuda a $${expectedBalanceDue.toFixed(2)}`);
         }
       }
 
-      // Check if total or balanceDue needs correction
-      const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
-      const expectedBalanceDue = sale.paymentMethod === 'CREDIT' ? Math.max(0, targetTotal - totalPaid) : 0;
-      const totalDiff = Math.abs(sale.total - targetTotal);
-      const balanceDiff = Math.abs(sale.balanceDue - expectedBalanceDue);
+      // 2. Recalculate credit balance for all customers in this client to ensure 100% mathematical consistency
+      const customers = await client.customer.findMany({ select: { id: true, name: true, creditBalance: true } });
 
-      if (totalDiff > 0.01 || balanceDiff > 0.01 || isSan1516) {
-        const oldTotal = sale.total;
-
-        await prisma.sale.update({
-          where: { id: sale.id },
-          data: {
-            total: targetTotal,
-            ...(sale.paymentMethod === 'CREDIT' ? { balanceDue: expectedBalanceDue } : {})
-          }
+      for (const cust of customers) {
+        const creditSales = await client.sale.findMany({
+          where: {
+            customerId: cust.id,
+            paymentMethod: 'CREDIT',
+            status: { not: 'CANCELLED' }
+          },
+          select: { balanceDue: true }
         });
 
-        fixedSalesCount++;
-        fixedDetails.push(`Venta Folio #${sale.folio || sale.id.substring(0,8)}: ajustado total a $${targetTotal.toFixed(2)} (antes $${oldTotal.toFixed(2)}), Deuda a $${expectedBalanceDue.toFixed(2)}`);
-      }
-    }
-
-    // 2. Recalculate credit balance for all customers to ensure 100% mathematical consistency
-    const customers = await prisma.customer.findMany({ select: { id: true, name: true, creditBalance: true } });
-    let fixedCustomersCount = 0;
-
-    for (const cust of customers) {
-      const creditSales = await prisma.sale.findMany({
-        where: {
-          customerId: cust.id,
-          paymentMethod: 'CREDIT',
-          status: { not: 'CANCELLED' }
-        },
-        select: { balanceDue: true }
-      });
-
-      const unallocatedPayments = await prisma.customerPayment.findMany({
-        where: { customerId: cust.id, saleId: null },
-        select: { amount: true }
-      });
-
-      const actualDebt = Math.max(0, creditSales.reduce((sum, s) => sum + s.balanceDue, 0) - unallocatedPayments.reduce((sum, p) => sum + p.amount, 0));
-
-      if (Math.abs(cust.creditBalance - actualDebt) > 0.01) {
-        await prisma.customer.update({
-          where: { id: cust.id },
-          data: { creditBalance: actualDebt }
+        const unallocatedPayments = await client.customerPayment.findMany({
+          where: { customerId: cust.id, saleId: null },
+          select: { amount: true }
         });
-        fixedCustomersCount++;
-        fixedDetails.push(`Cliente ${cust.name}: saldo en CxC actualizado a $${actualDebt.toFixed(2)}`);
+
+        const actualDebt = Math.max(0, creditSales.reduce((sum, s) => sum + s.balanceDue, 0) - unallocatedPayments.reduce((sum, p) => sum + p.amount, 0));
+
+        if (Math.abs(cust.creditBalance - actualDebt) > 0.01) {
+          await client.customer.update({
+            where: { id: cust.id },
+            data: { creditBalance: actualDebt }
+          });
+          fixedCustomersCount++;
+          fixedDetails.push(`Cliente ${cust.name}: saldo en CxC actualizado a $${actualDebt.toFixed(2)}`);
+        }
       }
     }
 
