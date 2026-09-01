@@ -7,32 +7,21 @@ const privateKeyPath = path.join(__dirname, '..', 'HetznerKey.pem');
 
 const conn = new Client();
 conn.on('ready', () => {
-  console.log('Updating Nginx config on Hetzner...');
+  console.log('Configuring client_max_body_size in Nginx on Hetzner...');
 
-  const nginxConfig = `
-server {
+  const nginxConfig = `server {
     server_name caanma.com www.caanma.com;
+
+    client_max_body_size 50M;
 
     location /img/products/ {
         alias /root/oc/public/img/products/;
+        autoindex off;
         expires 30d;
         add_header Cache-Control "public, no-transform";
-        try_files $uri @proxy;
     }
 
     location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location @proxy {
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -64,16 +53,17 @@ server {
     server_name caanma.com www.caanma.com;
     return 404;
 }
-  `.trim();
+`;
 
-  const commands = [
-    `cat << 'EOF' > /etc/nginx/sites-enabled/caanma.com\n${nginxConfig}\nEOF`,
-    'nginx -t',
-    'systemctl reload nginx',
-    'curl -I https://caanma.com/img/products/039800009166.jpg'
-  ].join(' && ');
+  const script = `
+cat << 'EOF' > /etc/nginx/sites-available/caanma.com
+${nginxConfig}
+EOF
+nginx -t && systemctl reload nginx
+echo "Nginx updated and reloaded successfully!"
+`;
 
-  conn.exec(commands, (err, stream) => {
+  conn.exec(script, (err, stream) => {
     if (err) {
       console.error('SSH Exec Error:', err);
       conn.end();
@@ -81,10 +71,7 @@ server {
     }
     stream.on('data', d => process.stdout.write(d));
     stream.stderr.on('data', d => process.stderr.write(d));
-    stream.on('close', (code) => {
-      console.log(`\nNginx update finished with exit code ${code}`);
-      conn.end();
-    });
+    stream.on('close', () => conn.end());
   });
 }).connect({
   host,

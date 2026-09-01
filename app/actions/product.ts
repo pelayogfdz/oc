@@ -11,11 +11,16 @@ import path from 'path';
 
 function saveProductImageToFile(productId: string, barcode: string | null | undefined, sku: string | null | undefined, imageUrl: string | null | undefined): string | null {
   if (!imageUrl) return null;
-  const cleanImage = imageUrl.trim();
+  let cleanImage = imageUrl.trim();
   if (!cleanImage) return null;
 
   if (cleanImage === 'placeholder' || cleanImage === '/placeholder.svg' || cleanImage.endsWith('/placeholders/default.png')) {
     return null;
+  }
+
+  // If it's already an existing local image path, strip any cache-busting timestamp
+  if (cleanImage.startsWith('/img/products/')) {
+    return cleanImage.split('?')[0];
   }
 
   if (cleanImage.startsWith('data:image/')) {
@@ -37,10 +42,12 @@ function saveProductImageToFile(productId: string, barcode: string | null | unde
           return `/img/products/${filename}`;
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error('Error saving image to disk in saveProductImageToFile:', e);
+    }
     return null; // Return null if it was base64 but extraction failed
   }
-  return cleanImage;
+  return cleanImage.split('?')[0];
 }
 
 export async function createProduct(prevState: any, formData: FormData) {

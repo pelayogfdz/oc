@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Image as ImageIcon, UploadCloud, Trash2, Camera, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
 import { updateProductMedia } from '@/app/actions/product';
 
@@ -167,6 +168,8 @@ export default function ProductImageSection({
     fileInputRef.current?.click();
   };
 
+  const router = useRouter();
+
   const handleSaveMedia = async () => {
     if (!productId) return;
     if (isCompresing) return;
@@ -180,6 +183,15 @@ export default function ProductImageSection({
           const cleanSavedUrl = res.imageUrl || '';
           const freshUrl = cleanSavedUrl ? `${cleanSavedUrl}?t=${Date.now()}` : '';
           setImageUrl(freshUrl);
+
+          // Update header image in DOM immediately for instant visual feedback
+          const headerImg = document.querySelector('img[data-header-img="true"]') as HTMLImageElement | null;
+          if (headerImg) {
+            headerImg.src = freshUrl;
+            headerImg.style.display = 'block';
+            headerImg.style.visibility = 'visible';
+            headerImg.style.opacity = '1';
+          }
         }
         try {
           const { db } = await import('@/lib/offlineDB');
@@ -189,6 +201,7 @@ export default function ProductImageSection({
         } catch (e) {
           console.warn('[OfflineDB] Error al sincronizar imagen del producto local:', e);
         }
+        router.refresh();
       } else {
         setSaveStatus({ success: false, message: res?.error || 'No se pudo guardar la multimedia.' });
       }
