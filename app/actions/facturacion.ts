@@ -123,6 +123,18 @@ export async function stampInvoice(saleId: string, customerId?: string | null, c
       throw new Error("No hay llaves de Facturapi configuradas en las preferencias de esta Sucursal.");
     }
 
+    // Validación de emisión de meses anteriores según preferencias
+    const facturacionConfig = config.facturacion || {};
+    const allowPastMonth = facturacionConfig.permitirFacturarMesAnterior !== false;
+    if (!allowPastMonth) {
+      const now = new Date();
+      const saleDate = new Date(sale.createdAt);
+      const isCurrentMonth = saleDate.getFullYear() === now.getFullYear() && saleDate.getMonth() === now.getMonth();
+      if (!isCurrentMonth) {
+        throw new Error(`No se permite facturar la venta #${sale.folio || sale.id.substring(0,8)} porque fue emitida en un mes anterior (${saleDate.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}) y la política de facturación restringe la emisión exclusivamente al mes en curso.`);
+      }
+    }
+
     const facturapi = new Facturapi(apiKey);
 
     // Determine Customer (Receiver)
@@ -722,6 +734,20 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
 
     if (sales.length === 0) {
       throw new Error("Ninguna de las ventas especificadas existe en esta sucursal.");
+    }
+
+    // Validación de emisión de meses anteriores según preferencias
+    const facturacionConfig = config.facturacion || {};
+    const allowPastMonth = facturacionConfig.permitirFacturarMesAnterior !== false;
+    if (!allowPastMonth) {
+      const now = new Date();
+      for (const s of sales) {
+        const saleDate = new Date(s.createdAt);
+        const isCurrentMonth = saleDate.getFullYear() === now.getFullYear() && saleDate.getMonth() === now.getMonth();
+        if (!isCurrentMonth) {
+          throw new Error(`No se puede facturar la venta #${s.folio || s.id.substring(0,8)} porque fue emitida en un mes anterior (${saleDate.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}) y la política de facturación restringe la emisión a ventas del mes en curso.`);
+        }
+      }
     }
 
     // Check if any sale is already invoiced

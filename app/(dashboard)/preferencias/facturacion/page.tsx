@@ -13,6 +13,12 @@ export default async function Page() {
       type: 'boolean' 
     },
     { 
+      name: 'permitirFacturarMesAnterior', 
+      label: 'Permitir facturar ventas después de fin de mes', 
+      description: 'Si está activo (por defecto), permite facturar tickets, notas y pedidos de meses anteriores. Si se desactiva, solo se podrán facturar ventas del mes calendario actual.',
+      type: 'boolean' 
+    },
+    { 
       name: 'regimenFiscal', 
       label: 'Régimen Fiscal Emisor (SAT)', 
       description: 'Clave numérica requerida en CFDI 4.0 según la constancia de situación de este RFC emisor.',
