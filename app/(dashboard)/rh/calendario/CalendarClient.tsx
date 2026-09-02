@@ -26,6 +26,8 @@ export default function CalendarClient({ employees, initialIncidents }: { employ
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingIncidentId, setEditingIncidentId] = useState<string | null>(null);
   
+  const [weekStartsOn, setWeekStartsOn] = useState<0 | 1>(1); // Default to Monday (1)
+  
   // Form State
   const [formData, setFormData] = useState({
     userId: '',
@@ -41,11 +43,14 @@ export default function CalendarClient({ employees, initialIncidents }: { employ
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(monthStart);
-  const startDate = startOfWeek(monthStart, { weekStartsOn: 0 }); // Sunday start
-  const endDate = endOfWeek(monthEnd, { weekStartsOn: 0 });
+  const startDate = startOfWeek(monthStart, { weekStartsOn });
+  const endDate = endOfWeek(monthEnd, { weekStartsOn });
 
   const dateFormat = "MMMM yyyy";
   const days = eachDayOfInterval({ start: startDate, end: endDate });
+  const dayHeaders = weekStartsOn === 1 
+    ? ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+    : ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
   const handleDayClick = (day: Date) => {
     setEditingIncidentId(null);
@@ -150,149 +155,223 @@ export default function CalendarClient({ employees, initialIncidents }: { employ
   };
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem' }}>
+    <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '1rem', width: '100%', boxSizing: 'border-box' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#1e293b' }}>Calendario de Incidencias</h1>
-          <p style={{ color: 'var(--caanma-text-muted)' }}>Gestiona faltas, vacaciones y permisos del personal.</p>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>Calendario de Incidencias</h1>
+          <p style={{ color: 'var(--caanma-text-muted)', margin: '0.25rem 0 0 0' }}>Gestiona faltas, vacaciones y permisos del personal.</p>
         </div>
-        <button 
-          onClick={() => {
-            setEditingIncidentId(null);
-            setSelectedDate(new Date());
-            setFormData({
-              userId: '',
-              type: 'FALTA',
-              startDate: format(new Date(), 'yyyy-MM-dd'),
-              endDate: format(new Date(), 'yyyy-MM-dd'),
-              reason: ''
-            });
-            setIsModalOpen(true);
-          }}
-          style={{
-            padding: '0.5rem 1rem',
-            backgroundColor: '#10b981',
-            color: 'white',
-            borderRadius: '8px',
-            border: 'none',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            cursor: 'pointer'
-          }}
-        >
-          <Plus size={18} /> Nueva Incidencia
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button 
+            onClick={() => {
+              setEditingIncidentId(null);
+              setSelectedDate(new Date());
+              setFormData({
+                userId: '',
+                type: 'FALTA',
+                startDate: format(new Date(), 'yyyy-MM-dd'),
+                endDate: format(new Date(), 'yyyy-MM-dd'),
+                reason: ''
+              });
+              setIsModalOpen(true);
+            }}
+            style={{
+              padding: '0.55rem 1.1rem',
+              backgroundColor: '#10b981',
+              color: 'white',
+              borderRadius: '8px',
+              border: 'none',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)'
+            }}
+          >
+            <Plus size={18} /> Nueva Incidencia
+          </button>
+        </div>
       </div>
 
-      {/* Calendar Controls */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', backgroundColor: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', textTransform: 'capitalize', margin: 0 }}>
+      {/* Calendar Controls & View Options */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', backgroundColor: 'white', padding: '0.85rem 1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0', flexWrap: 'wrap', gap: '1rem' }}>
+        <h2 style={{ fontSize: '1.35rem', fontWeight: 'bold', textTransform: 'capitalize', margin: 0, color: '#0f172a' }}>
           {format(currentDate, dateFormat, { locale: es })}
         </h2>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button onClick={prevMonth} style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', cursor: 'pointer' }}>
-            <ChevronLeft size={20} />
-          </button>
-          <button onClick={today} style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', cursor: 'pointer', fontWeight: '500' }}>
-            Hoy
-          </button>
-          <button onClick={nextMonth} style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', cursor: 'pointer' }}>
-            <ChevronRight size={20} />
-          </button>
+        
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Week Start Toggle */}
+          <div style={{ display: 'flex', backgroundColor: '#f1f5f9', padding: '3px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+            <button
+              onClick={() => setWeekStartsOn(1)}
+              style={{
+                padding: '0.35rem 0.75rem',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                fontWeight: weekStartsOn === 1 ? 'bold' : 'normal',
+                backgroundColor: weekStartsOn === 1 ? 'white' : 'transparent',
+                color: weekStartsOn === 1 ? '#0f172a' : '#64748b',
+                boxShadow: weekStartsOn === 1 ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s'
+              }}
+            >
+              Lun - Dom (Laboral)
+            </button>
+            <button
+              onClick={() => setWeekStartsOn(0)}
+              style={{
+                padding: '0.35rem 0.75rem',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                fontWeight: weekStartsOn === 0 ? 'bold' : 'normal',
+                backgroundColor: weekStartsOn === 0 ? 'white' : 'transparent',
+                color: weekStartsOn === 0 ? '#0f172a' : '#64748b',
+                boxShadow: weekStartsOn === 0 ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s'
+              }}
+            >
+              Dom - Sáb
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.35rem' }}>
+            <button onClick={prevMonth} title="Mes Anterior" style={{ padding: '0.45rem 0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ChevronLeft size={18} />
+            </button>
+            <button onClick={today} style={{ padding: '0.45rem 0.9rem', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}>
+              Hoy
+            </button>
+            <button onClick={nextMonth} title="Mes Siguiente" style={{ padding: '0.45rem 0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ChevronRight size={18} />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Calendar Grid */}
-      <div style={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
-        {/* Days of week */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
-          {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(day => (
-            <div key={day} style={{ padding: '0.75rem', textAlign: 'center', fontWeight: 'bold', color: '#64748b', fontSize: '0.875rem' }}>
-              {day}
-            </div>
-          ))}
-        </div>
+      {/* Incident Types Legend */}
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem', padding: '0.6rem 1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
+        <span style={{ fontWeight: 'bold', color: '#475569' }}>Tipos:</span>
+        {Object.entries(INCIDENT_TYPES).map(([key, info]) => (
+          <span key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#334155' }}>
+            <span style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: info.color }} />
+            {info.label}
+          </span>
+        ))}
+      </div>
 
-        {/* Days Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
-          {days.map((day, i) => {
-            const isCurrentMonth = isSameMonth(day, monthStart);
-            const isToday = isSameDay(day, new Date());
-            const dayIncidents = getIncidentsForDay(day);
-
-            return (
+      {/* Calendar Grid Wrapper with Full Horizontal Protection */}
+      <div style={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', width: '100%' }}>
+        <div style={{ minWidth: '780px' }}>
+          {/* Days of week */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
+            {dayHeaders.map((day, idx) => (
               <div 
-                key={day.toString()} 
-                onClick={() => handleDayClick(day)}
-                style={{
-                  minHeight: '120px',
-                  padding: '0.5rem',
-                  borderRight: (i + 1) % 7 !== 0 ? '1px solid #e2e8f0' : 'none',
-                  borderBottom: i < days.length - 7 ? '1px solid #e2e8f0' : 'none',
-                  backgroundColor: isCurrentMonth ? 'white' : '#f8fafc',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  transition: 'background-color 0.2s'
+                key={day} 
+                style={{ 
+                  padding: '0.75rem 0.5rem', 
+                  textAlign: 'center', 
+                  fontWeight: 'bold', 
+                  color: (weekStartsOn === 1 ? idx >= 5 : (idx === 0 || idx === 6)) ? '#0284c7' : '#475569', 
+                  fontSize: '0.875rem' 
                 }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = isCurrentMonth ? '#f1f5f9' : '#e2e8f0'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = isCurrentMonth ? 'white' : '#f8fafc'}
               >
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
-                  <span style={{ 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    width: '24px', height: '24px', 
-                    borderRadius: '50%', 
-                    backgroundColor: isToday ? '#2563eb' : 'transparent',
-                    color: isToday ? 'white' : (isCurrentMonth ? '#334155' : '#94a3b8'),
-                    fontWeight: isToday ? 'bold' : 'normal',
-                    fontSize: '0.875rem'
-                  }}>
-                    {format(day, 'd')}
-                  </span>
-                </div>
-                
-                {/* Render Incidents */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                  {dayIncidents.map(inc => {
-                    const typeInfo = INCIDENT_TYPES[inc.type] || { label: inc.type, color: '#64748b', bg: '#f1f5f9' };
-                    // Extra logic for styling pending requests
-                    const isPending = inc.status === 'PENDING';
-                    
-                    return (
-                      <div 
-                        key={inc.id}
-                        onClick={(e) => handleIncidentClick(inc, e)}
-                        title={`${inc.user?.name} - ${typeInfo.label} ${isPending ? '(Pendiente)' : ''} (Haz clic para editar/eliminar)`}
-                        style={{
-                          fontSize: '0.7rem',
-                          padding: '0.125rem 0.25rem',
-                          borderRadius: '4px',
-                          backgroundColor: isPending ? '#fffbeb' : typeInfo.bg,
-                          color: typeInfo.color,
-                          border: `1px solid ${isPending ? '#fcd34d' : 'transparent'}`,
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          fontWeight: '500',
-                          cursor: 'pointer',
-                          transition: 'filter 0.2s'
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.filter = 'brightness(0.9)'}
-                        onMouseLeave={e => e.currentTarget.style.filter = 'none'}
-                      >
-                        {inc.user?.name?.split(' ')[0]} - {typeInfo.label}
-                      </div>
-                    );
-                  })}
-                </div>
+                {day}
               </div>
-            );
-          })}
+            ))}
+          </div>
+
+          {/* Days Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
+            {days.map((day, i) => {
+              const isCurrentMonth = isSameMonth(day, monthStart);
+              const isToday = isSameDay(day, new Date());
+              const dayIncidents = getIncidentsForDay(day);
+
+              return (
+                <div 
+                  key={day.toString()} 
+                  onClick={() => handleDayClick(day)}
+                  style={{
+                    minHeight: '125px',
+                    padding: '0.5rem',
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    borderRight: (i + 1) % 7 !== 0 ? '1px solid #e2e8f0' : 'none',
+                    borderBottom: i < days.length - 7 ? '1px solid #e2e8f0' : 'none',
+                    backgroundColor: isCurrentMonth ? 'white' : '#f8fafc',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'background-color 0.15s ease'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = isCurrentMonth ? '#f1f5f9' : '#e2e8f0'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = isCurrentMonth ? 'white' : '#f8fafc'}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.4rem' }}>
+                    <span style={{ 
+                      display: 'inline-flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      width: '24px', height: '24px', 
+                      borderRadius: '50%', 
+                      backgroundColor: isToday ? '#2563eb' : 'transparent',
+                      color: isToday ? 'white' : (isCurrentMonth ? '#334155' : '#94a3b8'),
+                      fontWeight: isToday ? 'bold' : 'normal',
+                      fontSize: '0.85rem'
+                    }}>
+                      {format(day, 'd')}
+                    </span>
+                  </div>
+                  
+                  {/* Render Incidents */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0 }}>
+                    {dayIncidents.slice(0, 4).map(inc => {
+                      const typeInfo = INCIDENT_TYPES[inc.type] || { label: inc.type, color: '#64748b', bg: '#f1f5f9' };
+                      const isPending = inc.status === 'PENDING';
+                      
+                      return (
+                        <div 
+                          key={inc.id}
+                          onClick={(e) => handleIncidentClick(inc, e)}
+                          title={`${inc.user?.name} - ${typeInfo.label} ${isPending ? '(Pendiente)' : ''}\n${inc.notes || ''}\n(Haz clic para editar/eliminar)`}
+                          style={{
+                            fontSize: '0.72rem',
+                            padding: '0.2rem 0.35rem',
+                            borderRadius: '4px',
+                            backgroundColor: isPending ? '#fffbeb' : typeInfo.bg,
+                            color: typeInfo.color,
+                            border: `1px solid ${isPending ? '#fcd34d' : 'transparent'}`,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s',
+                            minWidth: 0,
+                            display: 'block'
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.filter = 'brightness(0.92)'}
+                          onMouseLeave={e => e.currentTarget.style.filter = 'none'}
+                        >
+                          {inc.user?.name?.split(' ')[0]} - {typeInfo.label}
+                        </div>
+                      );
+                    })}
+                    {dayIncidents.length > 4 && (
+                      <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 'bold', paddingLeft: '0.2rem' }}>
+                        +{dayIncidents.length - 4} más...
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
