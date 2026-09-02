@@ -570,6 +570,111 @@ export const sendPaymentComplementNotificationEmail = async (
   }
 };
 
+export const sendCreditNoteNotificationEmail = async (
+  to: string,
+  customer: any,
+  creditNote: {
+    folio: string;
+    uuid?: string | null;
+    amount: number;
+    reason?: string | null;
+    typeLabel: string;
+    saleFolio: string;
+  },
+  pdfBuffer: Buffer,
+  xmlBuffer?: Buffer | null,
+  branchId?: string | null
+) => {
+  const { transporter: customTransporter, fromEmail, fromName, isCustom, tenantName, configured } = await getTransporterAndSender(branchId);
+  const brandName = isCustom ? fromName : `${tenantName} Facturación`;
+
+  if (!configured) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('❌ Error: SMTP credentials are not configured in production environment.');
+      return { success: false, error: 'SMTP credentials not configured' };
+    }
+    console.warn('⚠️ SMTP credentials not set. Simulating credit note email sending.');
+    console.log(`[EMAIL SIMULADO NOTA DE CRÉDITO] Destino: ${to} | Folio: ${creditNote.folio}`);
+    return { success: true, simulated: true };
+  }
+
+  const attachments: any[] = [
+    {
+      filename: `Nota_Credito_${creditNote.folio}.pdf`,
+      content: pdfBuffer,
+      contentType: 'application/pdf'
+    }
+  ];
+
+  if (xmlBuffer) {
+    attachments.push({
+      filename: `Nota_Credito_${creditNote.folio}.xml`,
+      content: xmlBuffer,
+      contentType: 'application/xml'
+    });
+  }
+
+  try {
+    const info = await customTransporter.sendMail({
+      from: `"${brandName}" <${fromEmail}>`,
+      to,
+      subject: `Nota de Crédito (CFDI Egreso) #${creditNote.folio} - ${tenantName}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px;">
+          <div style="text-align: center; border-bottom: 2px solid #ef4444; padding-bottom: 20px;">
+            <h1 style="color: #ef4444; margin: 0; font-size: 28px;">Nota de Crédito</h1>
+            <p style="color: #666; margin: 5px 0 0 0;">Folio #${creditNote.folio}</p>
+          </div>
+          
+          <p>Estimado(a) cliente <strong>${customer?.legalName || customer?.name || 'Cliente'}</strong>,</p>
+          <p>Le compartimos el comprobante de <strong>Nota de Crédito (${creditNote.typeLabel})</strong> emitido con relación a su compra con Folio <strong>#${creditNote.saleFolio}</strong>.</p>
+          <p>Adjunto a este correo encontrará los archivos oficiales <strong>PDF</strong> y <strong>XML</strong> correspondientes.</p>
+          
+          <h3 style="color: #333; border-bottom: 1px solid #eaeaea; padding-bottom: 8px;">Detalles del Comprobante</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+            <tr>
+              <td style="padding: 8px; font-weight: bold; width: 40%;">Monto Acreditado:</td>
+              <td style="padding: 8px; font-weight: bold; color: #ef4444; font-size: 16px;">$${creditNote.amount.toFixed(2)} MXN</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; font-weight: bold;">Tipo de Movimiento:</td>
+              <td style="padding: 8px;">${creditNote.typeLabel}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; font-weight: bold;">Venta / Factura Afectada:</td>
+              <td style="padding: 8px;">#${creditNote.saleFolio}</td>
+            </tr>
+            ${creditNote.uuid && creditNote.uuid !== 'LOCAL' ? `
+            <tr>
+              <td style="padding: 8px; font-weight: bold;">Folio Fiscal (UUID SAT):</td>
+              <td style="padding: 8px; font-family: monospace; font-size: 12px;">${creditNote.uuid}</td>
+            </tr>
+            ` : ''}
+            ${creditNote.reason ? `
+            <tr>
+              <td style="padding: 8px; font-weight: bold;">Motivo:</td>
+              <td style="padding: 8px; color: #64748b;">${creditNote.reason}</td>
+            </tr>
+            ` : ''}
+          </table>
+
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; text-align: center; font-size: 12px; color: #888;">
+            <p>Este es un correo automático de ${tenantName}, por favor no responda directamente a esta dirección.</p>
+            <p><strong>${tenantName} ERP</strong></p>
+          </div>
+        </div>
+      `,
+      attachments
+    });
+
+    console.log('Correo de nota de crédito enviado: %s', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error: any) {
+    console.error('Error al enviar el correo de nota de crédito:', error);
+    return { success: false, error: error.message || error };
+  }
+};
+
 export const sendPurchaseOrderEmail = async (
   to: string,
   purchase: any

@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Search, Loader2, ArrowRight, HelpCircle, CheckCircle, FileText, AlertTriangle } from 'lucide-react';
-import { searchSaleForReturn, createCreditNoteAction } from '@/app/actions/creditNote';
+import { Search, Loader2, ArrowRight, CheckCircle, FileText, AlertTriangle, Mail, Send, MessageCircle } from 'lucide-react';
+import { searchSaleForReturn, createCreditNoteAction, sendCreditNoteEmailAction } from '@/app/actions/creditNote';
 
 export default function DevolucionesNuevoClient() {
   const [step, setStep] = useState(1);
@@ -15,17 +15,23 @@ export default function DevolucionesNuevoClient() {
   const [sale, setSale] = useState<any>(null);
 
   // Form states
-  const [noteType, setNoteType] = useState<'03' | '01'>('03'); // '03' = Devolución, '01' = Descuento
+  const [noteType, setNoteType] = useState<'03' | '01'>('03'); // '03' = Devolución Física, '01' = Bonificación / Descuento
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0.16); // default 16% IVA
   const [returnQuantities, setReturnQuantities] = useState<{ [saleItemId: string]: number }>({});
   const [reason, setReason] = useState('');
   const [cfdiUse, setCfdiUse] = useState('G02');
+  const [paymentForm, setPaymentForm] = useState('01');
 
   // Submit states
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveResult, setSaveResult] = useState<any>(null);
+
+  // Email modal / send states
+  const [emailToSend, setEmailToSend] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<{ success?: boolean; message?: string } | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +50,6 @@ export default function DevolucionesNuevoClient() {
       // Initialize return quantities to 0
       const initialQty: { [key: string]: number } = {};
       res.sale.items.forEach((item: any) => {
-        // Calculate max allowed return (quantity sold minus what's already returned)
         const alreadyReturned = (res.sale.returns || []).reduce((sum: number, ret: any) => {
           const retItem = ret.items.find((i: any) => i.saleItemId === item.id);
           return sum + (retItem ? retItem.quantity : 0);
@@ -55,9 +60,21 @@ export default function DevolucionesNuevoClient() {
       });
 
       setReturnQuantities(initialQty);
+
+      // Preselect default payment form
+      if (res.sale.paymentMethod === 'CREDIT') {
+        setPaymentForm('17'); // Compensación
+      } else {
+        setPaymentForm('01'); // Efectivo
+      }
+
+      if (res.sale.customer?.email) {
+        setEmailToSend(res.sale.customer.email);
+      }
+
       setStep(2);
     } else {
-      setSearchError(res.error || 'No se encontró la venta.');
+      setSearchError(res.error || 'No se encontró la venta o factura con el criterio ingresado.');
     }
   };
 
@@ -77,7 +94,7 @@ export default function DevolucionesNuevoClient() {
         const qty = returnQuantities[item.id] || 0;
         total += qty * item.price;
       });
-      const subtotal = total / (1 + 0.16); // Assuming standard 16% IVA on items
+      const subtotal = total / (1 + 0.16);
       const iva = total - subtotal;
       return { 
         subtotal: Number(subtotal.toFixed(2)), 
@@ -85,7 +102,7 @@ export default function DevolucionesNuevoClient() {
         total: Number(total.toFixed(2)) 
       };
     } else {
-      // Option B: Descuento Comercial
+      // Option B: Descuento Comercial / Bonificación
       const total = discountAmount;
       const subtotal = total / (1 + taxRate);
       const iva = total - subtotal;
@@ -108,7 +125,8 @@ export default function DevolucionesNuevoClient() {
       saleId: sale.id,
       type: noteType,
       reason,
-      cfdiUse
+      cfdiUse,
+      paymentForm
     };
 
     if (noteType === '03') {
@@ -147,8 +165,40 @@ export default function DevolucionesNuevoClient() {
       setSaveResult(res);
       setStep(4);
     } else {
-      setSaveError(res.error || 'Ocurrió un error al procesar la Nota de Crédito.');
+      setSaveError(res.error || 'Ocurrió un error al procesar y timbrar la Nota de Crédito.');
     }
+  };
+
+  const handleSendEmail = async () => {
+    if (!emailToSend.trim() || !saveResult?.id) return;
+    setIsSendingEmail(true);
+    setEmailStatus(null);
+    try {
+      const res = await sendCreditNoteEmailAction(saveResult.id, emailToSend.trim());
+      if (res.success) {
+        setEmailStatus({ success: true, message: 'Correo enviado exitosamente con PDF y XML adjuntos.' });
+      } else {
+        setEmailStatus({ success: false, message: res.error || 'No se pudo enviar el correo.' });
+      }
+    } catch (err: any) {
+      setEmailStatus({ success: false, message: err.message || 'Error al enviar correo.' });
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  const handleShareWhatsApp = () => {
+    const customerPhone = sale?.customer?.phone?.replace(/\D/g, '') || '';
+    const folio = sale?.folio || sale?.id?.slice(0, 8);
+    const amountStr = refundTotal.toFixed(2);
+    let msg = `Hola ${sale?.customer?.name || ''}, te compartimos tu Nota de Crédito por $${amountStr} MXN relacionada a tu compra #${folio}.`;
+    if (saveResult?.pdfUrl) {
+      msg += ` Puedes descargar tu PDF oficial aquí: ${saveResult.pdfUrl}`;
+    }
+    const url = customerPhone
+      ? `https://wa.me/${customerPhone}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
   };
 
   return (
@@ -157,10 +207,10 @@ export default function DevolucionesNuevoClient() {
       {/* Step Progress Indicator */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', backgroundColor: '#f8fafc', padding: '1rem 2rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
         {[
-          { num: 1, label: 'Buscar Origen' },
-          { num: 2, label: 'Definir Ajustes' },
-          { num: 3, label: 'Vista Previa' },
-          { num: 4, label: 'Completado' }
+          { num: 1, label: '1. Buscar Origen' },
+          { num: 2, label: '2. Definir Ajustes' },
+          { num: 3, label: '3. Parámetros SAT' },
+          { num: 4, label: '4. Completado' }
         ].map((s) => (
           <div key={s.num} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <div style={{
@@ -189,8 +239,8 @@ export default function DevolucionesNuevoClient() {
       {step === 1 && (
         <div style={{ maxWidth: '700px', margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem', gap: '1rem' }}>
-            <Link href="/ventas/devoluciones" style={{ textDecoration: 'none', color: '#f43f5e', fontSize: '1rem', fontWeight: '500' }}>
-              ← Volver al Panel
+            <Link href="/facturas/notas-credito" style={{ textDecoration: 'none', color: '#f43f5e', fontSize: '1rem', fontWeight: '500' }}>
+              ← Volver al Panel de Notas de Crédito
             </Link>
           </div>
 
@@ -201,7 +251,7 @@ export default function DevolucionesNuevoClient() {
               </div>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#0f172a' }}>Buscar Factura / Venta Origen</h2>
               <p style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '2rem' }}>
-                Ingresa el ID (UUID) o Folio del comprobante original para vincular y aplicar la Nota de Crédito.
+                Ingresa el Folio de venta (ej. V-1001) o el Folio Fiscal (UUID) del comprobante que deseas afectar con la Nota de Crédito.
               </p>
 
               {searchError && (
@@ -215,7 +265,7 @@ export default function DevolucionesNuevoClient() {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 required 
-                placeholder="Folio ej. V-1001 o ID..." 
+                placeholder="Folio ej. V-1001 o UUID..." 
                 style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: '2px solid #cbd5e1', fontSize: '1.1rem', textAlign: 'center', marginBottom: '1.5rem', outline: 'none', transition: 'border-color 0.2s' }}
                 onFocus={(e) => e.target.style.borderColor = '#f43f5e'}
                 onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
@@ -225,7 +275,7 @@ export default function DevolucionesNuevoClient() {
                 type="submit" 
                 className="btn-primary" 
                 disabled={isSearching}
-                style={{ width: '100%', padding: '0.85rem', fontSize: '1.1rem', backgroundColor: '#f43f5e', borderColor: '#f43f5e', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                style={{ width: '100%', padding: '0.85rem', fontSize: '1.1rem', backgroundColor: '#f43f5e', borderColor: '#f43f5e', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer' }}
               >
                 {isSearching ? <Loader2 className="animate-spin" size={20} /> : null}
                 {isSearching ? 'Buscando...' : 'Buscar Comprobante'}
@@ -243,7 +293,7 @@ export default function DevolucionesNuevoClient() {
               ← Cambiar Comprobante
             </button>
             <span style={{ fontSize: '0.9rem', color: '#64748b' }}>
-              Factura/Folio: <strong>{sale.folio || sale.id.substring(0,8).toUpperCase()}</strong> | Cliente: <strong>{sale.customer?.name || 'Público General'}</strong>
+              Folio: <strong>{sale.folio || sale.id.substring(0,8).toUpperCase()}</strong> | Cliente: <strong>{sale.customer?.name || 'Público General'}</strong> | Total: <strong>${sale.total.toFixed(2)}</strong>
             </span>
           </div>
 
@@ -252,8 +302,8 @@ export default function DevolucionesNuevoClient() {
             <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7', color: '#b45309', padding: '1rem', borderRadius: '8px', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
               <AlertTriangle size={20} style={{ flexShrink: 0, marginTop: '0.15rem' }} />
               <div>
-                <strong style={{ display: 'block', marginBottom: '0.15rem' }}>Aviso de Registro Local Únicamente</strong>
-                Esta venta no está timbrada en el SAT (no tiene factura vinculada). Se registrará la devolución localmente (reintegro de stock y saldo a favor en Caanma), pero **no se emitirá ningún CFDI fiscal de egreso**.
+                <strong style={{ display: 'block', marginBottom: '0.15rem' }}>Aviso de Registro Administrativo</strong>
+                Esta venta no cuenta con factura del SAT vinculada. Se registrará la nota de crédito y el reingreso de inventario/saldo a nivel administrativo interno sin timbrado de CFDI de egreso.
               </div>
             </div>
           )}
@@ -281,9 +331,9 @@ export default function DevolucionesNuevoClient() {
                       transition: 'all 0.2s'
                     }}
                   >
-                    <div style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Opción A: Devolución</div>
+                    <div style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Por Devolución</div>
                     <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>
-                      Reintegra mercancía física al almacén e incrementa el inventario.
+                      Reintegra productos físicos al inventario y genera el movimiento en Kardex.
                     </span>
                   </button>
 
@@ -302,9 +352,9 @@ export default function DevolucionesNuevoClient() {
                       transition: 'all 0.2s'
                     }}
                   >
-                    <div style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Opción B: Descuento</div>
+                    <div style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Por Bonificación / Descuento</div>
                     <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>
-                      Ajuste comercial directo en dinero. No afecta el inventario físico.
+                      Acreditación monetaria directa. No afecta las existencias físicas del almacén.
                     </span>
                   </button>
                 </div>
@@ -312,7 +362,7 @@ export default function DevolucionesNuevoClient() {
                 {/* Option A View: List Items */}
                 {noteType === '03' ? (
                   <div>
-                    <h4 style={{ fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '0.95rem', color: '#475569' }}>Selecciona artículos a devolver:</h4>
+                    <h4 style={{ fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '0.95rem', color: '#475569' }}>Selecciona los artículos a devolver:</h4>
                     <div style={{ overflowX: 'auto' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                         <thead>
@@ -363,7 +413,7 @@ export default function DevolucionesNuevoClient() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#475569' }}>
-                        Monto del Descuento / Ajuste (Total con IVA):
+                        Monto Total a Acreditar (con IVA incluido):
                       </label>
                       <div style={{ position: 'relative' }}>
                         <span style={{ position: 'absolute', left: '0.75rem', top: '0.6rem', color: '#64748b', fontWeight: 'bold' }}>$</span>
@@ -378,22 +428,22 @@ export default function DevolucionesNuevoClient() {
                         />
                       </div>
                       <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem', display: 'block' }}>
-                        El descuento máximo permitido es el total de la venta original: <strong>${sale.total.toFixed(2)}</strong>.
+                        El monto máximo es el total de la venta original: <strong>${sale.total.toFixed(2)}</strong>.
                       </span>
                     </div>
 
                     <div>
                       <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#475569' }}>
-                        Tasa de IVA aplicada al descuento:
+                        Tasa de IVA aplicada a la bonificación:
                       </label>
                       <select 
                         value={taxRate}
                         onChange={e => setTaxRate(parseFloat(e.target.value))}
                         style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.95rem', outline: 'none' }}
                       >
-                        <option value="0.16">16% IVA (Estándar)</option>
-                        <option value="0.08">8% IVA (Frontera)</option>
-                        <option value="0">0% IVA</option>
+                        <option value="0.16">16% IVA (Tasa General)</option>
+                        <option value="0.08">8% IVA (Zona Fronteriza)</option>
+                        <option value="0">0% IVA (Tasa Cero / Exento)</option>
                       </select>
                     </div>
                   </div>
@@ -405,7 +455,7 @@ export default function DevolucionesNuevoClient() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div className="card" style={{ padding: '1.5rem' }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
-                  Resumen de Reembolso
+                  Resumen de Acreditación
                 </h3>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.95rem' }}>
@@ -418,7 +468,7 @@ export default function DevolucionesNuevoClient() {
                     <span>${iva.toFixed(2)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '1.1rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem', marginTop: '0.25rem', color: '#f43f5e' }}>
-                    <span>Total a Acreditar:</span>
+                    <span>Total de Nota:</span>
                     <span>${refundTotal.toFixed(2)}</span>
                   </div>
                 </div>
@@ -426,18 +476,18 @@ export default function DevolucionesNuevoClient() {
                 <div style={{ marginTop: '1.5rem', fontSize: '0.85rem', color: '#64748b', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '6px' }}>
                   {sale.customer ? (
                     <div>
-                      {sale.paymentMethod === 'CREDIT' ? (
+                      {sale.paymentMethod === 'CREDIT' && sale.balanceDue > 0 ? (
                         <span>
-                          La venta fue a crédito. La Nota de Crédito se aplicará como **Abono** para liquidar o disminuir la deuda de <strong>${sale.balanceDue.toFixed(2)}</strong> del cliente.
+                          💳 <strong>Venta a Crédito:</strong> Se aplicará como abono para amortizar la deuda de <strong>${sale.balanceDue.toFixed(2)}</strong> del cliente.
                         </span>
                       ) : (
                         <span>
-                          La venta fue de contado. El total se abonará como **Saldo a Favor** (Crédito de Tienda) del cliente.
+                          👛 <strong>Venta Pagada:</strong> El importe se abonará automáticamente como <strong>Saldo a Favor</strong> (Monedero) del cliente para futuras compras.
                         </span>
                       )}
                     </div>
                   ) : (
-                    <span>Se registrará la salida del reembolso local.</span>
+                    <span>Se registrará la salida del reembolso administrativo.</span>
                   )}
                 </div>
 
@@ -445,7 +495,7 @@ export default function DevolucionesNuevoClient() {
                   onClick={() => setStep(3)}
                   disabled={refundTotal <= 0}
                   className="btn-primary"
-                  style={{ width: '100%', padding: '0.75rem', fontSize: '1.05rem', backgroundColor: '#f43f5e', borderColor: '#f43f5e', borderRadius: '6px', marginTop: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                  style={{ width: '100%', padding: '0.75rem', fontSize: '1.05rem', backgroundColor: '#f43f5e', borderColor: '#f43f5e', borderRadius: '6px', marginTop: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: refundTotal <= 0 ? 'not-allowed' : 'pointer' }}
                 >
                   Siguiente Paso <ArrowRight size={18} />
                 </button>
@@ -460,7 +510,7 @@ export default function DevolucionesNuevoClient() {
         <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div>
             <button onClick={() => setStep(2)} style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '1rem', fontWeight: '500' }}>
-              ← Modificar Reembolso
+              ← Modificar Importes y Partidas
             </button>
           </div>
 
@@ -472,24 +522,45 @@ export default function DevolucionesNuevoClient() {
 
           <div className="card" style={{ padding: '2rem' }}>
             <h2 style={{ fontSize: '1.4rem', fontWeight: 'bold', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
-              Información Fiscal y Motivo
+              Parámetros Fiscales del SAT (CFDI 4.0)
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               
               {sale.invoiceId && (
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#475569' }}>
-                    Clave de Uso del CFDI (SAT):
-                  </label>
-                  <select 
-                    value={cfdiUse}
-                    onChange={e => setCfdiUse(e.target.value)}
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.95rem', outline: 'none' }}
-                  >
-                    <option value="G02">G02 - Devoluciones, descuentos o bonificaciones</option>
-                    <option value="S01">S01 - Sin efectos fiscales</option>
-                  </select>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#475569' }}>
+                      Clave de Uso del CFDI (SAT):
+                    </label>
+                    <select 
+                      value={cfdiUse}
+                      onChange={e => setCfdiUse(e.target.value)}
+                      style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.95rem', outline: 'none' }}
+                    >
+                      <option value="G02">G02 - Devoluciones, descuentos o bonificaciones</option>
+                      <option value="S01">S01 - Sin efectos fiscales</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#475569' }}>
+                      Forma de Pago del SAT (CFDI):
+                    </label>
+                    <select 
+                      value={paymentForm}
+                      onChange={e => setPaymentForm(e.target.value)}
+                      style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.95rem', outline: 'none' }}
+                    >
+                      <option value="01">01 - Efectivo</option>
+                      <option value="03">03 - Transferencia electrónica de fondos</option>
+                      <option value="04">04 - Tarjeta de crédito</option>
+                      <option value="28">28 - Tarjeta de débito</option>
+                      <option value="17">17 - Compensación (Amortización de Saldo / Crédito)</option>
+                      <option value="15">15 - Condonación</option>
+                      <option value="99">99 - Por definir</option>
+                    </select>
+                  </div>
                 </div>
               )}
 
@@ -500,22 +571,22 @@ export default function DevolucionesNuevoClient() {
                 <textarea 
                   value={reason}
                   onChange={e => setReason(e.target.value)}
-                  placeholder="Ej. Devolución de producto por defecto, descuento por error de precio, etc..."
-                  rows={4}
+                  placeholder="Ej. Devolución de producto por defecto, bonificación por precio pactado, etc..."
+                  rows={3}
                   required
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.95rem', outline: 'none', resize: 'vertical' }}
+                  style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.95rem', outline: 'none', resize: 'vertical' }}
                 />
               </div>
 
               <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <h4 style={{ fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '1rem' }}>Resumen de Aplicación Final</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem', color: '#475569' }}>
+                <h4 style={{ fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '1rem', color: '#0f172a' }}>Resumen de la Transacción</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.9rem', color: '#475569' }}>
                   <div>• Comprobante Origen: <strong>{sale.folio || sale.id}</strong></div>
-                  <div>• Cliente: <strong>{sale.customer?.name || 'Público en General'}</strong></div>
-                  <div>• Tipo de Operación: <strong>{noteType === '03' ? 'Devolución Física (Opción A)' : 'Descuento Comercial (Opción B)'}</strong></div>
-                  <div>• Tasa de IVA: <strong>{taxRate * 100}%</strong></div>
-                  <div style={{ fontSize: '1.1rem', color: '#f43f5e', fontWeight: 'bold', marginTop: '0.5rem' }}>
-                    • Total Neto a Acreditar: ${refundTotal.toFixed(2)}
+                  <div>• Cliente: <strong>{sale.customer?.name || 'Público en General'}</strong> ({sale.customer?.taxId || 'XAXX010101000'})</div>
+                  <div>• Modalidad: <strong>{noteType === '03' ? 'Devolución de Mercancía (Kardex)' : 'Bonificación / Descuento Directo'}</strong></div>
+                  <div>• Tipo de CFDI: <strong>Egreso (Tipo E)</strong> | Método: <strong>PUE</strong></div>
+                  <div style={{ fontSize: '1.15rem', color: '#f43f5e', fontWeight: 'bold', marginTop: '0.5rem' }}>
+                    • Total a Acreditar: ${refundTotal.toFixed(2)} MXN
                   </div>
                 </div>
               </div>
@@ -524,10 +595,10 @@ export default function DevolucionesNuevoClient() {
                 onClick={handleSaveNCR}
                 disabled={isSaving}
                 className="btn-primary"
-                style={{ width: '100%', padding: '1rem', fontSize: '1.15rem', backgroundColor: '#f43f5e', borderColor: '#f43f5e', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                style={{ width: '100%', padding: '1rem', fontSize: '1.15rem', backgroundColor: '#f43f5e', borderColor: '#f43f5e', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: isSaving ? 'not-allowed' : 'pointer' }}
               >
                 {isSaving ? <Loader2 className="animate-spin" size={22} /> : null}
-                {isSaving ? 'Procesando y Timbrando...' : 'Confirmar y Autorizar Nota de Crédito'}
+                {isSaving ? 'Procesando y Timbrando en SAT...' : 'Autorizar y Timbrar Nota de Crédito'}
               </button>
             </div>
           </div>
@@ -544,30 +615,30 @@ export default function DevolucionesNuevoClient() {
             </div>
 
             <h2 style={{ fontSize: '1.6rem', fontWeight: 'bold', color: '#0f172a' }}>
-              ¡Nota de Crédito Procesada!
+              ¡Nota de Crédito Procesada con Éxito!
             </h2>
 
-            <p style={{ color: '#64748b', fontSize: '1rem', maxWidth: '500px', margin: '0 auto 1.5rem' }}>
-              El movimiento se ha registrado correctamente en el sistema local y se han actualizado los saldos del cliente.
+            <p style={{ color: '#64748b', fontSize: '1rem', maxWidth: '500px', margin: '0 auto' }}>
+              El movimiento se ha registrado y los saldos del cliente e inventarios fueron actualizados en tiempo real.
             </p>
 
             {saveResult.uuid ? (
-              <div style={{ width: '100%', backgroundColor: '#f8fafc', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'left', marginBottom: '1.5rem' }}>
+              <div style={{ width: '100%', backgroundColor: '#f8fafc', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'left' }}>
                 <h4 style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#475569', marginBottom: '0.5rem' }}>Detalles de Certificación Fiscal SAT:</h4>
                 <div style={{ fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                  <div>• UUID de Nota de Crédito: <strong style={{ color: '#0f172a' }}>{saveResult.uuid}</strong></div>
-                  <div>• Estado SAT: <strong style={{ color: '#16a34a' }}>Certificado (Egreso)</strong></div>
+                  <div>• Folio Fiscal (UUID): <strong style={{ color: '#0f172a', wordBreak: 'break-all' }}>{saveResult.uuid}</strong></div>
+                  <div>• Tipo de Comprobante: <strong style={{ color: '#16a34a' }}>E (Egreso - CFDI 4.0)</strong></div>
                 </div>
               </div>
             ) : (
-              <div style={{ width: '100%', backgroundColor: '#fef3c7', padding: '1rem', borderRadius: '8px', border: '1px solid #fde68a', color: '#b45309', textAlign: 'left', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+              <div style={{ width: '100%', backgroundColor: '#fef3c7', padding: '1rem', borderRadius: '8px', border: '1px solid #fde68a', color: '#b45309', textAlign: 'left', fontSize: '0.9rem' }}>
                 Nota: Este movimiento se guardó como un ajuste interno local de inventario y saldos puesto que el comprobante original no tenía factura del SAT.
               </div>
             )}
 
             {/* Download PDF/XML files buttons */}
             {saveResult.pdfUrl && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', width: '100%', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', width: '100%' }}>
                 <a 
                   href={saveResult.pdfUrl} 
                   target="_blank" 
@@ -610,9 +681,86 @@ export default function DevolucionesNuevoClient() {
               </div>
             )}
 
-            <Link href="/ventas/devoluciones" className="btn-primary" style={{ width: '100%', padding: '0.85rem', textDecoration: 'none', backgroundColor: '#f43f5e', borderColor: '#f43f5e', borderRadius: '6px' }}>
-              Finalizar y Volver al Panel
-            </Link>
+            {/* Email & WhatsApp Sharing section */}
+            <div style={{ width: '100%', borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input 
+                  type="email" 
+                  value={emailToSend}
+                  onChange={e => setEmailToSend(e.target.value)}
+                  placeholder="correo@cliente.com" 
+                  style={{ flex: 1, padding: '0.6rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                />
+                <button
+                  type="button"
+                  onClick={handleSendEmail}
+                  disabled={isSendingEmail || !emailToSend.trim()}
+                  style={{
+                    padding: '0.6rem 1rem',
+                    borderRadius: '6px',
+                    backgroundColor: '#2563eb',
+                    color: 'white',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    cursor: isSendingEmail || !emailToSend.trim() ? 'not-allowed' : 'pointer',
+                    fontWeight: '500',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  {isSendingEmail ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                  Enviar Correo
+                </button>
+              </div>
+
+              {emailStatus && (
+                <div style={{
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '6px',
+                  fontSize: '0.85rem',
+                  textAlign: 'left',
+                  backgroundColor: emailStatus.success ? '#dcfce7' : '#fee2e2',
+                  color: emailStatus.success ? '#166534' : '#991b1b',
+                  border: `1px solid ${emailStatus.success ? '#86efac' : '#fca5a5'}`
+                }}>
+                  {emailStatus.message}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleShareWhatsApp}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  borderRadius: '6px',
+                  backgroundColor: '#16a34a',
+                  color: 'white',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '0.95rem'
+                }}
+              >
+                <MessageCircle size={18} />
+                Compartir por WhatsApp
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', width: '100%', marginTop: '1rem' }}>
+              <Link href="/facturas/notas-credito" className="btn-primary" style={{ padding: '0.85rem', textDecoration: 'none', backgroundColor: '#f43f5e', borderColor: '#f43f5e', borderRadius: '6px', fontWeight: 'bold' }}>
+                Ver Notas de Crédito
+              </Link>
+              <Link href={`/ventas/detalle/${sale.id}`} style={{ padding: '0.85rem', textDecoration: 'none', backgroundColor: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                Ver Venta Original
+              </Link>
+            </div>
+
           </div>
         </div>
       )}

@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FileText, Layers, Receipt } from 'lucide-react';
+import { FileText, Layers, Receipt, FileMinus } from 'lucide-react';
 
 export default function FacturasLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   const tabs = [
     { name: 'Facturación Ventas', path: '/facturas/ventas', icon: <FileText size={18} /> },
+    { name: 'Notas de Crédito (NCR)', path: '/facturas/notas-credito', icon: <FileMinus size={18} /> },
     { name: 'Factura Global', path: '/facturas/globales', icon: <Layers size={18} /> },
     { name: 'Complementos de Pago (REP)', path: '/facturas/complementos', icon: <Receipt size={18} /> },
   ];

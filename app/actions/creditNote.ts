@@ -4,21 +4,74 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { getActiveBranch, getActiveUser } from './auth';
 import Facturapi from 'facturapi';
+import { sendCreditNoteNotificationEmail } from '@/lib/mailer';
 
-// Helper to resolve Facturapi API Key for a branch
-async function getFacturapiApiKeyForBranch(branchId: string): Promise<string | null> {
+// Helper to convert Facturapi stream/blob to buffer
+async function binaryDownloadToBuffer(download: any): Promise<Buffer> {
+  if (!download) {
+    throw new Error('El archivo descargado está vacío');
+  }
+  if (Buffer.isBuffer(download)) {
+    return download;
+  }
+  if (typeof download.arrayBuffer === 'function') {
+    const arrayBuf = await download.arrayBuffer();
+    return Buffer.from(arrayBuf);
+  }
+  if (typeof download.on === 'function') {
+    return new Promise<Buffer>((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      download.on('data', (chunk: any) => chunks.push(Buffer.from(chunk)));
+      download.on('end', () => resolve(Buffer.concat(chunks)));
+      download.on('error', (err: any) => reject(err));
+    });
+  }
+  if (typeof download.getReader === 'function') {
+    const reader = download.getReader();
+    const chunks: Uint8Array[] = [];
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) chunks.push(value);
+    }
+    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return Buffer.from(result);
+  }
+  return Buffer.from(download);
+}
+
+// Helper to resolve Facturapi API Key and settings for a branch
+async function getFacturapiConfigForBranch(branchId: string): Promise<{ apiKey: string | null; series: string; defaultPaymentForm: string }> {
   const settings = await prisma.branchSettings.findUnique({
     where: { branchId }
   });
-  if (!settings || !settings.configJson) return null;
-  try {
-    const config = JSON.parse(settings.configJson);
-    const f = config.facturacion || {};
-    const entorno = f.entornoFacturapi || 'test';
-    return entorno === 'live' ? f.apiTokenLive || f.liveKey : f.apiTokenTest || f.testKey;
-  } catch {
-    return null;
+  let apiKey: string | null = null;
+  let series = 'NCR';
+  let defaultPaymentForm = '01';
+
+  if (settings && settings.configJson) {
+    try {
+      const config = JSON.parse(settings.configJson);
+      const f = config.facturacion || {};
+      const entorno = f.entornoFacturapi || 'test';
+      apiKey = entorno === 'live' ? f.apiTokenLive || f.liveKey : f.apiTokenTest || f.testKey;
+      if (f.serieNotaCredito && f.serieNotaCredito.trim()) {
+        series = f.serieNotaCredito.trim().toUpperCase();
+      }
+      if (f.formaPagoDefaultNCR) {
+        defaultPaymentForm = f.formaPagoDefaultNCR;
+      }
+    } catch {
+      // ignore JSON parse error
+    }
   }
+  return { apiKey, series, defaultPaymentForm };
 }
 
 export async function searchSaleForReturn(query: string) {
@@ -28,13 +81,15 @@ export async function searchSaleForReturn(query: string) {
       return { success: false, error: 'Debes seleccionar una sucursal específica.' };
     }
 
-    // Search by UUID or Folio (case-insensitive)
+    // Search by UUID, Folio or Customer (case-insensitive)
     const sale = await prisma.sale.findFirst({
       where: {
         branchId: branch.id,
         OR: [
           { id: query },
-          { folio: { equals: query, mode: 'insensitive' } }
+          { folio: { equals: query, mode: 'insensitive' } },
+          { invoiceId: { equals: query, mode: 'insensitive' } },
+          { invoiceFolio: { equals: query, mode: 'insensitive' } }
         ]
       },
       include: {
@@ -69,15 +124,17 @@ export async function createCreditNoteAction({
   returnedItems,
   reason,
   taxRate = 0.16,
-  cfdiUse = 'G02'
+  cfdiUse = 'G02',
+  paymentForm
 }: {
   saleId: string;
-  type: '01' | '03';
+  type: '01' | '03'; // '03' = Devolución Física, '01' = Bonificación / Descuento
   amount?: number;
   returnedItems?: { saleItemId: string; productId: string; quantity: number; refundPrice: number }[];
   reason: string;
   taxRate?: number;
   cfdiUse?: string;
+  paymentForm?: string;
 }) {
   try {
     const branch = await getActiveBranch();
@@ -107,8 +164,8 @@ export async function createCreditNoteAction({
 
     // 2. Emit Facturapi Credit Note (Egreso CFDI) if original sale is invoiced
     if (sale.invoiceId) {
-      const apiKey = await getFacturapiApiKeyForBranch(branch.id);
-      if (!apiKey) throw new Error("No hay llaves de Facturapi configuradas para esta sucursal.");
+      const { apiKey, series, defaultPaymentForm } = await getFacturapiConfigForBranch(branch.id);
+      if (!apiKey) throw new Error("No hay llaves de Facturapi configuradas para esta sucursal en Preferencias > Facturación.");
       const facturapi = new Facturapi(apiKey);
 
       // Customer receiver details
@@ -144,22 +201,22 @@ export async function createCreditNoteAction({
               taxes: [
                 {
                   type: 'IVA',
-                  rate: 0.16 // Standard 16% IVA
+                  rate: 0.16 // Tasa estándar de IVA
                 }
               ]
             }
           };
         });
       } else {
-        // Opción B: Descuento Comercial
+        // Opción B: Descuento Comercial / Bonificación
         facturapiItems = [
           {
             quantity: 1,
             product: {
               description: `Descuento comercial / Bonificación - Relacionado a Folio: ${sale.folio || sale.id.substring(0, 8)}`,
-              product_key: '84111506', // Servicios de facturación (SAT Code for Credit Notes)
+              product_key: '84111506', // Clave SAT para Notas de Crédito / Servicios de facturación
               unit_key: 'ACT', // Actividad
-              price: Number((totalRefund / (1 + taxRate)).toFixed(2)), // Subtotal before tax
+              price: Number((totalRefund / (1 + taxRate)).toFixed(2)),
               taxes: taxRate > 0 ? [
                 {
                   type: 'IVA',
@@ -171,13 +228,17 @@ export async function createCreditNoteAction({
         ];
       }
 
-      const invoicePayload = {
+      const chosenPaymentForm = paymentForm || (sale.paymentMethod === 'CREDIT' ? '17' : defaultPaymentForm || '01');
+
+      const invoicePayload: any = {
         customer: customerData,
         items: facturapiItems,
-        type: 'E', // EGRESO (Credit Note)
-        use: cfdiUse,
+        type: 'E', // EGRESO (Nota de Crédito)
+        use: cfdiUse || 'G02',
+        payment_form: chosenPaymentForm,
+        series: series || 'NCR',
         relation: {
-          type: type, // "01" (Nota de crédito) o "03" (Devolución)
+          type: '01', // Clave 01: Nota de crédito de los documentos relacionados
           invoices: [ sale.invoiceId ]
         }
       };
@@ -186,12 +247,12 @@ export async function createCreditNoteAction({
       const invoice = await facturapi.invoices.create(invoicePayload);
       satCreditNoteUuid = invoice.id;
       
-      // Facturapi provides downloadable URLs directly
       pdfUrl = `https://api.facturapi.com/v1/invoices/${invoice.id}/pdf`;
       xmlUrl = `https://api.facturapi.com/v1/invoices/${invoice.id}/xml`;
     }
 
     // 3. Database transaction
+    let createdSaleReturnId = '';
     await prisma.$transaction(async (tx) => {
       // Create local SaleReturn document
       const saleReturn = await tx.saleReturn.create({
@@ -212,6 +273,7 @@ export async function createCreditNoteAction({
           } : undefined
         }
       });
+      createdSaleReturnId = saleReturn.id;
 
       // Option A: Adjust warehouse stock and movement
       if (type === '03' && returnedItems) {
@@ -269,11 +331,13 @@ export async function createCreditNoteAction({
     });
 
     revalidatePath('/ventas/devoluciones');
+    revalidatePath('/facturas/notas-credito');
     revalidatePath('/ventas');
     revalidatePath('/clientes');
 
     return { 
       success: true, 
+      id: createdSaleReturnId,
       uuid: satCreditNoteUuid, 
       pdfUrl, 
       xmlUrl,
@@ -282,5 +346,150 @@ export async function createCreditNoteAction({
   } catch (err: any) {
     console.error("Error creating credit note:", err);
     return { success: false, error: err.message || "Error al procesar la Nota de Crédito." };
+  }
+}
+
+export async function getCreditNotesAction({
+  search = '',
+  page = 1,
+  limit = 25
+}: {
+  search?: string;
+  page?: number;
+  limit?: number;
+} = {}) {
+  try {
+    const branch = await getActiveBranch();
+    if (!branch) return { success: false, error: 'No active branch' };
+
+    const branchFilter = branch.id === 'GLOBAL' 
+      ? (branch.tenantId ? { branch: { tenantId: branch.tenantId } } : {}) 
+      : { branchId: branch.id };
+
+    const searchFilter: any = search.trim() ? {
+      OR: [
+        { id: { contains: search.trim(), mode: 'insensitive' } },
+        { satCreditNote: { contains: search.trim(), mode: 'insensitive' } },
+        { reason: { contains: search.trim(), mode: 'insensitive' } },
+        { sale: { folio: { contains: search.trim(), mode: 'insensitive' } } },
+        { sale: { customer: { name: { contains: search.trim(), mode: 'insensitive' } } } },
+        { sale: { customer: { legalName: { contains: search.trim(), mode: 'insensitive' } } } },
+        { sale: { customer: { taxId: { contains: search.trim(), mode: 'insensitive' } } } },
+      ]
+    } : {};
+
+    const where = {
+      ...branchFilter,
+      ...searchFilter
+    };
+
+    const total = await prisma.saleReturn.count({ where });
+    const returns = await prisma.saleReturn.findMany({
+      where,
+      include: {
+        branch: { select: { id: true, name: true } },
+        user: { select: { id: true, name: true, email: true } },
+        sale: {
+          include: {
+            customer: true
+          }
+        },
+        items: {
+          include: {
+            saleItem: {
+              include: {
+                product: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit
+    });
+
+    return {
+      success: true,
+      data: returns,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  } catch (error: any) {
+    console.error("Error loading credit notes:", error);
+    return { success: false, error: error.message || "Error al cargar notas de crédito." };
+  }
+}
+
+export async function sendCreditNoteEmailAction(saleReturnId: string, email: string) {
+  try {
+    const saleReturn = await prisma.saleReturn.findUnique({
+      where: { id: saleReturnId },
+      include: {
+        branch: true,
+        items: true,
+        sale: {
+          include: { customer: true }
+        }
+      }
+    });
+
+    if (!saleReturn) throw new Error("Nota de crédito no encontrada.");
+
+    const customer = saleReturn.sale?.customer;
+    const saleFolio = saleReturn.sale?.folio || saleReturn.saleId.slice(0, 8).toUpperCase();
+    const typeLabel = saleReturn.items && saleReturn.items.length > 0 ? 'Devolución de Mercancía' : 'Bonificación / Descuento';
+
+    let pdfBuffer: Buffer | null = null;
+    let xmlBuffer: Buffer | null = null;
+
+    if (saleReturn.satCreditNote && saleReturn.satCreditNote !== 'LOCAL') {
+      const { apiKey } = await getFacturapiConfigForBranch(saleReturn.branchId);
+      if (apiKey) {
+        const facturapi = new Facturapi(apiKey);
+        try {
+          const pdfBlob = await facturapi.invoices.downloadPdf(saleReturn.satCreditNote);
+          pdfBuffer = await binaryDownloadToBuffer(pdfBlob);
+        } catch (e) {
+          console.error("Error downloading PDF from Facturapi:", e);
+        }
+        try {
+          const xmlBlob = await facturapi.invoices.downloadXml(saleReturn.satCreditNote);
+          xmlBuffer = await binaryDownloadToBuffer(xmlBlob);
+        } catch (e) {
+          console.error("Error downloading XML from Facturapi:", e);
+        }
+      }
+    }
+
+    if (!pdfBuffer) {
+      // Generate a basic local PDF buffer or dummy fallback if local
+      pdfBuffer = Buffer.from(`Comprobante de Nota de Crédito #${saleReturn.id}\nMonto: $${saleReturn.totalRefund}\nMotivo: ${saleReturn.reason || 'N/A'}`);
+    }
+
+    const result = await sendCreditNoteNotificationEmail(
+      email,
+      customer,
+      {
+        folio: saleReturn.satCreditNote && saleReturn.satCreditNote !== 'LOCAL' ? saleReturn.satCreditNote.slice(0, 8).toUpperCase() : `NCR-${saleReturn.id.slice(0, 8).toUpperCase()}`,
+        uuid: saleReturn.satCreditNote,
+        amount: saleReturn.totalRefund,
+        reason: saleReturn.reason,
+        typeLabel,
+        saleFolio
+      },
+      pdfBuffer,
+      xmlBuffer,
+      saleReturn.branchId
+    );
+
+    return result;
+  } catch (error: any) {
+    console.error("Error sending credit note email:", error);
+    return { success: false, error: error.message || "Error al enviar la nota de crédito por correo." };
   }
 }

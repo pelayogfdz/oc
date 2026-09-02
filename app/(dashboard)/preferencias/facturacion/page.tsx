@@ -65,6 +65,28 @@ export default async function Page() {
       label: 'Token Facturapi (Usuario/Admin)', 
       type: 'text', 
       placeholder: 'sk_user_...' 
+    },
+    { 
+      name: 'serieNotaCredito', 
+      label: 'Serie de Notas de Crédito (Egreso)', 
+      description: 'Prefijo de serie para las Notas de Crédito emitidas (por defecto: NCR).',
+      type: 'text', 
+      placeholder: 'NCR' 
+    },
+    { 
+      name: 'formaPagoDefaultNCR', 
+      label: 'Forma de Pago SAT Predeterminada (Nota de Crédito)', 
+      description: 'Clave SAT preseleccionada al emitir Notas de Crédito y devoluciones.',
+      type: 'select',
+      options: [
+        { label: '01 - Efectivo', value: '01' },
+        { label: '03 - Transferencia electrónica de fondos', value: '03' },
+        { label: '04 - Tarjeta de crédito', value: '04' },
+        { label: '28 - Tarjeta de débito', value: '28' },
+        { label: '17 - Compensación (Amortización de Saldo)', value: '17' },
+        { label: '15 - Condonación', value: '15' },
+        { label: '99 - Por definir', value: '99' }
+      ]
     }
   ];
 
