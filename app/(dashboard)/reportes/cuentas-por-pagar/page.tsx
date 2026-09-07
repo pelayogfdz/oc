@@ -2,10 +2,9 @@ import { prisma } from "@/lib/prisma";
 import CuentasPorPagarReportClient from "./CuentasPorPagarReportClient";
 
 export default async function CuentasPorPagarReportPage() {
-  const pendingPurchases = await prisma.purchase.findMany({
+  const creditPurchases = await prisma.purchase.findMany({
     where: { 
       paymentMethod: 'CREDIT',
-      balanceDue: { gt: 0 },
       status: { not: 'CANCELLED' }
     },
     include: {
@@ -20,7 +19,7 @@ export default async function CuentasPorPagarReportPage() {
   });
 
   // Fix Next.js Date Serialization
-  const safePurchases = JSON.parse(JSON.stringify(pendingPurchases));
+  const safePurchases = JSON.parse(JSON.stringify(creditPurchases));
   const safeBranches = JSON.parse(JSON.stringify(branches));
 
   return (

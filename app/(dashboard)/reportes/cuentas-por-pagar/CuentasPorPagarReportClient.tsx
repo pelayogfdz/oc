@@ -39,6 +39,8 @@ export default function CuentasPorPagarReportClient({
 }) {
   const [search, setSearch] = useState('');
   const [selectedBranchId, setSelectedBranchId] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState<'PENDING' | 'ALL' | 'PAID' | 'CURRENT' | 'OVERDUE'>('PENDING');
+  const [modalStatusFilter, setModalStatusFilter] = useState<'ALL' | 'PENDING' | 'PAID' | 'CURRENT' | 'OVERDUE'>('ALL');
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'NOT_OVERDUE' | '0_15' | '15_30' | '30_60' | '60_90' | '90_PLUS'>('ALL');
   const [selectedGroup, setSelectedGroup] = useState<any | null>(null);
   const [sortBy, setSortBy] = useState<'NAME' | 'AMOUNT' | 'OVERDUE' | 'CURRENT' | 'ANTIQUITY'>('AMOUNT');
@@ -76,12 +78,22 @@ export default function CuentasPorPagarReportClient({
     }
   };
 
-  // Step 1: Filter purchases by branch and search term first
+  // Step 1: Filter purchases by branch, status filter and search term first
   const branchFilteredPurchases = useMemo(() => {
     return initialPurchases.filter(purchase => {
       if (selectedBranchId !== 'ALL' && purchase.branchId !== selectedBranchId) {
         return false;
       }
+      const days = getDaysOverdue(purchase.dueDate);
+      const isPaid = (purchase.balanceDue || 0) <= 0.001;
+      const isOverdue = !isPaid && days > 0;
+      const isCurrent = !isPaid && days <= 0;
+
+      if (statusFilter === 'PENDING' && isPaid) return false;
+      if (statusFilter === 'PAID' && !isPaid) return false;
+      if (statusFilter === 'OVERDUE' && !isOverdue) return false;
+      if (statusFilter === 'CURRENT' && !isCurrent) return false;
+
       if (search.trim() !== '') {
         const term = search.toLowerCase();
         const supplierName = purchase.supplier?.name?.toLowerCase() || '';
@@ -94,7 +106,7 @@ export default function CuentasPorPagarReportClient({
       }
       return true;
     });
-  }, [initialPurchases, selectedBranchId, search]);
+  }, [initialPurchases, selectedBranchId, statusFilter, search]);
 
   // Step 2: Categorize into buckets
   const buckets = useMemo(() => {
@@ -273,20 +285,32 @@ export default function CuentasPorPagarReportClient({
       'Días de Vencimiento',
       'Estado',
       'Total de la Compra',
+      'Monto Pagado / Abonado',
       'Saldo Pendiente (Deuda)'
     ];
 
-    const rows = selectedGroup.purchases.map((purchase: Purchase) => {
+    const purchasesToExport = modalFilteredPurchases.length > 0 ? modalFilteredPurchases : selectedGroup.purchases;
+    let sumTotal = 0;
+    let sumPaid = 0;
+    let sumDebt = 0;
+
+    const rows = purchasesToExport.map((purchase: Purchase) => {
       const days = getDaysOverdue(purchase.dueDate);
-      const isOverdue = days > 0;
+      const isPaid = (purchase.balanceDue || 0) <= 0.001;
+      const isOverdue = !isPaid && days > 0;
       const folioStr = purchase.folio ? `#${purchase.folio}` : `#${purchase.id.slice(0, 8).toUpperCase()}`;
       const supplierFolioStr = purchase.supplierFolio || 'S/F';
       const branchName = purchase.branch?.name || '-';
       const createdDate = new Date(purchase.createdAt).toLocaleDateString('es-MX');
       const dueDateStr = purchase.dueDate ? new Date(purchase.dueDate).toLocaleDateString('es-MX') : 'N/A';
-      const statusStr = isOverdue ? `Vencido (${days} días)` : 'Al Corriente';
-      const totalAmount = (purchase as any).total !== undefined ? (purchase as any).total : purchase.balanceDue;
-      const balanceDue = purchase.balanceDue;
+      const statusStr = isPaid ? 'PAGADA' : isOverdue ? `VENCIDO (${days} días)` : 'AL CORRIENTE';
+      const totalAmount = (purchase as any).total !== undefined ? Number((purchase as any).total) : Number(purchase.balanceDue || 0);
+      const balanceDue = Number(purchase.balanceDue || 0);
+      const paidAmount = Math.max(0, totalAmount - balanceDue);
+
+      sumTotal += totalAmount;
+      sumPaid += paidAmount;
+      sumDebt += balanceDue;
 
       return [
         folioStr,
@@ -294,30 +318,68 @@ export default function CuentasPorPagarReportClient({
         branchName,
         createdDate,
         dueDateStr,
-        isOverdue ? days : 0,
+        isPaid ? 0 : (isOverdue ? days : 0),
         statusStr,
         totalAmount,
+        paidAmount,
         balanceDue
       ];
     });
 
     // Totals row at the bottom for quick reconciliation
     rows.push([
-      'TOTAL SALDO PENDIENTE',
+      'TOTALES',
       '',
       '',
       '',
       '',
       '',
       '',
-      '',
-      selectedGroup.totalBalanceDue
+      sumTotal,
+      sumPaid,
+      sumDebt
     ]);
 
     const sanitizedSupplierName = supplierName.replace(/[^a-zA-Z0-9_\-]/g, '_');
     const dateStr = new Date().toISOString().split('T')[0];
-    exportToExcel(headers, rows, `Facturas_Pendientes_${sanitizedSupplierName}_${dateStr}`);
+    exportToExcel(headers, rows, `Facturas_Proveedor_${sanitizedSupplierName}_${dateStr}`);
   };
+
+  const modalCounts = useMemo(() => {
+    if (!selectedGroup || !selectedGroup.purchases) {
+      return { all: 0, pending: 0, paid: 0, current: 0, overdue: 0 };
+    }
+    let all = 0, pending = 0, paid = 0, current = 0, overdue = 0;
+    selectedGroup.purchases.forEach((p: Purchase) => {
+      all++;
+      const days = getDaysOverdue(p.dueDate);
+      const isPaid = (p.balanceDue || 0) <= 0.001;
+      if (isPaid) {
+        paid++;
+      } else {
+        pending++;
+        if (days > 0) overdue++;
+        else current++;
+      }
+    });
+    return { all, pending, paid, current, overdue };
+  }, [selectedGroup]);
+
+  const modalFilteredPurchases = useMemo(() => {
+    if (!selectedGroup || !selectedGroup.purchases) return [];
+    return selectedGroup.purchases.filter((purchase: Purchase) => {
+      const days = getDaysOverdue(purchase.dueDate);
+      const isPaid = (purchase.balanceDue || 0) <= 0.001;
+      const isOverdue = !isPaid && days > 0;
+      const isCurrent = !isPaid && days <= 0;
+
+      if (modalStatusFilter === 'PENDING') return !isPaid;
+      if (modalStatusFilter === 'PAID') return isPaid;
+      if (modalStatusFilter === 'OVERDUE') return isOverdue;
+      if (modalStatusFilter === 'CURRENT') return isCurrent;
+      return true; // 'ALL'
+    });
+  }, [selectedGroup, modalStatusFilter]);
 
   const toggleSort = (field: 'NAME' | 'AMOUNT' | 'OVERDUE' | 'CURRENT' | 'ANTIQUITY') => {
     if (sortBy === field) {
@@ -404,6 +466,22 @@ export default function CuentasPorPagarReportClient({
               {branches.map(b => (
                 <option key={b.id} value={b.id}>{b.name}</option>
               ))}
+            </select>
+          </div>
+
+          {/* Status Filter Select */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Estado:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+              style={{ padding: '0.6rem 2rem 0.6rem 1rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.875rem', backgroundColor: 'white', cursor: 'pointer', fontWeight: '500' }}
+            >
+              <option value="PENDING">Con Deuda (Pendientes)</option>
+              <option value="ALL">Todas (Pendientes y Pagadas)</option>
+              <option value="CURRENT">Al Corriente</option>
+              <option value="OVERDUE">Vencidas</option>
+              <option value="PAID">Solo Pagadas</option>
             </select>
           </div>
         </div>
@@ -641,6 +719,50 @@ export default function CuentasPorPagarReportClient({
               )}
             </div>
 
+            {/* Modal Status Filter Tabs */}
+            <div style={{ padding: '0.75rem 1.5rem', backgroundColor: '#ffffff', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              {[
+                { key: 'ALL', label: 'Todas', count: modalCounts.all },
+                { key: 'PENDING', label: 'Con Deuda', count: modalCounts.pending },
+                { key: 'CURRENT', label: 'Al Corriente', count: modalCounts.current },
+                { key: 'OVERDUE', label: 'Vencidas', count: modalCounts.overdue },
+                { key: 'PAID', label: 'Pagadas', count: modalCounts.paid }
+              ].map(tab => {
+                const isActive = modalStatusFilter === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setModalStatusFilter(tab.key as any)}
+                    style={{
+                      padding: '0.3rem 0.75rem',
+                      borderRadius: '9999px',
+                      border: isActive ? '1px solid #6d28d9' : '1px solid #cbd5e1',
+                      backgroundColor: isActive ? '#f5f3ff' : '#f8fafc',
+                      color: isActive ? '#6d28d9' : '#475569',
+                      fontSize: '0.8rem',
+                      fontWeight: isActive ? 'bold' : 'normal',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem'
+                    }}
+                  >
+                    <span>{tab.label}</span>
+                    <span style={{
+                      fontSize: '0.7rem',
+                      backgroundColor: isActive ? '#6d28d9' : '#e2e8f0',
+                      color: isActive ? 'white' : '#475569',
+                      padding: '0.05rem 0.35rem',
+                      borderRadius: '9999px',
+                      fontWeight: 'bold'
+                    }}>
+                      {tab.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
             {/* List */}
             <div style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', flex: 1 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
@@ -651,15 +773,21 @@ export default function CuentasPorPagarReportClient({
                     <th style={{ padding: '0.5rem', textAlign: 'left' }}>Fecha</th>
                     <th style={{ padding: '0.5rem', textAlign: 'left' }}>Vencimiento</th>
                     <th style={{ padding: '0.5rem', textAlign: 'center' }}>Estado</th>
+                    <th style={{ padding: '0.5rem', textAlign: 'right' }}>Total</th>
+                    <th style={{ padding: '0.5rem', textAlign: 'right' }}>Pagado</th>
                     <th style={{ padding: '0.5rem', textAlign: 'right' }}>Deuda</th>
                     <th style={{ padding: '0.5rem', textAlign: 'center' }}>Acción</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedGroup.purchases.map((purchase: Purchase) => {
-                    const overdueInfo = getOldestDueDateText(purchase.dueDate);
+                  {modalFilteredPurchases.map((purchase: Purchase) => {
                     const days = getDaysOverdue(purchase.dueDate);
-                    const isItemOverdue = days > 0;
+                    const isPaid = (purchase.balanceDue || 0) <= 0.001;
+                    const isItemOverdue = !isPaid && days > 0;
+                    const totalAmount = (purchase as any).total !== undefined ? Number((purchase as any).total) : Number(purchase.balanceDue || 0);
+                    const balanceDue = Number(purchase.balanceDue || 0);
+                    const paidAmount = Math.max(0, totalAmount - balanceDue);
+
                     return (
                       <tr key={purchase.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                         <td style={{ padding: '0.65rem 0.5rem', fontFamily: 'monospace', fontWeight: '500' }}>
@@ -671,24 +799,44 @@ export default function CuentasPorPagarReportClient({
                         <td style={{ padding: '0.65rem 0.5rem', color: '#64748b' }}>
                           {new Date(purchase.createdAt).toLocaleDateString()}
                         </td>
-                        <td style={{ padding: '0.65rem 0.5rem', color: overdueInfo.isOverdue ? '#dc2626' : '#16a34a', fontWeight: '500' }}>
+                        <td style={{ padding: '0.65rem 0.5rem', color: isPaid ? '#64748b' : isItemOverdue ? '#dc2626' : '#16a34a', fontWeight: '500' }}>
                           {purchase.dueDate ? new Date(purchase.dueDate).toLocaleDateString() : 'N/A'}
                         </td>
                         <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center' }}>
-                          <span style={{ 
-                            fontSize: '0.725rem', 
-                            fontWeight: 'bold', 
-                            padding: '0.15rem 0.45rem', 
-                            borderRadius: '4px',
-                            backgroundColor: isItemOverdue ? '#fef2f2' : '#f0fdf4',
-                            color: isItemOverdue ? '#dc2626' : '#16a34a',
-                            border: `1px solid ${isItemOverdue ? '#fecaca' : '#bbf7d0'}`
-                          }}>
-                            {isItemOverdue ? `Vencido (${days}d)` : 'Al Corriente'}
-                          </span>
+                          {isPaid ? (
+                            <span style={{ 
+                              fontSize: '0.725rem', 
+                              fontWeight: 'bold', 
+                              padding: '0.15rem 0.45rem', 
+                              borderRadius: '4px',
+                              backgroundColor: '#eff6ff',
+                              color: '#1d4ed8',
+                              border: '1px solid #bfdbfe'
+                            }}>
+                              ✓ Pagada
+                            </span>
+                          ) : (
+                            <span style={{ 
+                              fontSize: '0.725rem', 
+                              fontWeight: 'bold', 
+                              padding: '0.15rem 0.45rem', 
+                              borderRadius: '4px',
+                              backgroundColor: isItemOverdue ? '#fef2f2' : '#f0fdf4',
+                              color: isItemOverdue ? '#dc2626' : '#16a34a',
+                              border: `1px solid ${isItemOverdue ? '#fecaca' : '#bbf7d0'}`
+                            }}>
+                              {isItemOverdue ? `Vencido (${days}d)` : 'Al Corriente'}
+                            </span>
+                          )}
                         </td>
-                        <td style={{ padding: '0.65rem 0.5rem', textAlign: 'right', fontWeight: 'bold', color: isItemOverdue ? '#dc2626' : '#16a34a' }}>
-                          {formatCurrency(purchase.balanceDue)}
+                        <td style={{ padding: '0.65rem 0.5rem', textAlign: 'right', color: '#64748b' }}>
+                          {formatCurrency(totalAmount)}
+                        </td>
+                        <td style={{ padding: '0.65rem 0.5rem', textAlign: 'right', color: '#16a34a', fontWeight: '500' }}>
+                          {formatCurrency(paidAmount)}
+                        </td>
+                        <td style={{ padding: '0.65rem 0.5rem', textAlign: 'right', fontWeight: 'bold', color: isPaid ? '#10b981' : isItemOverdue ? '#dc2626' : '#16a34a' }}>
+                          {formatCurrency(balanceDue)}
                         </td>
                         <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center' }}>
                           <Link 
@@ -702,6 +850,13 @@ export default function CuentasPorPagarReportClient({
                       </tr>
                     );
                   })}
+                  {modalFilteredPurchases.length === 0 && (
+                    <tr>
+                      <td colSpan={9} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                        No hay facturas que coincidan con el filtro seleccionado.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
