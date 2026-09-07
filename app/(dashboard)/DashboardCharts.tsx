@@ -36,6 +36,18 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
     setIsUpdating(false);
   };
 
+  const handleResetToday = () => {
+    setIsUpdating(true);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('startDate');
+    params.delete('endDate');
+    const queryString = params.toString();
+    router.push(queryString ? `/?${queryString}` : '/');
+    setIsUpdating(false);
+  };
+
+  const hasActiveFilter = Boolean(searchParams.get('startDate') || searchParams.get('endDate'));
+
   const formatYAxisAmount = (tickItem: number) => {
     if (tickItem >= 1000) {
       return `$${(tickItem / 1000).toFixed(1)}k`;
@@ -180,26 +192,51 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
             />
           </div>
 
-          <button 
-            onClick={handleFilter}
-            disabled={isUpdating}
-            style={{
-              backgroundColor: '#6d28d9',
-              color: 'white',
-              border: 'none',
-              padding: '0.4rem 1.25rem',
-              borderRadius: '6px',
-              fontSize: '0.875rem',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s',
-              opacity: isUpdating ? 0.7 : 1
-            }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor='#5b21b6'}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor='#6d28d9'}
-          >
-            {isUpdating ? 'Filtrando...' : 'Filtrar'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button 
+              onClick={handleFilter}
+              disabled={isUpdating}
+              style={{
+                backgroundColor: '#6d28d9',
+                color: 'white',
+                border: 'none',
+                padding: '0.4rem 1.25rem',
+                borderRadius: '6px',
+                fontSize: '0.875rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+                opacity: isUpdating ? 0.7 : 1
+              }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor='#5b21b6'}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor='#6d28d9'}
+            >
+              {isUpdating ? 'Filtrando...' : 'Filtrar'}
+            </button>
+
+            {hasActiveFilter && (
+              <button 
+                onClick={handleResetToday}
+                disabled={isUpdating}
+                style={{
+                  backgroundColor: '#f1f5f9',
+                  color: '#475569',
+                  border: '1px solid #cbd5e1',
+                  padding: '0.4rem 1rem',
+                  borderRadius: '6px',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  opacity: isUpdating ? 0.7 : 1
+                }}
+                onMouseEnter={e => { e.currentTarget.style.backgroundColor='#e2e8f0'; e.currentTarget.style.color='#1e293b'; }}
+                onMouseLeave={e => { e.currentTarget.style.backgroundColor='#f1f5f9'; e.currentTarget.style.color='#475569'; }}
+              >
+                Ver Hoy
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -296,12 +333,15 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Calendar size={18} color="#64748b" />
               <h4 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#475569', margin: 0 }}>
-                Resumen del Período: {formatPeriodDate(startDate)} al {formatPeriodDate(endDate)}
+                {startDate === endDate 
+                  ? `Resumen de Hoy: ${formatPeriodDate(startDate)}`
+                  : `Resumen del Período: ${formatPeriodDate(startDate)} al ${formatPeriodDate(endDate)}`
+                }
               </h4>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
-              {/* Card 1: Ventas en el Período */}
+              {/* Card 1: Ventas */}
               <div style={{
                 backgroundColor: 'white',
                 padding: '1.25rem 1.5rem',
@@ -314,7 +354,9 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
                 alignItems: 'center'
               }}>
                 <div>
-                  <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>Ventas del Período</span>
+                  <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
+                    {startDate === endDate ? 'Ventas de Hoy' : 'Ventas del Período'}
+                  </span>
                   <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#1e293b', marginTop: '0.25rem' }}>
                     {periodTotalSales.toLocaleString('es-MX')}
                   </div>
@@ -337,7 +379,9 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
                 alignItems: 'center'
               }}>
                 <div>
-                  <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>Monto del Período</span>
+                  <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
+                    {startDate === endDate ? 'Monto de Hoy' : 'Monto del Período'}
+                  </span>
                   <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#1e293b', marginTop: '0.25rem' }}>
                     {formatCurrency(periodTotalAmount)}
                   </div>
@@ -360,7 +404,9 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
                 alignItems: 'center'
               }}>
                 <div>
-                  <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>Ticket Medio del Período</span>
+                  <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
+                    {startDate === endDate ? 'Ticket Medio de Hoy' : 'Ticket Medio del Período'}
+                  </span>
                   <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#1e293b', marginTop: '0.25rem' }}>
                     {formatCurrency(periodAvgTicket)}
                   </div>

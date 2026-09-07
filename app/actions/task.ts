@@ -71,22 +71,44 @@ export async function createCollaboratorTask(data: {
   return { success: true, task };
 }
 
+import { isTaskCompletedForCurrentPeriod, getEffectiveDueDate } from '@/lib/taskUtils';
+
 export async function getPendingTasks(userId: string) {
   if (!userId) return [];
-  return prisma.collaboratorTask.findMany({
+  const tasks = await prisma.collaboratorTask.findMany({
     where: {
-      assignedToId: userId,
-      status: 'PENDING'
+      assignedToId: userId
     },
     include: {
       createdBy: {
         select: { name: true, email: true }
+      },
+      branch: {
+        select: {
+          tenant: {
+            select: { timezone: true }
+          }
+        }
       }
     },
     orderBy: {
       createdAt: 'desc'
     }
   });
+
+  const pending = tasks.filter(task => {
+    const timezone = task.branch?.tenant?.timezone || 'America/Mexico_City';
+    return !isTaskCompletedForCurrentPeriod(task, timezone);
+  }).map(task => {
+    const timezone = task.branch?.tenant?.timezone || 'America/Mexico_City';
+    return {
+      ...task,
+      status: 'PENDING',
+      dueDate: getEffectiveDueDate(task, timezone)
+    };
+  });
+
+  return pending;
 }
 
 export async function completeCollaboratorTask(taskId: string, evidenceFileBase64: string) {
@@ -133,14 +155,21 @@ export async function getTasks() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId as string },
-    select: { branchId: true }
+    select: { 
+      branchId: true,
+      tenant: {
+        select: { timezone: true }
+      }
+    }
   });
 
   if (!user || !user.branchId) {
     return [];
   }
 
-  return prisma.collaboratorTask.findMany({
+  const timezone = user.tenant?.timezone || 'America/Mexico_City';
+
+  const tasks = await prisma.collaboratorTask.findMany({
     where: {
       branchId: user.branchId
     },
@@ -155,6 +184,15 @@ export async function getTasks() {
     orderBy: {
       createdAt: 'desc'
     }
+  });
+
+  return tasks.map(task => {
+    const isDone = isTaskCompletedForCurrentPeriod(task, timezone);
+    return {
+      ...task,
+      status: isDone ? 'COMPLETED' : 'PENDING',
+      dueDate: getEffectiveDueDate(task, timezone)
+    };
   });
 }
 
@@ -248,6 +286,12 @@ export async function getCollaboratorTaskReport(data?: {
     }
   }
 
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: activeUser.tenantId || undefined },
+    select: { timezone: true }
+  });
+  const timezone = tenant?.timezone || 'America/Mexico_City';
+
   // Get tasks in active branch or all tenant tasks if global
   const tasks = await prisma.collaboratorTask.findMany({
     where: {
@@ -260,6 +304,7 @@ export async function getCollaboratorTaskReport(data?: {
       id: true,
       title: true,
       status: true,
+      recurrence: true,
       dueDate: true,
       completedAt: true,
       assignedToId: true,
@@ -297,14 +342,17 @@ export async function getCollaboratorTaskReport(data?: {
     const now = new Date();
 
     collabTasks.forEach(task => {
-      if (task.status === 'COMPLETED') {
-        if (!task.dueDate || (task.completedAt && new Date(task.completedAt) <= new Date(task.dueDate))) {
+      const isCompleted = isTaskCompletedForCurrentPeriod(task, timezone);
+      const effectiveDue = getEffectiveDueDate(task, timezone);
+
+      if (isCompleted) {
+        if (!effectiveDue || (task.completedAt && new Date(task.completedAt) <= effectiveDue)) {
           completedOnTime++;
         } else {
           completedLate++;
         }
       } else {
-        if (task.dueDate && now > new Date(task.dueDate)) {
+        if (effectiveDue && now > effectiveDue) {
           uncompleted++;
         } else {
           pending++;
@@ -332,13 +380,17 @@ export async function getCollaboratorTaskReport(data?: {
         completionRate: parseFloat(completionRate.toFixed(1)),
         onTimeRate: parseFloat(onTimeRate.toFixed(1))
       },
-      tasks: collabTasks.map(t => ({
-        id: t.id,
-        title: t.title,
-        status: t.status,
-        dueDate: t.dueDate,
-        completedAt: t.completedAt
-      }))
+      tasks: collabTasks.map(t => {
+        const isDone = isTaskCompletedForCurrentPeriod(t, timezone);
+        const effectiveDue = getEffectiveDueDate(t, timezone);
+        return {
+          id: t.id,
+          title: t.title,
+          status: isDone ? 'COMPLETED' : 'PENDING',
+          dueDate: effectiveDue,
+          completedAt: t.completedAt
+        };
+      })
     };
   });
 

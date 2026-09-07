@@ -44,11 +44,11 @@ export default async function DashboardPage(props: Props) {
     return `${year}-${month}-${day}`;
   };
 
-  const defaultEndStr = formatDateString(new Date());
-  const defaultStartStr = formatDateString(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+  const todayStr = formatDateString(new Date());
 
-  const initialStartDate = paramStart || defaultStartStr;
-  const initialEndDate = paramEnd || defaultEndStr;
+  const isFiltered = Boolean(paramStart || paramEnd);
+  const initialStartDate = paramStart || todayStr;
+  const initialEndDate = paramEnd || todayStr;
 
   // Helper to parse local date string YYYY-MM-DD to timezone day range in UTC
   const getStartAndEndOfDayUtc = (dateStr: string) => {
@@ -58,8 +58,8 @@ export default async function DashboardPage(props: Props) {
     return { startUtc, endUtc };
   };
 
-  const { startUtc: filterStartUtc } = getStartAndEndOfDayUtc(initialStartDate);
-  const { endUtc: filterEndDayEndUtc } = getStartAndEndOfDayUtc(initialEndDate);
+  const queryStartUtc = isFiltered ? getStartAndEndOfDayUtc(initialStartDate).startUtc : startOfDay;
+  const queryEndUtc = isFiltered ? getStartAndEndOfDayUtc(initialEndDate).endUtc : endOfDay;
 
   const branchFilter = branch.id === 'GLOBAL'
     ? { branch: { tenantId: branch.tenantId } }
@@ -67,27 +67,27 @@ export default async function DashboardPage(props: Props) {
 
   // Phase 1: Parallel DB Aggregations, Counts, and Chart Sales
   const [
-    todayAggregate,
+    periodAggregate,
     recentSales,
     topCustomersGroup,
-    todaySaleItems,
+    periodSaleItems,
     lowStockProducts,
     chartSales,
-    todayReturnsAggregate
+    periodReturnsAggregate
   ] = await Promise.all([
     prisma.sale.aggregate({
       _sum: { total: true },
       _count: { id: true },
       where: {
         ...branchFilter,
-        createdAt: { gte: startOfDay, lte: endOfDay },
+        createdAt: { gte: queryStartUtc, lte: queryEndUtc },
         status: 'COMPLETED'
       }
     }),
     prisma.sale.findMany({
       where: {
         ...branchFilter,
-        createdAt: { gte: startOfDay, lte: endOfDay },
+        createdAt: { gte: queryStartUtc, lte: queryEndUtc },
         status: 'COMPLETED'
       },
       include: {
@@ -98,13 +98,13 @@ export default async function DashboardPage(props: Props) {
         }
       },
       orderBy: { createdAt: 'desc' },
-      take: 5
+      take: 10
     }),
     prisma.sale.groupBy({
       by: ['customerId'],
       where: {
         ...branchFilter,
-        createdAt: { gte: startOfDay, lte: endOfDay },
+        createdAt: { gte: queryStartUtc, lte: queryEndUtc },
         status: 'COMPLETED',
         customerId: { not: null }
       },
@@ -119,7 +119,7 @@ export default async function DashboardPage(props: Props) {
       where: {
         sale: {
           ...branchFilter,
-          createdAt: { gte: startOfDay, lte: endOfDay },
+          createdAt: { gte: queryStartUtc, lte: queryEndUtc },
           status: 'COMPLETED'
         }
       },
@@ -137,7 +137,7 @@ export default async function DashboardPage(props: Props) {
     prisma.sale.findMany({
       where: {
         ...branchFilter,
-        createdAt: { gte: filterStartUtc, lte: filterEndDayEndUtc },
+        createdAt: { gte: queryStartUtc, lte: queryEndUtc },
         status: 'COMPLETED'
       },
       select: {
@@ -149,14 +149,14 @@ export default async function DashboardPage(props: Props) {
       _sum: { totalRefund: true },
       where: {
         ...branchFilter,
-        createdAt: { gte: startOfDay, lte: endOfDay }
+        createdAt: { gte: queryStartUtc, lte: queryEndUtc }
       }
     })
   ]);
 
-  const totalRefundsValue = todayReturnsAggregate._sum.totalRefund || 0;
-  const totalSalesValue = Math.max(0, (todayAggregate._sum.total || 0) - totalRefundsValue);
-  const totalOrders = todayAggregate._count.id || 0;
+  const totalRefundsValue = periodReturnsAggregate._sum.totalRefund || 0;
+  const totalSalesValue = Math.max(0, (periodAggregate._sum.total || 0) - totalRefundsValue);
+  const totalOrders = periodAggregate._count.id || 0;
   const avgTicket = totalOrders > 0 ? totalSalesValue / totalOrders : 0;
 
   // Process and group chartSales by day in Mexico local time
@@ -232,7 +232,7 @@ export default async function DashboardPage(props: Props) {
 
   // Format topProducts in-memory to group by SKU/barcode/name across branches
   const productMap = new Map<string, any>();
-  todaySaleItems.forEach(item => {
+  periodSaleItems.forEach(item => {
     const prod = item.product;
     if (!prod) return;
 
@@ -304,9 +304,9 @@ export default async function DashboardPage(props: Props) {
 
       <div className="dashboard-stats-grid" style={{ marginBottom: '2rem' }}>
         {[
-          { title: 'Ingresos de Hoy', value: formatter.format(totalSalesValue), icon: <DollarSign size={24} color="#10b981" /> },
-          { title: 'Ventas de Hoy', value: totalOrders.toLocaleString('es-MX'), icon: <ShoppingCart size={24} color="#3b82f6" /> },
-          { title: 'Ticket Promedio', value: formatter.format(avgTicket), icon: <DollarSign size={24} color="#f59e0b" /> },
+          { title: isFiltered ? 'Ingresos del Período' : 'Ingresos de Hoy', value: formatter.format(totalSalesValue), icon: <DollarSign size={24} color="#10b981" /> },
+          { title: isFiltered ? 'Ventas del Período' : 'Ventas de Hoy', value: totalOrders.toLocaleString('es-MX'), icon: <ShoppingCart size={24} color="#3b82f6" /> },
+          { title: isFiltered ? 'Ticket Promedio (Período)' : 'Ticket Promedio (Hoy)', value: formatter.format(avgTicket), icon: <DollarSign size={24} color="#f59e0b" /> },
         ].map(stat => (
           <div key={stat.title} style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
@@ -327,13 +327,18 @@ export default async function DashboardPage(props: Props) {
 
       <div className="dashboard-main-grid" style={{ marginBottom: '2rem' }}>
         <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #f3f4f6' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Actividad Reciente</h2>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span>{isFiltered ? 'Ventas del Período' : 'Actividad Reciente'}</span>
+            <span style={{ fontSize: '0.8rem', backgroundColor: isFiltered ? '#ede9fe' : '#e0f2fe', color: isFiltered ? '#6d28d9' : '#0369a1', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontWeight: 'bold' }}>
+              {isFiltered ? 'Período' : 'Hoy'}
+            </span>
+          </h2>
           {recentSales.length > 0 ? (
              <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                <thead>
                  <tr style={{ borderBottom: '2px solid #f3f4f6', textAlign: 'left' }}>
                    <th style={{ padding: '0.75rem 0', color: '#6b7280', fontSize: '0.875rem' }}>Ticket / Cliente</th>
-                   <th style={{ padding: '0.75rem 0', color: '#6b7280', fontSize: '0.875rem' }}>Hora</th>
+                   <th style={{ padding: '0.75rem 0', color: '#6b7280', fontSize: '0.875rem' }}>{isFiltered ? 'Fecha y Hora' : 'Hora'}</th>
                    <th style={{ padding: '0.75rem 0', color: '#6b7280', fontSize: '0.875rem' }}>Total</th>
                  </tr>
                </thead>
@@ -354,12 +359,15 @@ export default async function DashboardPage(props: Props) {
                          </div>
                        )}
                      </td>
-                     <td data-label="Hora" style={{ padding: '1rem 0', fontSize: '0.9rem', color: '#6b7280' }}>
+                     <td data-label={isFiltered ? 'Fecha y Hora' : 'Hora'} style={{ padding: '1rem 0', fontSize: '0.9rem', color: '#6b7280' }}>
                        <Link 
                          href={`/ventas/detalle/${sale.id}`} 
                          style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}
                        >
-                         {sale.createdAt.toLocaleTimeString('es-MX', { timeZone: timezone, hour: '2-digit', minute: '2-digit' })}
+                         {isFiltered
+                           ? `${sale.createdAt.toLocaleDateString('es-MX', { timeZone: timezone, day: '2-digit', month: 'short' })} ${sale.createdAt.toLocaleTimeString('es-MX', { timeZone: timezone, hour: '2-digit', minute: '2-digit' })}`
+                           : sale.createdAt.toLocaleTimeString('es-MX', { timeZone: timezone, hour: '2-digit', minute: '2-digit' })
+                         }
                        </Link>
                      </td>
                      <td data-label="Total" style={{ padding: '1rem 0', fontSize: '0.9rem', fontWeight: 'bold', color: '#10b981' }}>
@@ -376,7 +384,7 @@ export default async function DashboardPage(props: Props) {
              </table>
           ) : (
             <div style={{ padding: '2rem 0', textAlign: 'center', color: '#9ca3af' }}>
-               No hay ventas registradas el día de hoy.
+               {isFiltered ? 'No hay ventas registradas en el período seleccionado.' : 'No hay ventas registradas el día de hoy.'}
             </div>
           )}
         </div>
@@ -394,17 +402,19 @@ export default async function DashboardPage(props: Props) {
         </div>
       </div>
 
-      {/* Sección Premium: Reportes del Día (Top 10) */}
+      {/* Sección Premium: Reportes del Período / Día (Top 10) */}
       <div className="dashboard-reports-grid">
         
-        {/* Card 1: 🏆 Mejores Clientes (Hoy) */}
+        {/* Card 1: 🏆 Mejores Clientes */}
         <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div>
               <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                🏆 Mejores Clientes <span style={{ fontSize: '0.8rem', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontWeight: 'bold' }}>Hoy</span>
+                🏆 Mejores Clientes <span style={{ fontSize: '0.8rem', backgroundColor: isFiltered ? '#ede9fe' : '#e0f2fe', color: isFiltered ? '#6d28d9' : '#0369a1', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontWeight: 'bold' }}>{isFiltered ? 'Período' : 'Hoy'}</span>
               </h2>
-              <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.25rem', marginBottom: 0 }}>Basado en compras de hoy y volumen facturado</p>
+              <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.25rem', marginBottom: 0 }}>
+                {isFiltered ? 'Basado en compras del período y volumen facturado' : 'Basado en compras de hoy y volumen facturado'}
+              </p>
             </div>
             <Link href="/reportes/top-clientes" style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#3b82f6', textDecoration: 'underline' }}>Ver detalle</Link>
           </div>
@@ -441,20 +451,22 @@ export default async function DashboardPage(props: Props) {
               })
             ) : (
               <div style={{ padding: '2rem 0', textAlign: 'center', color: '#9ca3af', fontSize: '0.9rem' }}>
-                No hay compras registradas el día de hoy.
+                {isFiltered ? 'No hay compras registradas en el período seleccionado.' : 'No hay compras registradas el día de hoy.'}
               </div>
             )}
           </div>
         </div>
 
-        {/* Card 2: 📦 Productos Más Vendidos (Hoy) */}
+        {/* Card 2: 📦 Productos Más Vendidos */}
         <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div>
               <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                📦 Productos Más Vendidos <span style={{ fontSize: '0.8rem', backgroundColor: '#fdf2f8', color: '#be185d', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontWeight: 'bold' }}>Hoy</span>
+                📦 Productos Más Vendidos <span style={{ fontSize: '0.8rem', backgroundColor: isFiltered ? '#ede9fe' : '#fdf2f8', color: isFiltered ? '#6d28d9' : '#be185d', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontWeight: 'bold' }}>{isFiltered ? 'Período' : 'Hoy'}</span>
               </h2>
-              <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.25rem', marginBottom: 0 }}>Artículos líderes por unidades desplazadas</p>
+              <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.25rem', marginBottom: 0 }}>
+                {isFiltered ? 'Artículos líderes por unidades desplazadas en el período' : 'Artículos líderes por unidades desplazadas'}
+              </p>
             </div>
             <Link href="/reportes/top-productos" style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#3b82f6', textDecoration: 'underline' }}>Ver detalle</Link>
           </div>
@@ -492,7 +504,7 @@ export default async function DashboardPage(props: Props) {
               })
             ) : (
               <div style={{ padding: '2rem 0', textAlign: 'center', color: '#9ca3af', fontSize: '0.9rem' }}>
-                No hay ventas registradas el día de hoy.
+                {isFiltered ? 'No hay ventas registradas en el período seleccionado.' : 'No hay ventas registradas el día de hoy.'}
               </div>
             )}
           </div>
@@ -502,3 +514,4 @@ export default async function DashboardPage(props: Props) {
     </div>
   );
 }
+

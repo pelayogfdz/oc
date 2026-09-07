@@ -2,6 +2,7 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import { getActiveBranch, getActiveUser } from '@/app/actions/auth';
+import { isTaskCompletedForCurrentPeriod, getEffectiveDueDate } from '@/lib/taskUtils';
 import TareasClient from './TareasClient';
 
 export default async function TareasPage() {
@@ -70,12 +71,27 @@ export default async function TareasPage() {
     }
   });
 
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: activeUser.tenantId || undefined },
+    select: { timezone: true }
+  });
+  const timezone = tenant?.timezone || 'America/Mexico_City';
+
+  const processedTasks = tasks.map(task => {
+    const isDone = isTaskCompletedForCurrentPeriod(task, timezone);
+    return {
+      ...task,
+      status: isDone ? 'COMPLETED' : 'PENDING',
+      dueDate: getEffectiveDueDate(task, timezone)
+    };
+  });
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem' }}>
       <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem', color: 'var(--caanma-text)' }}>
         Gestión de Tareas de Colaboradores
       </h1>
-      <TareasClient collaborators={collaborators} initialTasks={tasks} />
+      <TareasClient collaborators={collaborators} initialTasks={processedTasks} />
     </div>
   );
 }

@@ -7,17 +7,12 @@ const privateKeyPath = path.join(__dirname, '..', 'HetznerKey.pem');
 
 const conn = new Client();
 conn.on('ready', () => {
-  console.log('Connected to Hetzner. Executing pull, rebuild and deploy for web service in /root/oc...');
-
   const commands = [
     'cd /root/oc',
-    '(git remote add gitlab https://gitlab.com/pelayogfdz/officecity.git 2>/dev/null || git remote set-url gitlab https://gitlab.com/pelayogfdz/officecity.git)',
-    'git fetch gitlab main',
-    'git reset --hard gitlab/main',
-    'docker compose build web',
-    'docker compose up -d --no-deps web',
-    'docker compose ps'
-  ].join(' && ');
+    'git config -l',
+    'cat /root/.git-credentials || true',
+    'cat ~/.gitconfig || true'
+  ].join(' ; ');
 
   conn.exec(commands, (err, stream) => {
     if (err) {
@@ -27,10 +22,7 @@ conn.on('ready', () => {
     }
     stream.on('data', d => process.stdout.write(d));
     stream.stderr.on('data', d => process.stderr.write(d));
-    stream.on('close', (code) => {
-      console.log(`\nDeployment finished with exit code ${code}`);
-      conn.end();
-    });
+    stream.on('close', () => conn.end());
   });
 }).connect({
   host,

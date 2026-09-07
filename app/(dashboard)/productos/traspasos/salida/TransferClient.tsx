@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { requestTransfer, dispatchDirectTransfer } from '@/app/actions/transfer';
+import { searchProducts } from '@/app/actions/product';
 import { useRouter } from 'next/navigation';
-import { Truck, ArrowRight, Trash2, Search, Plus, Minus, FileText, CheckCircle2, ShoppingBag, Camera, ArrowDownUp } from 'lucide-react';
+import { Truck, ArrowRight, Trash2, Search, Plus, Minus, FileText, CheckCircle2, ShoppingBag, Camera, ArrowDownUp, Loader2 } from 'lucide-react';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 
@@ -18,6 +19,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
   const scannerBufferRef = useRef<string>('');
   const lastKeyTimeRef = useRef<number>(0);
   const [showScanner, setShowScanner] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   
   const [inventory, setInventory] = useState(initialInventory || []);
   const [otherBranches, setOtherBranches] = useState(initialOtherBranches || []);
@@ -47,6 +49,28 @@ export default function TransferClient({ originBranchId, originBranchName, other
     }
   }, [originBranchId]);
 
+  // Debounced search for products on-demand
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setInventory(initialInventory);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await searchProducts(searchTerm, originBranchId);
+        setInventory(results || []);
+      } catch (error) {
+        console.error("Error searching products:", error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, originBranchId, initialInventory]);
+
   useEffect(() => {
     if (!isOnline) {
       import('@/lib/offlineSearch').then(({ searchOfflineProducts }) => {
@@ -62,10 +86,12 @@ export default function TransferClient({ originBranchId, originBranchName, other
         });
       });
     } else {
-      setInventory(initialInventory);
+      if (!searchTerm.trim()) {
+        setInventory(initialInventory);
+      }
       setOtherBranches(initialOtherBranches);
     }
-  }, [isOnline, initialInventory, initialOtherBranches, originBranchId]);
+  }, [isOnline, initialInventory, initialOtherBranches, originBranchId, searchTerm]);
 
   const handlePutOnHold = () => {
     if (transferItems.length === 0) {

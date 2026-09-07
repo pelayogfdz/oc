@@ -262,6 +262,10 @@ model CustomerPayment {
   customer    Customer  @relation(fields: [customerId], references: [id])
   sale        Sale?     @relation(fields: [saleId], references: [id])
   user        User      @relation(fields: [userId], references: [id])
+
+  @@index([customerId, createdAt(sort: Desc)])
+  @@index([branchId, createdAt(sort: Desc)])
+  @@index([saleId])
 }
 
 model SupplierPayment {
@@ -280,6 +284,10 @@ model SupplierPayment {
   purchase   Purchase? @relation(fields: [purchaseId], references: [id])
   supplier   Supplier  @relation(fields: [supplierId], references: [id])
   user       User      @relation(fields: [userId], references: [id])
+
+  @@index([supplierId, createdAt(sort: Desc)])
+  @@index([branchId, createdAt(sort: Desc)])
+  @@index([purchaseId])
 }
 
 model Product {
@@ -342,6 +350,7 @@ model Product {
   @@index([branchId, isActive, name])
   @@index([branchId, isActive, category])
   @@index([branchId, isActive, brand])
+  @@index([branchId, isActive, createdAt(sort: Desc)])
   @@index([barcode])
   @@index([sku])
 }
@@ -388,8 +397,10 @@ model InventoryMovement {
   user            User?                   @relation(fields: [userId], references: [id])
   variant         ProductVariant?         @relation(fields: [variantId], references: [id])
 
-  @@index([productId])
+  @@index([productId, createdAt(sort: Desc)])
   @@index([variantId])
+  @@index([type, createdAt(sort: Desc)])
+  @@index([userId])
 }
 
 model Sale {
@@ -569,6 +580,10 @@ model Transfer {
   toBranch         Branch?           @relation("TransferTo", fields: [toBranchId], references: [id])
   items            TransferItem[]
   deliveryOrder    DeliveryOrder?
+
+  @@index([branchId, status])
+  @@index([toBranchId, status])
+  @@index([createdAt(sort: Desc)])
 }
 
 model TransferItem {
@@ -651,6 +666,10 @@ model Purchase {
   payments      SupplierPayment[]
   fuelTransaction FuelTransaction?
   cartaPortes   CartaPorte[]
+
+  @@index([branchId, createdAt(sort: Desc)])
+  @@index([supplierId])
+  @@index([status])
 }
 
 model PurchaseItem {
@@ -765,6 +784,9 @@ model Expense {
   updatedAt DateTime @updatedAt
   branch    Branch?  @relation(fields: [branchId], references: [id])
   user      User     @relation(fields: [userId], references: [id])
+
+  @@index([branchId, createdAt(sort: Desc)])
+  @@index([category])
 }
 
 model InventoryAudit {

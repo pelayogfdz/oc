@@ -18,7 +18,9 @@ export const getSession = cache(async () => {
 
 export const getActiveUser = cache(async () => {
   const session = await getSession();
-  if (!session) throw new Error("Unauthorized");
+  if (!session) {
+    redirect('/login');
+  }
 
   const user = await masterClient.user.findUnique({
     where: { id: session.userId },
@@ -41,7 +43,9 @@ export const getActiveUser = cache(async () => {
 
 export const getActiveBranch = cache(async () => {
   const session = await getSession();
-  if (!session) throw new Error('Unauthorized');
+  if (!session) {
+    redirect('/login');
+  }
   
   const user = await prisma.user.findUnique({
     where: { id: session.userId },

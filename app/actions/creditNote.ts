@@ -230,6 +230,16 @@ export async function createCreditNoteAction({
 
       const chosenPaymentForm = paymentForm || (sale.paymentMethod === 'CREDIT' ? '17' : defaultPaymentForm || '01');
 
+      let targetUuid = sale.invoiceId;
+      try {
+        const origInvoice = await facturapi.invoices.retrieve(sale.invoiceId);
+        if (origInvoice && origInvoice.uuid) {
+          targetUuid = origInvoice.uuid;
+        }
+      } catch (err: any) {
+        console.warn("[CREDIT NOTE] Could not retrieve original invoice SAT UUID, using stored invoiceId:", err?.message);
+      }
+
       const invoicePayload: any = {
         customer: customerData,
         items: facturapiItems,
@@ -237,10 +247,14 @@ export async function createCreditNoteAction({
         use: cfdiUse || 'G02',
         payment_form: chosenPaymentForm,
         series: series || 'NCR',
-        relation: {
-          type: '01', // Clave 01: Nota de crédito de los documentos relacionados
-          invoices: [ sale.invoiceId ]
-        }
+        ...(targetUuid ? {
+          related_documents: [
+            {
+              relationship: '01', // Clave 01: Nota de crédito de los documentos relacionados
+              documents: [targetUuid]
+            }
+          ]
+        } : {})
       };
 
       console.log("[CREDIT NOTE] Sending payload to Facturapi:", JSON.stringify(invoicePayload, null, 2));

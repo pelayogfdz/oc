@@ -176,6 +176,11 @@ export default function LoginPage() {
         // Clean the URL parameters
         const newUrl = window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
+      } else {
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+        if (isStandalone) {
+          setIsLoginOpen(true);
+        }
       }
     }
   }, []);

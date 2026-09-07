@@ -4,8 +4,11 @@ import { useState, useEffect } from 'react';
 import { Search, Save, Trash, Image as ImageIcon, ArrowRightLeft, Package } from 'lucide-react';
 import { createInventoryAdjustment } from '@/app/actions/adjustment';
 import { searchProducts } from '@/app/actions/product';
+import { useToast } from '@/app/components/ui/CorporateToast';
+import { CorporateConfirmModal } from '@/app/components/ui/CorporateConfirmModal';
 
 export default function AdjustmentClient({ branchId, initialProducts }: { branchId: string, initialProducts: any[] }) {
+  const { success, error, warning, info } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [displayedProducts, setDisplayedProducts] = useState<any[]>(initialProducts);
@@ -16,6 +19,8 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [isMounted, setIsMounted] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [showClearDraftConfirm, setShowClearDraftConfirm] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -54,9 +59,8 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
 
   const removeItem = (id: string) => setItems(items.filter(i => i.id !== id));
 
-  const handleSave = async () => {
+  const handleSaveConfirmed = async () => {
     if (items.length === 0) return;
-    if (!confirm('Este ajuste modificará permanentemente el inventario registrado. ¿Deseas continuar?')) return;
     
     setIsPending(true);
     try {
@@ -67,14 +71,15 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
         checkOldStock: i.oldStock
       }));
       await createInventoryAdjustment(payload, reason, branchId);
-      alert('¡Ajuste de inventario aplicado correctamente!');
+      success('Ajuste de inventario aplicado correctamente', 'Inventario Actualizado');
       setItems([]);
       setReason('Ajuste General');
       // Clear draft upon successful save
       localStorage.removeItem(`inventory_adjustment_draft_${branchId}`);
       setHasDraft(false);
+      setShowSaveConfirm(false);
     } catch (e: any) {
-      alert(e.message || 'Error ajustando inventario');
+      error(e.message || 'Error ajustando inventario', 'Error al procesar');
     } finally {
       setIsPending(false);
     }
@@ -88,7 +93,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
     };
     localStorage.setItem(`inventory_adjustment_draft_${branchId}`, JSON.stringify(draftData));
     setHasDraft(true);
-    alert('¡Borrador guardado localmente!');
+    success('Borrador guardado localmente en este dispositivo', 'Borrador Guardado');
   };
 
   const handleLoadDraft = () => {
@@ -98,18 +103,19 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
         const parsed = JSON.parse(draft);
         if (parsed.items) setItems(parsed.items);
         if (parsed.reason) setReason(parsed.reason);
-        alert('¡Borrador cargado con éxito!');
+        info('Borrador cargado con éxito', 'Borrador Restaurado');
       } catch (e) {
         console.error('Failed to parse draft', e);
-        alert('Error al cargar el borrador');
+        error('Error al parsear el borrador guardado', 'Error de lectura');
       }
     }
   };
 
-  const handleClearDraft = () => {
-    if (!confirm('¿Seguro que deseas eliminar el borrador guardado?')) return;
+  const handleClearDraftConfirmed = () => {
     localStorage.removeItem(`inventory_adjustment_draft_${branchId}`);
     setHasDraft(false);
+    setShowClearDraftConfirm(false);
+    info('El borrador ha sido descartado', 'Borrador Eliminado');
   };
 
   return (
@@ -369,7 +375,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
                 </button>
                 
                 <button
-                  onClick={handleClearDraft}
+                  onClick={() => setShowClearDraftConfirm(true)}
                   className="btn-secondary"
                   style={{
                     padding: '0.75rem',
@@ -393,7 +399,7 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
           </div>
 
           <button 
-            onClick={handleSave} 
+            onClick={() => setShowSaveConfirm(true)} 
             disabled={isPending || items.length === 0} 
             className="btn-primary" 
             style={{ 
@@ -416,6 +422,29 @@ export default function AdjustmentClient({ branchId, initialProducts }: { branch
         </div>
 
       </div>
+
+      <CorporateConfirmModal
+        isOpen={showSaveConfirm}
+        title="Aplicar ajuste de inventario"
+        message="Este ajuste modificará permanentemente el inventario registrado en la base de datos de la sucursal. ¿Deseas continuar?"
+        confirmText="Sí, aplicar ajuste"
+        cancelText="Cancelar"
+        variant="warning"
+        isLoading={isPending}
+        onConfirm={handleSaveConfirmed}
+        onCancel={() => setShowSaveConfirm(false)}
+      />
+
+      <CorporateConfirmModal
+        isOpen={showClearDraftConfirm}
+        title="Descartar borrador"
+        message="¿Estás seguro de que deseas eliminar el borrador guardado localmente? Esta acción no se puede deshacer."
+        confirmText="Sí, eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+        onConfirm={handleClearDraftConfirmed}
+        onCancel={() => setShowClearDraftConfirm(false)}
+      />
     </div>
   );
 }

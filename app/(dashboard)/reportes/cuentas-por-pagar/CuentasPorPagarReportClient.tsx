@@ -41,7 +41,7 @@ export default function CuentasPorPagarReportClient({
   const [selectedBranchId, setSelectedBranchId] = useState('ALL');
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'NOT_OVERDUE' | '0_15' | '15_30' | '30_60' | '60_90' | '90_PLUS'>('ALL');
   const [selectedGroup, setSelectedGroup] = useState<any | null>(null);
-  const [sortBy, setSortBy] = useState<'NAME' | 'AMOUNT' | 'ANTIQUITY'>('AMOUNT');
+  const [sortBy, setSortBy] = useState<'NAME' | 'AMOUNT' | 'OVERDUE' | 'CURRENT' | 'ANTIQUITY'>('AMOUNT');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const getDaysOverdue = (dueDateStr: string | null | undefined): number => {
@@ -144,7 +144,15 @@ export default function CuentasPorPagarReportClient({
 
   // Step 4: Group filtered purchases by supplier
   const groupedSuppliers = useMemo(() => {
-    const groups: { [supplierId: string]: { supplier: any; purchases: Purchase[]; totalBalanceDue: number; oldestDueDate: string | null; branches: Set<string> } } = {};
+    const groups: { [supplierId: string]: { 
+      supplier: any; 
+      purchases: Purchase[]; 
+      totalBalanceDue: number; 
+      overdueBalance: number;
+      currentBalance: number;
+      oldestDueDate: string | null; 
+      branches: Set<string> 
+    } } = {};
     
     activeBucketPurchases.forEach(purchase => {
       const supplierId = purchase.supplier?.id || 'unknown';
@@ -153,12 +161,23 @@ export default function CuentasPorPagarReportClient({
           supplier: purchase.supplier || { id: 'unknown', name: 'Sin Proveedor / Compra Directa', code: '', phone: '' },
           purchases: [],
           totalBalanceDue: 0,
+          overdueBalance: 0,
+          currentBalance: 0,
           oldestDueDate: null,
           branches: new Set<string>()
         };
       }
       groups[supplierId].purchases.push(purchase);
-      groups[supplierId].totalBalanceDue += purchase.balanceDue || 0;
+      const balance = purchase.balanceDue || 0;
+      groups[supplierId].totalBalanceDue += balance;
+      
+      const days = getDaysOverdue(purchase.dueDate);
+      if (days > 0) {
+        groups[supplierId].overdueBalance += balance;
+      } else {
+        groups[supplierId].currentBalance += balance;
+      }
+
       groups[supplierId].branches.add(purchase.branch.name);
       
       if (purchase.dueDate) {
@@ -179,6 +198,10 @@ export default function CuentasPorPagarReportClient({
         comparison = nameA.localeCompare(nameB);
       } else if (sortBy === 'AMOUNT') {
         comparison = a.totalBalanceDue - b.totalBalanceDue;
+      } else if (sortBy === 'OVERDUE') {
+        comparison = a.overdueBalance - b.overdueBalance;
+      } else if (sortBy === 'CURRENT') {
+        comparison = a.currentBalance - b.currentBalance;
       } else if (sortBy === 'ANTIQUITY') {
         const dateA = a.oldestDueDate ? new Date(a.oldestDueDate).getTime() : 9999999999999;
         const dateB = b.oldestDueDate ? new Date(b.oldestDueDate).getTime() : 9999999999999;
@@ -213,7 +236,15 @@ export default function CuentasPorPagarReportClient({
   }, [branchFilteredPurchases]);
 
   const downloadExcel = () => {
-    const headers = ["Proveedor", "Sucursal(es)", "Documentos Pendientes", "Vencimiento Más Antiguo", "Deuda Total"];
+    const headers = [
+      "Proveedor", 
+      "Sucursal(es)", 
+      "Documentos Pendientes", 
+      "Vencimiento Más Antiguo", 
+      "Deuda al Corriente", 
+      "Deuda Vencida", 
+      "Deuda Total"
+    ];
     const rows = groupedSuppliers.map(supplier => {
       const overdueInfo = getOldestDueDateText(supplier.oldestDueDate);
       return [
@@ -221,13 +252,15 @@ export default function CuentasPorPagarReportClient({
         Array.from(supplier.branches).join(', '),
         supplier.purchases.length,
         overdueInfo.text,
+        supplier.currentBalance,
+        supplier.overdueBalance,
         supplier.totalBalanceDue
       ];
     });
     exportToExcel(headers, rows, 'Reporte_Cuentas_Por_Pagar');
   };
 
-  const toggleSort = (field: 'NAME' | 'AMOUNT' | 'ANTIQUITY') => {
+  const toggleSort = (field: 'NAME' | 'AMOUNT' | 'OVERDUE' | 'CURRENT' | 'ANTIQUITY') => {
     if (sortBy === field) {
       setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
@@ -384,11 +417,27 @@ export default function CuentasPorPagarReportClient({
                 </div>
               </th>
               <th 
+                onClick={() => toggleSort('CURRENT')} 
+                style={{ padding: '0.85rem 1rem', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 'bold', fontSize: '0.85rem', color: '#16a34a', justifyContent: 'flex-end' }}>
+                  Deuda al Corriente <ArrowUpDown size={14} />
+                </div>
+              </th>
+              <th 
+                onClick={() => toggleSort('OVERDUE')} 
+                style={{ padding: '0.85rem 1rem', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 'bold', fontSize: '0.85rem', color: '#dc2626', justifyContent: 'flex-end' }}>
+                  Deuda Vencida <ArrowUpDown size={14} />
+                </div>
+              </th>
+              <th 
                 onClick={() => toggleSort('AMOUNT')} 
                 style={{ padding: '0.85rem 1rem', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 'bold', fontSize: '0.85rem', color: '#475569', justifyContent: 'flex-end' }}>
-                  Saldo Pendiente <ArrowUpDown size={14} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 'bold', fontSize: '0.85rem', color: '#1e293b', justifyContent: 'flex-end' }}>
+                  Deuda Total <ArrowUpDown size={14} />
                 </div>
               </th>
               <th className="no-print" style={{ padding: '0.85rem 1rem', fontWeight: 'bold', fontSize: '0.85rem', color: '#475569', textAlign: 'center' }}>Acciones</th>
@@ -420,7 +469,13 @@ export default function CuentasPorPagarReportClient({
                   <td data-label="Vencimiento" style={{ padding: '0.85rem 1rem', fontWeight: '500', color: overdueInfo.isOverdue ? '#dc2626' : '#16a34a' }}>
                     {overdueInfo.text}
                   </td>
-                  <td data-label="Deuda" style={{ padding: '0.85rem 1rem', fontWeight: 'bold', color: '#dc2626', textAlign: 'right' }}>
+                  <td data-label="Deuda Corriente" style={{ padding: '0.85rem 1rem', fontWeight: '600', color: supplier.currentBalance > 0 ? '#16a34a' : '#94a3b8', textAlign: 'right' }}>
+                    {supplier.currentBalance > 0 ? formatCurrency(supplier.currentBalance) : '-'}
+                  </td>
+                  <td data-label="Deuda Vencida" style={{ padding: '0.85rem 1rem', fontWeight: 'bold', color: supplier.overdueBalance > 0 ? '#dc2626' : '#94a3b8', textAlign: 'right' }}>
+                    {supplier.overdueBalance > 0 ? formatCurrency(supplier.overdueBalance) : '-'}
+                  </td>
+                  <td data-label="Deuda Total" style={{ padding: '0.85rem 1rem', fontWeight: '900', color: '#1e293b', textAlign: 'right' }}>
                     {formatCurrency(supplier.totalBalanceDue)}
                   </td>
                   <td data-label="Acciones" className="no-print" style={{ padding: '0.85rem 1rem' }}>
@@ -439,11 +494,11 @@ export default function CuentasPorPagarReportClient({
                     </div>
                   </td>
                 </tr>
-              )
+              );
             })}
             {groupedSuppliers.length === 0 && (
               <tr>
-                <td colSpan={selectedBranchId === 'ALL' ? 6 : 5} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                <td colSpan={selectedBranchId === 'ALL' ? 8 : 7} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
                   No hay deudas con proveedores o coincidencia con los filtros.
                 </td>
               </tr>
@@ -455,7 +510,7 @@ export default function CuentasPorPagarReportClient({
       {/* Modal Detalle de Facturas */}
       {selectedGroup && (
         <div className="no-print" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '700px', maxWidth: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '750px', maxWidth: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
             {/* Header */}
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc' }}>
               <div>
@@ -470,11 +525,28 @@ export default function CuentasPorPagarReportClient({
               </button>
             </div>
             
-            {/* Actions panel */}
-            <div style={{ padding: '1rem 1.5rem', backgroundColor: '#fef2f2', borderBottom: '1px solid #fee2e2', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#991b1b' }}>
-                Saldo Pendiente Total: {formatCurrency(selectedGroup.totalBalanceDue)}
-              </span>
+            {/* Actions & Balance Summary panel */}
+            <div style={{ padding: '1rem 1.5rem', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>Al Corriente:</span>
+                  <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#16a34a' }}>
+                    {formatCurrency(selectedGroup.currentBalance)}
+                  </span>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>Vencido:</span>
+                  <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#dc2626' }}>
+                    {formatCurrency(selectedGroup.overdueBalance)}
+                  </span>
+                </div>
+                <div style={{ borderLeft: '1px solid #cbd5e1', paddingLeft: '1.25rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>Deuda Total:</span>
+                  <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#1e293b' }}>
+                    {formatCurrency(selectedGroup.totalBalanceDue)}
+                  </span>
+                </div>
+              </div>
               {selectedGroup.supplier?.id && selectedGroup.supplier.id !== 'unknown' && (
                 <Link 
                   href={`/proveedores/cuentas`}
@@ -494,6 +566,7 @@ export default function CuentasPorPagarReportClient({
                     <th style={{ padding: '0.5rem', textAlign: 'left' }}>Folio Proveedor</th>
                     <th style={{ padding: '0.5rem', textAlign: 'left' }}>Fecha</th>
                     <th style={{ padding: '0.5rem', textAlign: 'left' }}>Vencimiento</th>
+                    <th style={{ padding: '0.5rem', textAlign: 'center' }}>Estado</th>
                     <th style={{ padding: '0.5rem', textAlign: 'right' }}>Deuda</th>
                     <th style={{ padding: '0.5rem', textAlign: 'center' }}>Acción</th>
                   </tr>
@@ -501,6 +574,8 @@ export default function CuentasPorPagarReportClient({
                 <tbody>
                   {selectedGroup.purchases.map((purchase: Purchase) => {
                     const overdueInfo = getOldestDueDateText(purchase.dueDate);
+                    const days = getDaysOverdue(purchase.dueDate);
+                    const isItemOverdue = days > 0;
                     return (
                       <tr key={purchase.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                         <td style={{ padding: '0.65rem 0.5rem', fontFamily: 'monospace', fontWeight: '500' }}>
@@ -515,7 +590,20 @@ export default function CuentasPorPagarReportClient({
                         <td style={{ padding: '0.65rem 0.5rem', color: overdueInfo.isOverdue ? '#dc2626' : '#16a34a', fontWeight: '500' }}>
                           {purchase.dueDate ? new Date(purchase.dueDate).toLocaleDateString() : 'N/A'}
                         </td>
-                        <td style={{ padding: '0.65rem 0.5rem', textAlign: 'right', fontWeight: 'bold', color: '#dc2626' }}>
+                        <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center' }}>
+                          <span style={{ 
+                            fontSize: '0.725rem', 
+                            fontWeight: 'bold', 
+                            padding: '0.15rem 0.45rem', 
+                            borderRadius: '4px',
+                            backgroundColor: isItemOverdue ? '#fef2f2' : '#f0fdf4',
+                            color: isItemOverdue ? '#dc2626' : '#16a34a',
+                            border: `1px solid ${isItemOverdue ? '#fecaca' : '#bbf7d0'}`
+                          }}>
+                            {isItemOverdue ? `Vencido (${days}d)` : 'Al Corriente'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.65rem 0.5rem', textAlign: 'right', fontWeight: 'bold', color: isItemOverdue ? '#dc2626' : '#16a34a' }}>
                           {formatCurrency(purchase.balanceDue)}
                         </td>
                         <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center' }}>

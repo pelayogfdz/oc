@@ -83,6 +83,162 @@ export async function approveTransfer(transferId: string) {
   }
 }
 
+// Helper: Resolve or auto-create product in destination branch
+async function findOrCreateDestinationProduct(
+  tx: any,
+  originProduct: any,
+  toBranchId: string,
+  originVariantId?: string | null
+) {
+  if (originProduct.branchId === toBranchId) {
+    return { destProduct: originProduct, destVariantId: originVariantId || null };
+  }
+
+  // 1. Search in destination branch by SKU or Barcode or exact Name
+  let destProduct = await tx.product.findFirst({
+    where: {
+      branchId: toBranchId,
+      OR: [
+        ...(originProduct.sku ? [{ sku: originProduct.sku.trim() }] : []),
+        ...(originProduct.barcode ? [{ barcode: originProduct.barcode.trim() }] : []),
+        { name: originProduct.name }
+      ]
+    }
+  });
+
+  // 2. If not found in destination branch, auto-create it seamlessly
+  if (!destProduct) {
+    destProduct = await tx.product.create({
+      data: {
+        branchId: toBranchId,
+        name: originProduct.name,
+        description: originProduct.description || '',
+        sku: originProduct.sku || null,
+        barcode: originProduct.barcode || null,
+        price: originProduct.price || 0,
+        cost: originProduct.cost || 0,
+        averageCost: originProduct.averageCost || originProduct.cost || 0,
+        stock: 0,
+        categoryId: originProduct.categoryId || null,
+        brandId: originProduct.brandId || null,
+        satKey: originProduct.satKey || null,
+        satUnit: originProduct.satUnit || null,
+        image: originProduct.image || null,
+        isActive: true
+      }
+    });
+  }
+
+  // 3. If there is a variant, find or auto-create variant in destination
+  let destVariantId = null;
+  if (originVariantId) {
+    const originVariant = await tx.productVariant.findUnique({ where: { id: originVariantId } });
+    if (originVariant) {
+      let destVariant = await tx.productVariant.findFirst({
+        where: {
+          productId: destProduct.id,
+          OR: [
+            ...(originVariant.sku ? [{ sku: originVariant.sku }] : []),
+            ...(originVariant.barcode ? [{ barcode: originVariant.barcode }] : []),
+            { attribute: originVariant.attribute }
+          ]
+        }
+      });
+      if (!destVariant) {
+        destVariant = await tx.productVariant.create({
+          data: {
+            productId: destProduct.id,
+            attribute: originVariant.attribute,
+            sku: originVariant.sku || null,
+            barcode: originVariant.barcode || null,
+            price: originVariant.price,
+            cost: originVariant.cost,
+            stock: 0
+          }
+        });
+      }
+      destVariantId = destVariant.id;
+    }
+  }
+
+  return { destProduct, destVariantId };
+}
+
+// Helper: Resolve or auto-create product in origin branch
+async function findOrCreateOriginProduct(
+  tx: any,
+  productToSearch: any,
+  originBranchId: string,
+  variantToSearch?: any
+) {
+  if (productToSearch.branchId === originBranchId) {
+    return { originProduct: productToSearch, originVariantId: variantToSearch?.id || null };
+  }
+
+  let originProduct = await tx.product.findFirst({
+    where: {
+      branchId: originBranchId,
+      OR: [
+        ...(productToSearch.sku ? [{ sku: productToSearch.sku.trim() }] : []),
+        ...(productToSearch.barcode ? [{ barcode: productToSearch.barcode.trim() }] : []),
+        { name: productToSearch.name }
+      ]
+    }
+  });
+
+  if (!originProduct) {
+    originProduct = await tx.product.create({
+      data: {
+        branchId: originBranchId,
+        name: productToSearch.name,
+        description: productToSearch.description || '',
+        sku: productToSearch.sku || null,
+        barcode: productToSearch.barcode || null,
+        price: productToSearch.price || 0,
+        cost: productToSearch.cost || 0,
+        averageCost: productToSearch.averageCost || productToSearch.cost || 0,
+        stock: 0,
+        categoryId: productToSearch.categoryId || null,
+        brandId: productToSearch.brandId || null,
+        satKey: productToSearch.satKey || null,
+        satUnit: productToSearch.satUnit || null,
+        image: productToSearch.image || null,
+        isActive: true
+      }
+    });
+  }
+
+  let originVariantId = null;
+  if (variantToSearch) {
+    let originVariant = await tx.productVariant.findFirst({
+      where: {
+        productId: originProduct.id,
+        OR: [
+          ...(variantToSearch.sku ? [{ sku: variantToSearch.sku }] : []),
+          ...(variantToSearch.barcode ? [{ barcode: variantToSearch.barcode }] : []),
+          { attribute: variantToSearch.attribute }
+        ]
+      }
+    });
+    if (!originVariant) {
+      originVariant = await tx.productVariant.create({
+        data: {
+          productId: originProduct.id,
+          attribute: variantToSearch.attribute,
+          sku: variantToSearch.sku || null,
+          barcode: variantToSearch.barcode || null,
+          price: variantToSearch.price,
+          cost: variantToSearch.cost,
+          stock: 0
+        }
+      });
+    }
+    originVariantId = originVariant.id;
+  }
+
+  return { originProduct, originVariantId };
+}
+
 export async function dispatchDirectTransfer(
   payload: {
     toBranchId: string; // The destination branch
@@ -173,27 +329,13 @@ export async function dispatchDirectTransfer(
           }
         });
           
-        // 2. Create the TransferItem mapped to Destination product 
-        // (Actually, to make it receive smoothly, we map it to Origin product IDs now, 
-        // but receiveTransfer assumes the item.product refers to DESTINATION catalog.
-        // Wait: the database uses global catalog? No, each branch has its own Product.
-        // Let's find the matching SKU in DESTINATION.)
-        const destProduct = await tx.product.findFirst({
-           where: { sku: originProduct.sku, branchId: payload.toBranchId }
-        });
-        if (!destProduct) throw new Error(`El producto SKU: ${originProduct.sku} no existe todavía en la sucursal destino. Deberás crearlo allá primero o usar el actualizador masivo.`);
-        
-        let destVariantId = null;
-        if (originVariantId) {
-           const originVariant = await tx.productVariant.findUnique({ where: { id: originVariantId } });
-           const destVariant = await tx.productVariant.findFirst({
-              where: { productId: destProduct.id, sku: originVariant?.sku, attribute: originVariant?.attribute }
-           });
-           // If destination doesn't have the variant, we gracefully just pass null or throw?
-           // Let's enforce existence:
-           if (!destVariant) throw new Error(`La variante SKU: ${originVariant?.sku} no existe en destino.`);
-           destVariantId = destVariant.id;
-        }
+        // 2. Resolve or auto-create Destination product
+        const { destProduct, destVariantId } = await findOrCreateDestinationProduct(
+          tx,
+          originProduct,
+          payload.toBranchId,
+          originVariantId
+        );
 
         await tx.transferItem.create({
           data: {
@@ -234,42 +376,41 @@ export async function dispatchTransfer(transferId: string, itemQuantities: Recor
 
     const authUser = await getActiveUser();
 
+    // Check negative stock config
+    const settings = await prisma.branchSettings.findUnique({
+      where: { branchId: branchActive.id }
+    });
+    const config = settings?.configJson ? JSON.parse(settings.configJson) : {};
+    const venderSinStock = config.ventas?.venderSinStock === true;
+
     await prisma.$transaction(async (tx) => {
       for (const item of transfer.items) {
         const requestedQty = item.quantity;
-        const dispatchedQty = itemQuantities[item.id] ?? requestedQty; // The user can adjust this down
+        const dispatchedQty = itemQuantities[item.id] ?? requestedQty;
         const missingQty = requestedQty - dispatchedQty;
 
-        // 1. Find product in ORIGIN branch by matching SKU
-        const productToSearch = item.product;
-        const variantToSearch = item.variant;
+        // Find or auto-create product in origin branch
+        const { originProduct, originVariantId } = await findOrCreateOriginProduct(
+          tx,
+          item.product,
+          transfer.branchId!,
+          item.variant
+        );
 
-        const originProduct = await tx.product.findFirst({
-          where: { sku: productToSearch.sku, branchId: transfer.branchId! }
-        });
-
-        if (!originProduct) {
-          throw new Error(`Producto SKU: ${productToSearch.sku} no existe en origen.`);
-        }
-
-        let originVariantId = null;
-        if (variantToSearch) {
-          const originVariant = await tx.productVariant.findFirst({
-            where: { productId: originProduct.id, sku: variantToSearch.sku, attribute: variantToSearch.attribute }
-          });
-          if (!originVariant) throw new Error(`Variante ${variantToSearch.attribute} no encontrada en origen.`);
-          originVariantId = originVariant.id;
-
-          if (originVariant.stock < dispatchedQty) {
-             throw new Error(`Stock insuficiente para variante ${variantToSearch.attribute} (Disp: ${originVariant.stock})`);
-          }
-        } else {
-          if (originProduct.stock < dispatchedQty) {
-             throw new Error(`Stock insuficiente para producto SKU: ${productToSearch.sku} (Disp: ${originProduct.stock})`);
+        if (!venderSinStock) {
+          if (originVariantId) {
+            const variant = await tx.productVariant.findUnique({ where: { id: originVariantId } });
+            if (variant && variant.stock < dispatchedQty) {
+              throw new Error(`Stock insuficiente para variante "${variant.attribute}" de "${originProduct.name}" (Disponible: ${variant.stock})`);
+            }
+          } else {
+            if (originProduct.stock < dispatchedQty) {
+              throw new Error(`Stock insuficiente para producto "${originProduct.name}" (Disponible: ${originProduct.stock})`);
+            }
           }
         }
 
-        // 2. Deduct stock at Origin
+        // Deduct stock at Origin
         if (dispatchedQty > 0) {
           await tx.product.update({
             where: { id: originProduct.id },
@@ -294,7 +435,6 @@ export async function dispatchTransfer(transferId: string, itemQuantities: Recor
             }
           });
             
-          // Update TransferItem with dispatched qty & known cost from origin
           await tx.transferItem.update({
              where: { id: item.id },
              data: { 
@@ -305,11 +445,11 @@ export async function dispatchTransfer(transferId: string, itemQuantities: Recor
           });
         }
 
-        // 3. Create Purchase Request for missing
+        // Create Purchase Request for missing items if any
         if (missingQty > 0) {
           await tx.purchaseRequest.create({
             data: {
-              branchId: transfer.branchId!, // La orden de compra la hará la sucursal origen
+              branchId: transfer.branchId!,
               productId: originProduct.id,
               quantity: missingQty,
               status: "PENDING",
@@ -318,7 +458,6 @@ export async function dispatchTransfer(transferId: string, itemQuantities: Recor
             }
           });
           
-          // If dispatched 0, the transfer item should just be deleted or updated to 0. We updated it above if > 0.
           if (dispatchedQty === 0) {
             await tx.transferItem.update({
                where: { id: item.id },
@@ -328,7 +467,7 @@ export async function dispatchTransfer(transferId: string, itemQuantities: Recor
         }
       }
 
-      // 4. Update transfer status
+      // Update transfer status
       await tx.transfer.update({
         where: { id: transfer.id },
         data: {
@@ -369,25 +508,33 @@ export async function receiveTransfer(transferId: string, evidencePhoto?: string
       for (const item of transfer.items) {
         if (item.quantity <= 0) continue; // Skip items that were entirely unfulfilled
 
-        const productTo = item.product; // Note: these belong to Dest branch originally, so they are already mapped!
-        const variantTo = item.variant;
+        const prodInfo = item.product || await tx.product.findUnique({ where: { id: item.productId } });
+        if (!prodInfo) continue;
+
+        // Guarantee we increment in destination branch
+        const { destProduct, destVariantId } = await findOrCreateDestinationProduct(
+          tx,
+          prodInfo,
+          transfer.toBranchId!,
+          item.variantId
+        );
 
         await tx.product.update({
-          where: { id: productTo.id },
+          where: { id: destProduct.id },
           data: { stock: { increment: item.quantity } }
         });
         
-        if (variantTo) {
-           await tx.productVariant.update({
-             where: { id: variantTo.id },
-             data: { stock: { increment: item.quantity } }
-           });
+        if (destVariantId) {
+          await tx.productVariant.update({
+            where: { id: destVariantId },
+            data: { stock: { increment: item.quantity } }
+          });
         }
 
         await tx.inventoryMovement.create({
           data: {
-            productId: productTo.id,
-            variantId: variantTo?.id || null,
+            productId: destProduct.id,
+            variantId: destVariantId,
             type: 'IN',
             quantity: item.quantity,
             reason: `Recepción de traspaso ID: ${transfer.id}`,
@@ -399,10 +546,10 @@ export async function receiveTransfer(transferId: string, evidencePhoto?: string
       await tx.transfer.update({
         where: { id: transfer.id },
         data: { 
-           status: "RECEIVED",
-           receivedById: authUser.id,
-           receivedAt: new Date(),
-           receiveEvidence: evidencePhoto || null
+          status: "RECEIVED",
+          receivedById: authUser.id,
+          receivedAt: new Date(),
+          receiveEvidence: evidencePhoto || null
         }
       });
     });

@@ -196,7 +196,7 @@ export default function CollaboratorTaskPopup({ userId }: { userId: string }) {
         const hours = Math.floor(diffMs / (1000 * 60 * 60));
         
         const pad = (n: number) => String(n).padStart(2, '0');
-        setTimeLeftStr(`-${pad(hours)}:${pad(mins)}:${pad(secs)}`);
+        setTimeLeftStr(`${pad(hours)}:${pad(mins)}:${pad(secs)}`);
       }
     };
 

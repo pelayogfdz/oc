@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Search, History, ArrowRight, X, FileText, Send, Copy, Check, ExternalLink, RefreshCw, Mail } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { useToast } from '@/app/components/ui/CorporateToast';
 
 export default function CobranzaGlobalClient({ 
   initialData, 
@@ -14,6 +15,7 @@ export default function CobranzaGlobalClient({
   branches?: any[]; 
   users?: any[]; 
 }) {
+  const { success, error, warning } = useToast();
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'NOT_OVERDUE' | '0_15' | '15_30' | '30_60' | '60_90' | '90_PLUS'>('ALL');
   const [selectedGroup, setSelectedGroup] = useState<any | null>(null);
@@ -143,9 +145,10 @@ export default function CobranzaGlobalClient({
     try {
       await navigator.clipboard.writeText(link);
       setCopied(true);
+      success('Enlace de estado de cuenta copiado al portapapeles', 'Copiado');
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      alert(`Enlace: ${link}`);
+      warning(`Enlace: ${link}`, 'Copiar enlace');
     }
   };
 
@@ -159,7 +162,7 @@ export default function CobranzaGlobalClient({
   const handleSendEmail = async (clientGroup: any) => {
     const customer = clientGroup.customer;
     if (!customer || customer.id === 'public') {
-      alert('No se puede enviar correo a Público General.');
+      warning('No se puede enviar correo a Público General.', 'Destinatario no válido');
       return;
     }
 
@@ -171,7 +174,7 @@ export default function CobranzaGlobalClient({
 
     if (targetEmail === null) return;
     if (!targetEmail.trim()) {
-      alert('Por favor ingresa un correo electrónico válido.');
+      error('Por favor ingresa un correo electrónico válido.', 'Correo inválido');
       return;
     }
 
@@ -180,12 +183,12 @@ export default function CobranzaGlobalClient({
       const { sendCustomerAccountStatementEmail } = await import('@/app/actions/customer');
       const res = await sendCustomerAccountStatementEmail(customer.id, targetEmail.trim());
       if (res.success) {
-        alert(`Estado de Cuenta enviado exitosamente a ${targetEmail.trim()}`);
+        success(`Estado de Cuenta enviado exitosamente a ${targetEmail.trim()}`, 'Correo enviado');
       } else {
-        alert(`Error al enviar correo: ${res.error}`);
+        error(`Error al enviar correo: ${res.error}`, 'Fallo en envío');
       }
     } catch (err: any) {
-      alert(`Error al procesar el envío: ${err.message || String(err)}`);
+      error(`Error al procesar el envío: ${err.message || String(err)}`, 'Error de comunicación');
     } finally {
       setIsSendingEmail(false);
     }
