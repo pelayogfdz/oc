@@ -260,6 +260,65 @@ export default function CuentasPorPagarReportClient({
     exportToExcel(headers, rows, 'Reporte_Cuentas_Por_Pagar');
   };
 
+  const handleExportSupplierPurchases = () => {
+    if (!selectedGroup || !selectedGroup.purchases) return;
+
+    const supplierName = selectedGroup.supplier?.name || 'Proveedor';
+    const headers = [
+      'Folio Interno Compra',
+      'Folio / Factura Proveedor',
+      'Sucursal',
+      'Fecha Emisión',
+      'Fecha Vencimiento',
+      'Días de Vencimiento',
+      'Estado',
+      'Total de la Compra',
+      'Saldo Pendiente (Deuda)'
+    ];
+
+    const rows = selectedGroup.purchases.map((purchase: Purchase) => {
+      const days = getDaysOverdue(purchase.dueDate);
+      const isOverdue = days > 0;
+      const folioStr = purchase.folio ? `#${purchase.folio}` : `#${purchase.id.slice(0, 8).toUpperCase()}`;
+      const supplierFolioStr = purchase.supplierFolio || 'S/F';
+      const branchName = purchase.branch?.name || '-';
+      const createdDate = new Date(purchase.createdAt).toLocaleDateString('es-MX');
+      const dueDateStr = purchase.dueDate ? new Date(purchase.dueDate).toLocaleDateString('es-MX') : 'N/A';
+      const statusStr = isOverdue ? `Vencido (${days} días)` : 'Al Corriente';
+      const totalAmount = (purchase as any).total !== undefined ? (purchase as any).total : purchase.balanceDue;
+      const balanceDue = purchase.balanceDue;
+
+      return [
+        folioStr,
+        supplierFolioStr,
+        branchName,
+        createdDate,
+        dueDateStr,
+        isOverdue ? days : 0,
+        statusStr,
+        totalAmount,
+        balanceDue
+      ];
+    });
+
+    // Totals row at the bottom for quick reconciliation
+    rows.push([
+      'TOTAL SALDO PENDIENTE',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      selectedGroup.totalBalanceDue
+    ]);
+
+    const sanitizedSupplierName = supplierName.replace(/[^a-zA-Z0-9_\-]/g, '_');
+    const dateStr = new Date().toISOString().split('T')[0];
+    exportToExcel(headers, rows, `Facturas_Pendientes_${sanitizedSupplierName}_${dateStr}`);
+  };
+
   const toggleSort = (field: 'NAME' | 'AMOUNT' | 'OVERDUE' | 'CURRENT' | 'ANTIQUITY') => {
     if (sortBy === field) {
       setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -517,12 +576,37 @@ export default function CuentasPorPagarReportClient({
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#1e293b' }}>Detalle de Cuentas por Pagar</h3>
                 <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.15rem' }}>{selectedGroup.supplier.name}</p>
               </div>
-              <button 
-                onClick={() => setSelectedGroup(null)}
-                style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '4px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
-              >
-                <X size={20} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <button 
+                  onClick={handleExportSupplierPurchases}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.45rem 0.85rem',
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontWeight: 'bold',
+                    fontSize: '0.825rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(16, 185, 129, 0.25)',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor='#059669'}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor='#10b981'}
+                  title="Exportar facturas de compra a Excel para conciliación"
+                >
+                  <Download size={15} /> Exportar Excel
+                </button>
+                <button 
+                  onClick={() => setSelectedGroup(null)}
+                  style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '4px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
             
             {/* Actions & Balance Summary panel */}
@@ -623,7 +707,25 @@ export default function CuentasPorPagarReportClient({
             </div>
             
             {/* Footer */}
-            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', backgroundColor: '#f8fafc' }}>
+            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc' }}>
+              <button 
+                onClick={handleExportSupplierPurchases}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.45rem 0.95rem',
+                  backgroundColor: '#f0fdf4',
+                  color: '#15803d',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <Download size={15} /> Exportar Facturas a Excel (.xlsx)
+              </button>
               <button 
                 onClick={() => setSelectedGroup(null)}
                 style={{ padding: '0.45rem 1rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#334155', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.85rem' }}
