@@ -261,8 +261,8 @@ export async function createCreditNoteAction({
       const invoice = await facturapi.invoices.create(invoicePayload);
       satCreditNoteUuid = invoice.id;
       
-      pdfUrl = `https://api.facturapi.com/v1/invoices/${invoice.id}/pdf`;
-      xmlUrl = `https://api.facturapi.com/v1/invoices/${invoice.id}/xml`;
+      pdfUrl = `/api/facturacion/download?invoiceId=${invoice.id}&format=pdf`;
+      xmlUrl = `/api/facturacion/download?invoiceId=${invoice.id}&format=xml`;
     }
 
     // 3. Database transaction

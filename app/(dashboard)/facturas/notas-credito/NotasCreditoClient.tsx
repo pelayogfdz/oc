@@ -86,7 +86,8 @@ export default function NotasCreditoClient({ initialCreditNotes }: { initialCred
     const amountStr = note.totalRefund.toFixed(2);
     let msg = `Hola ${note.sale?.customer?.name || ''}, te compartimos tu Nota de Crédito por $${amountStr} MXN aplicada a tu compra #${folio}.`;
     if (note.satCreditNote && note.satCreditNote !== 'LOCAL') {
-      msg += ` Folio Fiscal UUID: ${note.satCreditNote}. Puedes descargar tu PDF oficial aquí: https://api.facturapi.com/v1/invoices/${note.satCreditNote}/pdf`;
+      const originUrl = typeof window !== 'undefined' ? window.location.origin : 'https://caanma.com';
+      msg += ` Folio Fiscal UUID: ${note.satCreditNote}. Puedes descargar tu PDF oficial aquí: ${originUrl}/api/facturacion/download?invoiceId=${note.satCreditNote}&format=pdf`;
     }
     const url = customerPhone
       ? `https://wa.me/${customerPhone}?text=${encodeURIComponent(msg)}`
@@ -202,8 +203,8 @@ export default function NotasCreditoClient({ initialCreditNotes }: { initialCred
                 filteredNotes.map((note) => {
                   const isTimbrada = note.satCreditNote && note.satCreditNote !== 'LOCAL';
                   const isDevolucion = note.items && note.items.length > 0;
-                  const pdfUrl = isTimbrada ? `https://api.facturapi.com/v1/invoices/${note.satCreditNote}/pdf` : null;
-                  const xmlUrl = isTimbrada ? `https://api.facturapi.com/v1/invoices/${note.satCreditNote}/xml` : null;
+                  const pdfUrl = isTimbrada ? `/api/facturacion/download?invoiceId=${note.satCreditNote}&format=pdf` : null;
+                  const xmlUrl = isTimbrada ? `/api/facturacion/download?invoiceId=${note.satCreditNote}&format=xml` : null;
 
                   return (
                     <tr key={note.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.15s' }}>

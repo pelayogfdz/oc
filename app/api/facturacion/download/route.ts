@@ -88,7 +88,7 @@ export async function GET(request: Request) {
     let apiKey: string | null = null;
 
     if (invoiceId) {
-      // Find sale with this invoiceId across all tenant databases to get the branch
+      // Find sale or saleReturn with this invoiceId across all tenant databases to get the branch
       for (const client of clients) {
         try {
           const sale = await client.sale.findFirst({
@@ -101,6 +101,19 @@ export async function GET(request: Request) {
             if (settings && settings.configJson) {
               apiKey = getFacturapiApiKey(JSON.parse(settings.configJson));
               if (apiKey) break;
+            }
+          } else {
+            const saleReturn = await client.saleReturn.findFirst({
+              where: { satCreditNote: invoiceId }
+            });
+            if (saleReturn && saleReturn.branchId) {
+              const settings = await client.branchSettings.findUnique({
+                where: { branchId: saleReturn.branchId }
+              });
+              if (settings && settings.configJson) {
+                apiKey = getFacturapiApiKey(JSON.parse(settings.configJson));
+                if (apiKey) break;
+              }
             }
           }
         } catch (e) {
