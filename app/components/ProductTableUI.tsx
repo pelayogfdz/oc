@@ -2,6 +2,7 @@
 import React, { useState, memo } from 'react';
 import { Image as ImageIcon, X } from 'lucide-react';
 import Link from 'next/link';
+import { formatCurrency } from '@/lib/utils';
 
 interface ProductTableUIProps {
   products: any[];
@@ -468,7 +469,7 @@ const ProductTableUI = memo(function ProductTableUI({
                     )}
                   </td>
                   <td data-label="Precio" style={{ padding: '0.5rem 0.4rem', color: '#0f172a', textAlign: 'right', fontWeight: 'bold', fontSize: '0.85rem' }}>
-                    ${parseFloat((priceExtractor ? priceExtractor(prod) : prod.price) || 0).toFixed(2)}
+                    {formatCurrency(parseFloat((priceExtractor ? priceExtractor(prod) : prod.price) || 0))}
                   </td>
                   {renderCustomActions && (
                     <td className="no-label" style={{ padding: '0.5rem 0.4rem', textAlign: 'right' }} onClick={e => e.stopPropagation()}>

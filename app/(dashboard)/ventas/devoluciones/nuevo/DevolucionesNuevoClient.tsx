@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Search, Loader2, ArrowRight, CheckCircle, FileText, AlertTriangle, Mail, Send, MessageCircle } from 'lucide-react';
 import { searchSaleForReturn, createCreditNoteAction, sendCreditNoteEmailAction } from '@/app/actions/creditNote';
+import { formatCurrency } from '@/lib/utils';
 
 export default function DevolucionesNuevoClient() {
   const [step, setStep] = useState(1);
@@ -293,7 +294,7 @@ export default function DevolucionesNuevoClient() {
               ← Cambiar Comprobante
             </button>
             <span style={{ fontSize: '0.9rem', color: '#64748b' }}>
-              Folio: <strong>{sale.folio || sale.id.substring(0,8).toUpperCase()}</strong> | Cliente: <strong>{sale.customer?.name || 'Público General'}</strong> | Total: <strong>${sale.total.toFixed(2)}</strong>
+              Folio: <strong>{sale.folio || sale.id.substring(0,8).toUpperCase()}</strong> | Cliente: <strong>{sale.customer?.name || 'Público General'}</strong> | Total: <strong>{formatCurrency(sale.total)}</strong>
             </span>
           </div>
 
@@ -345,32 +346,38 @@ export default function DevolucionesNuevoClient() {
                       border: '2px solid',
                       borderColor: noteType === '01' ? '#f43f5e' : '#e2e8f0',
                       backgroundColor: noteType === '01' ? '#fff1f2' : 'white',
-                      color: noteType === '01' ? '#e11d48' : '#0f172a',
                       cursor: 'pointer',
                       textAlign: 'left',
-                      fontWeight: 'bold',
-                      transition: 'all 0.2s'
+                      fontWeight: 'bold'
                     }}
                   >
-                    <div style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Por Bonificación / Descuento</div>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>
-                      Acreditación monetaria directa. No afecta las existencias físicas del almacén.
-                    </span>
+                    <div style={{ fontWeight: 'bold', color: noteType === '01' ? '#f43f5e' : '#1e293b', marginBottom: '0.25rem' }}>
+                      💰 Bonificación / Descuento
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                      Ajuste de precio o saldo sin reingreso de productos al almacén.
+                    </div>
                   </button>
                 </div>
+              </div>
 
-                {/* Option A View: List Items */}
+              {/* Items Table OR Amount Input */}
+              <div className="card" style={{ padding: '1.5rem' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+                  2. {noteType === '03' ? 'Seleccionar Productos a Devolver' : 'Monto de la Bonificación'}
+                </h3>
+
                 {noteType === '03' ? (
-                  <div>
-                    <h4 style={{ fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '0.95rem', color: '#475569' }}>Selecciona los artículos a devolver:</h4>
+                  // Option A View: Products Table
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                         <thead>
-                          <tr style={{ borderBottom: '1px solid #cbd5e1', textAlign: 'left' }}>
+                          <tr style={{ borderBottom: '1px solid #cbd5e1', textAlign: 'left', color: '#64748b' }}>
                             <th style={{ padding: '0.5rem' }}>Producto</th>
                             <th style={{ padding: '0.5rem', textAlign: 'center' }}>Vendido</th>
                             <th style={{ padding: '0.5rem', textAlign: 'center' }}>Disponible</th>
-                            <th style={{ padding: '0.5rem', width: '100px', textAlign: 'right' }}>Devolver</th>
+                            <th style={{ padding: '0.5rem', textAlign: 'right' }}>A Devolver</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -378,7 +385,7 @@ export default function DevolucionesNuevoClient() {
                             <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                               <td style={{ padding: '0.75rem 0.5rem' }}>
                                 <div style={{ fontWeight: '500' }}>{item.product.name}</div>
-                                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>SKU: {item.product.sku || 'N/A'} | ${item.price.toFixed(2)}</span>
+                                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>SKU: {item.product.sku || 'N/A'} | {formatCurrency(item.price)}</span>
                               </td>
                               <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>{item.quantity}</td>
                               <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 'bold', color: item.maxReturn === 0 ? '#94a3b8' : 'inherit' }}>
@@ -386,7 +393,7 @@ export default function DevolucionesNuevoClient() {
                               </td>
                               <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
                                 <input 
-                                  type="number"
+                                  type="number" 
                                   min="0"
                                   max={item.maxReturn}
                                   value={returnQuantities[item.id] || 0}
@@ -428,7 +435,7 @@ export default function DevolucionesNuevoClient() {
                         />
                       </div>
                       <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem', display: 'block' }}>
-                        El monto máximo es el total de la venta original: <strong>${sale.total.toFixed(2)}</strong>.
+                        El monto máximo es el total de la venta original: <strong>{formatCurrency(sale.total)}</strong>.
                       </span>
                     </div>
 
@@ -451,7 +458,7 @@ export default function DevolucionesNuevoClient() {
               </div>
             </div>
 
-            {/* Right Column: Preview & Apply Button */}
+            {/* Right Column: Summary & Next Button */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div className="card" style={{ padding: '1.5rem' }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
@@ -461,15 +468,15 @@ export default function DevolucionesNuevoClient() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.95rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: '#64748b' }}>Subtotal:</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span>{formatCurrency(subtotal)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: '#64748b' }}>IVA:</span>
-                    <span>${iva.toFixed(2)}</span>
+                    <span>{formatCurrency(iva)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '1.1rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem', marginTop: '0.25rem', color: '#f43f5e' }}>
                     <span>Total de Nota:</span>
-                    <span>${refundTotal.toFixed(2)}</span>
+                    <span>{formatCurrency(refundTotal)}</span>
                   </div>
                 </div>
 
@@ -478,7 +485,7 @@ export default function DevolucionesNuevoClient() {
                     <div>
                       {sale.paymentMethod === 'CREDIT' && sale.balanceDue > 0 ? (
                         <span>
-                          💳 <strong>Venta a Crédito:</strong> Se aplicará como abono para amortizar la deuda de <strong>${sale.balanceDue.toFixed(2)}</strong> del cliente.
+                          💳 <strong>Venta a Crédito:</strong> Se aplicará como abono para amortizar la deuda de <strong>{formatCurrency(sale.balanceDue)}</strong> del cliente.
                         </span>
                       ) : (
                         <span>
@@ -586,7 +593,7 @@ export default function DevolucionesNuevoClient() {
                   <div>• Modalidad: <strong>{noteType === '03' ? 'Devolución de Mercancía (Kardex)' : 'Bonificación / Descuento Directo'}</strong></div>
                   <div>• Tipo de CFDI: <strong>Egreso (Tipo E)</strong> | Método: <strong>PUE</strong></div>
                   <div style={{ fontSize: '1.15rem', color: '#f43f5e', fontWeight: 'bold', marginTop: '0.5rem' }}>
-                    • Total a Acreditar: ${refundTotal.toFixed(2)} MXN
+                    • Total a Acreditar: {formatCurrency(refundTotal)} MXN
                   </div>
                 </div>
               </div>

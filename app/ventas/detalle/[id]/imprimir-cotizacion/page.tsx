@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { resolveClientForQuote } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import PrintActions from "@/app/components/PrintActions";
+import { formatCurrency } from "@/lib/utils";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -300,7 +301,7 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
                       {/* Discount Badge if applicable */}
                       {isBreakdownDiscounts && item.discountPerUnit > 0 && (
                         <span className="discount-badge">
-                          -${item.discountPerUnit.toFixed(2)} de Descuento
+                          -{formatCurrency(item.discountPerUnit)} de Descuento
                         </span>
                       )}
                       
@@ -319,18 +320,18 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
                 <td style={{ textAlign: 'right', verticalAlign: 'top' }}>
                   {(isBreakdownDiscounts && item.originalPriceExcludingIva > item.finalPriceExcludingIva) ? (
                     <>
-                      <span className="original-price">${item.originalPriceExcludingIva.toFixed(2)}</span>
-                      <span className="final-price">${item.finalPriceExcludingIva.toFixed(2)}</span>
+                      <span className="original-price">{formatCurrency(item.originalPriceExcludingIva)}</span>
+                      <span className="final-price">{formatCurrency(item.finalPriceExcludingIva)}</span>
                     </>
                   ) : (
-                    <span className="final-price">${item.finalPriceExcludingIva.toFixed(2)}</span>
+                    <span className="final-price">{formatCurrency(item.finalPriceExcludingIva)}</span>
                   )}
                 </td>
                 <td style={{ textAlign: 'right', verticalAlign: 'top', color: '#64748b', fontSize: '0.85rem' }}>
-                  {item.taxRate}% (${item.rowIva.toFixed(2)})
+                  {item.taxRate}% ({formatCurrency(item.rowIva)})
                 </td>
                 <td style={{ textAlign: 'right', fontWeight: '700', color: '#0f172a', verticalAlign: 'top' }}>
-                  ${item.rowSubtotalExcludingIva.toFixed(2)}
+                  {formatCurrency(item.rowSubtotalExcludingIva)}
                 </td>
               </tr>
             ))}
@@ -343,36 +344,36 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
             <>
               <div className="total-row">
                 <span>Subtotal</span>
-                <span>${grossSubtotalExcludingIva.toFixed(2)}</span>
+                <span>{formatCurrency(grossSubtotalExcludingIva)}</span>
               </div>
               <div className="total-row discount-row">
                 <span>Descuento</span>
-                <span>-${totalDiscountExcludingIva.toFixed(2)}</span>
+                <span>-{formatCurrency(totalDiscountExcludingIva)}</span>
               </div>
               <div className="total-row" style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '0.25rem', marginTop: '0.25rem', fontWeight: '600' }}>
                 <span>Subtotal Neto</span>
-                <span>${netSubtotalExcludingIva.toFixed(2)}</span>
+                <span>{formatCurrency(netSubtotalExcludingIva)}</span>
               </div>
             </>
           ) : (
             <div className="total-row">
               <span>Subtotal</span>
-              <span>${netSubtotalExcludingIva.toFixed(2)}</span>
+              <span>{formatCurrency(netSubtotalExcludingIva)}</span>
             </div>
           )}
           <div className="total-row">
             <span>IVA 16%</span>
-            <span>${totalIva.toFixed(2)}</span>
+            <span>{formatCurrency(totalIva)}</span>
           </div>
           {manualDiscount > 0.01 && (
             <div className="total-row discount-row">
               <span>Descuento Adicional</span>
-              <span>-${manualDiscount.toFixed(2)}</span>
+              <span>-{formatCurrency(manualDiscount)}</span>
             </div>
           )}
           <div className="total-final" style={{ borderTop: '2px solid #1e293b', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
             <span>Total</span>
-            <span>${quote.total.toFixed(2)}</span>
+            <span>{formatCurrency(quote.total)}</span>
           </div>
         </div>
 

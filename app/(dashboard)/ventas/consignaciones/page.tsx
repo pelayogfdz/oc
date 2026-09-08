@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Plus, PackageCheck } from "lucide-react";
 import ConvertButton from "./ConvertButton";
+import { formatCurrency } from "@/lib/utils";
 
 export default async function ConsignacionesPage() {
   const branch = await getActiveBranch();
@@ -88,7 +89,7 @@ export default async function ConsignacionesPage() {
                   </div>
                 </td>
                 <td data-label="Total" style={{ padding: '0.4rem 0.75rem', fontWeight: 'bold', color: '#4f46e5', fontSize: '0.95rem' }}>
-                  ${consignment.total.toFixed(2)}
+                  {formatCurrency(consignment.total)}
                 </td>
                 <td data-label="Estado" style={{ padding: '0.4rem 0.75rem' }}>
                   {consignment.status === 'ACTIVE' ? (

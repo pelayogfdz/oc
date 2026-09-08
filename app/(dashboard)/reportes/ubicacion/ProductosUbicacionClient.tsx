@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Search, Filter, Printer, Package, MapPin, Calendar, ArrowRight, RefreshCw, X } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 interface Product {
   id: string;
@@ -484,10 +485,10 @@ export default function ProductosUbicacionClient({ initialProducts, categories, 
                   {/* Price/Cost */}
                   <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontSize: '0.875rem' }}>
                     <div style={{ fontWeight: 'bold', color: 'var(--caanma-primary)' }}>
-                      ${prod.price.toFixed(2)}
+                      {formatCurrency(prod.price)}
                     </div>
                     <div style={{ fontSize: '0.725rem', color: 'var(--caanma-text-muted)' }}>
-                      Costo: ${prod.cost.toFixed(2)}
+                      Costo: {formatCurrency(prod.cost)}
                     </div>
                   </td>
 

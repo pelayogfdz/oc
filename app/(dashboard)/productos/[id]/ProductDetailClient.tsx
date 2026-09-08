@@ -8,6 +8,7 @@ import { createBatch, deleteBatch } from '@/app/actions/batch';
 import { Truck, Image as ImageIcon, X } from 'lucide-react';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import { useRouter } from 'next/navigation';
+import { formatCurrency } from '@/lib/utils';
 
 const getFormattedImageUrl = (url: string | null) => {
   if (!url) return '';
@@ -399,7 +400,7 @@ export function ProductDetailClient({
             ) : (
               <span style={{ color: product.stock > 0 ? '#16a34a' : '#dc2626', fontWeight: '600' }}>{product.stock} {product.unit || 'pzas'}</span>
             )}</span>
-            <span><strong>Precio Normal:</strong> <span style={{ color: '#0f172a', fontWeight: 'bold' }}>${parseFloat(product.price || 0).toFixed(2)}</span></span>
+            <span><strong>Precio Normal:</strong> <span style={{ color: '#0f172a', fontWeight: 'bold' }}>{formatCurrency(product.price || 0)}</span></span>
           </div>
         </div>
       </div>
@@ -690,7 +691,7 @@ export function ProductDetailClient({
                     <td data-label="Fecha" style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>{saleDate}</td>
                     <td data-label="Vendedor" style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>{sellerName}</td>
                     <td data-label="Unidades Vendidas" style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>{s.quantity}</td>
-                    <td data-label="Subtotal Generado" style={{ padding: '1rem', textAlign: 'right', fontWeight: '500' }}>${(s.quantity * s.price).toFixed(2)}</td>
+                    <td data-label="Subtotal Generado" style={{ padding: '1rem', textAlign: 'right', fontWeight: '500' }}>{formatCurrency(s.quantity * s.price)}</td>
                     <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'right' }}>
                       <Link href={`/ventas/detalle/${s.saleId}`} style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '0.35rem 0.75rem', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', textDecoration: 'none', fontSize: '0.8rem', display: 'inline-block' }}>
                         Ver Detalle
@@ -748,10 +749,10 @@ export function ProductDetailClient({
                     <td data-label="Atributo" style={{ padding: '1rem', fontWeight: 'bold' }}>{v.attribute}</td>
                     <td data-label="SKU Propio" style={{ padding: '1rem' }}>{v.sku || '-'}</td>
                     <td data-label="Código de Barras" style={{ padding: '1rem' }}>{v.barcode || '-'}</td>
-                    <td data-label="Costo Propio" style={{ padding: '1rem' }}>{v.cost !== null && v.cost !== undefined ? `$${v.cost.toFixed(2)}` : '-'}</td>
-                    <td data-label="Precio Público" style={{ padding: '1rem' }}>{v.price !== null && v.price !== undefined ? `$${v.price.toFixed(2)}` : '-'}</td>
-                    <td data-label="P. Mayoreo" style={{ padding: '1rem' }}>{v.wholesalePrice !== null && v.wholesalePrice !== undefined ? `$${v.wholesalePrice.toFixed(2)}` : '-'}</td>
-                    <td data-label="P. Especial" style={{ padding: '1rem' }}>{v.specialPrice !== null && v.specialPrice !== undefined ? `$${v.specialPrice.toFixed(2)}` : '-'}</td>
+                    <td data-label="Costo Propio" style={{ padding: '1rem' }}>{v.cost !== null && v.cost !== undefined ? formatCurrency(v.cost) : '-'}</td>
+                    <td data-label="Precio Público" style={{ padding: '1rem' }}>{v.price !== null && v.price !== undefined ? formatCurrency(v.price) : '-'}</td>
+                    <td data-label="P. Mayoreo" style={{ padding: '1rem' }}>{v.wholesalePrice !== null && v.wholesalePrice !== undefined ? formatCurrency(v.wholesalePrice) : '-'}</td>
+                    <td data-label="P. Especial" style={{ padding: '1rem' }}>{v.specialPrice !== null && v.specialPrice !== undefined ? formatCurrency(v.specialPrice) : '-'}</td>
                     <td data-label="Existencia" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>{v.stock}</td>
                     <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
                       <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>

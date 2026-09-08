@@ -42,6 +42,7 @@ conn.on('ready', () => {
         'cd /root/oc',
         'docker compose build web',
         'docker compose up -d --no-deps web',
+        'docker compose exec -T web npx prisma db push --accept-data-loss || true',
         'docker compose ps'
       ].join(' && ');
 

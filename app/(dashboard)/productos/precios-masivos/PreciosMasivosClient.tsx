@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Save, Filter, Search, Percent, Zap, Store, AlertCircle } from 'lucide-react';
 import { bulkUpdatePrices } from '@/app/actions/bulkPrice';
+import { formatCurrency } from '@/lib/utils';
 
 // Utility: round to nearest whole peso (no cents)
 const roundPeso = (n: number) => Math.round(n);
@@ -456,7 +457,7 @@ export default function PreciosMasivosClient({
                     <div style={{ maxWidth: '220px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={p.name}>{p.name}</div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--caanma-text-muted)' }}>{p.brand || 'S/M'} | {p.category || 'S/C'}</div>
                   </td>
-                  <td style={{ padding: '0.5rem 1rem', color: 'var(--caanma-text-muted)' }}>${p.cost.toFixed(2)}</td>
+                  <td style={{ padding: '0.5rem 1rem', color: 'var(--caanma-text-muted)' }}>{formatCurrency(p.cost)}</td>
 
                   {/* Active price list — editable + margin */}
                   <td style={{ padding: '0.5rem 1rem' }}>
@@ -473,13 +474,12 @@ export default function PreciosMasivosClient({
                           borderRadius: '4px',
                           border: isActiveModified ? '2px solid #eab308' : '1px solid var(--caanma-border)',
                           backgroundColor: isActiveModified ? '#fefce8' : 'white',
-                          fontWeight: isActiveModified ? 'bold' : 'normal',
-                          fontSize: '0.9rem'
+                          fontWeight: isActiveModified ? 'bold' : 'normal'
                         }}
                       />
-                      <small style={{ color: margen < 0 ? '#ef4444' : margen > 0 ? '#16a34a' : 'var(--caanma-text-muted)' }}>
+                      <span style={{ fontSize: '0.75rem', color: margen >= 30 ? '#16a34a' : margen >= 15 ? '#ca8a04' : '#dc2626', fontWeight: '500' }}>
                         {activeVal !== '' ? `${margen.toFixed(1)}%` : '—'}
-                      </small>
+                      </span>
                     </div>
                   </td>
 
@@ -487,8 +487,8 @@ export default function PreciosMasivosClient({
                   {otherLists.map(l => {
                     const val = p[l.newKey];
                     return (
-                      <td key={l.key} style={{ padding: '0.5rem 1rem', color: 'var(--caanma-text-muted)', fontSize: '0.8rem' }}>
-                        {val !== '' && val != null ? `$${Number(val).toFixed(0)}` : <span style={{ opacity: 0.4 }}>N/A</span>}
+                      <td key={l.key} style={{ padding: '0.5rem 1rem', color: 'var(--caanma-text-muted)', fontSize: '0.875rem' }}>
+                        {val !== '' && val != null ? formatCurrency(val, 0) : <span style={{ opacity: 0.4 }}>N/A</span>}
                       </td>
                     );
                   })}

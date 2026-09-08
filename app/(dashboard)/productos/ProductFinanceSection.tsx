@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Percent } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 interface PriceList {
   id: string;
@@ -265,7 +266,7 @@ export default function ProductFinanceSection({
           />
           {parsedCost > 0 && (
             <div style={{ marginTop: '0.4rem', fontSize: '0.775rem', color: '#64748b', fontWeight: '500' }}>
-              Con impuestos/IVA: <strong style={{ color: '#334155' }}>${costConIva.toFixed(2)}</strong>
+              Con impuestos/IVA: <strong style={{ color: '#334155' }}>{formatCurrency(costConIva)}</strong>
             </div>
           )}
         </div>
@@ -286,7 +287,7 @@ export default function ProductFinanceSection({
           />
           {(initialAverageCost !== undefined && initialAverageCost !== null ? initialAverageCost : initialCost) > 0 && (
             <div style={{ marginTop: '0.4rem', fontSize: '0.775rem', color: '#64748b', fontWeight: '500' }}>
-              Con impuestos/IVA: <strong style={{ color: '#334155' }}>${((initialAverageCost !== undefined && initialAverageCost !== null ? initialAverageCost : initialCost) * taxMultiplier).toFixed(2)}</strong>
+              Con impuestos/IVA: <strong style={{ color: '#334155' }}>{formatCurrency((initialAverageCost !== undefined && initialAverageCost !== null ? initialAverageCost : initialCost) * taxMultiplier)}</strong>
             </div>
           )}
         </div>
@@ -322,10 +323,10 @@ export default function ProductFinanceSection({
           {parsedPrice > 0 && (
             <div style={{ marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
               <div style={{ fontSize: '0.775rem', color: '#64748b', fontWeight: '500' }}>
-                Precio antes de IVA: <strong style={{ color: '#334155' }}>${priceSinIva.toFixed(2)}</strong>
+                Precio antes de IVA: <strong style={{ color: '#334155' }}>{formatCurrency(priceSinIva)}</strong>
               </div>
               <div style={{ fontSize: '0.775rem', color: realUtility >= 0 ? '#16a34a' : '#dc2626', fontWeight: '600' }}>
-                Utilidad real (sin IVA): ${realUtility.toFixed(2)} ({realMarkupPct.toFixed(0)}% sob. costo)
+                Utilidad real (sin IVA): {formatCurrency(realUtility)} ({realMarkupPct.toFixed(0)}% sob. costo)
               </div>
             </div>
           )}
@@ -444,10 +445,10 @@ export default function ProductFinanceSection({
                     return (
                       <div style={{ marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
                         <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '500' }}>
-                          Antes de IVA: <strong style={{ color: '#334155' }}>${plPriceSinIva.toFixed(2)}</strong>
+                          Antes de IVA: <strong style={{ color: '#334155' }}>{formatCurrency(plPriceSinIva)}</strong>
                         </div>
                         <div style={{ fontSize: '0.75rem', color: plRealUtility >= 0 ? '#16a34a' : '#dc2626', fontWeight: '600' }}>
-                          Ganancia real: ${plRealUtility.toFixed(2)} ({plMarkupPct.toFixed(0)}% util.)
+                          Ganancia real: {formatCurrency(plRealUtility)} ({plMarkupPct.toFixed(0)}% util.)
                         </div>
                       </div>
                     );

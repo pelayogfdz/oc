@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { getPriceChangesInLast24Hours } from '@/app/actions/product';
 import { Bell, TrendingUp, TrendingDown, X } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 type PriceChange = {
   id: string;
@@ -199,10 +200,10 @@ export default function PriceChangesAlertPopup() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', textAlign: 'right' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
                     <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>
-                      ${item.newPrice.toFixed(2)}
+                      {formatCurrency(item.newPrice)}
                     </span>
                     <span style={{ fontSize: '0.75rem', color: '#94a3b8', textDecoration: 'line-through' }}>
-                      ${item.oldPrice.toFixed(2)}
+                      {formatCurrency(item.oldPrice)}
                     </span>
                   </div>
 

@@ -331,7 +331,7 @@ export default function CombustiblesClient({
           <div className="card" style={{ padding: '1.5rem', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1.25rem', color: '#334155' }}>Historial de Embarques y Utilidades</h2>
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
                     <th style={{ padding: '1rem', color: '#64748b', fontWeight: '600', fontSize: '0.85rem' }}>Folio Embarque</th>
@@ -347,7 +347,7 @@ export default function CombustiblesClient({
                 <tbody>
                   {transactions.map((t) => (
                     <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '1rem', fontWeight: 'bold', color: '#1e293b' }}>
+                      <td data-label="Folio Embarque" style={{ padding: '1rem', fontWeight: 'bold', color: '#1e293b' }}>
                         <div>{t.folio}</div>
                         <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
                           {t.purchaseReceipt && (
@@ -367,24 +367,24 @@ export default function CombustiblesClient({
                           )}
                         </div>
                       </td>
-                      <td style={{ padding: '1rem' }}>
+                      <td data-label="Cliente / Venta" style={{ padding: '1rem' }}>
                         <div style={{ fontWeight: '500', color: '#0f172a' }}>{t.sale?.customer?.name || 'Cliente sin nombre'}</div>
                         <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Folio Venta: {t.sale?.folio || 'N/A'} (${t.sale?.total.toLocaleString()})</span>
                       </td>
-                      <td style={{ padding: '1rem' }}>
+                      <td data-label="Proveedor / Compra" style={{ padding: '1rem' }}>
                         <div style={{ fontWeight: '500', color: '#0f172a' }}>{t.purchase?.supplier?.name || 'Sin Compra Asociada'}</div>
                         {t.purchase && (
                           <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Folio Compra: {t.purchase.folio || 'N/A'} (${t.purchase.total.toLocaleString()})</span>
                         )}
                       </td>
-                      <td style={{ padding: '1rem', fontWeight: '500' }}>{t.distanceKm} Km</td>
-                      <td style={{ padding: '1rem' }}>
+                      <td data-label="Distancia" style={{ padding: '1rem', fontWeight: '500' }}>{t.distanceKm} Km</td>
+                      <td data-label="Costos Logísticos" style={{ padding: '1rem' }}>
                         <div style={{ fontWeight: '600', color: '#c2410c' }}>${t.calculatedLogisticsCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</div>
                         {t.extraLogisticsCost > 0 && (
                           <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Extras: ${t.extraLogisticsCost.toLocaleString()}</span>
                         )}
                       </td>
-                      <td style={{ padding: '1rem' }}>
+                      <td data-label="Estatus" style={{ padding: '1rem' }}>
                         <span style={{
                           padding: '0.25rem 0.5rem',
                           borderRadius: '9999px',
@@ -396,11 +396,11 @@ export default function CombustiblesClient({
                           {t.deliveryStatus === 'DELIVERED' ? 'Entregado' : t.deliveryStatus === 'IN_TRANSIT' ? 'En Tránsito' : 'Pendiente'}
                         </span>
                       </td>
-                      <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: t.calculatedNetProfit >= 0 ? '#10b981' : '#ef4444' }}>
+                      <td data-label="Utilidad Est." style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: t.calculatedNetProfit >= 0 ? '#10b981' : '#ef4444' }}>
                         ${t.calculatedNetProfit.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                       </td>
-                      <td style={{ padding: '1rem', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                      <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                           <button 
                             onClick={() => {
                               setEditTx({ ...t });

@@ -174,10 +174,10 @@ export default function CategoriasMarcasClient({ initialCategories, initialBrand
               <tbody>
                 {filteredCategories.map((cat) => (
                   <tr key={cat.name} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '0.85rem 1.25rem', fontWeight: '600', color: '#1e293b' }}>
+                    <td data-label="Nombre de Categoría" style={{ padding: '0.85rem 1.25rem', fontWeight: '600', color: '#1e293b' }}>
                       {cat.name}
                     </td>
-                    <td style={{ padding: '0.85rem 1.25rem', textAlign: 'center' }}>
+                    <td data-label="Productos Asignados" style={{ padding: '0.85rem 1.25rem', textAlign: 'center' }}>
                       <Link 
                         href={`/productos?category=${encodeURIComponent(cat.name)}`}
                         style={{ 
@@ -196,8 +196,8 @@ export default function CategoriasMarcasClient({ initialCategories, initialBrand
                         <Box size={13} /> {cat.productCount} {cat.productCount === 1 ? 'producto' : 'productos'}
                       </Link>
                     </td>
-                    <td style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                    <td data-label="Acciones" style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <button
                           onClick={() => handleStartEdit('category', cat.name)}
                           style={{ padding: '0.4rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#334155', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
@@ -235,10 +235,10 @@ export default function CategoriasMarcasClient({ initialCategories, initialBrand
               <tbody>
                 {filteredBrands.map((brand) => (
                   <tr key={brand.name} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '0.85rem 1.25rem', fontWeight: '600', color: '#1e293b' }}>
+                    <td data-label="Nombre de Marca" style={{ padding: '0.85rem 1.25rem', fontWeight: '600', color: '#1e293b' }}>
                       {brand.name}
                     </td>
-                    <td style={{ padding: '0.85rem 1.25rem', textAlign: 'center' }}>
+                    <td data-label="Productos Asignados" style={{ padding: '0.85rem 1.25rem', textAlign: 'center' }}>
                       <span 
                         style={{ 
                           display: 'inline-flex', 
@@ -255,8 +255,8 @@ export default function CategoriasMarcasClient({ initialCategories, initialBrand
                         <Box size={13} /> {brand.productCount} {brand.productCount === 1 ? 'producto' : 'productos'}
                       </span>
                     </td>
-                    <td style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                    <td data-label="Acciones" style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <button
                           onClick={() => handleStartEdit('brand', brand.name)}
                           style={{ padding: '0.4rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#334155', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}

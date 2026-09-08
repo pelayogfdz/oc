@@ -270,6 +270,7 @@ export const PERMISSION_MODULES = [
         id: 'fin_ops',
         name: 'Operaciones Financieras',
         permissions: [
+          { id: 'fin_pl', label: 'Ver Estado de Resultados (P&L) y Situación Financiera' },
           { id: 'fin_conciliacion', label: 'Ver Conciliación Bancaria' },
           { id: 'fin_cxc', label: 'Ver Cuentas por Cobrar (CxC)' },
           { id: 'fin_cxp', label: 'Ver Cuentas por Pagar (CxP)' }

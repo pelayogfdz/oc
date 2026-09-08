@@ -61,7 +61,7 @@ export default function CaducidadesClient({ initialBatches }: { initialBatches: 
         </div>
       ) : (
         <div className="table-responsive">
-          <table className="table">
+          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr>
                 <th>Producto</th>
@@ -76,7 +76,7 @@ export default function CaducidadesClient({ initialBatches }: { initialBatches: 
                 const status = getStatus(batch.expirationDate);
                 return (
                   <tr key={batch.id}>
-                    <td>
+                    <td data-label="Producto">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <div style={{ position: 'relative', width: '32px', height: '32px', backgroundColor: '#eff6ff', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6', fontWeight: 'bold', fontSize: '0.75rem', overflow: 'hidden', flexShrink: 0 }}>
                           {/* Initials Fallback */}
@@ -122,16 +122,16 @@ export default function CaducidadesClient({ initialBatches }: { initialBatches: 
                         </div>
                       </div>
                     </td>
-                    <td>
+                    <td data-label="Lote">
                       <span style={{ fontWeight: 500, color: '#475569' }}>{batch.batchNumber || '-'}</span>
                     </td>
-                    <td>
+                    <td data-label="Existencia">
                       <span style={{ fontWeight: 'bold' }}>{batch.stock}</span>
                     </td>
-                    <td>
+                    <td data-label="Fecha de Caducidad">
                       {new Date(batch.expirationDate).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}
                     </td>
-                    <td>
+                    <td data-label="Estatus">
                       <span style={{ 
                         display: 'inline-flex', alignItems: 'center', gap: '0.35rem', 
                         backgroundColor: status.bg, color: status.color, 

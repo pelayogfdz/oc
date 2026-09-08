@@ -66,10 +66,10 @@ const printSaleOffline = (sale: any, isTicket: boolean) => {
           <td style="padding: 4px 0;">
             <div>${desc}</div>
             ${variantStr}
-            <div style="font-size: 0.9em;">${item.quantity} x ${item.price ? item.price.toFixed(2) : '0.00'}</div>
+            <div style="font-size: 0.9em;">${item.quantity} x ${formatCurrency(item.price || 0)}</div>
           </td>
           <td style="text-align: right; padding: 4px 0; vertical-align: bottom;">
-            ${((item.quantity || 0) * (item.price || 0)).toFixed(2)}
+            ${formatCurrency((item.quantity || 0) * (item.price || 0))}
           </td>
         </tr>
       `;
@@ -82,8 +82,8 @@ const printSaleOffline = (sale: any, isTicket: boolean) => {
             ${skuCodeStr}
           </td>
           <td style="padding: 12px 8px; text-align: center; font-weight: bold;">${item.quantity}</td>
-          <td style="padding: 12px 8px; text-align: right;">${item.price ? item.price.toFixed(2) : '0.00'}</td>
-          <td style="padding: 12px 8px; text-align: right; font-weight: bold;">${((item.quantity || 0) * (item.price || 0)).toFixed(2)}</td>
+          <td style="padding: 12px 8px; text-align: right;">${formatCurrency(item.price || 0)}</td>
+          <td style="padding: 12px 8px; text-align: right; font-weight: bold;">${formatCurrency((item.quantity || 0) * (item.price || 0))}</td>
         </tr>
       `;
     }
@@ -133,17 +133,17 @@ const printSaleOffline = (sale: any, isTicket: boolean) => {
         <table style="font-weight: bold; font-size: 13px;">
           <tr style="font-weight: normal; font-size: 11px;">
             <td>Subtotal:</td>
-            <td style="text-align: right;">${itemsTotal.toFixed(2)}</td>
+            <td style="text-align: right;">${formatCurrency(itemsTotal)}</td>
           </tr>
           ${discount > 0.01 ? `
           <tr style="font-weight: normal; font-size: 11px; color: red;">
             <td>Descuento:</td>
-            <td style="text-align: right;">-${discount.toFixed(2)}</td>
+            <td style="text-align: right;">-${formatCurrency(discount)}</td>
           </tr>
           ` : ''}
           <tr>
             <td>TOTAL:</td>
-            <td style="text-align: right;">${sale.total.toFixed(2)}</td>
+            <td style="text-align: right;">${formatCurrency(sale.total)}</td>
           </tr>
         </table>
         <hr/>
@@ -206,17 +206,17 @@ const printSaleOffline = (sale: any, isTicket: boolean) => {
           <div style="width: 250px; font-size: 16px;">
             <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
               <span style="color: #64748b;">Subtotal:</span>
-              <span>${itemsTotal.toFixed(2)}</span>
+              <span>${formatCurrency(itemsTotal)}</span>
             </div>
             ${discount > 0.01 ? `
             <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #dc2626;">
               <span>Descuento:</span>
-              <span>-${discount.toFixed(2)}</span>
+              <span>-${formatCurrency(discount)}</span>
             </div>
             ` : ''}
             <div style="display: flex; justify-content: space-between; padding: 12px 0; font-weight: bold; font-size: 20px; color: #0ea5e9;">
               <span>Pago Total:</span>
-              <span>${sale.total.toFixed(2)}</span>
+              <span>${formatCurrency(sale.total)}</span>
             </div>
           </div>
         </div>

@@ -779,7 +779,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                     transition: 'all 0.15s'
                   }}
                 >
-                  <td style={{ padding: '1rem', textAlign: 'center' }}>
+                  <td data-label="Seleccionar" style={{ padding: '1rem', textAlign: 'center' }}>
                     <input 
                       type="checkbox" 
                       checked={isSelected}
@@ -793,13 +793,13 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                       }}
                     />
                   </td>
-                  <td style={{ padding: '1rem' }}>
+                  <td data-label="Folio / Fecha" style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: 'bold', color: '#0f172a' }}>#{sale.folio || sale.id.substring(0,8).toUpperCase()}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)', marginTop: '0.2rem' }}>
                       {new Date(sale.createdAt).toLocaleDateString()} {new Date(sale.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </div>
                   </td>
-                  <td style={{ padding: '1rem' }}>
+                  <td data-label="Cliente / Método" style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: '500', color: '#1e293b' }}>
                       {sale.customer?.legalName || sale.customer?.name || 'Público en General'}
                     </div>
@@ -815,10 +815,10 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                       </span>
                     </div>
                   </td>
-                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: '#0f172a' }}>
+                  <td data-label="Total" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: '#0f172a' }}>
                     ${sale.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                   </td>
-                  <td style={{ padding: '1rem', textAlign: 'center' }}>
+                  <td data-label="Estado SAT" style={{ padding: '1rem', textAlign: 'center' }}>
                     {isSaleInvoiced ? (
                       <span style={{ 
                         display: 'inline-flex', 
@@ -846,8 +846,8 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
                       </span>
                     )}
                   </td>
-                  <td style={{ padding: '1rem', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+                  <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', flexWrap: 'wrap' }}>
                       {isSaleInvoiced ? (
                         <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center', flexWrap: 'wrap' }}>
                           {/* PDF */}

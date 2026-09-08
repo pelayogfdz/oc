@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Calendar, Filter, FileText, Download, TrendingUp, Printer } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { exportToExcel } from '@/lib/exportExcel';
+import { formatCurrency } from '@/lib/utils';
 
 export default function FacturacionReportClient({ initialSales, users, brands = [], startDate, endDate }: any) {
   const router = useRouter();
@@ -193,7 +194,7 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="date" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
-                <RechartsTooltip formatter={(value: any) => [`$${Number(value).toFixed(2)}`, '']} />
+                <RechartsTooltip formatter={(value: any) => [formatCurrency(value), '']} />
                 <Bar dataKey="facturado" name="Facturado" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} />
                 <Bar dataKey="noFacturado" name="No Facturado" stackId="a" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -219,7 +220,7 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <RechartsTooltip formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Monto']} />
+                <RechartsTooltip formatter={(value: any) => [formatCurrency(value), 'Monto']} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -249,7 +250,7 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
                   {s.isFacturado && <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)' }}>{s.notes?.match(/RFC: ([A-Z0-9]+)/)?.[1] || 'RFC Generico'}</div>}
                 </td>
                 <td style={{ padding: '1rem' }}>{s.user?.name || s.user?.email || 'Caja'}</td>
-                <td style={{ padding: '1rem', fontWeight: 'bold' }}>${s.total.toFixed(2)}</td>
+                <td style={{ padding: '1rem', fontWeight: 'bold' }}>{formatCurrency(s.total)}</td>
                 <td style={{ padding: '1rem' }}>
                   {s.status === 'CANCELLED' ? (
                     <span style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '0.25rem 0.5rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>

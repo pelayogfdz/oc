@@ -659,78 +659,78 @@ export default function UserClient({ initialUsers, branches, hrLocations = [], c
                     )}
                   </td>
                   <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'right' }}>
-                    <button 
-                      type="button"
-                      onClick={() => cloneUserPermissions(u)} 
-                      style={{ 
-                        backgroundColor: 'rgba(14, 165, 233, 0.1)', 
-                        border: 'none', 
-                        borderRadius: '6px',
-                        padding: '0.4rem 0.6rem',
-                        cursor: 'pointer', 
-                        color: '#0284c7', 
-                        marginRight: '0.5rem',
-                        fontSize: '0.75rem',
-                        fontWeight: 'bold',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(14, 165, 233, 0.2)' }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(14, 165, 233, 0.1)' }}
-                    >
-                      <Copy size={14} /> Clonar
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        openEditUser(u);
-                        document.getElementById('user-form')?.scrollIntoView({ behavior: 'smooth' });
-                      }} 
-                      style={{ 
-                        backgroundColor: 'rgba(99, 102, 241, 0.1)', 
-                        border: 'none', 
-                        borderRadius: '6px',
-                        padding: '0.4rem 0.6rem',
-                        cursor: 'pointer', 
-                        color: '#4f46e5', 
-                        marginRight: '0.5rem',
-                        fontSize: '0.75rem',
-                        fontWeight: 'bold',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.2)' }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.1)' }}
-                    >
-                      <Edit2 size={14} /> Editar
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => handleDelete(u.id)} 
-                      disabled={isProtected} 
-                      style={{ 
-                        backgroundColor: isProtected ? '#f1f5f9' : 'rgba(239, 68, 68, 0.1)', 
-                        border: 'none', 
-                        borderRadius: '6px',
-                        padding: '0.4rem 0.6rem',
-                        cursor: isProtected ? 'not-allowed' : 'pointer', 
-                        color: isProtected ? '#cbd5e1' : '#dc2626', 
-                        fontSize: '0.75rem',
-                        fontWeight: 'bold',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => { if (!isProtected) e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)' }}
-                      onMouseLeave={(e) => { if (!isProtected) e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)' }}
-                    >
-                      <Trash2 size={14} /> Eliminar
-                    </button>
+                    <div style={{ display: 'inline-flex', flexWrap: 'wrap', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                      <button 
+                        type="button"
+                        onClick={() => cloneUserPermissions(u)} 
+                        style={{ 
+                          backgroundColor: 'rgba(14, 165, 233, 0.1)', 
+                          border: 'none', 
+                          borderRadius: '6px',
+                          padding: '0.4rem 0.6rem',
+                          cursor: 'pointer', 
+                          color: '#0284c7', 
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(14, 165, 233, 0.2)' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(14, 165, 233, 0.1)' }}
+                      >
+                        <Copy size={14} /> Clonar
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          openEditUser(u);
+                          document.getElementById('user-form')?.scrollIntoView({ behavior: 'smooth' });
+                        }} 
+                        style={{ 
+                          backgroundColor: 'rgba(99, 102, 241, 0.1)', 
+                          border: 'none', 
+                          borderRadius: '6px',
+                          padding: '0.4rem 0.6rem',
+                          cursor: 'pointer', 
+                          color: '#4f46e5', 
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.2)' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.1)' }}
+                      >
+                        <Edit2 size={14} /> Editar
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => handleDelete(u.id)} 
+                        disabled={isProtected} 
+                        style={{ 
+                          backgroundColor: isProtected ? '#f1f5f9' : 'rgba(239, 68, 68, 0.1)', 
+                          border: 'none', 
+                          borderRadius: '6px',
+                          padding: '0.4rem 0.6rem',
+                          cursor: isProtected ? 'not-allowed' : 'pointer', 
+                          color: isProtected ? '#cbd5e1' : '#dc2626', 
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => { if (!isProtected) e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)' }}
+                        onMouseLeave={(e) => { if (!isProtected) e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)' }}
+                      >
+                        <Trash2 size={14} /> Eliminar
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );

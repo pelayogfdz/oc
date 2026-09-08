@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { ShoppingBag, X, FileText, Download, BellRing } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 interface MeliSaleItem {
   id: string;
@@ -162,7 +163,7 @@ export default function MeliSalesAlertPopup() {
             {activeSale.items.map(item => (
               <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
                 <span>{item.quantity}x {item.productName}</span>
-                <span style={{ color: '#64748b', fontWeight: '500' }}>${(item.price * item.quantity).toFixed(2)}</span>
+                <span style={{ color: '#64748b', fontWeight: '500' }}>{formatCurrency(item.price * item.quantity)}</span>
               </div>
             ))}
           </div>
@@ -173,7 +174,7 @@ export default function MeliSalesAlertPopup() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem', marginBottom: '1rem' }}>
         <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Total de la Venta:</span>
         <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#15803d' }}>
-          ${activeSale.total.toFixed(2)}
+          {formatCurrency(activeSale.total)}
         </span>
       </div>
 

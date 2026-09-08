@@ -5,6 +5,7 @@ import { ArrowLeft, Package, User, CheckCircle, Truck, MapPin, ClipboardList, Pa
 import { receiveTransfer, approveTransfer, dispatchTransfer, cancelTransfer } from '@/app/actions/transfer';
 import { useTransition, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { formatCurrency } from '@/lib/utils';
 
 export default function TransferDetailClient({ transfer, branchId }: { transfer: any, branchId: string }) {
   const isOrigin = transfer.branchId === branchId; // La sucursal que surte
@@ -444,8 +445,8 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
 
                   {transfer.status === 'DISPATCHED' || transfer.status === 'RECEIVED' ? (
                      <>
-                       <td data-label="Costo Promedio" style={{ padding: '1rem', textAlign: 'right', color: '#0f172a' }}>${costToShow.toFixed(2)}</td>
-                       <td data-label="Total" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>${totalCost.toFixed(2)}</td>
+                       <td data-label="Costo Promedio" style={{ padding: '1rem', textAlign: 'right', color: '#0f172a' }}>{formatCurrency(costToShow)}</td>
+                       <td data-label="Total" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>{formatCurrency(totalCost)}</td>
                      </>
                   ) : null}
                 </tr>
@@ -457,7 +458,7 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
                <tr>
                  <td colSpan={3} style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: '#64748b' }}>Costo Total Transferido:</td>
                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', fontSize: '1.2rem', color: '#0f172a' }}>
-                   ${transfer.items.reduce((acc: number, item: any) => acc + ((item.averageCost || item.cost || item.product.cost || 0) * item.quantity), 0).toFixed(2)}
+                   {formatCurrency(transfer.items.reduce((acc: number, item: any) => acc + ((item.averageCost || item.cost || item.product.cost || 0) * item.quantity), 0))}
                  </td>
                </tr>
              </tfoot>

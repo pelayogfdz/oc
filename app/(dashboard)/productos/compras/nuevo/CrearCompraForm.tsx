@@ -6,6 +6,7 @@ import { Trash2, ShoppingBag, Search, Filter, Plus, Minus, FileText, CheckCircle
 import { createPurchase } from '@/app/actions/purchase';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import { searchProducts } from '@/app/actions/product';
+import { formatCurrency } from '@/lib/utils';
 
 export default function CrearCompraForm({ suppliers, products, branchId, preloadedOrder }: { suppliers: any[], products: any[], branchId: string, preloadedOrder?: any }) {
   const router = useRouter();
@@ -779,7 +780,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
                     <div style={{ textAlign: 'right', paddingRight: '0.5rem' }}>
                       <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', textTransform: 'uppercase', fontWeight: 'bold' }}>Subtotal</span>
                       <span style={{ fontWeight: '800', color: '#1e293b', fontSize: '0.95rem' }}>
-                        ${(item.quantity * item.cost).toFixed(2)}
+                        {formatCurrency(item.quantity * item.cost)}
                       </span>
                     </div>
 
@@ -980,7 +981,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
               {isSubmitting ? (
                 'Procesando...'
               ) : (
-                `Ingresar Compra $${finalTotal.toFixed(2)}`
+                `Ingresar Compra ${formatCurrency(finalTotal)}`
               )}
             </button>
           </div>
@@ -1143,7 +1144,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
                         textOverflow: 'ellipsis'
                       }}
                     >
-                      {purchase.name} (${purchase.total.toFixed(2)})
+                      {purchase.name} ({formatCurrency(purchase.total)})
                     </button>
                     <button 
                       type="button" 
@@ -1282,7 +1283,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <div style={{ fontWeight: 'bold', color: '#8b5cf6', fontSize: '1rem' }}>
-                          Costo: ${p.cost ? p.cost.toFixed(2) : '0.00'}
+                          Costo: {formatCurrency(p.cost || 0)}
                         </div>
                         {inCart && (
                           <span style={{ fontSize: '0.75rem', backgroundColor: '#e9d5ff', color: '#6b21a8', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>Agregado</span>

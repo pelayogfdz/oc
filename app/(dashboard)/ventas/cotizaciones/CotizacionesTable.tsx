@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Search, FileText } from 'lucide-react';
 import QuoteActions from './QuoteActions';
+import { formatCurrency } from '@/lib/utils';
 
 interface CotizacionesTableProps {
   initialQuotes: any[];
@@ -263,7 +264,7 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                                 <td style={{ maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {item.product?.name || 'Producto'}
                                 </td>
-                                <td style={{ textAlign: 'right' }}>${(item.quantity * item.price).toFixed(2)}</td>
+                                <td style={{ textAlign: 'right' }}>{formatCurrency(item.quantity * item.price)}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -276,7 +277,7 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                           <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                               <span>Compra total (prom.):</span>
-                              <strong style={{ color: '#475569' }}>${totalPurchaseCost.toFixed(2)}</strong>
+                              <strong style={{ color: '#475569' }}>{formatCurrency(totalPurchaseCost)}</strong>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                               <span>Margen total:</span>
@@ -289,7 +290,7 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                       })()}
                       <div className="quote-tooltip-footer">
                         <span className="quote-tooltip-total-label">TOTAL</span>
-                        <span className="quote-tooltip-total-val">${quote.total.toFixed(2)}</span>
+                        <span className="quote-tooltip-total-val">{formatCurrency(quote.total)}</span>
                       </div>
                     </div>
                   </div>
@@ -317,7 +318,7 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                 </div>
               </td>
               <td data-label="Total" style={{ padding: '0.4rem 0.75rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>
-                <span style={{ fontSize: '0.875rem' }}>${quote.total.toFixed(2)}</span>
+                <span style={{ fontSize: '0.875rem' }}>{formatCurrency(quote.total)}</span>
               </td>
               <td data-label="Estado" style={{ padding: '0.4rem 0.75rem' }}>
                 {quote.status === 'PENDING' ? (

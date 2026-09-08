@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import ChatInterface from "../prospeccion/chat/[id]/ChatInterface";
 import { getRecentQuotes, searchCustomers, assignCustomerToProspect } from "@/app/actions/whatsapp-crm";
+import { formatCurrency } from "@/lib/utils";
 
 const officeCityLocations = [
   { name: "Corporativo Matriz (Guadalajara)", coords: "20.6766,-103.3475", desc: "Av. de las Américas 1500, Country Club, GDL" },
@@ -1078,7 +1079,7 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
                   <div key={q.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
                     <div>
                       <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Cotización #{q.id.substring(0,6).toUpperCase()}</div>
-                      <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{q.customer?.name || "Público General"} - ${q.total.toFixed(2)}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{q.customer?.name || "Público General"} - {formatCurrency(q.total)}</div>
                     </div>
                     <button 
                       onClick={() => handleSendQuote(q.id)}

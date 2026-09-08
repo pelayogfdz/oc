@@ -3,6 +3,7 @@
 import { useState, useEffect, useTransition } from 'react';
 import { getPendingGlobalSales, stampGlobalInvoice } from '@/app/actions/facturacion';
 import { FileText, Calendar, PlusCircle, Loader2, RefreshCw, ShoppingBag } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 export default function GlobalesInvoiceClient() {
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10)); // Today
@@ -39,7 +40,7 @@ export default function GlobalesInvoiceClient() {
       return;
     }
 
-    if (!confirm(`¿Deseas emitir la factura global para las ${pendingSales.length} ventas del periodo seleccionado? Total: $${totalAmount.toFixed(2)}`)) {
+    if (!confirm(`¿Deseas emitir la factura global para las ${pendingSales.length} ventas del periodo seleccionado? Total: ${formatCurrency(totalAmount)}`)) {
       return;
     }
 
@@ -162,14 +163,14 @@ export default function GlobalesInvoiceClient() {
               <tbody>
                 {pendingSales.map((sale) => (
                   <tr key={sale.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-                    <td style={{ padding: '0.75rem 1rem', fontWeight: 'bold' }}>
+                    <td data-label="Folio / Venta" style={{ padding: '0.75rem 1rem', fontWeight: 'bold' }}>
                       #{sale.folio || sale.id.substring(0, 8).toUpperCase()}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#475569' }}>
+                    <td data-label="Fecha" style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#475569' }}>
                       {new Date(sale.createdAt).toLocaleDateString()} {new Date(sale.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 'bold', color: '#0f172a' }}>
-                      ${sale.total.toFixed(2)}
+                    <td data-label="Monto" style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 'bold', color: '#0f172a' }}>
+                      {formatCurrency(sale.total)}
                     </td>
                   </tr>
                 ))}

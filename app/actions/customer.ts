@@ -5,6 +5,14 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getActiveBranch } from './auth';
 
+import { 
+  getOrCreateGenericCustomer, 
+  isGenericCustomer, 
+  isGenericCustomerName, 
+  GENERIC_CUSTOMER_RFC, 
+  GENERIC_CUSTOMER_NAME 
+} from '@/lib/genericCustomer';
+
 function cleanTaxId(taxId: string | null | undefined): string | null {
   if (!taxId) return null;
   const cleaned = taxId.toUpperCase().replace(/[\s-]/g, '').trim();
@@ -14,8 +22,18 @@ function cleanTaxId(taxId: string | null | undefined): string | null {
 async function validateUniqueTaxId(cleanedTaxId: string | null, excludeCustomerId?: string) {
   if (!cleanedTaxId) return;
   
-  const GENERIC_RFCS = ['XAXX010101000', 'XEXX010101000'];
-  if (GENERIC_RFCS.includes(cleanedTaxId)) return;
+  if (cleanedTaxId === GENERIC_CUSTOMER_RFC) {
+    const existingGeneric = await prisma.customer.findFirst({
+      where: {
+        taxId: GENERIC_CUSTOMER_RFC,
+        ...(excludeCustomerId ? { id: { not: excludeCustomerId } } : {})
+      }
+    });
+    if (existingGeneric) {
+      throw new Error(`Ya existe un registro genérico de Público en General con RFC ${GENERIC_CUSTOMER_RFC}. No se permite crear duplicados.`);
+    }
+    return;
+  }
 
   const existing = await prisma.customer.findFirst({
     where: {
@@ -87,17 +105,21 @@ export async function createCustomerAction(payload: CustomerCreatePayload | Form
     }
 
     const cleanedTaxId = cleanTaxId(data.taxId);
+
+    // If attempting to create Public in General, return/reuse the unified canonical record
+    if (isGenericCustomerName(name) || cleanedTaxId === GENERIC_CUSTOMER_RFC) {
+      const genericCust = await getOrCreateGenericCustomer(prisma);
+      return { success: true, customer: JSON.parse(JSON.stringify(genericCust)) };
+    }
+
     if (cleanedTaxId) {
-      const GENERIC_RFCS = ['XAXX010101000', 'XEXX010101000'];
-      if (!GENERIC_RFCS.includes(cleanedTaxId)) {
-        const existing = await prisma.customer.findFirst({
-          where: {
-            taxId: { equals: cleanedTaxId, mode: 'insensitive' }
-          }
-        });
-        if (existing) {
-          return { error: `Ya existe un cliente registrado con el RFC ${cleanedTaxId} (${existing.name}).` };
+      const existing = await prisma.customer.findFirst({
+        where: {
+          taxId: { equals: cleanedTaxId, mode: 'insensitive' }
         }
+      });
+      if (existing) {
+        return { error: `Ya existe un cliente registrado con el RFC ${cleanedTaxId} (${existing.name}).` };
       }
     }
 
@@ -175,9 +197,7 @@ export async function updateCustomerAction(id: string, payload: CustomerUpdatePa
       return { error: "Cliente no encontrado." };
     }
 
-    const isGenericPublic = 
-      customer.name.toLowerCase().includes('publico') && 
-      customer.name.toLowerCase().includes('general');
+    const isGenericPublic = isGenericCustomer(customer);
 
     if (isGenericPublic) {
       return { error: "No se permite modificar el cliente genérico de Público en General." };
@@ -215,18 +235,20 @@ export async function updateCustomerAction(id: string, payload: CustomerUpdatePa
     }
 
     const cleanedTaxId = cleanTaxId(data.taxId);
+
+    if (isGenericCustomerName(name) || cleanedTaxId === GENERIC_CUSTOMER_RFC) {
+      return { error: "No se puede renombrar ni asignar el RFC genérico de Público en General a otro cliente." };
+    }
+
     if (cleanedTaxId) {
-      const GENERIC_RFCS = ['XAXX010101000', 'XEXX010101000'];
-      if (!GENERIC_RFCS.includes(cleanedTaxId)) {
-        const existing = await prisma.customer.findFirst({
-          where: {
-            taxId: { equals: cleanedTaxId, mode: 'insensitive' },
-            id: { not: id }
-          }
-        });
-        if (existing) {
-          return { error: `Ya existe otro cliente registrado con el RFC ${cleanedTaxId} (${existing.name}).` };
+      const existing = await prisma.customer.findFirst({
+        where: {
+          taxId: { equals: cleanedTaxId, mode: 'insensitive' },
+          id: { not: id }
         }
+      });
+      if (existing) {
+        return { error: `Ya existe otro cliente registrado con el RFC ${cleanedTaxId} (${existing.name}).` };
       }
     }
 
@@ -302,6 +324,12 @@ export async function createCustomerPOS(data: {
   }
 
   const taxId = cleanTaxId(data.taxId);
+  if (isGenericCustomerName(data.name) || taxId === GENERIC_CUSTOMER_RFC) {
+    const genericCust = await getOrCreateGenericCustomer(prisma);
+    revalidatePath('/ventas/nueva');
+    return genericCust;
+  }
+
   await validateUniqueTaxId(taxId);
 
   const customer = await prisma.customer.create({
@@ -338,6 +366,12 @@ export async function createCustomerBilling(data: {
   }
 
   const taxId = cleanTaxId(data.taxId);
+  if (isGenericCustomerName(data.name) || taxId === GENERIC_CUSTOMER_RFC) {
+    const genericCust = await getOrCreateGenericCustomer(prisma);
+    revalidatePath('/facturas/ventas');
+    return genericCust;
+  }
+
   await validateUniqueTaxId(taxId);
 
   const customer = await prisma.customer.create({

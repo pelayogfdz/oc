@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2, Save, Search, Plus, Minus, ShoppingBag, Edit3, X, ArrowRight, AlertTriangle, FileText, CheckCircle2, Clock } from 'lucide-react';
 import { updatePurchaseOrder, deletePurchaseOrder } from '@/app/actions/pedidos';
+import { formatCurrency } from '@/lib/utils';
 
 export default function EditarPedidoForm({ 
   order, 
@@ -254,7 +255,7 @@ export default function EditarPedidoForm({
                         </div>
                       ) : (
                         <div style={{ fontSize: '0.95rem', color: '#334155', textAlign: 'right', minWidth: '80px' }}>
-                          Costo: <strong>${item.cost.toFixed(2)}</strong>
+                          Costo: <strong>{formatCurrency(item.cost)}</strong>
                         </div>
                       )}
                     </div>
@@ -264,7 +265,7 @@ export default function EditarPedidoForm({
                       <div style={{ textAlign: 'right' }}>
                         <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block' }}>Subtotal</span>
                         <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.95rem' }}>
-                          ${(item.quantity * item.cost).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                          {formatCurrency(item.quantity * item.cost)}
                         </span>
                       </div>
                       
@@ -517,7 +518,7 @@ export default function EditarPedidoForm({
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#1e293b' }}>${p.cost.toFixed(2)}</span>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#1e293b' }}>{formatCurrency(p.cost)}</span>
                         {inCart ? (
                           <span style={{ fontSize: '0.75rem', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 'bold' }}>Agregado</span>
                         ) : (

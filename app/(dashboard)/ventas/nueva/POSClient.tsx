@@ -15,6 +15,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import ProductTableUI from '@/app/components/ProductTableUI';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
+import { formatCurrency } from '@/lib/utils';
 export default function POSClient({ 
   products: initialProducts, 
   customers, 
@@ -219,8 +220,12 @@ export default function POSClient({
     let defaultCustName = '';
     if (activeCustomers.length > 0) {
       const defaultCustomer = activeCustomers.find(c => 
+        c.taxId === 'XAXX010101000' ||
+        c.name.toUpperCase() === 'PUBLICO EN GENERAL' ||
         c.name.toLowerCase().includes('público en general') || 
-        c.name.toLowerCase().includes('publico en general')
+        c.name.toLowerCase().includes('publico en general') ||
+        c.name.toLowerCase().includes('público general') ||
+        c.name.toLowerCase().includes('publico general')
       );
       if (defaultCustomer) {
         defaultCustId = defaultCustomer.id;
@@ -372,8 +377,12 @@ export default function POSClient({
     let defaultCustName = '';
     if (activeCustomers.length > 0) {
       const defaultCustomer = activeCustomers.find(c => 
+        c.taxId === 'XAXX010101000' ||
+        c.name.toUpperCase() === 'PUBLICO EN GENERAL' ||
         c.name.toLowerCase().includes('público en general') || 
-        c.name.toLowerCase().includes('publico en general')
+        c.name.toLowerCase().includes('publico en general') ||
+        c.name.toLowerCase().includes('público general') ||
+        c.name.toLowerCase().includes('publico general')
       );
       if (defaultCustomer) {
         defaultCustId = defaultCustomer.id;
@@ -746,12 +755,12 @@ export default function POSClient({
   useEffect(() => {
     if (!hasDefaultedCustomer && !selectedCustomerId && activeCustomers.length > 0) {
       const defaultCustomer = activeCustomers.find(c => 
-        (c.name.toLowerCase().includes('público en general') || 
-         c.name.toLowerCase().includes('publico en general')) &&
-        (c.branchId === branchId)
-      ) || activeCustomers.find(c => 
+        c.taxId === 'XAXX010101000' ||
+        c.name.toUpperCase() === 'PUBLICO EN GENERAL' ||
         c.name.toLowerCase().includes('público en general') || 
-        c.name.toLowerCase().includes('publico en general')
+        c.name.toLowerCase().includes('publico en general') ||
+        c.name.toLowerCase().includes('público general') ||
+        c.name.toLowerCase().includes('publico general')
       );
       if (defaultCustomer) {
         setSelectedCustomerId(defaultCustomer.id);
@@ -885,7 +894,13 @@ export default function POSClient({
   const selectedCust = activeCustomers.find((c: any) => c.id === selectedCustomerId);
   let allowedMethods = [...customMethods];
   const isCreditEnabled = metodosConfig?.enabledIds ? metodosConfig.enabledIds.includes('CREDIT') : true;
-  const isDefaultCust = !selectedCust || selectedCust.name.toLowerCase().includes('público en general') || selectedCust.name.toLowerCase().includes('publico en general');
+  const isDefaultCust = !selectedCust || 
+    selectedCust.taxId === 'XAXX010101000' ||
+    selectedCust.name.toUpperCase() === 'PUBLICO EN GENERAL' ||
+    selectedCust.name.toLowerCase().includes('público en general') || 
+    selectedCust.name.toLowerCase().includes('publico en general') ||
+    selectedCust.name.toLowerCase().includes('público general') ||
+    selectedCust.name.toLowerCase().includes('publico general');
   
   const hasCredit = selectedCust && (selectedCust.creditLimit > 0 || selectedCust.creditDays > 0) && !selectedCust.isBlocked;
   if (isCreditEnabled && selectedCust && !isDefaultCust && hasCredit) {
@@ -1483,17 +1498,17 @@ export default function POSClient({
         if (!isOnline && searchTerm.trim() !== '') {
            const { searchOfflineProducts } = await import('@/lib/offlineSearch');
            const results = await searchOfflineProducts(searchTerm, branchId, { limit: 50 });
-           setDisplayedProducts(results);
+           setDisplayedProducts(results || []);
         } else if (searchTerm.trim() !== '') {
            const results = await searchProducts(searchTerm, branchId);
-           setDisplayedProducts(results);
+           setDisplayedProducts(results || []);
         } else {
            if (isOnline) {
              setDisplayedProducts(initialProducts);
            } else {
              const { searchOfflineProducts } = await import('@/lib/offlineSearch');
              const results = await searchOfflineProducts('', branchId, { limit: 50 });
-             if (results.length) setDisplayedProducts(results);
+             setDisplayedProducts(results && results.length > 0 ? results : initialProducts);
            }
         }
       } catch (e) {
@@ -1501,7 +1516,7 @@ export default function POSClient({
       } finally {
         setIsSearching(false);
       }
-    }, 300);
+    }, 200);
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm, branchId, isOnline, initialProducts]);
@@ -2179,7 +2194,7 @@ export default function POSClient({
             </div>
             ${cartItems.map(item => {
               const itemDisc = itemDiscountsMap[item.cartItemId] || 0;
-              const discLabel = itemDisc > 0 ? `<div style="font-size: 0.85em; color: #555; padding-left: 25px; margin-top: -2px; margin-bottom: 4px;">* Promo desc: -$${itemDisc.toFixed(2)}</div>` : '';
+              const discLabel = itemDisc > 0 ? `<div style="font-size: 0.85em; color: #555; padding-left: 25px; margin-top: -2px; margin-bottom: 4px;">* Promo desc: -${formatCurrency(itemDisc)}</div>` : '';
               const basePrice = getProductPrice(item);
               const displayedPrice = (breakdownDiscounts) 
                 ? basePrice 
@@ -2188,7 +2203,7 @@ export default function POSClient({
                 <div class="item-row">
                   <span class="col-cant">${item.quantity}</span>
                   <span class="col-desc">${item.name}</span>
-                  <span class="col-price">$${(displayedPrice * item.quantity).toFixed(2)}</span>
+                  <span class="col-price">${formatCurrency(displayedPrice * item.quantity)}</span>
                 </div>
                 ${discLabel}
               `;
@@ -2196,17 +2211,17 @@ export default function POSClient({
           </div>
           <div class="t-divider"></div>
           <div class="totals">
-            ${effectiveDiscount > 0 ? `<div class="total-row"><span>Subtotal bruto:</span><span>$${(tTotal + effectiveDiscount).toFixed(2)}</span></div>
-            <div class="total-row" style="color: red;"><span>Descuento:</span><span>-$${effectiveDiscount.toFixed(2)}</span></div>` : ''}
-            <div class="total-row" style="font-weight: normal; font-size: ${is58 ? '9px' : '11px'}; border-top: 1px dotted #000; padding-top: 4px; margin-top: 4px;"><span>Subtotal Base:</span><span>$${ticketBaseSubtotal.toFixed(2)}</span></div>
-            ${ticketIva > 0 ? `<div class="total-row" style="font-weight: normal; font-size: ${is58 ? '9px' : '11px'};"><span>IVA Desglosado:</span><span>$${ticketIva.toFixed(2)}</span></div>` : ''}
-            ${ticketIeps > 0 ? `<div class="total-row" style="font-weight: normal; font-size: ${is58 ? '9px' : '11px'};"><span>IEPS Desglosado:</span><span>$${ticketIeps.toFixed(2)}</span></div>` : ''}
-            ${ticketExento > 0 ? `<div class="total-row" style="font-weight: normal; font-size: ${is58 ? '9px' : '11px'};"><span>Sin Impuestos:</span><span>$${ticketExento.toFixed(2)}</span></div>` : ''}
-            ${tipAmount > 0 ? `<div class="total-row"><span>Propina:</span><span>+$${tipAmount.toFixed(2)}</span></div>` : ''}
-            <div class="total-row" style="font-size: 16px; border-top: 1px solid #000; padding-top: 4px; margin-top: 4px;"><span>TOTAL:</span><span>$${(tTotal + tipAmount).toFixed(2)}</span></div>
+            ${effectiveDiscount > 0 ? `<div class="total-row"><span>Subtotal bruto:</span><span>${formatCurrency(tTotal + effectiveDiscount)}</span></div>
+            <div class="total-row" style="color: red;"><span>Descuento:</span><span>-${formatCurrency(effectiveDiscount)}</span></div>` : ''}
+            <div class="total-row" style="font-weight: normal; font-size: ${is58 ? '9px' : '11px'}; border-top: 1px dotted #000; padding-top: 4px; margin-top: 4px;"><span>Subtotal Base:</span><span>${formatCurrency(ticketBaseSubtotal)}</span></div>
+            ${ticketIva > 0 ? `<div class="total-row" style="font-weight: normal; font-size: ${is58 ? '9px' : '11px'};"><span>IVA Desglosado:</span><span>${formatCurrency(ticketIva)}</span></div>` : ''}
+            ${ticketIeps > 0 ? `<div class="total-row" style="font-weight: normal; font-size: ${is58 ? '9px' : '11px'};"><span>IEPS Desglosado:</span><span>${formatCurrency(ticketIeps)}</span></div>` : ''}
+            ${ticketExento > 0 ? `<div class="total-row" style="font-weight: normal; font-size: ${is58 ? '9px' : '11px'};"><span>Sin Impuestos:</span><span>${formatCurrency(ticketExento)}</span></div>` : ''}
+            ${tipAmount > 0 ? `<div class="total-row"><span>Propina:</span><span>+${formatCurrency(tipAmount)}</span></div>` : ''}
+            <div class="total-row" style="font-size: 16px; border-top: 1px solid #000; padding-top: 4px; margin-top: 4px;"><span>TOTAL:</span><span>${formatCurrency(tTotal + tipAmount)}</span></div>
             ${tChange > 0 && typeof amountReceived === 'number' ? `
-            <div class="total-row"><span>Recibido:</span><span>$${amountReceived.toFixed(2)}</span></div>
-            <div class="total-row"><span>Cambio:</span><span>$${tChange.toFixed(2)}</span></div>
+            <div class="total-row"><span>Recibido:</span><span>${formatCurrency(amountReceived)}</span></div>
+            <div class="total-row"><span>Cambio:</span><span>${formatCurrency(tChange)}</span></div>
             ` : ''}
           </div>
           ${ticketConfig.footerMsg ? `
@@ -3639,7 +3654,7 @@ export default function POSClient({
                             ) : (
                               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                 <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b' }}>
-                                  ${priceWithIva.toFixed(2)}
+                                  {formatCurrency(priceWithIva)}
                                 </span>
                               </div>
                             )}
@@ -3657,11 +3672,11 @@ export default function POSClient({
                               width: 'fit-content',
                               marginTop: '0.15rem' 
                             }}>
-                              <span>Subtotal (sin IVA): <strong>${(priceBeforeIva * item.quantity).toFixed(2)}</strong></span>
+                              <span>Subtotal (sin IVA): <strong>{formatCurrency(priceBeforeIva * item.quantity)}</strong></span>
                               <span style={{ color: '#cbd5e1' }}>|</span>
-                              <span>IVA ({taxRate}%): <strong>${(ivaAmount * item.quantity).toFixed(2)}</strong></span>
+                              <span>IVA ({taxRate}%): <strong>{formatCurrency(ivaAmount * item.quantity)}</strong></span>
                               <span style={{ color: '#cbd5e1' }}>|</span>
-                              <span>Total: <strong style={{ color: '#0f172a' }}>${(priceWithIva * item.quantity).toFixed(2)}</strong></span>
+                              <span>Total: <strong style={{ color: '#0f172a' }}>{formatCurrency(priceWithIva * item.quantity)}</strong></span>
                             </div>
                           </div>
                         );
@@ -3701,10 +3716,10 @@ export default function POSClient({
                             </div>
                           ) : (
                             <div className="pos-cart-item-price">
-                              ${((breakdownDiscounts) 
+                              {formatCurrency((breakdownDiscounts) 
                                 ? itemPrice 
                                 : (itemPrice - (itemDiscounts[item.cartItemId] || 0) / item.quantity)
-                              ).toFixed(2)}
+                              )}
                             </div>
                           )}
                         </>
@@ -3712,7 +3727,7 @@ export default function POSClient({
                       {(breakdownDiscounts) && itemDiscounts[item.cartItemId] > 0 && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#db2777', fontSize: '0.8rem', fontWeight: 'bold', marginTop: '0.25rem' }}>
                           <Percent size={14} />
-                          <span>Promoción: -${itemDiscounts[item.cartItemId].toFixed(2)}</span>
+                          <span>Promoción: -{formatCurrency(itemDiscounts[item.cartItemId])}</span>
                         </div>
                       )}
                       {mode === 'QUOTE' && (() => {
@@ -3727,7 +3742,7 @@ export default function POSClient({
                         return (
                           <div style={{ display: 'flex', gap: '0.4rem', fontSize: '0.75rem', marginTop: '0.35rem', color: '#64748b', flexWrap: 'wrap', alignItems: 'center' }}>
                             <span style={{ backgroundColor: '#f1f5f9', padding: '0.15rem 0.35rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
-                              Compra (prom.): <strong>${purchasePrice.toFixed(2)} sin IVA</strong> (${purchasePriceConIva.toFixed(2)} con IVA)
+                              Compra (prom.): <strong>{formatCurrency(purchasePrice)} sin IVA</strong> ({formatCurrency(purchasePriceConIva)} con IVA)
                             </span>
                             <span style={{ 
                               backgroundColor: marginPercent >= 0 ? '#dcfce7' : '#fee2e2', 
@@ -3740,7 +3755,7 @@ export default function POSClient({
                               Margen (sin IVA): <strong>{marginPercent.toFixed(1)}%</strong>
                             </span>
                             <span style={{ backgroundColor: '#f1f5f9', padding: '0.15rem 0.35rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
-                              Venta (sin IVA): <strong>${priceBeforeIva.toFixed(2)}</strong>
+                              Venta (sin IVA): <strong>{formatCurrency(priceBeforeIva)}</strong>
                             </span>
                           </div>
                         );
@@ -3775,14 +3790,14 @@ export default function POSClient({
                       {(breakdownDiscounts) && itemDiscounts[item.cartItemId] > 0 ? (
                         <>
                           <span style={{ fontSize: '0.8rem', color: '#94a3b8', textDecoration: 'line-through' }}>
-                            ${itemSubtotal.toFixed(2)}
+                            {formatCurrency(itemSubtotal)}
                           </span>
                           <span style={{ color: '#db2777', fontWeight: 'bold' }}>
-                            ${(itemSubtotal - itemDiscounts[item.cartItemId]).toFixed(2)}
+                            {formatCurrency(itemSubtotal - itemDiscounts[item.cartItemId])}
                           </span>
                         </>
                       ) : (
-                        `$${(itemSubtotal - itemDiscounts[item.cartItemId]).toFixed(2)}`
+                        formatCurrency(itemSubtotal - itemDiscounts[item.cartItemId])
                       )}
                     </div>
 
@@ -3884,7 +3899,7 @@ export default function POSClient({
             
             <div className="pos-subtotal-row">
               <span>Subtotal ({cart.reduce((s, i) => s + i.quantity, 0)} artículos)</span>
-              <span className="pos-subtotal-value">${((breakdownDiscounts) ? subTotal : (subTotal - discount)).toFixed(2)}</span>
+              <span className="pos-subtotal-value">{formatCurrency((breakdownDiscounts) ? subTotal : (subTotal - discount))}</span>
             </div>
 
             {mode === 'QUOTE' && cart.length > 0 && (() => {
@@ -3894,7 +3909,7 @@ export default function POSClient({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9', padding: '0.75rem 0', margin: '0.5rem 0' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#475569' }}>
                     <span>Costo de Compra Total (prom.):</span>
-                    <strong>${totalPurchaseCost.toFixed(2)}</strong>
+                    <strong>{formatCurrency(totalPurchaseCost)}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#475569' }}>
                     <span>Margen Total:</span>
@@ -3910,7 +3925,7 @@ export default function POSClient({
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#475569' }}>
                     <span>Venta Total:</span>
-                    <strong>${total.toFixed(2)}</strong>
+                    <strong>{formatCurrency(total)}</strong>
                   </div>
                 </div>
               );
@@ -3919,7 +3934,7 @@ export default function POSClient({
             {(breakdownDiscounts) && discount > 0 && (
               <div className="pos-subtotal-row" style={{ color: '#16a34a', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
                 <span>Descuento aplicado</span>
-                <span>-${discount.toFixed(2)}</span>
+                <span>-{formatCurrency(discount)}</span>
               </div>
             )}
 
@@ -3961,9 +3976,9 @@ export default function POSClient({
               className="pos-checkout-btn"
             >
               {isProcessing ? 'Procesando...' : (
-                mode === 'QUOTE' ? `Guardar Cotización $${total.toFixed(2)}` : 
-                mode === 'CONSIGNMENT' ? `Crear Consignación $${total.toFixed(2)}` :
-                transactionType === 'PEDIDO' ? `Guardar Pedido $${total.toFixed(2)}` : `Cobrar $${total.toFixed(2)}`
+                mode === 'QUOTE' ? `Guardar Cotización ${formatCurrency(total)}` : 
+                mode === 'CONSIGNMENT' ? `Crear Consignación ${formatCurrency(total)}` :
+                transactionType === 'PEDIDO' ? `Guardar Pedido ${formatCurrency(total)}` : `Cobrar ${formatCurrency(total)}`
               )}
             </button>
 
@@ -4042,7 +4057,7 @@ export default function POSClient({
                         textOverflow: 'ellipsis'
                       }}
                     >
-                      {ticket.name} (${ticket.total.toFixed(2)})
+                      {ticket.name} ({formatCurrency(ticket.total)})
                     </button>
                     <button 
                       type="button" 
@@ -4327,7 +4342,7 @@ export default function POSClient({
             
             <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
               <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>{mode === 'QUOTE' ? 'Total Presupuestado' : mode === 'CONSIGNMENT' ? 'Total Consignado' : 'Total a Pagar'}</div>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>${finalTotalWithTip.toFixed(2)}</div>
+              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>{formatCurrency(finalTotalWithTip)}</div>
             </div>
 
             {/* Monedero Electrónico */}
@@ -4343,7 +4358,7 @@ export default function POSClient({
                 </div>
                 <div style={{ fontSize: '0.85rem', color: '#1e3a8a', display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                   <span>Equivalencia en Pesos:</span>
-                  <strong>${(selectedCust.pointsBalance * (loyaltySettings.pointValueInPesos || 1.0)).toFixed(2)} MXN</strong>
+                  <strong>{formatCurrency(selectedCust.pointsBalance * (loyaltySettings.pointValueInPesos || 1.0))} MXN</strong>
                 </div>
 
                 <div style={{ marginTop: '0.5rem', borderTop: '1px dashed #bfdbfe', paddingTop: '0.5rem' }}>
@@ -4352,8 +4367,8 @@ export default function POSClient({
                   </label>
                   <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                     <input 
-                      type="number"
-                      min="0"
+                      type="number" 
+                      min="0" 
                       max={Math.min(selectedCust.pointsBalance, Math.floor((total + tipAmount) / (loyaltySettings.pointValueInPesos || 1.0)))}
                       value={pointsRedeemed || ''}
                       onChange={e => {
@@ -4365,7 +4380,7 @@ export default function POSClient({
                       style={{ flex: 1, padding: '0.4rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #bfdbfe', outline: 'none' }}
                     />
                     <button 
-                      type="button"
+                      type="button" 
                       onClick={() => {
                         const maxVal = Math.min(selectedCust.pointsBalance, Math.floor((total + tipAmount) / (loyaltySettings.pointValueInPesos || 1.0)));
                         setPointsRedeemed(maxVal);
@@ -4378,7 +4393,7 @@ export default function POSClient({
                   {pointsRedeemed > 0 && (
                     <div style={{ fontSize: '0.8rem', color: '#16a34a', marginTop: '0.4rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
                       <span>Descuento aplicado:</span>
-                      <span>-${(pointsRedeemed * (loyaltySettings.pointValueInPesos || 1.0)).toFixed(2)} MXN</span>
+                      <span>-{formatCurrency(pointsRedeemed * (loyaltySettings.pointValueInPesos || 1.0))} MXN</span>
                     </div>
                   )}
                 </div>
@@ -4392,12 +4407,12 @@ export default function POSClient({
                    {[10, 15, 20].map(pct => {
                      const amt = total * (pct / 100);
                      return (
-                       <button
+                       <button 
                          key={pct}
                          onClick={() => setTipAmount(tipAmount === amt ? 0 : amt)}
                          style={{ flex: 1, padding: '0.4rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid', borderColor: tipAmount === amt ? '#10b981' : 'var(--caanma-border)', backgroundColor: tipAmount === amt ? '#d1fae5' : 'white', cursor: 'pointer', fontWeight: tipAmount === amt ? 'bold' : 'normal' }}
                        >
-                         {pct}% (${amt.toFixed(2)})
+                         {pct}% ({formatCurrency(amt)})
                        </button>
                      );
                    })}
@@ -4446,7 +4461,7 @@ export default function POSClient({
                 ) : (
                   <>
                     <div style={{ color: '#d97706', fontSize: '0.9rem' }}>
-                      Límite disp.: ${ (selectedCust.creditLimit - (selectedCust.creditBalance || 0)).toFixed(2) } | Días máx.: {selectedCust.creditDays}
+                      Límite disp.: {formatCurrency(selectedCust.creditLimit - (selectedCust.creditBalance || 0))} | Días máx.: {selectedCust.creditDays}
                     </div>
                     {total > (selectedCust.creditLimit - (selectedCust.creditBalance || 0)) && (
                       <div style={{ marginTop: '0.4rem', color: 'red', fontWeight: 'bold', fontSize: '0.9rem' }}>
@@ -4466,12 +4481,12 @@ export default function POSClient({
                   autoFocus
                   value={amountReceived}
                   onChange={e => setAmountReceived(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                  placeholder={`Mínimo $${finalTotalWithTip.toFixed(2)}`}
+                  placeholder={`Mínimo ${formatCurrency(finalTotalWithTip)}`}
                   style={{ width: '100%', padding: '0.75rem', fontSize: '1.1rem', borderRadius: '4px', border: '1px solid var(--caanma-border)', textAlign: 'right' }}
                 />
                 {(typeof amountReceived === 'number' && amountReceived >= finalTotalWithTip) && (
                   <div style={{ marginTop: '0.4rem', textAlign: 'right', fontSize: '0.95rem', color: '#16a34a', fontWeight: 'bold' }}>
-                    Cambio a entregar: ${change.toFixed(2)}
+                    Cambio a entregar: {formatCurrency(change)}
                   </div>
                 )}
               </div>
@@ -5181,7 +5196,7 @@ export default function POSClient({
                           </div>
                         </div>
                         <div style={{ fontWeight: 'bold', color: 'var(--caanma-primary)', fontSize: '1.05rem' }}>
-                          ${quote.total.toFixed(2)}
+                          {formatCurrency(quote.total)}
                         </div>
                      </button>
                    );
@@ -5269,7 +5284,7 @@ export default function POSClient({
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem' }}>
                       <div style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>
-                        ${vPrice.toFixed(2)}
+                        {formatCurrency(vPrice)}
                       </div>
                       <div style={{ fontSize: '0.875rem', fontWeight: '600', color: v.stock > 0 ? '#16a34a' : '#dc2626' }}>
                         {v.stock} disp.
@@ -5726,7 +5741,7 @@ export default function POSClient({
                           Creado: {ticket.timestamp}
                         </div>
                         <div style={{ fontSize: '0.85rem', color: 'var(--caanma-primary)', fontWeight: '500', marginTop: '0.25rem' }}>
-                          {ticket.cart.length} art. | Total: ${ticket.total.toFixed(2)}
+                          {ticket.cart.length} art. | Total: {formatCurrency(ticket.total)}
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -5747,7 +5762,7 @@ export default function POSClient({
                           Cargar
                         </button>
                         <button 
-                          type="button"
+                          type="button" 
                           onClick={() => handleDeleteOnHold(ticket.id)}
                           style={{
                             padding: '0.5rem',
@@ -5884,7 +5899,7 @@ export default function POSClient({
                           return (
                             <div style={{ display: 'flex', gap: '0.35rem', fontSize: '0.7rem', marginTop: '0.25rem', color: '#64748b', flexWrap: 'wrap', alignItems: 'center' }}>
                               <span style={{ backgroundColor: '#f1f5f9', padding: '0.1rem 0.25rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
-                                Compra: <strong>${purchasePrice.toFixed(2)} sin IVA</strong> (${purchasePriceConIva.toFixed(2)} con IVA)
+                                Compra: <strong>{formatCurrency(purchasePrice)} sin IVA</strong> ({formatCurrency(purchasePriceConIva)} con IVA)
                               </span>
                               <span style={{ 
                                 backgroundColor: marginPercent >= 0 ? '#dcfce7' : '#fee2e2', 
@@ -5897,7 +5912,7 @@ export default function POSClient({
                                 Margen (sin IVA): <strong>{marginPercent.toFixed(1)}%</strong>
                               </span>
                               <span style={{ backgroundColor: '#f1f5f9', padding: '0.1rem 0.25rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
-                                Venta (sin IVA): <strong>${priceBeforeIva.toFixed(2)}</strong>
+                                Venta (sin IVA): <strong>{formatCurrency(priceBeforeIva)}</strong>
                               </span>
                             </div>
                           );
@@ -5908,7 +5923,7 @@ export default function POSClient({
                           <span style={{ fontSize: '0.75rem', backgroundColor: '#fce7f3', color: '#db2777', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>Promoción</span>
                         )}
                         <div style={{ fontWeight: 'bold', color: '#8b5cf6', fontSize: '1rem' }}>
-                          ${pPrice.toFixed(2)}
+                          {formatCurrency(pPrice)}
                         </div>
                         {inCart && (
                           <span style={{ fontSize: '0.75rem', backgroundColor: '#e9d5ff', color: '#6b21a8', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>En Ticket</span>

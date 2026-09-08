@@ -6,6 +6,7 @@ import { Trash2, Save, Wand2, Search, Filter, Plus, Minus, FileText, CheckCircle
 import { createPurchaseOrder } from '@/app/actions/pedidos';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
+import { formatCurrency } from '@/lib/utils';
 
 export default function CrearPedidoForm({ 
   suppliers, 
@@ -1159,7 +1160,7 @@ export default function CrearPedidoForm({
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <div style={{ fontWeight: 'bold', color: '#8b5cf6', fontSize: '1rem' }}>
-                          Costo: ${p.cost ? p.cost.toFixed(2) : '0.00'}
+                          Costo: {formatCurrency(p.cost || 0)}
                         </div>
                         {inCart && (
                           <span style={{ fontSize: '0.75rem', backgroundColor: '#e9d5ff', color: '#6b21a8', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>Agregado</span>

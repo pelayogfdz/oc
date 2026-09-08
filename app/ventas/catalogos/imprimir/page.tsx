@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/session';
 import PrintControls from './PrintControls';
+import { formatCurrency } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -888,14 +889,14 @@ export default async function PrintCatalogPage({ searchParams }: PrintPageProps)
                             <div className="price-box">
                               {hasPromo ? (
                                 <>
-                                  <span className="price-old">${(product.price ?? 0).toFixed(2)}</span>
+                                  <span className="price-old">{formatCurrency(product.price ?? 0)}</span>
                                   <span className="price-promo">
-                                    ${(product.specialPrice ?? 0).toFixed(2)}
+                                    {formatCurrency(product.specialPrice ?? 0)}
                                     <span className="promo-badge">OFERTA</span>
                                   </span>
                                 </>
                               ) : (
-                                <span className="price-regular">${(product.price ?? 0).toFixed(2)}</span>
+                                <span className="price-regular">{formatCurrency(product.price ?? 0)}</span>
                               )}
                             </div>
                           </div>

@@ -17,6 +17,7 @@ import {
   Mail 
 } from 'lucide-react';
 import { sendCreditNoteEmailAction } from '@/app/actions/creditNote';
+import { formatCurrency } from '@/lib/utils';
 
 export default function NotasCreditoClient({ initialCreditNotes }: { initialCreditNotes: any[] }) {
   const [creditNotes, setCreditNotes] = useState<any[]>(initialCreditNotes);
@@ -179,7 +180,7 @@ export default function NotasCreditoClient({ initialCreditNotes }: { initialCred
       {/* Table */}
       <div style={{ backgroundColor: 'white', borderRadius: '10px', border: '1px solid var(--caanma-border)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
             <thead>
               <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 <th style={{ padding: '0.85rem 1rem' }}>Folio / UUID</th>
@@ -208,7 +209,7 @@ export default function NotasCreditoClient({ initialCreditNotes }: { initialCred
 
                   return (
                     <tr key={note.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.15s' }}>
-                      <td style={{ padding: '0.85rem 1rem' }}>
+                      <td data-label="Folio / UUID" style={{ padding: '0.85rem 1rem' }}>
                         {isTimbrada ? (
                           <div>
                             <span style={{ fontWeight: 'bold', color: '#0f172a', display: 'block' }}>
@@ -230,7 +231,7 @@ export default function NotasCreditoClient({ initialCreditNotes }: { initialCred
                         )}
                       </td>
 
-                      <td style={{ padding: '0.85rem 1rem' }}>
+                      <td data-label="Venta Afectada" style={{ padding: '0.85rem 1rem' }}>
                         <Link
                           href={`/ventas/detalle/${note.saleId}`}
                           style={{
@@ -247,7 +248,7 @@ export default function NotasCreditoClient({ initialCreditNotes }: { initialCred
                         </Link>
                       </td>
 
-                      <td style={{ padding: '0.85rem 1rem' }}>
+                      <td data-label="Cliente" style={{ padding: '0.85rem 1rem' }}>
                         <div style={{ fontWeight: '500', color: '#0f172a' }}>
                           {note.sale?.customer?.legalName || note.sale?.customer?.name || 'Público en General'}
                         </div>
@@ -256,7 +257,7 @@ export default function NotasCreditoClient({ initialCreditNotes }: { initialCred
                         </span>
                       </td>
 
-                      <td style={{ padding: '0.85rem 1rem', color: '#475569', fontSize: '0.85rem' }}>
+                      <td data-label="Fecha" style={{ padding: '0.85rem 1rem', color: '#475569', fontSize: '0.85rem' }}>
                         {new Date(note.createdAt).toLocaleDateString('es-MX', {
                           day: '2-digit',
                           month: 'short',
@@ -266,7 +267,7 @@ export default function NotasCreditoClient({ initialCreditNotes }: { initialCred
                         })}
                       </td>
 
-                      <td style={{ padding: '0.85rem 1rem' }}>
+                      <td data-label="Modalidad" style={{ padding: '0.85rem 1rem' }}>
                         <span
                           style={{
                             display: 'inline-block',
@@ -283,11 +284,11 @@ export default function NotasCreditoClient({ initialCreditNotes }: { initialCred
                         </span>
                       </td>
 
-                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right', fontWeight: 'bold', color: '#ef4444' }}>
-                        ${note.totalRefund.toFixed(2)}
+                      <td data-label="Total" style={{ padding: '0.85rem 1rem', textAlign: 'right', fontWeight: 'bold', color: '#ef4444' }}>
+                        {formatCurrency(note.totalRefund)}
                       </td>
 
-                      <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
+                      <td data-label="Estado" style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
                         {isTimbrada ? (
                           <span
                             style={{
@@ -325,8 +326,8 @@ export default function NotasCreditoClient({ initialCreditNotes }: { initialCred
                         )}
                       </td>
 
-                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', gap: '0.4rem' }}>
+                      <td data-label="Acciones" style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                           {pdfUrl && (
                             <a
                               href={pdfUrl}
@@ -430,7 +431,7 @@ export default function NotasCreditoClient({ initialCreditNotes }: { initialCred
             </div>
 
             <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '1.25rem' }}>
-              Se enviará el comprobante de Nota de Crédito por <strong>${selectedNote.totalRefund.toFixed(2)} MXN</strong> con los archivos PDF y XML adjuntos.
+              Se enviará el comprobante de Nota de Crédito por <strong>{formatCurrency(selectedNote.totalRefund)}</strong> con los archivos PDF y XML adjuntos.
             </p>
 
             <div style={{ marginBottom: '1.25rem' }}>

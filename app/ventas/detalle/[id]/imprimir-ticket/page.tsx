@@ -4,6 +4,7 @@ import { resolveClientForSale } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import PrintActions from "@/app/components/PrintActions";
 import { headers } from "next/headers";
+import { formatCurrency } from "@/lib/utils";
 
 export default async function PrintVentaTicketPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -232,7 +233,7 @@ export default async function PrintVentaTicketPage({ params }: { params: Promise
               <div className="item-row" style={{ marginBottom: '1px' }}>
                 <span className="col-cant">{item.quantity}</span>
                 <span className="col-desc">{item.product?.name || 'Desconocido'} {item.variant?.attribute ? `(${item.variant.attribute})` : ''}</span>
-                <span className="col-price">${((item.price || 0) * (item.quantity || 0)).toFixed(2)}</span>
+                <span className="col-price">{formatCurrency((item.price || 0) * (item.quantity || 0))}</span>
               </div>
               <div style={{ paddingLeft: is58 ? '25px' : '40px', fontSize: is58 ? '8px' : '10px', color: '#666', fontFamily: 'monospace' }}>
                 {item.product?.sku && <span>SKU: {item.product.sku}</span>}
@@ -247,36 +248,36 @@ export default async function PrintVentaTicketPage({ params }: { params: Promise
         <div className="totals">
           {showTax ? (
             <>
-              <div className="total-row" style={{ fontWeight: 'normal', fontSize: is58 ? '9px' : '12px' }}><span>Subtotal Base:</span><span>${tBaseSubtotal.toFixed(2)}</span></div>
-              {tIva > 0 && <div className="total-row" style={{ fontWeight: 'normal', fontSize: is58 ? '9px' : '12px' }}><span>IVA Desglosado:</span><span>${tIva.toFixed(2)}</span></div>}
-              {tIeps > 0 && <div className="total-row" style={{ fontWeight: 'normal', fontSize: is58 ? '9px' : '12px' }}><span>IEPS Desglosado:</span><span>${tIeps.toFixed(2)}</span></div>}
-              {tExento > 0 && <div className="total-row" style={{ fontWeight: 'normal', fontSize: is58 ? '9px' : '12px' }}><span>Sin Impuestos:</span><span>${tExento.toFixed(2)}</span></div>}
+              <div className="total-row" style={{ fontWeight: 'normal', fontSize: is58 ? '9px' : '12px' }}><span>Subtotal Base:</span><span>{formatCurrency(tBaseSubtotal)}</span></div>
+              {tIva > 0 && <div className="total-row" style={{ fontWeight: 'normal', fontSize: is58 ? '9px' : '12px' }}><span>IVA Desglosado:</span><span>{formatCurrency(tIva)}</span></div>}
+              {tIeps > 0 && <div className="total-row" style={{ fontWeight: 'normal', fontSize: is58 ? '9px' : '12px' }}><span>IEPS Desglosado:</span><span>{formatCurrency(tIeps)}</span></div>}
+              {tExento > 0 && <div className="total-row" style={{ fontWeight: 'normal', fontSize: is58 ? '9px' : '12px' }}><span>Sin Impuestos:</span><span>{formatCurrency(tExento)}</span></div>}
             </>
           ) : (
-            <div className="total-row" style={{ fontWeight: 'normal', fontSize: is58 ? '9px' : '12px' }}><span>Subtotal:</span><span>${itemsTotal.toFixed(2)}</span></div>
+            <div className="total-row" style={{ fontWeight: 'normal', fontSize: is58 ? '9px' : '12px' }}><span>Subtotal:</span><span>{formatCurrency(itemsTotal)}</span></div>
           )}
           
           {discount > 0.01 && (
             <div className="total-row" style={{ fontWeight: 'normal', fontSize: is58 ? '9px' : '12px' }}>
               <span>Descuento:</span>
-              <span>-${discount.toFixed(2)}</span>
+              <span>-{formatCurrency(discount)}</span>
             </div>
           )}
           
           <div className="total-row" style={{ fontSize: is58 ? '13px' : '16px' }}>
             <span>TOTAL:</span>
-            <span>${(sale.total || 0).toFixed(2)}</span>
+            <span>{formatCurrency(sale.total || 0)}</span>
           </div>
           {sale.paymentMethod === 'CASH' && sale.cashAmount ? (
             <div style={{ marginTop: '4px' }}>
               <div className="total-row" style={{ fontWeight: 'normal', fontSize: is58 ? '9px' : '12px' }}>
                 <span>Recibido:</span>
-                <span>${sale.cashAmount.toFixed(2)}</span>
+                <span>{formatCurrency(sale.cashAmount)}</span>
               </div>
               {sale.cashAmount > sale.total ? (
                 <div className="total-row" style={{ fontWeight: 'normal', fontSize: is58 ? '9px' : '12px' }}>
                   <span>Cambio:</span>
-                  <span>${(sale.cashAmount - sale.total).toFixed(2)}</span>
+                  <span>{formatCurrency(sale.cashAmount - sale.total)}</span>
                 </div>
               ) : null}
             </div>

@@ -406,7 +406,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
         
         {/* Main Search Bar */}
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flexGrow: 1, minWidth: '300px', maxWidth: '800px' }}>
+          <div style={{ position: 'relative', flexGrow: 1, minWidth: '200px', maxWidth: '800px' }}>
             <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             <input 
               type="text" 

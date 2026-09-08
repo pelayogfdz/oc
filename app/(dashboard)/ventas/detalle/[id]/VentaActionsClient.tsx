@@ -7,6 +7,7 @@ import { cancelSale, updateSale, confirmSalePayment } from '@/app/actions/sale';
 import { cancelInvoice, stampInvoice, checkDocumentSatStatus, syncSingleSaleWithInvoiceAction } from '@/app/actions/facturacion';
 import { updateDeliveryOrder, upsertDeliveryOrderForSale, deleteDeliveryOrder } from '@/app/actions/logistica';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
+import { formatCurrency } from '@/lib/utils';
 
 interface VentaActionsClientProps {
   saleId: string;
@@ -401,7 +402,7 @@ export default function VentaActionsClient({
       try {
         const res = await syncSingleSaleWithInvoiceAction(saleId);
         if (res.success) {
-          alert(`Venta sincronizada correctamente con la Factura SAT. Nuevo total: $${res.targetTotal?.toFixed(2)}`);
+          alert(`Venta sincronizada correctamente con la Factura SAT. Nuevo total: ${formatCurrency(res.targetTotal || 0)}`);
           router.refresh();
         } else {
           alert(`Error al sincronizar: ${res.error}`);

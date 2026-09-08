@@ -6,6 +6,7 @@ import { getActiveBranch, getActiveUser, getSession } from "./auth";
 import { revalidatePath } from "next/cache";
 import { cancelSaleInternal } from "./sale";
 import { sendPaymentComplementNotificationEmail, sendInvoiceNotificationEmail } from "@/lib/mailer";
+import { formatCurrency } from "@/lib/utils";
 
 const getSanitizedIvaRate = (rawRate: number | null | undefined): number => {
   const rateVal = rawRate ?? 16.0;
@@ -322,18 +323,44 @@ export async function stampInvoice(saleId: string, customerId?: string | null, c
 
     const invoice = await facturapi.invoices.create(invoicePayload);
     const invoiceFolio = [(invoice as any).series, (invoice as any).folio_number || (invoice as any).folio].filter(Boolean).join('');
+    const invoiceTotal = typeof (invoice as any).total === 'number' ? (invoice as any).total : sale.total;
+    const oldSaleTotal = sale.total;
+    const diff = invoiceTotal - oldSaleTotal;
 
-    // Update the Sale record with the Invoice ID, Invoice Folio and link customer if provided
+    const existingPayments = await db.customerPayment.findMany({
+      where: { saleId },
+      select: { amount: true }
+    });
+    const totalPaid = existingPayments.reduce((acc: number, p: any) => acc + p.amount, 0);
+    const newBalanceDue = sale.paymentMethod === 'CREDIT' ? Math.max(0, invoiceTotal - totalPaid) : 0;
+
+    // Update the Sale record with the Invoice ID, Invoice Folio, synchronized total, balanceDue and link customer if provided
     await db.sale.update({
       where: { id: saleId },
       data: { 
         invoiceId: invoice.id,
         invoiceFolio: invoiceFolio || null,
+        total: invoiceTotal,
+        ...(sale.paymentMethod === 'CREDIT' ? { balanceDue: newBalanceDue } : {}),
         ...(customerId ? { customerId } : {})
       }
     });
 
+    // If CREDIT and there is a difference, adjust customer's creditBalance immediately
+    const targetCustId = customerId || sale.customerId;
+    if (sale.paymentMethod === 'CREDIT' && targetCustId && Math.abs(diff) > 0.001) {
+      await db.customer.update({
+        where: { id: targetCustId },
+        data: { creditBalance: { increment: diff } }
+      });
+    }
+
     revalidatePath('/facturas/ventas');
+    revalidatePath('/ventas');
+    revalidatePath('/clientes/cobranza');
+    if (targetCustId) {
+      revalidatePath(`/clientes/${targetCustId}`);
+    }
     return { success: true, invoiceId: invoice.id };
   } catch (error: any) {
     console.error("Facturapi Error:", error);
@@ -984,7 +1011,40 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
       }
     });
 
+    if (sortedSales.length === 1 && typeof (invoice as any).total === 'number') {
+      const invTotal = (invoice as any).total;
+      const s = sortedSales[0];
+      const diff = invTotal - s.total;
+      if (s.paymentMethod === 'CREDIT') {
+        const existingPayments = await prisma.customerPayment.findMany({
+          where: { saleId: s.id },
+          select: { amount: true }
+        });
+        const totalPaid = existingPayments.reduce((acc: number, p: any) => acc + p.amount, 0);
+        await prisma.sale.update({
+          where: { id: s.id },
+          data: {
+            total: invTotal,
+            balanceDue: Math.max(0, invTotal - totalPaid)
+          }
+        });
+        if (s.customerId && Math.abs(diff) > 0.001) {
+          await prisma.customer.update({
+            where: { id: s.customerId },
+            data: { creditBalance: { increment: diff } }
+          });
+        }
+      } else {
+        await prisma.sale.update({
+          where: { id: s.id },
+          data: { total: invTotal }
+        });
+      }
+    }
+
     revalidatePath('/facturas/ventas');
+    revalidatePath('/ventas');
+    revalidatePath('/clientes/cobranza');
     return { success: true, invoiceId: invoice.id };
   } catch (error: any) {
     console.error("Facturapi Multiple Sales Invoice Error:", error);
@@ -2131,7 +2191,7 @@ export async function syncAndFixAllSalesAndCreditBalancesAction() {
           });
 
           fixedSalesCount++;
-          fixedDetails.push(`Venta Folio #${sale.folio || sale.id.substring(0,8)}: ajustado total a $${targetTotal.toFixed(2)} (antes $${oldTotal.toFixed(2)}), Deuda a $${expectedBalanceDue.toFixed(2)}`);
+          fixedDetails.push(`Venta Folio #${sale.folio || sale.id.substring(0,8)}: ajustado total a ${formatCurrency(targetTotal)} (antes ${formatCurrency(oldTotal)}), Deuda a ${formatCurrency(expectedBalanceDue)}`);
         }
       }
 
@@ -2161,7 +2221,7 @@ export async function syncAndFixAllSalesAndCreditBalancesAction() {
             data: { creditBalance: actualDebt }
           });
           fixedCustomersCount++;
-          fixedDetails.push(`Cliente ${cust.name}: saldo en CxC actualizado a $${actualDebt.toFixed(2)}`);
+          fixedDetails.push(`Cliente ${cust.name}: saldo en CxC actualizado a ${formatCurrency(actualDebt)}`);
         }
       }
     }
@@ -2198,16 +2258,7 @@ export async function syncSingleSaleWithInvoiceAction(saleId: string) {
     let targetTotal = sale.total;
     let isInvoiceMatched = false;
 
-    const cleanFolio = (sale.folio || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
-    const cleanInvoiceFolio = (sale.invoiceFolio || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
-    const isSan1516 = cleanFolio.includes('SAN1516') || cleanInvoiceFolio.includes('SAN1516') || sale.id === '01339ebd-3382-4c7f-9e59-39ed75c09c48';
-
-    if (isSan1516) {
-      targetTotal = 10896.00;
-      isInvoiceMatched = true;
-    }
-
-    if (sale.invoiceId && !isInvoiceMatched) {
+    if (sale.invoiceId) {
       const branchSettingsList = await prisma.branchSettings.findMany({ select: { configJson: true } });
       const apiKeysSet = new Set<string>();
       for (const bs of branchSettingsList) {

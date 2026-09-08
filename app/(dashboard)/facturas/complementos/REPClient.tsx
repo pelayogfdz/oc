@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createMultiplePaymentReceipt } from '@/app/actions/facturacion';
 import { FileText, Send, Calendar, CreditCard, Layers, X, Check, Loader2, AlertTriangle, Search } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 export default function REPClient({ sales }: { sales: any[] }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -222,7 +223,7 @@ export default function REPClient({ sales }: { sales: any[] }) {
             No se encontraron facturas o clientes que coincidan con la búsqueda.
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
               <tr>
                 <th style={{ padding: '1rem', width: '40px', textAlign: 'center' }}>
@@ -251,7 +252,7 @@ export default function REPClient({ sales }: { sales: any[] }) {
                       backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.03)' : 'transparent'
                     }}
                   >
-                    <td style={{ padding: '1rem', textAlign: 'center' }}>
+                    <td data-label="Seleccionar" style={{ padding: '1rem', textAlign: 'center' }}>
                       <input 
                         type="checkbox" 
                         checked={isSelected}
@@ -259,23 +260,23 @@ export default function REPClient({ sales }: { sales: any[] }) {
                         style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                       />
                     </td>
-                    <td style={{ padding: '1rem' }}>
+                    <td data-label="Fecha / Venta" style={{ padding: '1rem' }}>
                       <div style={{ fontWeight: 'bold' }}>#{sale.folio || sale.id.substring(0, 8).toUpperCase()}</div>
                       <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{new Date(sale.createdAt).toLocaleDateString()}</div>
                     </td>
-                    <td style={{ padding: '1rem' }}>
+                    <td data-label="Cliente Fiscal" style={{ padding: '1rem' }}>
                       <div style={{ fontWeight: '500', color: '#1e293b' }}>
                         {sale.customer ? (sale.customer.legalName || sale.customer.name) : 'Público en General'}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#64748b' }}>RFC: {sale.customer?.taxId || 'XAXX010101000'}</div>
                     </td>
-                    <td style={{ padding: '1rem', fontWeight: 'bold', color: '#0f172a' }}>
+                    <td data-label="Monto Total" style={{ padding: '1rem', fontWeight: 'bold', color: '#0f172a' }}>
                       ${sale.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                     </td>
-                    <td style={{ padding: '1rem', fontFamily: 'monospace', fontSize: '0.8rem', color: '#475569' }}>
+                    <td data-label="Facturapi UUID" style={{ padding: '1rem', fontFamily: 'monospace', fontSize: '0.8rem', color: '#475569' }}>
                       {sale.invoiceId}
                     </td>
-                    <td style={{ padding: '1rem', textAlign: 'right' }}>
+                    <td data-label="Acción" style={{ padding: '1rem', textAlign: 'right' }}>
                       <button 
                         onClick={() => {
                           setSelectedIds([sale.id]);
@@ -347,7 +348,7 @@ export default function REPClient({ sales }: { sales: any[] }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '180px', overflowY: 'auto', paddingRight: '0.25rem' }}>
                   {selectedSales.map(sale => (
                     <div key={sale.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem', backgroundColor: '#f1f5f9', borderRadius: '6px', fontSize: '0.85rem' }}>
-                      <span style={{ fontWeight: 'bold' }}>#{sale.folio || sale.id.substring(0,8).toUpperCase()} (Total ${sale.total.toFixed(2)})</span>
+                      <span style={{ fontWeight: 'bold' }}>#{sale.folio || sale.id.substring(0,8).toUpperCase()} (Total {formatCurrency(sale.total)})</span>
                       <input 
                         type="number" 
                         step="0.01"

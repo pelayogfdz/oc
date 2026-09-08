@@ -6,6 +6,7 @@ import {
   ArrowRight, Tag, Eye, FileUp, Filter, RefreshCw
 } from 'lucide-react';
 import { searchCatalogProducts } from '@/app/actions/catalog';
+import { formatCurrency } from '@/lib/utils';
 
 interface CatalogosClientProps {
   initialBrands: string[];
@@ -660,7 +661,7 @@ export default function CatalogosClient({ initialBrands, initialCategories }: Ca
                         Stock: {p.stock} pzas
                       </span>
                       <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#0f172a' }}>
-                        ${p.price.toFixed(2)}
+                        {formatCurrency(p.price)}
                       </span>
                     </div>
                   </div>

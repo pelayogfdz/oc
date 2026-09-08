@@ -1,4 +1,6 @@
-export function formatCurrency(amount: number, decimals?: number) {
+export function formatCurrency(amount: number | string | null | undefined, decimals?: number) {
+  const num = typeof amount === 'string' ? parseFloat(amount) : (amount ?? 0);
+  const safeNum = isNaN(num) ? 0 : num;
   let d = 2;
   if (decimals !== undefined) {
     d = decimals;
@@ -11,7 +13,16 @@ export function formatCurrency(amount: number, decimals?: number) {
     currency: 'MXN',
     minimumFractionDigits: d,
     maximumFractionDigits: d
-  }).format(amount);
+  }).format(safeNum);
+}
+
+export function formatNumber(amount: number | string | null | undefined, decimals: number = 0) {
+  const num = typeof amount === 'string' ? parseFloat(amount) : (amount ?? 0);
+  const safeNum = isNaN(num) ? 0 : num;
+  return new Intl.NumberFormat('es-MX', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  }).format(safeNum);
 }
 
 export function getBranchFilter(branch: any) {

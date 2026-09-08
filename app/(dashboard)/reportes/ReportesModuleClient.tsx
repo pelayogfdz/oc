@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, TrendingUp, Package, Calculator, Users, Clock, ArrowRight, ChefHat, Tag } from 'lucide-react';
+import { BarChart3, TrendingUp, Package, Calculator, Users, Clock, ArrowRight, ChefHat, Tag, Landmark } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -18,6 +18,7 @@ export default function ReportesModuleClient({
   isSuperAdmin?: boolean;
 }) {
   const reports = [
+    { title: 'Estado de Resultados (P&L)', icon: <Landmark size={24} color="#059669" />, description: 'Estado financiero integral, EBITDA, costos, nómina, gastos operativos y balance.', route: '/finanzas/pl', requiredPermission: 'fin_pl' },
     { title: 'Resumen de Ventas', icon: <TrendingUp size={24} color="#16a34a" />, description: 'Ventas totales, devoluciones y tickets promedio.', route: '/reportes/ventas-desglose', requiredPermission: 'report_sales_breakdown' },
     { title: 'Descuentos y Promociones', icon: <Tag size={24} color="#dc2626" />, description: 'Auditoría de artículos vendidos con promociones, listas preferenciales o rebajas.', route: '/reportes/descuentos-promociones', requiredPermission: 'report_sales_breakdown' },
     { title: 'Ventas por Producto', icon: <Package size={24} color="#0ea5e9" />, description: 'Análisis detallado de ventas a nivel producto.', route: '/reportes/top-productos', requiredPermission: 'report_sales_by_product' },

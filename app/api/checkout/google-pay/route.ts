@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { authenticateToken } from '../../integrations/auth';
 import { sendSaleNotificationEmail } from '@/lib/mailer';
+import { getOrCreateGenericCustomer } from '@/lib/genericCustomer';
 
 export const dynamic = 'force-dynamic';
 
@@ -204,20 +205,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (!customerId) {
-        let publicCustomer = await tx.customer.findFirst({
-          where: {
-            name: { equals: 'Público General', mode: 'insensitive' },
-            branchId: branch.id
-          }
-        });
-        if (!publicCustomer) {
-          publicCustomer = await tx.customer.create({
-            data: {
-              name: 'Público General',
-              branchId: branch.id
-            }
-          });
-        }
+        const publicCustomer = await getOrCreateGenericCustomer(tx);
         customerId = publicCustomer.id;
       }
 

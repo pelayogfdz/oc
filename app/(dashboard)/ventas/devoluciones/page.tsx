@@ -4,6 +4,7 @@ import * as Icons from 'lucide-react';
 import { FileText, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { deleteEntity } from '@/app/actions/crud';
+import { formatCurrency } from '@/lib/utils';
 
 export default async function Page() {
   const branch = await getActiveBranch();
@@ -46,7 +47,7 @@ export default async function Page() {
                   <span style={{ fontSize: '0.85rem', fontWeight: '500', color: '#64748b' }}>{item.paymentMethod === 'MIXTO' ? 'Mixto (Efectivo/Tarjeta)' : item.paymentMethod === 'CASH' ? 'Efectivo' : 'Tarjeta/Otro'}</span>
                 </td>
                 <td data-label="Total Devuelto" style={{ padding: '0.4rem 0.75rem', fontWeight: 'bold', color: '#f43f5e' }}>
-                   - ${item.total.toFixed(2)}
+                   - {formatCurrency(item.total)}
                 </td>
                 <td data-label="Estado" style={{ padding: '0.4rem 0.75rem' }}>
                   <span style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>DEVUELTO</span>

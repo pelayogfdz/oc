@@ -658,6 +658,14 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
 
       localStorage.setItem('last_catalog_sync_timestamp', Date.now().toString());
       setLastSyncTime(Date.now());
+      
+      try {
+        const { invalidateOfflineSearchCache } = await import('@/lib/offlineSearch');
+        invalidateOfflineSearchCache();
+      } catch (eCache) {
+        console.warn('Could not invalidate offline search cache', eCache);
+      }
+
       if (!isBackground) {
         setSyncMessage(null);
         setShowToast({ message: 'Catálogos actualizados y guardados en local.', type: 'success' });

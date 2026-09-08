@@ -144,6 +144,7 @@ export const navStructure: MenuNode[] = [
     requiredPermission: ['finanzas'],
     requiresOnline: true,
     items: [
+      { name: 'Estado de Resultados (P&L)', path: '/finanzas/pl', badge: 'Nuevo', requiredPermission: ['fin_pl'], requiresOnline: true },
       { name: 'Conciliación Bancaria', path: '/finanzas/conciliacion', requiredPermission: ['fin_conciliacion'], requiresOnline: true },
       { name: 'Cuentas por Cobrar (CxC)', path: '/clientes/cobranza', badge: 'Activos', requiredPermission: ['fin_cxc'], requiresOnline: true },
       { name: 'Cuentas por Pagar (CxP)', path: '/proveedores/cuentas', badge: 'Pasivos', requiredPermission: ['fin_cxp'], requiresOnline: true },
@@ -166,6 +167,7 @@ export const navStructure: MenuNode[] = [
     requiredPermission: ['admin_reports_access', 'report_sales_breakdown', 'report_sales_by_product', 'report_top_products', 'report_top_clients', 'report_top_categories', 'report_sales_by_seller', 'report_seller_commissions', 'report_valued_inventory', 'report_costs_prices', 'report_replenishment', 'report_inventory_log', 'report_consignments', 'report_supplies', 'report_production', 'report_tasks', 'report_utility', 'report_taxes', 'report_expenses', 'report_cash_cut', 'report_shifts'],
     items: [
       { name: 'Panel de Reportes', path: '/reportes', requiredPermission: ['admin_reports_access', 'report_sales_breakdown', 'report_sales_by_product', 'report_top_products', 'report_top_clients', 'report_top_categories', 'report_sales_by_seller', 'report_seller_commissions', 'report_valued_inventory', 'report_costs_prices', 'report_replenishment', 'report_inventory_log', 'report_consignments', 'report_supplies', 'report_production', 'report_tasks', 'report_utility', 'report_taxes', 'report_expenses', 'report_cash_cut', 'report_shifts'] },
+      { name: 'Estado de Resultados (P&L)', path: '/finanzas/pl', badge: 'Nuevo', requiredPermission: ['fin_pl'], requiresOnline: true },
       { name: 'Descuentos y Promociones', path: '/reportes/descuentos-promociones', badge: 'Nuevo', requiredPermission: ['report_sales_breakdown'] },
       { name: 'Facturación CFDI 4.0', path: '/reportes/facturacion', badge: 'Nuevo', requiredPermission: ['report_taxes'], requiresOnline: true },
       { name: 'Desempeño de Consignaciones', path: '/reportes/consignaciones', badge: 'Nuevo', requiredPermission: ['report_consignments'] },

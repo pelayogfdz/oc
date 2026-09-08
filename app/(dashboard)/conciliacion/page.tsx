@@ -1,6 +1,7 @@
 import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import { HandCoins, FileText, UploadCloud, CheckCircle } from 'lucide-react';
+import { formatCurrency } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
 async function reconcileSession(formData: FormData) {
@@ -64,7 +65,7 @@ export default async function ConciliacionPage() {
                     <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)' }}>Cajero: {item.user?.name}</div>
                   </td>
                   <td data-label="Monto A Depositar" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: '#0f172a' }}>
-                    ${(item.actualAmount || item.expectedAmount || 0).toFixed(2)}
+                    {formatCurrency(item.actualAmount || item.expectedAmount || 0)}
                   </td>
                   <td data-label="Estado" style={{ padding: '1rem' }}>
                      <span style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>PENDIENTE BANCARIO</span>

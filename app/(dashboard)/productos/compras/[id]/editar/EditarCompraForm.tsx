@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2, ShoppingBag, Search, Plus } from "lucide-react";
 import { updatePurchase } from "@/app/actions/purchase";
+import { formatCurrency } from "@/lib/utils";
 
 interface EditarCompraFormProps {
   purchase: any;
@@ -411,7 +412,7 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
                     <div style={{ textAlign: "right", paddingRight: "0.5rem" }}>
                       <span style={{ fontSize: "0.7rem", color: "#64748b", display: "block", textTransform: "uppercase", fontWeight: "bold" }}>Subtotal</span>
                       <span style={{ fontWeight: "800", color: "#1e293b", fontSize: "0.95rem" }}>
-                        ${(item.quantity * item.cost).toFixed(2)}
+                        {formatCurrency(item.quantity * item.cost)}
                       </span>
                     </div>
 
@@ -609,7 +610,7 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
               disabled={isSubmitting || items.length === 0} 
               className="compra-checkout-btn"
             >
-              {isSubmitting ? "Procesando..." : `Guardar Cambios $${finalTotal.toFixed(2)}`}
+              {isSubmitting ? "Procesando..." : `Guardar Cambios ${formatCurrency(finalTotal)}`}
             </button>
           </div>
 
@@ -780,7 +781,7 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                         <div style={{ fontWeight: "bold", color: "var(--caanma-primary, #8b5cf6)", fontSize: "1rem" }}>
-                          Costo: ${p.cost ? p.cost.toFixed(2) : "0.00"}
+                          Costo: {formatCurrency(p.cost || 0)}
                         </div>
                         {inCart && (
                           <span style={{ fontSize: "0.75rem", backgroundColor: "#e9d5ff", color: "#6b21a8", padding: "0.2rem 0.5rem", borderRadius: "4px", fontWeight: "bold" }}>Agregado</span>

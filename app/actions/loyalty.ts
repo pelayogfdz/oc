@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getActiveBranch } from "./auth";
 import * as jose from "jose";
+import { formatCurrency } from "@/lib/utils";
 
 
 export async function getLoyaltySettings(branchId: string) {
@@ -307,7 +308,7 @@ export async function generateGoogleWalletPassUrl(customerId: string) {
             textModulesData: [
               {
                 header: 'Monedero / Crédito',
-                body: `$${customer.storeCredit.toFixed(2)}`,
+                body: formatCurrency(customer.storeCredit),
                 id: 'store_credit'
               }
             ]

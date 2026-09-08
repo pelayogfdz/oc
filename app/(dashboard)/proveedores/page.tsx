@@ -5,6 +5,7 @@ import { FileText, Plus, Trash2, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { deleteEntity } from '@/app/actions/crud';
 import { getTenantSuppliers } from '@/app/actions/supplier';
+import { formatCurrency } from '@/lib/utils';
 
 export default async function Page() {
   const data = await getTenantSuppliers();
@@ -50,7 +51,7 @@ export default async function Page() {
                   <div style={{ marginTop: '0.25rem' }}>{item.phone || '- Sin Teléfono -'}</div>
                 </td>
                 <td data-label="Límite de Crédito" style={{ padding: '1rem', fontWeight: 'bold', color: item.creditLimit > 0 ? '#10b981' : '#64748b' }}>
-                  ${item.creditLimit?.toFixed(2) || '0.00'}
+                  {formatCurrency(item.creditLimit)}
                 </td>
                 <td data-label="Acciones" style={{ padding: '1rem' }}>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>

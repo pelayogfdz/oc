@@ -111,7 +111,7 @@ export default function ClientesTable({ initialCustomers }: ClientesTableProps) 
       </div>
 
       <div className="table-responsive">
-        <table className="responsive-table" style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead style={{ backgroundColor: '#f8fafc' }}>
             <tr>
               <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--caanma-border)' }}>Cliente</th>
@@ -135,13 +135,14 @@ export default function ClientesTable({ initialCustomers }: ClientesTableProps) 
                   ${Math.max(0, item.creditBalance || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                 </td>
                 <td data-label="Acciones" style={{ padding: '0.4rem 0.75rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                    <Link href={`/clientes/${item.id}`} style={{ backgroundColor: 'white', color: '#475569', padding: '0.5rem 1rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 'bold', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                      <User size={16} /> Ver Perfil
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                    <Link href={`/clientes/${item.id}`} style={{ backgroundColor: 'white', color: '#475569', padding: '0.4rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 'bold', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                      <User size={15} /> Ver Perfil
                     </Link>
                     <button
                       onClick={() => handleDelete(item.id)}
-                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem' }}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.4rem', borderRadius: '6px' }}
+                      title="Eliminar Cliente"
                     >
                       <Trash2 size={16}/> 
                     </button>

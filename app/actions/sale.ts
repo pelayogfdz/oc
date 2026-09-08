@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { getActiveBranch, getActiveUser, getSession } from './auth';
 import { getUtcDateFromLocal } from '@/app/lib/timezone';
+import { getOrCreateGenericCustomer } from '@/lib/genericCustomer';
+import { formatCurrency } from '@/lib/utils';
 
 export interface DeliveryDataInput {
   isDelivery?: boolean;
@@ -86,20 +88,7 @@ export async function createSale(
     const { sale, finalSaleTotal, resolvedCustomerId } = await prisma.$transaction(async (tx) => {
       let resolvedCustId = customerId;
       if (!resolvedCustId) {
-        let publicCustomer = await tx.customer.findFirst({
-          where: {
-            name: { equals: 'Público General', mode: 'insensitive' },
-            branchId: finalBranchId
-          }
-        });
-        if (!publicCustomer) {
-          publicCustomer = await tx.customer.create({
-            data: {
-              name: 'Público General',
-              branchId: finalBranchId
-            }
-          });
-        }
+        const publicCustomer = await getOrCreateGenericCustomer(tx);
         resolvedCustId = publicCustomer.id;
       }
 
@@ -187,7 +176,7 @@ export async function createSale(
           data: { pointsBalance: { decrement: pointsRedeemed } }
         });
 
-        const pointsNote = `[Monedero Electrónico] Redimidos ${pointsRedeemed} puntos (equivalente a un descuento de $${pointsDiscount.toFixed(2)} pesos).`;
+        const pointsNote = `[Monedero Electrónico] Redimidos ${pointsRedeemed} puntos (equivalente a un descuento de ${formatCurrency(pointsDiscount)} pesos).`;
         notesAccumulated = notesAccumulated ? `${notesAccumulated}\n${pointsNote}` : pointsNote;
       }
 
@@ -200,7 +189,7 @@ export async function createSale(
         if (customer.creditLimit <= 0) throw new Error("El cliente no tiene línea de crédito autorizada.");
         
         if ((customer.creditBalance + finalSaleTotal) > customer.creditLimit) {
-          throw new Error(`El cliente excede su límite de crédito. Disponible: $${(customer.creditLimit - customer.creditBalance).toFixed(2)}`);
+          throw new Error(`El cliente excede su límite de crédito. Disponible: ${formatCurrency(customer.creditLimit - customer.creditBalance)}`);
         }
 
         const bloquearCreditoFacturasVencidas = config.bloquearCreditoFacturasVencidas !== false;
@@ -788,23 +777,8 @@ export async function updateSale(
 
     let finalCustomerId = customerId;
     if (!finalCustomerId) {
-      let publicCustomer = await prisma.customer.findFirst({
-        where: {
-          name: { equals: 'Público General', mode: 'insensitive' },
-          branchId: sale.branchId || undefined
-        }
-      });
-      if (!publicCustomer && sale.branchId) {
-        publicCustomer = await prisma.customer.create({
-          data: {
-            name: 'Público General',
-            branchId: sale.branchId
-          }
-        });
-      }
-      if (publicCustomer) {
-        finalCustomerId = publicCustomer.id;
-      }
+      const publicCustomer = await getOrCreateGenericCustomer(prisma);
+      finalCustomerId = publicCustomer.id;
     }
 
     // If customer has changed, we might need to handle credit/debit re-allocation if the paymentMethod was CREDIT.

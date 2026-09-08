@@ -322,34 +322,34 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
 
               return (
                 <tr key={p.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-                  <td style={{ padding: '1rem', fontWeight: 'bold', color: '#0f172a' }}>{p.name}</td>
-                  <td style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>{p.sku || '-'} | {p.barcode || '-'}</td>
+                  <td data-label="Producto" style={{ padding: '1rem', fontWeight: 'bold', color: '#0f172a' }}>{p.name}</td>
+                  <td data-label="SKU / Código" style={{ padding: '1rem', color: 'var(--caanma-text-muted)' }}>{p.sku || '-'} | {p.barcode || '-'}</td>
                   
                   {!isPhase1 && !isCompleted && (
-                     <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', color: '#cbd5e1' }}>
+                     <td data-label="Stock Sistema" style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', color: '#cbd5e1' }}>
                        {auditRef.systemStock ?? p.stock}
                      </td>
                   )}
 
                   {isPhase2 && (
-                     <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', color: '#ef4444' }}>
+                     <td data-label="Cuenta 1" style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', color: '#ef4444' }}>
                        {auditRef.count1}
                      </td>
                   )}
 
                   {isPhase3 && (
                      <>
-                        <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>{auditRef.count1}</td>
-                        <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', color: '#ef4444' }}>{auditRef.count2}</td>
+                        <td data-label="Cuenta 1" style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>{auditRef.count1}</td>
+                        <td data-label="Cuenta 2" style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold', color: '#ef4444' }}>{auditRef.count2}</td>
                      </>
                   )}
 
                   {isCompleted ? (
                     <>
-                       <td style={{ padding: '1rem', textAlign: 'center', fontWeight: '900', color: p.expectedDiff !== 0 ? '#2563eb' : '#94a3b8' }}>
+                       <td data-label="Ajuste" style={{ padding: '1rem', textAlign: 'center', fontWeight: '900', color: p.expectedDiff !== 0 ? '#2563eb' : '#94a3b8' }}>
                          {p.finalCount}
                        </td>
-                       <td style={{ padding: '1rem', textAlign: 'center' }}>
+                       <td data-label="Impacto" style={{ padding: '1rem', textAlign: 'center' }}>
                          {p.expectedDiff !== 0 ? (
                            <span style={{ 
                              display: 'inline-block', 
@@ -368,7 +368,7 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
                        </td>
                     </>
                   ) : (
-                    <td style={{ padding: '1rem', textAlign: 'center' }}>
+                    <td data-label="Total Escaneado" style={{ padding: '1rem', textAlign: 'center' }}>
                       <input 
                         type="number" 
                         value={editingCounts[p.id] || ''}

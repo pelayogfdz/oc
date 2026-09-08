@@ -4,6 +4,7 @@ import * as Icons from 'lucide-react';
 import { FileText, Plus, Trash2, Edit } from 'lucide-react';
 import Link from 'next/link';
 import { deletePromotion } from '@/app/actions/promotion';
+import { formatCurrency } from '@/lib/utils';
 
 export default async function Page() {
   const branch = await getActiveBranch();
@@ -74,7 +75,7 @@ export default async function Page() {
                   </td>
                 )}
                 <td style={{ padding: '1rem', fontWeight: 'bold' }}>
-                  {item.type === 'PERCENTAGE' ? `${item.value}%` : (item.type === 'BOGO' || item.type === 'BOGO_PERCENT') ? 'N/A' : item.type === 'LOYALTY_STAMP' ? `Cada ${item.value} visitas` : `$${(Number(item.value) || 0).toFixed(2)}`}
+                  {item.type === 'PERCENTAGE' ? `${item.value}%` : (item.type === 'BOGO' || item.type === 'BOGO_PERCENT') ? 'N/A' : item.type === 'LOYALTY_STAMP' ? `Cada ${item.value} visitas` : formatCurrency(item.value || 0)}
                 </td>
                 <td style={{ padding: '1rem' }}>
                   <span style={{ backgroundColor: item.active ? '#dcfce7' : '#fee2e2', color: item.active ? '#166534' : '#991b1b', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>

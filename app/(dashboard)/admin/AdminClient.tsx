@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { updateSystemMPCredentials, updateTenantGiftCredits, updateSystemPricing, updateTenantCustomPricing, editTenant, toggleTenantStatus, deleteTenant, changeUserPassword } from '@/app/actions/admin';
 import { Save, Building2, Users, Coins, CreditCard, ShieldAlert, CheckCircle2, DollarSign, Settings, Edit, Power, PowerOff, Trash2, Lock } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 export default function AdminClient({ initialData }: { initialData: any }) {
   const { tenants, settings } = initialData;
@@ -265,7 +266,7 @@ export default function AdminClient({ initialData }: { initialData: any }) {
         </h2>
 
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--caanma-border)', textAlign: 'left', color: 'var(--caanma-text-muted)' }}>
                 <th style={{ padding: '0.75rem' }}>Organización</th>
@@ -286,23 +287,23 @@ export default function AdminClient({ initialData }: { initialData: any }) {
                 
                 return (
                 <tr key={t.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-                  <td style={{ padding: '1rem 0.75rem', fontWeight: '500' }}>
+                  <td data-label="Organización" style={{ padding: '1rem 0.75rem', fontWeight: '500' }}>
                     {t.name}
                     {t.subscriptionStatus === 'PAST_DUE' && (
                       <span style={{ marginLeft: '0.5rem', backgroundColor: '#fee2e2', color: '#b91c1c', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>VENCIDO</span>
                     )}
                   </td>
-                  <td style={{ padding: '1rem 0.75rem' }}>
+                  <td data-label="Usuarios" style={{ padding: '1rem 0.75rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <Users size={16} color="#64748b" /> {t._count.users}
                     </div>
                   </td>
-                  <td style={{ padding: '1rem 0.75rem' }}>
+                  <td data-label="Cálculo Mensual" style={{ padding: '1rem 0.75rem' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {/* Net Payment Amount */}
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                         <span style={{ fontSize: '1.1rem', fontWeight: '700', color: netToPay > 0 ? '#b91c1c' : '#16a34a' }}>
-                          ${netToPay.toFixed(2)}
+                          {formatCurrency(netToPay)}
                         </span>
                         <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '500' }}>
                           {netToPay > 0 ? 'neto por cobrar' : 'cubierto con créditos'}
@@ -311,7 +312,7 @@ export default function AdminClient({ initialData }: { initialData: any }) {
 
                       {/* Breakdown Detail */}
                       <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                        Costo bruto: <strong>${grossTotal.toFixed(2)}</strong> (Base: ${effectiveBase} | Usr: ${effectiveUserPrice})
+                        Costo bruto: <strong>{formatCurrency(grossTotal)}</strong> (Base: {formatCurrency(effectiveBase)} | Usr: {formatCurrency(effectiveUserPrice)})
                         {(t.customBasePrice !== null || t.customUserPrice !== null) && (
                           <span style={{ color: '#d97706', marginLeft: '4px', fontWeight: 'bold' }}>(Personalizado)</span>
                         )}
@@ -321,21 +322,21 @@ export default function AdminClient({ initialData }: { initialData: any }) {
                       {(t.giftCredits || 0) > 0 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', marginTop: '2px', padding: '4px 8px', backgroundColor: '#f0fdf4', borderRadius: '6px', border: '1px solid #dcfce7', width: 'fit-content' }}>
                           <span style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <Coins size={12} /> Saldo de Créditos: ${t.giftCredits.toFixed(2)}
+                            <Coins size={12} /> Saldo de Créditos: {formatCurrency(t.giftCredits)}
                           </span>
                           <span style={{ fontSize: '0.7rem', color: '#166534' }}>
-                            Aplicados este mes: -${appliedCredits.toFixed(2)}
+                            Aplicados este mes: -{formatCurrency(appliedCredits)}
                           </span>
                           {remainingCredits > 0 && (
                             <span style={{ fontSize: '0.7rem', color: '#15803d', fontWeight: 'bold' }}>
-                              Remanente para próximo mes: +${remainingCredits.toFixed(2)}
+                              Remanente para próximo mes: +{formatCurrency(remainingCredits)}
                             </span>
                           )}
                         </div>
                       )}
                     </div>
                   </td>
-                  <td style={{ padding: '1rem 0.75rem' }}>
+                  <td data-label="Estado Facturación" style={{ padding: '1rem 0.75rem' }}>
                     {t.mpCardId ? (
                       <span style={{ color: '#16a34a', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                         <CheckCircle2 size={16} /> Tarjeta Registrada
@@ -344,8 +345,8 @@ export default function AdminClient({ initialData }: { initialData: any }) {
                       <span style={{ color: '#ef4444', fontWeight: 'bold' }}>Sin método de pago</span>
                     )}
                   </td>
-                  <td style={{ padding: '1rem 0.75rem' }}>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <td data-label="Acciones" style={{ padding: '1rem 0.75rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                       <button 
                         onClick={() => { setEditingTenant(t); setTenantName(t.name); }}
                         style={{ padding: '0.5rem 0.75rem', backgroundColor: '#f1f5f9', color: '#475569', borderRadius: '4px', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}

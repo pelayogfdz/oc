@@ -68,12 +68,14 @@ export interface OfflineProduct {
   barcode: string | null;
   stock: number;
   cost: number;
-  averageCost: number;
+  averageCost?: number | null;
   price: number;
   category: string | null;
+  brand?: string | null;
   imageUrl?: string | null;
   wholesalePrice?: number | null;
   specialPrice?: number | null;
+  isService?: boolean;
   variants: any[];
   prices: any[]; // PriceLists links
 }

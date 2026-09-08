@@ -235,7 +235,7 @@ export default function RoleClient({ initialRoles }: { initialRoles: any[] }) {
       {/* LIST OF ROLES */}
       {!isEditing && (
         <div style={{ overflowX: 'auto', border: '1px solid var(--caanma-border)', borderRadius: '8px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+          <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--caanma-border)' }}>
                 <th style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>Nombre del Rol</th>
@@ -247,20 +247,20 @@ export default function RoleClient({ initialRoles }: { initialRoles: any[] }) {
             <tbody>
               {roles.map((role) => (
                 <tr key={role.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-                  <td style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text)' }}>
+                  <td data-label="Nombre del Rol" style={{ padding: '1rem', fontWeight: 'bold', color: 'var(--caanma-text)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <Shield size={16} style={{ color: 'var(--caanma-primary)' }} />
                       {role.name}
                     </div>
                   </td>
-                  <td style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>
+                  <td data-label="Descripción" style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>
                     {role.description || <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>Sin descripción</span>}
                   </td>
-                  <td style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>
+                  <td data-label="Creado el" style={{ padding: '1rem', color: 'var(--caanma-text-muted)', fontSize: '0.9rem' }}>
                     {new Date(role.createdAt).toLocaleDateString()}
                   </td>
-                  <td style={{ padding: '1rem', textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                  <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'right' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                       <button 
                         type="button" 
                         onClick={() => openEditRole(role)}

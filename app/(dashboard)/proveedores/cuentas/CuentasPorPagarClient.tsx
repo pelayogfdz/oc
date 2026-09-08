@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { HandCoins, Search, X, FileText, CheckCircle, AlertTriangle, ChevronRight, CheckSquare, Square, Truck } from 'lucide-react';
 import { addSupplierPaymentBatch } from '@/app/actions/supplierPayment';
+import { formatCurrency } from '@/lib/utils';
 
 export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] }) {
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
@@ -81,9 +82,9 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
                        <Truck size={24} /> {selectedSupplier.name}
                      </h3>
                      <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem', display: 'flex', gap: '1rem' }}>
-                       <span>Límite Crédito: ${selectedSupplier.creditLimit.toFixed(2)}</span>
+                       <span>Límite Crédito: {formatCurrency(selectedSupplier.creditLimit)}</span>
                        <span>Plazo: {selectedSupplier.creditDays} días</span>
-                       <span style={{ color: selectedSupplier.storeCredit > 0 ? '#16a34a' : 'inherit', fontWeight: selectedSupplier.storeCredit > 0 ? 'bold' : 'normal' }}>Saldo a Favor: ${selectedSupplier.storeCredit.toFixed(2)}</span>
+                       <span style={{ color: selectedSupplier.storeCredit > 0 ? '#16a34a' : 'inherit', fontWeight: selectedSupplier.storeCredit > 0 ? 'bold' : 'normal' }}>Saldo a Favor: {formatCurrency(selectedSupplier.storeCredit)}</span>
                      </div>
                   </div>
                   
@@ -193,7 +194,7 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
                                          </span>
                                        )}
                                      </div>
-                                     <span style={{ fontWeight: 'bold', color: '#dc2626' }}>${purchase.balanceDue.toFixed(2)}</span>
+                                     <span style={{ fontWeight: 'bold', color: '#dc2626' }}>{formatCurrency(purchase.balanceDue)}</span>
                                    </div>
                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
                                      <span style={{ color: '#64748b' }}>C: {new Date(purchase.createdAt).toLocaleDateString()}</span>
@@ -316,7 +317,7 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
                   </div>
                 </td>
                 <td data-label="Deuda Total" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', color: s.creditBalance >= 0.01 ? '#dc2626' : '#22c55e' }}>
-                  ${(s.creditBalance || 0).toFixed(2)}
+                  {formatCurrency(s.creditBalance || 0)}
                 </td>
                 <td data-label="Estado" style={{ padding: '1rem', textAlign: 'center' }}>
                    {overduePurchases.length > 0 ? (
@@ -335,9 +336,9 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
                 </td>
                 <td data-label="Límite Disponible" style={{ padding: '1rem', textAlign: 'right', color: 'var(--caanma-text-muted)' }}>
                   <div style={{ fontWeight: '500' }}>
-                    ${(s.creditLimit - (s.creditBalance || 0)).toFixed(2)}
+                    {formatCurrency(s.creditLimit - (s.creditBalance || 0))}
                   </div>
-                  <div style={{ fontSize: '0.75rem' }}>de ${(s.creditLimit || 0).toFixed(2)}</div>
+                  <div style={{ fontSize: '0.75rem' }}>de {formatCurrency(s.creditLimit || 0)}</div>
                 </td>
                 <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'center' }}>
                   <button 

@@ -160,9 +160,26 @@ export async function convertQuoteToSale(quoteId: string) {
 
   const { getCurrentSession } = await import('./caja');
   const currentSession = await getCurrentSession();
+  const activeBranch = await getActiveBranch();
+  const finalBranchId = quote.branchId || activeBranch.id;
+  const { getNextFolio } = await import('./folios');
+  const folio = await getNextFolio(finalBranchId, 'sale');
+
+  let dueDate = null;
+  let balanceDue = 0;
+
+  if (quote.paymentMethod === 'CREDIT' && quote.customerId) {
+    const customer = await prisma.customer.findUnique({ where: { id: quote.customerId } });
+    if (customer) {
+      dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + (customer.creditDays || 0));
+      balanceDue = quote.total;
+    }
+  }
 
   const sale = await prisma.sale.create({
     data: {
+      folio,
       total: quote.total,
       paymentMethod: quote.paymentMethod,
       customerId: quote.customerId,
@@ -170,6 +187,8 @@ export async function convertQuoteToSale(quoteId: string) {
       userId: quote.userId,
       notes: quote.observations,
       cashSessionId: currentSession?.id || undefined,
+      dueDate,
+      balanceDue,
       items: {
         create: quote.items.map(item => ({
           quantity: item.quantity,
@@ -179,6 +198,13 @@ export async function convertQuoteToSale(quoteId: string) {
       }
     }
   });
+
+  if (quote.paymentMethod === 'CREDIT' && quote.customerId) {
+    await prisma.customer.update({
+      where: { id: quote.customerId },
+      data: { creditBalance: { increment: quote.total } }
+    });
+  }
 
   // Deduct stock & Register Kardex Movement
   for (const item of quote.items) {
@@ -212,6 +238,10 @@ export async function convertQuoteToSale(quoteId: string) {
   revalidatePath('/ventas');
   revalidatePath('/ventas/cotizaciones');
   revalidatePath('/productos');
+  revalidatePath('/clientes/cobranza');
+  if (quote.customerId) {
+    revalidatePath(`/clientes/${quote.customerId}`);
+  }
 }
 
 export async function createQuickProductsForQuote(

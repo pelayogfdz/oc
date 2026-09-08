@@ -32,9 +32,11 @@ export async function syncBasicCatalogs() {
     });
   }
   
+  const targetBranchIds = (!branchId || branchId === 'GLOBAL') ? branchIds : [branchId];
+
   const totalProducts = await prisma.product.count({ 
     where: { 
-      branchId: { in: [branchId, 'GLOBAL'] }, 
+      branchId: { in: targetBranchIds }, 
       isActive: true 
     } 
   });
@@ -114,15 +116,53 @@ export async function syncBasicCatalogs() {
 export async function syncProductsPage(page: number, limit: number) {
   const branch = await getActiveBranch();
   if (!branch) return [];
-  
+  const tenantId = branch.tenantId;
+
+  const tenantBranches = await prisma.branch.findMany({ where: { tenantId, isActive: true }, select: { id: true } });
+  const branchIds = tenantBranches.map(b => b.id);
+
+  const targetBranchIds = (!branch.id || branch.id === 'GLOBAL') ? branchIds : [branch.id];
+
   const skip = (page - 1) * limit;
   const products = await prisma.product.findMany({
     where: { 
-      branchId: { in: [branch.id, 'GLOBAL'] }, 
+      branchId: { in: targetBranchIds }, 
       isActive: true 
     },
-    include: { variants: true, prices: true },
-    orderBy: { id: 'asc' },
+    select: {
+      id: true,
+      branchId: true,
+      name: true,
+      sku: true,
+      barcode: true,
+      stock: true,
+      cost: true,
+      averageCost: true,
+      price: true,
+      category: true,
+      brand: true,
+      imageUrl: true,
+      wholesalePrice: true,
+      specialPrice: true,
+      isService: true,
+      variants: {
+        select: {
+          id: true,
+          sku: true,
+          barcode: true,
+          attribute: true,
+          price: true,
+          stock: true
+        }
+      },
+      prices: {
+        select: {
+          priceListId: true,
+          price: true
+        }
+      }
+    },
+    orderBy: { name: 'asc' },
     skip,
     take: limit,
   });

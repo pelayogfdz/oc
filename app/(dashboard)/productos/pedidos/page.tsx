@@ -2,6 +2,7 @@ import { getActiveBranch } from "@/app/actions/auth";
 import { prisma } from "@/lib/prisma";
 import { ShoppingCart, Plus, CheckCircle, Clock, Search, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { formatCurrency } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,7 +73,7 @@ export default async function PurchaseOrdersPage() {
                     {order.items.length} líneas
                   </td>
                   <td data-label="Total Estimado" style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>
-                    ${order.total.toFixed(2)}
+                    {formatCurrency(order.total)}
                   </td>
                   <td data-label="Estado" style={{ padding: '1rem', textAlign: 'center' }}>
                     <span style={{ 

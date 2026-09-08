@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { getActiveBranch, getActiveUser } from './auth';
+import { formatCurrency } from '@/lib/utils';
 
 export async function createPurchase(
   items: { 
@@ -51,7 +52,7 @@ export async function createPurchase(
         if (supplier.creditLimit <= 0) throw new Error("El proveedor no te ha otorgado límite de crédito en el sistema.");
         
         if ((supplier.creditBalance + total) > supplier.creditLimit) {
-          throw new Error(`Excedes el límite de crédito con este proveedor. Límite disponible: $${(supplier.creditLimit - supplier.creditBalance).toFixed(2)}`);
+          throw new Error(`Excedes el límite de crédito con este proveedor. Límite disponible: ${formatCurrency(supplier.creditLimit - supplier.creditBalance)}`);
         }
 
         const days = creditDays !== undefined && creditDays !== null ? creditDays : supplier.creditDays;

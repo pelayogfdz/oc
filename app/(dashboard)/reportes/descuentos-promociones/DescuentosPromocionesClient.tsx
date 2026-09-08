@@ -745,19 +745,19 @@ export default function DescuentosPromocionesClient({
 
                       {/* Regular Price */}
                       <td style={{ padding: '0.75rem 1rem', textAlign: 'right', verticalAlign: 'top', color: '#64748b', textDecoration: 'line-through' }}>
-                        ${row.regularPrice.toFixed(2)}
+                        {formatCurrency(row.regularPrice)}
                       </td>
 
                       {/* Charged Price */}
                       <td style={{ padding: '0.75rem 1rem', textAlign: 'right', verticalAlign: 'top', fontWeight: 'bold', color: '#1e293b' }}>
-                        ${row.chargedPrice.toFixed(2)}
+                        {formatCurrency(row.chargedPrice)}
                       </td>
 
                       {/* Total Discount */}
                       <td style={{ padding: '0.75rem 1rem', textAlign: 'right', verticalAlign: 'top', fontWeight: '900', color: '#dc2626' }}>
-                        -${row.totalDiscount.toFixed(2)}
+                        -{formatCurrency(row.totalDiscount)}
                         <div style={{ fontSize: '0.7rem', color: '#ef4444' }}>
-                          (-${row.unitDiscount.toFixed(2)} c/u)
+                          (-{formatCurrency(row.unitDiscount)} c/u)
                         </div>
                       </td>
 
@@ -770,7 +770,7 @@ export default function DescuentosPromocionesClient({
 
                       {/* Total Charged */}
                       <td style={{ padding: '0.75rem 1rem', textAlign: 'right', verticalAlign: 'top', fontWeight: 'bold', color: '#16a34a' }}>
-                        ${row.totalCharged.toFixed(2)}
+                        {formatCurrency(row.totalCharged)}
                       </td>
 
                       {/* Discount Type & Reason */}
@@ -881,10 +881,10 @@ export default function DescuentosPromocionesClient({
                         {prod.unitsSoldWithDiscount} uds
                       </td>
                       <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '900', color: '#dc2626' }}>
-                        -${prod.totalDiscountAmount.toFixed(2)}
+                        -{formatCurrency(prod.totalDiscountAmount)}
                       </td>
                       <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 'bold', color: '#16a34a' }}>
-                        ${prod.totalChargedAmount.toFixed(2)}
+                        {formatCurrency(prod.totalChargedAmount)}
                       </td>
                     </tr>
                   ))
@@ -927,7 +927,7 @@ export default function DescuentosPromocionesClient({
                   </div>
 
                   <div style={{ fontSize: '2rem', fontWeight: '900', color: '#dc2626', marginBottom: '0.5rem' }}>
-                    -${item.totalDiscountAmount.toFixed(2)}
+                    -{formatCurrency(item.totalDiscountAmount)}
                   </div>
 
                   {/* Progress bar */}
@@ -950,7 +950,7 @@ export default function DescuentosPromocionesClient({
                   </div>
                   <div>
                     <div style={{ color: 'var(--caanma-text-muted)', fontSize: '0.75rem' }}>Total Cobrado:</div>
-                    <div style={{ fontWeight: 'bold', color: '#16a34a', marginTop: '0.1rem' }}>${item.totalChargedAmount.toFixed(2)}</div>
+                    <div style={{ fontWeight: 'bold', color: '#16a34a', marginTop: '0.1rem' }}>{formatCurrency(item.totalChargedAmount)}</div>
                   </div>
                 </div>
               </div>

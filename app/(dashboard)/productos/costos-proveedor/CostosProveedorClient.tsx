@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Save, Filter, Search, Upload, Download } from 'lucide-react';
 import { bulkUpdateCosts } from '@/app/actions/bulkCost';
+import { formatCurrency } from '@/lib/utils';
 
 export default function CostosProveedorClient({ initProducts, brands, branchId }: { initProducts: any[], brands: string[], branchId: string }) {
   const [products, setProducts] = useState(initProducts.map(p => ({ ...p, _newCost: p.cost, _modified: false })));
@@ -170,7 +171,7 @@ export default function CostosProveedorClient({ initProducts, brands, branchId }
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
           <thead style={{ backgroundColor: '#f8fafc' }}>
             <tr>
               <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>SKU</th>
@@ -183,12 +184,12 @@ export default function CostosProveedorClient({ initProducts, brands, branchId }
           <tbody>
             {displayedProducts.map(p => (
               <tr key={p.id} style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: p._modified ? '#fefce8' : 'transparent' }}>
-                <td style={{ padding: '0.75rem 1rem', color: 'var(--caanma-text-muted)' }}>{p.sku || '--'}</td>
-                <td style={{ padding: '0.75rem 1rem', fontWeight: '500' }}>{p.name}</td>
-                <td style={{ padding: '0.75rem 1rem', color: 'var(--caanma-text-muted)' }}>{p.brand || '--'}</td>
-                <td style={{ padding: '0.75rem 1rem' }}>${(p.averageCost || 0).toFixed(2)}</td>
-                <td style={{ padding: '0.75rem 1rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <td data-label="SKU" style={{ padding: '0.75rem 1rem', color: 'var(--caanma-text-muted)' }}>{p.sku || '--'}</td>
+                <td data-label="Producto" style={{ padding: '0.75rem 1rem', fontWeight: '500' }}>{p.name}</td>
+                <td data-label="Marca" style={{ padding: '0.75rem 1rem', color: 'var(--caanma-text-muted)' }}>{p.brand || '--'}</td>
+                <td data-label="Costo Prom. Actual" style={{ padding: '0.75rem 1rem' }}>{formatCurrency(p.averageCost || 0)}</td>
+                <td data-label="Nuevo Costo" style={{ padding: '0.75rem 1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
                     <span style={{ color: 'var(--caanma-text-muted)' }}>$</span>
                     <input
                       type="number"
