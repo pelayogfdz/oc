@@ -371,33 +371,201 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
 
   return (
     <div>
+      <style dangerouslySetInnerHTML={{ __html: `
+        .client-header-card {
+          padding: 1.75rem;
+          display: flex;
+          gap: 1.75rem;
+          align-items: flex-start;
+          margin-bottom: 1.5rem;
+          position: relative;
+          overflow: hidden;
+        }
+        .client-avatar-box {
+          padding: 1.25rem;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .client-title-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 1rem;
+        }
+        .client-action-buttons {
+          display: flex;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+          align-items: center;
+        }
+        .client-metrics-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 1rem;
+          margin-top: 1.25rem;
+        }
+        .client-metric-item {
+          background: #f8fafc;
+          border: 1px solid #f1f5f9;
+          border-radius: 8px;
+          padding: 0.75rem 1rem;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+        .client-tabs-bar {
+          display: flex;
+          border-bottom: 1px solid #e2e8f0;
+          margin-bottom: 1.5rem;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+          gap: 0.25rem;
+          padding-bottom: 2px;
+        }
+        .client-tabs-bar::-webkit-scrollbar {
+          display: none;
+        }
+        .client-tab-btn {
+          padding: 0.75rem 1.25rem;
+          background: none;
+          border: none;
+          font-weight: bold;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          white-space: nowrap;
+          flex-shrink: 0;
+          font-size: 0.9rem;
+          border-bottom: 2px solid transparent;
+          transition: all 0.2s ease;
+        }
+        .client-info-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+        }
+        .client-cobranza-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+        }
+        .client-cobranza-left {
+          padding: 1.5rem;
+          border-right: 1px solid #e2e8f0;
+        }
+        .client-points-form {
+          display: flex;
+          gap: 1rem;
+          align-items: flex-end;
+        }
+
+        @media (max-width: 900px) {
+          .client-metrics-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+
+        @media (max-width: 640px) {
+          .client-header-card {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 1.25rem 1rem;
+            gap: 1rem;
+          }
+          .client-avatar-box {
+            margin-top: 0 !important;
+          }
+          .client-title-row {
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            width: 100%;
+          }
+          .client-action-buttons {
+            justify-content: center;
+            width: 100%;
+          }
+          .client-action-buttons button,
+          .client-action-buttons a {
+            flex: 1;
+            justify-content: center;
+            text-align: center;
+            font-size: 0.85rem;
+            padding: 0.5rem 0.75rem !important;
+          }
+          .client-metrics-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.6rem;
+            width: 100%;
+          }
+          .client-metric-item {
+            padding: 0.6rem;
+            text-align: center;
+            align-items: center;
+          }
+          .client-metric-puntos {
+            grid-column: 1 / -1;
+          }
+          .client-info-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+          }
+          .client-points-form {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.75rem;
+          }
+          .client-points-form button {
+            width: 100%;
+            padding: 0.75rem !important;
+          }
+          .client-cobranza-grid {
+            grid-template-columns: 1fr;
+          }
+          .client-cobranza-left {
+            border-right: none !important;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem;
+          }
+          .client-tab-btn {
+            padding: 0.6rem 0.9rem;
+            font-size: 0.85rem;
+          }
+        }
+      `}} />
+
       {/* Header Profile */}
-      <div className="card" style={{ padding: '2rem', display: 'flex', gap: '2rem', alignItems: 'flex-start', marginBottom: '2rem', position: 'relative', overflow: 'hidden' }}>
+      <div className="card client-header-card">
         {customer.isBlocked && (
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: '#ef4444', color: 'white', textAlign: 'center', padding: '0.25rem', fontSize: '0.75rem', fontWeight: 'bold' }}>
             CLIENTE BLOQUEADO PARA VENTAS
           </div>
         )}
-        <div style={{ padding: '1.5rem', backgroundColor: customer.isBlocked ? '#fee2e2' : '#f1f5f9', borderRadius: '50%', marginTop: customer.isBlocked ? '1rem' : '0' }}>
-          <UserCircle size={64} color={customer.isBlocked ? '#ef4444' : '#64748b'} />
+        <div className="client-avatar-box" style={{ backgroundColor: customer.isBlocked ? '#fee2e2' : '#f1f5f9', marginTop: customer.isBlocked ? '1rem' : '0' }}>
+          <UserCircle size={56} color={customer.isBlocked ? '#ef4444' : '#64748b'} />
         </div>
-        <div style={{ flex: 1, marginTop: customer.isBlocked ? '1rem' : '0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ flex: 1, width: '100%', marginTop: customer.isBlocked ? '1rem' : '0' }}>
+          <div className="client-title-row">
             <div>
-              <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: customer.isBlocked ? '#ef4444' : '#0f172a', margin: '0 0 0.5rem 0' }}>{customer.name}</h1>
-              {customer.taxId && <div style={{ display: 'inline-block', backgroundColor: '#eef2ff', color: '#4f46e5', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '1rem' }}>RFC: {customer.taxId}</div>}
+              <h1 style={{ fontSize: '1.6rem', fontWeight: 'bold', color: customer.isBlocked ? '#ef4444' : '#0f172a', margin: '0 0 0.25rem 0', wordBreak: 'break-word' }}>{customer.name}</h1>
+              {customer.taxId && <div style={{ display: 'inline-block', backgroundColor: '#eef2ff', color: '#4f46e5', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>RFC: {customer.taxId}</div>}
               {(() => {
                 const isGenericPublic = 
                   customer.name.toLowerCase().includes('publico') && 
                   customer.name.toLowerCase().includes('general');
                 return isGenericPublic && (
-                  <div style={{ backgroundColor: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', padding: '0.75rem 1rem', borderRadius: '8px', marginTop: '0.5rem', fontSize: '0.9rem', fontWeight: '500' }}>
+                  <div style={{ backgroundColor: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', padding: '0.6rem 0.8rem', borderRadius: '8px', marginTop: '0.35rem', fontSize: '0.85rem', fontWeight: '500' }}>
                     ⚠️ **Registro Genérico de Público en General:** Este registro no debe ser editado ni reasignado para representar a un cliente específico.
                   </div>
                 );
               })()}
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div className="client-action-buttons">
               {(() => {
                 const isGenericPublic = 
                   customer.name.toLowerCase().includes('publico') && 
@@ -408,17 +576,17 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
                       onClick={handleToggleBlock}
                       className={customer.isBlocked ? "btn-secondary" : "btn-danger"}
                       style={{ 
-                         display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                         display: 'flex', alignItems: 'center', gap: '0.4rem', 
                          backgroundColor: customer.isBlocked ? '#f1f5f9' : '#fee2e2', 
                          color: customer.isBlocked ? '#0f172a' : '#ef4444', 
                          border: customer.isBlocked ? '1px solid #e2e8f0' : '1px solid #fca5a5', 
-                         padding: '0.5rem 1rem', borderRadius: '6px', fontWeight: '500', cursor: 'pointer' 
+                         padding: '0.45rem 0.85rem', borderRadius: '6px', fontWeight: '500', cursor: 'pointer' 
                       }}
                     >
-                      <AlertTriangle size={16} /> {customer.isBlocked ? 'Desbloquear' : 'Bloquear'}
+                      <AlertTriangle size={15} /> {customer.isBlocked ? 'Desbloquear' : 'Bloquear'}
                     </button>
-                    <Link href={`/clientes/${customer.id}/editar`} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
-                      <Edit size={16} /> Editar Perfil
+                    <Link href={`/clientes/${customer.id}/editar`} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none', padding: '0.45rem 0.85rem', borderRadius: '6px' }}>
+                      <Edit size={15} /> Editar Perfil
                     </Link>
                   </>
                 );
@@ -426,37 +594,37 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
             </div>
           </div>
           
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1.5rem', marginTop: '1rem' }}>
-            <div>
-              <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Deuda Total</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: customer.creditBalance > 0 ? '#ef4444' : '#10b981' }}>
+          <div className="client-metrics-grid">
+            <div className="client-metric-item">
+              <div style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.2rem' }}>Deuda Total</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 'bold', color: customer.creditBalance > 0 ? '#ef4444' : '#10b981' }}>
                 {formatCurrency(Math.max(0, customer.creditBalance || 0))}
               </div>
             </div>
-            <div>
-              <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Límite de Crédito</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a' }}>
+            <div className="client-metric-item">
+              <div style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.2rem' }}>Límite de Crédito</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#0f172a' }}>
                 {formatCurrency(customer.creditLimit || 0)}
               </div>
             </div>
-            <div>
-              <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Saldo a Favor</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: customer.storeCredit > 0 ? '#10b981' : '#0f172a' }}>
+            <div className="client-metric-item">
+              <div style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.2rem' }}>Saldo a Favor</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 'bold', color: customer.storeCredit > 0 ? '#10b981' : '#0f172a' }}>
                 {formatCurrency(customer.storeCredit || 0)}
               </div>
             </div>
-            <div>
-              <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Días de Crédito</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a' }}>
+            <div className="client-metric-item">
+              <div style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.2rem' }}>Días de Crédito</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#0f172a' }}>
                 {customer.creditDays || 0}
               </div>
             </div>
-            <div>
-              <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.25rem' }}>🌟 Puntos (Lealtad)</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>
+            <div className="client-metric-item client-metric-puntos">
+              <div style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.2rem' }}>🌟 Puntos (Lealtad)</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 'bold', color: 'var(--caanma-primary)' }}>
                 {customer.pointsBalance || 0} pts
               </div>
-              <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.1rem' }}>
+              <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '0.1rem' }}>
                 {customer.pointsExpiryDate 
                   ? `Vence: ${new Date(customer.pointsExpiryDate).toLocaleDateString()}` 
                   : 'Sin vencimiento'}
@@ -468,24 +636,26 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '0.5rem',
+                    justifyContent: 'center',
+                    gap: '0.4rem',
                     backgroundColor: '#000000',
                     color: '#ffffff',
                     border: '1px solid #5f6368',
                     borderRadius: '8px',
-                    padding: '0.4rem 0.8rem',
+                    padding: '0.35rem 0.75rem',
                     cursor: 'pointer',
-                    fontSize: '0.8rem',
+                    fontSize: '0.75rem',
                     fontWeight: '500',
-                    height: '36px',
-                    boxShadow: '0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06)',
+                    height: '32px',
+                    boxShadow: '0 1px 3px 0 rgba(0,0,0,0.1)',
                     transition: 'background-color 0.2s',
-                    marginTop: '0.5rem'
+                    marginTop: '0.4rem',
+                    width: '100%'
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1f1f1f'}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#000000'}
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M19.5 4H4.5A2.5 2.5 0 002 6.5v11A2.5 2.5 0 004.5 20h15a2.5 2.5 0 002.5-2.5v-11A2.5 2.5 0 0019.5 4z" fill="#4285F4"/>
                     <path d="M22 6.5v11c0 .4-.1.8-.3 1.1L16 12l5.7-5.7c.2.3.3.7.3 1.1z" fill="#34A853"/>
                     <path d="M19.5 20H4.5c-.4 0-.8-.1-1.1-.3L9 14h6l5.6 5.7c-.3.2-.7.3-1.1.3z" fill="#EA4335"/>
@@ -502,43 +672,43 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
       </div>
 
       {/* Tabs Menu */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '2rem' }}>
-        <button onClick={() => setActiveTab('resumen')} style={{ padding: '1rem 2rem', background: 'none', border: 'none', borderBottom: activeTab === 'resumen' ? '2px solid #0ea5e9' : '2px solid transparent', color: activeTab === 'resumen' ? '#0ea5e9' : '#64748b', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FileText size={18} /> Información General
+      <div className="client-tabs-bar">
+        <button onClick={() => setActiveTab('resumen')} className="client-tab-btn" style={{ borderBottomColor: activeTab === 'resumen' ? '#0ea5e9' : 'transparent', color: activeTab === 'resumen' ? '#0ea5e9' : '#64748b' }}>
+          <FileText size={17} /> Información General
         </button>
-        <button onClick={() => setActiveTab('ventas')} style={{ padding: '1rem 2rem', background: 'none', border: 'none', borderBottom: activeTab === 'ventas' ? '2px solid #0ea5e9' : '2px solid transparent', color: activeTab === 'ventas' ? '#0ea5e9' : '#64748b', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <ShoppingBag size={18} /> Historial de Ventas
+        <button onClick={() => setActiveTab('ventas')} className="client-tab-btn" style={{ borderBottomColor: activeTab === 'ventas' ? '#0ea5e9' : 'transparent', color: activeTab === 'ventas' ? '#0ea5e9' : '#64748b' }}>
+          <ShoppingBag size={17} /> Historial de Ventas
         </button>
-        <button onClick={() => setActiveTab('cobranza')} style={{ padding: '1rem 2rem', background: 'none', border: 'none', borderBottom: activeTab === 'cobranza' ? '2px solid #0ea5e9' : '2px solid transparent', color: activeTab === 'cobranza' ? '#0ea5e9' : '#64748b', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <HandCoins size={18} /> Cobranza y Abonos
+        <button onClick={() => setActiveTab('cobranza')} className="client-tab-btn" style={{ borderBottomColor: activeTab === 'cobranza' ? '#0ea5e9' : 'transparent', color: activeTab === 'cobranza' ? '#0ea5e9' : '#64748b' }}>
+          <HandCoins size={17} /> Cobranza y Abonos
         </button>
-        <button onClick={() => setActiveTab('pagos')} style={{ padding: '1rem 2rem', background: 'none', border: 'none', borderBottom: activeTab === 'pagos' ? '2px solid #0ea5e9' : '2px solid transparent', color: activeTab === 'pagos' ? '#0ea5e9' : '#64748b', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <History size={18} /> Historial de Pagos
+        <button onClick={() => setActiveTab('pagos')} className="client-tab-btn" style={{ borderBottomColor: activeTab === 'pagos' ? '#0ea5e9' : 'transparent', color: activeTab === 'pagos' ? '#0ea5e9' : '#64748b' }}>
+          <History size={17} /> Historial de Pagos
         </button>
       </div>
 
       {/* TAB CONTENT */}
       {activeTab === 'resumen' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '2rem' }}>
+        <div className="client-info-grid">
           <div className="card">
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 'bold', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <UserCircle size={20} color="#64748b" /> Contacto Principal
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <Mail size={18} color="#94a3b8" /> <span>{customer.email || 'No registrado'}</span>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', wordBreak: 'break-all' }}>
+                <Mail size={18} color="#94a3b8" style={{ flexShrink: 0 }} /> <span>{customer.email || 'No registrado'}</span>
               </div>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <Phone size={18} color="#94a3b8" /> <span>{customer.phone || 'No registrado'}</span>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', wordBreak: 'break-all' }}>
+                <Phone size={18} color="#94a3b8" style={{ flexShrink: 0 }} /> <span>{customer.phone || 'No registrado'}</span>
               </div>
               {(customer.phone || customer.email || customer.taxId) && (() => {
                 const searchVal = customer.phone || customer.email || customer.taxId;
                 return (
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.25rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem' }}>
-                    <ExternalLink size={18} color="var(--caanma-primary)" />
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginTop: '0.25rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem' }}>
+                    <ExternalLink size={18} color="var(--caanma-primary)" style={{ flexShrink: 0, marginTop: '0.15rem' }} />
                     <div style={{ flex: 1 }}>
                       <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', fontWeight: 'bold' }}>Enlace Directo Portal B2B:</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.2rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
                         <a 
                           href={`/clientes/portal?search=${encodeURIComponent(searchVal)}`} 
                           target="_blank" 
@@ -576,11 +746,11 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
           </div>
           
           <div className="card">
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 'bold', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Building size={20} color="#64748b" /> Dirección Corporativa
             </h3>
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-              <MapPin size={18} color="#94a3b8" style={{ marginTop: '0.2rem' }} /> 
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+              <MapPin size={18} color="#94a3b8" style={{ marginTop: '0.2rem', flexShrink: 0 }} /> 
               <span>
                 {customer.street ? `${customer.street} ${customer.exteriorNumber || ''}` : 'No registrada'}
                 <br/>
@@ -590,10 +760,10 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
           </div>
 
           <div className="card" style={{ gridColumn: '1 / -1' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 'bold', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Star size={20} color="var(--caanma-primary)" fill="var(--caanma-primary)" /> Control de Puntos de Fidelidad
             </h3>
-            <p style={{ fontSize: '0.875rem', color: 'var(--caanma-text-muted)', marginBottom: '1rem' }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginBottom: '1rem' }}>
               Ajusta manualmente el saldo de puntos de lealtad del cliente. Esto registrará una transacción en el log.
             </p>
             
@@ -612,16 +782,16 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
               } else {
                 alert(res.error);
               }
-            }} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
-              <div style={{ flex: 1 }}>
+            }} className="client-points-form">
+              <div style={{ flex: 1, width: '100%' }}>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Puntos a Ajustar (Negativo para restar)</label>
                 <input type="number" name="adjust_points" required placeholder="Ej: 50 o -20" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
               </div>
-              <div style={{ flex: 2 }}>
+              <div style={{ flex: 2, width: '100%' }}>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Razón del Ajuste</label>
                 <input type="text" name="adjust_reason" required placeholder="Ej: Corrección por devolución o Bono especial" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
               </div>
-              <button type="submit" className="btn-primary" style={{ padding: '0.5rem 1.5rem', borderRadius: '4px' }}>
+              <button type="submit" className="btn-primary" style={{ padding: '0.5rem 1.5rem', borderRadius: '4px', whiteSpace: 'nowrap' }}>
                 Aplicar Ajuste
               </button>
             </form>
@@ -631,10 +801,10 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
 
       {activeTab === 'cobranza' && (
         <div className="card" style={{ padding: 0 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.5fr) minmax(0,1fr)' }}>
+          <div className="client-cobranza-grid">
             
             {/* LADO IZQUIERDO: FACTURAS */}
-            <div style={{ padding: '1.5rem', borderRight: '1px solid #e2e8f0' }}>
+            <div className="client-cobranza-left">
               <h4 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1rem', color: '#334155' }}>Selecciona Facturas a Abonar</h4>
               {pendingSales.length === 0 ? (
                 <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
@@ -789,60 +959,63 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
       )}
 
       {activeTab === 'ventas' && (
-         <div className="card" style={{ padding: 0 }}>
-            <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-               <thead style={{ backgroundColor: '#f8fafc' }}>
-                  <tr>
-                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Ticket / Factura</th>
-                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Fecha</th>
-                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Total</th>
-                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Estado</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  {sales.map((sale: any) => (
-                     <tr key={sale.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-                        <td style={{ padding: '1rem', fontWeight: 'bold' }}>#{sale.id.slice(0,8).toUpperCase()}</td>
-                        <td style={{ padding: '1rem', color: '#64748b' }}>{new Date(sale.createdAt).toLocaleDateString()}</td>
-                        <td style={{ padding: '1rem', fontWeight: 'bold' }}>{formatCurrency(sale.total)}</td>
-                        <td style={{ padding: '1rem' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
-                               {sale.status === 'CANCELLED' ? (
-                                  <span style={{ padding: '0.25rem 0.5rem', backgroundColor: '#fee2e2', color: '#dc2626', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>CANCELADO</span>
-                               ) : sale.paymentMethod === 'CREDIT' ? (
-                                  <span style={{ padding: '0.25rem 0.5rem', backgroundColor: '#fef3c7', color: '#d97706', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>CRÉDITO</span>
-                               ) : (
-                                  <span style={{ padding: '0.25rem 0.5rem', backgroundColor: '#dcfce7', color: '#16a34a', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>PAGADO</span>
-                               )}
-                               {sale.cancellationStatus === 'pending' && (
-                                  <span style={{ padding: '0.15rem 0.35rem', backgroundColor: '#fff7ed', color: '#ea580c', border: '1px solid #fed7aa', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
-                                     Cancelación en proceso
-                                  </span>
-                               )}
-                            </div>
-                        </td>
-                     </tr>
-                  ))}
-                  {sales.length === 0 && (
-                     <tr><td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>Aún no hay ventas para este cliente</td></tr>
-                  )}
-               </tbody>
-            </table>
+         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table className="responsive-table" style={{ width: '100%', minWidth: '500px', borderCollapse: 'collapse', textAlign: 'left' }}>
+                 <thead style={{ backgroundColor: '#f8fafc' }}>
+                    <tr>
+                       <th style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem' }}>Ticket / Factura</th>
+                       <th style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem' }}>Fecha</th>
+                       <th style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem' }}>Total</th>
+                       <th style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem' }}>Estado</th>
+                    </tr>
+                 </thead>
+                 <tbody>
+                    {sales.map((sale: any) => (
+                       <tr key={sale.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
+                          <td style={{ padding: '0.85rem 1rem', fontWeight: 'bold', fontSize: '0.9rem' }}>#{sale.id.slice(0,8).toUpperCase()}</td>
+                          <td style={{ padding: '0.85rem 1rem', color: '#64748b', fontSize: '0.85rem' }}>{new Date(sale.createdAt).toLocaleDateString()}</td>
+                          <td style={{ padding: '0.85rem 1rem', fontWeight: 'bold', fontSize: '0.9rem' }}>{formatCurrency(sale.total)}</td>
+                          <td style={{ padding: '0.85rem 1rem' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
+                                 {sale.status === 'CANCELLED' ? (
+                                    <span style={{ padding: '0.2rem 0.45rem', backgroundColor: '#fee2e2', color: '#dc2626', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>CANCELADO</span>
+                                 ) : sale.paymentMethod === 'CREDIT' ? (
+                                    <span style={{ padding: '0.2rem 0.45rem', backgroundColor: '#fef3c7', color: '#d97706', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>CRÉDITO</span>
+                                 ) : (
+                                    <span style={{ padding: '0.2rem 0.45rem', backgroundColor: '#dcfce7', color: '#16a34a', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>PAGADO</span>
+                                 )}
+                                 {sale.cancellationStatus === 'pending' && (
+                                    <span style={{ padding: '0.15rem 0.35rem', backgroundColor: '#fff7ed', color: '#ea580c', border: '1px solid #fed7aa', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                                       Cancelación en proceso
+                                    </span>
+                                 )}
+                              </div>
+                          </td>
+                       </tr>
+                    ))}
+                    {sales.length === 0 && (
+                       <tr><td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>Aún no hay ventas para este cliente</td></tr>
+                    )}
+                 </tbody>
+              </table>
+            </div>
          </div>
       )}
 
       {activeTab === 'pagos' && (
-         <div className="card" style={{ padding: 0 }}>
-            <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-               <thead style={{ backgroundColor: '#f8fafc' }}>
-                  <tr>
-                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>ID Pago</th>
-                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Fecha</th>
-                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Detalle / Razón</th>
-                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Monto</th>
-                     <th style={{ padding: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>Acción</th>
-                  </tr>
-               </thead>
+         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table className="responsive-table" style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left' }}>
+                 <thead style={{ backgroundColor: '#f8fafc' }}>
+                    <tr>
+                       <th style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem' }}>ID Pago</th>
+                       <th style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem' }}>Fecha</th>
+                       <th style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem' }}>Detalle / Razón</th>
+                       <th style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem' }}>Monto</th>
+                       <th style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem' }}>Acción</th>
+                    </tr>
+                 </thead>
                <tbody>
                   {groupedPayments.map((g: any) => {
                      const isBatch = g.payments.length > 1;
@@ -1063,8 +1236,9 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
                   {payments.length === 0 && (
                      <tr><td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>Aún no hay abonos registrados</td></tr>
                   )}
-               </tbody>
-            </table>
+                </tbody>
+             </table>
+            </div>
          </div>
       )}
 

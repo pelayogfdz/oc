@@ -79,12 +79,15 @@ export default function HeaderTitle() {
   if (!info.title) return null;
 
   return (
-    <div className="header-module-title-container" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+    <div className="header-module-title-container" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
       <h1 style={{ 
-        fontSize: '1.25rem', 
+        fontSize: '1.15rem', 
         fontWeight: '700', 
         margin: 0, 
         color: 'var(--caanma-text)',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis'
       }} className="header-module-title">
         {info.title}
       </h1>
