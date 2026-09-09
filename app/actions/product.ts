@@ -1030,6 +1030,7 @@ export async function searchProducts(
     type?: string;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
+    limit?: number;
   }
 ) {
   const isGlobal = branchId === 'GLOBAL' || branchId === 'ALL' || !branchId;
@@ -1129,7 +1130,7 @@ export async function searchProducts(
     }
   }
 
-  const limitCount = isGlobal ? 300 * Math.max(1, tenantBranchIds.length) : 300;
+  const limitCount = options?.limit ? options.limit : (isGlobal ? 100 * Math.max(1, tenantBranchIds.length) : 50);
 
   let products = [];
   if (!query || query.trim() === '') {
@@ -1170,28 +1171,28 @@ export async function searchProducts(
     });
   }
 
-  // Extract unique identifiers to fetch cross-branch stock only for these products
+  // Extract unique identifiers to fetch cross-branch stock only for these products using indexed sku/barcode
   const productSkus = products.map(p => p.sku).filter((sku): sku is string => typeof sku === 'string' && sku.trim() !== '');
   const productBarcodes = products.map(p => p.barcode).filter((barcode): barcode is string => typeof barcode === 'string' && barcode.trim() !== '');
-  const productNames = products.map(p => p.name).filter((name): name is string => typeof name === 'string' && name.trim() !== '');
 
-  const otherBranchStocks = await prisma.product.findMany({
-    where: {
-      branchId: { in: tenantBranchIds },
-      isActive: true,
-      OR: [
-        { sku: { in: productSkus } },
-        { barcode: { in: productBarcodes } },
-        { name: { in: productNames } }
-      ]
-    },
-    select: { id: true, sku: true, barcode: true, name: true, stock: true, branchId: true, branch: { select: { name: true } } }
-  });
+  let otherBranchStocks: any[] = [];
+  if (productSkus.length > 0 || productBarcodes.length > 0) {
+    otherBranchStocks = await prisma.product.findMany({
+      where: {
+        branchId: { in: tenantBranchIds },
+        isActive: true,
+        OR: [
+          ...(productSkus.length > 0 ? [{ sku: { in: productSkus } }] : []),
+          ...(productBarcodes.length > 0 ? [{ barcode: { in: productBarcodes } }] : [])
+        ]
+      },
+      select: { id: true, sku: true, barcode: true, name: true, stock: true, branchId: true, branch: { select: { name: true } } }
+    });
+  }
 
-  // Build lookup maps of sku, barcode, and name to list of branch stock objects
+  // Build lookup maps of sku and barcode to list of branch stock objects
   const otherBranchSkuMap = new Map<string, any[]>();
   const otherBranchBarcodeMap = new Map<string, any[]>();
-  const otherBranchNameMap = new Map<string, any[]>();
 
   otherBranchStocks.forEach(prod => {
     if (prod.stock <= 0) return;
@@ -1213,11 +1214,6 @@ export async function searchProducts(
       if (!otherBranchBarcodeMap.has(barcodeKey)) otherBranchBarcodeMap.set(barcodeKey, []);
       otherBranchBarcodeMap.get(barcodeKey)!.push(bsItem);
     }
-    if (prod.name && prod.name.trim() !== '') {
-      const nameKey = prod.name.trim().toUpperCase();
-      if (!otherBranchNameMap.has(nameKey)) otherBranchNameMap.set(nameKey, []);
-      otherBranchNameMap.get(nameKey)!.push(bsItem);
-    }
   });
 
   // Helper function to resolve branch stocks for a given product
@@ -1236,15 +1232,6 @@ export async function searchProducts(
       const barcodeMatches = otherBranchBarcodeMap.get(barcodeKey);
       if (barcodeMatches) {
         barcodeMatches.forEach(m => matchedProductsMap.set(m.productId, m));
-      }
-    }
-    // Only fall back to name match if we have no SKU and no barcode
-    const hasSkuOrBarcode = (prod.sku && prod.sku.trim() !== '') || (prod.barcode && prod.barcode.trim() !== '');
-    if (!hasSkuOrBarcode && prod.name && prod.name.trim() !== '') {
-      const nameKey = prod.name.trim().toUpperCase();
-      const nameMatches = otherBranchNameMap.get(nameKey);
-      if (nameMatches) {
-        nameMatches.forEach(m => matchedProductsMap.set(m.productId, m));
       }
     }
 

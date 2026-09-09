@@ -29,7 +29,20 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
     }
   });
 
-  if (!sale) return notFound();
+  if (!sale) {
+    return (
+      <div style={{ maxWidth: '600px', margin: '4rem auto', textAlign: 'center', padding: '2.5rem 2rem', backgroundColor: 'white', borderRadius: '16px', border: '1px solid var(--caanma-border)', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }}>
+        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>
+        <h2 style={{ fontSize: '1.35rem', fontWeight: 'bold', color: 'var(--caanma-text)', marginBottom: '0.75rem' }}>Venta no encontrada</h2>
+        <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.9rem', lineHeight: '1.5', marginBottom: '1.75rem' }}>
+          El registro solicitado no existe o ya concluyó su ciclo en el servidor. Si se trata de una venta generada recientemente en modo offline, revisa la cola de sincronización o regresa al listado.
+        </p>
+        <Link href="/ventas" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', backgroundColor: 'var(--caanma-primary)', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem' }}>
+          <ArrowLeft size={16} /> Volver al Historial de Ventas
+        </Link>
+      </div>
+    );
+  }
 
   const itemsTotal = sale.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const cleanFolioStr = (sale.folio || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();

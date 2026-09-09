@@ -7,11 +7,22 @@ export default async function Page() {
 
   const fields: FieldConfig[] = [
     { 
+      name: 'formatoPlantilla', 
+      label: 'Estilo de Plantilla de Cotización', 
+      description: 'Elige el formato visual para las cotizaciones (Pasteles/Repostería Boutique o Corporativo Estándar).',
+      type: 'select',
+      options: [
+        { label: '🍰 Repostería & Pasteles Personalizados (Pizca de Azúcar)', value: 'boutique' },
+        { label: '📄 Corporativo Estándar', value: 'standard' }
+      ],
+      defaultValue: 'boutique'
+    },
+    { 
       name: 'diasVigencia', 
       label: 'Días Base para Expiración', 
       description: 'Tras este periodo la cotización expira y los precios/stocks ya no estarán congelados.',
       type: 'number',
-      placeholder: 'Ej: 15' 
+      placeholder: 'Ej: 30' 
     },
     { 
       name: 'incluirImagenes', 

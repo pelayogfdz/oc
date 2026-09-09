@@ -59,15 +59,14 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
       const fontBold = useCustomFonts ? 'Arial-Bold' : 'Helvetica-Bold';
       const fontItalic = useCustomFonts ? 'Arial-Italic' : 'Helvetica-Oblique';
 
-      // 1. Header
-      // Check if logo exists and if it's base64 or url
+      // 1. Header (Compact)
       let logoDrawn = false;
       if (logoUrl) {
         try {
           if (logoUrl.startsWith('data:image/')) {
             const base64Data = logoUrl.replace(/^data:image\/\w+;base64,/, '');
             const imgBuffer = Buffer.from(base64Data, 'base64');
-            doc.image(imgBuffer, 50, 45, { height: 75 });
+            doc.image(imgBuffer, 40, 35, { height: 45, width: 140, fit: [140, 45] });
             logoDrawn = true;
           }
         } catch (e) {
@@ -76,7 +75,16 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
       }
 
       if (!logoDrawn) {
-        doc.font(fontBold).fontSize(20).fillColor('#0f172a').text(quote.branch?.tenant?.name || 'CAANMA', 50, 45);
+        doc.font(fontBold).fontSize(16).fillColor('#0f172a').text(quote.branch?.tenant?.name || 'CAANMA', 40, 35);
+      }
+
+      // Branch Details
+      const branchName = quote.branch?.name || 'Matriz';
+      const branchAddress = quote.branch?.location || '';
+      doc.font(fontRegular).fontSize(7.5).fillColor('#64748b');
+      doc.text(`Sucursal: ${branchName}`, 40, 58);
+      if (branchAddress) {
+        doc.text(branchAddress.replace(/\n/g, ', '), 40, 68, { width: 280 });
       }
 
       // Title Box (Top Right)
@@ -87,108 +95,112 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
         day: 'numeric'
       });
 
-      doc.font(fontBold).fontSize(14).fillColor(primaryColor).text('COTIZACIÓN', 400, 45, { align: 'right' });
-      doc.font(fontRegular).fontSize(10).fillColor('#475569').text(`Folio: #${displayFolio}`, 400, 65, { align: 'right' });
-      doc.text(`Fecha: ${dateStr}`, 400, 80, { align: 'right' });
-
-      // Branch Details
-      const branchName = quote.branch?.name || 'Matriz';
-      const branchAddress = quote.branch?.location || '';
-      doc.font(fontRegular).fontSize(8).fillColor('#64748b');
-      doc.text(`Sucursal: ${branchName}`, 50, 135);
-      if (branchAddress) {
-        doc.text(branchAddress.replace(/\n/g, ', '), 50, 147, { width: 300 });
-      }
+      doc.font(fontBold).fontSize(14).fillColor(primaryColor).text('COTIZACIÓN', 350, 35, { align: 'right', width: 222 });
+      doc.font(fontBold).fontSize(9).fillColor('#0f172a').text(`Folio: #${displayFolio}`, 350, 52, { align: 'right', width: 222 });
+      doc.font(fontRegular).fontSize(8).fillColor('#64748b').text(`Fecha: ${dateStr}`, 350, 65, { align: 'right', width: 222 });
 
       // Colored rule line
-      doc.strokeColor(primaryColor).lineWidth(2).moveTo(50, 170).lineTo(562, 170).stroke();
+      doc.strokeColor(primaryColor).lineWidth(1.5).moveTo(40, 88).lineTo(572, 88).stroke();
 
-      // 2. Info Cards (Customer and Operation details)
-      doc.font(fontBold).fontSize(9).fillColor(primaryColor).text('DATOS DEL CLIENTE', 50, 190);
-      doc.font(fontBold).fontSize(10).fillColor('#1e293b').text(quote.customer?.name || 'Público en General', 50, 205);
-      doc.font(fontRegular).fontSize(9).fillColor('#475569');
-      if (quote.customer?.taxId) doc.text(`RFC: ${quote.customer.taxId}`, 50, 220);
-      if (quote.customer?.phone) doc.text(`Teléfono: ${quote.customer.phone}`, 50, 233);
-      if (quote.customer?.email) doc.text(`Email: ${quote.customer.email}`, 50, 246);
+      // 2. Info Cards (Compact: Left = Client, Right = Quote details)
+      const infoTop = 96;
+      // Client Box
+      doc.fillColor('#f8fafc').rect(40, infoTop, 255, 60).fill();
+      doc.strokeColor('#e2e8f0').lineWidth(0.5).rect(40, infoTop, 255, 60).stroke();
 
-      doc.font(fontBold).fontSize(9).fillColor(primaryColor).text('DATOS DE LA COTIZACIÓN', 350, 190);
-      doc.font(fontRegular).fontSize(9).fillColor('#475569');
-      doc.text(`Vigencia: ${daysValid} días naturales`, 350, 205);
-      doc.text(`Moneda: MXN (Pesos Mexicanos)`, 350, 218);
-      doc.text(`Vendedor: ${quote.user?.name || 'Sistema'}`, 350, 231);
+      doc.font(fontBold).fontSize(7.5).fillColor(primaryColor).text('DATOS DEL CLIENTE', 48, infoTop + 6);
+      doc.font(fontBold).fontSize(8.5).fillColor('#1e293b').text(quote.customer?.name || 'Público en General', 48, infoTop + 18, { width: 240, ellipsis: true });
+      doc.font(fontRegular).fontSize(7.5).fillColor('#475569');
+      let clientLineY = infoTop + 30;
+      if (quote.customer?.taxId) {
+        doc.text(`RFC: ${quote.customer.taxId}`, 48, clientLineY);
+        clientLineY += 10;
+      }
+      const contactInfo = [quote.customer?.phone, quote.customer?.email].filter(Boolean).join(' | ');
+      if (contactInfo) {
+        doc.text(contactInfo, 48, clientLineY, { width: 240, ellipsis: true });
+      }
+
+      // Quote details Box
+      doc.fillColor('#f8fafc').rect(310, infoTop, 262, 60).fill();
+      doc.strokeColor('#e2e8f0').lineWidth(0.5).rect(310, infoTop, 262, 60).stroke();
+
+      doc.font(fontBold).fontSize(7.5).fillColor(primaryColor).text('DETALLES DEL DOCUMENTO', 318, infoTop + 6);
+      doc.font(fontRegular).fontSize(7.5).fillColor('#475569');
+      doc.text(`Vigencia: ${daysValid} días naturales`, 318, infoTop + 18);
+      doc.text(`Moneda: MXN (Pesos Mexicanos)`, 318, infoTop + 29);
+      doc.text(`Elaboró: ${quote.user?.name || 'Sistema'}`, 318, infoTop + 40);
 
       // 3. Items Table Header
-      const tableTop = 280;
-      doc.fillColor('#f8fafc').rect(50, tableTop, 512, 20).fill();
-      doc.strokeColor('#e2e8f0').lineWidth(1).rect(50, tableTop, 512, 20).stroke();
+      const tableTop = 166;
+      const renderTableHeader = (y: number) => {
+        doc.fillColor('#f8fafc').rect(40, y, 532, 18).fill();
+        doc.strokeColor('#cbd5e1').lineWidth(0.75).rect(40, y, 532, 18).stroke();
 
-      doc.font(fontBold).fontSize(8).fillColor('#475569');
-      doc.text('Cant', 55, tableTop + 6, { width: 30, align: 'center' });
-      doc.text('Código/SKU', 90, tableTop + 6, { width: 90, align: 'left' });
-      doc.text('Descripción del Artículo', 185, tableTop + 6, { width: 145, align: 'left' });
-      doc.text('Precio Unit.', 335, tableTop + 6, { width: 75, align: 'right' });
-      doc.text('IVA', 415, tableTop + 6, { width: 65, align: 'right' });
-      doc.text('Importe', 485, tableTop + 6, { width: 77, align: 'right' });
+        doc.font(fontBold).fontSize(7.5).fillColor('#475569');
+        doc.text('Cant', 44, y + 5, { width: 32, align: 'center' });
+        doc.text('Código / SKU', 80, y + 5, { width: 85, align: 'left' });
+        doc.text('Descripción del Artículo', 170, y + 5, { width: 175, align: 'left' });
+        doc.text('Precio Unit.', 350, y + 5, { width: 68, align: 'right' });
+        doc.text('IVA', 422, y + 5, { width: 65, align: 'right' });
+        doc.text('Importe', 492, y + 5, { width: 74, align: 'right' });
+      };
 
-       // Table Rows
-       let currentY = tableTop + 20;
-       quote.items.forEach((item: any) => {
-         const nameHeight = doc.heightOfString(item.product?.name || 'Artículo sin nombre', { width: 145 });
-         const rowHeight = Math.max(28, nameHeight + 8);
- 
-         // Check if we need to add a new page before drawing this row
-         if (currentY + rowHeight > 650) {
-           doc.addPage();
-           currentY = 50; // top margin on new page
- 
-           // Redraw table header on the new page
-           doc.fillColor('#f8fafc').rect(50, currentY, 512, 20).fill();
-           doc.strokeColor('#e2e8f0').lineWidth(1).rect(50, currentY, 512, 20).stroke();
- 
-           doc.font(fontBold).fontSize(8).fillColor('#475569');
-           doc.text('Cant', 55, currentY + 6, { width: 30, align: 'center' });
-           doc.text('Código/SKU', 90, currentY + 6, { width: 90, align: 'left' });
-           doc.text('Descripción del Artículo', 185, currentY + 6, { width: 145, align: 'left' });
-           doc.text('Precio Unit.', 335, currentY + 6, { width: 75, align: 'right' });
-           doc.text('IVA', 415, currentY + 6, { width: 65, align: 'right' });
-           doc.text('Importe', 485, currentY + 6, { width: 77, align: 'right' });
- 
-           currentY += 20;
-         }
- 
-         // Draw row bottom line
-         doc.strokeColor('#f1f5f9').lineWidth(1).moveTo(50, currentY + rowHeight).lineTo(562, currentY + rowHeight).stroke();
- 
-         const taxRate = item.product?.taxRate ?? 16.0;
-         const taxType = item.product?.taxType || 'IVA';
-         const isIva = taxType === 'IVA' || taxType === 'IVA_IEPS';
-         const rate = isIva ? taxRate : 0;
- 
-         const finalPriceIncludingIva = item.price;
-         const finalPriceExcludingIva = finalPriceIncludingIva / (1 + rate / 100);
-         const rowImporteExcludingIva = finalPriceExcludingIva * item.quantity;
-         const rowIva = (finalPriceIncludingIva - finalPriceExcludingIva) * item.quantity;
- 
-         doc.font(fontRegular).fontSize(9).fillColor('#1e293b');
-         doc.text(String(item.quantity), 55, currentY + 6, { width: 30, align: 'center' });
-         
-         // Código/SKU Column (SKU and UPC)
-         doc.font(fontRegular).fontSize(8).fillColor('#1e293b');
-         doc.text(`SKU: ${item.product?.sku || '-'}`, 90, currentY + 4, { width: 90, align: 'left' });
-         doc.font(fontRegular).fontSize(7).fillColor('#64748b').text(`UPC: ${item.product?.barcode || '-'}`, 90, currentY + 14, { width: 90, align: 'left' });
-         
-         // Product Name (Description)
-         doc.font(fontRegular).fontSize(9).fillColor('#1e293b');
-         doc.text(item.product?.name || 'Artículo sin nombre', 185, currentY + 4, { width: 145, align: 'left' });
- 
-         doc.text(`$${finalPriceExcludingIva.toFixed(2)}`, 335, currentY + 6, { width: 75, align: 'right' });
-         doc.text(`${rate}% ($${rowIva.toFixed(2)})`, 415, currentY + 6, { width: 65, align: 'right' });
-         doc.text(`$${rowImporteExcludingIva.toFixed(2)}`, 485, currentY + 6, { width: 77, align: 'right' });
- 
-         currentY += rowHeight;
-       });
+      renderTableHeader(tableTop);
 
-      // 4. Totals Box
+      // Table Rows
+      let currentY = tableTop + 18;
+      quote.items.forEach((item: any) => {
+        doc.fontSize(8);
+        const nameHeight = doc.heightOfString(item.product?.name || 'Artículo', { width: 175 });
+        const rowHeight = Math.max(20, Math.min(32, nameHeight + 6));
+
+        // Check if row overflows page (budget height ~620pt)
+        if (currentY + rowHeight > 620) {
+          doc.addPage();
+          currentY = 40;
+          renderTableHeader(currentY);
+          currentY += 18;
+        }
+
+        // Draw light row separator
+        doc.strokeColor('#f1f5f9').lineWidth(0.5).moveTo(40, currentY + rowHeight).lineTo(572, currentY + rowHeight).stroke();
+
+        const taxRate = item.product?.taxRate ?? 16.0;
+        const taxType = item.product?.taxType || 'IVA';
+        const isIva = taxType === 'IVA' || taxType === 'IVA_IEPS';
+        const rate = isIva ? taxRate : 0;
+
+        const finalPriceIncludingIva = item.price;
+        const finalPriceExcludingIva = finalPriceIncludingIva / (1 + rate / 100);
+        const rowImporteExcludingIva = finalPriceExcludingIva * item.quantity;
+        const rowIva = (finalPriceIncludingIva - finalPriceExcludingIva) * item.quantity;
+
+        doc.font(fontRegular).fontSize(8).fillColor('#1e293b');
+        doc.text(String(item.quantity), 44, currentY + 4, { width: 32, align: 'center' });
+        
+        doc.font(fontRegular).fontSize(7).fillColor('#64748b');
+        const codeText = item.product?.sku || item.product?.barcode || '-';
+        doc.text(codeText, 80, currentY + 4, { width: 85, align: 'left', ellipsis: true });
+        
+        doc.font(fontRegular).fontSize(8).fillColor('#0f172a');
+        doc.text(item.product?.name || 'Artículo', 170, currentY + 4, { width: 175, align: 'left', height: rowHeight - 4, ellipsis: true });
+
+        doc.text(`$${finalPriceExcludingIva.toFixed(2)}`, 350, currentY + 4, { width: 68, align: 'right' });
+        doc.font(fontRegular).fontSize(7).fillColor('#64748b').text(`${rate}% ($${rowIva.toFixed(2)})`, 422, currentY + 4, { width: 65, align: 'right' });
+        doc.font(fontBold).fontSize(8).fillColor('#0f172a').text(`$${rowImporteExcludingIva.toFixed(2)}`, 492, currentY + 4, { width: 74, align: 'right' });
+
+        currentY += rowHeight;
+      });
+
+      // 4. Bottom Section (Left: Notes/Terms/Images, Right: Totals)
+      let bottomY = currentY + 10;
+      if (bottomY + 100 > 710) {
+        doc.addPage();
+        bottomY = 40;
+      }
+
+      // Calculate totals
       const breakdownDiscounts = quote.breakdownDiscounts ?? false;
       let originalListTotalWithIva = 0;
       let finalTotalWithIva = quote.total;
@@ -221,78 +233,59 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
         totalIva += itemIva;
       });
 
-      let totalsY = currentY + 20;
-      if (totalsY + 100 > 680) {
-        doc.addPage();
-        totalsY = 50;
-      }
+      // Right Column: Totals Box
+      const totalsX = 350;
+      doc.strokeColor('#cbd5e1').lineWidth(0.75).moveTo(totalsX, bottomY).lineTo(572, bottomY).stroke();
+      let totY = bottomY + 6;
 
-      doc.strokeColor('#cbd5e1').lineWidth(1).moveTo(350, totalsY).lineTo(562, totalsY).stroke();
-
-      let currentOffset = totalsY + 8;
-
-      doc.font(fontRegular).fontSize(9).fillColor('#475569');
-      doc.text('Subtotal:', 350, currentOffset, { width: 100, align: 'left' });
-      doc.text(`$${subtotalExcludingIva.toFixed(2)}`, 450, currentOffset, { width: 105, align: 'right' });
-      currentOffset += 14;
+      doc.font(fontRegular).fontSize(8).fillColor('#475569');
+      doc.text('Subtotal:', totalsX, totY, { width: 100, align: 'left' });
+      doc.text(`$${subtotalExcludingIva.toFixed(2)}`, 450, totY, { width: 116, align: 'right' });
+      totY += 13;
 
       if (breakdownDiscounts && discountExcludingIva > 0.01) {
-        doc.fillColor('#ef4444'); // Red color for discounts
-        doc.text('Descuento:', 350, currentOffset, { width: 100, align: 'left' });
-        doc.text(`-$${discountExcludingIva.toFixed(2)}`, 450, currentOffset, { width: 105, align: 'right' });
-        currentOffset += 14;
+        doc.fillColor('#ef4444');
+        doc.text('Descuento:', totalsX, totY, { width: 100, align: 'left' });
+        doc.text(`-$${discountExcludingIva.toFixed(2)}`, 450, totY, { width: 116, align: 'right' });
+        totY += 13;
 
         doc.fillColor('#475569');
-        doc.font(fontBold).text('Subtotal:', 350, currentOffset, { width: 100, align: 'left' });
+        doc.font(fontBold).text('Subtotal Neto:', totalsX, totY, { width: 100, align: 'left' });
         const netExcludingIva = subtotalExcludingIva - discountExcludingIva;
-        doc.text(`$${netExcludingIva.toFixed(2)}`, 450, currentOffset, { width: 105, align: 'right' });
+        doc.text(`$${netExcludingIva.toFixed(2)}`, 450, totY, { width: 116, align: 'right' });
         doc.font(fontRegular);
-        currentOffset += 14;
+        totY += 13;
       }
 
-      doc.font(fontRegular).fillColor('#475569').text('IVA:', 350, currentOffset, { width: 100, align: 'left' });
-      doc.text(`$${totalIva.toFixed(2)}`, 450, currentOffset, { width: 105, align: 'right' });
-      currentOffset += 16;
+      doc.font(fontRegular).fillColor('#475569').text('IVA:', totalsX, totY, { width: 100, align: 'left' });
+      doc.text(`$${totalIva.toFixed(2)}`, 450, totY, { width: 116, align: 'right' });
+      totY += 15;
 
-      // Border line before total
-      doc.strokeColor('#0f172a').lineWidth(1.5).moveTo(350, currentOffset).lineTo(562, currentOffset).stroke();
-      currentOffset += 8;
+      doc.strokeColor('#0f172a').lineWidth(1.2).moveTo(totalsX, totY).lineTo(572, totY).stroke();
+      totY += 5;
 
-      doc.font(fontBold).fontSize(11).fillColor('#0f172a');
-      doc.text('Total:', 350, currentOffset, { width: 100, align: 'left' });
-      doc.text(`$${finalTotalWithIva.toFixed(2)}`, 450, currentOffset, { width: 105, align: 'right' });
-      currentOffset += 20;
+      doc.font(fontBold).fontSize(10).fillColor('#0f172a');
+      doc.text('Total:', totalsX, totY, { width: 100, align: 'left' });
+      doc.text(`$${finalTotalWithIva.toFixed(2)}`, 450, totY, { width: 116, align: 'right' });
+      totY += 18;
 
-      // 5. Terms & Conditions and Observations on the left (or below totals)
+      // Left Column: Terms & Conditions + Observations + Reference Images
+      let leftY = bottomY;
       const terminosCot = config.cotizaciones?.terminosCot || '';
-      let leftY = totalsY;
-
       if (terminosCot && terminosCot.trim()) {
-        const termHeight = doc.heightOfString(terminosCot.trim(), { width: 280 });
-        if (leftY + termHeight + 20 > 670) {
-          doc.addPage();
-          leftY = 50;
-        }
-        doc.font(fontBold).fontSize(8).fillColor(primaryColor).text('TÉRMINOS Y CONDICIONES:', 50, leftY);
-        doc.font(fontRegular).fontSize(7.5).fillColor('#64748b').text(terminosCot.trim(), 50, leftY + 12, { width: 280 });
-        leftY += 16 + termHeight;
+        doc.font(fontBold).fontSize(7.5).fillColor(primaryColor).text('TÉRMINOS Y CONDICIONES:', 40, leftY);
+        doc.font(fontRegular).fontSize(7).fillColor('#64748b').text(terminosCot.trim(), 40, leftY + 10, { width: 290 });
+        leftY += 12 + doc.heightOfString(terminosCot.trim(), { width: 290 }) + 4;
       }
 
       const observations = (quote.observations || (quote as any).notes || '').trim();
       if (observations) {
-        const obsHeight = doc.heightOfString(observations, { width: 280 });
-        if (leftY + obsHeight + 20 > 670) {
-          doc.addPage();
-          leftY = 50;
-        }
-        doc.font(fontBold).fontSize(8).fillColor(primaryColor).text('OBSERVACIONES DE LA COTIZACIÓN:', 50, leftY);
-        doc.font(fontRegular).fontSize(8).fillColor('#475569').text(observations, 50, leftY + 12, { width: 280 });
-        leftY += 16 + obsHeight;
+        doc.font(fontBold).fontSize(7.5).fillColor(primaryColor).text('OBSERVACIONES:', 40, leftY);
+        doc.font(fontRegular).fontSize(7.5).fillColor('#475569').text(observations, 40, leftY + 10, { width: 290 });
+        leftY += 12 + doc.heightOfString(observations, { width: 290 }) + 4;
       }
 
-      let bottomAfterTotals = Math.max(currentOffset + 15, leftY + 10);
-
-      // 6. Reference Images (observationImageUrl)
+      // Reference Images thumbnails
       const rawObservationImageUrl = (quote.observationImageUrl || (quote as any).observationImages || '').trim();
       if (rawObservationImageUrl) {
         try {
@@ -314,8 +307,6 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
             if (imgUrl.startsWith('data:image/')) {
               const base64Data = imgUrl.replace(/^data:image\/\w+;base64,/, '');
               imgBuffer = Buffer.from(base64Data, 'base64');
-            } else if (imgUrl.startsWith('http://') || imgUrl.startsWith('https://')) {
-              // External URL if any
             } else if (fs.existsSync(imgUrl)) {
               imgBuffer = fs.readFileSync(imgUrl);
             }
@@ -323,57 +314,46 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
           }
 
           if (validBuffers.length > 0) {
-            const cols = validBuffers.length === 1 ? 1 : (validBuffers.length === 2 ? 2 : 3);
-            const gap = cols === 1 ? 0 : (cols === 2 ? 20 : 16);
-            const colWidth = cols === 1 ? 260 : (512 - gap * (cols - 1)) / cols;
-            const imgHeight = cols === 1 ? 150 : (cols === 2 ? 135 : 110);
-            const numRows = Math.ceil(validBuffers.length / cols);
-            const totalSectionHeight = 18 + (numRows * imgHeight) + ((numRows - 1) * gap);
+            const thumbHeight = 42;
+            const thumbWidth = 60;
+            const gap = 8;
+            const maxPerRow = 4;
+            const numRows = Math.ceil(validBuffers.length / maxPerRow);
+            const totalImgSectionHeight = 14 + (numRows * thumbHeight) + ((numRows - 1) * gap);
 
-            // Check if grid + title fit on current page before footer
-            if (bottomAfterTotals + totalSectionHeight > 670) {
+            if (leftY + totalImgSectionHeight > 700) {
               doc.addPage();
-              bottomAfterTotals = 50;
+              leftY = 40;
             }
 
             const headerLabel = validBuffers.length > 1 ? 'IMÁGENES DE REFERENCIA:' : 'IMAGEN DE REFERENCIA:';
-            doc.font(fontBold).fontSize(9).fillColor(primaryColor).text(headerLabel, 50, bottomAfterTotals);
+            doc.font(fontBold).fontSize(7.5).fillColor(primaryColor).text(headerLabel, 40, leftY);
             
             validBuffers.forEach((buf, idx) => {
-              const colIdx = idx % cols;
-              const rowIdx = Math.floor(idx / cols);
-              const xPos = 50 + colIdx * (colWidth + gap);
-              const yPos = bottomAfterTotals + 16 + rowIdx * (imgHeight + gap);
+              const colIdx = idx % maxPerRow;
+              const rowIdx = Math.floor(idx / maxPerRow);
+              const xPos = 40 + colIdx * (thumbWidth + gap);
+              const yPos = leftY + 12 + rowIdx * (thumbHeight + gap);
 
               try {
-                doc.image(buf, xPos, yPos, { fit: [colWidth, imgHeight] });
+                doc.image(buf, xPos, yPos, { fit: [thumbWidth, thumbHeight] });
               } catch (drawErr) {
-                console.error("Error drawing image in quote PDF:", drawErr);
+                console.error("Error drawing thumbnail image in quote PDF:", drawErr);
               }
             });
 
-            bottomAfterTotals += totalSectionHeight + 10;
+            leftY += totalImgSectionHeight + 6;
           }
         } catch (imgErr) {
-          console.error("Failed to render quote reference image in PDF:", imgErr);
+          console.error("Failed to process quote reference images for PDF:", imgErr);
         }
       }
 
-      // 7. Footer Notes
-      const footerY = Math.max(700, bottomAfterTotals + 15);
-      if (footerY > 730) {
-        doc.addPage();
-        const newFooterY = 700;
-        doc.strokeColor('#cbd5e1').lineWidth(1).moveTo(50, newFooterY - 10).lineTo(562, newFooterY - 10).stroke();
-        doc.font(fontItalic).fontSize(8).fillColor('#94a3b8');
-        doc.text('Esta cotización es solo de carácter informativo. Los precios y existencias están sujetos a cambio sin previo aviso.', 50, newFooterY, { align: 'center', width: 512 });
-        doc.text('Generado por CAANMA PRO', 50, newFooterY + 12, { align: 'center', width: 512 });
-      } else {
-        doc.strokeColor('#cbd5e1').lineWidth(1).moveTo(50, footerY - 10).lineTo(562, footerY - 10).stroke();
-        doc.font(fontItalic).fontSize(8).fillColor('#94a3b8');
-        doc.text('Esta cotización es solo de carácter informativo. Los precios y existencias están sujetos a cambio sin previo aviso.', 50, footerY, { align: 'center', width: 512 });
-        doc.text('Generado por CAANMA PRO', 50, footerY + 12, { align: 'center', width: 512 });
-      }
+      // 5. Footer (at bottom of page)
+      const footerY = 740;
+      doc.strokeColor('#e2e8f0').lineWidth(0.5).moveTo(40, footerY - 6).lineTo(572, footerY - 6).stroke();
+      doc.font(fontItalic).fontSize(7).fillColor('#94a3b8');
+      doc.text('Esta cotización es de carácter informativo. Precios y existencias sujetos a cambio sin previo aviso. Generado por CAANMA PRO.', 40, footerY, { align: 'center', width: 532 });
 
       doc.end();
     } catch (e) {

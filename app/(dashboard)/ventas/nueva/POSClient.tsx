@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star, X, Clock, FolderOpen, Trash2, ShoppingBag, Plus, Percent, Tag, PlusCircle, MoreVertical, Truck } from 'lucide-react';
+import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star, X, Clock, FolderOpen, Trash2, ShoppingBag, Plus, Percent, Tag, PlusCircle, MoreVertical, Truck, Sparkles } from 'lucide-react';
 import QRCode from 'qrcode';
 import { createSale, sendSaleByEmail } from '@/app/actions/sale';
 import { sendInvoiceByEmail } from '@/app/actions/facturacion';
@@ -15,6 +15,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import ProductTableUI from '@/app/components/ProductTableUI';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
+import QuoteAIAssistantModal from '@/app/components/pos/QuoteAIAssistantModal';
 import { formatCurrency } from '@/lib/utils';
 export default function POSClient({ 
   products: initialProducts, 
@@ -87,6 +88,7 @@ export default function POSClient({
       transferAmount: '',
       notes: '',
       observationImageUrl: '',
+      shippingDate: '',
       deliveryDate: '',
       deliveryTime: '',
       deliveryStreet: '',
@@ -125,6 +127,7 @@ export default function POSClient({
         transferAmount,
         notes,
         observationImageUrl,
+        shippingDate,
         deliveryDate,
         deliveryTime,
         deliveryStreet,
@@ -162,6 +165,7 @@ export default function POSClient({
         setTransferAmount((target.transferAmount || '') as number | "");
         setNotes(target.notes || '');
         setObservationImageUrl(target.observationImageUrl || '');
+        setShippingDate(target.shippingDate || '');
         setDeliveryDate(target.deliveryDate || '');
         setDeliveryTime(target.deliveryTime || '');
         setDeliveryStreet(target.deliveryStreet || '');
@@ -250,6 +254,7 @@ export default function POSClient({
       transferAmount: '',
       notes: '',
       observationImageUrl: '',
+      shippingDate: '',
       deliveryDate: '',
       deliveryTime: '',
       deliveryStreet: '',
@@ -288,6 +293,7 @@ export default function POSClient({
         transferAmount,
         notes,
         observationImageUrl,
+        shippingDate,
         deliveryDate,
         deliveryTime,
         deliveryStreet,
@@ -316,6 +322,7 @@ export default function POSClient({
       setNotes(newTab.notes);
       setObservationImageUrl(newTab.observationImageUrl || '');
       setDeliveryNotes(newTab.deliveryNotes || '');
+      setShippingDate(newTab.shippingDate || '');
       setDeliveryDate(newTab.deliveryDate || '');
       setDeliveryTime(newTab.deliveryTime || '');
       setDeliveryStreet(newTab.deliveryStreet || '');
@@ -357,6 +364,7 @@ export default function POSClient({
         setNotes(lastTab.notes || '');
         setObservationImageUrl(lastTab.observationImageUrl || '');
         setDeliveryNotes(lastTab.deliveryNotes || '');
+        setShippingDate(lastTab.shippingDate || '');
         setDeliveryDate(lastTab.deliveryDate || '');
         setDeliveryTime(lastTab.deliveryTime || '');
         setDeliveryStreet(lastTab.deliveryStreet || '');
@@ -399,6 +407,7 @@ export default function POSClient({
     setAppliedPromotionIds(null);
     setNotes('');
     setObservationImageUrl('');
+    setShippingDate('');
     setDeliveryDate('');
     setDeliveryTime('');
     setDeliveryStreet('');
@@ -522,6 +531,7 @@ export default function POSClient({
         cardAmount: '',
         transferAmount: '',
         notes: '',
+        shippingDate: '',
         deliveryDate: '',
         deliveryTime: '',
         deliveryStreet: '',
@@ -566,6 +576,7 @@ export default function POSClient({
         transferAmount,
         notes,
         observationImageUrl,
+        shippingDate,
         deliveryDate,
         deliveryTime,
         deliveryStreet,
@@ -615,6 +626,7 @@ export default function POSClient({
             setNotes(state.notes || '');
             setObservationImageUrl(state.observationImageUrl || '');
             setDeliveryNotes(state.deliveryNotes || '');
+            setShippingDate(state.shippingDate || '');
             setDeliveryDate(state.deliveryDate || '');
             setDeliveryTime(state.deliveryTime || '');
             setDeliveryStreet(state.deliveryStreet || '');
@@ -637,6 +649,7 @@ export default function POSClient({
               notes: state.notes || '',
               observationImageUrl: state.observationImageUrl || '',
               deliveryNotes: state.deliveryNotes || '',
+              shippingDate: state.shippingDate || '',
               deliveryDate: state.deliveryDate || '',
               deliveryTime: state.deliveryTime || '',
               deliveryStreet: state.deliveryStreet || '',
@@ -927,6 +940,7 @@ export default function POSClient({
   const [transferAmount, setTransferAmount] = useState<number | ''>(''); // Used for MIXED
   const [notes, setNotes] = useState<string>('');
   const [observationImageUrl, setObservationImageUrl] = useState<string>('');
+  const [shippingDate, setShippingDate] = useState<string>('');
   const [deliveryDate, setDeliveryDate] = useState<string>('');
   const [deliveryTime, setDeliveryTime] = useState<string>('');
   const [deliveryStreet, setDeliveryStreet] = useState<string>('');
@@ -959,6 +973,44 @@ export default function POSClient({
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successModalData, setSuccessModalData] = useState<any>(null);
   
+  // Quote AI Assistant Modal State
+  const [isAssistantModalOpen, setIsAssistantModalOpen] = useState(false);
+
+  const handleApplyAssistantQuote = useCallback((data: {
+    customer: any | null;
+    items: Array<{ product: any; quantity: number; price: number }>;
+  }) => {
+    if (data.customer) {
+      setSelectedCustomerId(data.customer.id);
+      setCustomerSearchTerm(data.customer.name);
+      if (data.customer.priceList) {
+        setPriceList(data.customer.priceList);
+      }
+    }
+
+    const newCartItems = data.items.map(it => ({
+      ...it.product,
+      quantity: it.quantity,
+      customPrice: it.price,
+      calculatedPrice: it.price
+    }));
+
+    setCart(prev => {
+      const merged = [...prev];
+      for (const item of newCartItems) {
+        const existingIdx = merged.findIndex(m => m.id === item.id);
+        if (existingIdx >= 0) {
+          merged[existingIdx].quantity += item.quantity;
+          merged[existingIdx].customPrice = item.customPrice;
+          merged[existingIdx].calculatedPrice = item.calculatedPrice;
+        } else {
+          merged.push(item);
+        }
+      }
+      return merged;
+    });
+  }, []);
+
   // Stock Branch Modal State
   const [showStockModal, setShowStockModal] = useState(false);
   const [stockModalProduct, setStockModalProduct] = useState<any | null>(null);
@@ -1537,6 +1589,41 @@ export default function POSClient({
     }
   }, [searchParams, branchId, mode]);
 
+  useEffect(() => {
+    const assistantDraft = searchParams.get('assistantDraft');
+    if (assistantDraft === 'true') {
+      try {
+        const raw = sessionStorage.getItem('caanma_assistant_quote_draft');
+        if (raw) {
+          const draft = JSON.parse(raw);
+          sessionStorage.removeItem('caanma_assistant_quote_draft');
+          if (draft.customer) {
+            setSelectedCustomerId(draft.customer.id);
+            setCustomerSearchTerm(draft.customer.name);
+            if (draft.customer.priceList) {
+              setPriceList(draft.customer.priceList);
+            }
+          }
+          if (draft.items && Array.isArray(draft.items)) {
+            const newCartItems = draft.items.map((it: any) => ({
+              ...it.product,
+              quantity: it.quantity,
+              customPrice: it.price,
+              calculatedPrice: it.price
+            }));
+            setCart(newCartItems);
+          }
+        }
+      } catch (e) {
+        console.error('Error loading assistant draft:', e);
+      }
+    }
+    const openAssistant = searchParams.get('openAssistant');
+    if (openAssistant === 'true') {
+      setIsAssistantModalOpen(true);
+    }
+  }, [searchParams]);
+
 
   
   useEffect(() => {
@@ -1548,7 +1635,7 @@ export default function POSClient({
            const results = await searchOfflineProducts(searchTerm, branchId, { limit: 50 });
            setDisplayedProducts(results || []);
         } else if (searchTerm.trim() !== '') {
-           const results = await searchProducts(searchTerm, branchId);
+           const results = await searchProducts(searchTerm, branchId, { limit: 50 });
            setDisplayedProducts(results || []);
         } else {
            if (isOnline) {
@@ -1564,7 +1651,7 @@ export default function POSClient({
       } finally {
         setIsSearching(false);
       }
-    }, 200);
+    }, 350);
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm, branchId, isOnline, initialProducts]);
@@ -1702,7 +1789,7 @@ export default function POSClient({
         const { searchOfflineProducts } = await import('@/lib/offlineSearch');
         results = await searchOfflineProducts(term.trim(), branchId, { limit: 50 });
       } else {
-        results = await searchProducts(term.trim(), branchId);
+        results = await searchProducts(term.trim(), branchId, { limit: 50 });
       }
 
       if (results && results.length > 0) {
@@ -2519,7 +2606,9 @@ export default function POSClient({
           productId: item.id, 
           variantId: item.variantId || null,
           quantity: item.quantity, 
-          price: Number(savedPrice.toFixed(6)) 
+          price: Number(savedPrice.toFixed(6)),
+          sku: item.sku || null,
+          productName: item.name || null
         };
       });
       
@@ -2625,11 +2714,13 @@ export default function POSClient({
                 notes: finalNotes,
                 cashValue,
                 cardValue,
+                transferValue,
                 billingData,
                 branchId,
                 type: 'SALE',
                 breakdownDiscounts: breakdownDiscounts,
                 isPedido: transactionType === 'PEDIDO',
+                shippingDate,
                 deliveryDate,
                 deliveryTime,
                 deliveryStreet,
@@ -2662,6 +2753,7 @@ export default function POSClient({
             city: deliveryType === 'DELIVERY' ? deliveryCity : null,
             zipCode: deliveryType === 'DELIVERY' ? deliveryZipCode : null,
             notes: deliveryNotes || null,
+            shippingDate: shippingDate || undefined,
             deliveryDate: deliveryDate || undefined,
             deliveryTime: deliveryTime || undefined,
             driverId: deliveryType === 'DELIVERY' ? (deliveryDriverId || null) : null
@@ -3408,8 +3500,35 @@ export default function POSClient({
                 </button>
               </div>
             ) : (
-              <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#64748b' }}>
-                {mode === 'QUOTE' ? 'Documento: Cotización' : 'Documento: Consignación'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#64748b' }}>
+                  {mode === 'QUOTE' ? 'Documento: Cotización' : 'Documento: Consignación'}
+                </div>
+                {mode === 'QUOTE' && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAssistantModalOpen(true)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      backgroundColor: '#4f46e5',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '0.35rem 0.75rem',
+                      fontSize: '0.8rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 4px rgba(79, 70, 229, 0.25)',
+                      transition: 'all 0.15s'
+                    }}
+                    title="Levantar cotización automáticamente desde texto con IA"
+                  >
+                    <Sparkles size={14} />
+                    <span>Asistente IA</span>
+                  </button>
+                )}
               </div>
             )}
 
@@ -4856,7 +4975,7 @@ export default function POSClient({
                       />
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', marginBottom: '0.5rem' }}>
                       <div>
                         <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>
                           Fecha de Entrega {transactionType === 'PEDIDO' && <span style={{ color: '#ef4444' }}>*</span>}
@@ -4866,10 +4985,18 @@ export default function POSClient({
                           value={deliveryDate}
                           required={transactionType === 'PEDIDO'}
                           onChange={e => {
-                            setDeliveryDate(e.target.value);
-                            setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryDate: e.target.value } : t));
+                            const newDeliveryDate = e.target.value;
+                            setDeliveryDate(newDeliveryDate);
+                            let calculatedShipping = shippingDate;
+                            if (!shippingDate && newDeliveryDate) {
+                              const d = new Date(newDeliveryDate.includes('T') ? newDeliveryDate : `${newDeliveryDate}T12:00:00`);
+                              d.setDate(d.getDate() - 1);
+                              calculatedShipping = d.toISOString().split('T')[0];
+                              setShippingDate(calculatedShipping);
+                            }
+                            setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryDate: newDeliveryDate, shippingDate: calculatedShipping } : t));
                           }}
-                          style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                          style={{ width: '100%', padding: '0.5rem 0.6rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                         />
                       </div>
                       <div>
@@ -4884,9 +5011,27 @@ export default function POSClient({
                             setDeliveryTime(e.target.value);
                             setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryTime: e.target.value } : t));
                           }}
-                          style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                          style={{ width: '100%', padding: '0.5rem 0.6rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                         />
                       </div>
+                    </div>
+
+                    <div style={{ marginBottom: '0.6rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>
+                        Fecha Preparación / Envío
+                      </label>
+                      <input
+                        type="date"
+                        value={shippingDate}
+                        onChange={e => {
+                          setShippingDate(e.target.value);
+                          setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, shippingDate: e.target.value } : t));
+                        }}
+                        style={{ width: '100%', padding: '0.5rem 0.6rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                      />
+                      <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', marginTop: '0.25rem' }}>
+                        🛠️ Día programado para fabricar y preparar el pedido (por defecto 1 día antes).
+                      </span>
                     </div>
 
                     {/* Asignación de Chofer */}
@@ -4935,7 +5080,7 @@ export default function POSClient({
                       />
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', marginBottom: '0.5rem' }}>
                       <div>
                         <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>
                           Fecha de Entrega <span style={{ color: '#ef4444' }}>*</span>
@@ -4945,10 +5090,18 @@ export default function POSClient({
                           value={deliveryDate}
                           required
                           onChange={e => {
-                            setDeliveryDate(e.target.value);
-                            setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryDate: e.target.value } : t));
+                            const newDeliveryDate = e.target.value;
+                            setDeliveryDate(newDeliveryDate);
+                            let calculatedShipping = shippingDate;
+                            if (!shippingDate && newDeliveryDate) {
+                              const d = new Date(newDeliveryDate.includes('T') ? newDeliveryDate : `${newDeliveryDate}T12:00:00`);
+                              d.setDate(d.getDate() - 1);
+                              calculatedShipping = d.toISOString().split('T')[0];
+                              setShippingDate(calculatedShipping);
+                            }
+                            setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryDate: newDeliveryDate, shippingDate: calculatedShipping } : t));
                           }}
-                          style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                          style={{ width: '100%', padding: '0.5rem 0.6rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                         />
                       </div>
                       <div>
@@ -4963,9 +5116,27 @@ export default function POSClient({
                             setDeliveryTime(e.target.value);
                             setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryTime: e.target.value } : t));
                           }}
-                          style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                          style={{ width: '100%', padding: '0.5rem 0.6rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                         />
                       </div>
+                    </div>
+
+                    <div style={{ marginBottom: '0.6rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>
+                        Fecha Preparación / Envío
+                      </label>
+                      <input
+                        type="date"
+                        value={shippingDate}
+                        onChange={e => {
+                          setShippingDate(e.target.value);
+                          setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, shippingDate: e.target.value } : t));
+                        }}
+                        style={{ width: '100%', padding: '0.5rem 0.6rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                      />
+                      <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', marginTop: '0.25rem' }}>
+                        🛠️ Día programado para fabricar y preparar el pedido (por defecto 1 día antes).
+                      </span>
                     </div>
                   </div>
                 )}
@@ -6191,6 +6362,17 @@ export default function POSClient({
           </div>
         </div>
       )}
+
+      {/* Quote AI Assistant Modal */}
+      <QuoteAIAssistantModal
+        isOpen={isAssistantModalOpen}
+        onClose={() => setIsAssistantModalOpen(false)}
+        branchId={branchId}
+        customers={customers}
+        allProducts={initialProducts}
+        initialCustomerId={selectedCustomerId}
+        onApplyToQuote={handleApplyAssistantQuote}
+      />
 
     </div>
   );

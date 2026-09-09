@@ -263,6 +263,11 @@ export default function ProcesosClient({ processes, recipes, initialOrders }: an
                               <div>
                                 <div style={{ fontWeight: 'bold' }}>{order.recipe?.name}</div>
                                 <div style={{ fontSize: '0.75rem', color: 'var(--caanma-text-muted)' }}>SKU: {order.recipe?.product?.sku || 'N/A'}</div>
+                                {order.notes && (
+                                  <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: order.notes.includes('Pedido #') ? '#b45309' : 'var(--caanma-text-muted)', backgroundColor: order.notes.includes('Pedido #') ? '#fef3c7' : '#f1f5f9', padding: '0.15rem 0.4rem', borderRadius: '4px', display: 'inline-block', fontWeight: '500' }}>
+                                    {order.notes}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </td>

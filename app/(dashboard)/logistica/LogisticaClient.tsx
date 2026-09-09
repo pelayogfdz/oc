@@ -15,6 +15,8 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
   const [editingOrder, setEditingOrder] = useState<DeliveryOrder | null>(null);
   const [editStatus, setEditStatus] = useState('');
   const [editDriver, setEditDriver] = useState('');
+  const [editShippingDate, setEditShippingDate] = useState('');
+  const [editDeliveryDate, setEditDeliveryDate] = useState('');
   const [editMaxTime, setEditMaxTime] = useState('');
   const [editStreet, setEditStreet] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
@@ -68,6 +70,8 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
     setEditingOrder(order);
     setEditStatus(order.status);
     setEditDriver(order.driverId || '');
+    setEditShippingDate(order.shippingDate ? new Date(order.shippingDate).toISOString().split('T')[0] : '');
+    setEditDeliveryDate(order.deliveryDate ? new Date(order.deliveryDate).toISOString().split('T')[0] : '');
     setEditMaxTime(order.maxDeliveryTime || '');
     setEditStreet(order.street || '');
   };
@@ -79,6 +83,8 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
       const res = await updateDeliveryOrder(editingOrder.id, {
         status: editStatus,
         driverId: editDriver,
+        shippingDate: editShippingDate || null,
+        deliveryDate: editDeliveryDate || null,
         maxDeliveryTime: editMaxTime || null,
         street: editStreet || null
       });
@@ -88,6 +94,8 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
           status: editStatus, 
           driverId: editDriver || null, 
           driver: drivers.find(d => d.id === editDriver) || null,
+          shippingDate: editShippingDate ? new Date(`${editShippingDate}T12:00:00`) : null,
+          deliveryDate: editDeliveryDate ? new Date(`${editDeliveryDate}T12:00:00`) : null,
           maxDeliveryTime: editMaxTime || null,
           street: editStreet || null
         } : o));
@@ -575,6 +583,16 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
                         {order.saleId ? `VTA-${order.saleId.slice(0, 8)}` : `TRS-${order.transferId?.slice(0, 8)}`}
                       </div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</div>
+                      {order.shippingDate && (
+                        <div style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: '600', marginTop: '0.2rem' }}>
+                          📦 Envío: {new Date(order.shippingDate).toLocaleDateString('es-MX', { timeZone: 'UTC' })}
+                        </div>
+                      )}
+                      {order.deliveryDate && (
+                        <div style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: '600', marginTop: '0.1rem' }}>
+                          🚚 Entrega: {new Date(order.deliveryDate).toLocaleDateString('es-MX', { timeZone: 'UTC' })} {order.maxDeliveryTime ? `(${order.maxDeliveryTime})` : ''}
+                        </div>
+                      )}
                     </td>
                     <td data-label="Cliente" style={{ padding: '1rem', fontWeight: '500' }}>
                       {order.sale ? (
@@ -666,7 +684,7 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
       {/* Edit Status & Driver Modal */}
       {editingOrder && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div className="card" style={{ padding: '2rem', width: '100%', maxWidth: '400px', borderRadius: '16px' }}>
+          <div className="card" style={{ padding: '2rem', width: '100%', maxWidth: '450px', borderRadius: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Actualizar Entrega</h2>
               <button onClick={() => setEditingOrder(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
@@ -703,6 +721,31 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
                 className="form-control"
                 placeholder="Dirección o punto de entrega"
               />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#334155', marginBottom: '0.3rem' }}>
+                  Fecha de Envío
+                </label>
+                <input 
+                  type="date" 
+                  value={editShippingDate} 
+                  onChange={e => setEditShippingDate(e.target.value)} 
+                  className="form-control"
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#334155', marginBottom: '0.3rem' }}>
+                  Fecha de Entrega
+                </label>
+                <input 
+                  type="date" 
+                  value={editDeliveryDate} 
+                  onChange={e => setEditDeliveryDate(e.target.value)} 
+                  className="form-control"
+                />
+              </div>
             </div>
 
             <div className="form-group">

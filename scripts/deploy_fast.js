@@ -43,6 +43,7 @@ conn.on('ready', () => {
         'docker compose build web',
         'docker compose up -d --no-deps web',
         'docker compose exec -T web npx prisma db push --accept-data-loss || true',
+        'docker compose exec -T web node -e "const { PrismaClient } = require(\'@prisma/client\'); [\'neondb\', \'neondb_officecity\', \'neondb_petqro\', \'neondb_pizca\', \'neondb_seit\'].forEach(async db => { const p = new PrismaClient({ datasources: { db: { url: \\`postgresql://postgres:caanma_postgres_secure_2026@caanma-db:5432/\\${db}\\` } } }); try { await p.\\$executeRawUnsafe(\`ALTER TABLE \\"DeliveryOrder\\" ADD COLUMN IF NOT EXISTS \\"shippingDate\\" TIMESTAMP(3);\`); await p.\\$executeRawUnsafe(\`CREATE INDEX IF NOT EXISTS \\"DeliveryOrder_shippingDate_idx\\" ON \\"DeliveryOrder\\"(\\"shippingDate\\");\`); } catch(e){} finally { await p.\\$disconnect(); } });" || true',
         'docker compose ps'
       ].join(' && ');
 

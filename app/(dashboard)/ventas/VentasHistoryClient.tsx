@@ -1465,100 +1465,104 @@ export default function VentasHistoryClient({
                   <td data-label="Acciones" style={{ padding: '0.3rem 0.45rem', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '0.2rem', justifyContent: 'center', flexWrap: 'nowrap', alignItems: 'center' }}>
                       {/* Detalle */}
-                      <Link
-                        href={`/ventas/detalle/${sale.id}`}
-                        onClick={(e) => {
-                          if (!isOnline) {
-                            e.preventDefault();
-                            const fullSale = allCombinedSales.find(s => s.id === sale.id);
-                            if (fullSale) {
-                              setSelectedSaleForOfflineDetail(fullSale);
-                            }
-                          }
-                        }}
-                        title="Ver Detalle"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: '26px',
-                          height: '26px',
-                          backgroundColor: '#f1f5f9',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          color: '#334155',
-                          textDecoration: 'none',
-                          transition: 'all 0.15s ease',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#e2e8f0';
-                          e.currentTarget.style.borderColor = '#94a3b8';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = '#f1f5f9';
-                          e.currentTarget.style.borderColor = '#cbd5e1';
-                        }}
-                      >
-                        <Eye size={13} />
-                      </Link>
+                      {(() => {
+                        const isOfflineItem = !isOnline || sale.isOffline || (typeof sale.id === 'string' && (sale.id.startsWith('OFFLINE-') || sale.status === 'OFFLINE_PENDING'));
+                        return (
+                          <>
+                            <Link
+                              href={isOfflineItem ? '#' : `/ventas/detalle/${sale.id}`}
+                              onClick={(e) => {
+                                if (isOfflineItem) {
+                                  e.preventDefault();
+                                  const fullSale = allCombinedSales.find(s => s.id === sale.id) || sale;
+                                  if (fullSale) {
+                                    setSelectedSaleForOfflineDetail(fullSale);
+                                  }
+                                }
+                              }}
+                              title="Ver Detalle"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '26px',
+                                height: '26px',
+                                backgroundColor: '#f1f5f9',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                color: '#334155',
+                                textDecoration: 'none',
+                                transition: 'all 0.15s ease',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#e2e8f0';
+                                e.currentTarget.style.borderColor = '#94a3b8';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '#f1f5f9';
+                                e.currentTarget.style.borderColor = '#cbd5e1';
+                              }}
+                            >
+                              <Eye size={13} />
+                            </Link>
 
-                      {/* Imprimir A4 */}
-                      <a
-                        href={`/ventas/detalle/${sale.id}/imprimir`}
-                        onClick={(e) => {
-                          if (!isOnline) {
-                            e.preventDefault();
-                            const fullSale = allCombinedSales.find(s => s.id === sale.id);
-                            if (fullSale) {
-                              printSaleOffline(fullSale, false);
-                            }
-                          }
-                        }}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Imprimir Nota (A4)"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: '26px',
-                          height: '26px',
-                          backgroundColor: '#f8fafc',
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          color: '#475569',
-                          textDecoration: 'none',
-                          transition: 'all 0.15s ease',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#f1f5f9';
-                          e.currentTarget.style.borderColor = '#cbd5e1';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = '#f8fafc';
-                          e.currentTarget.style.borderColor = '#e2e8f0';
-                        }}
-                      >
-                        <Printer size={13} />
-                      </a>
+                            {/* Imprimir A4 */}
+                            <a
+                              href={isOfflineItem ? '#' : `/ventas/detalle/${sale.id}/imprimir`}
+                              onClick={(e) => {
+                                if (isOfflineItem) {
+                                  e.preventDefault();
+                                  const fullSale = allCombinedSales.find(s => s.id === sale.id) || sale;
+                                  if (fullSale) {
+                                    printSaleOffline(fullSale, false);
+                                  }
+                                }
+                              }}
+                              target={isOfflineItem ? undefined : "_blank"}
+                              rel="noopener noreferrer"
+                              title="Imprimir Nota (A4)"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '26px',
+                                height: '26px',
+                                backgroundColor: '#f8fafc',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                color: '#475569',
+                                textDecoration: 'none',
+                                transition: 'all 0.15s ease',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#f1f5f9';
+                                e.currentTarget.style.borderColor = '#cbd5e1';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '#f8fafc';
+                                e.currentTarget.style.borderColor = '#e2e8f0';
+                              }}
+                            >
+                              <Printer size={13} />
+                            </a>
 
-                      {/* Ticket */}
-                      <a
-                        href={`/ventas/detalle/${sale.id}/imprimir-ticket`}
-                        onClick={(e) => {
-                          if (!isOnline) {
-                            e.preventDefault();
-                            const fullSale = allCombinedSales.find(s => s.id === sale.id);
-                            if (fullSale) {
-                              printSaleOffline(fullSale, true);
-                            }
-                          }
-                        }}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Imprimir Ticket Térmico"
+                            {/* Ticket */}
+                            <a
+                              href={isOfflineItem ? '#' : `/ventas/detalle/${sale.id}/imprimir-ticket`}
+                              onClick={(e) => {
+                                if (isOfflineItem) {
+                                  e.preventDefault();
+                                  const fullSale = allCombinedSales.find(s => s.id === sale.id) || sale;
+                                  if (fullSale) {
+                                    printSaleOffline(fullSale, true);
+                                  }
+                                }
+                              }}
+                              target={isOfflineItem ? undefined : "_blank"}
+                              rel="noopener noreferrer"
+                              title="Imprimir Ticket Térmico"
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -1584,6 +1588,9 @@ export default function VentasHistoryClient({
                       >
                         <Receipt size={13} />
                       </a>
+                    </>
+                  );
+                })()}
 
                       {/* WhatsApp */}
                       <button

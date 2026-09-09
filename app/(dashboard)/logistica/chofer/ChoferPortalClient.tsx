@@ -157,6 +157,18 @@ export default function ChoferPortalClient({ initialOrders, currentUser }: { ini
                   </div>
                 </div>
 
+                {/* Shipping & Delivery Dates */}
+                {(order.shippingDate || order.deliveryDate || order.maxDeliveryTime) && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem', fontSize: '0.82rem', color: '#0369a1', backgroundColor: '#f0f9ff', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #bae6fd' }}>
+                    {order.shippingDate && (
+                      <div><strong>📦 Salida / Envío:</strong> {new Date(order.shippingDate).toLocaleDateString('es-MX', { timeZone: 'UTC' })}</div>
+                    )}
+                    {(order.deliveryDate || order.maxDeliveryTime) && (
+                      <div><strong>🚚 Promesa Entrega:</strong> {order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString('es-MX', { timeZone: 'UTC' }) : ''} {order.maxDeliveryTime ? `(${order.maxDeliveryTime})` : ''}</div>
+                    )}
+                  </div>
+                )}
+
                 {/* Items & Packages */}
                 {order.sale?.items && (
                   <div style={{ 

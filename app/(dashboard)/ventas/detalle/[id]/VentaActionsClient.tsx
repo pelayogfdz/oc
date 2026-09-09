@@ -81,6 +81,7 @@ export default function VentaActionsClient({
   const [delCity, setDelCity] = useState(deliveryOrder?.city || customerAddress?.city || '');
   const [delZipCode, setDelZipCode] = useState(deliveryOrder?.zipCode || customerAddress?.zipCode || '');
   const [delNotes, setDelNotes] = useState(deliveryOrder?.notes || '');
+  const [delShippingDate, setDelShippingDate] = useState(deliveryOrder?.shippingDate ? new Date(deliveryOrder.shippingDate).toISOString().split('T')[0] : '');
   const [delDate, setDelDate] = useState(deliveryOrder?.deliveryDate ? new Date(deliveryOrder.deliveryDate).toISOString().split('T')[0] : '');
   const [delTime, setDelTime] = useState(deliveryOrder?.maxDeliveryTime || '');
   const [delDriverId, setDelDriverId] = useState(deliveryOrder?.driverId || '');
@@ -98,6 +99,7 @@ export default function VentaActionsClient({
       setDelCity(deliveryOrder.city || '');
       setDelZipCode(deliveryOrder.zipCode || '');
       setDelNotes(deliveryOrder.notes || '');
+      setDelShippingDate(deliveryOrder.shippingDate ? new Date(deliveryOrder.shippingDate).toISOString().split('T')[0] : '');
       setDelDate(deliveryOrder.deliveryDate ? new Date(deliveryOrder.deliveryDate).toISOString().split('T')[0] : '');
       setDelTime(deliveryOrder.maxDeliveryTime || '');
       setDelDriverId(deliveryOrder.driverId || '');
@@ -109,6 +111,10 @@ export default function VentaActionsClient({
       setDelNeighborhood(customerAddress.neighborhood || '');
       setDelCity(customerAddress.city || '');
       setDelZipCode(customerAddress.zipCode || '');
+      setDelShippingDate('');
+      setDelDate('');
+      setDelTime('');
+      setDelDriverId('');
     }
   }, [deliveryOrder, customerAddress]);
 
@@ -124,6 +130,7 @@ export default function VentaActionsClient({
         city: delCity,
         zipCode: delZipCode,
         notes: delNotes,
+        shippingDate: delShippingDate || null,
         deliveryDate: delDate || null,
         maxDeliveryTime: delTime || null,
         driverId: delDriverId || null,
@@ -1604,7 +1611,16 @@ export default function VentaActionsClient({
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.3rem' }}>Fecha de Envío</label>
+                  <input
+                    type="date"
+                    value={delShippingDate}
+                    onChange={e => setDelShippingDate(e.target.value)}
+                    style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  />
+                </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.3rem' }}>Fecha de Entrega</label>
                   <input
@@ -1615,7 +1631,7 @@ export default function VentaActionsClient({
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.3rem' }}>Hora Límite de Entrega</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.3rem' }}>Hora Límite</label>
                   <input
                     type="time"
                     value={delTime}

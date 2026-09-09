@@ -8,13 +8,19 @@ import { createSale } from '../actions/sale';
 interface OfflineContextType {
   isOnline: boolean;
   pendingSales: OfflineSale[];
+  pendingTransfers: any[];
+  pendingPurchases: any[];
+  pendingProducts: any[];
+  pendingAttendance: OfflinePendingAttendance[];
   syncMessage: string | null;
   pushOfflineSale: (sale: Omit<OfflineSale, 'id' | 'timestamp' | 'synced' | 'retryCount' | 'failed' | 'errorMessage'>) => Promise<void>;
   pushOfflineTransfer: (transferParams: any) => Promise<void>;
   pushOfflinePurchase: (purchaseParams: any) => Promise<void>;
   pushOfflineProduct: (productParams: any) => Promise<void>;
   pushOfflineAttendance: (attendanceParams: Omit<OfflinePendingAttendance, 'id' | 'timestamp' | 'synced' | 'retryCount' | 'failed' | 'errorMessage'>) => Promise<void>;
-  forceSync: () => Promise<void>;
+  forceSync: (forceRetryAll?: boolean) => Promise<void>;
+  deletePendingSale: (id: string) => Promise<void>;
+  retryAllFailed: () => Promise<void>;
   refreshCatalogs: (isBackground?: boolean) => Promise<void>;
   lastSyncTime: number | null;
 }
@@ -22,6 +28,10 @@ interface OfflineContextType {
 const OfflineContext = createContext<OfflineContextType>({
   isOnline: true,
   pendingSales: [],
+  pendingTransfers: [],
+  pendingPurchases: [],
+  pendingProducts: [],
+  pendingAttendance: [],
   syncMessage: null,
   pushOfflineSale: async () => {},
   pushOfflineTransfer: async () => {},
@@ -29,6 +39,8 @@ const OfflineContext = createContext<OfflineContextType>({
   pushOfflineProduct: async () => {},
   pushOfflineAttendance: async () => {},
   forceSync: async () => {},
+  deletePendingSale: async () => {},
+  retryAllFailed: async () => {},
   refreshCatalogs: async (isBackground?: boolean) => {},
   lastSyncTime: null,
 });
@@ -369,7 +381,47 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
     }
   };
 
-  const forceSync = async () => {
+  const deletePendingSale = async (id: string) => {
+    try {
+      await db.pendingSales.delete(id);
+      await loadPendingQueues();
+      setShowToast({ message: 'Registro descartado de la cola.', type: 'warn' });
+    } catch (e: any) {
+      console.error('Error deleting pending sale:', e);
+      setShowToast({ message: 'Error al descartar registro', type: 'error' });
+    }
+  };
+
+  const retryAllFailed = async () => {
+    try {
+      const sales = await db.pendingSales.toArray();
+      for (const s of sales) {
+        await db.pendingSales.update(s.id, { failed: false, retryCount: 0, errorMessage: undefined });
+      }
+      const transfers = await db.pendingTransfers.toArray();
+      for (const t of transfers) {
+        await db.pendingTransfers.update(t.id, { failed: false, retryCount: 0, errorMessage: undefined });
+      }
+      const purchases = await db.pendingPurchases.toArray();
+      for (const p of purchases) {
+        await db.pendingPurchases.update(p.id, { failed: false, retryCount: 0, errorMessage: undefined });
+      }
+      const products = await db.pendingProducts.toArray();
+      for (const pr of products) {
+        await db.pendingProducts.update(pr.id, { failed: false, retryCount: 0, errorMessage: undefined });
+      }
+      const attendance = await db.pendingAttendance.toArray();
+      for (const a of attendance) {
+        await db.pendingAttendance.update(a.id, { failed: false, retryCount: 0, errorMessage: undefined });
+      }
+      await loadPendingQueues();
+      await forceSync(true);
+    } catch (e) {
+      console.error('Error resetting failed sync queue:', e);
+    }
+  };
+
+  const forceSync = async (forceRetryAll?: boolean) => {
     if (!isOnline) return;
     if (isSyncingRef.current) {
       console.log('[PWA] Sincronización en curso, omitiendo ejecución paralela.');
@@ -382,11 +434,11 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       // Sync Sales
       const sales = await db.pendingSales.toArray();
       for (const sale of sales) {
-        if (sale.failed && sale.retryCount >= 5) continue;
+        if (!forceRetryAll && sale.failed && (sale.retryCount || 0) >= 5) continue;
         try {
           if (sale.type === 'QUOTE') {
             const { createQuote } = await import('../actions/quote');
-            await createQuote(
+            const quoteRes = await createQuote(
               sale.items.map(item => ({
                 productId: item.productId,
                 variantId: item.variantId || null,
@@ -398,9 +450,12 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
               sale.customerId,
               undefined,
               sale.breakdownDiscounts,
-              sale.notes || null,
+              sale.notes || (sale as any).observations || null,
               sale.observationImageUrl || null
             );
+            if (!quoteRes || (quoteRes as any).error) {
+              throw new Error((quoteRes as any)?.error || 'Error al procesar cotización');
+            }
           } else if (sale.type === 'CANCEL') {
             const { cancelSaleInternal } = await import('../actions/sale');
             const { getActiveUser } = await import('../actions/auth');
@@ -410,7 +465,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
             }
           } else if (sale.type === 'CONSIGNMENT') {
             const { createConsignment } = await import('../actions/consignment');
-            await createConsignment(
+            const consRes = await createConsignment(
               sale.items.map(item => ({
                 productId: item.productId,
                 variantId: item.variantId || null,
@@ -421,10 +476,14 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
               sale.paymentMethod,
               sale.customerId
             );
+            if (!consRes || (consRes as any).error) {
+              throw new Error((consRes as any)?.error || 'Error al procesar consignación');
+            }
           } else {
             // Dynamic import to avoid cycles
             const { createSale } = await import('../actions/sale');
-            await createSale(
+            const saleAny = sale as any;
+            const res = await createSale(
               sale.items, 
               sale.total, 
               sale.paymentMethod, 
@@ -439,8 +498,31 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
               undefined,
               0,
               sale.branchId,
-              sale.breakdownDiscounts
+              sale.breakdownDiscounts,
+              saleAny.isPedido || false,
+              saleAny.deliveryDate,
+              saleAny.deliveryTime,
+              saleAny.deliveryStreet,
+              saleAny.deliveryType,
+              {
+                isDelivery: saleAny.isDelivery,
+                street: saleAny.deliveryStreet,
+                exteriorNumber: saleAny.deliveryExtNumber,
+                interiorNumber: saleAny.deliveryIntNumber,
+                neighborhood: saleAny.deliveryColonia,
+                city: saleAny.deliveryCity,
+                state: saleAny.deliveryState,
+                zipCode: saleAny.deliveryZipCode,
+                notes: saleAny.deliveryNotes,
+                shippingDate: saleAny.shippingDate,
+                deliveryDate: saleAny.deliveryDate,
+                deliveryTime: saleAny.deliveryTime,
+                driverId: saleAny.deliveryDriverId
+              }
             );
+            if (!res || !res.success) {
+              throw new Error(res?.error || 'Error al procesar la venta en el servidor');
+            }
           }
           await db.pendingSales.delete(sale.id);
           syncedAny = true;
@@ -454,7 +536,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       // Sync Transfers
       const transfers = await db.pendingTransfers.toArray();
       for (const t of transfers) {
-        if (t.failed && t.retryCount >= 5) continue;
+        if (!forceRetryAll && t.failed && (t.retryCount || 0) >= 5) continue;
         try {
            const { requestTransfer, dispatchDirectTransfer } = await import('../actions/transfer');
            let res;
@@ -478,7 +560,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       // Sync Purchases & Purchase Orders
       const purchases = await db.pendingPurchases.toArray();
       for (const p of purchases) {
-        if (p.failed && p.retryCount >= 5) continue;
+        if (!forceRetryAll && p.failed && (p.retryCount || 0) >= 5) continue;
         try {
           if (p.isDirectPurchase) {
             const { createPurchase } = await import('../actions/purchase');
@@ -517,7 +599,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       // Sync Products
       const products = await db.pendingProducts.toArray();
       for (const p of products) {
-        if (p.failed && p.retryCount >= 5) continue;
+        if (!forceRetryAll && p.failed && (p.retryCount || 0) >= 5) continue;
         try {
           const formData = new FormData();
           formData.append('branchId', p.branchId);
@@ -573,7 +655,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       // Sync Attendance
       const attendanceLogs = await db.pendingAttendance.toArray();
       for (const log of attendanceLogs) {
-        if (log.failed && log.retryCount >= 5) continue;
+        if (!forceRetryAll && log.failed && (log.retryCount || 0) >= 5) continue;
         try {
           const { registerAttendance } = await import('../actions/hr');
           const res = await registerAttendance({
@@ -590,7 +672,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
           }
           await db.pendingAttendance.delete(log.id);
           syncedAny = true;
-        } catch (e: any) {
+        } catch (e: any) { 
           console.error('Sync error attendance', e);
           const newCount = (log.retryCount || 0) + 1;
           await db.pendingAttendance.update(log.id, { retryCount: newCount, failed: newCount >= 5, errorMessage: e?.message });
@@ -598,13 +680,13 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       }
 
       if (syncedAny) {
-        loadPendingQueues();
         setShowToast({ message: 'Caché Offline Sincronizado a la Nube.', type: 'success' });
       }
     } catch (e) {
       console.error('Sync process failed', e);
     } finally {
       isSyncingRef.current = false;
+      await loadPendingQueues();
     }
   };
 
@@ -695,7 +777,25 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   };
 
   return (
-    <OfflineContext.Provider value={{ isOnline, pendingSales, syncMessage, pushOfflineSale, forceSync, pushOfflineTransfer, pushOfflinePurchase, pushOfflineProduct, pushOfflineAttendance, refreshCatalogs, lastSyncTime }}>
+    <OfflineContext.Provider value={{ 
+      isOnline, 
+      pendingSales, 
+      pendingTransfers, 
+      pendingPurchases, 
+      pendingProducts, 
+      pendingAttendance, 
+      syncMessage, 
+      pushOfflineSale, 
+      forceSync, 
+      deletePendingSale, 
+      retryAllFailed, 
+      pushOfflineTransfer, 
+      pushOfflinePurchase, 
+      pushOfflineProduct, 
+      pushOfflineAttendance, 
+      refreshCatalogs, 
+      lastSyncTime 
+    }}>
       {children}
       {showToast && (
         <div style={{

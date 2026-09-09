@@ -14,6 +14,7 @@ export async function updateDeliveryOrder(
     routeOrder?: number;
     maxDeliveryTime?: string | null;
     deliveryDate?: string | Date | null;
+    shippingDate?: string | Date | null;
     street?: string | null;
     exteriorNumber?: string | null;
     interiorNumber?: string | null;
@@ -50,6 +51,16 @@ export async function updateDeliveryOrder(
           : data.deliveryDate;
       } else {
         updateData.deliveryDate = null;
+      }
+    }
+
+    if (data.shippingDate !== undefined) {
+      if (data.shippingDate) {
+        updateData.shippingDate = typeof data.shippingDate === 'string' 
+          ? new Date(data.shippingDate.includes('T') ? data.shippingDate : `${data.shippingDate}T12:00:00`)
+          : data.shippingDate;
+      } else {
+        updateData.shippingDate = null;
       }
     }
     
@@ -120,6 +131,7 @@ export async function createDeliveryOrder(data: {
   lng?: number;
   maxDeliveryTime?: string;
   deliveryDate?: string | Date;
+  shippingDate?: string | Date;
   driverId?: string | null;
   notes?: string;
   status?: string;
@@ -154,6 +166,13 @@ export async function createDeliveryOrder(data: {
         : data.deliveryDate;
     }
 
+    let finalShippingDate: Date | null = null;
+    if (data.shippingDate) {
+      finalShippingDate = typeof data.shippingDate === 'string'
+        ? new Date(data.shippingDate.includes('T') ? data.shippingDate : `${data.shippingDate}T12:00:00`)
+        : data.shippingDate;
+    }
+
     const initialStatus = data.status || (data.driverId ? "IN_PROGRESS" : "PENDING");
 
     const order = await prisma.deliveryOrder.create({
@@ -171,6 +190,7 @@ export async function createDeliveryOrder(data: {
         lng: data.lng || null,
         maxDeliveryTime: data.maxDeliveryTime || null,
         deliveryDate: finalDeliveryDate,
+        shippingDate: finalShippingDate,
         driverId: data.driverId || null,
         notes: data.notes || null,
         branchId: branchId,
@@ -200,6 +220,7 @@ export async function upsertDeliveryOrderForSale(
     zipCode?: string;
     notes?: string;
     deliveryDate?: string | null;
+    shippingDate?: string | null;
     maxDeliveryTime?: string | null;
     driverId?: string | null;
     status?: string;
@@ -222,6 +243,11 @@ export async function upsertDeliveryOrderForSale(
       finalDeliveryDate = new Date(data.deliveryDate.includes('T') ? data.deliveryDate : `${data.deliveryDate}T12:00:00`);
     }
 
+    let finalShippingDate: Date | null = null;
+    if (data.shippingDate) {
+      finalShippingDate = new Date(data.shippingDate.includes('T') ? data.shippingDate : `${data.shippingDate}T12:00:00`);
+    }
+
     if (sale.deliveryOrder) {
       // Update existing
       const updateData: any = {
@@ -234,6 +260,7 @@ export async function upsertDeliveryOrderForSale(
         zipCode: data.zipCode || null,
         notes: data.notes || null,
         deliveryDate: finalDeliveryDate,
+        shippingDate: finalShippingDate,
         maxDeliveryTime: data.maxDeliveryTime || null
       };
 
@@ -276,6 +303,7 @@ export async function upsertDeliveryOrderForSale(
           zipCode: data.zipCode || null,
           notes: data.notes || null,
           deliveryDate: finalDeliveryDate,
+          shippingDate: finalShippingDate,
           maxDeliveryTime: data.maxDeliveryTime || null,
           driverId: data.driverId || null,
           status: initialStatus

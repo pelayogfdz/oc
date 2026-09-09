@@ -17,6 +17,7 @@ export interface DeliveryDataInput {
   state?: string | null;
   zipCode?: string | null;
   notes?: string | null;
+  shippingDate?: string | null;
   deliveryDate?: string | null;
   deliveryTime?: string | null;
   driverId?: string | null;
@@ -105,10 +106,21 @@ export async function createSale(
       const permitirVenderSinStock = config.venderSinStock === true;
       const permitirVenderBajoCosto = config.venderBajoCosto === true;
 
-      // Validate items against preferences
       for (const item of items) {
         let product = await tx.product.findUnique({ where: { id: item.productId } });
-        if (!product) throw new Error("Producto no encontrado");
+        if (!product && (item as any).sku) {
+          product = await tx.product.findFirst({
+            where: {
+              branchId: finalBranchId,
+              sku: (item as any).sku,
+              isActive: true
+            }
+          });
+          if (product) {
+            item.productId = product.id;
+          }
+        }
+        if (!product) throw new Error(`Producto no encontrado (${(item as any).productName || (item as any).sku || item.productId})`);
 
         // Si el producto no pertenece a la sucursal de la venta, buscar el producto de la sucursal correcta por SKU
         if (product.branchId !== finalBranchId) {
@@ -255,6 +267,12 @@ export async function createSale(
           finalDueDate = new Date(targetDate.includes('T') ? targetDate : `${targetDate}T12:00:00`);
         }
 
+        let finalShippingDate: Date | null = null;
+        const targetShippingDate = deliveryData?.shippingDate;
+        if (targetShippingDate) {
+          finalShippingDate = new Date(targetShippingDate.includes('T') ? targetShippingDate : `${targetShippingDate}T12:00:00`);
+        }
+
         const assignedDriverId = deliveryData?.driverId && deliveryData.driverId !== '' ? deliveryData.driverId : null;
         const initialDeliveryStatus = assignedDriverId ? 'IN_PROGRESS' : 'PENDING';
         
@@ -271,14 +289,29 @@ export async function createSale(
             notes: deliveryData?.notes || null,
             driverId: assignedDriverId,
             deliveryDate: finalDueDate,
+            shippingDate: finalShippingDate,
             maxDeliveryTime: deliveryData?.deliveryTime || deliveryTime || null,
             status: initialDeliveryStatus,
             branchId: finalBranchId
           }
         });
 
-        // Automatically create a ProductionOrder for each fabricable product
-        if (isPedido) {
+        // Calculate preparation / shipping date (1 day before delivery date if not specified)
+        let prepDateStr = targetShippingDate;
+        if (!prepDateStr && targetDate) {
+          const dDate = new Date(targetDate.includes('T') ? targetDate : `${targetDate}T12:00:00`);
+          const prevDay = new Date(dDate);
+          prevDay.setDate(prevDay.getDate() - 1);
+          prepDateStr = prevDay.toISOString().split('T')[0];
+        }
+
+        const formattedDeliveryDate = targetDate ? `${targetDate}` : '';
+        const targetTime = deliveryData?.deliveryTime || deliveryTime;
+        const formattedDeliveryTime = targetTime ? ` a las ${targetTime}` : '';
+        const prepNotice = prepDateStr ? ` • 🛠️ Preparar: ${prepDateStr}` : '';
+
+        // Automatically create a ProductionOrder for each fabricable product scheduled for prep date
+        if (isPedido || requiresDelivery) {
           for (const item of items) {
             const product = await tx.product.findUnique({
               where: { id: item.productId },
@@ -292,9 +325,6 @@ export async function createSale(
                 });
               }
               if (recipe) {
-                const formattedDate = targetDate ? `${targetDate}` : '';
-                const targetTime = deliveryData?.deliveryTime || deliveryTime;
-                const formattedTime = targetTime ? ` a las ${targetTime}` : '';
                 await tx.productionOrder.create({
                   data: {
                     recipeId: recipe.id,
@@ -302,12 +332,63 @@ export async function createSale(
                     status: 'PENDING',
                     branchId: finalBranchId,
                     userId: user.id,
-                    notes: `Pedido #${folio || createdSale.id.slice(0, 8)} - Entrega: ${formattedDate}${formattedTime}`
+                    notes: `Pedido #${folio || createdSale.id.slice(0, 8)}${prepNotice} (Entrega: ${formattedDeliveryDate}${formattedDeliveryTime})`
                   }
                 });
               }
             }
           }
+        }
+
+        // Auto-schedule in Ventas Calendar (Appointment)
+        try {
+          let appointmentDateTime = finalDueDate || finalShippingDate || new Date();
+          if (targetTime) {
+            const [hours, minutes] = targetTime.split(':').map(Number);
+            if (!isNaN(hours) && !isNaN(minutes)) {
+              appointmentDateTime = new Date(appointmentDateTime);
+              appointmentDateTime.setHours(hours, minutes, 0, 0);
+            }
+          }
+
+          const customerRecord = resolvedCustId ? await tx.customer.findUnique({ where: { id: resolvedCustId } }) : null;
+          const clientName = customerRecord?.name || billingData?.name || 'Cliente de Mostrador';
+          const clientPhone = customerRecord?.phone || null;
+          const clientEmail = customerRecord?.email || null;
+
+          const deliveryTypeLabel = (deliveryType === 'DELIVERY' || deliveryData?.isDelivery) ? 'Envío a Domicilio' : 'Recoger en Tienda';
+          const appointmentTitle = isPedido 
+            ? `📦 Pedido #${folio || createdSale.id.slice(0, 8)} (${deliveryTypeLabel})`
+            : `🚚 Entrega #${folio || createdSale.id.slice(0, 8)} (${deliveryTypeLabel})`;
+
+          const notesDetails = [
+            `Folio: #${folio || createdSale.id.slice(0, 8)}`,
+            `Tipo: ${deliveryTypeLabel}`,
+            formattedDeliveryDate ? `Fecha Entrega: ${formattedDeliveryDate}${formattedDeliveryTime}` : null,
+            prepDateStr ? `Fecha Preparación: ${prepDateStr}` : null,
+            deliveryData?.street || deliveryStreet ? `Dirección: ${[deliveryData?.street || deliveryStreet, deliveryData?.exteriorNumber, deliveryData?.neighborhood, deliveryData?.city].filter(Boolean).join(', ')}` : null,
+            deliveryData?.notes || notes ? `Indicaciones: ${deliveryData?.notes || notes}` : null,
+            `Total: $${finalSaleTotal}`,
+            `Items: ${items.length} productos`
+          ].filter(Boolean).join('\n');
+
+          await tx.appointment.create({
+            data: {
+              branchId: finalBranchId,
+              customerId: resolvedCustId || null,
+              userId: user.id,
+              title: appointmentTitle,
+              scheduledAt: appointmentDateTime,
+              duration: 30,
+              clientName,
+              clientPhone,
+              clientEmail,
+              status: 'CONFIRMED',
+              notes: notesDetails
+            }
+          });
+        } catch (errApp) {
+          console.error('[Ventas Calendar] Error scheduling appointment for delivery order:', errApp);
         }
       }
 
@@ -519,6 +600,8 @@ export async function createSale(
     }
 
     revalidatePath('/ventas');
+    revalidatePath('/ventas/citas');
+    revalidatePath('/procesos');
     revalidatePath('/productos');
     if (paymentMethod === 'CREDIT') revalidatePath('/clientes/cobranza');
     
