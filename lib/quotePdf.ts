@@ -268,46 +268,91 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
       let leftY = totalsY;
 
       if (terminosCot && terminosCot.trim()) {
+        const termHeight = doc.heightOfString(terminosCot.trim(), { width: 280 });
+        if (leftY + termHeight + 20 > 670) {
+          doc.addPage();
+          leftY = 50;
+        }
         doc.font(fontBold).fontSize(8).fillColor(primaryColor).text('TÉRMINOS Y CONDICIONES:', 50, leftY);
         doc.font(fontRegular).fontSize(7.5).fillColor('#64748b').text(terminosCot.trim(), 50, leftY + 12, { width: 280 });
-        const termHeight = doc.heightOfString(terminosCot.trim(), { width: 280 });
         leftY += 16 + termHeight;
       }
 
-      const observations = (quote.observations || '').trim();
+      const observations = (quote.observations || (quote as any).notes || '').trim();
       if (observations) {
+        const obsHeight = doc.heightOfString(observations, { width: 280 });
+        if (leftY + obsHeight + 20 > 670) {
+          doc.addPage();
+          leftY = 50;
+        }
         doc.font(fontBold).fontSize(8).fillColor(primaryColor).text('OBSERVACIONES DE LA COTIZACIÓN:', 50, leftY);
         doc.font(fontRegular).fontSize(8).fillColor('#475569').text(observations, 50, leftY + 12, { width: 280 });
-        const obsHeight = doc.heightOfString(observations, { width: 280 });
         leftY += 16 + obsHeight;
       }
 
       let bottomAfterTotals = Math.max(currentOffset + 15, leftY + 10);
 
-      // 6. Reference Image (observationImageUrl)
-      const observationImageUrl = (quote.observationImageUrl || '').trim();
-      if (observationImageUrl) {
+      // 6. Reference Images (observationImageUrl)
+      const rawObservationImageUrl = (quote.observationImageUrl || (quote as any).observationImages || '').trim();
+      if (rawObservationImageUrl) {
         try {
-          let imgBuffer: Buffer | null = null;
-          if (observationImageUrl.startsWith('data:image/')) {
-            const base64Data = observationImageUrl.replace(/^data:image\/\w+;base64,/, '');
-            imgBuffer = Buffer.from(base64Data, 'base64');
-          } else if (observationImageUrl.startsWith('http://') || observationImageUrl.startsWith('https://')) {
-            // External URL if any
-          } else if (fs.existsSync(observationImageUrl)) {
-            imgBuffer = fs.readFileSync(observationImageUrl);
+          let imageUrlList: string[] = [];
+          if (rawObservationImageUrl.startsWith('[') && rawObservationImageUrl.endsWith(']')) {
+            try {
+              const parsed = JSON.parse(rawObservationImageUrl);
+              if (Array.isArray(parsed)) imageUrlList = parsed.filter(Boolean);
+            } catch (e) {
+              imageUrlList = [rawObservationImageUrl];
+            }
+          } else {
+            imageUrlList = [rawObservationImageUrl];
           }
 
-          if (imgBuffer) {
-            // Check if image + title fit on current page before footer
-            if (bottomAfterTotals + 175 > 670) {
+          const validBuffers: Buffer[] = [];
+          for (const imgUrl of imageUrlList) {
+            let imgBuffer: Buffer | null = null;
+            if (imgUrl.startsWith('data:image/')) {
+              const base64Data = imgUrl.replace(/^data:image\/\w+;base64,/, '');
+              imgBuffer = Buffer.from(base64Data, 'base64');
+            } else if (imgUrl.startsWith('http://') || imgUrl.startsWith('https://')) {
+              // External URL if any
+            } else if (fs.existsSync(imgUrl)) {
+              imgBuffer = fs.readFileSync(imgUrl);
+            }
+            if (imgBuffer) validBuffers.push(imgBuffer);
+          }
+
+          if (validBuffers.length > 0) {
+            const cols = validBuffers.length === 1 ? 1 : (validBuffers.length === 2 ? 2 : 3);
+            const gap = cols === 1 ? 0 : (cols === 2 ? 20 : 16);
+            const colWidth = cols === 1 ? 260 : (512 - gap * (cols - 1)) / cols;
+            const imgHeight = cols === 1 ? 150 : (cols === 2 ? 135 : 110);
+            const numRows = Math.ceil(validBuffers.length / cols);
+            const totalSectionHeight = 18 + (numRows * imgHeight) + ((numRows - 1) * gap);
+
+            // Check if grid + title fit on current page before footer
+            if (bottomAfterTotals + totalSectionHeight > 670) {
               doc.addPage();
               bottomAfterTotals = 50;
             }
 
-            doc.font(fontBold).fontSize(9).fillColor(primaryColor).text('IMAGEN DE REFERENCIA:', 50, bottomAfterTotals);
-            doc.image(imgBuffer, 50, bottomAfterTotals + 15, { fit: [260, 150] });
-            bottomAfterTotals += 175;
+            const headerLabel = validBuffers.length > 1 ? 'IMÁGENES DE REFERENCIA:' : 'IMAGEN DE REFERENCIA:';
+            doc.font(fontBold).fontSize(9).fillColor(primaryColor).text(headerLabel, 50, bottomAfterTotals);
+            
+            validBuffers.forEach((buf, idx) => {
+              const colIdx = idx % cols;
+              const rowIdx = Math.floor(idx / cols);
+              const xPos = 50 + colIdx * (colWidth + gap);
+              const yPos = bottomAfterTotals + 16 + rowIdx * (imgHeight + gap);
+
+              try {
+                doc.image(buf, xPos, yPos, { fit: [colWidth, imgHeight] });
+              } catch (drawErr) {
+                console.error("Error drawing image in quote PDF:", drawErr);
+              }
+            });
+
+            bottomAfterTotals += totalSectionHeight + 10;
           }
         } catch (imgErr) {
           console.error("Failed to render quote reference image in PDF:", imgErr);

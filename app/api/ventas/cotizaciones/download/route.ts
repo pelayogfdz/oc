@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { resolveClientForQuote } from "@/lib/prisma";
 import { generateQuotePdfBuffer } from "@/lib/quotePdf";
 
 export async function GET(request: Request) {
@@ -13,23 +13,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Missing quoteId" }, { status: 400 });
     }
 
-    const quote = await prisma.quote.findUnique({
-      where: { id: quoteId },
-      include: {
-        user: true,
-        customer: true,
-        branch: {
-          include: { settings: true, tenant: true }
-        },
-        items: {
-          include: { product: true }
-        }
-      }
-    });
+    const result = await resolveClientForQuote(quoteId);
 
-    if (!quote) {
+    if (!result || !result.quote) {
       return NextResponse.json({ error: "Quote not found" }, { status: 404 });
     }
+
+    const quote = result.quote;
 
     const pdfBuffer = await generateQuotePdfBuffer(quote);
     const filename = `cotizacion_${quote.folio || quote.id.slice(0, 8).toUpperCase()}.pdf`;

@@ -385,28 +385,53 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
           </div>
         )}
 
-        {/* Observaciones e Imagen de Referencia */}
-        {(quote.observations || quote.observationImageUrl) && (
-          <div style={{ marginTop: '2rem', padding: '1rem', borderTop: '1px solid #cbd5e1', fontSize: '0.85rem', color: '#1e293b', lineHeight: '1.5' }}>
-            {quote.observations && (
-              <>
-                <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.35rem', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.5px' }}>Observaciones de la Cotización:</strong>
-                <div style={{ whiteSpace: 'pre-wrap', fontStyle: 'italic', color: '#475569' }}>{quote.observations}</div>
-              </>
-            )}
-            
-            {quote.observationImageUrl && (
-              <div style={{ marginTop: quote.observations ? '1rem' : '0' }}>
-                <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.5rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Imagen de Referencia:</strong>
-                <img 
-                  src={quote.observationImageUrl} 
-                  alt="Referencia de la cotización" 
-                  style={{ maxWidth: '100%', maxHeight: '250px', objectFit: 'contain', borderRadius: '6px', border: '1px solid #cbd5e1', display: 'block' }} 
-                />
-              </div>
-            )}
-          </div>
-        )}
+        {/* Observaciones e Imágenes de Referencia */}
+        {((quote.observations || (quote as any).notes) || quote.observationImageUrl) && (() => {
+          const obsText = (quote.observations || (quote as any).notes || '').trim();
+          const rawImg = (quote.observationImageUrl || (quote as any).observationImages || '').trim();
+          let refImages: string[] = [];
+          if (rawImg) {
+            if (rawImg.startsWith('[') && rawImg.endsWith(']')) {
+              try {
+                const parsed = JSON.parse(rawImg);
+                if (Array.isArray(parsed)) refImages = parsed.filter(Boolean);
+              } catch (e) {
+                refImages = [rawImg];
+              }
+            } else {
+              refImages = [rawImg];
+            }
+          }
+
+          return (
+            <div style={{ marginTop: '2rem', padding: '1rem', borderTop: '1px solid #cbd5e1', fontSize: '0.85rem', color: '#1e293b', lineHeight: '1.5' }}>
+              {obsText && (
+                <>
+                  <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.35rem', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.5px' }}>Observaciones de la Cotización:</strong>
+                  <div style={{ whiteSpace: 'pre-wrap', fontStyle: 'italic', color: '#475569' }}>{obsText}</div>
+                </>
+              )}
+              
+              {refImages.length > 0 && (
+                <div style={{ marginTop: obsText ? '1rem' : '0' }}>
+                  <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.5rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    {refImages.length > 1 ? 'Imágenes de Referencia:' : 'Imagen de Referencia:'}
+                  </strong>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    {refImages.map((src, idx) => (
+                      <img 
+                        key={idx}
+                        src={src} 
+                        alt={`Referencia ${idx + 1}`} 
+                        style={{ maxWidth: refImages.length === 1 ? '100%' : '200px', maxHeight: '200px', objectFit: 'contain', borderRadius: '6px', border: '1px solid #cbd5e1', display: 'block' }} 
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Footer QR Box matching reference */}
          <div className="qr-box">

@@ -241,10 +241,25 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                         <div><strong>Cliente:</strong> {quote.customer?.name || 'Público en General'}</div>
                         <div><strong>Fecha:</strong> {new Date(quote.createdAt).toLocaleString('es-MX', { timeZone: 'America/Mexico_City' })}</div>
                         <div><strong>Creado por:</strong> {quote.user?.name || ''}</div>
-                        {quote.observations && (
+                        {(quote.observations || quote.observationImageUrl) && (
                           <div style={{ marginTop: '0.35rem', paddingTop: '0.35rem', borderTop: '1px dashed #e2e8f0', color: '#475569', fontSize: '0.75rem', fontStyle: 'italic', wordBreak: 'break-word' }}>
-                            <strong>Obs:</strong> {quote.observations.slice(0, 100)}{quote.observations.length > 100 ? '...' : ''}
-                            {quote.observationImageUrl && <span style={{ color: '#10b981', marginLeft: '0.5rem', fontWeight: 'bold' }}>[✓ Imagen Ref]</span>}
+                            {quote.observations && (
+                              <span><strong>Obs:</strong> {quote.observations.slice(0, 100)}{quote.observations.length > 100 ? '...' : ''}</span>
+                            )}
+                            {quote.observationImageUrl && (() => {
+                              let count = 1;
+                              if (quote.observationImageUrl.startsWith('[')) {
+                                try {
+                                  const parsed = JSON.parse(quote.observationImageUrl);
+                                  if (Array.isArray(parsed)) count = parsed.length;
+                                } catch (e) {}
+                              }
+                              return (
+                                <span style={{ color: '#10b981', marginLeft: quote.observations ? '0.5rem' : '0', fontWeight: 'bold' }}>
+                                  [✓ {count > 1 ? `${count} Fotos Ref` : 'Imagen Ref'}]
+                                </span>
+                              );
+                            })()}
                           </div>
                         )}
                       </div>

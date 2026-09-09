@@ -1317,47 +1317,91 @@ export default function POSClient({
     }
   };
 
+  const parseObservationImages = (raw: string | null | undefined): string[] => {
+    if (!raw || !raw.trim()) return [];
+    const clean = raw.trim();
+    if (clean.startsWith('[') && clean.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(clean);
+        if (Array.isArray(parsed)) return parsed.filter(Boolean);
+      } catch (e) {}
+    }
+    return [clean];
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 600;
-        const MAX_HEIGHT = 600;
-        let width = img.width;
-        let height = img.height;
+    const currentList = parseObservationImages(observationImageUrl);
+    const maxAllowed = 5;
+    const remainingSlots = Math.max(0, maxAllowed - currentList.length);
 
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
+    if (remainingSlots <= 0) {
+      alert(`Has alcanzado el límite máximo de ${maxAllowed} imágenes de referencia.`);
+      e.target.value = '';
+      return;
+    }
+
+    const filesToProcess = files.slice(0, remainingSlots);
+    let processedCount = 0;
+    const newImages: string[] = [];
+
+    filesToProcess.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 600;
+          const MAX_HEIGHT = 600;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
           }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
 
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, width, height);
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-          setObservationImageUrl(compressedBase64);
-          setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, observationImageUrl: compressedBase64 } : t));
-        }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+            newImages.push(compressedBase64);
+          }
+          processedCount++;
+          if (processedCount === filesToProcess.length) {
+            const combined = [...currentList, ...newImages];
+            const serialized = combined.length === 1 ? combined[0] : JSON.stringify(combined);
+            setObservationImageUrl(serialized);
+            setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, observationImageUrl: serialized } : t));
+          }
+        };
+        img.src = event.target?.result as string;
       };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
+      reader.readAsDataURL(file);
+    });
+
+    e.target.value = '';
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    const currentList = parseObservationImages(observationImageUrl);
+    const next = currentList.filter((_, idx) => idx !== indexToRemove);
+    const serialized = next.length === 0 ? '' : (next.length === 1 ? next[0] : JSON.stringify(next));
+    setObservationImageUrl(serialized);
+    setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, observationImageUrl: serialized } : t));
   };
 
   const [loadedConsignmentId, setLoadedConsignmentId] = useState<string | null>(null);
@@ -4959,31 +5003,69 @@ export default function POSClient({
 
             {mode === 'QUOTE' && (
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '0.4rem' }}>
-                  Imagen de Referencia (Opcional)
-                </label>
-                {observationImageUrl ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', border: '1px solid var(--caanma-border)', borderRadius: '6px', backgroundColor: '#f8fafc' }}>
-                    <img 
-                      src={observationImageUrl} 
-                      alt="Referencia" 
-                      style={{ height: '48px', width: '48px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--caanma-border)' }} 
-                    />
-                    <div style={{ flex: 1 }}>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', fontWeight: '500' }}>Imagen cargada</span>
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          setObservationImageUrl('');
-                          setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, observationImageUrl: '' } : t));
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: '500' }}>
+                    Imágenes de Referencia (Opcional - Máx. 5)
+                  </label>
+                  {parseObservationImages(observationImageUrl).length > 0 && (
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      {parseObservationImages(observationImageUrl).length} de 5
+                    </span>
+                  )}
+                </div>
+
+                {parseObservationImages(observationImageUrl).length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.625rem' }}>
+                    {parseObservationImages(observationImageUrl).map((imgUrl, idx) => (
+                      <div 
+                        key={idx} 
+                        style={{ 
+                          position: 'relative', 
+                          width: '56px', 
+                          height: '56px', 
+                          borderRadius: '6px', 
+                          overflow: 'hidden', 
+                          border: '1px solid var(--caanma-border)',
+                          backgroundColor: '#f8fafc'
                         }}
-                        style={{ fontSize: '0.75rem', color: '#ef4444', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontWeight: 'bold' }}
                       >
-                        Eliminar imagen
-                      </button>
-                    </div>
+                        <img 
+                          src={imgUrl} 
+                          alt={`Referencia ${idx + 1}`} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(idx)}
+                          title="Eliminar foto"
+                          style={{
+                            position: 'absolute',
+                            top: '2px',
+                            right: '2px',
+                            width: '18px',
+                            height: '18px',
+                            borderRadius: '50%',
+                            backgroundColor: 'rgba(239, 68, 68, 0.9)',
+                            color: '#ffffff',
+                            border: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '11px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            padding: 0,
+                            lineHeight: 1
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ) : (
+                )}
+
+                {parseObservationImages(observationImageUrl).length < 5 && (
                   <div style={{ position: 'relative' }}>
                     <label 
                       htmlFor="quote-image-upload" 
@@ -5006,12 +5088,15 @@ export default function POSClient({
                       <svg style={{ width: '14px', height: '14px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      Subir imagen de referencia
+                      {parseObservationImages(observationImageUrl).length === 0 
+                        ? 'Subir imágenes de referencia (Máx. 5)' 
+                        : '+ Agregar otra foto'}
                     </label>
                     <input 
                       id="quote-image-upload"
                       type="file" 
                       accept="image/*" 
+                      multiple
                       onChange={handleImageUpload}
                       style={{ display: 'none' }}
                     />
