@@ -680,14 +680,39 @@ export default async function ImprimirCotizacionPage({
 
               {/* Reference Image Box */}
               <div className="pizca-box" style={{ height: '100%' }}>
-                <div className="pizca-box-header">DISEÑO DE REFERENCIA</div>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem', background: '#fafaf9' }}>
-                  {refImages.length > 0 ? (
+                <div className="pizca-box-header">
+                  {refImages.length > 1 ? `DISEÑOS DE REFERENCIA (${refImages.length})` : 'DISEÑO DE REFERENCIA'}
+                </div>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem', background: '#fafaf9', minHeight: '180px' }}>
+                  {refImages.length === 1 ? (
                     <img 
                       src={refImages[0]} 
                       alt="Diseño de Referencia" 
-                      style={{ maxHeight: '180px', maxWidth: '100%', objectFit: 'contain', borderRadius: '4px' }} 
+                      style={{ maxHeight: '180px', maxWidth: '100%', objectFit: 'contain', borderRadius: '4px', border: '1px solid #e2e8f0', background: '#fff' }} 
                     />
+                  ) : refImages.length > 1 ? (
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: refImages.length === 2 ? '1fr 1fr' : refImages.length === 3 ? '1fr 1fr 1fr' : 'repeat(auto-fit, minmax(80px, 1fr))', 
+                      gap: '0.35rem', 
+                      width: '100%', 
+                      height: '100%',
+                      maxHeight: '185px'
+                    }}>
+                      {refImages.slice(0, 5).map((imgUrl, idx) => (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff', borderRadius: '4px', border: '1px solid #e2e8f0', padding: '0.2rem', overflow: 'hidden' }}>
+                          <img 
+                            src={imgUrl} 
+                            alt={`Referencia ${idx + 1}`} 
+                            style={{ 
+                              maxHeight: refImages.length <= 2 ? '170px' : refImages.length <= 4 ? '85px' : '75px', 
+                              maxWidth: '100%', 
+                              objectFit: 'contain' 
+                            }} 
+                          />
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <div style={{ color: '#94a3b8', fontSize: '0.8rem', textAlign: 'center', padding: '2rem 1rem' }}>
                       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ margin: '0 auto 0.5rem', opacity: 0.4 }}>
