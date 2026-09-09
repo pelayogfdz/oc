@@ -386,13 +386,17 @@ export default async function ImprimirCotizacionPage({ params }: { params: Promi
         )}
 
         {/* Observaciones e Imagen de Referencia */}
-        {quote.observations && (
+        {(quote.observations || quote.observationImageUrl) && (
           <div style={{ marginTop: '2rem', padding: '1rem', borderTop: '1px solid #cbd5e1', fontSize: '0.85rem', color: '#1e293b', lineHeight: '1.5' }}>
-            <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.35rem', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.5px' }}>Observaciones de la Cotización:</strong>
-            <div style={{ whiteSpace: 'pre-wrap', fontStyle: 'italic', color: '#475569' }}>{quote.observations}</div>
+            {quote.observations && (
+              <>
+                <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.35rem', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.5px' }}>Observaciones de la Cotización:</strong>
+                <div style={{ whiteSpace: 'pre-wrap', fontStyle: 'italic', color: '#475569' }}>{quote.observations}</div>
+              </>
+            )}
             
             {quote.observationImageUrl && (
-              <div style={{ marginTop: '1rem' }}>
+              <div style={{ marginTop: quote.observations ? '1rem' : '0' }}>
                 <strong style={{ display: 'block', color: '#0f172a', marginBottom: '0.5rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Imagen de Referencia:</strong>
                 <img 
                   src={quote.observationImageUrl} 

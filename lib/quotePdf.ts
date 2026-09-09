@@ -261,14 +261,74 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
       doc.font(fontBold).fontSize(11).fillColor('#0f172a');
       doc.text('Total:', 350, currentOffset, { width: 100, align: 'left' });
       doc.text(`$${finalTotalWithIva.toFixed(2)}`, 450, currentOffset, { width: 105, align: 'right' });
+      currentOffset += 20;
 
-      // 5. Footer Notes
-      const footerY = 700;
-      doc.strokeColor('#cbd5e1').lineWidth(1).moveTo(50, footerY - 10).lineTo(562, footerY - 10).stroke();
+      // 5. Terms & Conditions and Observations on the left (or below totals)
+      const terminosCot = config.cotizaciones?.terminosCot || '';
+      let leftY = totalsY;
 
-      doc.font(fontItalic).fontSize(8).fillColor('#94a3b8');
-      doc.text('Esta cotización es solo de carácter informativo. Los precios y existencias están sujetos a cambio sin previo aviso.', 50, footerY, { align: 'center', width: 512 });
-      doc.text('Generado por CAANMA PRO', 50, footerY + 12, { align: 'center', width: 512 });
+      if (terminosCot && terminosCot.trim()) {
+        doc.font(fontBold).fontSize(8).fillColor(primaryColor).text('TÉRMINOS Y CONDICIONES:', 50, leftY);
+        doc.font(fontRegular).fontSize(7.5).fillColor('#64748b').text(terminosCot.trim(), 50, leftY + 12, { width: 280 });
+        const termHeight = doc.heightOfString(terminosCot.trim(), { width: 280 });
+        leftY += 16 + termHeight;
+      }
+
+      const observations = (quote.observations || '').trim();
+      if (observations) {
+        doc.font(fontBold).fontSize(8).fillColor(primaryColor).text('OBSERVACIONES DE LA COTIZACIÓN:', 50, leftY);
+        doc.font(fontRegular).fontSize(8).fillColor('#475569').text(observations, 50, leftY + 12, { width: 280 });
+        const obsHeight = doc.heightOfString(observations, { width: 280 });
+        leftY += 16 + obsHeight;
+      }
+
+      let bottomAfterTotals = Math.max(currentOffset + 15, leftY + 10);
+
+      // 6. Reference Image (observationImageUrl)
+      const observationImageUrl = (quote.observationImageUrl || '').trim();
+      if (observationImageUrl) {
+        try {
+          let imgBuffer: Buffer | null = null;
+          if (observationImageUrl.startsWith('data:image/')) {
+            const base64Data = observationImageUrl.replace(/^data:image\/\w+;base64,/, '');
+            imgBuffer = Buffer.from(base64Data, 'base64');
+          } else if (observationImageUrl.startsWith('http://') || observationImageUrl.startsWith('https://')) {
+            // External URL if any
+          } else if (fs.existsSync(observationImageUrl)) {
+            imgBuffer = fs.readFileSync(observationImageUrl);
+          }
+
+          if (imgBuffer) {
+            // Check if image + title fit on current page before footer
+            if (bottomAfterTotals + 175 > 670) {
+              doc.addPage();
+              bottomAfterTotals = 50;
+            }
+
+            doc.font(fontBold).fontSize(9).fillColor(primaryColor).text('IMAGEN DE REFERENCIA:', 50, bottomAfterTotals);
+            doc.image(imgBuffer, 50, bottomAfterTotals + 15, { fit: [260, 150] });
+            bottomAfterTotals += 175;
+          }
+        } catch (imgErr) {
+          console.error("Failed to render quote reference image in PDF:", imgErr);
+        }
+      }
+
+      // 7. Footer Notes
+      const footerY = Math.max(700, bottomAfterTotals + 15);
+      if (footerY > 730) {
+        doc.addPage();
+        const newFooterY = 700;
+        doc.strokeColor('#cbd5e1').lineWidth(1).moveTo(50, newFooterY - 10).lineTo(562, newFooterY - 10).stroke();
+        doc.font(fontItalic).fontSize(8).fillColor('#94a3b8');
+        doc.text('Esta cotización es solo de carácter informativo. Los precios y existencias están sujetos a cambio sin previo aviso.', 50, newFooterY, { align: 'center', width: 512 });
+        doc.text('Generado por CAANMA PRO', 50, newFooterY + 12, { align: 'center', width: 512 });
+      } else {
+        doc.strokeColor('#cbd5e1').lineWidth(1).moveTo(50, footerY - 10).lineTo(562, footerY - 10).stroke();
+        doc.font(fontItalic).fontSize(8).fillColor('#94a3b8');
+        doc.text('Esta cotización es solo de carácter informativo. Los precios y existencias están sujetos a cambio sin previo aviso.', 50, footerY, { align: 'center', width: 512 });
+        doc.text('Generado por CAANMA PRO', 50, footerY + 12, { align: 'center', width: 512 });
+      }
 
       doc.end();
     } catch (e) {
