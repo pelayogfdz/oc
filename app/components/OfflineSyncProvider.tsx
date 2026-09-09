@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { db, OfflineSale, OfflinePendingAttendance, OfflineUser } from '@/lib/offlineDB';
+import { invalidateOfflineSearchCache } from '@/lib/offlineSearch';
 import { createSale } from '../actions/sale';
 
 interface OfflineContextType {
@@ -198,6 +199,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
 
       // Deduct stock immediately from local IndexedDB mirror
       if (saleParams.items && Array.isArray(saleParams.items)) {
+        let stockModified = false;
         for (const item of saleParams.items) {
           if (item.productId) {
             try {
@@ -207,11 +209,15 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
                 const soldQty = Number(item.quantity) || 0;
                 const newStock = Math.max(0, currentStock - soldQty);
                 await db.products.update(item.productId, { stock: newStock });
+                stockModified = true;
               }
             } catch (errStock) {
               console.warn('[OfflineDB] Error updating local stock mirror:', errStock);
             }
           }
+        }
+        if (stockModified) {
+          invalidateOfflineSearchCache();
         }
       }
 
@@ -327,9 +333,11 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       };
       if (newProduct.productId) {
         await db.products.put(mirrorProduct);
+        invalidateOfflineSearchCache();
         if (!isOnline) setShowToast({ message: 'Cambios de producto guardados localmente.', type: 'warn' });
       } else {
         await db.products.add(mirrorProduct);
+        invalidateOfflineSearchCache();
         if (!isOnline) setShowToast({ message: 'Producto registrado localmente.', type: 'warn' });
       }
 
@@ -606,16 +614,19 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
     try {
       const { syncBasicCatalogs, syncProductsPage } = await import('../actions/sync');
       if (!isBackground) {
-        setShowToast({ message: 'Preparando sincronización de catálogos...', type: 'warn' });
+        setShowToast({ message: 'Sincronizando catálogo de sucursal...', type: 'warn' });
       }
       
       const basicData = await syncBasicCatalogs();
+      const targetBranchId = (basicData as any).syncBranchId || '';
+      const lastCachedBranchId = localStorage.getItem('cached_branch_id');
+      const isBranchSwitch = lastCachedBranchId && targetBranchId && lastCachedBranchId !== targetBranchId;
       
       const totalProducts = basicData.totalProducts;
-      const pageSize = 1500;
-      const totalPages = Math.ceil(totalProducts / pageSize);
+      const pageSize = 3500;
+      const totalPages = Math.max(1, Math.ceil(totalProducts / pageSize));
       
-      // Perform a transaction to clear and update basic tables first, including clearing products
+      // Perform a transaction to update basic tables
       await db.transaction('rw', [db.customers, db.suppliers, db.branches, db.settings, db.users, db.products, db.sales], async () => {
         await db.customers.clear();
         await db.customers.bulkAdd(basicData.customers);
@@ -642,25 +653,29 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
         await db.sales.clear();
         await db.sales.bulkAdd(basicData.recentSales || []);
 
-        await db.products.clear();
+        if (isBranchSwitch) {
+          await db.products.clear();
+        }
       });
 
-      // Fetch and write products page by page outside the transaction to yield to the browser's thread!
+      // Fetch and write branch products page by page smoothly using bulkPut
       for (let i = 1; i <= totalPages; i++) {
         if (!isBackground) {
           setSyncMessage(`Sincronizando Catálogo... (${i}/${totalPages})`);
         }
-        const productsChunk = await syncProductsPage(i, pageSize);
+        const productsChunk = await syncProductsPage(i, pageSize, targetBranchId);
         if (productsChunk && productsChunk.length > 0) {
-          await db.products.bulkAdd(productsChunk);
+          await db.products.bulkPut(productsChunk);
         }
       }
 
+      if (targetBranchId) {
+        localStorage.setItem('cached_branch_id', targetBranchId);
+      }
       localStorage.setItem('last_catalog_sync_timestamp', Date.now().toString());
       setLastSyncTime(Date.now());
       
       try {
-        const { invalidateOfflineSearchCache } = await import('@/lib/offlineSearch');
         invalidateOfflineSearchCache();
       } catch (eCache) {
         console.warn('Could not invalidate offline search cache', eCache);
@@ -668,7 +683,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
 
       if (!isBackground) {
         setSyncMessage(null);
-        setShowToast({ message: 'Catálogos actualizados y guardados en local.', type: 'success' });
+        setShowToast({ message: `Catálogo (${totalProducts.toLocaleString()} productos) listo para vender offline.`, type: 'success' });
       }
     } catch (e) {
       console.error('Failed to sync catalogs', e);

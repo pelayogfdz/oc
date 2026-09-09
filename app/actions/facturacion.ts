@@ -368,7 +368,13 @@ export async function stampInvoice(saleId: string, customerId?: string | null, c
   }
 }
 
-export async function stampGlobalInvoice(startDateStr?: string, endDateStr?: string) {
+export async function stampGlobalInvoice(
+  startDateStr?: string, 
+  endDateStr?: string, 
+  selectedSaleIds?: string[], 
+  customPaymentForm?: string, 
+  periodicity?: string
+) {
   try {
     const branch = await getActiveBranch();
     
@@ -407,13 +413,20 @@ export async function stampGlobalInvoice(startDateStr?: string, endDateStr?: str
       end = new Date(endDateStr + 'T23:59:59.999');
     }
 
+    const whereClause: any = {
+      branchId: branch.id,
+      status: "COMPLETED",
+      invoiceId: null // Solo no facturadas
+    };
+
+    if (selectedSaleIds && selectedSaleIds.length > 0) {
+      whereClause.id = { in: selectedSaleIds };
+    } else {
+      whereClause.createdAt = { gte: start, lte: end };
+    }
+
     const salesFiltered = await prisma.sale.findMany({ 
-      where: { 
-        branchId: branch.id, 
-        status: "COMPLETED",
-        createdAt: { gte: start, lte: end },
-        invoiceId: null // Solo no facturadas
-      },
+      where: whereClause,
       include: {
         items: {
           include: { product: true }
@@ -422,7 +435,21 @@ export async function stampGlobalInvoice(startDateStr?: string, endDateStr?: str
     });
 
     if (salesFiltered.length === 0) {
-      throw new Error("No hay ventas pendientes en el rango de fechas seleccionado para incluir en la factura global.");
+      throw new Error("No hay ventas seleccionadas o pendientes para incluir en la factura global.");
+    }
+
+    // Determinar la forma de pago para el SAT
+    let finalPaymentForm = customPaymentForm || "01";
+    if (!customPaymentForm) {
+      const distinctMethods = Array.from(new Set(salesFiltered.map(s => s.paymentMethod)));
+      if (distinctMethods.length === 1) {
+        const m = distinctMethods[0];
+        if (m === 'CARD_DEBIT') finalPaymentForm = "28";
+        else if (m === 'CARD_CREDIT' || m === 'CARD') finalPaymentForm = "04";
+        else if (m === 'TRANSFER') finalPaymentForm = "03";
+        else if (m === 'CHECK' || m === 'CHEQUE') finalPaymentForm = "02";
+        else finalPaymentForm = "01";
+      }
     }
 
     // Comprimir todos los items en la factura global con proporcional de descuentos por venta
@@ -487,6 +514,8 @@ export async function stampGlobalInvoice(startDateStr?: string, endDateStr?: str
        });
     }
 
+    const validPeriodicity = periodicity || "day";
+
     // Factura Global CFDI 4.0 a Público en General
     const invoice = await facturapi.invoices.create({
       customer: {
@@ -498,12 +527,12 @@ export async function stampGlobalInvoice(startDateStr?: string, endDateStr?: str
         }
       },
       items: globalItems,
-      payment_form: "01",
+      payment_form: finalPaymentForm,
       payment_method: "PUE",
       use: "S01",
       type: "I",
       global: {
-         periodicity: "day",
+         periodicity: validPeriodicity,
          months: String(salesFiltered[0]?.createdAt ? new Date(salesFiltered[0].createdAt).getMonth() + 1 : new Date().getMonth() + 1).padStart(2, '0'),
          year: salesFiltered[0]?.createdAt ? new Date(salesFiltered[0].createdAt).getFullYear() : new Date().getFullYear()
       }
@@ -521,6 +550,7 @@ export async function stampGlobalInvoice(startDateStr?: string, endDateStr?: str
     });
 
     revalidatePath('/facturas/globales');
+    revalidatePath('/facturas/ventas');
     return { success: true, invoiceId: invoice.id };
 
   } catch (error: any) {
@@ -1263,7 +1293,19 @@ export async function getPendingGlobalSales(startDateStr: string, endDateStr: st
         id: true,
         folio: true,
         total: true,
-        createdAt: true
+        paymentMethod: true,
+        cashAmount: true,
+        cardAmount: true,
+        transferAmount: true,
+        createdAt: true,
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            legalName: true,
+            taxId: true
+          }
+        }
       },
       orderBy: { createdAt: 'desc' }
     });

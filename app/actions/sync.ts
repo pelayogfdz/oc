@@ -11,6 +11,9 @@ export async function syncBasicCatalogs() {
   const tenantBranches = await prisma.branch.findMany({ where: { tenantId, isActive: true } });
   const branchIds = tenantBranches.map(b => b.id);
 
+  // If in a specific branch, sync that branch. If in GLOBAL, select the first active tenant branch
+  const syncBranchId = (branchId && branchId !== 'GLOBAL') ? branchId : (branchIds[0] || '');
+
   const customers = await prisma.customer.findMany({
     where: {
       OR: [
@@ -23,20 +26,18 @@ export async function syncBasicCatalogs() {
   const suppliers = await prisma.supplier.findMany();
   
   let settingsDb = null;
-  if (branchId && branchId !== 'GLOBAL') {
-    settingsDb = await prisma.branchSettings.findUnique({ where: { branchId } });
+  if (syncBranchId) {
+    settingsDb = await prisma.branchSettings.findUnique({ where: { branchId: syncBranchId } });
   }
   if (!settingsDb && branchIds.length > 0) {
     settingsDb = await prisma.branchSettings.findFirst({
       where: { branchId: { in: branchIds } }
     });
   }
-  
-  const targetBranchIds = (!branchId || branchId === 'GLOBAL') ? branchIds : [branchId];
 
   const totalProducts = await prisma.product.count({ 
     where: { 
-      branchId: { in: targetBranchIds }, 
+      branchId: syncBranchId, 
       isActive: true 
     } 
   });
@@ -66,9 +67,9 @@ export async function syncBasicCatalogs() {
   });
 
   let recentSales: any[] = [];
-  if (branchId && branchId !== 'GLOBAL') {
+  if (syncBranchId) {
     const salesDb = await prisma.sale.findMany({
-      where: { branchId },
+      where: { branchId: syncBranchId },
       orderBy: { createdAt: 'desc' },
       take: 150,
       include: {
@@ -110,23 +111,30 @@ export async function syncBasicCatalogs() {
     }));
   }
 
-  return { customers, suppliers, branches: tenantBranches, settings: settingsDb, totalProducts, users, recentSales };
+  return { customers, suppliers, branches: tenantBranches, settings: settingsDb, totalProducts, users, recentSales, syncBranchId };
 }
 
-export async function syncProductsPage(page: number, limit: number) {
+export async function syncProductsPage(page: number, limit: number, explicitBranchId?: string) {
   const branch = await getActiveBranch();
   if (!branch) return [];
   const tenantId = branch.tenantId;
 
-  const tenantBranches = await prisma.branch.findMany({ where: { tenantId, isActive: true }, select: { id: true } });
-  const branchIds = tenantBranches.map(b => b.id);
+  let targetBranchId = explicitBranchId;
+  if (!targetBranchId) {
+    if (branch.id && branch.id !== 'GLOBAL') {
+      targetBranchId = branch.id;
+    } else {
+      const firstBranch = await prisma.branch.findFirst({ where: { tenantId, isActive: true }, select: { id: true } });
+      targetBranchId = firstBranch?.id || '';
+    }
+  }
 
-  const targetBranchIds = (!branch.id || branch.id === 'GLOBAL') ? branchIds : [branch.id];
+  if (!targetBranchId) return [];
 
   const skip = (page - 1) * limit;
   const products = await prisma.product.findMany({
     where: { 
-      branchId: { in: targetBranchIds }, 
+      branchId: targetBranchId, 
       isActive: true 
     },
     select: {

@@ -16,15 +16,27 @@ export function normalizeText(str: string | null | undefined): string {
 }
 
 /**
- * Expande tokens compuestos (ej. '9v', '200g', '15kg', '1pza') para permitir
- * coincidencias tanto del término completo como del número base.
+ * Expande tokens compuestos (ej. '9v', '200g', '15kg', '1pza') y variantes fonéticas
+ * para permitir coincidencias exactas y parciales.
  */
 function expandSearchWord(word: string): string[] {
-  const match = word.match(/^(\d+)([a-zA-Z]+)$/);
+  const clean = word.trim();
+  if (!clean) return [];
+  const set = new Set<string>();
+  set.add(clean);
+
+  // Unaccented version
+  const unaccented = clean.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  set.add(unaccented);
+
+  // Number/unit compound (ej. '9v', '1060toner', '1pza')
+  const match = clean.match(/^(\d+)([a-zA-Z]+)$/);
   if (match) {
-    return [word, match[1]];
+    set.add(match[1]);
+    set.add(match[2]);
   }
-  return [word];
+
+  return Array.from(set);
 }
 
 export interface OfflineSearchOptions {
