@@ -9,16 +9,16 @@ import { formatCurrency } from '@/lib/utils';
 
 export interface DeliveryDataInput {
   isDelivery?: boolean;
-  street?: string;
-  exteriorNumber?: string;
-  interiorNumber?: string;
-  neighborhood?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
-  notes?: string;
-  deliveryDate?: string;
-  deliveryTime?: string;
+  street?: string | null;
+  exteriorNumber?: string | null;
+  interiorNumber?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
+  notes?: string | null;
+  deliveryDate?: string | null;
+  deliveryTime?: string | null;
   driverId?: string | null;
 }
 

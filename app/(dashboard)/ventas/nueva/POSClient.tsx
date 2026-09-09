@@ -315,6 +315,7 @@ export default function POSClient({
       setTransferAmount((newTab.transferAmount || '') as number | "");
       setNotes(newTab.notes);
       setObservationImageUrl(newTab.observationImageUrl || '');
+      setDeliveryNotes(newTab.deliveryNotes || '');
       setDeliveryDate(newTab.deliveryDate || '');
       setDeliveryTime(newTab.deliveryTime || '');
       setDeliveryStreet(newTab.deliveryStreet || '');
@@ -355,6 +356,7 @@ export default function POSClient({
         setTransferAmount((lastTab.transferAmount || '') as number | "");
         setNotes(lastTab.notes || '');
         setObservationImageUrl(lastTab.observationImageUrl || '');
+        setDeliveryNotes(lastTab.deliveryNotes || '');
         setDeliveryDate(lastTab.deliveryDate || '');
         setDeliveryTime(lastTab.deliveryTime || '');
         setDeliveryStreet(lastTab.deliveryStreet || '');
@@ -612,6 +614,7 @@ export default function POSClient({
             setTransferAmount(state.transferAmount || '');
             setNotes(state.notes || '');
             setObservationImageUrl(state.observationImageUrl || '');
+            setDeliveryNotes(state.deliveryNotes || '');
             setDeliveryDate(state.deliveryDate || '');
             setDeliveryTime(state.deliveryTime || '');
             setDeliveryStreet(state.deliveryStreet || '');
@@ -633,6 +636,7 @@ export default function POSClient({
               manualDiscountValue: state.manualDiscountValue || '',
               notes: state.notes || '',
               observationImageUrl: state.observationImageUrl || '',
+              deliveryNotes: state.deliveryNotes || '',
               deliveryDate: state.deliveryDate || '',
               deliveryTime: state.deliveryTime || '',
               deliveryStreet: state.deliveryStreet || '',
@@ -2606,17 +2610,17 @@ export default function POSClient({
           const isPedidoTx = transactionType === 'PEDIDO';
           const isDeliveryRequested = isDelivery || isPedidoTx;
           const deliveryData = isDeliveryRequested ? {
-            isDelivery: true,
-            street: deliveryStreet,
-            exteriorNumber: deliveryExtNumber,
-            interiorNumber: deliveryIntNumber,
-            neighborhood: deliveryColonia,
-            city: deliveryCity,
-            zipCode: deliveryZipCode,
-            notes: deliveryNotes,
+            isDelivery: deliveryType === 'DELIVERY',
+            street: deliveryType === 'DELIVERY' ? (deliveryStreet || 'Envío a Domicilio') : 'Recoger en Tienda',
+            exteriorNumber: deliveryType === 'DELIVERY' ? deliveryExtNumber : null,
+            interiorNumber: deliveryType === 'DELIVERY' ? deliveryIntNumber : null,
+            neighborhood: deliveryType === 'DELIVERY' ? deliveryColonia : null,
+            city: deliveryType === 'DELIVERY' ? deliveryCity : null,
+            zipCode: deliveryType === 'DELIVERY' ? deliveryZipCode : null,
+            notes: deliveryNotes || null,
             deliveryDate: deliveryDate || undefined,
             deliveryTime: deliveryTime || undefined,
-            driverId: deliveryDriverId || null
+            driverId: deliveryType === 'DELIVERY' ? (deliveryDriverId || null) : null
           } : undefined;
 
           const response = await createSale(
@@ -3344,7 +3348,16 @@ export default function POSClient({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setTransactionType('PEDIDO')}
+                  onClick={() => {
+                    setTransactionType('PEDIDO');
+                    if (!deliveryDate) {
+                      const todayStr = new Date().toISOString().split('T')[0];
+                      setDeliveryDate(todayStr);
+                      setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, transactionType: 'PEDIDO', deliveryDate: todayStr } : t));
+                    } else {
+                      setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, transactionType: 'PEDIDO' } : t));
+                    }
+                  }}
                   className={`pos-toggle-btn ${transactionType === 'PEDIDO' ? 'pos-toggle-btn-active' : ''}`}
                 >
                   Pedido
@@ -4855,6 +4868,60 @@ export default function POSClient({
                       <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.72rem', color: '#2563eb' }}>
                         * Si no asignas chofer ahora, podrás asignarlo más tarde desde el Historial de Ventas o el módulo de Logística.
                       </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Formulario de Hora y Observaciones para Recoger en Tienda */}
+                {transactionType === 'PEDIDO' && deliveryType === 'PICKUP' && (
+                  <div style={{ marginTop: '0.85rem', paddingTop: '0.85rem', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>
+                        Referencias / Indicaciones de Entrega
+                      </label>
+                      <input
+                        type="text"
+                        value={deliveryNotes}
+                        onChange={e => {
+                          setDeliveryNotes(e.target.value);
+                          setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryNotes: e.target.value } : t));
+                        }}
+                        placeholder="Ej: Entre calles X y Y, portón gris, timbre blanco"
+                        style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>
+                          Fecha de Entrega <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <input
+                          type="date"
+                          value={deliveryDate}
+                          required
+                          onChange={e => {
+                            setDeliveryDate(e.target.value);
+                            setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryDate: e.target.value } : t));
+                          }}
+                          style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', marginBottom: '0.25rem' }}>
+                          Hora de Entrega <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <input
+                          type="time"
+                          value={deliveryTime}
+                          required
+                          onChange={e => {
+                            setDeliveryTime(e.target.value);
+                            setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, deliveryTime: e.target.value } : t));
+                          }}
+                          style={{ width: '100%', padding: '0.45rem 0.6rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
