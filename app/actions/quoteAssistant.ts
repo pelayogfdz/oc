@@ -113,9 +113,11 @@ const SYNONYMS_MAP: Record<string, string[]> = {
   'calculadora': ['calculadora']
 };
 
+const ALL_COLORS = ['blanco', 'blanca', 'negro', 'negra', 'azul', 'rojo', 'roja', 'verde', 'amarillo', 'amarilla', 'rosa', 'morado', 'morada', 'turquesa', 'naranja', 'cafe', 'marron', 'lila', 'fucsia', 'pastel', 'neon', 'vainilla', 'canario'];
+
 const MODIFIER_WORDS = new Set([
   'bolsillo', 'chico', 'chica', 'mediano', 'mediana', 'grande', 'extra', 'jumbo',
-  'negro', 'negra', 'azul', 'rojo', 'roja', 'verde', 'amarillo', 'amarilla', 'blanco', 'blanca', 'transparente',
+  ...ALL_COLORS,
   'carta', 'oficio', 'doble', 'tabloide', 'a4',
   'cuadro', 'raya', 'doble raya', 'cuadro chico', 'cuadro grande',
   'fino', 'mediano', 'grueso', 'ultra fino', 'gel', 'punto',
@@ -155,10 +157,16 @@ function parseQueryTokens(query: string) {
   const primaryNouns = new Set<string>();
   const modifiers = new Set<string>();
   const synonyms = new Set<string>();
+  const requestedColors = new Set<string>();
 
   for (const w of rawWords) {
     const rawClean = w.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const stem = stemSpanishWord(w);
+
+    if (ALL_COLORS.includes(w) || ALL_COLORS.includes(rawClean)) {
+      requestedColors.add(w);
+      requestedColors.add(rawClean);
+    }
 
     if (MODIFIER_WORDS.has(w) || MODIFIER_WORDS.has(rawClean) || MODIFIER_WORDS.has(stem)) {
       modifiers.add(w);
@@ -182,7 +190,8 @@ function parseQueryTokens(query: string) {
     rawWords,
     primaryNouns: Array.from(primaryNouns),
     modifiers: Array.from(modifiers),
-    synonyms: Array.from(synonyms).filter(s => !primaryNouns.has(s))
+    synonyms: Array.from(synonyms).filter(s => !primaryNouns.has(s)),
+    requestedColors: Array.from(requestedColors)
   };
 }
 
@@ -193,7 +202,7 @@ async function matchItemFast(
   itemReq: { quantity: number; query: string },
   lineIndex: number
 ): Promise<AssistantItemResult> {
-  const rawQuery = itemReq.query;
+  const rawQuery = itemReq.query.trim();
   const quantity = itemReq.quantity;
   const parsedTokens = parseQueryTokens(rawQuery);
   const allKeywords = Array.from(new Set([...parsedTokens.primaryNouns, ...parsedTokens.synonyms]));
@@ -215,20 +224,21 @@ async function matchItemFast(
   const isLapisQuery = parsedTokens.primaryNouns.some(n => n.includes('lapiz') || n.includes('lápiz') || n.includes('lapicero'));
   const isPlumaQuery = parsedTokens.primaryNouns.some(n => n.includes('pluma') || n.includes('boligrafo'));
   const isHojaQuery = parsedTokens.primaryNouns.some(n => n.includes('hoja') || n.includes('papel') || n.includes('bond'));
+  const isEngrapadoraQuery = parsedTokens.primaryNouns.some(n => n.includes('engrapadora') || n.includes('engrapador'));
 
-  // Single fast query for candidate products
+  // Query up to 60 candidates in a single fast query
   const candidates = await prisma.product.findMany({
     where: {
       branchId,
       isActive: true,
       OR: [
-        { sku: { equals: rawQuery.trim(), mode: 'insensitive' as const } },
-        { barcode: { equals: rawQuery.trim(), mode: 'insensitive' as const } },
+        { sku: { equals: rawQuery, mode: 'insensitive' as const } },
+        { barcode: { equals: rawQuery, mode: 'insensitive' as const } },
         ...allKeywords.map(k => ({ name: { contains: k, mode: 'insensitive' as const } }))
       ]
     },
     include: { prices: true },
-    take: 30
+    take: 60
   });
 
   if (candidates.length === 0) {
@@ -257,7 +267,7 @@ async function matchItemFast(
           productId: { in: candidateIds }
         },
         select: { productId: true, price: true },
-        take: 10
+        take: 20
       });
       history.forEach(h => {
         if (h.productId && !historyMap.has(h.productId)) {
@@ -273,65 +283,98 @@ async function matchItemFast(
   const scored = candidates.map(p => {
     const nameLower = p.name.toLowerCase();
     let score = 0;
-    let badge = 'Coincidencia Directa';
-    let source: SuggestionOption['source'] = 'DIRECT';
+    let badge = 'Sugerencia de Catálogo';
+    let source: SuggestionOption['source'] = 'TOP_SELLER';
 
-    // Exact SKU / Barcode match
-    if (p.sku?.toLowerCase() === rawQuery.toLowerCase() || p.barcode === rawQuery) {
-      score += 150;
+    // 1. EXACT SKU / BARCODE MATCH (The ONLY case for "Coincidencia Directa")
+    const isExactCode = (p.sku && p.sku.toLowerCase() === rawQuery.toLowerCase()) || (p.barcode && p.barcode === rawQuery);
+    if (isExactCode) {
+      score += 200;
       badge = 'Coincidencia Directa (Código exacto)';
-    }
-
-    // Check primary noun matches
-    const matchesNoun = parsedTokens.primaryNouns.some(n => nameLower.includes(n));
-    // Check modifier matches
-    const matchesMod = parsedTokens.modifiers.some(m => nameLower.includes(m));
-    // Check synonym matches
-    const matchesSyn = parsedTokens.synonyms.some(s => nameLower.includes(s));
-
-    if (matchesNoun && matchesMod) {
-      score += 60;
-      badge = 'Coincidencia Directa';
-    } else if (matchesNoun) {
-      score += 40;
-      badge = 'Coincidencia Directa';
-    } else if (matchesSyn && matchesMod) {
-      score += 25;
-      badge = 'Sugerencia por Sinónimo';
-    } else if (matchesSyn) {
-      score += 15;
-      badge = 'Sugerencia por Sinónimo';
-    }
-
-    // Negative Keyword Penalties & Category Disambiguation:
-    // 1. "lapiz / lapicero" vs "lapiz adhesivo" (pegamento)
-    if (isLapisQuery && !rawQuery.toLowerCase().includes('adhesiv') && (nameLower.includes('adhesiv') || nameLower.includes('pegamento') || nameLower.includes('goma'))) {
-      score -= 60;
-    }
-    // 2. "pluma" vs "plumas de ave" / manualidades
-    if (isPlumaQuery && !rawQuery.toLowerCase().includes('ave') && (nameLower.includes('plumas de ave') || nameLower.includes('ave') || nameLower.includes('manualidad'))) {
-      score -= 60;
-    }
-    // 3. "hoja / papel bond" vs "protector de hoja" / "set de dibujo"
-    if (isHojaQuery && !rawQuery.toLowerCase().includes('protector') && (nameLower.includes('protector de hoja') || nameLower.includes('crayol') || nameLower.includes('set '))) {
-      score -= 30;
-    }
-    if (isHojaQuery && (nameLower.includes('papel bond') || nameLower.includes('facia bond') || nameLower.includes('copamex') || nameLower.includes('xerox') || nameLower.includes('resma'))) {
-      score += 30;
-    }
-
-    // Customer History Boost (Sugerencia #1 del Cliente)
-    if (historyMap.has(p.id)) {
-      score += 45;
-      badge = 'Comprado antes por cliente';
-      source = 'HISTORY';
-    }
-
-    // Stock availability bonus (Sugerencia #3)
-    if (p.stock > 0) {
-      score += Math.min(p.stock, 20) * 0.3;
+      source = 'DIRECT';
     } else {
-      score -= 5;
+      // It is NOT a direct code match -> Everything else is a suggestion!
+      const matchesNoun = parsedTokens.primaryNouns.some(n => nameLower.includes(n));
+      const matchesMod = parsedTokens.modifiers.some(m => nameLower.includes(m));
+      const matchesSyn = parsedTokens.synonyms.some(s => nameLower.includes(s));
+
+      if (matchesNoun && matchesMod) score += 50;
+      else if (matchesNoun) score += 35;
+      else if (matchesSyn && matchesMod) score += 25;
+      else if (matchesSyn) score += 15;
+
+      // Color disambiguation & penalty for conflicting colors
+      if (parsedTokens.requestedColors.length > 0) {
+        const hasRequestedColor = parsedTokens.requestedColors.some(c => nameLower.includes(c));
+        const conflictingColors = ALL_COLORS.filter(c => !parsedTokens.requestedColors.includes(c) && nameLower.includes(c));
+
+        if (hasRequestedColor) {
+          score += 40; // Boost matching color (e.g. blanco)
+        }
+        if (conflictingColors.length > 0 && !hasRequestedColor) {
+          score -= 70; // Penalize wrong color (e.g. turquesa/pastel when white requested)
+        }
+      }
+
+      // Domain Negative & Positive Filters:
+      if (isHojaQuery) {
+        // Penalize acrylic holders, protectors, tracing paper, art paper, notebooks, binders
+        if (nameLower.includes('porta hoja') || nameLower.includes('acrilico') || nameLower.includes('protector') || nameLower.includes('albanene') || nameLower.includes('barita') || nameLower.includes('mantequilla') || nameLower.includes('cuaderno') || nameLower.includes('libreta') || nameLower.includes('carpeta') || nameLower.includes('repuesto hoja')) {
+          score -= 90;
+        }
+
+        // Check format match (carta vs oficio vs doble carta)
+        const requestedCarta = rawQuery.toLowerCase().includes('carta') && !rawQuery.toLowerCase().includes('doble carta');
+        const requestedOficio = rawQuery.toLowerCase().includes('oficio');
+
+        if (requestedCarta) {
+          if (nameLower.includes('carta') || nameLower.includes('t/c') || nameLower.includes('t/carta')) score += 30;
+          if (nameLower.includes('oficio') && !nameLower.includes('carta')) score -= 30;
+          if (nameLower.includes('doble carta')) score -= 25;
+        } else if (requestedOficio) {
+          if (nameLower.includes('oficio') || nameLower.includes('t/o')) score += 30;
+          if (nameLower.includes('carta') && !nameLower.includes('oficio')) score -= 30;
+        }
+
+        // Boost true office bond paper
+        if (nameLower.includes('papel bond') || nameLower.includes('facia bond') || nameLower.includes('copamex') || nameLower.includes('xerox') || nameLower.includes('report') || nameLower.includes('resma') || nameLower.includes('office') || nameLower.includes('500') || nameLower.includes('chamex') || nameLower.includes('scribe')) {
+          score += 40;
+        }
+      }
+
+      if (isLapisQuery) {
+        if (nameLower.includes('adhesiv') || nameLower.includes('pegamento') || nameLower.includes('goma')) score -= 80;
+        if (nameLower.includes('grafito') || nameLower.includes('mirado') || nameLower.includes('dixon') || nameLower.includes('madera')) score += 25;
+      }
+
+      if (isPlumaQuery) {
+        if (nameLower.includes('ave') || nameLower.includes('manualidad')) score -= 80;
+        if (nameLower.includes('boligrafo') || nameLower.includes('kilometrico') || nameLower.includes('bic') || nameLower.includes('pin point') || nameLower.includes('roller')) score += 25;
+      }
+
+      if (isEngrapadoraQuery) {
+        if (nameLower.startsWith('grapas') || nameLower.startsWith('grapa ')) score -= 30;
+      }
+
+      // Customer History (Sugerencia #1)
+      if (historyMap.has(p.id)) {
+        score += 50;
+        badge = 'Comprado antes por cliente';
+        source = 'HISTORY';
+      } else if (p.stock > 10) {
+        badge = 'Sugerencia por Existencia';
+        source = 'HIGH_STOCK';
+      } else {
+        badge = 'Sugerencia de Catálogo';
+        source = 'TOP_SELLER';
+      }
+
+      // Stock Bonus / Out of stock penalty
+      if (p.stock > 0) {
+        score += Math.min(p.stock, 50) * 0.4;
+      } else {
+        score -= 20; // Heavily penalize 0 stock for generic suggestions
+      }
     }
 
     const assignedPrice = calculateProductPriceForCustomer(p, priceListToUse);
@@ -359,7 +402,8 @@ async function matchItemFast(
 
   scored.sort((a, b) => b.score - a.score);
 
-  const topSuggestions: SuggestionOption[] = scored.slice(0, 5).map(s => ({
+  // Return TOP 10 Suggestions
+  const topSuggestions: SuggestionOption[] = scored.slice(0, 10).map(s => ({
     product: s.product,
     source: s.source,
     badge: s.badge,
