@@ -1,5 +1,3 @@
-import { prisma } from '@/lib/prisma';
-
 export const GENERIC_CUSTOMER_NAME = 'PUBLICO EN GENERAL';
 export const GENERIC_CUSTOMER_RFC = 'XAXX010101000';
 export const GENERIC_CUSTOMER_REGIME = '616';
@@ -30,8 +28,14 @@ export function isGenericCustomer(customer: { name?: string | null; taxId?: stri
   return isGenericCustomerName(customer.name);
 }
 
-export async function getOrCreateGenericCustomer(dbOrTx: any = prisma) {
-  let genericCustomer = await dbOrTx.customer.findFirst({
+export async function getOrCreateGenericCustomer(dbOrTx?: any) {
+  let db = dbOrTx;
+  if (!db) {
+    const { prisma } = await import('@/lib/prisma');
+    db = prisma;
+  }
+
+  let genericCustomer = await db.customer.findFirst({
     where: {
       OR: [
         { taxId: GENERIC_CUSTOMER_RFC },
@@ -43,7 +47,7 @@ export async function getOrCreateGenericCustomer(dbOrTx: any = prisma) {
   });
 
   if (!genericCustomer) {
-    genericCustomer = await dbOrTx.customer.create({
+    genericCustomer = await db.customer.create({
       data: {
         name: GENERIC_CUSTOMER_NAME,
         legalName: GENERIC_CUSTOMER_NAME,
@@ -60,7 +64,7 @@ export async function getOrCreateGenericCustomer(dbOrTx: any = prisma) {
     genericCustomer.branchId !== null
   ) {
     // Ensure canonical consistency
-    genericCustomer = await dbOrTx.customer.update({
+    genericCustomer = await db.customer.update({
       where: { id: genericCustomer.id },
       data: {
         name: GENERIC_CUSTOMER_NAME,
