@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AlertTriangle, RefreshCw, Home, Loader2 } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Home, Loader2, RotateCcw } from 'lucide-react';
 
 export default function Error({
   error,
@@ -11,6 +11,10 @@ export default function Error({
   reset: () => void;
 }) {
   const [isNavigating, setIsNavigating] = useState(false);
+
+  useEffect(() => {
+    console.error('Unhandled app error:', error);
+  }, [error]);
 
   const forceNavigate = () => {
     setIsNavigating(true);
@@ -33,27 +37,11 @@ export default function Error({
         ? window.location.pathname
         : '/ventas/nueva';
 
-      // Immediate navigation
       window.location.href = target + '?v=' + Date.now();
     }
   };
 
-  useEffect(() => {
-    console.error('Unhandled app error:', error);
-    
-    // Auto-trigger navigation once after 300ms
-    if (typeof window !== 'undefined') {
-      const lastAutoRecovery = sessionStorage.getItem('caanma_err_recovery');
-      const now = Date.now();
-      if (!lastAutoRecovery || now - parseInt(lastAutoRecovery, 10) > 10000) {
-        sessionStorage.setItem('caanma_err_recovery', now.toString());
-        const timer = setTimeout(() => {
-          forceNavigate();
-        }, 200);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [error]);
+  const errorMessage = error?.message || (typeof error === 'string' ? error : 'Error inesperado en la interfaz');
 
   return (
     <div style={{
@@ -66,7 +54,7 @@ export default function Error({
       fontFamily: 'sans-serif'
     }}>
       <div style={{
-        maxWidth: '480px',
+        maxWidth: '520px',
         width: '100%',
         backgroundColor: 'white',
         borderRadius: '16px',
@@ -79,27 +67,44 @@ export default function Error({
           width: '64px',
           height: '64px',
           borderRadius: '50%',
-          backgroundColor: '#ede9fe',
-          color: '#8b5cf6',
+          backgroundColor: '#fef2f2',
+          color: '#ef4444',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: '1.5rem'
+          marginBottom: '1.25rem'
         }}>
-          {isNavigating ? <Loader2 size={32} className="animate-spin" /> : <RefreshCw size={32} />}
+          <AlertTriangle size={32} />
         </div>
 
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#0f172a', marginBottom: '0.5rem' }}>
-          Sincronizando con el Servidor
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#0f172a', marginBottom: '0.5rem' }}>
+          Error al cargar el Punto de Venta
         </h2>
 
-        <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: '1.5', marginBottom: '1.75rem' }}>
-          Actualizando a la última versión del sistema. Si no carga automáticamente, pulsa el botón abajo.
-        </p>
+        <div style={{
+          backgroundColor: '#fff1f2',
+          border: '1px solid #fecdd3',
+          borderRadius: '8px',
+          padding: '0.85rem',
+          color: '#9f1239',
+          fontSize: '0.85rem',
+          textAlign: 'left',
+          marginBottom: '1.5rem',
+          wordBreak: 'break-word',
+          maxHeight: '120px',
+          overflowY: 'auto'
+        }}>
+          <strong>Detalle:</strong> {errorMessage}
+          {error?.digest && (
+            <div style={{ fontSize: '0.75rem', color: '#be123c', marginTop: '0.25rem' }}>
+              Digest: {error.digest}
+            </div>
+          )}
+        </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <button
-            onClick={forceNavigate}
+            onClick={() => reset()}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -117,8 +122,29 @@ export default function Error({
               boxShadow: '0 4px 6px -1px rgba(139, 92, 246, 0.25)'
             }}
           >
+            <RotateCcw size={18} /> Reintentar Cargar
+          </button>
+
+          <button
+            onClick={forceNavigate}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              width: '100%',
+              padding: '0.85rem',
+              backgroundColor: '#f1f5f9',
+              color: '#1e293b',
+              border: '1px solid #cbd5e1',
+              borderRadius: '8px',
+              fontWeight: '600',
+              fontSize: '0.9rem',
+              cursor: 'pointer'
+            }}
+          >
             {isNavigating ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />} 
-            {isNavigating ? 'Cargando...' : 'Entrar a Punto de Venta'}
+            {isNavigating ? 'Limpiando...' : 'Limpiar Caché y Recargar'}
           </button>
 
           <button
@@ -134,16 +160,16 @@ export default function Error({
               gap: '0.5rem',
               width: '100%',
               padding: '0.85rem',
-              backgroundColor: '#f1f5f9',
-              color: '#334155',
+              backgroundColor: 'transparent',
+              color: '#64748b',
               border: 'none',
               borderRadius: '8px',
-              fontWeight: '600',
-              fontSize: '0.9rem',
+              fontWeight: '500',
+              fontSize: '0.85rem',
               cursor: 'pointer'
             }}
           >
-            <Home size={18} /> Iniciar Sesión / Recargar
+            <Home size={16} /> Cerrar Sesión / Ir a Login
           </button>
         </div>
       </div>
