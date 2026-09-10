@@ -15,13 +15,7 @@ export async function syncBasicCatalogs() {
   const syncBranchId = (branchId && branchId !== 'GLOBAL') ? branchId : (branchIds[0] || '');
 
   const customers = await prisma.customer.findMany({
-    where: {
-      OR: [
-        { branchId: null },
-        { branchId: '' },
-        { branchId: { in: branchIds } }
-      ]
-    }
+    orderBy: { name: 'asc' }
   });
   const suppliers = await prisma.supplier.findMany();
   

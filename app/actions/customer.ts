@@ -308,6 +308,42 @@ export async function toggleCustomerBlock(id: string, isBlocked: boolean) {
   revalidatePath(`/clientes/${id}`);
 }
 
+export async function searchCustomersAction(query: string) {
+  try {
+    const q = (query || '').trim();
+    if (!q) {
+      const customers = await prisma.customer.findMany({
+        take: 50,
+        orderBy: { name: 'asc' }
+      });
+      return { success: true, customers: JSON.parse(JSON.stringify(customers)) };
+    }
+
+    const words = q.split(/\s+/).filter(w => w.length > 0);
+    const customers = await prisma.customer.findMany({
+      where: {
+        OR: [
+          { name: { contains: q, mode: 'insensitive' as const } },
+          { legalName: { contains: q, mode: 'insensitive' as const } },
+          { taxId: { contains: q, mode: 'insensitive' as const } },
+          { phone: { contains: q, mode: 'insensitive' as const } },
+          { email: { contains: q, mode: 'insensitive' as const } },
+          ...words.map(w => ({
+            name: { contains: w, mode: 'insensitive' as const }
+          }))
+        ]
+      },
+      take: 50,
+      orderBy: { name: 'asc' }
+    });
+
+    return { success: true, customers: JSON.parse(JSON.stringify(customers)) };
+  } catch (error: any) {
+    console.error('searchCustomersAction error:', error);
+    return { success: false, customers: [], error: error.message };
+  }
+}
+
 export async function createCustomerPOS(data: {
   name: string;
   email?: string;

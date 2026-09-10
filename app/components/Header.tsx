@@ -2,6 +2,7 @@ import { getActiveBranch, getActiveUser, getTenantBranches } from '@/app/actions
 import { logout } from '@/app/actions/auth-actions';
 import { prisma } from '@/lib/prisma';
 import BranchSelector from './BranchSelector';
+import LogoutButton from './LogoutButton';
 import MobileMenuToggle from './MobileMenuToggle';
 import DesktopMenuToggle from './DesktopMenuToggle';
 import HeaderNetworkStatus from './HeaderNetworkStatus';
@@ -158,11 +159,7 @@ export default async function Header() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.4rem' }}>
               <span style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: '500' }}>{currentUser?.name || 'Usuario'}</span>
               <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>|</span>
-              <form action={async () => { 'use server'; await logout(); }} style={{ margin: 0, padding: 0, display: 'inline' }}>
-                 <button type="submit" style={{ background: 'none', border: 'none', padding: 0, margin: 0, color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '600' }}>
-                   Salir
-                 </button>
-              </form>
+              <LogoutButton />
             </div>
           </div>
           

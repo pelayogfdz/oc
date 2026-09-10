@@ -23,6 +23,13 @@ export default async function NuevaVentaPage({ searchParams }: { searchParams: a
   }
   
   const branchId = branch?.id || '';
+  const tenantId = user.tenantId || branch?.tenantId;
+
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const tenantBranchIds = tenantBranches.map(b => b.id);
 
   const [
     products,
@@ -42,7 +49,8 @@ export default async function NuevaVentaPage({ searchParams }: { searchParams: a
       take: 50
     }),
     prisma.customer.findMany({
-      orderBy: { name: 'asc' }
+      orderBy: { name: 'asc' },
+      take: 500
     }),
     prisma.promotion.findMany({
       where: { branchId, active: true }
@@ -61,6 +69,7 @@ export default async function NuevaVentaPage({ searchParams }: { searchParams: a
     getTenantSuppliers(),
     prisma.user.findMany({
       where: {
+        tenantId: user.tenantId,
         branchId: branchId && branchId !== 'GLOBAL' ? branchId : undefined
       },
       select: { id: true, name: true, role: true },

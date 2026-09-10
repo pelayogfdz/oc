@@ -195,7 +195,55 @@ function parseQueryTokens(query: string) {
   };
 }
 
+async function reRankWithGemini(
+  genAI: GoogleGenerativeAI,
+  rawQuery: string,
+  candidates: Array<{ id: string; name: string; sku: string; stock: number; hasHistory: boolean }>
+): Promise<{ selectedId: string | null; rankedIds: string[] } | null> {
+  if (candidates.length === 0) return null;
+
+  try {
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      generationConfig: { maxOutputTokens: 600, temperature: 0.1 }
+    });
+
+    const prompt = `Eres el asistente experto en cotizaciones comerciales de un sistema de punto de venta.
+El cliente solicita: "${rawQuery}"
+
+Productos candidatos en el catálogo:
+${JSON.stringify(candidates.map(c => ({ id: c.id, name: c.name, sku: c.sku, stock: c.stock, comprado_antes_por_cliente: c.hasHistory })), null, 2)}
+
+Reglas de decisión estricta:
+1. "selectedId": ID del producto que MEJOR satisface exactamente lo que pide el cliente (mismo tipo de producto, sabor/variante, tamaño, color).
+   - Si ningún producto corresponde a lo pedido (por ejemplo, pide pastel 3 leches y solo hay de chocolate o cupcakes; o pide hojas blancas y solo hay turquesa o acrílicos), responde "selectedId": null.
+   - NUNCA asignes un sabor, color o tipo de producto completamente distinto (ej. no asignes chocolate por 3 leches, ni pegamento por lápiz de grafito).
+2. "rankedIds": Lista ordenada de los IDs más relevantes y sustitutos válidos (máximo 10), descartando los que no tengan relación.
+
+Responde ÚNICAMENTE en JSON válido con el formato:
+{
+  "selectedId": "string o null",
+  "rankedIds": ["id1", "id2", ...]
+}`;
+
+    const res = await model.generateContent(prompt);
+    const text = res.response.text();
+    const match = text.match(/\{[\s\S]*\}/);
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      return {
+        selectedId: typeof parsed.selectedId === 'string' && parsed.selectedId ? parsed.selectedId : null,
+        rankedIds: Array.isArray(parsed.rankedIds) ? parsed.rankedIds : []
+      };
+    }
+  } catch (e) {
+    console.warn('[QuoteAssistant] AI Re-ranking fallback:', e);
+  }
+  return null;
+}
+
 async function matchItemFast(
+  genAI: GoogleGenerativeAI | null,
   branchId: string,
   customerId: string | null,
   priceListToUse: string,
@@ -226,7 +274,7 @@ async function matchItemFast(
   const isHojaQuery = parsedTokens.primaryNouns.some(n => n.includes('hoja') || n.includes('papel') || n.includes('bond'));
   const isEngrapadoraQuery = parsedTokens.primaryNouns.some(n => n.includes('engrapadora') || n.includes('engrapador'));
 
-  // Query up to 60 candidates in a single fast query
+  // Query up to 50 candidates in a single fast query
   const candidates = await prisma.product.findMany({
     where: {
       branchId,
@@ -238,7 +286,7 @@ async function matchItemFast(
       ]
     },
     include: { prices: true },
-    take: 60
+    take: 50
   });
 
   if (candidates.length === 0) {
@@ -279,21 +327,59 @@ async function matchItemFast(
     }
   }
 
-  // In-Memory Scoring & Ranking (< 0.1ms)
+  // 1. Direct SKU / Barcode Check
+  const exactCodeProduct = candidates.find(
+    p => (p.sku && p.sku.toLowerCase() === rawQuery.toLowerCase()) || (p.barcode && p.barcode === rawQuery)
+  );
+
+  let selectedProductId: string | null = null;
+  let aiRankedIds: string[] = [];
+
+  if (exactCodeProduct) {
+    selectedProductId = exactCodeProduct.id;
+  } else if (genAI) {
+    // Run AI Semantic Re-Ranking
+    const aiDecision = await reRankWithGemini(
+      genAI,
+      rawQuery,
+      candidates.map(p => ({
+        id: p.id,
+        name: p.name,
+        sku: p.sku,
+        stock: p.stock,
+        hasHistory: historyMap.has(p.id)
+      }))
+    );
+
+    if (aiDecision) {
+      selectedProductId = aiDecision.selectedId;
+      aiRankedIds = aiDecision.rankedIds;
+    }
+  }
+
+  // In-Memory Scoring & Fallback Ranking
   const scored = candidates.map(p => {
     const nameLower = p.name.toLowerCase();
     let score = 0;
     let badge = 'Sugerencia de Catálogo';
     let source: SuggestionOption['source'] = 'TOP_SELLER';
 
-    // 1. EXACT SKU / BARCODE MATCH (The ONLY case for "Coincidencia Directa")
+    // 1. EXACT SKU / BARCODE MATCH
     const isExactCode = (p.sku && p.sku.toLowerCase() === rawQuery.toLowerCase()) || (p.barcode && p.barcode === rawQuery);
     if (isExactCode) {
-      score += 200;
+      score += 250;
       badge = 'Coincidencia Directa (Código exacto)';
       source = 'DIRECT';
     } else {
-      // It is NOT a direct code match -> Everything else is a suggestion!
+      // AI Priority bonus
+      const aiRankIndex = aiRankedIds.indexOf(p.id);
+      if (aiRankIndex !== -1) {
+        score += Math.max(120 - aiRankIndex * 10, 30);
+      }
+      if (p.id === selectedProductId) {
+        score += 100;
+      }
+
       const matchesNoun = parsedTokens.primaryNouns.some(n => nameLower.includes(n));
       const matchesMod = parsedTokens.modifiers.some(m => nameLower.includes(m));
       const matchesSyn = parsedTokens.synonyms.some(s => nameLower.includes(s));
@@ -309,24 +395,20 @@ async function matchItemFast(
         const conflictingColors = ALL_COLORS.filter(c => !parsedTokens.requestedColors.includes(c) && nameLower.includes(c));
 
         if (hasRequestedColor) {
-          score += 40; // Boost matching color (e.g. blanco)
+          score += 40;
         }
         if (conflictingColors.length > 0 && !hasRequestedColor) {
-          score -= 70; // Penalize wrong color (e.g. turquesa/pastel when white requested)
+          score -= 70;
         }
       }
 
       // Domain Negative & Positive Filters:
       if (isHojaQuery) {
-        // Penalize acrylic holders, protectors, tracing paper, art paper, notebooks, binders
         if (nameLower.includes('porta hoja') || nameLower.includes('acrilico') || nameLower.includes('protector') || nameLower.includes('albanene') || nameLower.includes('barita') || nameLower.includes('mantequilla') || nameLower.includes('cuaderno') || nameLower.includes('libreta') || nameLower.includes('carpeta') || nameLower.includes('repuesto hoja')) {
           score -= 90;
         }
-
-        // Check format match (carta vs oficio vs doble carta)
         const requestedCarta = rawQuery.toLowerCase().includes('carta') && !rawQuery.toLowerCase().includes('doble carta');
         const requestedOficio = rawQuery.toLowerCase().includes('oficio');
-
         if (requestedCarta) {
           if (nameLower.includes('carta') || nameLower.includes('t/c') || nameLower.includes('t/carta')) score += 30;
           if (nameLower.includes('oficio') && !nameLower.includes('carta')) score -= 30;
@@ -335,8 +417,6 @@ async function matchItemFast(
           if (nameLower.includes('oficio') || nameLower.includes('t/o')) score += 30;
           if (nameLower.includes('carta') && !nameLower.includes('oficio')) score -= 30;
         }
-
-        // Boost true office bond paper
         if (nameLower.includes('papel bond') || nameLower.includes('facia bond') || nameLower.includes('copamex') || nameLower.includes('xerox') || nameLower.includes('report') || nameLower.includes('resma') || nameLower.includes('office') || nameLower.includes('500') || nameLower.includes('chamex') || nameLower.includes('scribe')) {
           score += 40;
         }
@@ -373,7 +453,7 @@ async function matchItemFast(
       if (p.stock > 0) {
         score += Math.min(p.stock, 50) * 0.4;
       } else {
-        score -= 20; // Heavily penalize 0 stock for generic suggestions
+        score -= 20;
       }
     }
 
@@ -416,7 +496,16 @@ async function matchItemFast(
   let selectedBadge = 'Sin coincidencia (Seleccionar)';
   let assignedPrice = 0;
 
-  if (topSuggestions.length > 0 && scored[0].score > 0) {
+  if (selectedProductId) {
+    const matched = topSuggestions.find(s => s.product.id === selectedProductId);
+    if (matched) {
+      selectedProduct = matched.product;
+      selectedSource = matched.source;
+      selectedBadge = matched.badge;
+      assignedPrice = matched.assignedPrice;
+    }
+  } else if (!genAI && topSuggestions.length > 0 && scored[0].score > 30) {
+    // Fallback when AI is not configured
     const bestChoice = topSuggestions[0];
     selectedProduct = bestChoice.product;
     selectedSource = bestChoice.source;
@@ -486,9 +575,10 @@ export async function parseAndMatchQuoteAssistantAction(params: {
     let extractedItems: Array<{ quantity: number; query: string }> = [];
 
     const apiKey = process.env.GEMINI_API_KEY;
-    if (apiKey && apiKey !== 'tu_clave_aqui') {
+    const genAI = (apiKey && apiKey !== 'tu_clave_aqui') ? new GoogleGenerativeAI(apiKey) : null;
+
+    if (genAI) {
       try {
-        const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
           model: "gemini-2.5-flash",
           generationConfig: {
@@ -605,10 +695,10 @@ Responde ÚNICAMENTE con el objeto JSON válido con la estructura:
     const priceListToUse = resolvedCustomer?.priceList || 'price';
     const customerIdToUse = resolvedCustomer?.id || params.customerId || null;
 
-    // Step 3: Match all items in parallel using the lightning-fast matching engine
+    // Step 3: Match all items in parallel using the lightning-fast matching engine with AI semantic re-ranking
     const itemsResults = await Promise.all(
       extractedItems.map((itemReq, idx) =>
-        matchItemFast(finalBranchId, customerIdToUse, priceListToUse, itemReq, idx)
+        matchItemFast(genAI, finalBranchId, customerIdToUse, priceListToUse, itemReq, idx)
       )
     );
 

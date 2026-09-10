@@ -4,7 +4,7 @@ import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star, 
 import QRCode from 'qrcode';
 import { createSale, sendSaleByEmail } from '@/app/actions/sale';
 import { sendInvoiceByEmail } from '@/app/actions/facturacion';
-import { createCustomerPOS } from '@/app/actions/customer';
+import { createCustomerPOS, searchCustomersAction } from '@/app/actions/customer';
 import { getLoyaltySettings } from '@/app/actions/loyalty';
 import { createQuote, getQuoteForPOS, createQuickProductsForQuote } from '@/app/actions/quote';
 import { createConsignment, getConsignmentForPOS } from '@/app/actions/consignment';
@@ -17,6 +17,7 @@ import ProductTableUI from '@/app/components/ProductTableUI';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 import QuoteAIAssistantModal from '@/app/components/pos/QuoteAIAssistantModal';
 import { formatCurrency } from '@/lib/utils';
+import { isGenericCustomerName } from '@/lib/genericCustomer';
 export default function POSClient({ 
   products: initialProducts, 
   customers, 
@@ -752,6 +753,55 @@ export default function POSClient({
   const [activeCustomers, setActiveCustomers] = useState<any[]>(customers);
   const [localOfflineQuotes, setLocalOfflineQuotes] = useState<any[]>([]);
   
+  // Live Customer Search & Dropdown states
+  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+  const [customerSearchResults, setCustomerSearchResults] = useState<any[]>([]);
+  const [isSearchingCustomers, setIsSearchingCustomers] = useState(false);
+  const customerDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isCustomerDropdownOpen) return;
+    const term = customerSearchTerm.trim();
+    if (!term || term.toLowerCase() === 'público en general' || term.toLowerCase() === 'publico general') {
+      setCustomerSearchResults([]);
+      return;
+    }
+
+    let isSubscribed = true;
+    setIsSearchingCustomers(true);
+    const timer = setTimeout(async () => {
+      try {
+        if (isOnline) {
+          const res = await searchCustomersAction(term);
+          if (isSubscribed && res.success && Array.isArray(res.customers)) {
+            setCustomerSearchResults(res.customers);
+          }
+        }
+      } catch (e) {
+        console.error('Error searching customers:', e);
+      } finally {
+        if (isSubscribed) setIsSearchingCustomers(false);
+      }
+    }, 200);
+
+    return () => {
+      isSubscribed = false;
+      clearTimeout(timer);
+    };
+  }, [customerSearchTerm, isCustomerDropdownOpen, isOnline]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (customerDropdownRef.current && !customerDropdownRef.current.contains(event.target as Node)) {
+        setIsCustomerDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   useEffect(() => {
     if (!isOnline) {
       import('@/lib/offlineDB').then(({ db }) => {
@@ -1152,9 +1202,12 @@ export default function POSClient({
     }
   };
 
-  const handleCustomerChange = async (customerId: string, isProgrammatic = false) => {
+  const handleCustomerChange = async (customerId: string, isProgrammatic = false, explicitCustomer?: any) => {
     setSelectedCustomerId(customerId);
-    const customer = activeCustomers.find((c: any) => c.id === customerId);
+    const customer = explicitCustomer || activeCustomers.find((c: any) => c.id === customerId) || customerSearchResults.find((c: any) => c.id === customerId);
+    if (customer && !activeCustomers.some((c: any) => c.id === customer.id)) {
+      setActiveCustomers(prev => [customer, ...prev]);
+    }
     if (customer && customer.priceList) {
       setPriceList(customer.priceList || 'price');
     } else {
@@ -1630,28 +1683,37 @@ export default function POSClient({
     const delayDebounceFn = setTimeout(async () => {
       setIsSearching(true);
       try {
-        if (!isOnline && searchTerm.trim() !== '') {
-           const { searchOfflineProducts } = await import('@/lib/offlineSearch');
-           const results = await searchOfflineProducts(searchTerm, branchId, { limit: 50 });
-           setDisplayedProducts(results || []);
-        } else if (searchTerm.trim() !== '') {
-           const results = await searchProducts(searchTerm, branchId, { limit: 50 });
-           setDisplayedProducts(results || []);
+        const cleanTerm = searchTerm.trim();
+        if (cleanTerm === '') {
+          if (isOnline) {
+            setDisplayedProducts(initialProducts);
+          } else {
+            const { searchOfflineProducts } = await import('@/lib/offlineSearch');
+            const results = await searchOfflineProducts('', branchId, { limit: 50 });
+            setDisplayedProducts(results && results.length > 0 ? results : initialProducts);
+          }
+          return;
+        }
+
+        // Local-First Instant Search: Sub-millisecond in-memory lookup
+        const { searchOfflineProducts } = await import('@/lib/offlineSearch');
+        const localResults = await searchOfflineProducts(cleanTerm, branchId, { limit: 50 });
+        
+        if (localResults && localResults.length > 0) {
+          setDisplayedProducts(localResults);
+        } else if (isOnline) {
+          // Fallback to server search if not in local cache and online
+          const serverResults = await searchProducts(cleanTerm, branchId, { limit: 50 });
+          setDisplayedProducts(serverResults || []);
         } else {
-           if (isOnline) {
-             setDisplayedProducts(initialProducts);
-           } else {
-             const { searchOfflineProducts } = await import('@/lib/offlineSearch');
-             const results = await searchOfflineProducts('', branchId, { limit: 50 });
-             setDisplayedProducts(results && results.length > 0 ? results : initialProducts);
-           }
+          setDisplayedProducts([]);
         }
       } catch (e) {
         console.error(e);
       } finally {
         setIsSearching(false);
       }
-    }, 350);
+    }, 120);
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm, branchId, isOnline, initialProducts]);
@@ -1781,20 +1843,20 @@ export default function POSClient({
   }, [ventasConfig.venderSinStock, mode]);
 
   const handleImmediateSearch = useCallback(async (term: string) => {
-    if (term.trim() === '') return false;
+    const cleanTerm = term.trim().toLowerCase();
+    if (!cleanTerm) return false;
     setIsSearching(true);
     try {
-      let results = [];
-      if (!isOnline) {
-        const { searchOfflineProducts } = await import('@/lib/offlineSearch');
-        results = await searchOfflineProducts(term.trim(), branchId, { limit: 50 });
-      } else {
+      // 1. Check local in-memory index immediately (0.1ms)
+      const { searchOfflineProducts } = await import('@/lib/offlineSearch');
+      let results = await searchOfflineProducts(cleanTerm, branchId, { limit: 50 });
+
+      // 2. Fallback to server search only if no local matches and online
+      if ((!results || results.length === 0) && isOnline) {
         results = await searchProducts(term.trim(), branchId, { limit: 50 });
       }
 
       if (results && results.length > 0) {
-        const cleanTerm = term.trim().toLowerCase();
-        
         // Exact product search
         const exactProduct = results.find(p => 
           (p.barcode && p.barcode.toLowerCase() === cleanTerm) ||
@@ -3295,7 +3357,7 @@ export default function POSClient({
         </div>
 
         {/* Right: Client Search Selector */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', position: 'relative' }}>
+        <div ref={customerDropdownRef} style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', position: 'relative' }}>
           <label style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cliente</label>
           <div style={{ display: 'flex', gap: '0.5rem', width: '100%', alignItems: 'center' }}>
             <div style={{ position: 'relative', flex: 1 }}>
@@ -3304,12 +3366,42 @@ export default function POSClient({
                 placeholder="Buscar o escribir nombre de cliente..." 
                 value={customerSearchTerm}
                 disabled={!hasPermission('pos_change_customer')}
+                onFocus={() => {
+                  if (hasPermission('pos_change_customer')) {
+                    setIsCustomerDropdownOpen(true);
+                  }
+                }}
                 onChange={e => {
                   const val = e.target.value;
                   setCustomerSearchTerm(val);
-                  // Only reset the customer if the input is explicitly cleared
+                  setIsCustomerDropdownOpen(true);
+                  if (selectedCust && val !== selectedCust.name) {
+                    setSelectedCustomerId(null);
+                  }
                   if (val.trim() === '') {
                     handleCustomerChange('');
+                  }
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Escape') {
+                    setIsCustomerDropdownOpen(false);
+                  } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const list = customerSearchResults.length > 0
+                      ? customerSearchResults
+                      : (customerSearchTerm.trim() !== '' && customerSearchTerm.toLowerCase() !== 'público en general' && customerSearchTerm.toLowerCase() !== 'publico general')
+                        ? activeCustomers.filter(c => 
+                            c.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) || 
+                            (c.legalName && c.legalName.toLowerCase().includes(customerSearchTerm.toLowerCase())) ||
+                            (c.taxId && c.taxId.toLowerCase().includes(customerSearchTerm.toLowerCase()))
+                          )
+                        : [];
+                    if (list.length > 0) {
+                      const topChoice = list[0];
+                      handleCustomerChange(topChoice.id, false, topChoice);
+                      setCustomerSearchTerm(topChoice.name);
+                      setIsCustomerDropdownOpen(false);
+                    }
                   }
                 }}
                 style={{ 
@@ -3331,6 +3423,7 @@ export default function POSClient({
                   onClick={() => {
                     handleCustomerChange('');
                     setCustomerSearchTerm('');
+                    setIsCustomerDropdownOpen(true);
                   }}
                   style={{
                     position: 'absolute',
@@ -3349,36 +3442,140 @@ export default function POSClient({
                     fontWeight: 'bold',
                     zIndex: 5
                   }}
+                  title="Cambiar o limpiar cliente"
                 >
                   ✕
                 </button>
               )}
               {/* Customer Dropdown */}
-              {customerSearchTerm.trim() !== '' && !selectedCustomerId && hasPermission('pos_change_customer') && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginTop: '0.25rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+              {isCustomerDropdownOpen && hasPermission('pos_change_customer') && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px',
+                  zIndex: 200,
+                  maxHeight: '280px',
+                  overflowY: 'auto',
+                  marginTop: '0.25rem',
+                  boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)'
+                }}>
+                  {/* Default Option: Público en General */}
                   <div 
                     onMouseDown={(e) => {
                       e.preventDefault();
                       setCustomerSearchTerm('Público en General');
                       handleCustomerChange('');
+                      setIsCustomerDropdownOpen(false);
                     }}
-                    style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem', color: '#1e293b' }}
+                    style={{
+                      padding: '0.65rem 0.85rem',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid #f1f5f9',
+                      fontSize: '0.9rem',
+                      color: '#1e293b',
+                      backgroundColor: (!selectedCustomerId || selectedCust?.name === 'Público en General' || selectedCust?.name === 'PUBLICO EN GENERAL') ? '#f0fdf4' : 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
                   >
-                    Público en General
+                    <span style={{ fontWeight: '600' }}>Público en General</span>
+                    <span style={{ fontSize: '0.72rem', backgroundColor: '#e2e8f0', color: '#475569', padding: '2px 6px', borderRadius: '4px' }}>Predeterminado</span>
                   </div>
-                  {activeCustomers.filter(c => c.name.toLowerCase().includes(customerSearchTerm.toLowerCase())).map(c => (
-                    <div 
-                      key={c.id} 
+
+                  {isSearchingCustomers && (
+                    <div style={{ padding: '0.5rem 0.85rem', fontSize: '0.8rem', color: '#64748b', textAlign: 'center', backgroundColor: '#f8fafc' }}>
+                      Buscando clientes en catálogo...
+                    </div>
+                  )}
+
+                  {(() => {
+                    const list = customerSearchResults.length > 0
+                      ? customerSearchResults
+                      : (customerSearchTerm.trim() !== '' && customerSearchTerm.toLowerCase() !== 'público en general' && customerSearchTerm.toLowerCase() !== 'publico general')
+                        ? activeCustomers.filter(c => 
+                            c.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) || 
+                            (c.legalName && c.legalName.toLowerCase().includes(customerSearchTerm.toLowerCase())) ||
+                            (c.taxId && c.taxId.toLowerCase().includes(customerSearchTerm.toLowerCase())) ||
+                            (c.phone && c.phone.includes(customerSearchTerm))
+                          )
+                        : activeCustomers.filter(c => !isGenericCustomerName(c.name) && c.taxId !== 'XAXX010101000').slice(0, 20);
+
+                    return list.map(c => (
+                      <div 
+                        key={c.id} 
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleCustomerChange(c.id, false, c);
+                          setCustomerSearchTerm(c.name);
+                          setIsCustomerDropdownOpen(false);
+                        }}
+                        style={{
+                          padding: '0.6rem 0.85rem',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid #f1f5f9',
+                          fontSize: '0.88rem',
+                          color: '#1e293b',
+                          backgroundColor: selectedCustomerId === c.id ? '#eff6ff' : 'transparent',
+                          transition: 'background-color 0.1s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedCustomerId === c.id ? '#eff6ff' : 'transparent'}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                          <span style={{ fontWeight: '600', color: '#0f172a' }}>{c.name}</span>
+                          {c.priceList && c.priceList !== 'price' && (
+                            <span style={{
+                              fontSize: '0.7rem',
+                              fontWeight: '700',
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              backgroundColor: c.priceList === 'specialPrice' ? '#dbeafe' : '#fef3c7',
+                              color: c.priceList === 'specialPrice' ? '#1d4ed8' : '#b45309'
+                            }}>
+                              {c.priceList === 'specialPrice' ? 'Especial' : c.priceList === 'wholesalePrice' ? 'Mayoreo' : c.priceList}
+                            </span>
+                          )}
+                        </div>
+                        {(c.taxId || c.phone || (c.legalName && c.legalName !== c.name)) && (
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', display: 'flex', gap: '8px' }}>
+                            {c.taxId && <span>RFC: <strong>{c.taxId}</strong></span>}
+                            {c.phone && <span>Tel: {c.phone}</span>}
+                            {c.legalName && c.legalName !== c.name && <span>({c.legalName})</span>}
+                          </div>
+                        )}
+                      </div>
+                    ));
+                  })()}
+
+                  {customerSearchTerm.trim() !== '' && (
+                    <div
                       onMouseDown={(e) => {
                         e.preventDefault();
-                        handleCustomerChange(c.id);
-                        setCustomerSearchTerm(c.name);
+                        setNewCustName(customerSearchTerm.trim());
+                        setShowAddCustomerModal(true);
+                        setIsCustomerDropdownOpen(false);
                       }}
-                      style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem', color: '#1e293b' }}
+                      style={{
+                        padding: '0.65rem 0.85rem',
+                        cursor: 'pointer',
+                        backgroundColor: '#f8fafc',
+                        borderTop: '1px solid #e2e8f0',
+                        fontSize: '0.85rem',
+                        color: '#0da5aa',
+                        fontWeight: '700',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem'
+                      }}
                     >
-                      {c.name}
+                      <Plus size={15} /> Registrar nuevo cliente "{customerSearchTerm}"
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
             </div>

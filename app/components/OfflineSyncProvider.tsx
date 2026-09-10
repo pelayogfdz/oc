@@ -51,7 +51,19 @@ export function isOfflineEnabled(): boolean {
 }
 
 
-export function OfflineSyncProvider({ children }: { children: React.ReactNode }) {
+export interface OfflineSyncProviderProps {
+  children: React.ReactNode;
+  currentTenantId?: string;
+  currentUserId?: string;
+  currentBranchId?: string;
+}
+
+export function OfflineSyncProvider({ 
+  children,
+  currentTenantId,
+  currentUserId,
+  currentBranchId
+}: OfflineSyncProviderProps) {
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [pendingSales, setPendingSales] = useState<OfflineSale[]>([]);
   const [pendingTransfers, setPendingTransfers] = useState<any[]>([]);
@@ -70,6 +82,59 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       return () => clearTimeout(timer);
     }
   }, [showToast]);
+
+  // Tenant Switch Detection & Strict Cache Purge
+  useEffect(() => {
+    if (typeof window === 'undefined' || !currentTenantId) return;
+
+    const storedTenantId = localStorage.getItem('caanma_cached_tenant_id');
+    if (storedTenantId && storedTenantId !== currentTenantId) {
+      console.warn(`[OfflineSync] Tenant switch detected (${storedTenantId} -> ${currentTenantId}). Purging old tenant data.`);
+      
+      const purgeOldTenantData = async () => {
+        try {
+          // 1. Clear Dexie IndexedDB catalog tables
+          await db.transaction('rw', [db.customers, db.suppliers, db.branches, db.settings, db.users, db.products, db.sales], async () => {
+            await db.customers.clear();
+            await db.suppliers.clear();
+            await db.branches.clear();
+            await db.users.clear();
+            await db.products.clear();
+            await db.settings.clear();
+            await db.sales.clear();
+          });
+
+          // 2. Clear Service Worker caches
+          if ('caches' in window) {
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map(name => caches.delete(name)));
+          }
+
+          // 3. Clear in-memory product search index
+          invalidateOfflineSearchCache();
+
+          // 4. Reset local storage sync flags
+          localStorage.removeItem('last_catalog_sync_timestamp');
+          localStorage.removeItem('cached_branch_id');
+          localStorage.setItem('caanma_cached_tenant_id', currentTenantId);
+          if (currentUserId) localStorage.setItem('caanma_active_user_id', currentUserId);
+
+          setLastSyncTime(null);
+          // 5. Automatically download the new tenant's fresh catalogs!
+          if (navigator.onLine) {
+            await refreshCatalogs(false);
+          }
+        } catch (e) {
+          console.error('[OfflineSync] Error during tenant switch cleanup:', e);
+        }
+      };
+
+      purgeOldTenantData();
+    } else {
+      localStorage.setItem('caanma_cached_tenant_id', currentTenantId);
+      if (currentUserId) localStorage.setItem('caanma_active_user_id', currentUserId);
+    }
+  }, [currentTenantId, currentUserId]);
 
   // Initialize Network status
   useEffect(() => {
@@ -111,13 +176,12 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
       loadPendingQueues();
       
       const shouldRefreshOnStart = async () => {
-        if (!isOnline) return;
+        if (!navigator.onLine) return;
         
-        // Prevent aggressive catalog downloads on every page reload/tab opening.
-        // Only sync on startup if the last sync was more than 4 hours ago.
         const lastSync = localStorage.getItem('last_catalog_sync_timestamp');
         const fourHours = 4 * 60 * 60 * 1000;
-        if (!lastSync || (Date.now() - parseInt(lastSync)) > fourHours) {
+        const productCount = await db.products.count();
+        if (productCount === 0 || !lastSync || (Date.now() - parseInt(lastSync)) > fourHours) {
           await refreshCatalogs(true);
         }
       };

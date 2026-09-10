@@ -90,17 +90,45 @@ export default async function RootLayout({
                 };
               })();
 
-              // Monkey-patch window.alert to automatically reload the page on Server Action mismatch/build update
+              // Auto-recover and purge caches on Server Action mismatch or dynamic chunk loading error
+              function purgeAndHardReload() {
+                try {
+                  if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(function(regs) {
+                      regs.forEach(function(r) { r.unregister(); });
+                    });
+                  }
+                  if (typeof caches !== 'undefined') {
+                    caches.keys().then(function(keys) {
+                      keys.forEach(function(k) { caches.delete(k); });
+                    });
+                  }
+                  sessionStorage.clear();
+                } catch (e) {}
+
+                var target = window.location.pathname.indexOf('/ventas') > -1 
+                  ? window.location.pathname + '?force=' + Date.now()
+                  : '/ventas/nueva?force=' + Date.now();
+                window.location.replace(target);
+              }
+
+              // Monkey-patch window.alert to auto-recover on Server Action mismatch
               (function() {
-                const originalAlert = window.alert;
+                var originalAlert = window.alert;
                 window.alert = function(msg) {
                   if (msg && typeof msg === 'string' && (
                     msg.indexOf('was not found on the server') > -1 ||
                     msg.indexOf('failed-to-find-server-action') > -1 ||
-                    (msg.indexOf('Server Action') > -1 && msg.indexOf('not found') > -1)
+                    msg.indexOf('Server Action') > -1 ||
+                    msg.indexOf('deployment') > -1
                   )) {
-                    console.error('Server Action mismatch detected in alert. Reloading client to get latest build...');
-                    window.location.reload();
+                    console.error('Server Action mismatch detected in alert. Purging caches and reloading...');
+                    var lastReload = localStorage.getItem('caanma_last_reload');
+                    var now = Date.now();
+                    if (!lastReload || now - parseInt(lastReload) > 10000) {
+                      localStorage.setItem('caanma_last_reload', now.toString());
+                      purgeAndHardReload();
+                    }
                     return;
                   }
                   return originalAlert.apply(this, arguments);
@@ -113,40 +141,46 @@ export default async function RootLayout({
                   return;
                 }
                 
-                const isScriptError = e.target && e.target.tagName === 'SCRIPT';
-                const isChunkError = e.message && (
-                  e.message.indexOf('ChunkLoadError') > -1 || 
-                  e.message.indexOf('Loading chunk') > -1 ||
-                  e.message.indexOf('failed to fetch') > -1
+                var isScriptError = e.target && e.target.tagName === 'SCRIPT';
+                var msg = e.message || '';
+                var isChunkError = msg && (
+                  msg.indexOf('ChunkLoadError') > -1 || 
+                  msg.indexOf('Loading chunk') > -1 ||
+                  msg.indexOf('failed to fetch') > -1 ||
+                  msg.indexOf('Server Action') > -1 ||
+                  msg.indexOf('failed-to-find-server-action') > -1 ||
+                  msg.indexOf('was not found on the server') > -1
                 );
                 
                 if (isScriptError || isChunkError) {
-                  console.error('Critical script or chunk error detected. Auto-reloading client...');
-                  const lastReload = localStorage.getItem('caanma_last_reload');
-                  const now = Date.now();
-                  if (!lastReload || now - parseInt(lastReload) > 8000) {
+                  console.error('Critical script or chunk error detected. Purging caches and reloading...');
+                  var lastReload = localStorage.getItem('caanma_last_reload');
+                  var now = Date.now();
+                  if (!lastReload || now - parseInt(lastReload) > 10000) {
                     localStorage.setItem('caanma_last_reload', now.toString());
-                    window.location.reload();
+                    purgeAndHardReload();
                   }
                 }
               }, true);
 
               window.addEventListener('unhandledrejection', function(e) {
-                const reason = e.reason && (e.reason.message || e.reason);
-                const reasonStr = typeof reason === 'string' ? reason : '';
+                var reason = e.reason && (e.reason.message || e.reason);
+                var reasonStr = typeof reason === 'string' ? reason : '';
                 if (reasonStr && (
                   reasonStr.indexOf('ChunkLoadError') > -1 || 
                   reasonStr.indexOf('Loading chunk') > -1 ||
                   reasonStr.indexOf('failed to fetch') > -1 ||
                   reasonStr.indexOf('was not found on the server') > -1 ||
-                  reasonStr.indexOf('failed-to-find-server-action') > -1
+                  reasonStr.indexOf('failed-to-find-server-action') > -1 ||
+                  reasonStr.indexOf('Server Action') > -1 ||
+                  reasonStr.indexOf('deployment') > -1
                 )) {
-                  console.error('Critical dynamic chunk or server action error. Auto-reloading client...');
-                  const lastReload = localStorage.getItem('caanma_last_reload');
-                  const now = Date.now();
-                  if (!lastReload || now - parseInt(lastReload) > 8000) {
+                  console.error('Critical dynamic chunk or server action error. Purging caches and reloading...');
+                  var lastReload = localStorage.getItem('caanma_last_reload');
+                  var now = Date.now();
+                  if (!lastReload || now - parseInt(lastReload) > 10000) {
                     localStorage.setItem('caanma_last_reload', now.toString());
-                    window.location.reload();
+                    purgeAndHardReload();
                   }
                 }
               });

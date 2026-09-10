@@ -95,7 +95,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
     }
 
   return (
-    <OfflineSyncProvider>
+    <OfflineSyncProvider
+      currentTenantId={user?.tenantId || ''}
+      currentUserId={user?.id || ''}
+      currentBranchId={user?.branchId || ''}
+    >
       <TenantSettingsInjector decimals={tenantSettings.decimals} />
       <MobileMenuProvider>
         <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', minWidth: 0 }}>
