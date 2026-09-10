@@ -157,15 +157,6 @@ export default async function ImprimirCotizacionPage({
     }
   }
 
-  // If no reference images in quote, check if products have images
-  if (refImages.length === 0) {
-    quote.items.forEach((it: any) => {
-      if (it.product?.imageUrl && !refImages.includes(it.product.imageUrl)) {
-        refImages.push(it.product.imageUrl);
-      }
-    });
-  }
-
   // Delivery details parsing from observations if present (e.g. "Entrega: 12/09/2026 12:00")
   let deliveryDateStr = formatDateDisplay(new Date(new Date(quote.createdAt).getTime() + 4 * 24 * 60 * 60 * 1000));
   let deliveryTimeStr = '12:00 HORAS';
@@ -661,70 +652,63 @@ export default async function ImprimirCotizacionPage({
             </table>
 
             {/* Middle Section: Description & Observations vs Reference Photo */}
-            <div className="pizca-mid-grid">
+            <div className="pizca-mid-grid" style={{ gridTemplateColumns: refImages.length > 0 ? '1.15fr 1fr' : '1fr' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                 <div className="pizca-box" style={{ minHeight: '90px' }}>
                   <div className="pizca-box-header">DESCRIPCIÓN</div>
                   <div className="pizca-box-content">
-                    {obsText || (quote.items[0]?.product?.description ? quote.items[0].product.description : 'PASTEL COMO IMAGEN DE REFERENCIA SEGÚN ESPECIFICACIONES')}
+                    {obsText || (quote.items[0]?.product?.description ? quote.items[0].product.description : 'ESPECIFICACIONES SEGÚN PRODUCTOS COTIZADOS')}
                   </div>
                 </div>
 
                 <div className="pizca-box" style={{ minHeight: '90px' }}>
                   <div className="pizca-box-header">OBSERVACIONES</div>
                   <div className="pizca-box-content">
-                    {cotizacionesConfig.terminosCot || 'SABOR Y DECORACIÓN PERSONALIZADOS. CONFIRMAR FECHA Y HORA DE RECOLECCIÓN.'}
+                    {cotizacionesConfig.terminosCot || 'CONFIRMAR ESPECIFICACIONES CON SU ASESOR ANTES DE REALIZAR SU PAGO.'}
                   </div>
                 </div>
               </div>
 
               {/* Reference Image Box */}
-              <div className="pizca-box" style={{ height: '100%' }}>
-                <div className="pizca-box-header">
-                  {refImages.length > 1 ? `DISEÑOS DE REFERENCIA (${refImages.length})` : 'DISEÑO DE REFERENCIA'}
+              {refImages.length > 0 && (
+                <div className="pizca-box" style={{ height: '100%' }}>
+                  <div className="pizca-box-header">
+                    {refImages.length > 1 ? `DISEÑOS DE REFERENCIA (${refImages.length})` : 'DISEÑO DE REFERENCIA'}
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem', background: '#fafaf9', minHeight: '180px' }}>
+                    {refImages.length === 1 ? (
+                      <img 
+                        src={refImages[0]} 
+                        alt="Diseño de Referencia" 
+                        style={{ maxHeight: '180px', maxWidth: '100%', objectFit: 'contain', borderRadius: '4px', border: '1px solid #e2e8f0', background: '#fff' }} 
+                      />
+                    ) : (
+                      <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: refImages.length === 2 ? '1fr 1fr' : refImages.length === 3 ? '1fr 1fr 1fr' : 'repeat(auto-fit, minmax(80px, 1fr))', 
+                        gap: '0.35rem', 
+                        width: '100%', 
+                        height: '100%',
+                        maxHeight: '185px'
+                      }}>
+                        {refImages.slice(0, 5).map((imgUrl, idx) => (
+                          <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff', borderRadius: '4px', border: '1px solid #e2e8f0', padding: '0.2rem', overflow: 'hidden' }}>
+                            <img 
+                              src={imgUrl} 
+                              alt={`Referencia ${idx + 1}`} 
+                              style={{ 
+                                maxHeight: refImages.length <= 2 ? '170px' : refImages.length <= 4 ? '85px' : '75px', 
+                                maxWidth: '100%', 
+                                objectFit: 'contain' 
+                              }} 
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem', background: '#fafaf9', minHeight: '180px' }}>
-                  {refImages.length === 1 ? (
-                    <img 
-                      src={refImages[0]} 
-                      alt="Diseño de Referencia" 
-                      style={{ maxHeight: '180px', maxWidth: '100%', objectFit: 'contain', borderRadius: '4px', border: '1px solid #e2e8f0', background: '#fff' }} 
-                    />
-                  ) : refImages.length > 1 ? (
-                    <div style={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: refImages.length === 2 ? '1fr 1fr' : refImages.length === 3 ? '1fr 1fr 1fr' : 'repeat(auto-fit, minmax(80px, 1fr))', 
-                      gap: '0.35rem', 
-                      width: '100%', 
-                      height: '100%',
-                      maxHeight: '185px'
-                    }}>
-                      {refImages.slice(0, 5).map((imgUrl, idx) => (
-                        <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff', borderRadius: '4px', border: '1px solid #e2e8f0', padding: '0.2rem', overflow: 'hidden' }}>
-                          <img 
-                            src={imgUrl} 
-                            alt={`Referencia ${idx + 1}`} 
-                            style={{ 
-                              maxHeight: refImages.length <= 2 ? '170px' : refImages.length <= 4 ? '85px' : '75px', 
-                              maxWidth: '100%', 
-                              objectFit: 'contain' 
-                            }} 
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ color: '#94a3b8', fontSize: '0.8rem', textAlign: 'center', padding: '2rem 1rem' }}>
-                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ margin: '0 auto 0.5rem', opacity: 0.4 }}>
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                        <circle cx="8.5" cy="8.5" r="1.5"/>
-                        <polyline points="21 15 16 10 5 21"/>
-                      </svg>
-                      Sin imagen de referencia adjunta
-                    </div>
-                  )}
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Bottom Section: Terms, Financial Breakdown, Color Palette */}
