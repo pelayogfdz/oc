@@ -3387,14 +3387,14 @@ export default function POSClient({
                     setIsCustomerDropdownOpen(false);
                   } else if (e.key === 'Enter') {
                     e.preventDefault();
+                    const words = customerSearchTerm.toLowerCase().split(/\s+/).filter(Boolean);
                     const list = customerSearchResults.length > 0
                       ? customerSearchResults
-                      : (customerSearchTerm.trim() !== '' && customerSearchTerm.toLowerCase() !== 'público en general' && customerSearchTerm.toLowerCase() !== 'publico general')
-                        ? activeCustomers.filter(c => 
-                            c.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) || 
-                            (c.legalName && c.legalName.toLowerCase().includes(customerSearchTerm.toLowerCase())) ||
-                            (c.taxId && c.taxId.toLowerCase().includes(customerSearchTerm.toLowerCase()))
-                          )
+                      : (words.length > 0 && customerSearchTerm.toLowerCase() !== 'público en general' && customerSearchTerm.toLowerCase() !== 'publico general')
+                        ? activeCustomers.filter(c => {
+                            const targetStr = `${c.name} ${c.legalName || ''} ${c.taxId || ''} ${c.phone || ''} ${c.email || ''}`.toLowerCase();
+                            return words.every((w: string) => targetStr.includes(w));
+                          })
                         : [];
                     if (list.length > 0) {
                       const topChoice = list[0];
@@ -3494,16 +3494,15 @@ export default function POSClient({
                   )}
 
                   {(() => {
+                    const words = customerSearchTerm.toLowerCase().split(/\s+/).filter(Boolean);
                     const list = customerSearchResults.length > 0
                       ? customerSearchResults
-                      : (customerSearchTerm.trim() !== '' && customerSearchTerm.toLowerCase() !== 'público en general' && customerSearchTerm.toLowerCase() !== 'publico general')
-                        ? activeCustomers.filter(c => 
-                            c.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) || 
-                            (c.legalName && c.legalName.toLowerCase().includes(customerSearchTerm.toLowerCase())) ||
-                            (c.taxId && c.taxId.toLowerCase().includes(customerSearchTerm.toLowerCase())) ||
-                            (c.phone && c.phone.includes(customerSearchTerm))
-                          )
-                        : activeCustomers.filter(c => !isGenericCustomerName(c.name) && c.taxId !== 'XAXX010101000').slice(0, 20);
+                      : (words.length > 0 && customerSearchTerm.toLowerCase() !== 'público en general' && customerSearchTerm.toLowerCase() !== 'publico general')
+                        ? activeCustomers.filter(c => {
+                            const targetStr = `${c.name} ${c.legalName || ''} ${c.taxId || ''} ${c.phone || ''} ${c.email || ''}`.toLowerCase();
+                            return words.every((w: string) => targetStr.includes(w));
+                          })
+                        : activeCustomers.filter(c => !isGenericCustomerName(c.name) && c.taxId !== 'XAXX010101000').slice(0, 30);
 
                     return list.map(c => (
                       <div 

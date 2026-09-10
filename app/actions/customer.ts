@@ -322,16 +322,15 @@ export async function searchCustomersAction(query: string) {
     const words = q.split(/\s+/).filter(w => w.length > 0);
     const customers = await prisma.customer.findMany({
       where: {
-        OR: [
-          { name: { contains: q, mode: 'insensitive' as const } },
-          { legalName: { contains: q, mode: 'insensitive' as const } },
-          { taxId: { contains: q, mode: 'insensitive' as const } },
-          { phone: { contains: q, mode: 'insensitive' as const } },
-          { email: { contains: q, mode: 'insensitive' as const } },
-          ...words.map(w => ({
-            name: { contains: w, mode: 'insensitive' as const }
-          }))
-        ]
+        AND: words.map(w => ({
+          OR: [
+            { name: { contains: w, mode: 'insensitive' as const } },
+            { legalName: { contains: w, mode: 'insensitive' as const } },
+            { taxId: { contains: w, mode: 'insensitive' as const } },
+            { phone: { contains: w, mode: 'insensitive' as const } },
+            { email: { contains: w, mode: 'insensitive' as const } }
+          ]
+        }))
       },
       take: 50,
       orderBy: { name: 'asc' }
