@@ -33,12 +33,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
     activeUserError = err.message || 'Session error';
   }
 
-  // Si la cookie de sesión existe pero no pudimos obtener un usuario válido (ej. sesión cerrada o kick-out)
-  if (sessionCookie && !user) {
-    try {
-      cookieStore.delete('session');
-    } catch (cookieErr) {
-      console.error('Failed to delete session cookie on invalid layout session:', cookieErr);
+  // If no valid user session, redirect to login immediately
+  if (!user) {
+    if (sessionCookie) {
+      try {
+        cookieStore.delete('session');
+      } catch (cookieErr) {
+        console.error('Failed to delete session cookie on invalid layout session:', cookieErr);
+      }
     }
     let redirectUrl = '/login?open=true';
     if (activeUserError) {

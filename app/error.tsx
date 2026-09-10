@@ -124,7 +124,7 @@ export default function Error({
           <button
             onClick={() => {
               if (typeof window !== 'undefined') {
-                window.location.href = '/ventas/nueva';
+                window.location.href = '/login?open=true';
               }
             }}
             style={{
@@ -143,7 +143,7 @@ export default function Error({
               cursor: 'pointer'
             }}
           >
-            <Home size={18} /> Ir a Inicio
+            <Home size={18} /> Iniciar Sesión / Recargar
           </button>
         </div>
       </div>

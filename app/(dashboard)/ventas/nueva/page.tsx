@@ -6,6 +6,7 @@ import POSPageClient from "./POSPageClient";
 import { getCurrentSession } from "@/app/actions/caja";
 import { getTenantSuppliers } from "@/app/actions/supplier";
 import { hasPermission } from '@/app/config/permissions';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +14,10 @@ export default async function NuevaVentaPage({ searchParams }: { searchParams: a
   const branch = await getActiveBranch();
   const user = await getActiveUser();
   
+  if (!user) {
+    redirect('/login?open=true');
+  }
+
   if (branch?.id === 'GLOBAL') {
     return (
       <div style={{ padding: '3rem', textAlign: 'center', backgroundColor: '#fee2e2', borderRadius: '12px', color: '#991b1b', border: '1px solid #f87171', margin: '2rem auto', maxWidth: '600px' }}>
@@ -23,7 +28,7 @@ export default async function NuevaVentaPage({ searchParams }: { searchParams: a
   }
   
   const branchId = branch?.id || '';
-  const tenantId = user.tenantId || branch?.tenantId;
+  const tenantId = user.tenantId || branch?.tenantId || '';
 
   const tenantBranches = await prisma.branch.findMany({
     where: { tenantId, isActive: true },
