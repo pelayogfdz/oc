@@ -26,7 +26,13 @@ export default async function ProductosPage() {
   // Fetch a subset of products for displaying (paginated/limited)
   const displayedProductsRaw = await prisma.product.findMany({
     where: { branchId: branchCondition, isActive: true },
-    include: { variants: true, prices: true, branch: { select: { id: true, name: true } }, externalMaps: true },
+    include: { 
+      variants: true, 
+      prices: true, 
+      branch: { select: { id: true, name: true } }, 
+      externalMaps: true,
+      _count: { select: { saleItems: true } }
+    },
     orderBy: { name: 'asc' },
     take: 100
   });
@@ -141,9 +147,12 @@ export default async function ProductosPage() {
           : prod.id).toUpperCase();
       const key = `${prod.name.trim().toUpperCase()}_${codeKey}`;
 
+      const prodSalesCount = (prod as any)._count?.saleItems || 0;
+
       if (mergedMap.has(key)) {
         const existing = mergedMap.get(key);
         existing.stock += prod.stock;
+        existing.salesCount = (existing.salesCount || 0) + prodSalesCount;
         
         if (prod.variants && prod.variants.length > 0) {
           if (!existing.variants) existing.variants = [];
@@ -168,6 +177,7 @@ export default async function ProductosPage() {
       } else {
         mergedMap.set(key, {
           ...prod,
+          salesCount: prodSalesCount,
           variants: prod.variants ? prod.variants.map((v: any) => ({ ...v })) : [],
           externalMaps: prod.externalMaps ? prod.externalMaps.map((em: any) => ({ ...em })) : []
         });
@@ -184,6 +194,7 @@ export default async function ProductosPage() {
     displayedProducts = displayedProductsRaw.map(prod => {
       return {
         ...prod,
+        salesCount: (prod as any)._count?.saleItems || 0,
         branchStocks: getBranchStocksForProduct(prod)
       };
     });

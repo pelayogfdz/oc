@@ -78,6 +78,7 @@ export interface OfflineProduct {
   isService?: boolean;
   variants: any[];
   prices: any[]; // PriceLists links
+  salesCount?: number;
 }
 
 export interface OfflineCustomer {

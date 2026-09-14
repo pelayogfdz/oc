@@ -1149,6 +1149,8 @@ export async function searchProducts(
     const order = options.sortOrder;
     if (field === 'name' || field === 'sku' || field === 'price' || field === 'stock' || field === 'createdAt') {
       orderByCondition = { [field]: order };
+    } else if (field === 'sales') {
+      orderByCondition = { saleItems: { _count: order } };
     }
   }
 
@@ -1161,7 +1163,13 @@ export async function searchProducts(
         branchId: branchCondition, 
         AND: extraConditions
       },
-      include: { variants: true, prices: true, branch: { select: { id: true, name: true } }, externalMaps: true },
+      include: { 
+        variants: true, 
+        prices: true, 
+        branch: { select: { id: true, name: true } }, 
+        externalMaps: true,
+        _count: { select: { saleItems: true } }
+      },
       orderBy: orderByCondition,
       take: limitCount
     });
@@ -1187,7 +1195,13 @@ export async function searchProducts(
         branchId: branchCondition,
         AND: [...searchConditions, ...extraConditions]
       },
-      include: { variants: true, prices: true, branch: { select: { id: true, name: true } }, externalMaps: true },
+      include: { 
+        variants: true, 
+        prices: true, 
+        branch: { select: { id: true, name: true } }, 
+        externalMaps: true,
+        _count: { select: { saleItems: true } }
+      },
       orderBy: orderByCondition,
       take: limitCount
     });
@@ -1288,9 +1302,12 @@ export async function searchProducts(
           : prod.id).toUpperCase();
       const key = `${prod.name.trim().toUpperCase()}_${codeKey}`;
 
+      const prodSalesCount = (prod as any)._count?.saleItems || (prod as any).salesCount || 0;
+
       if (mergedMap.has(key)) {
         const existing = mergedMap.get(key);
         existing.stock += prod.stock;
+        existing.salesCount = (existing.salesCount || 0) + prodSalesCount;
         
         if (prod.variants && prod.variants.length > 0) {
           if (!existing.variants) existing.variants = [];
@@ -1315,6 +1332,7 @@ export async function searchProducts(
       } else {
         mergedMap.set(key, {
           ...prod,
+          salesCount: prodSalesCount,
           variants: prod.variants ? prod.variants.map((v: any) => ({ ...v })) : [],
           externalMaps: prod.externalMaps ? prod.externalMaps.map((em: any) => ({ ...em })) : []
         });
@@ -1336,6 +1354,7 @@ export async function searchProducts(
   const localList = localProducts.map(prod => {
     return {
       ...prod,
+      salesCount: (prod as any)._count?.saleItems || (prod as any).salesCount || 0,
       branchStocks: getBranchStocksForProduct(prod)
     };
   });

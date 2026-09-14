@@ -196,6 +196,11 @@ export async function syncProductsPage(page: number, limit: number, explicitBran
           priceListId: true,
           price: true
         }
+      },
+      _count: {
+        select: {
+          saleItems: true
+        }
       }
     },
     orderBy: { name: 'asc' },
@@ -204,6 +209,7 @@ export async function syncProductsPage(page: number, limit: number, explicitBran
   });
 
   return products.map(product => {
+    const salesCount = (product as any)._count?.saleItems || 0;
     if (product.imageUrl) {
       if (product.imageUrl.includes('.svg') || product.imageUrl.includes('placeholder')) {
         product.imageUrl = null;
@@ -211,7 +217,10 @@ export async function syncProductsPage(page: number, limit: number, explicitBran
         product.imageUrl = `https://caanma.com/api/catalog/image?id=${product.id}`;
       }
     }
-    return product;
+    return {
+      ...product,
+      salesCount
+    };
   });
 }
 

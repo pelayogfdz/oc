@@ -63,6 +63,8 @@ export interface OfflineSearchOptions {
   type?: string;
   minPrice?: number;
   maxPrice?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
   limit?: number;
 }
 
@@ -339,7 +341,30 @@ export async function searchOfflineProducts(
     }
 
     // 6. Ordenamiento y Ponderación de Relevancia
-    if (searchWords.length > 0) {
+    if (options?.sortBy) {
+      const field = options.sortBy;
+      const order = options.sortOrder || 'asc';
+      results.sort((a, b) => {
+        let valA: any = (a as any)[field];
+        let valB: any = (b as any)[field];
+        if (field === 'price' || field === 'stock') {
+          valA = Number(valA) || 0;
+          valB = Number(valB) || 0;
+        } else if (field === 'sales') {
+          valA = Number(a.salesCount || 0);
+          valB = Number(b.salesCount || 0);
+        } else if (field === 'createdAt') {
+          valA = new Date(valA || 0).getTime() || 0;
+          valB = new Date(valB || 0).getTime() || 0;
+        } else {
+          valA = String(valA || '').toLowerCase();
+          valB = String(valB || '').toLowerCase();
+        }
+        if (valA < valB) return order === 'asc' ? -1 : 1;
+        if (valA > valB) return order === 'asc' ? 1 : -1;
+        return 0;
+      });
+    } else if (searchWords.length > 0) {
       const exactTerm = normalizedQuery;
       results.sort((a, b) => {
         // Prioridad 1: Coincidencia Exacta en Código de Barras o SKU

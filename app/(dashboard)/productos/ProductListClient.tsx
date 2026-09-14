@@ -218,6 +218,8 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             type: filterType,
             minPrice: parsedMin,
             maxPrice: parsedMax,
+            sortBy,
+            sortOrder,
             limit: 500
           });
           setDisplayedProducts(results);
@@ -299,6 +301,9 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       if (sortBy === 'price' || sortBy === 'stock') {
         valA = Number(valA) || 0;
         valB = Number(valB) || 0;
+      } else if (sortBy === 'sales') {
+        valA = Number(a.salesCount ?? a._count?.saleItems ?? a.sales ?? 0);
+        valB = Number(b.salesCount ?? b._count?.saleItems ?? b.sales ?? 0);
       } else if (sortBy === 'createdAt') {
         valA = new Date(valA).getTime() || 0;
         valB = new Date(valB).getTime() || 0;
@@ -530,6 +535,8 @@ export default function ProductListClient({ initialProducts, branchId, categorie
                   { label: 'Precio: Mayor a Menor', field: 'price', order: 'desc' },
                   { label: 'Stock: Menor a Mayor', field: 'stock', order: 'asc' },
                   { label: 'Stock: Mayor a Menor', field: 'stock', order: 'desc' },
+                  { label: 'Ventas: Más vendidos', field: 'sales', order: 'desc' },
+                  { label: 'Ventas: Menos vendidos', field: 'sales', order: 'asc' },
                   { label: 'SKU: A - Z', field: 'sku', order: 'asc' },
                   { label: 'SKU: Z - A', field: 'sku', order: 'desc' },
                   { label: 'Fecha de Creación: Más nuevos', field: 'createdAt', order: 'desc' },
