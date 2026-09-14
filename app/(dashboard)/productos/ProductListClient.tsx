@@ -8,6 +8,7 @@ import ProductTableUI from '@/app/components/ProductTableUI';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 import ImportButton from './ImportButton';
 import ExportButton from './ExportButton';
+import SearchableFilterSelect from '@/app/components/SearchableFilterSelect';
 
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 
@@ -590,12 +591,16 @@ export default function ProductListClient({ initialProducts, branchId, categorie
           <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Categoría</label>
-            <select disabled={isLoadingFilters} value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
-              <option value="ALL">{isLoadingFilters ? 'Cargando...' : 'Todas'}</option>
-              {offlineCategories.map((cat: string) => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
+            <SearchableFilterSelect
+              value={filterCategory}
+              onChange={setFilterCategory}
+              options={offlineCategories}
+              allOptionLabel="Todas las categorías"
+              placeholder="Buscar categoría..."
+              loading={isLoadingFilters}
+              disabled={isLoadingFilters}
+              minWidth="160px"
+            />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Filtrar por Status</label>
@@ -624,12 +629,16 @@ export default function ProductListClient({ initialProducts, branchId, categorie
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Filtrar por Marca</label>
-            <select disabled={isLoadingFilters} value={filterBrand} onChange={e => setFilterBrand(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', minWidth: '150px' }}>
-              <option value="ALL">{isLoadingFilters ? 'Cargando...' : 'Todas las marcas'}</option>
-              {offlineBrands.map((brand: string) => (
-                <option key={brand} value={brand}>{brand}</option>
-              ))}
-            </select>
+            <SearchableFilterSelect
+              value={filterBrand}
+              onChange={setFilterBrand}
+              options={offlineBrands}
+              allOptionLabel="Todas las marcas"
+              placeholder="Buscar marca..."
+              loading={isLoadingFilters}
+              disabled={isLoadingFilters}
+              minWidth="160px"
+            />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Tipo</label>
