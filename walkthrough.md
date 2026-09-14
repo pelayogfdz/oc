@@ -644,6 +644,38 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
 * **Verificación**:
   - Compilación de TypeScript ejecutada con éxito mediante `npx.cmd tsc --noEmit` (0 errores).
 
+---
+
+## 34. Selectores Buscables de Marca y Categoría en Catálogo y Despliegue Inmediato a Hetzner
+
+* **Requerimiento**:
+  - Permitir escribir texto directamente para buscar y seleccionar marcas rápidamente (evitando el scroll manual en listas con cientos de marcas).
+  - Aplicar la misma funcionalidad de búsqueda escrita en el filtro de categorías.
+  - Ejecutar el despliegue inmediato a Hetzner solicitado mediante la instrucción `PUBLICAAHORA`.
+
+* **Implementación Realizada**:
+  1. **Componente Reutilizable [`SearchableFilterSelect.tsx`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/components/SearchableFilterSelect.tsx)**:
+     - Componente interactivo tipo Combobox / Select con buscador integrado.
+     - **Búsqueda en Tiempo Real**: Input auto-enfocado al abrir, con normalización insensible a mayúsculas y acentos (`á/é/í/ó/ú -> a/e/i/o/u`).
+     - **Navegación por Teclado**: Soporte completo para `Flecha Arriba`, `Flecha Abajo`, `Enter` (seleccionar) y `Escape` (cerrar).
+     - **Limpieza Rápida**: Botón circular `(✕)` integrado para restablecer directamente la selección a "Todas" o "Todas las marcas" con un solo clic.
+     - **Indicadores de Estado**: Checkmark `(✓)` y resaltado visual en la opción activa, soporte de estado de carga (`isLoadingFilters`) con spinner animado.
+     - Cierre automático al hacer clic fuera del componente o presionar Escape.
+
+  2. **Integración en [`ProductListClient.tsx`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/%28dashboard%29/productos/ProductListClient.tsx)**:
+     - Se reemplazaron los selects nativos de **Categoría** y **Filtrar por Marca** por `<SearchableFilterSelect />`.
+     - Plena compatibilidad con la sincronización offline, estados persistidos en `sessionStorage` y reinicio con el botón "Limpiar Filtros".
+
+  3. **Corrección de Compatibilidad con Servidor**:
+     - Se corrigió la función interna `saveProductImageToFile` en [`app/actions/product.ts`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/actions/product.ts) para evitar la advertencia/error de Server Actions en compilación con Turbopack.
+     - Se protegió la importación dinámica en [`lib/prisma.ts`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/lib/prisma.ts) contra warnings de empaquetado del cliente.
+
+  4. **Despliegue a Producción (Hetzner)**:
+     - Se empaquetó el código fuente limpio y se transfirió por SFTP al servidor de Hetzner (`5.78.138.167`).
+     - Se compiló la imagen de Docker `oc-web` con Next.js 16 (Turbopack) de forma 100% exitosa (`Build completed successfully!`).
+     - Se sincronizaron las bases de datos de todos los inquilinos (`neondb`, `neondb_officecity`, `neondb_petqro`, `neondb_seit`, `neondb_pizca`).
+     - Se verificó el servicio en vivo con respuesta `HTTP/1.1 200 OK` en el contenedor `caanma-app`.
+
 
 
 
