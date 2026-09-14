@@ -676,6 +676,36 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
      - Se sincronizaron las bases de datos de todos los inquilinos (`neondb`, `neondb_officecity`, `neondb_petqro`, `neondb_seit`, `neondb_pizca`).
      - Se verificó el servicio en vivo con respuesta `HTTP/1.1 200 OK` en el contenedor `caanma-app`.
 
+---
+
+## 35. Ordenamiento por "Más Vendidos" y "Menos Vendidos" en Catálogo de Productos
+
+* **Requerimiento**: Se solicitó agregar las opciones de ordenamiento por **"Más vendidos"** y **"Menos vendidos"** en el menú desplegable **"Ordenar"** del módulo de productos (`/productos`).
+
+* **Implementación Realizada**:
+  1. **Menú Desplegable de Ordenamiento (`ProductListClient.tsx`)**:
+     - Se añadieron las opciones:
+       - **Ventas: Más vendidos** (`field: 'sales'`, `order: 'desc'`).
+       - **Ventas: Menos vendidos** (`field: 'sales'`, `order: 'asc'`).
+     - Se ubicaron directamente después de las opciones de ordenamiento por stock (`Stock: Menor a Mayor` y `Stock: Mayor a Menor`).
+
+  2. **Ordenamiento en Memoria del Cliente (`ProductListClient.tsx`)**:
+     - En el cálculo reactivo `sortedProducts`, se agregó la rama `sortBy === 'sales'` para comparar el número acumulado de ventas (`salesCount` o `_count.saleItems`), ordenando de mayor a menor o menor a mayor según corresponda.
+
+  3. **Consulta y Búsqueda en Servidor (`app/actions/product.ts` y `/productos/page.tsx`)**:
+     - En `searchProducts` y en la carga inicial de `ProductosPage`, se incluyó la relación Prisma `_count: { select: { saleItems: true } }`.
+     - Cuando `field === 'sales'`, se aprovecha el ordenamiento nativo por relación de Prisma: `orderBy: { saleItems: { _count: order } }`, indexado por `productId` en PostgreSQL.
+     - Se mapea y preserva `salesCount` tanto en modo sucursal única como en la consolidación global multi-sucursal.
+
+  4. **Soporte en Catálogo y Búsqueda Offline (`lib/offlineDB.ts`, `lib/offlineSearch.ts` y `app/actions/sync.ts`)**:
+     - Se extendió la interfaz `OfflineProduct` para incluir `salesCount?: number`.
+     - En `syncProductsPage`, se incluye el conteo de ventas para que el catálogo descargado en IndexedDB conozca el volumen de ventas de cada producto.
+     - En `searchOfflineProducts`, se agregó el soporte para ordenar por `sales` en memoria local incluso sin conexión.
+
+* **Verificación**:
+  - Compilación de TypeScript ejecutada con `npx.cmd tsc --noEmit` exitosa (0 errores).
+
+
 
 
 
