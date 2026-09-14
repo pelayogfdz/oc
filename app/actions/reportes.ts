@@ -98,6 +98,7 @@ export async function getGeneralAnalyticsData(
       total: true,
       items: {
         select: {
+          cost: true,
           quantity: true,
           price: true,
           product: {
@@ -175,7 +176,8 @@ export async function getGeneralAnalyticsData(
       }
       
       saleRevenueSinIva += (itemPriceSinIva * item.quantity);
-      saleCost += (item.product.cost * item.quantity);
+      const unitCost = (item.cost !== undefined && item.cost !== null && item.cost > 0) ? item.cost : (item.product?.cost || 0);
+      saleCost += (unitCost * item.quantity);
     });
 
     const profit = Math.max(0, saleRevenueSinIva - saleCost);
@@ -306,6 +308,7 @@ export async function getSalesDetailData(
       },
       items: {
         select: {
+          cost: true,
           quantity: true,
           price: true,
           product: {
@@ -337,7 +340,10 @@ export async function getSalesDetailData(
   
   const mappedSales = processedSales.map(sale => {
     let cost = 0;
-    sale.items.forEach(item => cost += (item.product.cost * item.quantity));
+    sale.items.forEach(item => {
+      const unitCost = (item.cost !== undefined && item.cost !== null && item.cost > 0) ? item.cost : (item.product?.cost || 0);
+      cost += (unitCost * item.quantity);
+    });
     
     const profit = Math.max(0, sale.total - cost);
     const userName = sale.user?.name || 'Vendedor Desconocido';
@@ -1022,10 +1028,11 @@ export async function getTopProductsReport(
       itemPriceSinIva = item.price / ((1 + iepsRate / 100) * (1 + taxRate / 100));
     }
 
+    const itemUnitCost = (item.cost !== undefined && item.cost !== null && item.cost > 0) ? item.cost : (item.product?.cost || 0);
     existing.quantitySold += item.quantity;
     existing.totalRevenue += (item.quantity * item.price);
     existing.totalRevenueSinIva += (item.quantity * itemPriceSinIva);
-    existing.totalCost += (item.quantity * (item.product?.cost || 0));
+    existing.totalCost += (item.quantity * itemUnitCost);
     productMap.set(key, existing);
   });
 
@@ -1035,6 +1042,90 @@ export async function getTopProductsReport(
       const margin = p.totalRevenueSinIva > 0 ? (grossProfit / p.totalRevenueSinIva) * 100 : 0;
       return {
         ...p,
+        grossProfit,
+        margin
+      };
+    })
+    .sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+  return result;
+}
+
+export async function getSalesByCategory(
+  startDate: Date,
+  endDate: Date,
+  branchIdFilter?: string
+) {
+  const branch = await getActiveBranch();
+  if (!branch) return [];
+
+  const tenantId = branch.tenantId;
+  const tenantBranches = await prisma.branch.findMany({
+    where: { tenantId, isActive: true },
+    select: { id: true }
+  });
+  const validBranchIds = tenantBranches.map(b => b.id);
+
+  let targetBranchIds = validBranchIds;
+  if (branchIdFilter && branchIdFilter !== 'ALL' && validBranchIds.includes(branchIdFilter)) {
+    targetBranchIds = [branchIdFilter];
+  }
+
+  const sales = await prisma.sale.findMany({
+    where: {
+      branchId: { in: targetBranchIds },
+      createdAt: { gte: startDate, lte: endDate },
+      status: { notIn: ['CANCELLED', 'REFUNDED'] }
+    },
+    include: {
+      items: {
+        include: {
+          product: true
+        }
+      }
+    }
+  });
+
+  const categoryMap = new Map();
+
+  sales.forEach(sale => {
+    sale.items.forEach(item => {
+      const category = item.product?.category || "Sin Categoría";
+      const existing = categoryMap.get(category) || {
+        category,
+        quantitySold: 0,
+        totalRevenue: 0,
+        totalRevenueSinIva: 0,
+        totalCost: 0
+      };
+
+      const taxRate = (item.product as any)?.taxRate ?? 16.0;
+      const taxType = (item.product as any)?.taxType ?? 'IVA';
+      const iepsRate = (item.product as any)?.iepsRate ?? 0.0;
+      let itemPriceSinIva = item.price;
+      if (taxType === 'IVA') {
+        itemPriceSinIva = item.price / (1 + taxRate / 100);
+      } else if (taxType === 'IEPS') {
+        itemPriceSinIva = item.price / (1 + iepsRate / 100);
+      } else if (taxType === 'IVA_IEPS') {
+        itemPriceSinIva = item.price / ((1 + iepsRate / 100) * (1 + taxRate / 100));
+      }
+
+      const itemUnitCost = (item.cost !== undefined && item.cost !== null && item.cost > 0) ? item.cost : ((item.product as any)?.cost || 0);
+      existing.quantitySold += item.quantity;
+      existing.totalRevenue += (item.quantity * item.price);
+      existing.totalRevenueSinIva += (item.quantity * itemPriceSinIva);
+      existing.totalCost += (item.quantity * itemUnitCost);
+      categoryMap.set(category, existing);
+    });
+  });
+
+  const result = Array.from(categoryMap.values())
+    .map(c => {
+      const grossProfit = c.totalRevenueSinIva - c.totalCost;
+      const margin = c.totalRevenueSinIva > 0 ? (grossProfit / c.totalRevenueSinIva) * 100 : 0;
+      return {
+        ...c,
         grossProfit,
         margin
       };

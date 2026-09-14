@@ -20,6 +20,7 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
   const [freightCost, setFreightCost] = useState(purchase.freightCost || 0);
   const [discount, setDiscount] = useState(purchase.discount || 0);
   const [supplierFolio, setSupplierFolio] = useState(purchase.supplierFolio || "");
+  const [notes, setNotes] = useState(purchase.notes || "");
   const [items, setItems] = useState<any[]>(() => {
     return purchase.items.map((item: any) => ({
       productId: item.productId,
@@ -135,7 +136,8 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
         supplierId || null,
         freightCost,
         discount,
-        supplierFolio || null
+        supplierFolio || null,
+        notes
       );
 
       if (res && !res.success) {
@@ -701,6 +703,17 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
                  placeholder="0.00" 
                />
             </div>
+          </div>
+
+          {/* Observations Area */}
+          <div style={{ backgroundColor: "white", padding: "1.25rem", borderRadius: "12px", border: "1px solid #cbd5e1", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <label style={{ fontSize: "0.85rem", fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em" }}>Observaciones de la Compra</label>
+            <textarea
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder="Comentarios, número de factura..."
+              style={{ width: "100%", height: "80px", fontSize: "0.85rem", borderRadius: "8px", border: "1px solid #cbd5e1", padding: "0.5rem", resize: "none", outline: "none", backgroundColor: "white" }}
+            />
           </div>
 
         </div>

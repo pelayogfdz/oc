@@ -28,8 +28,9 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
   const { isOnline } = useOfflineSync();
 
   const hasNodeVisible = (node: MenuNode) => {
-    if (!isOnline && node.requiresOnline) {
-      return false;
+    if (!isOnline) {
+      // En modo offline, ÚNICAMENTE el Punto de Venta está disponible y visible
+      return node.path === '/ventas/nueva';
     }
     if (isSuperAdmin || userRole === 'OWNER' || userRole === 'ADMIN') {
       return true;
@@ -39,7 +40,6 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
     }
     if (node.items) {
       return node.items.some(item => {
-        if (!isOnline && item.requiresOnline) return false;
         return hasNodeAccess(userPermissions, item.requiredPermission, isSuperAdmin, userRole);
       });
     }
@@ -130,11 +130,11 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
         {!isOnline && (
           <div style={{
             marginTop: '0.75rem',
-            padding: '0.4rem 0.6rem',
-            backgroundColor: '#fffbeb',
-            border: '1px solid #fef3c7',
+            padding: '0.5rem 0.7rem',
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
             borderRadius: '6px',
-            color: '#b45309',
+            color: '#b91c1c',
             fontSize: '0.75rem',
             fontWeight: '600',
             display: 'flex',
@@ -142,8 +142,8 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
             gap: '0.4rem',
             lineHeight: '1.3'
           }}>
-            <WifiOff size={14} style={{ flexShrink: 0 }} />
-            <span>Sin Conexión: Ocultando módulos de red</span>
+            <WifiOff size={15} style={{ flexShrink: 0 }} />
+            <span>Modo Offline Activo • Solo Punto de Venta</span>
           </div>
         )}
       </div>
@@ -309,7 +309,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
             </Link>
           ))}
           
-          {isSuperAdmin && (
+          {isSuperAdmin && isOnline && (
             <Link 
               href="/admin" 
               onClick={() => { if (isMobileMenuOpen) closeMenu(); }}

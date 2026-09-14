@@ -5,17 +5,10 @@ import { useEffect } from 'react';
 export default function PWAUpdater() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
-      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      if (!isStandalone && !isLocalhost) {
-        console.log('[PWA] Browser mode: skipping PWAUpdater.');
-        return;
-      }
-
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').then(
           function (registration) {
-            console.log('[PWA] Service Worker registration successful in standalone mode with scope: ', registration.scope);
+            console.log('[PWA] Service Worker registrado exitosamente con scope: ', registration.scope);
             
             // Forzar la comprobación de actualización del SW cada vez que se carga la app
             registration.update();

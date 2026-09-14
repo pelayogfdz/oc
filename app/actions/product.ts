@@ -9,20 +9,27 @@ import { hasNodeAccess } from '@/app/config/permissions';
 import fs from 'fs';
 import path from 'path';
 
-function saveProductImageToFile(productId: string, barcode: string | null | undefined, sku: string | null | undefined, imageUrl: string | null | undefined): string | null {
+export function saveProductImageToFile(
+  productId: string,
+  barcode: string | null | undefined,
+  sku: string | null | undefined,
+  imageUrl: string | null | undefined
+): string | null {
   if (!imageUrl) return null;
-  let cleanImage = imageUrl.trim();
+  const cleanImage = imageUrl.trim();
   if (!cleanImage) return null;
 
-  if (cleanImage === 'placeholder' || cleanImage === '/placeholder.svg' || cleanImage.endsWith('/placeholders/default.png')) {
+  if (
+    cleanImage === 'placeholder' ||
+    cleanImage === '/placeholder.svg' ||
+    cleanImage.endsWith('/placeholders/default.png') ||
+    cleanImage === 'null' ||
+    cleanImage === 'undefined'
+  ) {
     return null;
   }
 
-  // If it's already an existing local image path, strip any cache-busting timestamp
-  if (cleanImage.startsWith('/img/products/')) {
-    return cleanImage.split('?')[0];
-  }
-
+  // If newly uploaded base64 data URL, extract and save to physical file in public/img/products/
   if (cleanImage.startsWith('data:image/')) {
     try {
       const match = cleanImage.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
@@ -30,7 +37,8 @@ function saveProductImageToFile(productId: string, barcode: string | null | unde
         const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
         const base64Data = match[2];
         const buffer = Buffer.from(base64Data, 'base64');
-        const filenameBase = ((barcode || '').trim() || (sku || '').trim() || productId).replace(/[^a-zA-Z0-9-_]/g, '');
+        const rawKey = (barcode || '').trim() || (sku || '').trim() || productId;
+        const filenameBase = rawKey.replace(/[^a-zA-Z0-9-_]/g, '');
         if (filenameBase) {
           const filename = `${filenameBase}.${ext}`;
           const publicDir = path.join(process.cwd(), 'public', 'img', 'products');
@@ -39,15 +47,19 @@ function saveProductImageToFile(productId: string, barcode: string | null | unde
           }
           const filePath = path.join(publicDir, filename);
           fs.writeFileSync(filePath, buffer);
-          return `/img/products/${filename}`;
+          // Return cache-busted URL with timestamp so browser & Service Worker immediately load the new image
+          return `/img/products/${filename}?v=${Date.now()}`;
         }
       }
     } catch (e) {
       console.error('Error saving image to disk in saveProductImageToFile:', e);
+      // Fallback: return cleanImage directly so user data is never lost if disk write fails
+      return cleanImage;
     }
-    return null; // Return null if it was base64 but extraction failed
   }
-  return cleanImage.split('?')[0];
+
+  // For existing paths or external URLs, preserve them intact
+  return cleanImage;
 }
 
 export async function createProduct(prevState: any, formData: FormData) {
@@ -1028,6 +1040,8 @@ export async function searchProducts(
     image?: string;
     brand?: string;
     type?: string;
+    minPrice?: number;
+    maxPrice?: number;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
     limit?: number;
@@ -1117,6 +1131,14 @@ export async function searchProducts(
       } else if (options.type === 'SERVICE') {
         extraConditions.push({ isService: true });
       }
+    }
+
+    if (options.minPrice !== undefined && options.minPrice !== null && !isNaN(options.minPrice)) {
+      extraConditions.push({ price: { gte: options.minPrice } });
+    }
+
+    if (options.maxPrice !== undefined && options.maxPrice !== null && !isNaN(options.maxPrice)) {
+      extraConditions.push({ price: { lte: options.maxPrice } });
     }
   }
 
@@ -2074,10 +2096,15 @@ export async function updateProductMedia(productId: string, imageUrl: string, yo
         });
 
         if (tenantBranches.length > 0) {
+          const orConditions: any[] = [{ sku: product.sku }];
+          if (product.barcode) {
+            orConditions.push({ barcode: product.barcode });
+          }
+
           await prisma.product.updateMany({
             where: {
-              sku: product.sku,
-              branchId: { in: tenantBranches.map(b => b.id) }
+              branchId: { in: tenantBranches.map(b => b.id) },
+              OR: orConditions
             },
             data: {
               imageUrl: cleanImage,
@@ -2090,6 +2117,8 @@ export async function updateProductMedia(productId: string, imageUrl: string, yo
 
     revalidatePath(`/productos/${productId}`);
     revalidatePath('/productos');
+    revalidatePath('/catalogo');
+    revalidatePath('/ventas/nueva');
     return { success: true, imageUrl: cleanImage };
   } catch (err: any) {
     console.error('Error in updateProductMedia:', err);

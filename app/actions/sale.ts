@@ -24,7 +24,16 @@ export interface DeliveryDataInput {
 }
 
 export async function createSale(
-  items: { productId: string; variantId?: string | null; quantity: number; price: number }[], 
+  items: { 
+    productId: string; 
+    variantId?: string | null; 
+    quantity: number; 
+    price: number;
+    cost?: number;
+    productName?: string;
+    productSku?: string;
+    productBarcode?: string;
+  }[], 
   total: number,
   paymentMethod: string = 'CASH',
   customerId: string | null = null,
@@ -106,6 +115,7 @@ export async function createSale(
       const permitirVenderSinStock = config.venderSinStock === true;
       const permitirVenderBajoCosto = config.venderBajoCosto === true;
 
+      const productMap = new Map<string, any>();
       for (const item of items) {
         let product = await tx.product.findUnique({ where: { id: item.productId } });
         if (!product && (item as any).sku) {
@@ -139,6 +149,7 @@ export async function createSale(
             throw new Error(`El producto ${product.name} (SKU: ${product.sku}) no está registrado o activo en la sucursal de la venta.`);
           }
         }
+        productMap.set(item.productId, product);
 
         // Auto-activate temporary products when sold
         if (!product.isActive && product.sku.startsWith('TEMP-')) {
@@ -248,12 +259,22 @@ export async function createSale(
           balanceDue,
           breakdownDiscounts,
           items: {
-            create: items.map(item => ({
-              quantity: item.quantity,
-              price: item.price,
-              productId: item.productId,
-              variantId: item.variantId || null
-            }))
+            create: items.map(item => {
+              const prod = productMap.get(item.productId);
+              const resolvedCost = (item.cost !== undefined && item.cost !== null && item.cost > 0)
+                ? item.cost
+                : (prod?.cost ?? 0);
+              return {
+                quantity: item.quantity,
+                price: item.price,
+                cost: resolvedCost,
+                productId: item.productId,
+                variantId: item.variantId || null,
+                productName: item.productName || prod?.name || 'Producto',
+                productSku: item.productSku || prod?.sku || null,
+                productBarcode: item.productBarcode || prod?.barcode || null
+              };
+            })
           }
         }
       });
@@ -433,6 +454,7 @@ export async function createSale(
                 batchId: batch.id,
                 type: 'OUT',
                 quantity: -deductAmount,
+                cost: batch.cost || productMap.get(item.productId)?.cost || 0,
                 reason: `Venta #${createdSale.id.slice(0, 8)} (FEFO Lote)`,
                 userId: user.id
               }
@@ -449,6 +471,7 @@ export async function createSale(
                 variantId: item.variantId || null,
                 type: 'OUT',
                 quantity: -remainingToDeduct,
+                cost: productMap.get(item.productId)?.cost || 0,
                 reason: `Venta #${createdSale.id.slice(0, 8)} (Sin Lote)`,
                 userId: user.id
               }

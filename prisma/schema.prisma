@@ -385,6 +385,7 @@ model InventoryMovement {
   productId       String
   type            String
   quantity        Int
+  cost            Float?                  @default(0)
   reason          String
   createdAt       DateTime                @default(now())
   userId          String?
@@ -442,18 +443,22 @@ model Sale {
 }
 
 model SaleItem {
-  id        String           @id @default(uuid())
-  quantity  Int
-  price     Float
-  saleId    String
-  productId String
-  variantId String?
-  batchId   String?
-  batch     ProductBatch?    @relation(fields: [batchId], references: [id])
-  product   Product          @relation(fields: [productId], references: [id])
-  sale      Sale             @relation(fields: [saleId], references: [id])
-  variant   ProductVariant?  @relation(fields: [variantId], references: [id])
-  returns   SaleReturnItem[]
+  id             String           @id @default(uuid())
+  quantity       Int
+  price          Float
+  cost           Float            @default(0)
+  productName    String?
+  productSku     String?
+  productBarcode String?
+  saleId         String
+  productId      String
+  variantId      String?
+  batchId        String?
+  batch          ProductBatch?    @relation(fields: [batchId], references: [id])
+  product        Product          @relation(fields: [productId], references: [id])
+  sale           Sale             @relation(fields: [saleId], references: [id])
+  variant        ProductVariant?  @relation(fields: [variantId], references: [id])
+  returns        SaleReturnItem[]
   fuelTraceability FuelTraceability?
 
   @@index([saleId])
@@ -512,15 +517,18 @@ model Quote {
 }
 
 model QuoteItem {
-  id        String          @id @default(uuid())
-  quantity  Int
-  price     Float
-  quoteId   String
-  productId String
-  variantId String?
-  product   Product         @relation(fields: [productId], references: [id])
-  quote     Quote           @relation(fields: [quoteId], references: [id])
-  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+  id          String          @id @default(uuid())
+  quantity    Int
+  price       Float
+  cost        Float           @default(0)
+  productName String?
+  productSku  String?
+  quoteId     String
+  productId   String
+  variantId   String?
+  product     Product         @relation(fields: [productId], references: [id])
+  quote       Quote           @relation(fields: [quoteId], references: [id])
+  variant     ProductVariant? @relation(fields: [variantId], references: [id])
 }
 
 model Consignment {
@@ -545,6 +553,9 @@ model ConsignmentItem {
   id            String          @id @default(uuid())
   quantity      Int
   price         Float
+  cost          Float           @default(0)
+  productName   String?
+  productSku    String?
   consignmentId String
   productId     String
   variantId     String?
@@ -587,16 +598,19 @@ model Transfer {
 }
 
 model TransferItem {
-  id          String          @id @default(uuid())
-  quantity    Int
-  transferId  String
-  productId   String
-  variantId   String?
-  averageCost Float           @default(0)
-  cost        Float           @default(0)
-  product     Product         @relation(fields: [productId], references: [id])
-  transfer    Transfer        @relation(fields: [transferId], references: [id])
-  variant     ProductVariant? @relation(fields: [variantId], references: [id])
+  id             String          @id @default(uuid())
+  quantity       Int
+  transferId     String
+  productId      String
+  variantId      String?
+  averageCost    Float           @default(0)
+  cost           Float           @default(0)
+  productName    String?
+  productSku     String?
+  productBarcode String?
+  product        Product         @relation(fields: [productId], references: [id])
+  transfer       Transfer        @relation(fields: [transferId], references: [id])
+  variant        ProductVariant? @relation(fields: [variantId], references: [id])
 }
 
 model Promotion {
@@ -659,6 +673,7 @@ model Purchase {
   discount      Float?            @default(0)
   balanceDue    Float             @default(0)
   dueDate       DateTime?
+  notes         String?
   branch        Branch?           @relation(fields: [branchId], references: [id])
   supplier      Supplier?         @relation(fields: [supplierId], references: [id])
   user          User              @relation(fields: [userId], references: [id])
@@ -673,15 +688,17 @@ model Purchase {
 }
 
 model PurchaseItem {
-  id         String        @id @default(uuid())
-  purchaseId String
-  productId  String
-  quantity   Int
-  cost       Float
-  batchId    String?
-  batch      ProductBatch? @relation(fields: [batchId], references: [id])
-  product    Product       @relation(fields: [productId], references: [id])
-  purchase   Purchase      @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  id          String        @id @default(uuid())
+  purchaseId  String
+  productId   String
+  quantity    Int
+  cost        Float
+  productName String?
+  productSku  String?
+  batchId     String?
+  batch       ProductBatch? @relation(fields: [batchId], references: [id])
+  product     Product       @relation(fields: [productId], references: [id])
+  purchase    Purchase      @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
   fuelTraceability FuelTraceability?
 }
 
@@ -863,6 +880,8 @@ model PurchaseOrderItem {
   productId       String
   quantity        Int
   cost            Float
+  productName     String?
+  productSku      String?
   product         Product       @relation(fields: [productId], references: [id])
   purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
 }

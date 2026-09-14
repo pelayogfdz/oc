@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getActiveBranch, getActiveUser } from './auth';
 import { revalidatePath } from 'next/cache';
 
-export async function getCurrentSession() {
+export async function getCurrentSession(includeDetails = false) {
   const branch = await getActiveBranch();
   const session = await getActiveUser();
   if (!session) return null;
@@ -15,10 +15,10 @@ export async function getCurrentSession() {
       userId: session.id,
       status: 'OPEN'
     },
-    include: {
+    include: includeDetails ? {
       movements: true,
       sales: true
-    }
+    } : undefined
   });
 }
 

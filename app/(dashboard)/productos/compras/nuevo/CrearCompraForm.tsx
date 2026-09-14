@@ -315,6 +315,7 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
           paymentMethod,
           freightCost,
           discount,
+          notes,
           items,
           total: finalTotal,
           supplierFolio: supplierFolio || null,
@@ -332,7 +333,8 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
           undefined, 
           supplierFolio || null,
           preloadedOrder?.id,
-          paymentMethod === 'CREDIT' ? (creditDays === '' ? undefined : creditDays) : undefined
+          paymentMethod === 'CREDIT' ? (creditDays === '' ? undefined : creditDays) : undefined,
+          notes
         );
         if (res && !res.success) {
           throw new Error(res.error);

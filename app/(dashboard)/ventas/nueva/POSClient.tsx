@@ -18,6 +18,8 @@ import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 import QuoteAIAssistantModal from '@/app/components/pos/QuoteAIAssistantModal';
 import { formatCurrency } from '@/lib/utils';
 import { isGenericCustomerName } from '@/lib/genericCustomer';
+import { searchOfflineProducts } from '@/lib/offlineSearch';
+import { db } from '@/lib/offlineDB';
 export default function POSClient({ 
   products: initialProducts, 
   customers, 
@@ -706,6 +708,7 @@ export default function POSClient({
 
   // Synchronize fresh permissions from server on mount to prevent stale PWA cache / stale local storage
   useEffect(() => {
+    if (!isOnline) return;
     getMergedUserPermissions().then((res) => {
       if (res && res.success && res.permissions) {
         const isUserAdmin = res.isSuperAdmin || res.role === 'ADMIN' || res.role === 'MANAGER';
@@ -718,7 +721,7 @@ export default function POSClient({
     }).catch((err) => {
       console.error("Failed to sync fresh user permissions:", err);
     });
-  }, []);
+  }, [isOnline]);
 
   useEffect(() => {
     if (hasSyncedPermissions) return;
@@ -771,18 +774,39 @@ export default function POSClient({
     setIsSearchingCustomers(true);
     const timer = setTimeout(async () => {
       try {
+        // 1. Local-First Instant Customer Search (< 1ms)
+        const { searchOfflineCustomers } = await import('@/lib/offlineSearch');
+        const localCustomers = await searchOfflineCustomers(term, branchId, { limit: 50 });
+        if (isSubscribed && localCustomers && localCustomers.length > 0) {
+          setCustomerSearchResults(localCustomers);
+        }
+
+        // 2. Fallback to server search if online to capture newly created customers
         if (isOnline) {
           const res = await searchCustomersAction(term);
           if (isSubscribed && res.success && Array.isArray(res.customers)) {
-            setCustomerSearchResults(res.customers);
+            if (localCustomers && localCustomers.length > 0) {
+              const localIds = new Set(localCustomers.map(c => c.id));
+              const combined = [...localCustomers];
+              for (const sc of res.customers) {
+                if (!localIds.has(sc.id)) {
+                  combined.push(sc);
+                }
+              }
+              setCustomerSearchResults(combined);
+            } else {
+              setCustomerSearchResults(res.customers);
+            }
           }
+        } else if (isSubscribed && (!localCustomers || localCustomers.length === 0)) {
+          setCustomerSearchResults([]);
         }
       } catch (e) {
         console.error('Error searching customers:', e);
       } finally {
         if (isSubscribed) setIsSearchingCustomers(false);
       }
-    }, 200);
+    }, 80);
 
     return () => {
       isSubscribed = false;
@@ -804,13 +828,9 @@ export default function POSClient({
 
   useEffect(() => {
     if (!isOnline) {
-      import('@/lib/offlineDB').then(({ db }) => {
-        db.customers.toArray().then(res => setActiveCustomers(res.length ? res : customers));
-      });
-      import('@/lib/offlineSearch').then(({ searchOfflineProducts }) => {
-        searchOfflineProducts('', branchId, { limit: 50 }).then(res => {
-          if (res.length) setDisplayedProducts(res);
-        });
+      db.customers.toArray().then(res => setActiveCustomers(res.length ? res : customers));
+      searchOfflineProducts('', branchId, { limit: 50 }).then(res => {
+        if (res.length) setDisplayedProducts(res);
       });
     } else {
       setActiveCustomers(customers);
@@ -1012,12 +1032,12 @@ export default function POSClient({
   const [pointsRedeemed, setPointsRedeemed] = useState<number>(0);
 
   useEffect(() => {
-    if (branchId) {
+    if (branchId && isOnline) {
       getLoyaltySettings(branchId).then(res => {
         if (res.success) setLoyaltySettings(res.settings);
       });
     }
-  }, [branchId]);
+  }, [branchId, isOnline]);
 
   // Checkout Success Modal State
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -1688,7 +1708,6 @@ export default function POSClient({
           if (isOnline) {
             setDisplayedProducts(initialProducts);
           } else {
-            const { searchOfflineProducts } = await import('@/lib/offlineSearch');
             const results = await searchOfflineProducts('', branchId, { limit: 50 });
             setDisplayedProducts(results && results.length > 0 ? results : initialProducts);
           }
@@ -1696,7 +1715,6 @@ export default function POSClient({
         }
 
         // Local-First Instant Search: Sub-millisecond in-memory lookup
-        const { searchOfflineProducts } = await import('@/lib/offlineSearch');
         const localResults = await searchOfflineProducts(cleanTerm, branchId, { limit: 50 });
         
         if (localResults && localResults.length > 0) {
@@ -1713,7 +1731,7 @@ export default function POSClient({
       } finally {
         setIsSearching(false);
       }
-    }, 120);
+    }, 60);
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm, branchId, isOnline, initialProducts]);
@@ -1848,7 +1866,6 @@ export default function POSClient({
     setIsSearching(true);
     try {
       // 1. Check local in-memory index immediately (0.1ms)
-      const { searchOfflineProducts } = await import('@/lib/offlineSearch');
       let results = await searchOfflineProducts(cleanTerm, branchId, { limit: 50 });
 
       // 2. Fallback to server search only if no local matches and online

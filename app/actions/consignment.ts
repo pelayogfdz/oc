@@ -27,6 +27,13 @@ export async function createConsignment(
   const { getNextFolio } = await import('./folios');
   const folio = await getNextFolio(branch.id, 'consignment');
 
+  const productIds = items.map(i => i.productId);
+  const dbProducts = await prisma.product.findMany({
+    where: { id: { in: productIds } },
+    select: { id: true, name: true, sku: true, cost: true }
+  });
+  const productMap = new Map(dbProducts.map(p => [p.id, p]));
+
   // Create Consignment record (Status: ACTIVE as inventory is deducted immediately)
   const consignment = await prisma.consignment.create({
     data: {
@@ -38,18 +45,32 @@ export async function createConsignment(
       userId: user.id,
       status: "ACTIVE",
       items: {
-        create: items.map(item => ({
-          quantity: item.quantity,
-          price: item.price,
-          productId: item.productId,
-          variantId: item.variantId || null
-        }))
+        create: items.map(item => {
+          const prod = productMap.get(item.productId);
+          const resolvedCost = (item as any).cost !== undefined && (item as any).cost !== null && (item as any).cost > 0
+            ? (item as any).cost
+            : (prod?.cost ?? 0);
+          return {
+            quantity: item.quantity,
+            price: item.price,
+            cost: resolvedCost,
+            productId: item.productId,
+            variantId: item.variantId || null,
+            productName: (item as any).productName || prod?.name || 'Producto',
+            productSku: (item as any).productSku || prod?.sku || null
+          };
+        })
       }
     }
   });
 
   // Deduct inventory & Register Kardex movements
   for (const item of items) {
+    const prod = productMap.get(item.productId);
+    const resolvedCost = (item as any).cost !== undefined && (item as any).cost !== null && (item as any).cost > 0
+      ? (item as any).cost
+      : (prod?.cost ?? 0);
+
     // 1. Deduct Product stock
     await prisma.product.update({
       where: { id: item.productId },
@@ -63,12 +84,12 @@ export async function createConsignment(
         data: { stock: { decrement: item.quantity } }
       });
     }
-    
+
     // 3. FEFO Batch Deduction
     let remainingToDeduct = item.quantity;
     const availableBatches = await prisma.productBatch.findMany({
       where: { productId: item.productId, stock: { gt: 0 } },
-      orderBy: { expirationDate: 'asc' } // oldest expires first
+      orderBy: { expirationDate: 'asc' }
     });
 
     for (const batch of availableBatches) {
@@ -87,7 +108,8 @@ export async function createConsignment(
           batchId: batch.id,
           type: 'OUT',
           quantity: -deductAmount,
-          reason: `Consignación #${consignment.id.slice(0, 8)} (FEFO Lote)`,
+          cost: batch.cost || resolvedCost,
+          reason: `Consignación #${consignment.folio || consignment.id.slice(0, 8)} (FEFO Lote)`,
           userId: user.id
         }
       });
@@ -103,7 +125,8 @@ export async function createConsignment(
           variantId: item.variantId || null,
           type: 'OUT',
           quantity: -remainingToDeduct,
-          reason: `Consignación #${consignment.id.slice(0, 8)} (Sin Lote)`,
+          cost: resolvedCost,
+          reason: `Consignación #${consignment.folio || consignment.id.slice(0, 8)}`,
           userId: user.id
         }
       });

@@ -226,6 +226,40 @@ export function generatePurchasePdfBuffer(purchase: any): Promise<Buffer> {
         doc.addPage();
         totalsY = 50;
       }
+
+      // Left column: Observaciones de la Compra
+      const observations = (purchase.notes || (purchase as any).observations || '').trim();
+      let leftBottomY = totalsY;
+
+      if (observations) {
+        const obsBoxX = 50;
+        const obsBoxY = totalsY;
+        const obsBoxWidth = 275;
+        const innerPadding = 8;
+        const textWidth = obsBoxWidth - (innerPadding * 2);
+
+        doc.font(fontBold).fontSize(8).fillColor(primaryColor);
+        const headerHeight = doc.heightOfString('OBSERVACIONES:', { width: textWidth });
+        
+        doc.font(fontRegular).fontSize(8).fillColor('#334155');
+        const textHeight = doc.heightOfString(observations, { width: textWidth });
+
+        const totalObsBoxHeight = Math.max(45, headerHeight + textHeight + (innerPadding * 2) + 4);
+
+        // Draw card background & border
+        doc.fillColor('#f8fafc').rect(obsBoxX, obsBoxY, obsBoxWidth, totalObsBoxHeight).fill();
+        doc.strokeColor('#e2e8f0').lineWidth(1).rect(obsBoxX, obsBoxY, obsBoxWidth, totalObsBoxHeight).stroke();
+
+        // Header label
+        doc.font(fontBold).fontSize(8).fillColor(primaryColor).text('OBSERVACIONES:', obsBoxX + innerPadding, obsBoxY + innerPadding, { width: textWidth });
+
+        // Observations text
+        doc.font(fontRegular).fontSize(8).fillColor('#334155').text(observations, obsBoxX + innerPadding, obsBoxY + innerPadding + headerHeight + 4, { width: textWidth, lineGap: 1.5 });
+
+        leftBottomY = obsBoxY + totalObsBoxHeight;
+      }
+
+      // Right column: Totals Box
       doc.strokeColor('#cbd5e1').lineWidth(1).moveTo(350, totalsY).lineTo(562, totalsY).stroke();
 
       doc.font(fontRegular).fontSize(9).fillColor('#475569');
@@ -266,18 +300,24 @@ export function generatePurchasePdfBuffer(purchase: any): Promise<Buffer> {
       doc.text(`$${finalTotalWithIva.toFixed(2)}`, 450, currentOffset + 10, { width: 105, align: 'right' });
 
       // Signatures
-      const sigsY = currentOffset + 50;
+      const contentBottomY = Math.max(currentOffset + 25, leftBottomY + 15);
+      let sigsY = contentBottomY + 15;
+      if (sigsY + 55 > 680) {
+        doc.addPage();
+        sigsY = 50;
+      }
+
       doc.strokeColor('#cbd5e1').lineWidth(1).moveTo(70, sigsY + 30).lineTo(230, sigsY + 30).stroke();
       doc.strokeColor('#cbd5e1').lineWidth(1).moveTo(330, sigsY + 30).lineTo(490, sigsY + 30).stroke();
 
-      doc.font('Helvetica-Bold').fontSize(8).fillColor('#1e293b');
+      doc.font(fontBold).fontSize(8).fillColor('#1e293b');
       doc.text('Firma de Revisión (Sistema)', 70, sigsY + 35, { width: 160, align: 'center' });
-      doc.font('Helvetica').fontSize(8).fillColor('#64748b');
+      doc.font(fontRegular).fontSize(8).fillColor('#64748b');
       doc.text(`(${purchase.user?.name || 'Bodega Central'})`, 70, sigsY + 45, { width: 160, align: 'center' });
 
-      doc.font('Helvetica-Bold').fontSize(8).fillColor('#1e293b');
+      doc.font(fontBold).fontSize(8).fillColor('#1e293b');
       doc.text('Firma Proveedor / Repartidor', 330, sigsY + 35, { width: 160, align: 'center' });
-      doc.font('Helvetica').fontSize(8).fillColor('#64748b');
+      doc.font(fontRegular).fontSize(8).fillColor('#64748b');
       doc.text(`(${purchase.supplier?.name || 'Proveedor'})`, 330, sigsY + 45, { width: 160, align: 'center' });
 
       // 5. Footer Notes

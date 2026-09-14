@@ -38,6 +38,30 @@ export async function createQuote(
   let quote: any;
 
   quote = await prisma.$transaction(async (tx) => {
+    // Fetch products to snapshot cost and names
+    const productIds = items.map(i => i.productId);
+    const dbProducts = await tx.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true, sku: true, cost: true }
+    });
+    const productMap = new Map(dbProducts.map(p => [p.id, p]));
+
+    const buildQuoteItems = () => items.map(item => {
+      const prod = productMap.get(item.productId);
+      const resolvedCost = (item as any).cost !== undefined && (item as any).cost !== null && (item as any).cost > 0
+        ? (item as any).cost
+        : (prod?.cost ?? 0);
+      return {
+        quantity: item.quantity,
+        price: item.price,
+        cost: resolvedCost,
+        productId: item.productId,
+        variantId: item.variantId || null,
+        productName: (item as any).productName || prod?.name || 'Producto',
+        productSku: (item as any).productSku || prod?.sku || null
+      };
+    });
+
     if (quoteId) {
       // Delete existing items for this quote
       await tx.quoteItem.deleteMany({
@@ -57,12 +81,7 @@ export async function createQuote(
           observations,
           observationImageUrl,
           items: {
-            create: items.map(item => ({
-              quantity: item.quantity,
-              price: item.price,
-              productId: item.productId,
-              variantId: item.variantId || null
-            }))
+            create: buildQuoteItems()
           }
         }
       });
@@ -82,12 +101,7 @@ export async function createQuote(
           observations,
           observationImageUrl,
           items: {
-            create: items.map(item => ({
-              quantity: item.quantity,
-              price: item.price,
-              productId: item.productId,
-              variantId: item.variantId || null
-            }))
+            create: buildQuoteItems()
           }
         }
       });

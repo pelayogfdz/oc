@@ -49,13 +49,54 @@ export default async function NuevaVentaPage({ searchParams }: { searchParams: a
   ] = await Promise.all([
     prisma.product.findMany({
       where: { branchId, isActive: true },
-      include: { variants: true, prices: true },
+      select: {
+        id: true,
+        name: true,
+        sku: true,
+        barcode: true,
+        price: true,
+        cost: true,
+        stock: true,
+        category: true,
+        brand: true,
+        imageUrl: true,
+        wholesalePrice: true,
+        specialPrice: true,
+        isService: true,
+        variants: {
+          select: {
+            id: true,
+            sku: true,
+            barcode: true,
+            attribute: true,
+            price: true,
+            stock: true
+          }
+        },
+        prices: {
+          select: {
+            priceListId: true,
+            price: true
+          }
+        }
+      },
       orderBy: { name: 'asc' },
-      take: 50
+      take: 40
     }),
     prisma.customer.findMany({
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        street: true,
+        exteriorNumber: true,
+        storeCredit: true,
+        priceList: true,
+        taxId: true
+      },
       orderBy: { name: 'asc' },
-      take: 500
+      take: 50
     }),
     prisma.promotion.findMany({
       where: { branchId, active: true }
@@ -65,11 +106,18 @@ export default async function NuevaVentaPage({ searchParams }: { searchParams: a
     }),
     prisma.quote.findMany({
       where: { branchId, status: 'PENDING' },
-      include: { customer: { select: { name: true } } },
+      select: {
+        id: true,
+        folio: true,
+        total: true,
+        createdAt: true,
+        customer: { select: { name: true } },
+        items: true
+      },
       orderBy: { createdAt: 'desc' },
-      take: 30
+      take: 20
     }),
-    getCurrentSession(),
+    getCurrentSession(false),
     getBranchSettings(),
     getTenantSuppliers(),
     prisma.user.findMany({
@@ -113,15 +161,15 @@ export default async function NuevaVentaPage({ searchParams }: { searchParams: a
     } catch(e) {}
   }
 
-  // Fallback: If no logo is configured on this branch, try to fetch the logo from any branch settings of the same tenant
+  // Fallback: If no logo is configured on this branch, try to fetch the logo from any sibling branch settings of the same tenant
   if (!ticketConfig.globalLogo && branch?.tenantId) {
     const siblingSettings = await prisma.branchSettings.findFirst({
       where: {
         branch: {
           tenantId: branch.tenantId
-        },
-        configJson: { contains: 'logoUrl' }
-      }
+        }
+      },
+      select: { configJson: true }
     });
     if (siblingSettings?.configJson) {
       try {

@@ -406,9 +406,10 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
           </thead>
           <tbody>
             {transfer.items.map((item: any) => {
-              const productName = item.variant ? `${item.product.name} (${item.variant.attribute})` : item.product.name;
-              const sku = item.variant?.sku || item.product.sku;
-              const costToShow = item.averageCost || item.cost || item.product.cost || 0;
+              const productName = item.variant ? `${item.productName || item.product?.name || 'Producto'} (${item.variant.attribute})` : (item.productName || item.product?.name || 'Producto');
+              const sku = item.variant?.sku || item.productSku || item.product?.sku;
+              const barcode = item.productBarcode || item.product?.barcode;
+              const costToShow = item.cost || item.averageCost || item.product?.cost || 0;
               const totalCost = costToShow * (transfer.status === 'CREATED' ? dispatchQuantities[item.id] || 0 : item.quantity);
               
               return (
@@ -416,7 +417,7 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
                   <td data-label="Producto" style={{ padding: '1rem' }}>
                     <div style={{ fontWeight: 'bold', color: '#0f172a' }}>{productName}</div>
                     <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                      SKU: {sku || '-'} | Código: {item.product.barcode || '-'}
+                      SKU: {sku || '-'} | Código: {barcode || '-'}
                       {item.product?.location ? ` | Ubicación: ${item.product.location}` : ''}
                     </div>
                   </td>

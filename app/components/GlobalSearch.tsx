@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, BookOpen, Printer, X, FileText, Navigation, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useOfflineSync } from './OfflineSyncProvider';
 
 interface ManualData {
   purpose: string;
@@ -837,6 +838,7 @@ const SEARCH_DIRECTORY: SearchItem[] = [
 
 export default function GlobalSearch() {
   const router = useRouter();
+  const { isOnline } = useOfflineSync();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchItem[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -912,7 +914,11 @@ export default function GlobalSearch() {
       return false;
     };
 
-    const scored = SEARCH_DIRECTORY.map(item => {
+    const availableDirectory = !isOnline 
+      ? SEARCH_DIRECTORY.filter(item => item.path === '/ventas/nueva')
+      : SEARCH_DIRECTORY;
+
+    const scored = availableDirectory.map(item => {
       const nameNorm = normalizeString(item.name);
       const descNorm = normalizeString(item.description);
       const catNorm = normalizeString(item.category);

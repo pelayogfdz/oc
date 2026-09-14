@@ -304,12 +304,19 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
 
         {/* Totals */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', alignItems: 'flex-start' }}>
-          <div style={{ flex: 1, paddingRight: '2rem' }}>
+          <div style={{ flex: 1, paddingRight: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
              {purchase.paymentMethod === 'CREDIT' && (
                <div style={{ padding: '1rem', backgroundColor: '#fef2f2', borderRadius: '8px', border: '1px solid #fca5a5' }}>
                  <p style={{ margin: 0, fontSize: '0.875rem', color: '#b91c1c', fontWeight: 'bold' }}>Compra a Crédito (CxP):</p>
                  <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.1rem', color: '#7f1d1d', fontWeight: 'bold' }}>Deuda Pendiente: ${purchase.balanceDue.toLocaleString('es-MX', {minimumFractionDigits:2})}</p>
                  {purchase.dueDate && <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: '#7f1d1d' }}>Vence el: {new Date(purchase.dueDate).toLocaleDateString('es-MX')}</p>}
+               </div>
+             )}
+
+             {(purchase.notes || (purchase as any).observations) && (
+               <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                 <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' }}>Observaciones de la Compra:</p>
+                 <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.9rem', color: '#334155', whiteSpace: 'pre-wrap' }}>{purchase.notes || (purchase as any).observations}</p>
                </div>
              )}
           </div>

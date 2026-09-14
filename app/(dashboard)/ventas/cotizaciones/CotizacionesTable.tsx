@@ -277,7 +277,7 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                               <tr key={item.id}>
                                 <td style={{ fontWeight: 'bold' }}>{item.quantity}</td>
                                 <td style={{ maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {item.product?.name || 'Producto'}
+                                  {item.productName || item.product?.name || 'Producto'}
                                 </td>
                                 <td style={{ textAlign: 'right' }}>{formatCurrency(item.quantity * item.price)}</td>
                               </tr>
@@ -286,7 +286,7 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                         </table>
                       </div>
                       {(() => {
-                        const totalPurchaseCost = quote.items.reduce((sum: number, i: any) => sum + ((i.product?.averageCost || i.product?.cost || 0) * i.quantity), 0);
+                        const totalPurchaseCost = quote.items.reduce((sum: number, i: any) => sum + ((i.cost || i.product?.averageCost || i.product?.cost || 0) * i.quantity), 0);
                         const totalMarginPercent = quote.total > 0 ? ((quote.total - totalPurchaseCost) / quote.total) * 100 : 0;
                         return (
                           <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem' }}>

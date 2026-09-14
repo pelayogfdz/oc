@@ -214,19 +214,32 @@ export default async function PrintPurchasePage({ params }: { params: Promise<{ 
         </table>
 
         {/* Totals Section */}
-        <div className="totals-box">
-          {showTaxBreakdown ? (
-            <>
-              <div className="total-row"><span>Subtotal:</span><span>${subtotal.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
-              <div className="total-row"><span>IVA (16%):</span><span>${iva.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
-            </>
-          ) : (
-            <div className="total-row"><span>Subtotal:</span><span>${purchase.total.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
-          )}
-          
-          <div className="total-final">
-            <span>TOTAL:</span>
-            <span>${purchase.total.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '2rem' }}>
+          {(purchase.notes || (purchase as any).observations) ? (
+            <div style={{ flex: 1, background: '#f8fafc', padding: '1rem 1.25rem', borderRadius: '8px', border: '1px solid #e2e8f0', maxWidth: '350px' }}>
+              <div style={{ fontSize: '0.75rem', color: primaryColor, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.4rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.25rem' }}>
+                Observaciones
+              </div>
+              <div style={{ fontSize: '0.85rem', color: '#334155', whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>
+                {purchase.notes || (purchase as any).observations}
+              </div>
+            </div>
+          ) : <div style={{ flex: 1 }} />}
+
+          <div className="totals-box" style={{ margin: 0 }}>
+            {showTaxBreakdown ? (
+              <>
+                <div className="total-row"><span>Subtotal:</span><span>${subtotal.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
+                <div className="total-row"><span>IVA (16%):</span><span>${iva.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
+              </>
+            ) : (
+              <div className="total-row"><span>Subtotal:</span><span>${purchase.total.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span></div>
+            )}
+            
+            <div className="total-final">
+              <span>TOTAL:</span>
+              <span>${purchase.total.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+            </div>
           </div>
         </div>
 

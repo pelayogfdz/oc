@@ -1,4 +1,4 @@
-const CACHE_NAME = 'caanma-offline-cache-v3';
+const CACHE_NAME = 'caanma-offline-cache-v5';
 
 const PRECACHE_ASSETS = [
   '/',
@@ -6,29 +6,48 @@ const PRECACHE_ASSETS = [
   '/ventas/nueva',
   '/ventas/cotizaciones/nueva',
   '/ventas/consignaciones/nueva',
-  '/productos',
-  '/clientes',
-  '/clientes/nuevo',
-  '/productos/compras',
-  '/productos/compras/nuevo',
-  '/productos/pedidos',
-  '/productos/pedidos/nuevo',
-  '/productos/traspasos',
-  '/productos/traspasos/salida',
-  '/productos/traspasos/solicitar',
-  '/manifest.json?v=6',
+  '/manifest.json?v=7',
   '/favicon.ico',
   '/icon-192x192.png',
   '/icon-512x512.png'
 ];
 
-// 1. Install Event - Precache critical shell assets
+// Helper: fetch con límite estricto de tiempo para evitar los 15-30s de congelamiento por reintentos TCP
+function fetchWithTimeout(request, timeoutMs = 1200) {
+  return new Promise((resolve, reject) => {
+    let finished = false;
+    const timer = setTimeout(() => {
+      if (!finished) {
+        finished = true;
+        reject(new Error('NETWORK_TIMEOUT'));
+      }
+    }, timeoutMs);
+
+    fetch(request)
+      .then((res) => {
+        if (!finished) {
+          finished = true;
+          clearTimeout(timer);
+          resolve(res);
+        }
+      })
+      .catch((err) => {
+        if (!finished) {
+          finished = true;
+          clearTimeout(timer);
+          reject(err);
+        }
+      });
+  });
+}
+
+// 1. Install Event - Precache shell crítico
 self.addEventListener('install', (event) => {
-  console.log('[Service Worker] Installing and precaching shell assets...');
+  console.log('[Service Worker] Instalando y precacheando cascarón offline...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(PRECACHE_ASSETS).catch(err => {
-        console.warn('[Service Worker] Failed to precache some assets: ', err);
+        console.warn('[Service Worker] Aviso al precachear algunos assets: ', err);
       });
     }).then(() => {
       return self.skipWaiting();
@@ -36,15 +55,15 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// 2. Activate Event - Clean up old caches
+// 2. Activate Event - Limpiar cachés antiguos
 self.addEventListener('activate', (event) => {
-  console.log('[Service Worker] Activating...');
+  console.log('[Service Worker] Activando versión v5...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-            console.log('[Service Worker] Deleting obsolete cache:', cacheName);
+            console.log('[Service Worker] Eliminando caché obsoleta:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -55,28 +74,50 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// 3. Fetch Event - Implement Network-First with Cache fallback strategy
+// 3. Fetch Event - Estrategia ultrarrápida para páginas y estáticos
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
 
-  // Only handle GET requests
+  // Solo gestionar peticiones GET
   if (request.method !== 'GET') {
     return;
   }
 
-  // Ignore WebSockets, Chrome Extensions, Live Reloading, or Whatsapp APIs
+  // Ignorar WebSockets, Chrome Extensions, Live Reloading de desarrollo o WhatsApp
   if (
-    url.protocol !== 'http:' && url.protocol !== 'https:' ||
+    (url.protocol !== 'http:' && url.protocol !== 'https:') ||
     url.pathname.includes('/_next/webpack-hmr') ||
     url.pathname.includes('/api/whatsapp') ||
-    url.hostname.includes('whatsapp') ||
-    url.hostname.includes('localhost') && url.port === '3000' // MCP dev server bypass
+    url.hostname.includes('whatsapp')
   ) {
     return;
   }
 
-  // Strategy choice based on asset type
+  // 3a. Imágenes de Productos: Estrategia Stale-While-Revalidate
+  // Devuelve inmediatamente de caché (0ms) y revalida en paralelo con la red
+  if (url.pathname.includes('/img/products/')) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const cachedResponse = await cache.match(request);
+        const fetchPromise = fetch(request).then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            cache.put(request, networkResponse.clone());
+          }
+          return networkResponse;
+        }).catch(() => null);
+
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        const networkResponse = await fetchPromise;
+        if (networkResponse) return networkResponse;
+        return new Response('Imagen no disponible offline', { status: 404 });
+      })
+    );
+    return;
+  }
+
   const isStaticAsset = (
     url.pathname.includes('/_next/static/') ||
     url.pathname.includes('/img/') ||
@@ -89,7 +130,7 @@ self.addEventListener('fetch', (event) => {
   );
 
   if (isStaticAsset) {
-    // Cache-First Strategy for static assets (static assets are hashed and immutable)
+    // Cache-First Strategy para estáticos (archivos con hash inmutables)
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
         if (cachedResponse) {
@@ -104,46 +145,77 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         }).catch(() => {
-          // Fallback if network fails and not in cache
-          return new Response('Asset not available offline', { status: 404 });
+          return new Response('Recurso no disponible offline', { status: 404 });
         });
       })
     );
-  } else {
-    // Network-First Strategy for Pages, Next.js Server Actions, API calls
-    event.respondWith(
-      fetch(request).then((networkResponse) => {
-        // Cache successful page/data responses
-        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+    return;
+  }
+
+  // Rutas dinámicas, Páginas, Next.js RSC y Acciones
+  const isPosRoute = url.pathname === '/ventas/nueva';
+  const isRscRequest = url.searchParams.has('_rsc') || request.headers.get('RSC') === '1';
+  const isOffline = typeof self.navigator !== 'undefined' && self.navigator.onLine === false;
+
+  // Función de resolución offline inmediata (0ms)
+  const getOfflineFallback = async () => {
+    // 1. Coincidencia directa o ignorando querystring
+    let match = await caches.match(request, { ignoreSearch: true });
+    if (match) return match;
+
+    // 2. Si es la ruta del POS (/ventas/nueva)
+    if (isPosRoute) {
+      if (isRscRequest) {
+        const rscMatch = await caches.match('/ventas/nueva__rsc');
+        if (rscMatch) return rscMatch;
+      }
+      const posMatch = await caches.match('/ventas/nueva');
+      if (posMatch) return posMatch;
+    }
+
+    // 3. Si es una navegación completa de página a cualquier otra ruta
+    if (request.mode === 'navigate') {
+      const posFallback = await caches.match('/ventas/nueva');
+      if (posFallback) return posFallback;
+      const rootFallback = await caches.match('/');
+      if (rootFallback) return rootFallback;
+    }
+
+    // 4. Respuesta 503 limpia si el recurso no existe en caché local
+    return new Response(
+      JSON.stringify({ error: 'Modo Offline: recurso no disponible localmente.' }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } }
+    );
+  };
+
+  // Si el navegador ya sabe que está desconectado, responder de inmediato sin tocar la red
+  if (isOffline) {
+    event.respondWith(getOfflineFallback());
+    return;
+  }
+
+  // Si parece haber red, competir con timeout de 1.2 segundos para responder al instante si la red está colgada
+  event.respondWith(
+    fetchWithTimeout(request, 1200)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && (networkResponse.type === 'basic' || networkResponse.type === 'cors')) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(request, responseToCache);
+            if (isPosRoute) {
+              if (isRscRequest) {
+                cache.put('/ventas/nueva__rsc', responseToCache.clone());
+              } else {
+                cache.put('/ventas/nueva', responseToCache.clone());
+              }
+            }
           });
         }
         return networkResponse;
-      }).catch((err) => {
-        console.log('[Service Worker] Network request failed. Falling back to cache for:', url.pathname);
-        return caches.match(request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          
-          // If a page navigation request fails completely (offline fallback)
-          if (request.mode === 'navigate') {
-            console.log('[Service Worker] Page navigation failed offline, falling back to cotizaciones/nueva');
-            return caches.match('/ventas/nueva').then((posResponse) => {
-              if (posResponse) return posResponse;
-              return caches.match('/');
-            });
-          }
-          
-          // Return generic error response
-          return new Response(
-            JSON.stringify({ error: 'Estás sin conexión y esta información no está guardada localmente.' }),
-            { status: 503, headers: { 'Content-Type': 'application/json' } }
-          );
-        });
       })
-    );
-  }
+      .catch(async (err) => {
+        console.log('[Service Worker] Red no respondió o tardó más de 1200ms. Recuperando de caché para:', url.pathname);
+        return getOfflineFallback();
+      })
+  );
 });

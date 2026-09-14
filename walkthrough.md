@@ -576,4 +576,75 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
      * Al ejecutarse en producción, el script escanea toda la tabla de productos en busca de imágenes base64, las convierte en archivos físicos en `public/img/products/` con el nombre de su respectivo código de barras o SKU, y actualiza los registros de la base de datos a sus rutas estáticas relativas.
 * **Resultado**: La base de datos queda liberada del almacenamiento pesado de base64, y tanto las imágenes existentes como las futuras quedan centralizadas de forma física en el servidor bajo el nombre de su código de barras.
 
+---
+
+## 32. Solución Integral: Guardado de Imágenes, Cache-Busting y Service Worker
+
+* **Identificación del Problema**:
+  - Al cambiar la imagen de un producto (por ejemplo, el registrador salmón `KUALITAT (25)(L) REGISTRADOR PLASTIFICADO ECO TAMAÑO CARTA COLOR SALMON`, SKU `601201`, código de barras `8851907601201`), la nueva imagen parecía no guardarse y la pantalla volvía a mostrar la imagen anterior (rollo de etiquetas).
+  - **Diagnóstico en Servidor**: El archivo físico de la nueva imagen sí se escribió en el servidor (`/public/img/products/8851907601201.jpg`), pero debido a que la URL guardada en la base de datos no contenía versión (`/img/products/8851907601201.jpg`) y Nginx enviaba `Cache-Control: max-age=2592000` (30 días) junto con una estrategia `Cache-First` estricta en el Service Worker, el navegador del usuario servía permanentemente la imagen vieja desde su memoria local sin consultar al servidor.
+  - Al terminar de guardar en `ProductImageSection.tsx`, la URL devuelta sin versión hacía que la vista previa y el encabezado regresaran visualmente a la foto vieja en caché.
+
+* **Solución e Implementación**:
+  1. **Cache-Busting Dinámico y Guardado Seguro en [`app/actions/product.ts`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/actions/product.ts)**:
+     - `saveProductImageToFile`: Extrae la imagen Base64 optimizada, la escribe en `public/img/products/${filename}` y genera la URL con marca de tiempo única de versión: `/img/products/${filename}?v=${Date.now()}`.
+     - Cuenta con fallback seguro: si ocurriera algún fallo de escritura en disco, almacena directamente la imagen optimizada sin perder los datos del usuario.
+     - Si la imagen se elimina o viene vacía, retorna `null` para desvincularla en la base de datos.
+     - Conectado tanto en `createProduct`, `updateProduct` como en `updateProductMedia`.
+     - Propagación automática a todas las sucursales hermanas del mismo inquilino con el mismo SKU/código de barras.
+
+  2. **Actualización Reactiva e Invalidación en [`app/(dashboard)/productos/ProductImageSection.tsx`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/%28dashboard%29/productos/ProductImageSection.tsx)**:
+     - Al guardar la imagen, actualiza el estado local con la URL versionada (`res.imageUrl`).
+     - Emite el evento global `product-image-updated` para sincronizar en tiempo real el encabezado de la ficha del producto.
+     - Purga proactivamente de `caches.open('caanma-offline-cache-v5')` cualquier entrada previa asociada al producto.
+     - Sincroniza el input oculto `details-imageUrl-input` para guardar desde cualquier pestaña.
+     - Actualiza IndexedDB (`db.products`) e invalida el caché de búsqueda offline.
+
+  3. **Encabezado Interactivo y Sincronizado en [`app/(dashboard)/productos/[id]/ProductDetailClient.tsx`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/%28dashboard%29/productos/%5Bid%5D/ProductDetailClient.tsx)**:
+     - Se añadió estado reactivo `currentImageUrl` que escucha el evento `product-image-updated`.
+     - La etiqueta `<img>` del encabezado utiliza `key={currentImageUrl}`, garantizando un re-render instantáneo al cambiar la foto.
+     - Se incorporó un acceso rápido sobre la miniatura ("Cambiar Foto") para navegar directamente a la pestaña de Multimedia.
+
+  4. **Estrategia Stale-While-Revalidate en [`public/sw.js`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/public/sw.js)**:
+     - Se actualizó la versión del Service Worker a `caanma-offline-cache-v5` para limpiar cachés obsoletos.
+     - Las rutas `/img/products/` ahora utilizan **Stale-While-Revalidate**: responden de inmediato desde la caché (0ms en POS y catálogo) y revalidan con la red en segundo plano. Si la URL trae un parámetro `?v=...` nuevo, descargan la imagen actualizada de inmediato.
+
+  5. **Soporte de Clonación en [`app/(dashboard)/productos/nuevo/page.tsx`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/%28dashboard%29/productos/nuevo/page.tsx)**:
+     - Se habilitó la lectura tanto de `cloneFrom` como de `cloneId` para precargar todos los datos y la imagen del producto clonado.
+
+  6. **Actualización Inmediata en Base de Datos de Producción**:
+     - Se actualizó el registro de las 14 sucursales de `neondb_officecity` para el producto SKU `601201` con la nueva marca de tiempo `/img/products/8851907601201.jpg?v=1789413719060`, permitiendo que el registrador salmón se despliegue de inmediato.
+
+* **Verificación**:
+  - Compilación estática ejecutada con `npx.cmd tsc --noEmit`: 0 errores, 0 advertencias de tipos.
+
+---
+
+## 33. Filtro por Rango de Precio en Catálogo de Productos (`/productos`)
+
+* **Requerimiento**: Se solicitó agregar un filtro por rango de precio (precio mínimo y máximo) en la barra de filtros avanzados del catálogo de productos (`/productos`), ubicado junto al filtro de "Tipo", compatible tanto con la búsqueda en servidor como con la búsqueda offline en IndexedDB.
+
+* **Implementación Realizada**:
+  1. **Búsqueda Offline (`lib/offlineSearch.ts`)**:
+     - Se ampliaron las opciones de [`OfflineSearchOptions`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/lib/offlineSearch.ts) para soportar `minPrice?: number` y `maxPrice?: number`.
+     - En [`searchOfflineProducts`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/lib/offlineSearch.ts), se incorporó la condición de filtrado por rango de precios antes de evaluar las coincidencias de texto.
+
+  2. **Acción de Búsqueda en Servidor (`app/actions/product.ts`)**:
+     - En [`searchProducts`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/actions/product.ts), se agregaron las opciones `minPrice` y `maxPrice`.
+     - Se agregaron las cláusulas Prisma `{ price: { gte: options.minPrice } }` y `{ price: { lte: options.maxPrice } }` al arreglo `extraConditions`.
+
+  3. **Interfaz de Usuario y Estado Reactivo (`app/(dashboard)/productos/ProductListClient.tsx`)**:
+     - Se incorporaron los estados `minPrice` y `maxPrice`.
+     - Se persistió el estado en `sessionStorage` (`products_minPrice`, `products_maxPrice`) para no perder la búsqueda al navegar y volver.
+     - Se integraron al efecto debounced de búsqueda (`searchProducts` y `searchOfflineProducts`), reiniciando a la página 1 cuando cambia cualquiera de los dos valores.
+     - En el cálculo de productos en memoria (`filteredProducts`), se agregaron las condiciones para filtrar por `minPrice` y `maxPrice`.
+     - En la barra de filtros avanzados (segunda fila, junto a "Tipo"), se agregaron dos inputs compactos y estilizados: **Mín** y **Máx** dentro del contenedor con etiqueta **"Rango de Precio ($)"**.
+     - El botón **"Limpiar Filtros"** ahora también restablece `minPrice` y `maxPrice` a valores vacíos.
+
+* **Verificación**:
+  - Compilación de TypeScript ejecutada con éxito mediante `npx.cmd tsc --noEmit` (0 errores).
+
+
+
+
 

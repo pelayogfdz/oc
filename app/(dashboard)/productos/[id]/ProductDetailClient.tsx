@@ -47,10 +47,28 @@ export function ProductDetailClient({
   const [showAdjustForm, setShowAdjustForm] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(product.imageUrl);
   const [headerImageError, setHeaderImageError] = useState(false);
   const [selectedMovement, setSelectedMovement] = useState<any | null>(null);
   const { isOnline, pushOfflineProduct } = useOfflineSync();
   const [editingVariant, setEditingVariant] = useState<any | null>(null);
+
+  useEffect(() => {
+    setCurrentImageUrl(product.imageUrl);
+    setHeaderImageError(false);
+  }, [product.imageUrl]);
+
+  useEffect(() => {
+    const handleImageUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent<{ imageUrl?: string }>;
+      if (customEvent.detail && customEvent.detail.imageUrl !== undefined) {
+        setCurrentImageUrl(customEvent.detail.imageUrl || null);
+        setHeaderImageError(false);
+      }
+    };
+    window.addEventListener('product-image-updated', handleImageUpdated);
+    return () => window.removeEventListener('product-image-updated', handleImageUpdated);
+  }, []);
 
   const handleMovementClick = (mov: any) => {
     if (mov.detailUrl) {
@@ -208,6 +226,9 @@ export function ProductDetailClient({
         .kardex-row:hover {
           background-color: #f8fafc;
         }
+        .product-header-thumb:hover .thumb-hover-badge {
+          opacity: 1 !important;
+        }
       `}</style>
 
       {/* Premium Zoom Modal Overlay */}
@@ -307,10 +328,13 @@ export function ProductDetailClient({
       >
         <div 
           onClick={() => {
-            if (product.imageUrl && !headerImageError) {
-              setZoomImageUrl(product.imageUrl);
+            if (currentImageUrl && !headerImageError) {
+              setZoomImageUrl(currentImageUrl);
+            } else {
+              setActiveTab('media');
             }
           }}
+          title={currentImageUrl && !headerImageError ? "Clic para ampliar foto" : "Clic para añadir multimedia"}
           style={{ 
             width: '120px', 
             height: '120px', 
@@ -323,14 +347,14 @@ export function ProductDetailClient({
             overflow: 'hidden', 
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', 
             flexShrink: 0, 
-            cursor: product.imageUrl && !headerImageError ? 'pointer' : 'default',
-            transition: 'all 0.2s ease'
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            position: 'relative'
           }}
+          className="product-header-thumb"
           onMouseEnter={e => {
-            if (product.imageUrl && !headerImageError) {
-              e.currentTarget.style.transform = 'scale(1.05)';
-              e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
-            }
+            e.currentTarget.style.transform = 'scale(1.05)';
+            e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
           }}
           onMouseLeave={e => {
             e.currentTarget.style.transform = 'none';
@@ -355,9 +379,10 @@ export function ProductDetailClient({
             </div>
             
             {/* Product Image (Overlaid with higher z-index) */}
-            {product.imageUrl && !headerImageError && (
+            {currentImageUrl && !headerImageError && (
               <img 
-                src={getFormattedImageUrl(product.imageUrl)} 
+                key={currentImageUrl}
+                src={getFormattedImageUrl(currentImageUrl)} 
                 alt="" 
                 data-header-img="true"
                 data-initials={product.name.substring(0, 2).toUpperCase()}
@@ -383,6 +408,33 @@ export function ProductDetailClient({
                 }} 
               />
             )}
+
+            {/* Quick edit overlay badge on hover */}
+            <div 
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveTab('media');
+              }}
+              className="thumb-hover-badge"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                zIndex: 3,
+                opacity: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                transition: 'opacity 0.2s',
+                textAlign: 'center',
+                padding: '0.25rem'
+              }}
+            >
+              Cambiar Foto
+            </div>
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minWidth: '280px' }}>

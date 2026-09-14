@@ -181,23 +181,54 @@ export default function ProductImageSection({
         setSaveStatus({ success: true, message: '✓ ¡Multimedia guardada exitosamente!' });
         if (res.imageUrl !== undefined) {
           const cleanSavedUrl = res.imageUrl || '';
-          const freshUrl = cleanSavedUrl ? `${cleanSavedUrl}?t=${Date.now()}` : '';
-          setImageUrl(freshUrl);
+          setImageUrl(cleanSavedUrl);
+
+          // Dispatch event to update ProductDetailClient header image and state in real-time
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('product-image-updated', { detail: { imageUrl: cleanSavedUrl } }));
+          }
 
           // Update header image in DOM immediately for instant visual feedback
           const headerImg = document.querySelector('img[data-header-img="true"]') as HTMLImageElement | null;
           if (headerImg) {
-            headerImg.src = freshUrl;
-            headerImg.style.display = 'block';
-            headerImg.style.visibility = 'visible';
-            headerImg.style.opacity = '1';
+            headerImg.src = cleanSavedUrl;
+            headerImg.style.display = cleanSavedUrl ? 'block' : 'none';
+            headerImg.style.visibility = cleanSavedUrl ? 'visible' : 'hidden';
+            headerImg.style.opacity = cleanSavedUrl ? '1' : '0';
+          }
+
+          // Also update hidden inputs in Details form
+          const detailsInput = document.getElementById('details-imageUrl-input') as HTMLInputElement | null;
+          if (detailsInput) {
+            detailsInput.value = cleanSavedUrl;
+          }
+
+          // Purge any stale cache entry for this product from Service Worker CacheStorage
+          if (typeof window !== 'undefined' && 'caches' in window) {
+            try {
+              const cache = await caches.open('caanma-offline-cache-v4');
+              const keys = await cache.keys();
+              for (const req of keys) {
+                const reqUrl = req.url;
+                if (
+                  reqUrl.includes(productId) ||
+                  (cleanSavedUrl && cleanSavedUrl.startsWith('/img/products/') && reqUrl.includes(cleanSavedUrl.split('?')[0]))
+                ) {
+                  await cache.delete(req);
+                }
+              }
+            } catch (cacheErr) {
+              console.warn('[CachePurge] Error clearing old cache entries:', cacheErr);
+            }
           }
         }
         try {
           const { db } = await import('@/lib/offlineDB');
+          const { invalidateOfflineSearchCache } = await import('@/lib/offlineSearch');
           await db.products.update(productId, {
             imageUrl: res.imageUrl !== undefined ? res.imageUrl : imageUrl
           });
+          invalidateOfflineSearchCache();
         } catch (e) {
           console.warn('[OfflineDB] Error al sincronizar imagen del producto local:', e);
         }
@@ -268,6 +299,7 @@ export default function ProductImageSection({
             /* Preview mode inside dropzone */
             <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
               <img 
+                key={imageUrl}
                 src={imageUrl} 
                 alt="Vista previa" 
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}

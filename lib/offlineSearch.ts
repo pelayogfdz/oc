@@ -1,4 +1,4 @@
-import { CAANMAOfflineDB, db, OfflineProduct } from './offlineDB';
+import { CAANMAOfflineDB, db, OfflineProduct, OfflineCustomer } from './offlineDB';
 
 /**
  * Normaliza cadenas de texto para búsqueda:
@@ -16,24 +16,40 @@ export function normalizeText(str: string | null | undefined): string {
 }
 
 /**
- * Expande tokens compuestos (ej. '9v', '200g', '15kg', '1pza') y variantes fonéticas
- * para permitir coincidencias exactas y parciales.
+ * Genera tokens limpios y desglosados para símbolos, guiones y medidas (ej. 'AX-120B', '200g', '1/2', '15kg', '1pza')
  */
 function expandSearchWord(word: string): string[] {
-  const clean = word.trim();
+  const clean = normalizeText(word);
   if (!clean) return [];
   const set = new Set<string>();
   set.add(clean);
 
-  // Unaccented version
-  const unaccented = clean.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  set.add(unaccented);
+  // Remueve guiones y caracteres especiales
+  const noPunct = clean.replace(/[-_./\\#+*]/g, '');
+  if (noPunct && noPunct !== clean) {
+    set.add(noPunct);
+  }
 
-  // Number/unit compound (ej. '9v', '1060toner', '1pza')
-  const match = clean.match(/^(\d+)([a-zA-Z]+)$/);
-  if (match) {
-    set.add(match[1]);
-    set.add(match[2]);
+  // Desglosa combinación número + unidad (ej. '9v', '1060toner', '1pza', '600ml')
+  const matchNumUnit = clean.match(/^(\d+)([a-z]+)$/);
+  if (matchNumUnit) {
+    set.add(matchNumUnit[1]);
+    set.add(matchNumUnit[2]);
+  }
+
+  // Desglosa combinación unidad + número (ej. 'cat6', 'cal22')
+  const matchUnitNum = clean.match(/^([a-z]+)(\d+)$/);
+  if (matchUnitNum) {
+    set.add(matchUnitNum[1]);
+    set.add(matchUnitNum[2]);
+  }
+
+  // Sub-tokens separados por guión o barra (ej. 'ax-120b' -> 'ax', '120b')
+  if (clean.includes('-') || clean.includes('/') || clean.includes('.')) {
+    const parts = clean.split(/[-_./\\]+/).filter(p => p.length > 0);
+    for (const p of parts) {
+      set.add(p);
+    }
   }
 
   return Array.from(set);
@@ -45,62 +61,101 @@ export interface OfflineSearchOptions {
   stock?: string;
   brand?: string;
   type?: string;
+  minPrice?: number;
+  maxPrice?: number;
   limit?: number;
 }
 
-interface IndexedOfflineProduct extends OfflineProduct {
+export interface IndexedOfflineProduct extends OfflineProduct {
   _normName: string;
   _normSku: string;
   _normBarcode: string;
   _normCategory: string;
   _normBrand: string;
   _searchBlob: string;
-  _variantTokens: { sku: string; barcode: string; attribute: string }[];
+  _variantTokens: { id: string; sku: string; barcode: string; attribute: string; price?: number; stock?: number }[];
 }
 
-// In-Memory Search Cache to prevent blocking IndexedDB toArray() on every keystroke
-let inMemoryCache: IndexedOfflineProduct[] | null = null;
-let exactBarcodeSkuMap = new Map<string, IndexedOfflineProduct>();
-let isCacheLoading = false;
-let loadPromise: Promise<IndexedOfflineProduct[]> | null = null;
+export interface IndexedOfflineCustomer extends OfflineCustomer {
+  _normName: string;
+  _normEmail: string;
+  _normPhone: string;
+  _normAddress: string;
+  _searchBlob: string;
+}
 
+// In-Memory Search Caches
+let productMemoryCache: IndexedOfflineProduct[] | null = null;
+let exactBarcodeSkuMap = new Map<string, IndexedOfflineProduct>();
+let productLoadPromise: Promise<IndexedOfflineProduct[]> | null = null;
+
+let customerMemoryCache: IndexedOfflineCustomer[] | null = null;
+let customerLoadPromise: Promise<IndexedOfflineCustomer[]> | null = null;
+
+/**
+ * Invalida todos los cachés en memoria para recargar desde Dexie IndexedDB
+ */
 export function invalidateOfflineSearchCache() {
-  inMemoryCache = null;
+  productMemoryCache = null;
   exactBarcodeSkuMap.clear();
-  loadPromise = null;
+  productLoadPromise = null;
+  customerMemoryCache = null;
+  customerLoadPromise = null;
+}
+
+/**
+ * Pre-carga y construye los índices en memoria en segundo plano
+ */
+export async function warmOfflineSearchCache(customDb?: CAANMAOfflineDB): Promise<void> {
+  const database = customDb || db;
+  try {
+    await Promise.all([
+      getOrLoadMemoryProducts(database),
+      getOrLoadMemoryCustomers(database)
+    ]);
+  } catch (e) {
+    console.warn('[OfflineSearch] Warning during cache warm-up:', e);
+  }
 }
 
 async function getOrLoadMemoryProducts(database: CAANMAOfflineDB): Promise<IndexedOfflineProduct[]> {
-  if (inMemoryCache !== null) {
-    return inMemoryCache;
+  if (productMemoryCache !== null) {
+    return productMemoryCache;
   }
 
-  if (loadPromise !== null) {
-    return loadPromise;
+  if (productLoadPromise !== null) {
+    return productLoadPromise;
   }
 
-  loadPromise = (async () => {
+  productLoadPromise = (async () => {
     try {
       const rawProducts = await database.products.toArray();
       const indexed: IndexedOfflineProduct[] = [];
       const newExactMap = new Map<string, IndexedOfflineProduct>();
 
-      for (const p of rawProducts) {
+      for (let i = 0; i < rawProducts.length; i++) {
+        const p = rawProducts[i];
         const normName = normalizeText(p.name);
         const normSku = normalizeText(p.sku);
         const normBarcode = normalizeText(p.barcode);
         const normCat = normalizeText(p.category);
         const normBrand = normalizeText((p as any).brand);
+        const normDesc = normalizeText((p as any).description);
 
         const variants = Array.isArray(p.variants) ? p.variants : [];
         const variantTokens = variants.map(v => ({
+          id: v.id || '',
           sku: normalizeText(v.sku),
           barcode: normalizeText(v.barcode),
-          attribute: normalizeText(v.attribute)
+          attribute: normalizeText(v.attribute),
+          price: v.price,
+          stock: v.stock
         }));
 
         const variantBlob = variantTokens.map(v => `${v.sku} ${v.barcode} ${v.attribute}`).join(' ');
-        const searchBlob = `${normName} ${normSku} ${normBarcode} ${normCat} ${normBrand} ${variantBlob}`;
+        
+        // Bloque de búsqueda con variantes y palabras clave expandidas
+        const searchBlob = `${normName} ${normSku} ${normBarcode} ${normCat} ${normBrand} ${normDesc} ${variantBlob}`;
 
         const item: IndexedOfflineProduct = {
           ...p,
@@ -115,32 +170,78 @@ async function getOrLoadMemoryProducts(database: CAANMAOfflineDB): Promise<Index
 
         indexed.push(item);
 
+        // Registro en mapa O(1) de escaneo exacto
         if (normBarcode) newExactMap.set(normBarcode, item);
         if (normSku) newExactMap.set(normSku, item);
-        for (const v of variantTokens) {
+        for (let vIdx = 0; vIdx < variantTokens.length; vIdx++) {
+          const v = variantTokens[vIdx];
           if (v.barcode) newExactMap.set(v.barcode, item);
           if (v.sku) newExactMap.set(v.sku, item);
         }
       }
 
-      inMemoryCache = indexed;
+      productMemoryCache = indexed;
       exactBarcodeSkuMap = newExactMap;
       return indexed;
     } catch (e) {
       console.error('[OfflineSearch] Error building in-memory product index:', e);
       return [];
     } finally {
-      loadPromise = null;
+      productLoadPromise = null;
     }
   })();
 
-  return loadPromise;
+  return productLoadPromise;
+}
+
+async function getOrLoadMemoryCustomers(database: CAANMAOfflineDB): Promise<IndexedOfflineCustomer[]> {
+  if (customerMemoryCache !== null) {
+    return customerMemoryCache;
+  }
+
+  if (customerLoadPromise !== null) {
+    return customerLoadPromise;
+  }
+
+  customerLoadPromise = (async () => {
+    try {
+      const rawCustomers = await database.customers.toArray();
+      const indexed: IndexedOfflineCustomer[] = [];
+
+      for (let i = 0; i < rawCustomers.length; i++) {
+        const c = rawCustomers[i];
+        const normName = normalizeText(c.name);
+        const normEmail = normalizeText(c.email);
+        const normPhone = normalizeText(c.phone);
+        const normAddress = normalizeText(`${c.street || ''} ${c.exteriorNumber || ''}`);
+        const searchBlob = `${normName} ${normEmail} ${normPhone} ${normAddress}`;
+
+        indexed.push({
+          ...c,
+          _normName: normName,
+          _normEmail: normEmail,
+          _normPhone: normPhone,
+          _normAddress: normAddress,
+          _searchBlob: searchBlob
+        });
+      }
+
+      customerMemoryCache = indexed;
+      return indexed;
+    } catch (e) {
+      console.error('[OfflineSearch] Error building in-memory customer index:', e);
+      return [];
+    } finally {
+      customerLoadPromise = null;
+    }
+  })();
+
+  return customerLoadPromise;
 }
 
 /**
  * Búsqueda de productos Offline de alto rendimiento sobre IndexedDB (Dexie).
- * Utiliza índice en memoria precargado para respuestas instantáneas (< 2ms)
- * sin bloquear el hilo principal de la interfaz ni saturar el disco.
+ * Utiliza índice en memoria precargado para respuestas instantáneas (< 2ms).
  */
 export async function searchOfflineProducts(
   query: string,
@@ -161,7 +262,7 @@ export async function searchOfflineProducts(
       return [];
     }
 
-    // 1. Optimización para Código de Barras / SKU Exacto (Escáner de código de barras)
+    // 1. Optimización para Código de Barras / SKU Exacto (Escáner de código de barras) -> O(1) < 0.1ms
     if (searchWords.length === 1 && exactBarcodeSkuMap.has(normalizedQuery)) {
       const exactMatch = exactBarcodeSkuMap.get(normalizedQuery)!;
       let branchOk = true;
@@ -205,7 +306,15 @@ export async function searchOfflineProducts(
         if (options.stock === 'LOW_STOCK' && (p.stock || 0) > 5) continue;
       }
 
-      // 5. Coincidencia de Palabras de Búsqueda (Multi-word search sobre searchBlob preindexado)
+      // 4b. Filtro de Rango de Precio
+      if (options?.minPrice !== undefined && options.minPrice !== null && !isNaN(options.minPrice)) {
+        if ((p.price || 0) < options.minPrice) continue;
+      }
+      if (options?.maxPrice !== undefined && options.maxPrice !== null && !isNaN(options.maxPrice)) {
+        if ((p.price || 0) > options.maxPrice) continue;
+      }
+
+      // 5. Coincidencia de Palabras de Búsqueda (Multi-word search AND estricto)
       if (searchWords.length > 0) {
         let matchesAllWords = true;
         for (let wIdx = 0; wIdx < searchWords.length; wIdx++) {
@@ -223,7 +332,7 @@ export async function searchOfflineProducts(
 
       results.push(p);
 
-      // Si no hay búsqueda por texto, limitar rápidamente para evitar procesar toda la lista
+      // Si no hay búsqueda por texto, limitar rápidamente para evitar recorrer toda la lista
       if (searchWords.length === 0 && results.length >= limit) {
         break;
       }
@@ -239,7 +348,13 @@ export async function searchOfflineProducts(
         if (aExact && !bExact) return -1;
         if (!aExact && bExact) return 1;
 
-        // Prioridad 2: Empieza con el término de búsqueda
+        // Prioridad 2: Coincidencia Exacta en Variante SKU o Barcode
+        const aVarExact = a._variantTokens.some(v => v.sku === exactTerm || v.barcode === exactTerm);
+        const bVarExact = b._variantTokens.some(v => v.sku === exactTerm || v.barcode === exactTerm);
+        if (aVarExact && !bVarExact) return -1;
+        if (!aVarExact && bVarExact) return 1;
+
+        // Prioridad 3: Empieza con el término de búsqueda
         const aStarts = a._normName.startsWith(exactTerm) || a._normSku.startsWith(exactTerm) || a._normBarcode.startsWith(exactTerm);
         const bStarts = b._normName.startsWith(exactTerm) || b._normSku.startsWith(exactTerm) || b._normBarcode.startsWith(exactTerm);
         if (aStarts && !bStarts) return -1;
@@ -252,6 +367,75 @@ export async function searchOfflineProducts(
     return results.slice(0, limit);
   } catch (err) {
     console.error('[OfflineSearch] Error searching offline products:', err);
+    return [];
+  }
+}
+
+/**
+ * Búsqueda de clientes Offline de alto rendimiento sobre IndexedDB (Dexie).
+ * Busca instantáneamente por Nombre, Teléfono, Email o Dirección con soporte Multi-Palabra AND.
+ */
+export async function searchOfflineCustomers(
+  query: string,
+  branchId?: string,
+  options?: { limit?: number },
+  customDb?: CAANMAOfflineDB
+): Promise<OfflineCustomer[]> {
+  const database = customDb || db;
+  const rawQuery = (query || '').trim();
+  const normalizedQuery = normalizeText(rawQuery);
+  const searchWords = normalizedQuery.split(/\s+/).filter(w => w.length > 0);
+  const limit = options?.limit || 50;
+
+  try {
+    const allCustomers = await getOrLoadMemoryCustomers(database);
+    if (allCustomers.length === 0) return [];
+
+    const results: IndexedOfflineCustomer[] = [];
+
+    for (let i = 0; i < allCustomers.length; i++) {
+      const c = allCustomers[i];
+
+      // Filtro de Sucursal (si aplica y no es global)
+      if (branchId && branchId !== 'GLOBAL' && branchId !== 'ALL' && c.branchId) {
+        if (c.branchId !== 'GLOBAL' && c.branchId !== 'ALL' && c.branchId !== branchId) {
+          continue;
+        }
+      }
+
+      if (searchWords.length > 0) {
+        let matchesAllWords = true;
+        for (let wIdx = 0; wIdx < searchWords.length; wIdx++) {
+          const word = searchWords[wIdx];
+          if (!c._searchBlob.includes(word)) {
+            matchesAllWords = false;
+            break;
+          }
+        }
+        if (!matchesAllWords) continue;
+      }
+
+      results.push(c);
+      if (searchWords.length === 0 && results.length >= limit) {
+        break;
+      }
+    }
+
+    if (searchWords.length > 0) {
+      results.sort((a, b) => {
+        // Prioridad 1: Coincidencia que empieza por el término
+        const aStarts = a._normName.startsWith(normalizedQuery) || a._normPhone.startsWith(normalizedQuery);
+        const bStarts = b._normName.startsWith(normalizedQuery) || b._normPhone.startsWith(normalizedQuery);
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+
+        return (a.name || '').localeCompare(b.name || '');
+      });
+    }
+
+    return results.slice(0, limit);
+  } catch (err) {
+    console.error('[OfflineSearch] Error searching offline customers:', err);
     return [];
   }
 }

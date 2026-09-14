@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { db, OfflineSale, OfflinePendingAttendance, OfflineUser } from '@/lib/offlineDB';
-import { invalidateOfflineSearchCache } from '@/lib/offlineSearch';
+import { invalidateOfflineSearchCache, warmOfflineSearchCache } from '@/lib/offlineSearch';
 import { createSale } from '../actions/sale';
 
 interface OfflineContextType {
@@ -174,6 +174,8 @@ export function OfflineSyncProvider({
     
     if (isEnabled) {
       loadPendingQueues();
+      // Pre-warm the in-memory search caches in background
+      warmOfflineSearchCache(db).catch(() => {});
       
       const shouldRefreshOnStart = async () => {
         if (!navigator.onLine) return;
@@ -638,7 +640,8 @@ export function OfflineSyncProvider({
               p.id,
               p.supplierFolio || null,
               undefined,
-              p.creditDays
+              p.creditDays,
+              p.notes
             );
             if (res && !res.success) {
               if (res.error && (res.error.includes('Unique constraint') || res.error.includes('already exists') || res.error.includes('duplicate key'))) {
@@ -769,7 +772,7 @@ export function OfflineSyncProvider({
       const isBranchSwitch = lastCachedBranchId && targetBranchId && lastCachedBranchId !== targetBranchId;
       
       const totalProducts = basicData.totalProducts;
-      const pageSize = 3500;
+      const pageSize = 2500;
       const totalPages = Math.max(1, Math.ceil(totalProducts / pageSize));
       
       // Perform a transaction to update basic tables
@@ -804,7 +807,7 @@ export function OfflineSyncProvider({
         }
       });
 
-      // Fetch and write branch products page by page smoothly using bulkPut
+      // Fetch and write branch products page by page smoothly using bulkPut and micro-yields
       for (let i = 1; i <= totalPages; i++) {
         if (!isBackground) {
           setSyncMessage(`Sincronizando Catálogo... (${i}/${totalPages})`);
@@ -813,6 +816,8 @@ export function OfflineSyncProvider({
         if (productsChunk && productsChunk.length > 0) {
           await db.products.bulkPut(productsChunk);
         }
+        // Yield to event loop to keep UI 100% responsive
+        await new Promise(resolve => setTimeout(resolve, 20));
       }
 
       if (targetBranchId) {
@@ -823,8 +828,29 @@ export function OfflineSyncProvider({
       
       try {
         invalidateOfflineSearchCache();
+        // Warm up the new index immediately in the background
+        warmOfflineSearchCache(db).catch(() => {});
       } catch (eCache) {
         console.warn('Could not invalidate offline search cache', eCache);
+      }
+
+      // Pre-warm the POS shell in Cache API for instant 0ms offline startup
+      if (typeof window !== 'undefined' && 'caches' in window) {
+        caches.open('caanma-offline-cache-v4').then(async (cache) => {
+          try {
+            const htmlRes = await fetch('/ventas/nueva', { credentials: 'same-origin' });
+            if (htmlRes.ok) {
+              await cache.put('/ventas/nueva', htmlRes);
+            }
+            const rscRes = await fetch('/ventas/nueva', {
+              headers: { 'RSC': '1' },
+              credentials: 'same-origin'
+            });
+            if (rscRes.ok) {
+              await cache.put('/ventas/nueva__rsc', rscRes);
+            }
+          } catch (eWarm) {}
+        }).catch(() => {});
       }
 
       if (!isBackground) {

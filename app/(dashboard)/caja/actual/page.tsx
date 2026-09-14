@@ -6,7 +6,7 @@ import CajaActualClient from "./CajaActualClient";
 export default async function CajaActualPage() {
   const branch = await getActiveBranch();
   const user = await getActiveUser();
-  const currentSession = await getCurrentSession();
+  const currentSession = await getCurrentSession(true);
 
   // If no branch, shouldn't really hit here due to global protection, but just in case
   if (branch.id === 'GLOBAL') {

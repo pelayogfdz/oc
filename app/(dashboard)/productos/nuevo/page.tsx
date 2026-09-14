@@ -6,10 +6,10 @@ import { Image as ImageIcon } from 'lucide-react';
 import ProductFormClient from "./ProductFormClient";
 import { getTenantSuppliers } from "@/app/actions/supplier";
 
-export default async function NuevoProductoPage({ searchParams }: { searchParams: { cloneId?: string } }) {
+export default async function NuevoProductoPage({ searchParams }: { searchParams: { cloneId?: string; cloneFrom?: string } }) {
   const branch = await getActiveBranch();
   const searchP = await searchParams;
-  const cloneId = searchP?.cloneId;
+  const cloneId = searchP?.cloneId || searchP?.cloneFrom;
   
   let cloneProduct = null;
   if (cloneId) {

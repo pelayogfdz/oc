@@ -5,17 +5,22 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMobileMenu } from './MobileMenuContext';
 import { navStructure, footerNodes } from '../config/navigation';
-import { X, ChevronDown, ChevronUp, ShieldAlert, LogOut } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, ShieldAlert, LogOut, WifiOff } from 'lucide-react';
 import { hasNodeAccess } from '@/app/config/permissions';
+import { useOfflineSync } from './OfflineSyncProvider';
 
 export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, userRole = 'USER' }: { isSuperAdmin?: boolean; userPermissions?: Record<string, boolean>; userRole?: string }) {
   const { isMobileMenuOpen, closeMenu } = useMobileMenu();
   const pathname = usePathname();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const { isOnline } = useOfflineSync();
 
   if (!isMobileMenuOpen) return null;
 
   const hasNodeVisible = (node: any) => {
+    if (!isOnline) {
+      return node.path === '/ventas/nueva';
+    }
     if (isSuperAdmin || userRole === 'OWNER' || userRole === 'ADMIN') {
       return true;
     }
@@ -59,6 +64,24 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
       </div>
       <div className="mobile-grid-content" style={{ padding: '1rem', backgroundColor: '#f8fafc', paddingBottom: '8rem' }}>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          {!isOnline && (
+            <div style={{
+              padding: '0.75rem 1rem',
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '8px',
+              color: '#b91c1c',
+              fontSize: '0.85rem',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginBottom: '0.5rem'
+            }}>
+              <WifiOff size={18} style={{ flexShrink: 0 }} />
+              <span>Modo Offline: Solo el Punto de Venta está disponible sin conexión.</span>
+            </div>
+          )}
           {!isSuperAdmin && navStructure.map((node) => {
             if (!hasNodeVisible(node)) return null;
             const NodeActive = isNodeActive(node);
@@ -178,7 +201,7 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
             </Link>
           ))}
  
-          {isSuperAdmin && (
+          {isSuperAdmin && isOnline && (
             <Link 
               href="/admin" 
               onClick={closeMenu}

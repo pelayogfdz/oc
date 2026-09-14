@@ -757,6 +757,13 @@ export const sendPurchaseOrderEmail = async (
             </table>
           </div>
 
+          ${(purchase.notes || purchase.observations) ? `
+            <div style="background-color: #f8fafc; border: 1px solid #eaeaea; border-radius: 6px; padding: 12px; margin-top: 15px;">
+              <strong style="color: #475569; font-size: 12px; text-transform: uppercase;">Observaciones:</strong>
+              <p style="margin: 5px 0 0 0; font-size: 13px; color: #333; white-space: pre-wrap;">${purchase.notes || purchase.observations}</p>
+            </div>
+          ` : ''}
+
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; text-align: center; font-size: 12px; color: #888;">
             <p>Se adjunta la versión formal en PDF a este correo para su descarga.</p>
             <p>Este es un correo automático de ${tenantName}, por favor no responda directamente.</p>

@@ -4,12 +4,16 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Tag, Plus, Banknote, LayoutGrid, UserCircle } from 'lucide-react';
 import { useMobileMenu } from './MobileMenuContext';
+import { useOfflineSync } from './OfflineSyncProvider';
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const { toggleMenu, isMobileMenuOpen, closeMenu } = useMobileMenu();
+  const { isOnline } = useOfflineSync();
 
-  const navItems = [
+  const navItems = !isOnline ? [
+    { label: 'Venta (Offline)', path: '/ventas/nueva', icon: Plus, isAction: true }
+  ] : [
     { label: 'Inicio', path: '/', icon: Home },
     { label: 'Productos', path: '/productos', icon: Tag },
     // Center Action Button

@@ -93,6 +93,13 @@ export async function getTenantSuppliers() {
         tenantId: branch.tenantId
       }
     },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      taxId: true
+    },
     orderBy: { name: 'asc' }
   });
 

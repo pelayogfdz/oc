@@ -21,10 +21,55 @@ export default async function NuevaConsignacionPage({ searchParams }: { searchPa
   const [products, customers, promotions, settings, suppliers, allPriceLists] = await Promise.all([
     prisma.product.findMany({
       where: { branchId: branch.id, isActive: true },
-      include: { prices: true, variants: true },
-      orderBy: { name: 'asc' }
+      select: {
+        id: true,
+        name: true,
+        sku: true,
+        barcode: true,
+        price: true,
+        cost: true,
+        stock: true,
+        category: true,
+        brand: true,
+        imageUrl: true,
+        wholesalePrice: true,
+        specialPrice: true,
+        isService: true,
+        variants: {
+          select: {
+            id: true,
+            sku: true,
+            barcode: true,
+            attribute: true,
+            price: true,
+            stock: true
+          }
+        },
+        prices: {
+          select: {
+            priceListId: true,
+            price: true
+          }
+        }
+      },
+      orderBy: { name: 'asc' },
+      take: 40
     }),
-    prisma.customer.findMany({ orderBy: { name: 'asc' } }),
+    prisma.customer.findMany({
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        street: true,
+        exteriorNumber: true,
+        storeCredit: true,
+        priceList: true,
+        taxId: true
+      },
+      orderBy: { name: 'asc' },
+      take: 50
+    }),
     prisma.promotion.findMany({ where: { branchId: branch.id, active: true } }),
     getBranchSettings(),
     getTenantSuppliers(),
@@ -66,9 +111,9 @@ export default async function NuevaConsignacionPage({ searchParams }: { searchPa
       where: {
         branch: {
           tenantId: branch.tenantId
-        },
-        configJson: { contains: 'logoUrl' }
-      }
+        }
+      },
+      select: { configJson: true }
     });
     if (siblingSettings?.configJson) {
       try {

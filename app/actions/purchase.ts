@@ -30,7 +30,8 @@ export async function createPurchase(
   purchaseId?: string,
   supplierFolio?: string | null,
   purchaseOrderId?: string,
-  creditDays?: number
+  creditDays?: number,
+  notes?: string | null
 ) {
   try {
     const branch = await getActiveBranch();
@@ -83,7 +84,8 @@ export async function createPurchase(
           branchId: branch.id,
           userId: user.id,
           dueDate,
-          balanceDue
+          balanceDue,
+          notes: notes?.trim() || null
         }
       });
 
@@ -329,7 +331,8 @@ export async function updatePurchase(
   supplierId: string | null = null,
   freightCost: number = 0,
   discount: number = 0,
-  supplierFolio?: string | null
+  supplierFolio?: string | null,
+  notes?: string | null
 ) {
   try {
     const branch = await getActiveBranch();
@@ -439,7 +442,8 @@ export async function updatePurchase(
           discount,
           dueDate,
           balanceDue,
-          supplierFolio
+          supplierFolio,
+          notes: notes !== undefined ? (notes?.trim() || null) : undefined
         }
       });
 

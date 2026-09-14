@@ -53,6 +53,8 @@ export default function ProductListClient({ initialProducts, branchId, categorie
   const [filterImage, setFilterImage] = useState('ALL');
   const [filterBrand, setFilterBrand] = useState('ALL');
   const [filterType, setFilterType] = useState('ALL');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
 
   // Sorting State
   const [sortBy, setSortBy] = useState<string>('name'); // 'name', 'price', 'stock', 'sku', 'createdAt'
@@ -107,6 +109,8 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       const persistedImage = sessionStorage.getItem('products_filterImage');
       const persistedBrand = sessionStorage.getItem('products_filterBrand');
       const persistedType = sessionStorage.getItem('products_filterType');
+      const persistedMinPrice = sessionStorage.getItem('products_minPrice');
+      const persistedMaxPrice = sessionStorage.getItem('products_maxPrice');
       const persistedPage = sessionStorage.getItem('products_currentPage');
       const persistedPageSize = sessionStorage.getItem('products_pageSize');
       const persistedSortBy = sessionStorage.getItem('products_sortBy');
@@ -119,6 +123,8 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       if (persistedImage !== null) setFilterImage(persistedImage);
       if (persistedBrand !== null) setFilterBrand(persistedBrand);
       if (persistedType !== null) setFilterType(persistedType);
+      if (persistedMinPrice !== null) setMinPrice(persistedMinPrice);
+      if (persistedMaxPrice !== null) setMaxPrice(persistedMaxPrice);
       if (persistedPageSize !== null) setPageSize(Number(persistedPageSize));
       if (persistedPage !== null) setCurrentPage(Number(persistedPage));
       if (persistedSortBy !== null) setSortBy(persistedSortBy);
@@ -138,12 +144,14 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       sessionStorage.setItem('products_filterImage', filterImage);
       sessionStorage.setItem('products_filterBrand', filterBrand);
       sessionStorage.setItem('products_filterType', filterType);
+      sessionStorage.setItem('products_minPrice', minPrice);
+      sessionStorage.setItem('products_maxPrice', maxPrice);
       sessionStorage.setItem('products_currentPage', String(currentPage));
       sessionStorage.setItem('products_pageSize', String(pageSize));
       sessionStorage.setItem('products_sortBy', sortBy);
       sessionStorage.setItem('products_sortOrder', sortOrder);
     }
-  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, currentPage, pageSize, sortBy, sortOrder, isInitialized]);
+  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, minPrice, maxPrice, currentPage, pageSize, sortBy, sortOrder, isInitialized]);
 
   useEffect(() => {
     setDisplayedProducts(initialProducts);
@@ -155,12 +163,16 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       if (typeof window !== 'undefined' && !isOnline) {
         try {
           const { searchOfflineProducts } = await import('@/lib/offlineSearch');
+          const parsedMin = minPrice !== '' && !isNaN(Number(minPrice)) ? Number(minPrice) : undefined;
+          const parsedMax = maxPrice !== '' && !isNaN(Number(maxPrice)) ? Number(maxPrice) : undefined;
           const localProducts = await searchOfflineProducts('', branchId, {
             category: filterCategory,
             status: filterStatus,
             stock: filterStock,
             brand: filterBrand,
             type: filterType,
+            minPrice: parsedMin,
+            maxPrice: parsedMax,
             limit: 500
           });
           setDisplayedProducts(localProducts);
@@ -178,6 +190,8 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     const delayDebounceFn = setTimeout(async () => {
       setIsSearching(true);
       try {
+        const parsedMin = minPrice !== '' && !isNaN(Number(minPrice)) ? Number(minPrice) : undefined;
+        const parsedMax = maxPrice !== '' && !isNaN(Number(maxPrice)) ? Number(maxPrice) : undefined;
         if (isOnline) {
           const results = await searchProducts(searchTerm, branchId, {
             category: filterCategory,
@@ -186,6 +200,8 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             image: filterImage,
             brand: filterBrand,
             type: filterType,
+            minPrice: parsedMin,
+            maxPrice: parsedMax,
             sortBy,
             sortOrder
           });
@@ -199,6 +215,8 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             stock: filterStock,
             brand: filterBrand,
             type: filterType,
+            minPrice: parsedMin,
+            maxPrice: parsedMax,
             limit: 500
           });
           setDisplayedProducts(results);
@@ -220,6 +238,8 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     filterImage,
     filterBrand,
     filterType,
+    minPrice,
+    maxPrice,
     sortBy,
     sortOrder,
     branchId,
@@ -254,8 +274,17 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     if (filterType === 'PRODUCT' && p.isService) return false;
     if (filterType === 'SERVICE' && !p.isService) return false;
 
+    // Price Range Filter
+    const pPrice = Number(p.price) || 0;
+    if (minPrice !== '' && !isNaN(Number(minPrice))) {
+      if (pPrice < Number(minPrice)) return false;
+    }
+    if (maxPrice !== '' && !isNaN(Number(maxPrice))) {
+      if (pPrice > Number(maxPrice)) return false;
+    }
+
     return true;
-  }), [displayedProducts, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType]);
+  }), [displayedProducts, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, minPrice, maxPrice]);
 
   const sortedProducts = useMemo(() => {
     const products = [...filteredProducts];
@@ -289,7 +318,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     if (isInitialized) {
       setCurrentPage(1);
     }
-  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, sortBy, sortOrder, isInitialized]);
+  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, minPrice, maxPrice, sortBy, sortOrder, isInitialized]);
 
   const totalPages = Math.ceil(sortedProducts.length / pageSize) || 1;
   const startRange = sortedProducts.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
@@ -610,8 +639,44 @@ export default function ProductListClient({ initialProducts, branchId, categorie
               <option value="SERVICE">Solo Servicios</option>
             </select>
           </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Rango de Precio ($)</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <input 
+                type="number" 
+                min="0" 
+                step="any"
+                placeholder="Mín" 
+                value={minPrice} 
+                onChange={e => setMinPrice(e.target.value)} 
+                style={{ 
+                  width: '85px', 
+                  padding: '0.5rem', 
+                  borderRadius: '6px', 
+                  border: '1px solid #e2e8f0', 
+                  fontSize: '0.875rem' 
+                }} 
+              />
+              <span style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 'bold' }}>-</span>
+              <input 
+                type="number" 
+                min="0" 
+                step="any"
+                placeholder="Máx" 
+                value={maxPrice} 
+                onChange={e => setMaxPrice(e.target.value)} 
+                style={{ 
+                  width: '85px', 
+                  padding: '0.5rem', 
+                  borderRadius: '6px', 
+                  border: '1px solid #e2e8f0', 
+                  fontSize: '0.875rem' 
+                }} 
+              />
+            </div>
+          </div>
           <div style={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end' }}>
-             <button onClick={() => { setSearchTerm(''); setFilterCategory('ALL'); setFilterStatus('ACTIVE'); setFilterStock('ALL'); setFilterImage('ALL'); setFilterBrand('ALL'); setFilterType('ALL'); }} style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '500' }}>
+             <button onClick={() => { setSearchTerm(''); setFilterCategory('ALL'); setFilterStatus('ACTIVE'); setFilterStock('ALL'); setFilterImage('ALL'); setFilterBrand('ALL'); setFilterType('ALL'); setMinPrice(''); setMaxPrice(''); }} style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '500' }}>
                Limpiar Filtros
              </button>
           </div>
