@@ -250,8 +250,10 @@ export async function createDatabaseForTenant(tenantId: string, slug: string, na
   try {
     const originalDbUrl = process.env.DATABASE_URL;
     process.env.DATABASE_URL = tenantUrl;
-    const cp = require('child_process');
-    cp.execSync('npx prisma db push --skip-generate', { stdio: 'inherit' });
+    if (typeof window === 'undefined') {
+      const cp = eval('require')('child_process');
+      cp.execSync('npx prisma db push --skip-generate', { stdio: 'inherit' });
+    }
     process.env.DATABASE_URL = originalDbUrl;
     console.log(`[Multi-Tenant] Prisma schema pushed successfully to ${dbName}.`);
   } catch (err) {

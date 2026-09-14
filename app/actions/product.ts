@@ -9,7 +9,7 @@ import { hasNodeAccess } from '@/app/config/permissions';
 import fs from 'fs';
 import path from 'path';
 
-export function saveProductImageToFile(
+function saveProductImageToFile(
   productId: string,
   barcode: string | null | undefined,
   sku: string | null | undefined,
