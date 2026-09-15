@@ -508,13 +508,22 @@ export default function EditarPedidoForm({
                         if (!inCart) e.currentTarget.style.backgroundColor = 'transparent';
                       }}
                     >
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {p.name}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flex: 1 }}>
+                        <div style={{ width: '42px', height: '42px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>
+                          {p.imageUrl ? (
+                            <img src={p.imageUrl} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.currentTarget.style.display = 'none'; const parent = e.currentTarget.parentElement; if (parent) parent.innerHTML = `<span>${(p.name || 'PR').substring(0, 2).toUpperCase()}</span>`; }} />
+                          ) : (
+                            <span>{(p.name || 'PR').substring(0, 2).toUpperCase()}</span>
+                          )}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', gap: '0.5rem', marginTop: '0.2rem' }}>
-                          {p.sku && <span>SKU: {p.sku}</span>}
-                          {p.barcode && <span>Código: {p.barcode}</span>}
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {p.name}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', gap: '0.5rem', marginTop: '0.2rem' }}>
+                            {p.sku && <span>SKU: {p.sku}</span>}
+                            {p.barcode && <span>Código: {p.barcode}</span>}
+                          </div>
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

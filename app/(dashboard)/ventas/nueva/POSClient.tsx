@@ -6452,36 +6452,66 @@ export default function POSClient({
                       onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
                       onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
-                        {p.imageUrl && (
-                          <div
-                            style={{
-                              width: '42px',
-                              height: '42px',
-                              borderRadius: '8px',
-                              overflow: 'hidden',
-                              flexShrink: 0,
-                              backgroundColor: '#f1f5f9',
-                              border: '1px solid #e2e8f0',
-                              cursor: 'zoom-in',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                            onClick={(e) => {
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: '10px',
+                            overflow: 'hidden',
+                            flexShrink: 0,
+                            backgroundColor: '#f1f5f9',
+                            border: '1px solid #e2e8f0',
+                            cursor: p.imageUrl ? 'zoom-in' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.9rem',
+                            fontWeight: 'bold',
+                            color: '#64748b',
+                            position: 'relative',
+                            transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (p.imageUrl) {
+                              e.currentTarget.style.transform = 'scale(1.08)';
+                              e.currentTarget.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.12)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (p.imageUrl) {
+                              e.currentTarget.style.transform = 'scale(1)';
+                              e.currentTarget.style.boxShadow = 'none';
+                            }
+                          }}
+                          onClick={(e) => {
+                            if (p.imageUrl) {
                               e.stopPropagation();
                               setPreviewImage({ url: p.imageUrl, title: p.name });
-                            }}
-                            title="Clic para ampliar imagen"
-                          >
+                            }
+                          }}
+                          title={p.imageUrl ? "Clic para ampliar imagen (400x400)" : undefined}
+                        >
+                          {p.imageUrl ? (
                             <img
                               src={p.imageUrl}
                               alt={p.name}
                               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const parent = e.currentTarget.parentElement;
+                                if (parent) {
+                                  parent.style.cursor = 'pointer';
+                                  parent.removeAttribute('title');
+                                  parent.onclick = null;
+                                  parent.innerHTML = `<span>${(p.name || 'PR').substring(0, 2).toUpperCase()}</span>`;
+                                }
+                              }}
                             />
-                          </div>
-                        )}
+                          ) : (
+                            <span>{(p.name || 'PR').substring(0, 2).toUpperCase()}</span>
+                          )}
+                        </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b' }}>{p.name}</div>
                           <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>

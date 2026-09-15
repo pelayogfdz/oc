@@ -1277,10 +1277,19 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
                       onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
                       onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
-                      <div>
-                        <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b' }}>{p.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
-                          SKU: {p.sku || '-'} | Código: {p.barcode || '-'} | Categoría: {p.category || 'General'}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{ width: '42px', height: '42px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>
+                          {p.imageUrl ? (
+                            <img src={p.imageUrl} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.currentTarget.style.display = 'none'; const parent = e.currentTarget.parentElement; if (parent) parent.innerHTML = `<span>${(p.name || 'PR').substring(0, 2).toUpperCase()}</span>`; }} />
+                          ) : (
+                            <span>{(p.name || 'PR').substring(0, 2).toUpperCase()}</span>
+                          )}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b' }}>{p.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
+                            SKU: {p.sku || '-'} | Código: {p.barcode || '-'} | Categoría: {p.category || 'General'}
+                          </div>
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
