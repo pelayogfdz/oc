@@ -206,6 +206,17 @@ export default function POSClient({
             setBillRegime('601');
             setBillUse('G03');
           }
+          if (isOnline && (!customer || !customer.taxId)) {
+            getCustomerAction(target.selectedCustomerId).then(res => {
+              if (res.success && res.customer) {
+                if (res.customer.taxId) setBillRfc(res.customer.taxId);
+                if (res.customer.legalName || res.customer.name) setBillName(res.customer.legalName || res.customer.name);
+                if (res.customer.zipCode) setBillZipCode(res.customer.zipCode);
+                if (res.customer.taxRegime) setBillRegime(res.customer.taxRegime);
+                if (res.customer.cfdiUse) setBillUse(res.customer.cfdiUse);
+              }
+            }).catch(() => {});
+          }
         } else {
           setBillRfc('');
           setBillName('');
@@ -1238,6 +1249,28 @@ export default function POSClient({
     setSelectedCustomerId(customerId);
     const candidate = explicitCustomer || customerSearchResults.find((c: any) => c.id === customerId) || activeCustomers.find((c: any) => c.id === customerId);
     let customer = candidate;
+
+    const applyCustomerData = (c: any) => {
+      if (!c) return;
+      if (c.priceList) {
+        setPriceList(c.priceList || 'price');
+      }
+      // Auto-fill billing data
+      setBillRfc(c.taxId || '');
+      setBillName(c.legalName || c.name || '');
+      setBillZipCode(c.zipCode || '');
+      if (c.taxRegime) setBillRegime(c.taxRegime);
+      if (c.cfdiUse) setBillUse(c.cfdiUse);
+
+      // Auto-fill delivery data
+      if (c.street) setDeliveryStreet(c.street);
+      if (c.exteriorNumber) setDeliveryExtNumber(c.exteriorNumber);
+      if (c.interiorNumber) setDeliveryIntNumber(c.interiorNumber);
+      if (c.neighborhood) setDeliveryColonia(c.neighborhood);
+      if (c.city) setDeliveryCity(c.city);
+      if (c.zipCode) setDeliveryZipCode(c.zipCode);
+    };
+
     if (customer) {
       setActiveCustomers(prev => {
         const existing = prev.find((c: any) => c.id === customer.id);
@@ -1245,25 +1278,13 @@ export default function POSClient({
         const rest = prev.filter((c: any) => c.id !== customer.id);
         return [merged, ...rest];
       });
+      applyCustomerData(customer);
+    } else {
+      setBillRfc('');
+      setBillName('');
+      setBillZipCode('');
     }
 
-    if (customerId && isOnline && (!customer || customer.creditLimit === undefined)) {
-      getCustomerAction(customerId).then(res => {
-        if (res.success && res.customer) {
-          setActiveCustomers(prev => {
-            const existing = prev.find((c: any) => c.id === customerId);
-            const updated = existing ? { ...existing, ...res.customer } : res.customer;
-            return [updated, ...prev.filter((c: any) => c.id !== customerId)];
-          });
-        }
-      }).catch(err => console.error('Error fetching customer credit data:', err));
-    }
-    if (customer && customer.priceList) {
-      setPriceList(customer.priceList || 'price');
-    } else {
-      setPriceList('price');
-    }
-    
     if (!isProgrammatic && !loadedQuoteId && !isQuoteClone) {
       setCart(prev => prev.map(item => {
         const { customPrice, ...rest } = item;
@@ -1274,25 +1295,21 @@ export default function POSClient({
     if (!isProgrammatic) {
       setNotes('');
     }
-    
-    // Auto-fill billing data if available
-    if (customer) {
-       setBillRfc(customer.taxId || '');
-       setBillName(customer.legalName || customer.name || '');
-       setBillZipCode(customer.zipCode || '');
-       if (customer.taxRegime) setBillRegime(customer.taxRegime);
-       if (customer.cfdiUse) setBillUse(customer.cfdiUse);
-       
-       if (customer.street) setDeliveryStreet(customer.street);
-       if (customer.exteriorNumber) setDeliveryExtNumber(customer.exteriorNumber);
-       if (customer.interiorNumber) setDeliveryIntNumber(customer.interiorNumber);
-       if (customer.neighborhood) setDeliveryColonia(customer.neighborhood);
-       if (customer.city) setDeliveryCity(customer.city);
-       if (customer.zipCode) setDeliveryZipCode(customer.zipCode);
-    } else {
-       setBillRfc('');
-       setBillName('');
-       setBillZipCode('');
+
+    if (customerId && isOnline) {
+      getCustomerAction(customerId).then(res => {
+        if (res.success && res.customer) {
+          setActiveCustomers(prev => {
+            const existing = prev.find((c: any) => c.id === customerId);
+            const updated = existing ? { ...existing, ...res.customer } : res.customer;
+            return [updated, ...prev.filter((c: any) => c.id !== customerId)];
+          });
+          applyCustomerData(res.customer);
+          try {
+            db.customers.put(res.customer);
+          } catch (_) {}
+        }
+      }).catch(err => console.error('Error fetching customer full data:', err));
     }
   };
 
@@ -5565,7 +5582,7 @@ export default function POSClient({
                              return prev;
                            });
                          }} 
-                         placeholder="XAXX010101000" 
+                         placeholder="Ej: ABC010203XYZ" 
                          style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid #bbf7d0' }} 
                        />
                     </div>

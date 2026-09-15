@@ -590,14 +590,26 @@ export async function createSale(
     // Si se solicitó factura, actualizar datos fiscales del cliente si existe y timbrar la factura (fuera de la transacción)
     let invoiceError: string | undefined = undefined;
     if (billingData && resolvedCustomerId) {
+       const existingCust = await prisma.customer.findUnique({
+          where: { id: resolvedCustomerId },
+          select: { id: true, name: true, taxId: true }
+       });
+       const isGenericRfc = billingData.rfc === 'XAXX010101000';
+       const isCustGeneric = existingCust?.name && (
+          existingCust.name.toUpperCase() === 'PUBLICO EN GENERAL' || 
+          existingCust.name.toLowerCase().includes('público general') ||
+          existingCust.name.toLowerCase().includes('publico general')
+       );
+       const shouldUpdateTaxId = Boolean(billingData.rfc && (!isGenericRfc || isCustGeneric || !existingCust?.taxId));
+
        await prisma.customer.update({
           where: { id: resolvedCustomerId },
           data: {
-             taxId: billingData.rfc,
-             legalName: billingData.name,
-             zipCode: billingData.zipCode,
-             taxRegime: billingData.regime,
-             cfdiUse: billingData.use
+             ...(shouldUpdateTaxId ? { taxId: billingData.rfc } : {}),
+             ...(billingData.name ? { legalName: billingData.name } : {}),
+             ...(billingData.zipCode ? { zipCode: billingData.zipCode } : {}),
+             ...(billingData.regime ? { taxRegime: billingData.regime } : {}),
+             ...(billingData.use ? { cfdiUse: billingData.use } : {})
           }
        });
 
