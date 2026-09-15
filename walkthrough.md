@@ -730,8 +730,11 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
      - Leyenda inferior indicativa: *"400 × 400 px · Presiona Esc o clic fuera para cerrar"*.
      - Cierre inmediato al pulsar fuera del cuadro o presionar `Esc`.
 
-  4. **Ampliación en Búsqueda y Fotos de Referencia**:
-     - En el modal de búsqueda de artículos (`search-result-item`), se agregaron miniaturas clickeables con `cursor: zoom-in` que abren el mismo visor antes de añadir el artículo al ticket.
+  4. **Miniaturas y Ampliación en Búsqueda y Modales de Artículos**:
+     - En el modal **"Buscar Artículos"** del Punto de Venta (`search-result-item`), cada producto ahora cuenta con una miniatura visible y perfectamente alineada de 48x48 px:
+       - Si el producto tiene foto: se muestra la imagen con soporte de zoom al hacer clic sobre ella (abriendo el modal de 400x400 px con microanimación hover `transform: scale(1.08)`).
+       - Si el producto no tiene foto (o falla la carga): se presenta un cuadro con las iniciales del producto (`AC`, `BA`, `BR`), garantizando alineación visual uniforme en toda la lista.
+     - Se integró la misma miniatura de producto en los modales de búsqueda de **Compras** (`CrearCompraForm.tsx` y `EditarCompraForm.tsx`) y **Pedidos** (`CrearPedidoForm.tsx` y `EditarPedidoForm.tsx`).
      - En las fotos de referencia/observación de cotizaciones (`parseObservationImages`), las miniaturas ahora también son clickeables para verse ampliadas a 400x400 px.
 
 * **Verificación**:
