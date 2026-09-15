@@ -705,6 +705,40 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
 * **Verificación**:
   - Compilación de TypeScript ejecutada con `npx.cmd tsc --noEmit` exitosa (0 errores).
 
+---
+
+## 36. Ampliación y Zoom de Imágenes de Producto en Punto de Venta (Hasta 400x400 px)
+
+* **Requerimiento**: Se solicitó que en el Punto de Venta (`/ventas/nueva`), al hacer clic en la miniatura de la imagen de un producto, esta se pueda ampliar hasta una resolución de **400x400 px** para visualizar sus detalles con claridad.
+
+* **Implementación Realizada**:
+  1. **Estado Reactivo y Accesibilidad por Teclado (`POSClient.tsx`)**:
+     - Se añadió el estado `previewImage` (`{ url: string; title: string } | null`) para controlar el visor de imagen en modal.
+     - Se implementó un listener con `useEffect` que escucha la tecla `Escape` (`Esc`) para cerrar el visor de forma ágil y cómoda sin requerir el ratón.
+
+  2. **Interacción Visual en el Carrito (`.pos-cart-item-image`)**:
+     - Al tener imagen asociada, se agrega la clase `.has-image` que muestra el cursor `cursor: zoom-in` y activa un efecto de elevación al pasar el cursor (`transform: scale(1.08)` y sombra acentuada).
+     - Al hacer clic sobre la miniatura del carrito, se abre inmediatamente el visor lightbox sin disparar eventos no deseados en la fila.
+     - Se añadió el tooltip nativo *"Clic para ampliar imagen"*.
+     - Se conservó la lógica de fallback con iniciales en caso de error de carga (`onError`).
+
+  3. **Visor de Imagen Lightbox (Hasta 400x400 px)**:
+     - Overlay con fondo difuminado de alto contraste (`rgba(15, 23, 42, 0.75)` con `backdropFilter: blur(4px)`).
+     - Contenedor centrado con esquinas redondeadas (`16px`), sombra profunda y ancho adaptativo.
+     - Cabecera con el nombre completo del producto y botón de cierre circular `(X)`.
+     - Marco de imagen cuadrado de **400x400 px** (`aspect-ratio: 1/1`) con `object-fit: contain` y fondo neutro para evitar distorsiones en imágenes de cualquier proporción.
+     - Leyenda inferior indicativa: *"400 × 400 px · Presiona Esc o clic fuera para cerrar"*.
+     - Cierre inmediato al pulsar fuera del cuadro o presionar `Esc`.
+
+  4. **Ampliación en Búsqueda y Fotos de Referencia**:
+     - En el modal de búsqueda de artículos (`search-result-item`), se agregaron miniaturas clickeables con `cursor: zoom-in` que abren el mismo visor antes de añadir el artículo al ticket.
+     - En las fotos de referencia/observación de cotizaciones (`parseObservationImages`), las miniaturas ahora también son clickeables para verse ampliadas a 400x400 px.
+
+* **Verificación**:
+  - Se certificó que el código compila limpiamente sin errores de TypeScript (`npx tsc --noEmit` exitoso).
+  - Se respetaron estrictamente las reglas de no romper componentes compartidos ni la lógica offline/stashing de pestañas.
+
+
 
 
 
