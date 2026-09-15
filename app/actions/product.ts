@@ -1096,6 +1096,8 @@ export async function searchProducts(
       } else if (options.stock === 'LOW_STOCK') {
         // Para LOW_STOCK aproximamos con stock <= 5, el cliente terminará de filtrar
         extraConditions.push({ stock: { lte: 5 }, isService: false });
+      } else if (options.stock === 'NEGATIVE_STOCK') {
+        extraConditions.push({ stock: { lt: 0 }, isService: false });
       }
     }
 
@@ -1154,7 +1156,9 @@ export async function searchProducts(
     }
   }
 
-  const limitCount = options?.limit ? options.limit : (isGlobal ? 100 * Math.max(1, tenantBranchIds.length) : 50);
+  const limitCount = options?.limit !== undefined
+    ? (options.limit === 0 ? undefined : options.limit)
+    : (isGlobal ? 2500 : 2000);
 
   let products = [];
   if (!query || query.trim() === '') {
@@ -1171,7 +1175,7 @@ export async function searchProducts(
         _count: { select: { saleItems: true } }
       },
       orderBy: orderByCondition,
-      take: limitCount
+      take: limitCount || undefined
     });
   } else {
     const words = query.trim().split(/\s+/).filter(w => w.length > 0);
@@ -1203,7 +1207,7 @@ export async function searchProducts(
         _count: { select: { saleItems: true } }
       },
       orderBy: orderByCondition,
-      take: limitCount
+      take: limitCount || undefined
     });
   }
 

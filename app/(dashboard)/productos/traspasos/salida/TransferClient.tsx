@@ -150,6 +150,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
     // Stock Filter
     if (stockFilter === 'WITH_STOCK' && p.stock <= 0) return false;
     if (stockFilter === 'WITHOUT_STOCK' && p.stock > 0) return false;
+    if (stockFilter === 'NEGATIVE_STOCK' && p.stock >= 0) return false;
 
     if (!searchTerm.trim()) return true;
     const searchTerms = removeAccents(searchTerm.toLowerCase().trim()).split(/\s+/);
@@ -457,6 +458,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
                 <option value="ALL">Todas las existencias</option>
                 <option value="WITH_STOCK">Con Stock</option>
                 <option value="WITHOUT_STOCK">Agotados</option>
+                <option value="NEGATIVE_STOCK">Existencias Negativas</option>
               </select>
               <button 
                 type="button" 

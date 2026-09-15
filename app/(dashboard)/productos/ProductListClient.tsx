@@ -174,7 +174,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             type: filterType,
             minPrice: parsedMin,
             maxPrice: parsedMax,
-            limit: 500
+            limit: 2500
           });
           setDisplayedProducts(localProducts);
         } catch (err) {
@@ -204,7 +204,8 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             minPrice: parsedMin,
             maxPrice: parsedMax,
             sortBy,
-            sortOrder
+            sortOrder,
+            limit: 2500
           });
           setDisplayedProducts(results);
         } else {
@@ -220,7 +221,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             maxPrice: parsedMax,
             sortBy,
             sortOrder,
-            limit: 500
+            limit: 2500
           });
           setDisplayedProducts(results);
         }
@@ -262,6 +263,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     if (filterStock === 'IN_STOCK' && p.stock <= 0) return false;
     if (filterStock === 'OUT_OF_STOCK' && p.stock > 0) return false;
     if (filterStock === 'LOW_STOCK' && p.stock > (p.minStock || 0)) return false;
+    if (filterStock === 'NEGATIVE_STOCK' && p.stock >= 0) return false;
 
     // Image Filter
     const trimmedImg = (p.imageUrl || '').trim().toLowerCase();
@@ -624,6 +626,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
               <option value="IN_STOCK">Con Stock</option>
               <option value="LOW_STOCK">Bajo Stock</option>
               <option value="OUT_OF_STOCK">Agotados</option>
+              <option value="NEGATIVE_STOCK">Existencias Negativas</option>
             </select>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

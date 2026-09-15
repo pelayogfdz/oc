@@ -779,6 +779,32 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
 * **Verificación**:
   - Compilación verificada con `npx.cmd tsc --noEmit` con **0 errores de TypeScript**.
 
+---
+
+## 38. Corrección de Conteo Total y Paginación en la Búsqueda del Catálogo de Productos
+
+* **Identificación del Problema**:
+  - En la vista de **Inventario / Productos** ([`/productos`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/(dashboard)/productos/ProductListClient.tsx)), al realizar una búsqueda o filtrar el catálogo, el pie de página siempre arrojaba *"Mostrando 1 a 50 de 50 productos (Pág. 1 de 1)"*, incluso cuando existían cientos de artículos que coincidían con el término buscado.
+  - **Causa Raíz**:
+    1. La acción de servidor [`searchProducts`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/actions/product.ts) tenía un límite por defecto de solo `50` productos (`take: 50`) cuando no se especificaba un límite explícito.
+    2. El buscador offline [`searchOfflineProducts`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/lib/offlineSearch.ts) también recortaba los resultados a 100/500 items.
+    3. `ProductListClient.tsx` calculaba el total de productos directamente sobre el arreglo truncado a 50 elementos devuelto por el servidor, provocando que la paginación y el contador inferior quedaran congelados en 50.
+
+* **Solución e Implementación**:
+  1. **Acción de Servidor (`app/actions/product.ts`)**:
+     - Se actualizó `searchProducts` para que, cuando no se pase un límite estricto de autocompletado (como en el dropdown del POS), devuelva hasta **2,500 productos** coincidentes para alimentar la tabla y la paginación del catálogo completo.
+  2. **Motor de Búsqueda Offline (`lib/offlineSearch.ts`)**:
+     - Se elevó el límite por defecto en `searchOfflineProducts` a **2,000 productos** e implementó el soporte para `limit: 0` (sin recorte) cuando se requieran todos los registros coincidentes.
+  3. **Catálogo de Productos (`app/(dashboard)/productos/ProductListClient.tsx` y `page.tsx`)**:
+     - Se configuró la búsqueda online y offline con `limit: 2500`.
+     - Se incrementó el render inicial en servidor de 100 a 500 productos en `ProductosPage`.
+     - Ahora `sortedProducts.length` refleja con exactitud el total real de artículos encontrados (ej. *"Mostrando 1 a 50 de 184 productos · Pág. 1 de 4"*).
+     - El selector de cantidad por página (25, 50, 100, 150, 200, Todos) y la navegación entre páginas (1, 2, 3, 4...) ahora permiten explorar fluidamente todos los artículos coincidentes.
+
+* **Verificación**:
+  - Compilación de TypeScript verificada con `npx.cmd tsc --noEmit` con **0 errores**.
+
+
 
 
 

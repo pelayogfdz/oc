@@ -255,7 +255,7 @@ export async function searchOfflineProducts(
   const rawQuery = (query || '').trim();
   const normalizedQuery = normalizeText(rawQuery);
   const searchWords = normalizedQuery.split(/\s+/).filter(w => w.length > 0);
-  const limit = options?.limit || 100;
+  const limit = options?.limit !== undefined ? options.limit : 2000;
 
   try {
     const allProducts = await getOrLoadMemoryProducts(database);
@@ -306,6 +306,7 @@ export async function searchOfflineProducts(
         if (options.stock === 'IN_STOCK' && (p.stock || 0) <= 0) continue;
         if (options.stock === 'OUT_OF_STOCK' && (p.stock || 0) > 0) continue;
         if (options.stock === 'LOW_STOCK' && (p.stock || 0) > 5) continue;
+        if (options.stock === 'NEGATIVE_STOCK' && (p.stock || 0) >= 0) continue;
       }
 
       // 4b. Filtro de Rango de Precio
@@ -334,8 +335,8 @@ export async function searchOfflineProducts(
 
       results.push(p);
 
-      // Si no hay búsqueda por texto, limitar rápidamente para evitar recorrer toda la lista
-      if (searchWords.length === 0 && results.length >= limit) {
+      // Si no hay búsqueda por texto, limitar rápidamente si se especificó un límite positivo
+      if (searchWords.length === 0 && limit > 0 && results.length >= limit) {
         break;
       }
     }
@@ -389,7 +390,7 @@ export async function searchOfflineProducts(
       });
     }
 
-    return results.slice(0, limit);
+    return limit > 0 ? results.slice(0, limit) : results;
   } catch (err) {
     console.error('[OfflineSearch] Error searching offline products:', err);
     return [];

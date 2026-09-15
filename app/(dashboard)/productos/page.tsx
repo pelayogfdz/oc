@@ -34,7 +34,7 @@ export default async function ProductosPage() {
       _count: { select: { saleItems: true } }
     },
     orderBy: { name: 'asc' },
-    take: 100
+    take: 500
   });
 
   // Extract unique identifiers to fetch cross-branch stock only for these products
