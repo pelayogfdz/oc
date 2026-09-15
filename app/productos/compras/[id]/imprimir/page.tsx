@@ -28,8 +28,8 @@ export default async function PrintPurchasePage({ params }: { params: Promise<{ 
 
   if (!purchase) return notFound();
 
-  // Basic authorization: user must be part of branch
-  if (branch.id !== purchase.branchId) {
+  // Basic authorization: user must be part of branch or GLOBAL
+  if (branch.id !== 'GLOBAL' && branch.id !== purchase.branchId) {
     return <div>No autorizado para ver esta compra.</div>;
   }
 

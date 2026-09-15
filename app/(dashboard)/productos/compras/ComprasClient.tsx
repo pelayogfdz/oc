@@ -18,13 +18,15 @@ export default function ComprasClient({
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (searchTerm === initialSearch) return;
+
     const timer = setTimeout(() => {
-      const url = searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : '?';
+      const url = searchTerm.trim() ? `?search=${encodeURIComponent(searchTerm.trim())}` : '/productos/compras';
       router.push(url, { scroll: false });
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, router]);
+  }, [searchTerm, initialSearch, router]);
 
   const filteredPurchases = initialPurchases.filter(purchase => {
     const term = searchTerm.toLowerCase();

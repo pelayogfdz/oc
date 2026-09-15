@@ -98,7 +98,10 @@ export async function getTenantSuppliers() {
       name: true,
       email: true,
       phone: true,
-      taxId: true
+      taxId: true,
+      creditLimit: true,
+      creditDays: true,
+      creditBalance: true
     },
     orderBy: { name: 'asc' }
   });

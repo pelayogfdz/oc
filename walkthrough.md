@@ -741,6 +741,45 @@ Hemos implementado, corregido y desplegado de forma exitosa todos los cambios so
   - Se certificó que el código compila limpiamente sin errores de TypeScript (`npx tsc --noEmit` exitoso).
   - Se respetaron estrictamente las reglas de no romper componentes compartidos ni la lógica offline/stashing de pestañas.
 
+---
+
+## 37. Alerta Emergente en Tiempo Real con Sonido y Detalles para Compras B2C (Página Vinculada) y Mercado Libre
+
+* **Requerimiento**: Se solicitó que cuando se realice una compra B2C desde la página web vinculada / tienda en línea, aparezca una ventana emergente de aviso (similar a la de Mercado Libre) con el sonido de notificación y los detalles completos de la orden.
+
+* **Implementación Realizada**:
+  1. **Backend y Detección Multicanal ([`app/api/mercadolibre/notifications/route.ts`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/api/mercadolibre/notifications/route.ts))**:
+     - Se amplió la consulta de notificaciones para detectar todas las ventas online del día de la sucursal activa:
+       - **Página Web Vinculada B2C**: Ventas por API externa, catálogo B2C en línea, pedidos web y ventas asociadas a usuarios de ventas online.
+       - **Google Pay / Carrito Web**: Pagos automáticos aprobados.
+       - **Mercado Libre**: Ventas sincronizadas por webhooks / órdenes de Mercado Libre.
+     - Extrae automáticamente:
+       - Datos del comprador (Nombre, Teléfono / WhatsApp, Correo electrónico).
+       - Modalidad de entrega: Recolección en tienda con **Código de Recolección** (`PQ-XXXXXX`) o Envío a domicilio con dirección completa (`DeliveryOrder`).
+       - Desglose de artículos: Cantidad, nombre del producto, SKU, precio unitario y total.
+       - Monto total de la venta en MXN y método de pago.
+       - Enlace directo a la venta y folio.
+       - Guía de envío (en caso de ventas de Mercado Libre).
+
+  2. **Ventana Emergente Interactiva ([`app/components/MeliSalesAlertPopup.tsx`](file:///c:/Users/barca2/.gemini/antigravity/playground/drifting-magnetosphere/pulpos_clone/app/components/MeliSalesAlertPopup.tsx))**:
+     - **Diseño Adaptativo por Canal**:
+       - *Página Web Vinculada (B2C)*: Distintivo verde esmeralda con icono `Globe` / `Store` y título `¡Nueva Compra Web (B2C)!`.
+       - *Mercado Libre*: Distintivo ámbar con icono `ShoppingBag` y título `¡Nueva Venta Mercado Libre!`.
+       - *Google Pay*: Distintivo violeta con icono `CreditCard` y título `¡Nueva Venta Google Pay!`.
+     - **Audio y Animaciones**: Reproducción de un sonido de notificación nítido al llegar una nueva venta y animación fluida de entrada (`slideInAlert`) con campana vibrante.
+     - **Ficha del Comprador y Contacto**: Acceso directo al teléfono/WhatsApp (`wa.me/...`) y correo del cliente.
+     - **Tarjeta de Entrega**: Muestra el código de recolección en tipografía monoespaciada o la dirección de envío a domicilio.
+     - **Artículos y Total**: Lista deslizable de productos con cantidades y totales, junto con el importe total destacado.
+     - **Botones de Acción Rápida**:
+       - 📄 **Ver Detalle**: Abre la venta en `/ventas/detalle/[id]`.
+       - 🖨️ **Ticket**: Imprime inmediatamente el ticket de venta en una pestaña nueva (`/ventas/detalle/[id]/imprimir-ticket`).
+       - 📦 **Guía**: Descarga de guía de envío (para Mercado Libre).
+       - **Entendido**: Descarta la alerta y la marca en `localStorage` para evitar repeticiones.
+
+* **Verificación**:
+  - Compilación verificada con `npx.cmd tsc --noEmit` con **0 errores de TypeScript**.
+
+
 
 
 

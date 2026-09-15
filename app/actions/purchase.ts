@@ -56,9 +56,10 @@ export async function createPurchase(
           throw new Error(`Excedes el límite de crédito con este proveedor. Límite disponible: ${formatCurrency(supplier.creditLimit - supplier.creditBalance)}`);
         }
 
-        const days = creditDays !== undefined && creditDays !== null ? creditDays : supplier.creditDays;
+        const days = creditDays !== undefined && creditDays !== null ? creditDays : (supplier.creditDays || 0);
         dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + days);
+        dueDate.setDate(dueDate.getDate() + (Number(days) || 0));
+        if (isNaN(dueDate.getTime())) dueDate = null;
         balanceDue = total;
 
         // Incrementar la deuda con el proveedor
@@ -97,18 +98,22 @@ export async function createPurchase(
       }
 
       // Calculate sum of total costs to prorate freight based on value
-      const baseItemsValue = items.reduce((acc, item) => acc + (item.cost * item.quantity), 0);
+      const baseItemsValue = items.reduce((acc, item) => acc + ((Number(item.cost) || 0) * (Number(item.quantity) || 0)), 0);
 
       // Increment stock, Recalculate Average Cost & Register Kardex Movement
       for (const item of items) {
+        const itemQty = Number(item.quantity) || 0;
+        const itemCost = Number(item.cost) || 0;
+        if (itemQty <= 0) continue;
+
         const product = await tx.product.findUnique({ where: { id: item.productId } });
         if (!product) continue;
 
-        const itemTotalValue = item.cost * item.quantity;
+        const itemTotalValue = itemCost * itemQty;
         // Pro-rata freight by line total value compared to overall invoice items value
-        const freightProRata = baseItemsValue > 0 ? (itemTotalValue / baseItemsValue) * freightCost : 0;
+        const freightProRata = baseItemsValue > 0 ? (itemTotalValue / baseItemsValue) * (Number(freightCost) || 0) : 0;
         // Effective Unit Cost is the original cost + the share of the freight per piece
-        const effectiveUnitCost = item.quantity > 0 ? item.cost + (freightProRata / item.quantity) : item.cost;
+        const effectiveUnitCost = itemQty > 0 ? itemCost + (freightProRata / itemQty) : itemCost;
 
         // Create Batch if applicable
         let batchId = null;
@@ -187,17 +192,17 @@ export async function createPurchase(
           });
         }
 
-        const currentStock = product.stock > 0 ? product.stock : 0;
-        const currentAverage = product.averageCost || 0;
+        const currentStock = (typeof product.stock === 'number' && !isNaN(product.stock)) ? Math.max(0, product.stock) : 0;
+        const currentAverage = (typeof product.averageCost === 'number' && !isNaN(product.averageCost)) ? Math.max(0, product.averageCost) : 0;
         
-        const totalValue = (currentStock * currentAverage) + (item.quantity * effectiveUnitCost);
-        const newStock = currentStock + item.quantity;
-        const newAverageCost = newStock > 0 ? totalValue / newStock : 0;
+        const totalValue = (currentStock * currentAverage) + (itemQty * effectiveUnitCost);
+        const newStock = currentStock + itemQty;
+        const newAverageCost = newStock > 0 ? Math.max(0, totalValue / newStock) : 0;
 
         await tx.product.update({
           where: { id: item.productId },
           data: { 
-            stock: { increment: item.quantity },
+            stock: { increment: itemQty },
             averageCost: newAverageCost,
             cost: effectiveUnitCost // Update replacement cost (cost) incorporating freight
           }
@@ -358,33 +363,35 @@ export async function updatePurchase(
         });
       }
 
-      const oldBaseItemsValue = purchase.items.reduce((acc, item) => acc + (item.cost * item.quantity), 0);
+      const oldBaseItemsValue = purchase.items.reduce((acc, item) => acc + ((Number(item.cost) || 0) * (Number(item.quantity) || 0)), 0);
 
       for (const oldItem of purchase.items) {
         const product = await tx.product.findUnique({ where: { id: oldItem.productId } });
         if (product) {
-          const oldItemTotalValue = oldItem.cost * oldItem.quantity;
-          const oldFreightProRata = oldBaseItemsValue > 0 ? (oldItemTotalValue / oldBaseItemsValue) * (purchase.freightCost || 0) : 0;
-          const oldEffectiveUnitCost = oldItem.quantity > 0 ? oldItem.cost + (oldFreightProRata / oldItem.quantity) : oldItem.cost;
+          const oldQty = Number(oldItem.quantity) || 0;
+          const oldCost = Number(oldItem.cost) || 0;
+          const oldItemTotalValue = oldCost * oldQty;
+          const oldFreightProRata = oldBaseItemsValue > 0 ? (oldItemTotalValue / oldBaseItemsValue) * (Number(purchase.freightCost) || 0) : 0;
+          const oldEffectiveUnitCost = oldQty > 0 ? oldCost + (oldFreightProRata / oldQty) : oldCost;
 
           if (oldItem.batchId) {
             await tx.productBatch.update({
               where: { id: oldItem.batchId },
-              data: { stock: { decrement: oldItem.quantity } }
+              data: { stock: { decrement: oldQty } }
             });
           }
 
           // Revert average cost
-          const currentStock = product.stock;
-          const currentAverage = product.averageCost || 0;
-          const revertedValue = (currentStock * currentAverage) - (oldItem.quantity * oldEffectiveUnitCost);
-          const revertedStock = currentStock - oldItem.quantity;
-          const revertedAverage = revertedStock > 0 ? revertedValue / revertedStock : 0;
+          const currentStock = (typeof product.stock === 'number' && !isNaN(product.stock)) ? product.stock : 0;
+          const currentAverage = (typeof product.averageCost === 'number' && !isNaN(product.averageCost)) ? product.averageCost : 0;
+          const revertedValue = (currentStock * currentAverage) - (oldQty * oldEffectiveUnitCost);
+          const revertedStock = currentStock - oldQty;
+          const revertedAverage = revertedStock > 0 ? Math.max(0, revertedValue / revertedStock) : 0;
 
           await tx.product.update({
             where: { id: oldItem.productId },
             data: {
-              stock: { decrement: oldItem.quantity },
+              stock: { decrement: oldQty },
               averageCost: revertedAverage
             }
           });
@@ -414,8 +421,10 @@ export async function updatePurchase(
         const supplier = await tx.supplier.findUnique({ where: { id: supplierId } });
         if (!supplier) throw new Error("Proveedor no encontrado.");
 
+        const creditDays = (supplier && typeof supplier.creditDays === 'number') ? supplier.creditDays : 0;
         dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + supplier.creditDays);
+        dueDate.setDate(dueDate.getDate() + creditDays);
+        if (isNaN(dueDate.getTime())) dueDate = null;
         
         // Sum up payments already made to this purchase
         const payments = await tx.supplierPayment.findMany({
@@ -447,15 +456,19 @@ export async function updatePurchase(
         }
       });
 
-      const newBaseItemsValue = items.reduce((acc, item) => acc + (item.cost * item.quantity), 0);
+      const newBaseItemsValue = items.reduce((acc, item) => acc + ((Number(item.cost) || 0) * (Number(item.quantity) || 0)), 0);
 
       for (const item of items) {
+        const itemQty = Number(item.quantity) || 0;
+        const itemCost = Number(item.cost) || 0;
+        if (itemQty <= 0) continue;
+
         const product = await tx.product.findUnique({ where: { id: item.productId } });
         if (!product) continue;
 
-        const itemTotalValue = item.cost * item.quantity;
-        const freightProRata = newBaseItemsValue > 0 ? (itemTotalValue / newBaseItemsValue) * freightCost : 0;
-        const effectiveUnitCost = item.quantity > 0 ? item.cost + (freightProRata / item.quantity) : item.cost;
+        const itemTotalValue = itemCost * itemQty;
+        const freightProRata = newBaseItemsValue > 0 ? (itemTotalValue / newBaseItemsValue) * (Number(freightCost) || 0) : 0;
+        const effectiveUnitCost = itemQty > 0 ? itemCost + (freightProRata / itemQty) : itemCost;
 
         let batchId = null;
         if (item.batchNumber || item.expirationDate) {
@@ -525,16 +538,16 @@ export async function updatePurchase(
           });
         }
 
-        const currentStock = product.stock > 0 ? product.stock : 0;
-        const currentAverage = product.averageCost || 0;
-        const totalValue = (currentStock * currentAverage) + (item.quantity * effectiveUnitCost);
-        const newStock = currentStock + item.quantity;
-        const newAverageCost = newStock > 0 ? totalValue / newStock : 0;
+        const currentStock = (typeof product.stock === 'number' && !isNaN(product.stock)) ? Math.max(0, product.stock) : 0;
+        const currentAverage = (typeof product.averageCost === 'number' && !isNaN(product.averageCost)) ? Math.max(0, product.averageCost) : 0;
+        const totalValue = (currentStock * currentAverage) + (itemQty * effectiveUnitCost);
+        const newStock = currentStock + itemQty;
+        const newAverageCost = newStock > 0 ? Math.max(0, totalValue / newStock) : 0;
 
         await tx.product.update({
           where: { id: item.productId },
           data: { 
-            stock: { increment: item.quantity },
+            stock: { increment: itemQty },
             averageCost: newAverageCost,
             cost: effectiveUnitCost
           }

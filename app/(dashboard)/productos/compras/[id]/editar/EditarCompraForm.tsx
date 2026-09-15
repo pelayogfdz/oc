@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, ShoppingBag, Search, Plus } from "lucide-react";
+import { Trash2, ShoppingBag, Search, Plus, Loader2 } from "lucide-react";
 import { updatePurchase } from "@/app/actions/purchase";
+import { searchProducts } from "@/app/actions/product";
 import { formatCurrency } from "@/lib/utils";
 
 interface EditarCompraFormProps {
@@ -12,6 +13,16 @@ interface EditarCompraFormProps {
   suppliers: any[];
   branchId: string;
 }
+
+const safeDateToIso = (d: any) => {
+  if (!d) return "";
+  try {
+    const dt = new Date(d);
+    return isNaN(dt.getTime()) ? "" : dt.toISOString().split("T")[0];
+  } catch (e) {
+    return "";
+  }
+};
 
 export default function EditarCompraForm({ purchase, products, suppliers, branchId }: EditarCompraFormProps) {
   const router = useRouter();
@@ -22,19 +33,19 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
   const [supplierFolio, setSupplierFolio] = useState(purchase.supplierFolio || "");
   const [notes, setNotes] = useState(purchase.notes || "");
   const [items, setItems] = useState<any[]>(() => {
-    return purchase.items.map((item: any) => ({
+    return (purchase.items || []).map((item: any) => ({
       productId: item.productId,
-      name: item.product.name,
-      quantity: item.quantity,
-      cost: item.cost,
-      imageUrl: item.product.imageUrl || undefined,
-      sku: item.product.sku || "",
-      barcode: item.product.barcode || "",
-      hasTraceability: item.product.hasTraceability || false,
+      name: item.product?.name || item.name || "Artículo sin nombre",
+      quantity: typeof item.quantity === "number" && !isNaN(item.quantity) ? Math.max(1, item.quantity) : 1,
+      cost: typeof item.cost === "number" && !isNaN(item.cost) ? Math.max(0, item.cost) : 0,
+      imageUrl: item.product?.imageUrl || undefined,
+      sku: item.product?.sku || "",
+      barcode: item.product?.barcode || "",
+      hasTraceability: item.product?.hasTraceability || false,
       batchNumber: item.batch?.batchNumber || "",
-      expirationDate: item.batch?.expirationDate ? new Date(item.batch.expirationDate).toISOString().split("T")[0] : "",
+      expirationDate: safeDateToIso(item.batch?.expirationDate),
       pedimento: item.fuelTraceability?.pedimento || "",
-      pedimentoDate: item.fuelTraceability?.pedimentoDate ? new Date(item.fuelTraceability.pedimentoDate).toISOString().split("T")[0] : "",
+      pedimentoDate: safeDateToIso(item.fuelTraceability?.pedimentoDate),
       crePermitSupplier: item.fuelTraceability?.crePermitSupplier || "",
       crePermitCarrier: item.fuelTraceability?.crePermitCarrier || "",
       density: item.fuelTraceability?.density !== null && item.fuelTraceability?.density !== undefined ? item.fuelTraceability.density : undefined,
@@ -53,10 +64,35 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [filterCategory, setFilterCategory] = useState("ALL");
 
-  const [availableProducts] = useState(products || []);
+  const [availableProducts, setAvailableProducts] = useState(products || []);
   const [availableSuppliers] = useState(suppliers || []);
 
-  const itemsSubtotal = items.reduce((sum, item) => sum + item.quantity * item.cost, 0);
+  // Server-side search states
+  const [serverFilteredProducts, setServerFilteredProducts] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const scannerBufferRef = useRef<string>('');
+  const lastKeyTimeRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setServerFilteredProducts([]);
+      return;
+    }
+
+    setIsSearching(true);
+    const timer = setTimeout(() => {
+      searchProducts(searchTerm, branchId)
+        .then(res => {
+          setServerFilteredProducts(res || []);
+        })
+        .catch(err => console.error(err))
+        .finally(() => setIsSearching(false));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, branchId]);
+
+  const itemsSubtotal = items.reduce((sum, item) => sum + (item.quantity * item.cost), 0);
 
   // Proportional discount factor to apply to item bases for tax calculation
   const discountFactor = itemsSubtotal > 0 ? Math.max(0, itemsSubtotal - discount) / itemsSubtotal : 1;
@@ -86,15 +122,21 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
   const ieps = totalIeps;
   const finalTotal = Math.max(0, itemsSubtotal - discount) + freightCost + iva + ieps;
 
-  const handleAddItem = (product: any) => {
+  const handleAddItem = useCallback((product: any) => {
     if (!product || !product.id) return;
-    if (items.some((i) => i.productId === product.id)) return;
+    
+    const exists = items.find((i) => i.productId === product.id);
+    if (exists) {
+      const updated = { ...exists, quantity: exists.quantity + 1 };
+      setItems([updated, ...items.filter((i) => i.productId !== product.id)]);
+      return;
+    }
     setItems([
       {
         productId: product.id,
         name: product.name,
         quantity: 1,
-        cost: product.cost || 0,
+        cost: typeof product.cost === 'number' && !isNaN(product.cost) ? product.cost : 0,
         imageUrl: product.imageUrl,
         hasTraceability: product.hasTraceability || false,
         sku: product.sku || "",
@@ -114,7 +156,85 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
       },
       ...items
     ]);
-  };
+  }, [items]);
+
+  const handleImmediateSearch = useCallback(async (term: string) => {
+    if (term.trim() === '') return false;
+    const cleanTerm = term.trim().toLowerCase();
+    
+    let exactProduct = availableProducts.find(p => 
+      (p.barcode && p.barcode.toLowerCase() === cleanTerm) ||
+      (p.sku && p.sku.toLowerCase() === cleanTerm) ||
+      (p.variants && p.variants.some((v: any) => 
+        (v.barcode && v.barcode.toLowerCase() === cleanTerm) ||
+        (v.sku && v.sku.toLowerCase() === cleanTerm)
+      ))
+    );
+
+    if (!exactProduct) {
+      try {
+        const results = await searchProducts(cleanTerm, branchId);
+        if (results && results.length > 0) {
+          exactProduct = results.find(p => 
+            (p.barcode && p.barcode.toLowerCase() === cleanTerm) ||
+            (p.sku && p.sku.toLowerCase() === cleanTerm) ||
+            (p.variants && p.variants.some((v: any) => 
+              (v.barcode && v.barcode.toLowerCase() === cleanTerm) ||
+              (v.sku && v.sku.toLowerCase() === cleanTerm)
+            ))
+          ) || results[0];
+        }
+      } catch (err) {
+        console.error("Error searching product on server:", err);
+      }
+    }
+
+    if (exactProduct) {
+      handleAddItem(exactProduct);
+      setSearchTerm('');
+      setIsSearchModalOpen(false);
+      return true;
+    }
+    return false;
+  }, [availableProducts, branchId, handleAddItem]);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const activeElement = document.activeElement;
+      if (activeElement && (
+        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'TEXTAREA' || 
+        activeElement.getAttribute('contenteditable') === 'true'
+      )) {
+        if (activeElement.id === 'editar-compras-search-input') {
+          // Let it fall through
+        } else {
+          return;
+        }
+      }
+
+      const now = Date.now();
+      if (now - lastKeyTimeRef.current > 50) {
+        scannerBufferRef.current = '';
+      }
+      lastKeyTimeRef.current = now;
+
+      if (e.key === 'Enter') {
+        const barcode = scannerBufferRef.current.trim();
+        if (barcode.length >= 3) {
+          e.preventDefault();
+          e.stopPropagation();
+          scannerBufferRef.current = '';
+          handleImmediateSearch(barcode);
+        }
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        scannerBufferRef.current += e.key;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown, true);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown, true);
+  }, [handleImmediateSearch]);
 
   const handleUpdateItem = (index: number, field: string, value: any) => {
     const newItems = [...items];
@@ -155,15 +275,19 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
   };
 
   // Filter products based on search term and category
-  const filteredProducts = availableProducts.filter((p) => {
-    const variantSkus = p.variants ? p.variants.map((v: any) => v.sku || '').join(' ') : '';
-    const variantBarcodes = p.variants ? p.variants.map((v: any) => v.barcode || '').join(' ') : '';
-    const searchTarget = `${p.name} ${p.sku || ''} ${p.barcode || ''} ${variantSkus} ${variantBarcodes}`.toLowerCase();
-    const searchWords = searchTerm.toLowerCase().split(/\s+/).filter(Boolean);
-    const matchesSearch = searchWords.every(word => searchTarget.includes(word));
-    const matchesCategory = filterCategory === "ALL" || p.category === filterCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredProducts = searchTerm.trim() !== ""
+    ? (serverFilteredProducts.length > 0 ? serverFilteredProducts : availableProducts.filter((p) => {
+        const variantSkus = p.variants ? p.variants.map((v: any) => v.sku || '').join(' ') : '';
+        const variantBarcodes = p.variants ? p.variants.map((v: any) => v.barcode || '').join(' ') : '';
+        const searchTarget = `${p.name} ${p.sku || ''} ${p.barcode || ''} ${variantSkus} ${variantBarcodes}`.toLowerCase();
+        const searchWords = searchTerm.toLowerCase().split(/\s+/).filter(Boolean);
+        const matchesSearch = searchWords.every(word => searchTarget.includes(word));
+        const matchesCategory = filterCategory === "ALL" || p.category === filterCategory;
+        return matchesSearch && matchesCategory;
+      }))
+    : availableProducts.filter((p) => {
+        return filterCategory === "ALL" || p.category === filterCategory;
+      });
 
   return (
     <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "1rem 0" }}>
@@ -749,18 +873,32 @@ export default function EditarCompraForm({ purchase, products, suppliers, branch
             <div style={{ position: "relative", marginBottom: "1rem" }}>
               <Search size={20} color="#94a3b8" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
               <input 
+                id="editar-compras-search-input"
                 type="text" 
                 autoFocus
-                placeholder="Escribe el nombre o SKU del producto..."
+                placeholder="Escribe el nombre, SKU o código de barras del producto..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={async (e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    await handleImmediateSearch(searchTerm);
+                  }
+                }}
                 style={{ width: "100%", padding: "0.75rem 1rem 0.75rem 2.8rem", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "1.05rem", outline: "none" }}
               />
+              {isSearching && (
+                <Loader2 size={18} className="animate-spin" style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--caanma-primary, #8b5cf6)" }} />
+              )}
             </div>
 
             {/* Results list */}
             <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.5rem", minHeight: "300px" }}>
-              {filteredProducts.length === 0 ? (
+              {isSearching && filteredProducts.length === 0 ? (
+                <div style={{ padding: "2rem", textAlign: "center", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+                  <Loader2 size={20} className="animate-spin" /> Buscando productos en el catálogo...
+                </div>
+              ) : filteredProducts.length === 0 ? (
                 <div style={{ padding: "2rem", textAlign: "center", color: "#64748b" }}>No se encontraron productos coincidentes</div>
               ) : (
                 filteredProducts.slice(0, 30).map((p: any) => {

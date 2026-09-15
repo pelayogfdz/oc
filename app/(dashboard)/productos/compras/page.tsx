@@ -16,7 +16,7 @@ export default async function ComprasPage({ searchParams }: PageProps) {
   const branch = await getActiveBranch();
   const resolvedParams = searchParams ? await searchParams : {};
   const search = resolvedParams.search || '';
-  const whereClause: any = branch.id === 'GLOBAL' ? {} : { branchId: branch.id };
+  const whereClause: any = branch?.id === 'GLOBAL' ? {} : { branchId: branch?.id };
   if (search) {
     whereClause.OR = [
       { id: { contains: search, mode: 'insensitive' } },
