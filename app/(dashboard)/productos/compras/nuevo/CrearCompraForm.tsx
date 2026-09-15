@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Trash2, ShoppingBag, Search, Filter, Plus, Minus, FileText, CheckCircle2, Clock } from 'lucide-react';
+import { Trash2, ShoppingBag, Search, Filter, Plus, Minus, FileText, CheckCircle2, Clock, Loader2 } from 'lucide-react';
 import { createPurchase } from '@/app/actions/purchase';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import { searchProducts } from '@/app/actions/product';
@@ -1220,11 +1220,18 @@ export default function CrearCompraForm({ suppliers, products, branchId, preload
                 }}
                 style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1.05rem', outline: 'none' }}
               />
+              {isSearching && (
+                <Loader2 size={18} className="animate-spin" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8b5cf6' }} />
+              )}
             </div>
 
             {/* Results list */}
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', minHeight: '300px' }}>
-              {filteredProducts.length === 0 ? (
+              {isSearching && filteredProducts.length === 0 ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                  <Loader2 size={20} className="animate-spin" /> Buscando productos en el catálogo...
+                </div>
+              ) : filteredProducts.length === 0 ? (
                 <div style={{ padding: '2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
                   <div style={{ color: '#64748b' }}>No se encontraron productos coincidentes</div>
                   <button

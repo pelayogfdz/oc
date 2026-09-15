@@ -31,9 +31,10 @@ export default function ComprasClient({
   const filteredPurchases = initialPurchases.filter(purchase => {
     const term = searchTerm.toLowerCase();
     const idMatch = purchase.id.toLowerCase().includes(term);
+    const folioMatch = (purchase.folio || '').toLowerCase().includes(term);
     const supplierMatch = (purchase.supplier?.name || '').toLowerCase().includes(term);
     const supplierFolioMatch = (purchase.supplierFolio || '').toLowerCase().includes(term);
-    return idMatch || supplierMatch || supplierFolioMatch;
+    return idMatch || folioMatch || supplierMatch || supplierFolioMatch;
   });
 
   return (
@@ -95,7 +96,7 @@ export default function ComprasClient({
                 <div style={{ flexGrow: 1 }}>
                   <Link href={`/productos/compras/${purchase.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }} className="hover:underline">
                     <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span><ShoppingCart size={14} /> #{purchase.id.substring(0,8).toUpperCase()}</span>
+                      <span><ShoppingCart size={14} /> #{purchase.folio || purchase.id.substring(0,8).toUpperCase()}</span>
                       {purchase.supplierFolio && (
                         <span style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '1px 6px', borderRadius: '4px', fontSize: '0.75rem' }}>
                           Prov: {purchase.supplierFolio}
@@ -225,7 +226,7 @@ export default function ComprasClient({
                 <tr key={purchase.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
                   <td data-label="Folio / Fecha" style={{ padding: '1rem' }}>
                     <Link href={`/productos/compras/${purchase.id}`} style={{ fontWeight: 'bold', fontFamily: 'monospace', color: 'var(--caanma-primary)', textDecoration: 'none' }} className="hover:underline">
-                      #{purchase.id.substring(0,8).toUpperCase()}
+                      #{purchase.folio || purchase.id.substring(0,8).toUpperCase()}
                     </Link>
                     <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
                       <Calendar size={12} /> {new Date(purchase.createdAt).toLocaleDateString()}

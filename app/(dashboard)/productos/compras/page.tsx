@@ -20,6 +20,7 @@ export default async function ComprasPage({ searchParams }: PageProps) {
   if (search) {
     whereClause.OR = [
       { id: { contains: search, mode: 'insensitive' } },
+      { folio: { contains: search, mode: 'insensitive' } },
       { supplierFolio: { contains: search, mode: 'insensitive' } },
       { supplier: { name: { contains: search, mode: 'insensitive' } } }
     ];
