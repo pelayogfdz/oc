@@ -490,8 +490,20 @@ export default function POSClient({
   const [showPromoModal, setShowPromoModal] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
   const scannerBufferRef = useRef<string>('');
   const lastKeyTimeRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!previewImage) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setPreviewImage(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewImage]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -3184,6 +3196,15 @@ export default function POSClient({
           justify-content: center;
           flex-shrink: 0;
           overflow: hidden;
+          position: relative;
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .pos-cart-item-image.has-image {
+          cursor: zoom-in;
+        }
+        .pos-cart-item-image.has-image:hover {
+          transform: scale(1.08);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
         }
         .pos-cart-item-info {
           display: flex;
@@ -3859,7 +3880,16 @@ export default function POSClient({
                   <div key={item.listId || item.cartItemId} className="pos-cart-item" style={{ marginBottom: '0.75rem' }}>
                     
                     {/* Image or Initials */}
-                    <div className="pos-cart-item-image">
+                    <div 
+                      className={`pos-cart-item-image ${item.imageUrl ? 'has-image' : ''}`}
+                      onClick={(e) => {
+                        if (item.imageUrl) {
+                          e.stopPropagation();
+                          setPreviewImage({ url: item.imageUrl, title: item.name });
+                        }
+                      }}
+                      title={item.imageUrl ? "Clic para ampliar imagen" : undefined}
+                    >
                       {item.imageUrl ? (
                         <img 
                           src={item.imageUrl} 
@@ -3869,6 +3899,10 @@ export default function POSClient({
                             e.currentTarget.style.display = 'none';
                             const parent = e.currentTarget.parentElement;
                             if (parent) {
+                              parent.classList.remove('has-image');
+                              parent.style.cursor = 'default';
+                              parent.removeAttribute('title');
+                              parent.onclick = null;
                               parent.innerHTML = `<span>${item.name.substring(0, 2).toUpperCase()}</span>`;
                             }
                           }}
@@ -5416,7 +5450,9 @@ export default function POSClient({
                         <img 
                           src={imgUrl} 
                           alt={`Referencia ${idx + 1}`} 
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in' }} 
+                          onClick={() => setPreviewImage({ url: imgUrl, title: `Foto de referencia ${idx + 1}` })}
+                          title="Clic para ampliar imagen"
                         />
                         <button
                           type="button"
@@ -6416,43 +6452,74 @@ export default function POSClient({
                       onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
                       onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
-                      <div>
-                        <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b' }}>{p.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
-                          SKU: {p.sku || '-'} | Código: {p.barcode || '-'} | {p.isService ? (
-                            <span style={{ color: '#2563eb', fontWeight: 'bold', backgroundColor: '#dbeafe', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>Servicio</span>
-                          ) : (
-                            <>Stock: <span style={{ color: p.stock > 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>{p.stock}</span></>
-                          )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+                        {p.imageUrl && (
+                          <div
+                            style={{
+                              width: '42px',
+                              height: '42px',
+                              borderRadius: '8px',
+                              overflow: 'hidden',
+                              flexShrink: 0,
+                              backgroundColor: '#f1f5f9',
+                              border: '1px solid #e2e8f0',
+                              cursor: 'zoom-in',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewImage({ url: p.imageUrl, title: p.name });
+                            }}
+                            title="Clic para ampliar imagen"
+                          >
+                            <img
+                              src={p.imageUrl}
+                              alt={p.name}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
+                          </div>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#1e293b' }}>{p.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
+                            SKU: {p.sku || '-'} | Código: {p.barcode || '-'} | {p.isService ? (
+                              <span style={{ color: '#2563eb', fontWeight: 'bold', backgroundColor: '#dbeafe', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>Servicio</span>
+                            ) : (
+                              <>Stock: <span style={{ color: p.stock > 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>{p.stock}</span></>
+                            )}
+                          </div>
+                          {mode === 'QUOTE' && (() => {
+                            const purchasePrice = p.averageCost || p.cost || 0;
+                            const taxRate = p.taxRate ?? 16.0;
+                            const taxFactor = 1 + (taxRate / 100);
+                            const purchasePriceConIva = purchasePrice * taxFactor;
+                            const priceBeforeIva = pPrice / taxFactor;
+                            const marginPercent = priceBeforeIva > 0 ? ((priceBeforeIva - purchasePrice) / priceBeforeIva) * 100 : 0;
+                            return (
+                              <div style={{ display: 'flex', gap: '0.35rem', fontSize: '0.7rem', marginTop: '0.25rem', color: '#64748b', flexWrap: 'wrap', alignItems: 'center' }}>
+                                <span style={{ backgroundColor: '#f1f5f9', padding: '0.1rem 0.25rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
+                                  Compra: <strong>{formatCurrency(purchasePrice)} sin IVA</strong> ({formatCurrency(purchasePriceConIva)} con IVA)
+                                </span>
+                                <span style={{ 
+                                  backgroundColor: marginPercent >= 0 ? '#dcfce7' : '#fee2e2', 
+                                  color: marginPercent >= 0 ? '#15803d' : '#b91c1c', 
+                                  padding: '0.1rem 0.25rem', 
+                                  borderRadius: '4px',
+                                  border: marginPercent >= 0 ? '1px solid #bbf7d0' : '1px solid #fca5a5',
+                                  fontWeight: 'bold'
+                                }}>
+                                  Margen (sin IVA): <strong>{marginPercent.toFixed(1)}%</strong>
+                                </span>
+                                <span style={{ backgroundColor: '#f1f5f9', padding: '0.1rem 0.25rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
+                                  Venta (sin IVA): <strong>{formatCurrency(priceBeforeIva)}</strong>
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </div>
-                        {mode === 'QUOTE' && (() => {
-                          const purchasePrice = p.averageCost || p.cost || 0;
-                          const taxRate = p.taxRate ?? 16.0;
-                          const taxFactor = 1 + (taxRate / 100);
-                          const purchasePriceConIva = purchasePrice * taxFactor;
-                          const priceBeforeIva = pPrice / taxFactor;
-                          const marginPercent = priceBeforeIva > 0 ? ((priceBeforeIva - purchasePrice) / priceBeforeIva) * 100 : 0;
-                          return (
-                            <div style={{ display: 'flex', gap: '0.35rem', fontSize: '0.7rem', marginTop: '0.25rem', color: '#64748b', flexWrap: 'wrap', alignItems: 'center' }}>
-                              <span style={{ backgroundColor: '#f1f5f9', padding: '0.1rem 0.25rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
-                                Compra: <strong>{formatCurrency(purchasePrice)} sin IVA</strong> ({formatCurrency(purchasePriceConIva)} con IVA)
-                              </span>
-                              <span style={{ 
-                                backgroundColor: marginPercent >= 0 ? '#dcfce7' : '#fee2e2', 
-                                color: marginPercent >= 0 ? '#15803d' : '#b91c1c', 
-                                padding: '0.1rem 0.25rem', 
-                                borderRadius: '4px',
-                                border: marginPercent >= 0 ? '1px solid #bbf7d0' : '1px solid #fca5a5',
-                                fontWeight: 'bold'
-                              }}>
-                                Margen (sin IVA): <strong>{marginPercent.toFixed(1)}%</strong>
-                              </span>
-                              <span style={{ backgroundColor: '#f1f5f9', padding: '0.1rem 0.25rem', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
-                                Venta (sin IVA): <strong>{formatCurrency(priceBeforeIva)}</strong>
-                              </span>
-                            </div>
-                          );
-                        })()}
                       </div>
                       <div className="search-result-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         {hasActivePromotion(p) && (
@@ -6586,6 +6653,119 @@ export default function POSClient({
         initialCustomerId={selectedCustomerId}
         onApplyToQuote={handleApplyAssistantQuote}
       />
+
+      {/* Product Image Lightbox Modal (Up to 400x400) */}
+      {previewImage && (
+        <div 
+          onClick={() => setPreviewImage(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 999999,
+            padding: '1rem',
+            animation: 'fadeIn 0.15s ease-out'
+          }}
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              padding: '1.25rem',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+              maxWidth: '440px',
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
+            }}
+          >
+            {/* Header */}
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem' }}>
+              <div 
+                style={{ 
+                  fontWeight: 700, 
+                  fontSize: '0.95rem', 
+                  color: '#1e293b', 
+                  overflow: 'hidden', 
+                  textOverflow: 'ellipsis', 
+                  whiteSpace: 'nowrap', 
+                  paddingRight: '0.5rem' 
+                }} 
+                title={previewImage.title}
+              >
+                {previewImage.title}
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                style={{
+                  background: '#f1f5f9',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#64748b',
+                  transition: 'background-color 0.15s, color 0.15s',
+                  flexShrink: 0
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.backgroundColor = '#e2e8f0';
+                  e.currentTarget.style.color = '#0f172a';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.backgroundColor = '#f1f5f9';
+                  e.currentTarget.style.color = '#64748b';
+                }}
+                title="Cerrar (Esc)"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* 400x400 Image Container */}
+            <div style={{
+              width: '400px',
+              height: '400px',
+              maxWidth: '100%',
+              aspectRatio: '1 / 1',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <img 
+                src={previewImage.url} 
+                alt={previewImage.title}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain'
+                }}
+              />
+            </div>
+
+            {/* Footer tip */}
+            <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center' }}>
+              400 × 400 px · Presiona <kbd style={{ padding: '0.1rem 0.35rem', backgroundColor: '#f1f5f9', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'inherit' }}>Esc</kbd> o clic fuera para cerrar
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
