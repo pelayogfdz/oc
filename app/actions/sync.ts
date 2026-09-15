@@ -19,12 +19,24 @@ export async function syncBasicCatalogs() {
       id: true,
       branchId: true,
       name: true,
+      legalName: true,
       email: true,
       phone: true,
       street: true,
       exteriorNumber: true,
+      interiorNumber: true,
+      neighborhood: true,
+      city: true,
+      zipCode: true,
+      taxRegime: true,
+      cfdiUse: true,
       storeCredit: true,
-      priceList: true
+      priceList: true,
+      taxId: true,
+      creditLimit: true,
+      creditDays: true,
+      creditBalance: true,
+      isBlocked: true
     },
     orderBy: { name: 'asc' }
   });

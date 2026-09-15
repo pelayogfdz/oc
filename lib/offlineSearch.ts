@@ -213,10 +213,12 @@ async function getOrLoadMemoryCustomers(database: CAANMAOfflineDB): Promise<Inde
       for (let i = 0; i < rawCustomers.length; i++) {
         const c = rawCustomers[i];
         const normName = normalizeText(c.name);
+        const normLegalName = normalizeText(c.legalName || '');
+        const normTaxId = normalizeText(c.taxId || '');
         const normEmail = normalizeText(c.email);
         const normPhone = normalizeText(c.phone);
         const normAddress = normalizeText(`${c.street || ''} ${c.exteriorNumber || ''}`);
-        const searchBlob = `${normName} ${normEmail} ${normPhone} ${normAddress}`;
+        const searchBlob = `${normName} ${normLegalName} ${normTaxId} ${normEmail} ${normPhone} ${normAddress}`;
 
         indexed.push({
           ...c,

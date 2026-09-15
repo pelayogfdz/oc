@@ -59,13 +59,24 @@ export default async function NuevaConsignacionPage({ searchParams }: { searchPa
       select: {
         id: true,
         name: true,
+        legalName: true,
         phone: true,
         email: true,
         street: true,
         exteriorNumber: true,
+        interiorNumber: true,
+        neighborhood: true,
+        city: true,
+        zipCode: true,
+        taxRegime: true,
+        cfdiUse: true,
         storeCredit: true,
         priceList: true,
-        taxId: true
+        taxId: true,
+        creditLimit: true,
+        creditDays: true,
+        creditBalance: true,
+        isBlocked: true
       },
       orderBy: { name: 'asc' },
       take: 50

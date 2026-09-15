@@ -85,12 +85,25 @@ export interface OfflineCustomer {
   id: string;
   branchId?: string | null;
   name: string;
+  legalName?: string | null;
   email: string | null;
   phone: string | null;
   street?: string | null;
   exteriorNumber?: string | null;
+  interiorNumber?: string | null;
+  neighborhood?: string | null;
+  colonia?: string | null;
+  city?: string | null;
+  zipCode?: string | null;
+  taxRegime?: string | null;
+  cfdiUse?: string | null;
   storeCredit?: number;
   priceList?: string;
+  taxId?: string | null;
+  creditLimit?: number;
+  creditDays?: number;
+  creditBalance?: number;
+  isBlocked?: boolean;
 }
 
 export interface OfflineSupplier {

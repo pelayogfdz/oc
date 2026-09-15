@@ -4,7 +4,7 @@ import { Image as ImageIcon, Search, Filter, MapPin, ArrowDownUp, Camera, Star, 
 import QRCode from 'qrcode';
 import { createSale, sendSaleByEmail } from '@/app/actions/sale';
 import { sendInvoiceByEmail } from '@/app/actions/facturacion';
-import { createCustomerPOS, searchCustomersAction } from '@/app/actions/customer';
+import { createCustomerPOS, searchCustomersAction, getCustomerAction } from '@/app/actions/customer';
 import { getLoyaltySettings } from '@/app/actions/loyalty';
 import { createQuote, getQuoteForPOS, createQuickProductsForQuote } from '@/app/actions/quote';
 import { createConsignment, getConsignmentForPOS } from '@/app/actions/consignment';
@@ -798,10 +798,13 @@ export default function POSClient({
           const res = await searchCustomersAction(term);
           if (isSubscribed && res.success && Array.isArray(res.customers)) {
             if (localCustomers && localCustomers.length > 0) {
-              const localIds = new Set(localCustomers.map(c => c.id));
-              const combined = [...localCustomers];
+              const onlineMap = new Map<string, any>(res.customers.map((c: any) => [c.id, c]));
+              const combined: any[] = localCustomers.map((lc: any) => {
+                const onlineCust = onlineMap.get(lc.id);
+                return onlineCust ? { ...lc, ...onlineCust } : lc;
+              });
               for (const sc of res.customers) {
-                if (!localIds.has(sc.id)) {
+                if (!combined.some((c: any) => c.id === sc.id)) {
                   combined.push(sc);
                 }
               }
@@ -993,15 +996,12 @@ export default function POSClient({
   const selectedCust = activeCustomers.find((c: any) => c.id === selectedCustomerId);
   let allowedMethods = [...customMethods];
   const isCreditEnabled = metodosConfig?.enabledIds ? metodosConfig.enabledIds.includes('CREDIT') : true;
+  const hasCredit = Boolean(selectedCust && ((selectedCust.creditLimit || 0) > 0 || (selectedCust.creditDays || 0) > 0) && !selectedCust.isBlocked);
   const isDefaultCust = !selectedCust || 
-    selectedCust.taxId === 'XAXX010101000' ||
-    selectedCust.name.toUpperCase() === 'PUBLICO EN GENERAL' ||
-    selectedCust.name.toLowerCase().includes('público en general') || 
-    selectedCust.name.toLowerCase().includes('publico en general') ||
-    selectedCust.name.toLowerCase().includes('público general') ||
-    selectedCust.name.toLowerCase().includes('publico general');
+    isGenericCustomerName(selectedCust.name) ||
+    (!selectedCust.name && selectedCust.taxId === 'XAXX010101000') ||
+    (selectedCust.taxId === 'XAXX010101000' && isGenericCustomerName(selectedCust.name));
   
-  const hasCredit = selectedCust && (selectedCust.creditLimit > 0 || selectedCust.creditDays > 0) && !selectedCust.isBlocked;
   if (isCreditEnabled && selectedCust && !isDefaultCust && hasCredit) {
     allowedMethods.push({ id: 'CREDIT', name: 'Crédito Cta.' });
   }
@@ -1236,9 +1236,27 @@ export default function POSClient({
 
   const handleCustomerChange = async (customerId: string, isProgrammatic = false, explicitCustomer?: any) => {
     setSelectedCustomerId(customerId);
-    const customer = explicitCustomer || activeCustomers.find((c: any) => c.id === customerId) || customerSearchResults.find((c: any) => c.id === customerId);
-    if (customer && !activeCustomers.some((c: any) => c.id === customer.id)) {
-      setActiveCustomers(prev => [customer, ...prev]);
+    const candidate = explicitCustomer || customerSearchResults.find((c: any) => c.id === customerId) || activeCustomers.find((c: any) => c.id === customerId);
+    let customer = candidate;
+    if (customer) {
+      setActiveCustomers(prev => {
+        const existing = prev.find((c: any) => c.id === customer.id);
+        const merged = existing ? { ...existing, ...customer } : customer;
+        const rest = prev.filter((c: any) => c.id !== customer.id);
+        return [merged, ...rest];
+      });
+    }
+
+    if (customerId && isOnline && (!customer || customer.creditLimit === undefined)) {
+      getCustomerAction(customerId).then(res => {
+        if (res.success && res.customer) {
+          setActiveCustomers(prev => {
+            const existing = prev.find((c: any) => c.id === customerId);
+            const updated = existing ? { ...existing, ...res.customer } : res.customer;
+            return [updated, ...prev.filter((c: any) => c.id !== customerId)];
+          });
+        }
+      }).catch(err => console.error('Error fetching customer credit data:', err));
     }
     if (customer && customer.priceList) {
       setPriceList(customer.priceList || 'price');
@@ -3540,7 +3558,7 @@ export default function POSClient({
                             const targetStr = `${c.name} ${c.legalName || ''} ${c.taxId || ''} ${c.phone || ''} ${c.email || ''}`.toLowerCase();
                             return words.every((w: string) => targetStr.includes(w));
                           })
-                        : activeCustomers.filter(c => !isGenericCustomerName(c.name) && c.taxId !== 'XAXX010101000').slice(0, 30);
+                        : activeCustomers.filter(c => !isGenericCustomerName(c.name) && (c.taxId !== 'XAXX010101000' || ((c.creditLimit || 0) > 0 || (c.creditDays || 0) > 0))).slice(0, 30);
 
                     return list.map(c => (
                       <div 

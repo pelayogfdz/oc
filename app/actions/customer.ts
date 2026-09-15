@@ -343,6 +343,20 @@ export async function searchCustomersAction(query: string) {
   }
 }
 
+export async function getCustomerAction(id: string) {
+  try {
+    if (!id) return { success: false, error: 'ID is required' };
+    const customer = await prisma.customer.findUnique({
+      where: { id }
+    });
+    if (!customer) return { success: false, error: 'Customer not found' };
+    return { success: true, customer: JSON.parse(JSON.stringify(customer)) };
+  } catch (error: any) {
+    console.error('getCustomerAction error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 export async function createCustomerPOS(data: {
   name: string;
   email?: string;
