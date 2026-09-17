@@ -51,6 +51,16 @@ services:
     volumes:
       - whatsapp_session_cache:/app/.wwebjs_auth
 
+  redis:
+    image: redis:7-alpine
+    container_name: caanma-redis
+    restart: always
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+
 volumes:
   postgres_data:
   whatsapp_session_cache:
+  redis_data:

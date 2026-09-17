@@ -94,15 +94,9 @@ function registerMeliStockSyncMiddleware(client: PrismaClient, tenantId: string 
 
       if (!isMeliActive) return result;
 
+      const { enqueueMeliStockSync } = await import('@/lib/meliSyncQueue');
       for (const productId of productsToSync) {
-        setTimeout(async () => {
-          try {
-            const { syncMeliStockAction } = await import('@/app/actions/integration');
-            await syncMeliStockAction(productId, tenantId);
-          } catch (err) {
-            console.error('[PRISMA MIDDLEWARE] Background Meli stock sync error:', err);
-          }
-        }, 500);
+        enqueueMeliStockSync(productId, tenantId);
       }
     } catch (err) {
       console.error('[PRISMA MIDDLEWARE] Error parsing product update:', err);
