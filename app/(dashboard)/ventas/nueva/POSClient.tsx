@@ -2511,7 +2511,7 @@ export default function POSClient({
          const qz = (await import('qz-tray')).default;
          
          // Configure QZ security/signing if a certificate is configured
-         if (qzCert) {
+         if (qzCert && isOnline) {
             qz.security.setCertificatePromise((resolve) => resolve(qzCert));
             qz.security.setSignaturePromise((toSign) => {
               return (resolve, reject) => {
@@ -2529,7 +2529,7 @@ export default function POSClient({
               };
             });
          } else {
-             // Fallback to anonymous
+             // Fallback to anonymous (safe offline)
              qz.security.setCertificatePromise((resolve) => resolve(undefined));
              qz.security.setSignaturePromise((toSign) => (resolve) => resolve(''));
          }
@@ -2583,8 +2583,8 @@ export default function POSClient({
           if (document.body.contains(iframe)) {
             document.body.removeChild(iframe);
           }
-        }, 1000);
-      }, 500);
+        }, 1500);
+      }, 250);
     }
   };
 
@@ -2749,7 +2749,12 @@ export default function POSClient({
 
       if (mode === 'QUOTE') {
         if (!isOnline) {
+          const offlineFolio = `OFF-COT-${Date.now().toString().slice(-6)}`;
+          const offlineSaleId = `OFFLINE-QUOTE-${Date.now()}`;
           await pushOfflineSale({
+             id: offlineSaleId,
+             folio: offlineFolio,
+             customerName: selectedCust ? selectedCust.name : 'Público en General',
              items,
              total: finalTotalWithTip,
              paymentMethod,
@@ -2764,7 +2769,8 @@ export default function POSClient({
              failed: false,
              breakdownDiscounts
           } as any);
-          saleId = `OFFLINE-QUOTE-${Date.now()}`;
+          saleId = offlineSaleId;
+          responseSale = { folio: offlineFolio };
         } else {
           console.log("CLIENT CHECKOUT - mode: QUOTE", {
             itemsSum: items.reduce((sum, i) => sum + i.price * i.quantity, 0),
@@ -2790,7 +2796,12 @@ export default function POSClient({
         }
       } else if (mode === 'CONSIGNMENT') {
         if (!isOnline) {
+          const offlineFolio = `OFF-CSG-${Date.now().toString().slice(-6)}`;
+          const offlineSaleId = `OFFLINE-CONSIGNMENT-${Date.now()}`;
           await pushOfflineSale({
+             id: offlineSaleId,
+             folio: offlineFolio,
+             customerName: selectedCust ? selectedCust.name : 'Público en General',
              items,
              total: finalTotalWithTip,
              paymentMethod,
@@ -2802,7 +2813,8 @@ export default function POSClient({
              retryCount: 0,
              failed: false
           } as any);
-          saleId = `OFFLINE-CONSIGNMENT-${Date.now()}`;
+          saleId = offlineSaleId;
+          responseSale = { folio: offlineFolio };
         } else {
           const consignment = await createConsignment(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null);
           saleId = consignment?.id;
@@ -2829,7 +2841,12 @@ export default function POSClient({
 
         if (!isOnline) {
           // OFFLINE MODE INTERCEPTION
+          const offlineFolio = `OFF-${Date.now().toString().slice(-6)}`;
+          const offlineSaleId = `OFFLINE-${Date.now()}`;
           await pushOfflineSale({
+             id: offlineSaleId,
+             folio: offlineFolio,
+             customerName: selectedCust ? selectedCust.name : 'Público en General',
              items,
              total: finalTotalWithTip,
              paymentMethod: activePaymentMethod,
@@ -2863,7 +2880,8 @@ export default function POSClient({
              retryCount: 0,
              failed: false
           } as any);
-          saleId = `OFFLINE-${Date.now()}`;
+          saleId = offlineSaleId;
+          responseSale = { folio: offlineFolio };
         } else {
           // ONLINE MODE
           // Use the real dynamic total calculated by the POS (total + tipAmount) to preserve edits (quantities, customer, additional products)
@@ -2930,11 +2948,11 @@ export default function POSClient({
 
       if (mode === 'SALE') {
         if (isAutoPrint) {
-          printTicket(cartBackup, totalBackup, changeBackup, discountBackup, saleId, responseSale?.folio);
+          await printTicket(cartBackup, totalBackup, changeBackup, discountBackup, saleId, responseSale?.folio);
         }
         setSuccessModalData({
           saleId,
-          folio: responseSale?.folio || saleId?.slice(0, 8).toUpperCase(),
+          folio: responseSale?.folio || saleId?.slice(0, 16).toUpperCase(),
           total: totalBackup,
           change: changeBackup,
           discount: discountBackup,
@@ -2947,9 +2965,11 @@ export default function POSClient({
           invoiceId: responseSale?.invoiceId || null
         });
         setShowSuccessModal(true);
-        router.refresh();
+        if (isOnline) {
+          router.refresh();
+        }
       } else {
-        setTimeout(() => {
+        setTimeout(async () => {
            if (!isAutoPrint) {
               if (mode === 'QUOTE') {
                 // No blocking alert
@@ -2965,12 +2985,14 @@ export default function POSClient({
               }
               router.push('/ventas/cotizaciones');
            } else {
-              printTicket(cartBackup, totalBackup, changeBackup, discountBackup, saleId, responseSale?.folio);
+              await printTicket(cartBackup, totalBackup, changeBackup, discountBackup, saleId, responseSale?.folio);
               if (mode === 'CONSIGNMENT') {
                  router.push('/ventas/consignaciones');
               }
            }
-           router.refresh();
+           if (isOnline) {
+             router.refresh();
+           }
         }, 100);
       }
 

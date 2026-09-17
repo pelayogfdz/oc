@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Eye, Printer, RotateCcw, Calendar, User, MapPin, Tag, Receipt, Send, Share2, Loader2, CheckCircle, Mail, Download, X, AlertTriangle, Filter, Truck } from 'lucide-react';
+import { Eye, Printer, RotateCcw, Calendar, User, MapPin, Tag, Receipt, Send, Share2, Loader2, CheckCircle, Mail, Download, X, AlertTriangle, Filter, Truck, WifiOff } from 'lucide-react';
 import { sendSaleByEmail, getSalesForExport } from '@/app/actions/sale';
 import { createDeliveryOrder } from '@/app/actions/logistica';
 import { formatCurrency } from '@/lib/utils';
@@ -46,12 +46,10 @@ const formatDateCompact = (dateStr: string, timezone: string) => {
   }
 };
 
-const printSaleOffline = (sale: any, isTicket: boolean) => {
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) return;
-
+const printSaleOffline = (sale: any, isTicket: boolean, branchName?: string) => {
   const itemsTotal = sale.items.reduce((sum: number, item: any) => sum + ((item.quantity || 0) * (item.price || 0)), 0);
   const discount = Math.max(0, itemsTotal - (sale.total || 0));
+  const finalBranchName = sale.branch?.name || branchName || 'CAANMA';
 
   const itemsHtml = sale.items.map((item: any) => {
     const desc = item.productName || item.product?.name || 'Producto';
@@ -111,7 +109,7 @@ const printSaleOffline = (sale: any, isTicket: boolean) => {
         </style>
       </head>
       <body>
-        <div class="center bold" style="font-size: 16px;">OFFICE CITY</div>
+        <div class="center bold" style="font-size: 16px;">${finalBranchName}</div>
         <div class="center">Folio: ${sale.folio}</div>
         <div class="center">Fecha: ${new Date(sale.createdAt).toLocaleString()}</div>
         <div class="center">Vendedor: ${sale.user?.name || sale.userName || 'Usuario'}</div>
@@ -179,10 +177,10 @@ const printSaleOffline = (sale: any, isTicket: boolean) => {
           <div>
             <h1 style="margin: 0; color: #7c3aed; font-size: 28px;">Nota de Venta</h1>
             <p style="margin: 5px 0 0 0; color: #64748b; font-weight: bold;">Folio: ${sale.folio}</p>
-            <p style="margin: 3px 0 0 0; color: #64748b;">Fecha: ${new Date(sale.createdAt).toLocaleString()}</p>
+            <p style="margin: 3px 0 0 0; color: #64748b;">Fecha: ${new Date(sale.createdAt).toLocaleString()}</div>
           </div>
           <div style="text-align: right;">
-            <h2 style="margin: 0; color: #1e293b; font-size: 20px;">OFFICE CITY</h2>
+            <h2 style="margin: 0; color: #1e293b; font-size: 20px;">${finalBranchName}</h2>
             <p style="margin: 5px 0 0 0; font-size: 14px; color: #475569;">Cliente: ${sale.customer?.name || sale.customerName || 'Público en General'}</p>
             <p style="margin: 3px 0 0 0; font-size: 14px; color: #475569;">Atendido por: ${sale.user?.name || sale.userName || 'Usuario'}</p>
           </div>
@@ -231,8 +229,34 @@ const printSaleOffline = (sale: any, isTicket: boolean) => {
     </html>
   `;
 
-  printWindow.document.write(htmlContent);
-  printWindow.document.close();
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  } else {
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.left = '-9999px';
+    iframe.style.top = '-9999px';
+    document.body.appendChild(iframe);
+    if (iframe.contentWindow) {
+      iframe.contentWindow.document.open();
+      iframe.contentWindow.document.write(htmlContent);
+      iframe.contentWindow.document.close();
+      setTimeout(() => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch (e) {
+          console.error(e);
+        }
+        setTimeout(() => {
+          if (document.body.contains(iframe)) document.body.removeChild(iframe);
+        }, 1500);
+      }, 300);
+    }
+  }
 };
 
 export default function VentasHistoryClient({
@@ -416,13 +440,13 @@ export default function VentasHistoryClient({
         if (!isMounted) return;
         const formattedOffline = pendingList.map(p => ({
           id: p.id,
-          folio: `OFFLINE-${p.id.slice(0, 6)}`,
+          folio: p.folio || `OFF-${p.id.slice(0, 6)}`,
           createdAt: p.timestamp,
           total: p.total,
           status: 'OFFLINE_PENDING',
           paymentMethod: p.paymentMethod || 'CASH',
           isOffline: true,
-          customer: { name: 'Público General' },
+          customer: { name: p.customerName || (p.customerId ? 'Cliente' : 'Público en General') },
           user: { name: 'Usuario Local' },
           branch: { name: currentBranch?.name || 'Sucursal Local' },
           items: p.items || []
@@ -1034,6 +1058,28 @@ export default function VentasHistoryClient({
         </div>
       </div>
 
+      {!isOnline && (
+        <div style={{
+          backgroundColor: '#fffbeb',
+          border: '1px solid #fde68a',
+          borderRadius: '8px',
+          padding: '0.85rem 1.25rem',
+          marginBottom: '1.25rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          color: '#92400e'
+        }}>
+          <WifiOff size={20} style={{ flexShrink: 0, color: '#d97706' }} />
+          <div>
+            <div style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Modo Offline Activo</div>
+            <div style={{ fontSize: '0.85rem', color: '#b45309' }}>
+              Estás visualizando las ventas registradas localmente en este dispositivo y las ventas guardadas en caché. Todas las operaciones pendientes se sincronizarán automáticamente en cuanto recuperes conexión a internet.
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Filters Toggle Button */}
       <button
         onClick={() => setShowFiltersMobile(!showFiltersMobile)}
@@ -1515,7 +1561,7 @@ export default function VentasHistoryClient({
                                   e.preventDefault();
                                   const fullSale = allCombinedSales.find(s => s.id === sale.id) || sale;
                                   if (fullSale) {
-                                    printSaleOffline(fullSale, false);
+                                    printSaleOffline(fullSale, false, currentBranch?.name);
                                   }
                                 }
                               }}
@@ -1556,7 +1602,7 @@ export default function VentasHistoryClient({
                                   e.preventDefault();
                                   const fullSale = allCombinedSales.find(s => s.id === sale.id) || sale;
                                   if (fullSale) {
-                                    printSaleOffline(fullSale, true);
+                                    printSaleOffline(fullSale, true, currentBranch?.name);
                                   }
                                 }
                               }}
@@ -2634,7 +2680,7 @@ export default function VentasHistoryClient({
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button
-                  onClick={() => printSaleOffline(selectedSaleWithProducts, false)}
+                  onClick={() => printSaleOffline(selectedSaleWithProducts, false, currentBranch?.name)}
                   style={{
                     padding: '0.625rem 1.25rem',
                     border: '1px solid var(--caanma-border)',
@@ -2649,7 +2695,7 @@ export default function VentasHistoryClient({
                   Imprimir Nota (A4)
                 </button>
                 <button
-                  onClick={() => printSaleOffline(selectedSaleWithProducts, true)}
+                  onClick={() => printSaleOffline(selectedSaleWithProducts, true, currentBranch?.name)}
                   style={{
                     padding: '0.625rem 1.25rem',
                     border: '1px solid var(--caanma-border)',

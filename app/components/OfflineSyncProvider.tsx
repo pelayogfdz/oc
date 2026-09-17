@@ -13,7 +13,7 @@ interface OfflineContextType {
   pendingProducts: any[];
   pendingAttendance: OfflinePendingAttendance[];
   syncMessage: string | null;
-  pushOfflineSale: (sale: Omit<OfflineSale, 'id' | 'timestamp' | 'synced' | 'retryCount' | 'failed' | 'errorMessage'>) => Promise<void>;
+  pushOfflineSale: (sale: Omit<OfflineSale, 'id' | 'timestamp' | 'synced' | 'retryCount' | 'failed' | 'errorMessage'> & { id?: string }) => Promise<any>;
   pushOfflineTransfer: (transferParams: any) => Promise<void>;
   pushOfflinePurchase: (purchaseParams: any) => Promise<void>;
   pushOfflineProduct: (productParams: any) => Promise<void>;
@@ -245,7 +245,7 @@ export function OfflineSyncProvider({
     }
   };
 
-  const pushOfflineSale = async (saleParams: Omit<OfflineSale, 'id' | 'timestamp' | 'synced' | 'retryCount' | 'failed' | 'errorMessage'>) => {
+  const pushOfflineSale = async (saleParams: Omit<OfflineSale, 'id' | 'timestamp' | 'synced' | 'retryCount' | 'failed' | 'errorMessage'> & { id?: string }) => {
     try {
       const now = new Date();
       const recentSales = await db.pendingSales
@@ -261,12 +261,16 @@ export function OfflineSyncProvider({
 
       if (isDuplicate) {
         console.warn('[Offline] Duplicate sale submission detected within 10s, ignoring.');
-        return;
+        return recentSales.find(s => 
+          s.customerId === saleParams.customerId &&
+          s.total === saleParams.total &&
+          JSON.stringify(s.items) === JSON.stringify(saleParams.items)
+        );
       }
 
       const newSale: OfflineSale = {
         ...saleParams,
-        id: crypto.randomUUID(), 
+        id: saleParams.id || crypto.randomUUID(), 
         timestamp: now.toISOString(),
         synced: false,
         retryCount: 0,
@@ -305,8 +309,10 @@ export function OfflineSyncProvider({
       } else {
         forceSync();
       }
+      return newSale;
     } catch (error) {
       setShowToast({ message: 'Error al intentar guardar la operación.', type: 'error' });
+      return null;
     }
   };
 

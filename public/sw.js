@@ -1,9 +1,10 @@
-const CACHE_NAME = 'caanma-offline-cache-v5';
+const CACHE_NAME = 'caanma-offline-cache-v6';
 
 const PRECACHE_ASSETS = [
   '/',
   '/login',
   '/ventas/nueva',
+  '/ventas',
   '/ventas/cotizaciones/nueva',
   '/ventas/consignaciones/nueva',
   '/manifest.json?v=7',
@@ -154,6 +155,7 @@ self.addEventListener('fetch', (event) => {
 
   // Rutas dinámicas, Páginas, Next.js RSC y Acciones
   const isPosRoute = url.pathname === '/ventas/nueva';
+  const isVentasRoute = url.pathname === '/ventas';
   const isRscRequest = url.searchParams.has('_rsc') || request.headers.get('RSC') === '1';
   const isOffline = typeof self.navigator !== 'undefined' && self.navigator.onLine === false;
 
@@ -173,8 +175,22 @@ self.addEventListener('fetch', (event) => {
       if (posMatch) return posMatch;
     }
 
+    // 2b. Si es la ruta de Historial de Ventas (/ventas)
+    if (isVentasRoute) {
+      if (isRscRequest) {
+        const rscMatch = await caches.match('/ventas__rsc');
+        if (rscMatch) return rscMatch;
+      }
+      const ventasMatch = await caches.match('/ventas');
+      if (ventasMatch) return ventasMatch;
+    }
+
     // 3. Si es una navegación completa de página a cualquier otra ruta
     if (request.mode === 'navigate') {
+      if (isVentasRoute) {
+        const vFallback = await caches.match('/ventas');
+        if (vFallback) return vFallback;
+      }
       const posFallback = await caches.match('/ventas/nueva');
       if (posFallback) return posFallback;
       const rootFallback = await caches.match('/');
@@ -207,6 +223,12 @@ self.addEventListener('fetch', (event) => {
                 cache.put('/ventas/nueva__rsc', responseToCache.clone());
               } else {
                 cache.put('/ventas/nueva', responseToCache.clone());
+              }
+            } else if (isVentasRoute) {
+              if (isRscRequest) {
+                cache.put('/ventas__rsc', responseToCache.clone());
+              } else {
+                cache.put('/ventas', responseToCache.clone());
               }
             }
           });

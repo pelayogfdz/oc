@@ -29,8 +29,12 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
 
   const hasNodeVisible = (node: MenuNode) => {
     if (!isOnline) {
-      // En modo offline, ÚNICAMENTE el Punto de Venta está disponible y visible
-      return node.path === '/ventas/nueva';
+      // En modo offline, permitir Punto de Venta e Historial de Ventas
+      if (node.path === '/ventas/nueva' || node.path === '/ventas') return true;
+      if (node.items) {
+        return node.items.some(item => !item.requiresOnline && (item.path === '/ventas' || item.path === '/ventas/nueva'));
+      }
+      return false;
     }
     if (isSuperAdmin || userRole === 'OWNER' || userRole === 'ADMIN') {
       return true;
@@ -143,7 +147,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
             lineHeight: '1.3'
           }}>
             <WifiOff size={15} style={{ flexShrink: 0 }} />
-            <span>Modo Offline Activo • Solo Punto de Venta</span>
+            <span>Modo Offline Activo • Punto de Venta e Historial</span>
           </div>
         )}
       </div>

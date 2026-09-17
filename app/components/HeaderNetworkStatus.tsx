@@ -1,7 +1,7 @@
 'use client';
 
 import { useOfflineSync, isOfflineEnabled } from './OfflineSyncProvider';
-import { WifiOff, DownloadCloud, RefreshCw, Check, AlertTriangle, Trash2, X, AlertCircle } from 'lucide-react';
+import { WifiOff, DownloadCloud, RefreshCw, Check, AlertTriangle, Trash2, X, AlertCircle, Printer } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { formatCurrency } from '@/lib/utils';
 
@@ -66,6 +66,102 @@ export default function HeaderNetworkStatus() {
   const handleDeleteItem = async (id: string) => {
     if (!confirm('¿Estás seguro de descartar este registro de la cola local? Esta acción no se puede deshacer.')) return;
     await deletePendingSale(id);
+  };
+
+  const handlePrintOfflineSale = async (sale: any) => {
+    try {
+      const { db } = await import('@/lib/offlineDB');
+      const settings = await db.settings.get('branch_config');
+      const ticketConfig = settings?.ticketConfig || {};
+      const branch = await db.branches.toCollection().first();
+      const branchName = branch?.name || 'MI NEGOCIO';
+      
+      const itemsHtml = await Promise.all((sale.items || []).map(async (item: any) => {
+        let name = item.productName || item.name;
+        if (!name && item.productId) {
+          const prod = await db.products.get(item.productId);
+          if (prod) name = prod.name;
+        }
+        name = name || 'Artículo';
+        const itemTotal = (item.price || 0) * (item.quantity || 1);
+        return `
+          <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+            <span style="width:25px;">${item.quantity || 1}</span>
+            <span style="flex:1; margin:0 5px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">${name}</span>
+            <span style="width:55px; text-align:right;">${formatCurrency(itemTotal)}</span>
+          </div>
+        `;
+      }));
+
+      const is58 = ticketConfig.anchoTicket === '58mm';
+      const width = is58 ? '190px' : '280px';
+      const fontSize = is58 ? '11px' : '13px';
+
+      const html = `
+        <html>
+          <head>
+            <style>
+              body { font-family: 'Courier New', Courier, monospace; font-size: ${fontSize}; margin: 0; padding: 4px; color: #000; width: ${width}; }
+              .center { text-align: center; }
+              .bold { font-weight: bold; }
+              .divider { border-top: 1px dashed #000; margin: 6px 0; }
+              .row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+            </style>
+          </head>
+          <body>
+            <div class="center bold" style="font-size: 15px;">${branchName}</div>
+            <div class="center" style="font-size: 10px;">Folio: ${sale.folio || `OFF-${sale.id.slice(0, 6)}`}</div>
+            <div class="center" style="font-size: 10px;">Fecha: ${new Date(sale.timestamp).toLocaleString()}</div>
+            <div class="divider"></div>
+            <div><strong>Cliente:</strong> ${sale.customerName || 'Público en General'}</div>
+            <div class="divider"></div>
+            <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:4px;">
+              <span style="width:25px;">CANT</span>
+              <span style="flex:1; margin:0 5px;">DESC</span>
+              <span style="width:55px; text-align:right;">TOTAL</span>
+            </div>
+            ${itemsHtml.join('')}
+            <div class="divider"></div>
+            <div class="row" style="font-size:14px; font-weight:bold;">
+              <span>TOTAL:</span>
+              <span>${formatCurrency(sale.total || 0)}</span>
+            </div>
+            <div class="row" style="font-size:10px;">
+              <span>Método:</span>
+              <span>${sale.paymentMethod || 'Efectivo'}</span>
+            </div>
+            <div class="divider"></div>
+            <div class="center bold" style="font-size:11px;">(COMPROBANTE OFFLINE)</div>
+            <div class="center" style="font-size:9px; margin-top:3px;">Pendiente de sincronización</div>
+          </body>
+        </html>
+      `;
+
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'absolute';
+      iframe.style.left = '-9999px';
+      iframe.style.top = '-9999px';
+      document.body.appendChild(iframe);
+      if (iframe.contentWindow) {
+        iframe.contentWindow.document.open();
+        iframe.contentWindow.document.write(html);
+        iframe.contentWindow.document.close();
+        setTimeout(() => {
+          try {
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+          } catch (e) {
+            console.error(e);
+          }
+          setTimeout(() => {
+            if (document.body.contains(iframe)) document.body.removeChild(iframe);
+          }, 1500);
+        }, 250);
+      }
+    } catch (e) {
+      console.error('Error printing offline ticket:', e);
+      alert('Error al imprimir ticket offline: ' + String(e));
+    }
   };
 
   const formatLastSync = (timestamp: number | null) => {
@@ -283,6 +379,25 @@ export default function HeaderNetworkStatus() {
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <button
+                            onClick={() => handlePrintOfflineSale(sale)}
+                            title="Imprimir ticket térmico de esta venta"
+                            style={{
+                              backgroundColor: '#f1f5f9',
+                              border: '1px solid #cbd5e1',
+                              color: '#334155',
+                              padding: '6px 10px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600
+                            }}
+                          >
+                            <Printer size={14} /> Ticket
+                          </button>
                           <button
                             onClick={() => handleDeleteItem(sale.id)}
                             title="Descartar este registro de la cola"

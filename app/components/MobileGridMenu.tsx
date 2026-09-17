@@ -19,7 +19,11 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
 
   const hasNodeVisible = (node: any) => {
     if (!isOnline) {
-      return node.path === '/ventas/nueva';
+      if (node.path === '/ventas/nueva' || node.path === '/ventas') return true;
+      if (node.items) {
+        return node.items.some((item: any) => !item.requiresOnline && (item.path === '/ventas' || item.path === '/ventas/nueva'));
+      }
+      return false;
     }
     if (isSuperAdmin || userRole === 'OWNER' || userRole === 'ADMIN') {
       return true;
@@ -79,7 +83,7 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
               marginBottom: '0.5rem'
             }}>
               <WifiOff size={18} style={{ flexShrink: 0 }} />
-              <span>Modo Offline: Solo el Punto de Venta está disponible sin conexión.</span>
+              <span>Modo Offline: Punto de Venta e Historial disponibles sin conexión.</span>
             </div>
           )}
           {!isSuperAdmin && navStructure.map((node) => {
@@ -142,6 +146,9 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
                   {isOpen && node.items && (
                     <div style={{ display: 'flex', flexDirection: 'column', padding: '0.5rem 1rem 1rem 3.5rem', gap: '0.75rem', backgroundColor: '#f8fafc', borderTop: '1px solid var(--caanma-border)' }}>
                       {node.items.map((item: any) => {
+                        if (!isOnline && item.requiresOnline) {
+                          return null;
+                        }
                         if (!hasNodeAccess(userPermissions, item.requiredPermission, isSuperAdmin, userRole)) {
                           return null;
                         }
