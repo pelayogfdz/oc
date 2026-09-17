@@ -12,6 +12,7 @@ import {
   deleteFuelTransaction, 
   FuelLogisticsConfig 
 } from "@/app/actions/fuel-logistics";
+import { compressImageFile } from '@/lib/imageUtils';
 
 export default function CombustiblesClient({ 
   branch, 
@@ -59,13 +60,12 @@ export default function CombustiblesClient({
   const [editTx, setEditTx] = useState<any>(null);
 
   // Process local file selection and convert to Base64 dataURL
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: string, isEdit: boolean = false, isDriver: boolean = false) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: string, isEdit: boolean = false, isDriver: boolean = false) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
+    try {
+      const base64String = await compressImageFile(file, 1280, 0.75);
       if (isDriver) {
         setSelectedTx((prev: any) => ({ ...prev, [field]: base64String }));
       } else if (isEdit) {
@@ -73,8 +73,21 @@ export default function CombustiblesClient({
       } else {
         setNewTx((prev: any) => ({ ...prev, [field]: base64String }));
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error("Error optimizando imagen de combustible:", err);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        if (isDriver) {
+          setSelectedTx((prev: any) => ({ ...prev, [field]: base64String }));
+        } else if (isEdit) {
+          setEditTx((prev: any) => ({ ...prev, [field]: base64String }));
+        } else {
+          setNewTx((prev: any) => ({ ...prev, [field]: base64String }));
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Save general configurations

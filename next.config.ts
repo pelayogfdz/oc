@@ -23,8 +23,9 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['@prisma/client', 'bcryptjs', 'bcrypt', 'pdfkit'],
   experimental: {
     serverActions: {
-      bodySizeLimit: '5mb'
-    }
+      bodySizeLimit: '20mb'
+    },
+    middlewareClientMaxBodySize: '20mb'
   }
 };
 

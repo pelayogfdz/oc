@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Package, User, CheckCircle, Truck, MapPin, ClipboardList, PackageOpen, Inbox, Printer } from 'lucide-react';
+import { ArrowLeft, Package, User, CheckCircle, Truck, MapPin, ClipboardList, PackageOpen, Inbox, Printer, Loader2 } from 'lucide-react';
 import { receiveTransfer, approveTransfer, dispatchTransfer, cancelTransfer } from '@/app/actions/transfer';
 import { useTransition, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatCurrency } from '@/lib/utils';
+import { compressImageFile } from '@/lib/imageUtils';
 
 export default function TransferDetailClient({ transfer, branchId }: { transfer: any, branchId: string }) {
   const isOrigin = transfer.branchId === branchId; // La sucursal que surte
@@ -26,6 +27,8 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
   const [dispatchPhoto, setDispatchPhoto] = useState<string | null>(null);
   const [receivePhoto, setReceivePhoto] = useState<string | null>(null);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
+  const [isCompressingDispatch, setIsCompressingDispatch] = useState(false);
+  const [isCompressingReceive, setIsCompressingReceive] = useState(false);
 
   const handleApprove = async () => {
     if (!confirm('¿Aprobar y comenzar preparación de este traspaso?')) return;
@@ -45,6 +48,10 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
   };
 
   const handleDispatch = async () => {
+    if (isCompressingDispatch) {
+      alert("Por favor, espere a que termine de procesarse y optimizarse la fotografía de surtido.");
+      return;
+    }
     if (!dispatchPhoto) {
       alert("Por favor, capture o suba una fotografía como evidencia de la mercancía surtida antes de enviar.");
       return;
@@ -66,6 +73,10 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
   };
 
   const handleReceive = async () => {
+    if (isCompressingReceive) {
+      alert("Por favor, espere a que termine de procesarse y optimizarse la fotografía de recepción.");
+      return;
+    }
     if (!receivePhoto) {
       alert("Por favor, capture o suba una fotografía como evidencia de la mercancía recibida.");
       return;
@@ -248,28 +259,68 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
                         </div>
                      </div>
                   ) : isOrigin && transfer.status === 'CREATED' ? (
-                     <div style={{ border: '2px dashed var(--caanma-primary)', borderRadius: '8px', padding: '1rem', backgroundColor: '#f5f3ff', textAlign: 'center' }}>
-                        <p style={{ fontSize: '0.85rem', color: '#4f46e5', fontWeight: '600', margin: '0 0 0.75rem 0' }}>Tomar o subir foto obligatoria *</p>
-                        <input 
-                           type="file" 
-                           accept="image/*" 
-                           capture="environment"
-                           onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                 const reader = new FileReader();
-                                 reader.onloadend = () => setDispatchPhoto(reader.result as string);
-                                 reader.readAsDataURL(file);
-                              }
-                           }}
-                           style={{ fontSize: '0.8rem', maxWidth: '100%' }}
-                        />
-                        {dispatchPhoto && (
-                           <div style={{ marginTop: '1rem' }}>
-                              <img src={dispatchPhoto} alt="Previsualización Surtido" style={{ maxWidth: '100%', maxHeight: '120px', borderRadius: '4px' }} />
-                           </div>
-                        )}
-                     </div>
+                      <div style={{ border: '2px dashed var(--caanma-primary)', borderRadius: '8px', padding: '1rem', backgroundColor: '#f5f3ff', textAlign: 'center' }}>
+                         <p style={{ fontSize: '0.85rem', color: '#4f46e5', fontWeight: '600', margin: '0 0 0.75rem 0' }}>Tomar o subir foto obligatoria *</p>
+                         <input 
+                            type="file" 
+                            accept="image/*" 
+                            capture="environment"
+                            disabled={isCompressingDispatch || isProcessing}
+                            onChange={async (e) => {
+                               const file = e.target.files?.[0];
+                               if (file) {
+                                  setIsCompressingDispatch(true);
+                                  try {
+                                     const compressed = await compressImageFile(file, 1280, 0.75);
+                                     setDispatchPhoto(compressed);
+                                  } catch (err) {
+                                     console.error("Error optimizando imagen:", err);
+                                     const reader = new FileReader();
+                                     reader.onloadend = () => setDispatchPhoto(reader.result as string);
+                                     reader.readAsDataURL(file);
+                                  } finally {
+                                     setIsCompressingDispatch(false);
+                                  }
+                               }
+                            }}
+                            style={{ fontSize: '0.8rem', maxWidth: '100%' }}
+                         />
+                         {isCompressingDispatch && (
+                            <div style={{ marginTop: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: '#6366f1', fontSize: '0.82rem', fontWeight: 'bold' }}>
+                               <Loader2 size={16} className="animate-spin" /> Optimizando imagen para envío rápido...
+                            </div>
+                         )}
+                         {dispatchPhoto && !isCompressingDispatch && (
+                            <div style={{ marginTop: '1rem', position: 'relative', display: 'inline-block' }}>
+                               <img src={dispatchPhoto} alt="Previsualización Surtido" style={{ maxWidth: '100%', maxHeight: '120px', borderRadius: '4px', border: '1px solid #c7d2fe' }} />
+                               <button
+                                  type="button"
+                                  onClick={() => setDispatchPhoto(null)}
+                                  style={{
+                                     position: 'absolute',
+                                     top: '-6px',
+                                     right: '-6px',
+                                     background: '#ef4444',
+                                     color: 'white',
+                                     border: 'none',
+                                     borderRadius: '50%',
+                                     width: '20px',
+                                     height: '20px',
+                                     cursor: 'pointer',
+                                     fontSize: '11px',
+                                     fontWeight: 'bold',
+                                     display: 'flex',
+                                     alignItems: 'center',
+                                     justifyContent: 'center',
+                                     boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                  }}
+                                  title="Eliminar foto"
+                               >
+                                  ✕
+                               </button>
+                            </div>
+                         )}
+                      </div>
                   ) : (
                      <p style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>Sin evidencia fotográfica cargada</p>
                   )}
@@ -288,28 +339,68 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
                         </div>
                      </div>
                   ) : isDestination && transfer.status === 'DISPATCHED' ? (
-                     <div style={{ border: '2px dashed var(--caanma-primary)', borderRadius: '8px', padding: '1rem', backgroundColor: '#f5f3ff', textAlign: 'center' }}>
-                        <p style={{ fontSize: '0.85rem', color: '#4f46e5', fontWeight: '600', margin: '0 0 0.75rem 0' }}>Tomar o subir foto obligatoria *</p>
-                        <input 
-                           type="file" 
-                           accept="image/*" 
-                           capture="environment"
-                           onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                 const reader = new FileReader();
-                                 reader.onloadend = () => setReceivePhoto(reader.result as string);
-                                 reader.readAsDataURL(file);
-                              }
-                           }}
-                           style={{ fontSize: '0.8rem', maxWidth: '100%' }}
-                        />
-                        {receivePhoto && (
-                           <div style={{ marginTop: '1rem' }}>
-                              <img src={receivePhoto} alt="Previsualización Recepción" style={{ maxWidth: '100%', maxHeight: '120px', borderRadius: '4px' }} />
-                           </div>
-                        )}
-                     </div>
+                      <div style={{ border: '2px dashed var(--caanma-primary)', borderRadius: '8px', padding: '1rem', backgroundColor: '#f5f3ff', textAlign: 'center' }}>
+                         <p style={{ fontSize: '0.85rem', color: '#4f46e5', fontWeight: '600', margin: '0 0 0.75rem 0' }}>Tomar o subir foto obligatoria *</p>
+                         <input 
+                            type="file" 
+                            accept="image/*" 
+                            capture="environment"
+                            disabled={isCompressingReceive || isProcessing}
+                            onChange={async (e) => {
+                               const file = e.target.files?.[0];
+                               if (file) {
+                                  setIsCompressingReceive(true);
+                                  try {
+                                     const compressed = await compressImageFile(file, 1280, 0.75);
+                                     setReceivePhoto(compressed);
+                                  } catch (err) {
+                                     console.error("Error optimizando imagen:", err);
+                                     const reader = new FileReader();
+                                     reader.onloadend = () => setReceivePhoto(reader.result as string);
+                                     reader.readAsDataURL(file);
+                                  } finally {
+                                     setIsCompressingReceive(false);
+                                  }
+                               }
+                            }}
+                            style={{ fontSize: '0.8rem', maxWidth: '100%' }}
+                         />
+                         {isCompressingReceive && (
+                            <div style={{ marginTop: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: '#6366f1', fontSize: '0.82rem', fontWeight: 'bold' }}>
+                               <Loader2 size={16} className="animate-spin" /> Optimizando imagen para envío rápido...
+                            </div>
+                         )}
+                         {receivePhoto && !isCompressingReceive && (
+                            <div style={{ marginTop: '1rem', position: 'relative', display: 'inline-block' }}>
+                               <img src={receivePhoto} alt="Previsualización Recepción" style={{ maxWidth: '100%', maxHeight: '120px', borderRadius: '4px', border: '1px solid #c7d2fe' }} />
+                               <button
+                                  type="button"
+                                  onClick={() => setReceivePhoto(null)}
+                                  style={{
+                                     position: 'absolute',
+                                     top: '-6px',
+                                     right: '-6px',
+                                     background: '#ef4444',
+                                     color: 'white',
+                                     border: 'none',
+                                     borderRadius: '50%',
+                                     width: '20px',
+                                     height: '20px',
+                                     cursor: 'pointer',
+                                     fontSize: '11px',
+                                     fontWeight: 'bold',
+                                     display: 'flex',
+                                     alignItems: 'center',
+                                     justifyContent: 'center',
+                                     boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                  }}
+                                  title="Eliminar foto"
+                               >
+                                  ✕
+                               </button>
+                            </div>
+                         )}
+                      </div>
                   ) : (
                      <p style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>Sin evidencia fotográfica cargada</p>
                   )}
@@ -376,12 +467,12 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
               </button>
             )}
             {isOrigin && transfer.status === 'CREATED' && (
-              <button onClick={handleDispatch} disabled={isProcessing} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: isProcessing ? 0.7 : 1 }}>
+              <button onClick={handleDispatch} disabled={isProcessing || isCompressingDispatch} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: (isProcessing || isCompressingDispatch) ? 0.7 : 1 }}>
                 <Truck size={16} /> Surtir y Enviar
               </button>
             )}
             {isDestination && transfer.status === 'DISPATCHED' && (
-              <button onClick={handleReceive} disabled={isProcessing} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: isProcessing ? 0.7 : 1 }}>
+              <button onClick={handleReceive} disabled={isProcessing || isCompressingReceive} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: (isProcessing || isCompressingReceive) ? 0.7 : 1 }}>
                 <Inbox size={16} /> Recibir Físicamente
               </button>
             )}

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Truck, ArrowRight, Trash2, Search, Plus, Minus, FileText, CheckCircle2, ShoppingBag, Camera, ArrowDownUp, Loader2 } from 'lucide-react';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
+import { compressImageFile } from '@/lib/imageUtils';
 
 export default function TransferClient({ originBranchId, originBranchName, otherBranches: initialOtherBranches, inventory: initialInventory, ventasConfig = {}, isDirectDispatch = false }: any) {
   const router = useRouter();
@@ -28,6 +29,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [isMounted, setIsMounted] = useState(false);
   const [evidencePhoto, setEvidencePhoto] = useState<string | null>(null);
+  const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
 
   // States for transfers en espera
   const [onHoldTransfers, setOnHoldTransfers] = useState<any[]>([]);
@@ -298,6 +300,10 @@ export default function TransferClient({ originBranchId, originBranchName, other
 
   const handleSubmit = async () => {
     if (!targetBranchId || transferItems.length === 0) return;
+    if (isCompressingPhoto) {
+      alert("Por favor, espere a que termine de procesarse y optimizarse la fotografía.");
+      return;
+    }
     if (isDirectDispatch && !evidencePhoto) {
       alert("Por favor, capture o suba una fotografía como evidencia de la mercancía surtida.");
       return;
@@ -714,19 +720,59 @@ export default function TransferClient({ originBranchId, originBranchName, other
                 type="file" 
                 accept="image/*" 
                 capture="environment"
-                onChange={(e) => {
+                disabled={isCompressingPhoto || isProcessing}
+                onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (file) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => setEvidencePhoto(reader.result as string);
-                    reader.readAsDataURL(file);
+                    setIsCompressingPhoto(true);
+                    try {
+                      const compressed = await compressImageFile(file, 1280, 0.75);
+                      setEvidencePhoto(compressed);
+                    } catch (err) {
+                      console.error("Error optimizando imagen:", err);
+                      const reader = new FileReader();
+                      reader.onloadend = () => setEvidencePhoto(reader.result as string);
+                      reader.readAsDataURL(file);
+                    } finally {
+                      setIsCompressingPhoto(false);
+                    }
                   }
                 }}
                 style={{ fontSize: '0.8rem', maxWidth: '100%' }}
               />
-              {evidencePhoto && (
-                <div style={{ marginTop: '0.75rem' }}>
-                  <img src={evidencePhoto} alt="Previsualización Surtido" style={{ maxWidth: '100%', maxHeight: '100px', borderRadius: '4px', objectFit: 'contain' }} />
+              {isCompressingPhoto && (
+                <div style={{ marginTop: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: '#6366f1', fontSize: '0.82rem', fontWeight: 'bold' }}>
+                  <Loader2 size={16} className="animate-spin" /> Optimizando imagen para envío rápido...
+                </div>
+              )}
+              {evidencePhoto && !isCompressingPhoto && (
+                <div style={{ marginTop: '0.75rem', position: 'relative', display: 'inline-block' }}>
+                  <img src={evidencePhoto} alt="Previsualización Surtido" style={{ maxWidth: '100%', maxHeight: '110px', borderRadius: '6px', objectFit: 'contain', border: '1px solid #c7d2fe' }} />
+                  <button
+                    type="button"
+                    onClick={() => setEvidencePhoto(null)}
+                    style={{
+                      position: 'absolute',
+                      top: '-6px',
+                      right: '-6px',
+                      background: '#ef4444',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '20px',
+                      height: '20px',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                    }}
+                    title="Eliminar foto"
+                  >
+                    ✕
+                  </button>
                 </div>
               )}
             </div>
@@ -744,7 +790,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
             <button 
               type="button"
               onClick={handleSubmit}
-              disabled={isProcessing || !targetBranchId || transferItems.length === 0}
+              disabled={isProcessing || isCompressingPhoto || !targetBranchId || transferItems.length === 0}
               style={{
                 width: '100%',
                 padding: '1.1rem',
