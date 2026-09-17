@@ -6167,17 +6167,24 @@ export default function POSClient({
                 }}
                 style={{
                   padding: '1rem',
-                  backgroundColor: 'var(--caanma-primary)',
+                  backgroundColor: '#dc2626',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
                   fontWeight: 'bold',
                   cursor: 'pointer',
                   fontSize: '1rem',
-                  marginTop: '0.5rem'
+                  marginTop: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  transition: 'background-color 0.2s'
                 }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#b91c1c'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
               >
-                ➕ Nueva Venta (Limpiar)
+                ✕ Cerrar Venta
               </button>
             </div>
           </div>
