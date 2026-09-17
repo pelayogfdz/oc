@@ -243,6 +243,11 @@ model Customer {
   loyaltyTransactions LoyaltyTransaction[]
   appointments     Appointment[]
   fuelTransactions FuelTransaction[]
+
+  @@index([name])
+  @@index([taxId])
+  @@index([phone])
+  @@index([branchId])
 }
 
 model CustomerPayment {
@@ -440,6 +445,9 @@ model Sale {
 
   @@index([branchId, createdAt(sort: Desc)])
   @@index([customerId])
+  @@index([folio])
+  @@index([status])
+  @@index([branchId, status, createdAt(sort: Desc)])
 }
 
 model SaleItem {
@@ -513,7 +521,10 @@ model Quote {
   observations        String?
   observationImageUrl String?
   items         QuoteItem[]
+
   @@index([branchId, status])
+  @@index([folio])
+  @@index([customerId])
 }
 
 model QuoteItem {
@@ -529,6 +540,9 @@ model QuoteItem {
   product     Product         @relation(fields: [productId], references: [id])
   quote       Quote           @relation(fields: [quoteId], references: [id])
   variant     ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([quoteId])
+  @@index([productId])
 }
 
 model Consignment {
@@ -546,7 +560,10 @@ model Consignment {
   customer      Customer?         @relation(fields: [customerId], references: [id])
   user          User              @relation(fields: [userId], references: [id])
   items         ConsignmentItem[]
+
   @@index([branchId, status])
+  @@index([folio])
+  @@index([customerId])
 }
 
 model ConsignmentItem {
@@ -562,6 +579,9 @@ model ConsignmentItem {
   product       Product         @relation(fields: [productId], references: [id])
   consignment   Consignment     @relation(fields: [consignmentId], references: [id], onDelete: Cascade)
   variant       ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([consignmentId])
+  @@index([productId])
 }
 
 
@@ -611,6 +631,9 @@ model TransferItem {
   product        Product         @relation(fields: [productId], references: [id])
   transfer       Transfer        @relation(fields: [transferId], references: [id])
   variant        ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([transferId])
+  @@index([productId])
 }
 
 model Promotion {
@@ -685,6 +708,7 @@ model Purchase {
   @@index([branchId, createdAt(sort: Desc)])
   @@index([supplierId])
   @@index([status])
+  @@index([folio])
 }
 
 model PurchaseItem {
@@ -700,6 +724,9 @@ model PurchaseItem {
   product     Product       @relation(fields: [productId], references: [id])
   purchase    Purchase      @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
   fuelTraceability FuelTraceability?
+
+  @@index([purchaseId])
+  @@index([productId])
 }
 
 model PriceList {

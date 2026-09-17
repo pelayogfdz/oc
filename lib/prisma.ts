@@ -15,7 +15,6 @@ const masterUrl = process.env.DATABASE_URL!;
 function getPooledUrl(urlStr: string): string {
   try {
     const urlObj = new URL(urlStr);
-    urlObj.searchParams.set('pgbouncer', 'true');
     urlObj.searchParams.set('connection_limit', '10'); // Prevent pool timeouts under concurrent load
     return urlObj.toString();
   } catch (e) {
@@ -139,7 +138,6 @@ export function getClientForTenant(tenantId: string): PrismaClient {
   }
   const urlObj = new URL(masterUrl);
   urlObj.pathname = `/${dbName}`;
-  urlObj.searchParams.set('pgbouncer', 'true');
   urlObj.searchParams.set('connection_limit', '10'); // Prevent pool timeouts under concurrent load
   const tenantUrl = urlObj.toString();
   
@@ -267,7 +265,6 @@ export async function syncTenantDataToTenantDb(tenantId: string) {
   if (!dbName) return;
   const urlObj = new URL(masterUrl);
   urlObj.pathname = `/${dbName}`;
-  urlObj.searchParams.set('pgbouncer', 'true');
   urlObj.searchParams.set('connection_limit', '15');
   const tenantUrl = urlObj.toString();
   const tenantPrisma = new PrismaClient({ datasources: { db: { url: tenantUrl } } });
