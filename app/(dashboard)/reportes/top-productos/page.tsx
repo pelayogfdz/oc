@@ -17,7 +17,11 @@ export default async function TopProductosPage() {
   const data = await getTopProductsReport(startDate, endDate, initialBranchId, 'ALL');
   
   // Get filter values
-  const filters = await getAvailableFilters();
+  const filters = await getAvailableFilters({
+    startDate,
+    endDate,
+    branchId: initialBranchId !== 'ALL' ? initialBranchId : undefined
+  });
 
   const safeData = JSON.parse(JSON.stringify(data));
   const safeFilters = JSON.parse(JSON.stringify(filters));

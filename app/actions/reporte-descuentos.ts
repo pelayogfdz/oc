@@ -338,6 +338,19 @@ export async function getDiscountPromotionsReport(
   const byType = Array.from(typeAggMap.values())
     .sort((a, b) => b.totalDiscountAmount - a.totalDiscountAmount);
 
+  const salesUsersMap = new Map<string, string>();
+  sales.forEach((s: any) => {
+    if (s.userId && s.user?.name) {
+      salesUsersMap.set(s.userId, s.user.name);
+    }
+  });
+
+  const availableUsers = salesUsersMap.size > 0
+    ? Array.from(salesUsersMap.entries())
+        .map(([id, name]) => ({ id, name }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }))
+    : tenantUsers;
+
   return {
     kpis: {
       totalDiscountAmount: Math.round(totalDiscountAmount * 100) / 100,
@@ -351,6 +364,6 @@ export async function getDiscountPromotionsReport(
     byProduct,
     byType,
     availableBranches: tenantBranches,
-    availableUsers: tenantUsers
+    availableUsers
   };
 }

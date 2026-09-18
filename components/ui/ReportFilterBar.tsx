@@ -62,9 +62,13 @@ export default function ReportFilterBar({
   useEffect(() => {
     async function loadFilters() {
       try {
-        const { branches, users, brands, paymentMethods } = await getAvailableFilters() as any;
-        setBranches(branches);
-        setUsers(users);
+        const { branches, users, brands, paymentMethods } = await getAvailableFilters({
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate,
+          branchId: initialBranchId !== 'ALL' ? initialBranchId : undefined
+        }) as any;
+        setBranches(branches || []);
+        setUsers(users || []);
         setBrands(brands || []);
         setPaymentMethods(paymentMethods || []);
       } catch (e) {
@@ -75,6 +79,38 @@ export default function ReportFilterBar({
     }
     loadFilters();
   }, []);
+
+  // Dynamically update active sellers whenever date range or branch changes
+  useEffect(() => {
+    if (loadingFilters || !showUser) return;
+    let isCancelled = false;
+
+    async function updateActiveUsers() {
+      try {
+        const { users: activeUsers } = await getAvailableFilters({
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate,
+          branchId: branchId !== 'ALL' ? branchId : undefined
+        }) as any;
+
+        if (!isCancelled && activeUsers) {
+          setUsers(activeUsers);
+          if (userId !== 'ALL' && !activeUsers.some((u: any) => u.id === userId)) {
+            setUserId('ALL');
+            handleApply(dateRange, branchId, 'ALL', brandId, paymentMethod, invoiced);
+          }
+        }
+      } catch (err) {
+        console.error("Error updating active users for filter:", err);
+      }
+    }
+
+    updateActiveUsers();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [dateRange.startDate, dateRange.endDate, branchId]);
 
   const handleApply = (
     newDateRange?: DateRange, 
@@ -181,7 +217,7 @@ export default function ReportFilterBar({
         </div>
       )}
 
-      {showUser && users.length > 0 && (
+      {showUser && (
         <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--caanma-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
           <User size={16} color="var(--caanma-text-muted)" style={{ marginLeft: '0.5rem' }} />
           <select 

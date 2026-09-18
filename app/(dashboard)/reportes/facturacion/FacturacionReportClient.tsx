@@ -25,7 +25,6 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
     router.push(`/reportes/facturacion?${query.toString()}`);
   };
 
-  // Determine if a sale is "facturada". We check if notes contains "[REQUIERE FACTURA]"
   const salesData = useMemo(() => {
     return initialSales.map((sale: any) => {
       const isFacturado = sale.notes?.includes('[REQUIERE FACTURA]');
@@ -35,6 +34,24 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
       };
     });
   }, [initialSales]);
+
+  // Only show users that have sales in this period
+  const activeUsers = useMemo(() => {
+    const userMap = new Map<string, string>();
+    salesData.forEach((s: any) => {
+      if (s.userId && s.user?.name) {
+        userMap.set(s.userId, s.user.name);
+      } else if (s.userId && s.userName) {
+        userMap.set(s.userId, s.userName);
+      }
+    });
+    if (userMap.size > 0) {
+      return Array.from(userMap.entries())
+        .map(([id, name]) => ({ id, name }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+    }
+    return users || [];
+  }, [salesData, users]);
 
   // Apply Client-Side Filters
   const filteredSales = useMemo(() => {
@@ -126,7 +143,7 @@ export default function FacturacionReportClient({ initialSales, users, brands = 
         
         <select value={filterUserId} onChange={e => setFilterUserId(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--caanma-border)' }}>
           <option value="ALL">Todos los Vendedores</option>
-          {users.map((u: any) => (
+          {activeUsers.map((u: any) => (
             <option key={u.id} value={u.id}>{u.name || u.email}</option>
           ))}
         </select>

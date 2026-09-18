@@ -16,7 +16,11 @@ export default async function Page() {
   const startDate = startOfDay(subDays(new Date(), 29));
 
   const initialData = await getCustomCommissionsReport(startDate, endDate, initialBranchId);
-  const availableFilters = await getAvailableFilters();
+  const availableFilters = await getAvailableFilters({
+    startDate,
+    endDate,
+    branchId: initialBranchId !== 'ALL' ? initialBranchId : undefined
+  });
 
   const safeData = JSON.parse(JSON.stringify(initialData));
   const safeFilters = JSON.parse(JSON.stringify(availableFilters));

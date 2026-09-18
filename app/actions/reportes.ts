@@ -543,7 +543,12 @@ export async function getInventoryValuationData(branchIdFilter?: string, brandFi
   };
 }
 
-export async function getAvailableFilters(options?: { includeCustomers?: boolean }) {
+export async function getAvailableFilters(options?: { 
+  includeCustomers?: boolean;
+  startDate?: Date | string;
+  endDate?: Date | string;
+  branchId?: string;
+}) {
   const includeCustomers = options?.includeCustomers ?? false;
   const session = await getSession();
   const branch = await getActiveBranch();
@@ -563,12 +568,6 @@ export async function getAvailableFilters(options?: { includeCustomers?: boolean
     branches = [{ id: branch.id, name: branch.name }];
   }
 
-  const users = await prisma.user.findMany({
-    where: { tenantId },
-    select: { id: true, name: true },
-    orderBy: { name: 'asc' }
-  });
-
   // Find all branches of this tenant
   const tenantBranches = await prisma.branch.findMany({
     where: { tenantId, isActive: true },
@@ -577,7 +576,69 @@ export async function getAvailableFilters(options?: { includeCustomers?: boolean
   const branchIds = tenantBranches.map(b => b.id);
 
   if (branchIds.length === 0) {
-    return { branches, users, categories: [], customers: [], brands: [], paymentMethods: [] };
+    return { branches, users: [], categories: [], customers: [], brands: [], paymentMethods: [] };
+  }
+
+  // Determine branch filter for sellers/sales
+  let branchCondition: any = branch.id === 'GLOBAL' ? { branchId: { in: branchIds } } : { branchId: branch.id };
+  if (options?.branchId && options.branchId !== 'ALL') {
+    if (branchIds.includes(options.branchId)) {
+      branchCondition = { branchId: options.branchId };
+    }
+  }
+
+  let users: { id: string; name: string }[] = [];
+
+  if (options?.startDate && options?.endDate) {
+    const sDate = new Date(options.startDate);
+    const eDate = new Date(options.endDate);
+
+    const activeSaleUsers = await prisma.sale.findMany({
+      where: {
+        ...branchCondition,
+        createdAt: { gte: sDate, lte: eDate },
+        status: 'COMPLETED'
+      },
+      select: {
+        userId: true,
+        user: {
+          select: { id: true, name: true }
+        }
+      },
+      distinct: ['userId']
+    });
+
+    users = activeSaleUsers
+      .map(s => s.user)
+      .filter((u): u is { id: string; name: string } => !!u && !!u.id && !!u.name)
+      .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es', { sensitivity: 'base' }));
+  } else {
+    const activeSaleUsers = await prisma.sale.findMany({
+      where: {
+        ...branchCondition,
+        status: 'COMPLETED'
+      },
+      select: {
+        userId: true,
+        user: {
+          select: { id: true, name: true }
+        }
+      },
+      distinct: ['userId']
+    });
+
+    if (activeSaleUsers.length > 0) {
+      users = activeSaleUsers
+        .map(s => s.user)
+        .filter((u): u is { id: string; name: string } => !!u && !!u.id && !!u.name)
+        .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es', { sensitivity: 'base' }));
+    } else {
+      users = await prisma.user.findMany({
+        where: { tenantId },
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' }
+      });
+    }
   }
 
   const placeholders = branchIds.map((_, idx) => `$${idx + 1}`).join(', ');

@@ -3,11 +3,12 @@
 import { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { TrendingUp, Package, ArrowDownToLine, Loader2, Calendar, Search, DollarSign, Printer, Download } from 'lucide-react';
-import { getTopProductsReport } from '@/app/actions/reportes';
+import { getTopProductsReport, getAvailableFilters } from '@/app/actions/reportes';
 import { exportToExcel } from '@/lib/exportExcel';
 
 export default function TopProductosClient({ initialData, initialBranchId, availableFilters }: { initialData: any[], initialBranchId: string, availableFilters: any }) {
   const [data, setData] = useState<any[]>(initialData);
+  const [usersList, setUsersList] = useState<any[]>(availableFilters.users || []);
   const [branchId, setBranchId] = useState(initialBranchId);
   const [category, setCategory] = useState('ALL');
   const [brand, setBrand] = useState('ALL');
@@ -67,8 +68,17 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
   const triggerUpdate = async (start: Date, end: Date, bId: string, cat: string, brnd: string, sId: string) => {
     setIsLoading(true);
     try {
-      const res = await getTopProductsReport(start, end, bId, cat, brnd, sId);
+      const [res, filterRes] = await Promise.all([
+        getTopProductsReport(start, end, bId, cat, brnd, sId),
+        getAvailableFilters({ startDate: start, endDate: end, branchId: bId !== 'ALL' ? bId : undefined })
+      ]);
       setData(res || []);
+      if (filterRes?.users) {
+        setUsersList(filterRes.users);
+        if (sId !== 'ALL' && !filterRes.users.some((u: any) => u.id === sId)) {
+          setSellerId('ALL');
+        }
+      }
     } catch (error) {
       console.error("Error updating products report:", error);
     } finally {
@@ -273,7 +283,7 @@ export default function TopProductosClient({ initialData, initialBranchId, avail
               style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem', outline: 'none' }}
             >
               <option value="ALL">Todos los Vendedores</option>
-              {availableFilters.users?.map((u: any) => (
+              {usersList?.map((u: any) => (
                 <option key={u.id} value={u.id}>{u.name}</option>
               ))}
             </select>
