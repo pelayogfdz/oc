@@ -1,4 +1,17 @@
-export function formatCurrency(amount: number | string | null | undefined, decimals?: number) {
+export function formatCurrency(amount: number | string | null | undefined, decimals: number = 2) {
+  const num = typeof amount === 'string' ? parseFloat(amount) : (amount ?? 0);
+  const safeNum = isNaN(num) ? 0 : num;
+  const d = Math.max(0, Math.min(20, decimals));
+
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+    minimumFractionDigits: d,
+    maximumFractionDigits: d
+  }).format(safeNum);
+}
+
+export function formatUnitPrice(amount: number | string | null | undefined, decimals?: number) {
   const num = typeof amount === 'string' ? parseFloat(amount) : (amount ?? 0);
   const safeNum = isNaN(num) ? 0 : num;
   let d = 2;

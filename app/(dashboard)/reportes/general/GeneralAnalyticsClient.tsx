@@ -95,38 +95,48 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
 
       <div style={{ opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
         {/* KPI Widgets */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#dcfce7', borderRadius: '8px' }}><DollarSign size={20} color="#16a34a" /></div>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Ingresos Brutos</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+              <div style={{ padding: '0.5rem', backgroundColor: '#dcfce7', borderRadius: '8px', flexShrink: 0 }}><DollarSign size={20} color="#16a34a" /></div>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Ingresos Brutos</h3>
             </div>
-            <div style={{ fontSize: '2rem', fontWeight: '900', color: '#16a34a' }}>{formatCurrency(data.totalRevenue)}</div>
+            <div style={{ fontSize: 'clamp(1.25rem, 1.8vw, 1.7rem)', fontWeight: '900', color: '#16a34a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatCurrency(data.totalRevenue)}>
+              {formatCurrency(data.totalRevenue)}
+            </div>
           </div>
           
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#e0f2fe', borderRadius: '8px' }}><TrendingUp size={20} color="#0284c7" /></div>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Utilidad Neta (Ganancia)</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+              <div style={{ padding: '0.5rem', backgroundColor: '#e0f2fe', borderRadius: '8px', flexShrink: 0 }}><TrendingUp size={20} color="#0284c7" /></div>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Utilidad Neta (Ganancia)</h3>
             </div>
-            <div style={{ fontSize: '2rem', fontWeight: '900', color: '#0284c7' }}>{formatCurrency(data.totalProfit)}</div>
+            <div style={{ fontSize: 'clamp(1.25rem, 1.8vw, 1.7rem)', fontWeight: '900', color: '#0284c7', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatCurrency(data.totalProfit)}>
+              {formatCurrency(data.totalProfit)}
+            </div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#fef3c7', borderRadius: '8px' }}><Percent size={20} color="#d97706" /></div>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Margen Global</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+              <div style={{ padding: '0.5rem', backgroundColor: '#fef3c7', borderRadius: '8px', flexShrink: 0 }}><Percent size={20} color="#d97706" /></div>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Margen Global</h3>
             </div>
-            <div style={{ fontSize: '2rem', fontWeight: '900', color: '#d97706' }}>{data.margin.toFixed(2)}%</div>
+            <div style={{ fontSize: 'clamp(1.25rem, 1.8vw, 1.7rem)', fontWeight: '900', color: '#d97706', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {data.margin.toFixed(2)}%
+            </div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#f3e8ff', borderRadius: '8px' }}><FileText size={20} color="#9333ea" /></div>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)' }}>Tickets y Ticket Prom.</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+              <div style={{ padding: '0.5rem', backgroundColor: '#f3e8ff', borderRadius: '8px', flexShrink: 0 }}><FileText size={20} color="#9333ea" /></div>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Tickets y Ticket Prom.</h3>
             </div>
-            <div style={{ fontSize: '2rem', fontWeight: '900', color: '#9333ea' }}>{data.totalTickets}</div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginTop: '0.25rem' }}>Promedio: {formatCurrency(data.avgTicket)}</div>
+            <div style={{ fontSize: 'clamp(1.25rem, 1.8vw, 1.7rem)', fontWeight: '900', color: '#9333ea', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {data.totalTickets.toLocaleString('es-MX')}
+            </div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--caanma-text-muted)', marginTop: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              Promedio: {formatCurrency(data.avgTicket)}
+            </div>
           </div>
         </div>
 
