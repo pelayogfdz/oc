@@ -4,6 +4,11 @@ import { prisma } from '@/lib/prisma';
 import { getActiveBranch } from './auth';
 import { revalidatePath } from 'next/cache';
 
+// Helper for clean currency rounding (2 decimals)
+function round2(num: number): number {
+  return Math.round((num + Number.EPSILON) * 100) / 100;
+}
+
 // ==========================================
 // 1. AGENTE DE COMPRAS E INTELIGENCIA DE PROVEEDORES
 // ==========================================
@@ -83,9 +88,9 @@ export async function getSupplierIntelligence() {
             sku: prod.sku,
             stock: prod.stock,
             minStock: prod.minStock,
-            cost: prod.cost || 0,
-            price: prod.price || 0,
-            suggestedQty: Math.max(10, (prod.minStock * 2) - prod.stock)
+            cost: round2(prod.cost || 0),
+            price: round2(prod.price || 0),
+            suggestedQty: Math.max(5, (prod.minStock * 2) - prod.stock)
           });
         }
 
@@ -101,54 +106,69 @@ export async function getSupplierIntelligence() {
       });
 
       const grossProfit = Math.max(0, totalSalesGenerated - totalCostOfGoodsSold);
+      
+      // Calculate realistic catalog average margin
+      let catalogAvgMargin = 0;
+      if (sup.products && sup.products.length > 0) {
+        const validProds = sup.products.filter((p: any) => p.price > 0 && p.cost > 0);
+        if (validProds.length > 0) {
+          catalogAvgMargin = validProds.reduce((sum: number, p: any) => sum + (((p.price - p.cost) / p.price) * 100), 0) / validProds.length;
+        }
+      }
+
       const grossMarginPct = totalSalesGenerated > 0 
         ? Math.round((grossProfit / totalSalesGenerated) * 100) 
-        : ((sup.products || []).length > 0 
-            ? Math.round((sup.products || []).reduce((acc: number, p: any) => acc + (p.price > 0 ? ((p.price - (p.cost || 0)) / p.price) * 100 : 0), 0) / (sup.products || []).length)
-            : 0);
+        : Math.round(catalogAvgMargin);
 
       const sellThroughRate = totalUnitsPurchased > 0 
         ? Math.min(100, Math.round((totalUnitsSold / totalUnitsPurchased) * 100))
-        : (totalUnitsSold > 0 ? 85 : 0);
+        : (totalUnitsSold > 0 ? Math.min(100, Math.round((totalUnitsSold / (totalUnitsSold + 10)) * 100)) : 0);
 
       // Scoring formula (0 - 100)
-      const marginScore = Math.min(40, (grossMarginPct / 50) * 40);
-      const salesScore = Math.min(35, (sellThroughRate / 100) * 35);
-      const catalogScore = Math.min(25, ((sup.products || []).length / 10) * 25);
-      const overallScore = Math.min(100, Math.round(marginScore + salesScore + catalogScore));
+      // Margin weight 35%, Sales Volume weight 40%, Catalog activity 25%
+      const marginPoints = Math.min(35, (grossMarginPct / 50) * 35);
+      const salesPoints = Math.min(40, (totalSalesGenerated > 20000 ? 40 : (totalSalesGenerated / 20000) * 40));
+      const catalogPoints = Math.min(25, (sup.products.length / 5) * 25);
+      const overallScore = Math.max(10, Math.min(100, Math.round(marginPoints + salesPoints + catalogPoints)));
 
-      // Category classification
+      // Realistic tier classification for retail & B2B stationery
       let tier: 'ESTRATEGICO' | 'VOLUMEN' | 'ESPECIALIZADO' | 'EN_RIESGO' = 'VOLUMEN';
+      let tierLabel = 'Alto Volumen';
       let recommendation = '';
 
-      if (grossMarginPct >= 35 && sellThroughRate >= 60) {
+      if (totalSalesGenerated >= 10000 && grossMarginPct >= 30) {
         tier = 'ESTRATEGICO';
-        recommendation = 'Proveedor de Máxima Rentabilidad. Priorizar en compras y solicitar convenios de descuento por pronto pago o volumen.';
-      } else if (sellThroughRate >= 60 && grossMarginPct < 35) {
+        tierLabel = 'Proveedor Clave Estratégico';
+        recommendation = 'Genera alto flujo y excelente utilidad. Conviene priorizar compras, pedir descuentos por pronto pago o negociar exclusividad.';
+      } else if (totalSalesGenerated >= 5000) {
         tier = 'VOLUMEN';
-        recommendation = 'Alta rotación pero margen moderado. Clave para flujo y tráfico; negociar mejores costos base con el fabricante.';
-      } else if (grossMarginPct >= 35 && sellThroughRate < 60) {
+        tierLabel = 'Generador de Volumen y Tráfico';
+        recommendation = 'Alta rotación y ventas constantes. Mantener stock siempre disponible para no perder clientes recurrentes.';
+      } else if (grossMarginPct >= 35 && sup.products.length > 0) {
         tier = 'ESPECIALIZADO';
-        recommendation = 'Alto margen pero rotación pausada. Mantener stock justo y reordenar solo bajo mínimos estrictos o pedidos confirmados.';
+        tierLabel = 'Especializado de Alto Margen';
+        recommendation = 'Deja excelente margen por pieza vendida. Mantener stock sobre pedido o mínimos controlados.';
       } else {
         tier = 'EN_RIESGO';
-        recommendation = 'Bajo margen y baja rotación. Evaluar descontinuar artículos de lento movimiento o exigir mejores plazos de crédito.';
+        tierLabel = 'Baja Rotación / Revisar';
+        recommendation = 'Pocas ventas registradas en el período. Evaluar si conviene liquidar inventario lento o renegociar costos.';
       }
 
       return {
         id: sup.id,
         name: sup.name,
         contactName: sup.legalName || sup.name,
-        phone: sup.phone,
-        email: sup.email,
+        phone: sup.phone || '',
+        email: sup.email || '',
         productsCount: (sup.products || []).length,
-        totalPurchased,
-        totalSalesGenerated,
-        grossProfit,
+        totalPurchased: round2(totalPurchased),
+        totalSalesGenerated: round2(totalSalesGenerated),
+        grossProfit: round2(grossProfit),
         grossMarginPct,
         sellThroughRate,
         overallScore,
         tier,
+        tierLabel,
         recommendation,
         lowStockProducts
       };
@@ -160,9 +180,14 @@ export async function getSupplierIntelligence() {
     // Summary metrics
     const totalPurchasesAll = evaluatedSuppliers.reduce((sum: number, s: any) => sum + s.totalPurchased, 0);
     const totalSalesAll = evaluatedSuppliers.reduce((sum: number, s: any) => sum + s.totalSalesGenerated, 0);
-    const avgMarginAll = evaluatedSuppliers.length > 0 
-      ? Math.round(evaluatedSuppliers.reduce((sum: number, s: any) => sum + s.grossMarginPct, 0) / evaluatedSuppliers.length) 
-      : 0;
+    
+    // Average margin weighted or among active suppliers
+    const activeSuppliersWithSales = evaluatedSuppliers.filter((s: any) => s.totalSalesGenerated > 0);
+    const avgMarginAll = activeSuppliersWithSales.length > 0 
+      ? Math.round(activeSuppliersWithSales.reduce((sum: number, s: any) => sum + s.grossMarginPct, 0) / activeSuppliersWithSales.length) 
+      : (evaluatedSuppliers.length > 0 
+          ? Math.round(evaluatedSuppliers.reduce((sum: number, s: any) => sum + s.grossMarginPct, 0) / evaluatedSuppliers.length) 
+          : 0);
 
     const criticalReorderItems = evaluatedSuppliers.flatMap((s: any) => s.lowStockProducts.map((p: any) => ({ ...p, supplierName: s.name, supplierId: s.id })));
 
@@ -171,11 +196,13 @@ export async function getSupplierIntelligence() {
       suppliers: evaluatedSuppliers,
       summary: {
         totalSuppliers: evaluatedSuppliers.length,
-        totalPurchasesAll,
-        totalSalesAll,
+        totalPurchasesAll: round2(totalPurchasesAll),
+        totalSalesAll: round2(totalSalesAll),
         avgMarginAll,
         criticalReorderCount: criticalReorderItems.length,
         strategicCount: evaluatedSuppliers.filter((s: any) => s.tier === 'ESTRATEGICO').length,
+        volumeCount: evaluatedSuppliers.filter((s: any) => s.tier === 'VOLUMEN').length,
+        specializedCount: evaluatedSuppliers.filter((s: any) => s.tier === 'ESPECIALIZADO').length,
         riskCount: evaluatedSuppliers.filter((s: any) => s.tier === 'EN_RIESGO').length
       },
       criticalReorderItems
@@ -186,7 +213,7 @@ export async function getSupplierIntelligence() {
       success: false, 
       error: error.message,
       suppliers: [],
-      summary: { totalSuppliers: 0, totalPurchasesAll: 0, totalSalesAll: 0, avgMarginAll: 0, criticalReorderCount: 0, strategicCount: 0, riskCount: 0 },
+      summary: { totalSuppliers: 0, totalPurchasesAll: 0, totalSalesAll: 0, avgMarginAll: 0, criticalReorderCount: 0, strategicCount: 0, volumeCount: 0, specializedCount: 0, riskCount: 0 },
       criticalReorderItems: []
     };
   }
@@ -220,37 +247,43 @@ export async function getMarketingCampaigns() {
     const now = new Date();
     const evaluatedCustomers = customers.map(c => {
       const salesCount = c.sales.length;
-      const totalSpent = c.sales.reduce((acc, s) => acc + s.total, 0);
+      const totalSpent = round2(c.sales.reduce((acc, s) => acc + (s.total || 0), 0));
       const lastSaleDate = c.sales[0]?.createdAt ? new Date(c.sales[0].createdAt) : null;
       const daysSinceLastSale = lastSaleDate 
         ? Math.floor((now.getTime() - lastSaleDate.getTime()) / (1000 * 60 * 60 * 24)) 
         : 999;
 
       let segment: 'VIP_CORP' | 'EN_RIESGO' | 'ALTO_POTENCIAL' | 'INACTIVO' | 'NUEVO' = 'NUEVO';
+      let segmentLabel = 'Cliente Nuevo';
 
-      if (salesCount >= 3 && totalSpent >= 5000 && daysSinceLastSale <= 35) {
+      if (salesCount >= 3 && totalSpent >= 3000 && daysSinceLastSale <= 45) {
         segment = 'VIP_CORP';
-      } else if (salesCount >= 2 && daysSinceLastSale > 30 && daysSinceLastSale <= 90) {
+        segmentLabel = '👑 VIP Corporativo';
+      } else if (salesCount >= 1 && daysSinceLastSale > 25 && daysSinceLastSale <= 120) {
         segment = 'EN_RIESGO';
-      } else if (salesCount >= 1 && totalSpent >= 2000 && daysSinceLastSale <= 20) {
+        segmentLabel = '⚠️ Reactivación Urgente';
+      } else if (salesCount >= 1 && totalSpent >= 1000) {
         segment = 'ALTO_POTENCIAL';
-      } else if (daysSinceLastSale > 90 && salesCount > 0) {
+        segmentLabel = '⚡ Alto Potencial';
+      } else if (daysSinceLastSale > 120 && salesCount > 0) {
         segment = 'INACTIVO';
+        segmentLabel = '💤 Inactivo';
       }
 
       return {
         id: c.id,
         name: c.name,
-        legalName: c.legalName,
-        phone: c.phone,
-        email: c.email,
+        legalName: c.legalName || c.name,
+        phone: c.phone || '',
+        email: c.email || '',
         salesCount,
         totalSpent,
         pointsBalance: c.pointsBalance || 0,
         storeCredit: c.storeCredit || 0,
         daysSinceLastSale,
         lastSaleDate,
-        segment
+        segment,
+        segmentLabel
       };
     });
 
@@ -264,33 +297,39 @@ export async function getMarketingCampaigns() {
     const campaigns = [
       {
         id: 'camp_reactivacion_b2b',
-        title: 'Reactivación de Clientes Corporativos & Oficinas',
-        targetSegment: 'Clientes en Riesgo de Fuga (>30 días sin comprar)',
+        title: 'Reactivación de Oficinas y Empresas',
+        targetSegment: 'Clientes con más de 25 días sin resurtir',
         audienceCount: riskCustomers.length,
-        objective: 'Resurtido mensual de Papelería, Tóner, Papel Bond y Consumibles con atención prioritaria.',
-        discountSuggested: '5% en pedidos mayores a $2,500 o Envío Gratis',
-        whatsappTemplate: `¡Hola {cliente}! 👋 En Office City queremos asegurarnos de que tu equipo no se quede sin insumos esta semana. 📄✏️\n\nTenemos resurtido express en *Papel Bond, Tóner y Artículos de Oficina* con entrega inmediata a domicilio.\n\n🎁 Además, cuentas con saldo/puntos acumulados disponibles para canjear en tu próximo pedido.\n\n¿Te gustaría que te enviemos la cotización de resurtido de este mes? Solo respóndenos a este mensaje. 🚀`,
-        recipients: riskCustomers.slice(0, 20)
+        objective: 'Resurtido mensual de Papel Bond, Tóner, Artículos de Escritorio y Limpieza.',
+        discountSuggested: 'Envío prioritario sin costo en pedidos mayores a $1,500',
+        badge: 'Reactivación',
+        badgeColor: 'amber',
+        whatsappTemplate: `¡Hola {cliente}! 👋 En Office City queremos asegurarnos de que tu equipo tenga todos los insumos necesarios para trabajar esta semana. 📄✏️\n\nTenemos resurtido express en *Papel Bond, Tóner y Consumibles de Oficina* con entrega directa a tus instalaciones.\n\n¿Te apoyamos con la cotización de resurtido de este mes? Solo respóndenos a este mensaje y te atendemos de inmediato. 🚀`,
+        recipients: riskCustomers.slice(0, 30)
       },
       {
         id: 'camp_vip_fidelizacion',
-        title: 'Campaña VIP: Beneficios Exclusivos y Preventa',
-        targetSegment: 'Clientes VIP & Cuentas Clave',
+        title: 'Campaña VIP: Cuentas Clave & Convenio Corporativo',
+        targetSegment: 'Clientes VIP de Mayor Consumo',
         audienceCount: vipCustomers.length,
-        objective: 'Fidelizar a las cuentas de mayor volumen ofreciendo precios de lista especial y crédito preferencial.',
-        discountSuggested: 'Precios de Mayoreo Directo + Facturación Inmediata',
-        whatsappTemplate: `Estimado(a) {cliente}, en Office City valoramos mucho tu confianza como cliente preferencial. 🌟\n\nTe recordamos que tu cuenta cuenta con atención corporativa prioritaria y condiciones especiales de facturación y crédito.\n\n📦 ¿Necesitan reabastecer algún insumo especializado o mobiliario para esta semana? Con gusto te atendemos de forma directa y personalizada.`,
-        recipients: vipCustomers.slice(0, 20)
+        objective: 'Fidelizar a las cuentas clave con condiciones preferenciales de mayoreo y facturación inmediata.',
+        discountSuggested: 'Precios de Mayoreo Directo + Atención por Ejecutivo Dedicado',
+        badge: 'Cuentas VIP',
+        badgeColor: 'emerald',
+        whatsappTemplate: `Estimado(a) {cliente}, en Office City agradecemos mucho la confianza que depositan en nosotros. 🌟\n\nTe recordamos que tu cuenta cuenta con atención corporativa prioritaria, facturación inmediata y precios preferenciales.\n\n📦 ¿Requieren reabastecer algún insumo especializado o mobiliario para esta semana? Con gusto te enviamos una propuesta express.`,
+        recipients: vipCustomers.slice(0, 30)
       },
       {
         id: 'camp_promocion_semanal',
-        title: 'Especial de la Semana: Paquete Productividad & Tecnología',
-        targetSegment: 'Alto Potencial y Nuevos Clientes',
+        title: 'Especial Semanal: Organización y Tecnología',
+        targetSegment: 'Clientes Activos y Alto Potencial',
         audienceCount: potentialCustomers.length,
-        objective: 'Aumentar el ticket promedio con venta cruzada en accesorios, cables, archivo y ergonomía.',
-        discountSuggested: '10% de descuento en la segunda unidad en consumibles seleccionados',
-        whatsappTemplate: `¡Hola {cliente}! 📦 Esta semana en Office City tenemos precios especiales en *Artículos de Organización, Archivo y Accesorios de Oficina*.\n\nEquipa tu espacio de trabajo con la mejor calidad y aprovecha promociones exclusivas para clientes registrados.\n\nConsulta el catálogo completo o solicita tu cotización rápida respondiendo a este mensaje. ¡Excelente semana! ✨`,
-        recipients: potentialCustomers.slice(0, 20)
+        objective: 'Aumentar el ticket promedio con venta cruzada en archivo, cables, ergonomía y accesorios.',
+        discountSuggested: 'Descuentos por volumen en cajas de archivo y accesorios',
+        badge: 'Crecimiento',
+        badgeColor: 'indigo',
+        whatsappTemplate: `¡Hola {cliente}! 📦 Esta semana en Office City tenemos precios especiales en *Artículos de Archivo, Organización y Accesorios de Oficina*.\n\nEquipa tu espacio de trabajo con la mejor calidad y aprovecha las promociones de esta semana.\n\nConsulta el catálogo completo o solicita tu cotización rápida respondiendo a este mensaje. ¡Excelente semana! ✨`,
+        recipients: potentialCustomers.slice(0, 30)
       }
     ];
 
@@ -343,27 +382,37 @@ export async function getPricingIntelligence() {
     });
 
     const evaluatedProducts = products.map((p: any) => {
-      const cost = p.cost || 0;
-      const price = p.price || 0;
+      const cost = round2(p.cost || 0);
+      const price = round2(p.price || 0);
       const unitsSold = (p.saleItems || []).reduce((acc: number, it: any) => acc + (it.quantity || 0), 0);
-      const totalRevenue = (p.saleItems || []).reduce((acc: number, it: any) => acc + ((it.price || 0) * (it.quantity || 0)), 0);
+      const totalRevenue = round2((p.saleItems || []).reduce((acc: number, it: any) => acc + ((it.price || 0) * (it.quantity || 0)), 0));
 
-      const marginAmount = Math.max(0, price - cost);
+      const marginAmount = round2(Math.max(0, price - cost));
       const marginPct = price > 0 ? Math.round((marginAmount / price) * 100) : 0;
 
       // Classify margin health
       let marginStatus: 'CRITICO' | 'REGULAR' | 'SALUDABLE' | 'PREMIUM' = 'REGULAR';
-      if (marginPct < 18) marginStatus = 'CRITICO';
-      else if (marginPct < 30) marginStatus = 'REGULAR';
-      else if (marginPct < 45) marginStatus = 'SALUDABLE';
-      else marginStatus = 'PREMIUM';
+      let marginStatusLabel = 'Margen Regular (20-30%)';
+      if (marginPct < 18) {
+        marginStatus = 'CRITICO';
+        marginStatusLabel = '⚠️ Margen Bajo (<18%)';
+      } else if (marginPct < 30) {
+        marginStatus = 'REGULAR';
+        marginStatusLabel = 'Margen Moderado (18-30%)';
+      } else if (marginPct < 45) {
+        marginStatus = 'SALUDABLE';
+        marginStatusLabel = '✅ Saludable (30-45%)';
+      } else {
+        marginStatus = 'PREMIUM';
+        marginStatusLabel = '💎 Premium (>45%)';
+      }
 
       // Market benchmark estimation
-      let estimatedMarketMin = Number((cost * 1.25).toFixed(2));
-      let estimatedMarketMax = Number((cost * 1.55).toFixed(2));
+      let estimatedMarketMin = round2(cost * 1.25);
+      let estimatedMarketMax = round2(cost * 1.55);
       if (marginPct < 20) {
-        estimatedMarketMin = Number((cost * 1.28).toFixed(2));
-        estimatedMarketMax = Number((cost * 1.60).toFixed(2));
+        estimatedMarketMin = round2(cost * 1.28);
+        estimatedMarketMax = round2(cost * 1.60);
       }
 
       // Suggested optimal price
@@ -371,42 +420,54 @@ export async function getPricingIntelligence() {
       let marginOpportunity = 0;
 
       if (marginPct < 25 && cost > 0) {
-        suggestedPrice = Number((cost / (1 - 0.32)).toFixed(2)); // Target 32% margin
-        marginOpportunity = Number((suggestedPrice - price).toFixed(2));
-      } else if (unitsSold >= 15 && marginPct < 35) {
-        suggestedPrice = Number((price * 1.05).toFixed(2)); // 5% slight increase on high demand
-        marginOpportunity = Number((suggestedPrice - price).toFixed(2));
+        suggestedPrice = round2(cost / (1 - 0.32)); // Target 32% margin
+        marginOpportunity = round2(suggestedPrice - price);
+      } else if (unitsSold >= 10 && marginPct < 35) {
+        suggestedPrice = round2(price * 1.05); // 5% slight increase on high demand
+        marginOpportunity = round2(suggestedPrice - price);
       }
 
       // Matrix Quadrant
       let quadrant: 'ESTRELLA' | 'GANCHO_VOLUMEN' | 'OPORTUNIDAD' | 'REVISAR' = 'OPORTUNIDAD';
-      if (unitsSold >= 10 && marginPct >= 30) quadrant = 'ESTRELLA';
-      else if (unitsSold >= 10 && marginPct < 30) quadrant = 'GANCHO_VOLUMEN';
-      else if (unitsSold < 10 && marginPct >= 30) quadrant = 'OPORTUNIDAD';
-      else quadrant = 'REVISAR';
+      let quadrantLabel = '💡 Oportunidad de Margen';
+      if (unitsSold >= 8 && marginPct >= 30) {
+        quadrant = 'ESTRELLA';
+        quadrantLabel = '⭐ Estrella (Ventas + Margen)';
+      } else if (unitsSold >= 8 && marginPct < 30) {
+        quadrant = 'GANCHO_VOLUMEN';
+        quadrantLabel = '⚡ Gancho de Tráfico';
+      } else if (unitsSold < 8 && marginPct >= 30) {
+        quadrant = 'OPORTUNIDAD';
+        quadrantLabel = '💡 Alto Margen';
+      } else {
+        quadrant = 'REVISAR';
+        quadrantLabel = '🔍 Revisar Costos';
+      }
 
       return {
         id: p.id,
         name: p.name,
-        sku: p.sku,
-        barcode: p.barcode,
+        sku: p.sku || '',
+        barcode: p.barcode || '',
         category: p.category || 'General',
         brand: p.brand || '-',
         stock: p.stock,
         cost,
         price,
-        wholesalePrice: p.wholesalePrice,
-        specialPrice: p.specialPrice,
+        wholesalePrice: p.wholesalePrice ? round2(p.wholesalePrice) : null,
+        specialPrice: p.specialPrice ? round2(p.specialPrice) : null,
         marginAmount,
         marginPct,
         marginStatus,
+        marginStatusLabel,
         unitsSold,
         totalRevenue,
         estimatedMarketMin,
         estimatedMarketMax,
         suggestedPrice,
-        marginOpportunity,
-        quadrant
+        marginOpportunity: Math.max(0, marginOpportunity),
+        quadrant,
+        quadrantLabel
       };
     });
 
@@ -417,22 +478,25 @@ export async function getPricingIntelligence() {
 
     const projectedMonthlyExtraProfit = opportunities.reduce((sum: number, p: any) => sum + (p.marginOpportunity * Math.max(2, p.unitsSold)), 0);
 
+    const validMarginProds = evaluatedProducts.filter((p: any) => p.price > 0 && p.cost > 0);
+    const avgMargin = validMarginProds.length > 0
+      ? Math.round(validMarginProds.reduce((acc: number, p: any) => acc + p.marginPct, 0) / validMarginProds.length)
+      : 0;
+
     const summary = {
       totalProducts: evaluatedProducts.length,
-      avgMargin: evaluatedProducts.length > 0 
-        ? Math.round(evaluatedProducts.reduce((acc: number, p: any) => acc + p.marginPct, 0) / evaluatedProducts.length) 
-        : 0,
+      avgMargin,
       criticalMarginCount: evaluatedProducts.filter((p: any) => p.marginStatus === 'CRITICO').length,
       premiumMarginCount: evaluatedProducts.filter((p: any) => p.marginStatus === 'PREMIUM').length,
       opportunitiesCount: opportunities.length,
-      projectedMonthlyExtraProfit: Math.round(projectedMonthlyExtraProfit)
+      projectedMonthlyExtraProfit: round2(projectedMonthlyExtraProfit)
     };
 
     return {
       success: true,
       summary,
       products: evaluatedProducts,
-      opportunities: opportunities.slice(0, 25)
+      opportunities: opportunities.slice(0, 30)
     };
   } catch (error: any) {
     console.error("Pricing Intelligence Error:", error);
@@ -453,12 +517,12 @@ export async function applySuggestedProductPrice(productId: string, newPrice: nu
 
     await prisma.product.update({
       where: { id: productId },
-      data: { price: newPrice }
+      data: { price: round2(newPrice) }
     });
 
     revalidatePath('/agentes');
     revalidatePath('/productos');
-    return { success: true, newPrice };
+    return { success: true, newPrice: round2(newPrice) };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

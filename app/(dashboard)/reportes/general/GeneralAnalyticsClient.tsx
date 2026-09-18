@@ -109,7 +109,7 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
           <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', minWidth: 0, overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
               <div style={{ padding: '0.5rem', backgroundColor: '#e0f2fe', borderRadius: '8px', flexShrink: 0 }}><TrendingUp size={20} color="#0284c7" /></div>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Utilidad Neta (Ganancia)</h3>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Utilidad (basada en margen)</h3>
             </div>
             <div style={{ fontSize: 'clamp(1.25rem, 1.8vw, 1.7rem)', fontWeight: '900', color: '#0284c7', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatCurrency(data.totalProfit)}>
               {formatCurrency(data.totalProfit)}
