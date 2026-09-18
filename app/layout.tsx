@@ -1,4 +1,5 @@
 
+import "@/lib/dom-shield";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SWCleaner from "./components/SWCleaner";
@@ -65,6 +66,7 @@ export default async function RootLayout({
     >
       <head>
         <meta name="google" content="notranslate" />
+        <meta name="googlebot" content="notranslate" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -73,25 +75,63 @@ export default async function RootLayout({
               if (typeof Node === 'function' && Node.prototype) {
                 var origRemoveChild = Node.prototype.removeChild;
                 Node.prototype.removeChild = function(child) {
-                  if (child && child.parentNode !== this) {
-                    if (typeof console !== 'undefined') {
+                  if (!child || child.parentNode !== this) {
+                    if (typeof console !== 'undefined' && console.warn) {
                       console.warn('[DOM SHIELD] Blocked removeChild from mismatched parent', child, this);
                     }
                     return child;
                   }
-                  return origRemoveChild.apply(this, arguments);
+                  try {
+                    return origRemoveChild.apply(this, arguments);
+                  } catch (err) {
+                    if (typeof console !== 'undefined' && console.warn) {
+                      console.warn('[DOM SHIELD] Intercepted removeChild exception:', err);
+                    }
+                    return child;
+                  }
                 };
 
                 var origInsertBefore = Node.prototype.insertBefore;
                 Node.prototype.insertBefore = function(newNode, referenceNode) {
                   if (referenceNode && referenceNode.parentNode !== this) {
-                    if (typeof console !== 'undefined') {
+                    if (typeof console !== 'undefined' && console.warn) {
                       console.warn('[DOM SHIELD] Blocked insertBefore with mismatched referenceNode', referenceNode, this);
+                    }
+                    try {
+                      return origInsertBefore.call(this, newNode, null);
+                    } catch (e) {
+                      return newNode;
+                    }
+                  }
+                  try {
+                    return origInsertBefore.apply(this, arguments);
+                  } catch (err) {
+                    if (typeof console !== 'undefined' && console.warn) {
+                      console.warn('[DOM SHIELD] Intercepted insertBefore exception:', err);
                     }
                     return newNode;
                   }
-                  return origInsertBefore.apply(this, arguments);
                 };
+
+                var origReplaceChild = Node.prototype.replaceChild;
+                if (origReplaceChild) {
+                  Node.prototype.replaceChild = function(newChild, oldChild) {
+                    if (!oldChild || oldChild.parentNode !== this) {
+                      if (typeof console !== 'undefined' && console.warn) {
+                        console.warn('[DOM SHIELD] Blocked replaceChild on mismatched oldChild', oldChild, this);
+                      }
+                      return oldChild;
+                    }
+                    try {
+                      return origReplaceChild.apply(this, arguments);
+                    } catch (err) {
+                      if (typeof console !== 'undefined' && console.warn) {
+                        console.warn('[DOM SHIELD] Intercepted replaceChild exception:', err);
+                      }
+                      return oldChild;
+                    }
+                  };
+                }
               }
 
               // Force configured timezone globally in client rendering

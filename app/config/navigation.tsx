@@ -36,6 +36,13 @@ export const navStructure: MenuNode[] = [
     requiredPermission: ['pos_access']
   },
   { 
+    title: 'Agentes IA', 
+    path: '/agentes', 
+    icon: <Sparkles size={20} className="text-amber-500" />,
+    badge: 'IA',
+    requiredPermission: ['inv_view', 'pos_access', 'admin_reports_access']
+  },
+  { 
     title: 'Productos', icon: <Tag size={20} />, 
     requiredPermission: ['inv_view', 'inv_edit', 'inv_adjust', 'inv_transfer'],
     items: [

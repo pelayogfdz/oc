@@ -194,21 +194,29 @@ export default function POSClient({
         if (target.selectedCustomerId) {
           const customer = activeCustomers.find((c: any) => c.id === target.selectedCustomerId);
           if (customer) {
+            setSelectedCustomer(customer);
             setBillRfc(customer.taxId || '');
             setBillName(customer.legalName || customer.name || '');
             setBillZipCode(customer.zipCode || '');
             setBillRegime(customer.taxRegime || '601');
             setBillUse(customer.cfdiUse || 'G03');
           } else {
+            setSelectedCustomer(null);
             setBillRfc('');
             setBillName('');
             setBillZipCode('');
             setBillRegime('601');
             setBillUse('G03');
           }
-          if (isOnline && (!customer || !customer.taxId)) {
+          if (isOnline) {
             getCustomerAction(target.selectedCustomerId).then(res => {
               if (res.success && res.customer) {
+                setSelectedCustomer(res.customer);
+                setActiveCustomers(prev => {
+                  const existing = prev.find((c: any) => c.id === target.selectedCustomerId);
+                  const updated = existing ? { ...existing, ...res.customer } : res.customer;
+                  return [updated, ...prev.filter((c: any) => c.id !== target.selectedCustomerId)];
+                });
                 if (res.customer.taxId) setBillRfc(res.customer.taxId);
                 if (res.customer.legalName || res.customer.name) setBillName(res.customer.legalName || res.customer.name);
                 if (res.customer.zipCode) setBillZipCode(res.customer.zipCode);
@@ -218,6 +226,7 @@ export default function POSClient({
             }).catch(() => {});
           }
         } else {
+          setSelectedCustomer(null);
           setBillRfc('');
           setBillName('');
           setBillZipCode('');
@@ -363,6 +372,8 @@ export default function POSClient({
       const remaining = prev.filter(t => t.id !== tabId);
       if (activeTabId === tabId) {
         const lastTab = remaining[remaining.length - 1];
+        const custObj = lastTab.selectedCustomerId ? activeCustomers.find((c: any) => c.id === lastTab.selectedCustomerId) : null;
+        setSelectedCustomer(custObj || null);
         setCart(lastTab.cart);
         setSelectedCustomerId(lastTab.selectedCustomerId);
         setCustomerSearchTerm(lastTab.customerSearchTerm);
@@ -416,6 +427,7 @@ export default function POSClient({
 
     setCart([]);
     setSelectedCustomerId(defaultCustId);
+    setSelectedCustomer(defaultCustId ? activeCustomers.find((c: any) => c.id === defaultCustId) || null : null);
     setCustomerSearchTerm(defaultCustName);
     setPriceList('price');
     setAppliedPromotionIds(null);
@@ -769,6 +781,7 @@ export default function POSClient({
   const [customerPurchaseCounts, setCustomerPurchaseCounts] = useState<Record<string, number>>({});
   
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(initialCustomerId || null);
+  const [selectedCustomer, setSelectedCustomer] = useState<any | null>(initialCustomer || null);
   const [customerSearchTerm, setCustomerSearchTerm] = useState(initialCustomer ? initialCustomer.name : '');
   const [hasDefaultedCustomer, setHasDefaultedCustomer] = useState(false);
 
@@ -854,15 +867,35 @@ export default function POSClient({
 
   useEffect(() => {
     if (!isOnline) {
-      db.customers.toArray().then(res => setActiveCustomers(res.length ? res : customers));
+      db.customers.toArray().then(res => {
+        if (res.length) {
+          setActiveCustomers(prev => {
+            const map = new Map<string, any>();
+            res.forEach(c => map.set(c.id, c));
+            prev.forEach(c => {
+              if (!map.has(c.id)) map.set(c.id, c);
+            });
+            return Array.from(map.values());
+          });
+        }
+      });
       searchOfflineProducts('', branchId, { limit: 50 }).then(res => {
         if (res.length) setDisplayedProducts(res);
       });
-    } else {
-      setActiveCustomers(customers);
-      if (searchTerm === '') setDisplayedProducts(initialProducts);
     }
-  }, [isOnline, customers, initialProducts, searchTerm, branchId]);
+  }, [isOnline, branchId]);
+
+  useEffect(() => {
+    if (searchTerm === '') {
+      if (isOnline) {
+        setDisplayedProducts(initialProducts);
+      } else {
+        searchOfflineProducts('', branchId, { limit: 50 }).then(res => {
+          if (res.length) setDisplayedProducts(res);
+        });
+      }
+    }
+  }, [searchTerm, isOnline, initialProducts, branchId]);
 
   // Default to "Público en General" on initial mount
   useEffect(() => {
@@ -1004,7 +1037,7 @@ export default function POSClient({
 
   const [paymentMethod, setPaymentMethod] = useState(customMethods[0]?.id || 'CASH');
   
-  const selectedCust = activeCustomers.find((c: any) => c.id === selectedCustomerId);
+  const selectedCust = selectedCustomer || activeCustomers.find((c: any) => c.id === selectedCustomerId) || null;
   let allowedMethods = [...customMethods];
   const isCreditEnabled = metodosConfig?.enabledIds ? metodosConfig.enabledIds.includes('CREDIT') : true;
   const hasCredit = Boolean(selectedCust && ((selectedCust.creditLimit || 0) > 0 || (selectedCust.creditDays || 0) > 0) && !selectedCust.isBlocked);
@@ -1247,8 +1280,9 @@ export default function POSClient({
 
   const handleCustomerChange = async (customerId: string, isProgrammatic = false, explicitCustomer?: any) => {
     setSelectedCustomerId(customerId);
-    const candidate = explicitCustomer || customerSearchResults.find((c: any) => c.id === customerId) || activeCustomers.find((c: any) => c.id === customerId);
+    const candidate = explicitCustomer || customerSearchResults.find((c: any) => c.id === customerId) || activeCustomers.find((c: any) => c.id === customerId) || null;
     let customer = candidate;
+    setSelectedCustomer(customer);
 
     const applyCustomerData = (c: any) => {
       if (!c) return;
@@ -1280,6 +1314,7 @@ export default function POSClient({
       });
       applyCustomerData(customer);
     } else {
+      setSelectedCustomer(null);
       setBillRfc('');
       setBillName('');
       setBillZipCode('');
@@ -1299,6 +1334,7 @@ export default function POSClient({
     if (customerId && isOnline) {
       getCustomerAction(customerId).then(res => {
         if (res.success && res.customer) {
+          setSelectedCustomer(res.customer);
           setActiveCustomers(prev => {
             const existing = prev.find((c: any) => c.id === customerId);
             const updated = existing ? { ...existing, ...res.customer } : res.customer;
@@ -3476,9 +3512,21 @@ export default function POSClient({
                   setIsCustomerDropdownOpen(true);
                   if (selectedCust && val !== selectedCust.name) {
                     setSelectedCustomerId(null);
+                    setSelectedCustomer(null);
                   }
                   if (val.trim() === '') {
                     handleCustomerChange('');
+                  }
+                }}
+                onBlur={() => {
+                  if (!selectedCustomerId && customerSearchTerm.trim()) {
+                    const normSearch = customerSearchTerm.trim().toLowerCase();
+                    const match = customerSearchResults.find(c => (c.name && c.name.toLowerCase() === normSearch) || (c.legalName && c.legalName.toLowerCase() === normSearch) || (c.taxId && c.taxId.toLowerCase() === normSearch))
+                      || activeCustomers.find(c => (c.name && c.name.toLowerCase() === normSearch) || (c.legalName && c.legalName.toLowerCase() === normSearch) || (c.taxId && c.taxId.toLowerCase() === normSearch));
+                    if (match) {
+                      handleCustomerChange(match.id, false, match);
+                      setCustomerSearchTerm(match.name);
+                    }
                   }
                 }}
                 onKeyDown={e => {
