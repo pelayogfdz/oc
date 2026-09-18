@@ -292,24 +292,63 @@ export default async function DashboardPage(props: Props) {
           Panel de Control <span className="text-purple-600 font-semibold text-lg md:text-xl">({branch.name})</span>
         </h1>
         
-        <div className="page-header-actions flex flex-wrap gap-2.5">
+        <div className="page-header-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
           <Link 
             href="/ventas/nueva" 
-            className="inline-flex items-center gap-2 bg-pink-600 hover:bg-pink-700 active:bg-pink-800 text-white px-4 py-2.5 rounded-xl font-bold transition-all shadow-sm shadow-pink-200 text-sm"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              backgroundColor: '#db2777',
+              color: '#ffffff',
+              padding: '0.65rem 1.25rem',
+              borderRadius: '10px',
+              fontWeight: '700',
+              fontSize: '0.9rem',
+              textDecoration: 'none',
+              boxShadow: '0 2px 6px rgba(219, 39, 119, 0.35)',
+              transition: 'all 0.2s ease'
+            }}
           >
-            <ShoppingCart size={18} /> Nueva Venta
+            <ShoppingCart size={18} color="#ffffff" /> <span style={{ color: '#ffffff' }}>Nueva Venta</span>
           </Link>
           <Link 
             href="/productos/nuevo" 
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-4 py-2.5 rounded-xl font-bold transition-all shadow-sm shadow-blue-200 text-sm"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              backgroundColor: '#2563eb',
+              color: '#ffffff',
+              padding: '0.65rem 1.25rem',
+              borderRadius: '10px',
+              fontWeight: '700',
+              fontSize: '0.9rem',
+              textDecoration: 'none',
+              boxShadow: '0 2px 6px rgba(37, 99, 235, 0.35)',
+              transition: 'all 0.2s ease'
+            }}
           >
-            <PackagePlus size={18} /> Crear Producto
+            <PackagePlus size={18} color="#ffffff" /> <span style={{ color: '#ffffff' }}>Crear Producto</span>
           </Link>
           <Link 
             href="/caja/actual" 
-            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white px-4 py-2.5 rounded-xl font-bold transition-all shadow-sm shadow-emerald-200 text-sm"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              backgroundColor: '#059669',
+              color: '#ffffff',
+              padding: '0.65rem 1.25rem',
+              borderRadius: '10px',
+              fontWeight: '700',
+              fontSize: '0.9rem',
+              textDecoration: 'none',
+              boxShadow: '0 2px 6px rgba(5, 150, 105, 0.35)',
+              transition: 'all 0.2s ease'
+            }}
           >
-            <WalletCards size={18} /> Arqueo de Caja
+            <WalletCards size={18} color="#ffffff" /> <span style={{ color: '#ffffff' }}>Arqueo de Caja</span>
           </Link>
         </div>
       </div>

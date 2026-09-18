@@ -77,7 +77,7 @@ button {
 /* Utilities */
 .btn-primary {
   background-color: var(--caanma-primary);
-  color: white;
+  color: white !important;
   padding: 0.5rem 1rem;
   border-radius: 4px;
   font-weight: 500;
@@ -86,6 +86,17 @@ button {
 
 .btn-primary:hover {
   background-color: var(--caanma-primary-hover);
+  color: white !important;
+}
+
+.page-header-actions a,
+.page-header-actions button {
+  color: #ffffff;
+}
+
+.page-header-actions a span,
+.page-header-actions button span {
+  color: #ffffff;
 }
 
 .card {
