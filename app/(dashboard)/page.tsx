@@ -4,6 +4,7 @@ import { ShoppingCart, PackagePlus, DollarSign, WalletCards } from 'lucide-react
 import Link from 'next/link';
 import DashboardCharts from './DashboardCharts';
 import { getLocalTodayRange, getUtcDateFromLocal } from '@/app/lib/timezone';
+import { StatCard, Card, Badge } from '@/app/components/ui';
 
 interface Props {
   searchParams: Promise<{
@@ -286,35 +287,65 @@ export default async function DashboardPage(props: Props) {
 
   return (
     <div>
-      <div className="page-header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1 className="page-header-title" style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Panel de Control ({branch.name})</h1>
+      <div className="page-header-container flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <h1 className="page-header-title text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
+          Panel de Control <span className="text-purple-600 font-semibold text-lg md:text-xl">({branch.name})</span>
+        </h1>
         
-        <div className="page-header-actions" style={{ display: 'flex', gap: '1rem' }}>
-          <Link href="/ventas/nueva" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#ec4899', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: 'bold', textDecoration: 'none' }}>
-            <ShoppingCart size={20} /> Nueva Venta
+        <div className="page-header-actions flex flex-wrap gap-2.5">
+          <Link 
+            href="/ventas/nueva" 
+            className="inline-flex items-center gap-2 bg-pink-600 hover:bg-pink-700 active:bg-pink-800 text-white px-4 py-2.5 rounded-xl font-bold transition-all shadow-sm shadow-pink-200 text-sm"
+          >
+            <ShoppingCart size={18} /> Nueva Venta
           </Link>
-          <Link href="/productos/nuevo" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#3b82f6', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: 'bold', textDecoration: 'none' }}>
-            <PackagePlus size={20} /> Crear Producto
+          <Link 
+            href="/productos/nuevo" 
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-4 py-2.5 rounded-xl font-bold transition-all shadow-sm shadow-blue-200 text-sm"
+          >
+            <PackagePlus size={18} /> Crear Producto
           </Link>
-          <Link href="/caja/actual" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#10b981', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: 'bold', textDecoration: 'none' }}>
-            <WalletCards size={20} /> Arqueo de Caja
+          <Link 
+            href="/caja/actual" 
+            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white px-4 py-2.5 rounded-xl font-bold transition-all shadow-sm shadow-emerald-200 text-sm"
+          >
+            <WalletCards size={18} /> Arqueo de Caja
           </Link>
         </div>
       </div>
 
-      <div className="dashboard-stats-grid" style={{ marginBottom: '2rem' }}>
+      <div className="dashboard-stats-grid mb-8">
         {[
-          { title: isFiltered ? 'Ingresos del Período' : 'Ingresos de Hoy', value: formatter.format(totalSalesValue), icon: <DollarSign size={24} color="#10b981" /> },
-          { title: isFiltered ? 'Ventas del Período' : 'Ventas de Hoy', value: totalOrders.toLocaleString('es-MX'), icon: <ShoppingCart size={24} color="#3b82f6" /> },
-          { title: isFiltered ? 'Ticket Promedio (Período)' : 'Ticket Promedio (Hoy)', value: formatter.format(avgTicket), icon: <DollarSign size={24} color="#f59e0b" /> },
+          { 
+            title: isFiltered ? 'Ingresos del Período' : 'Ingresos de Hoy', 
+            value: formatter.format(totalSalesValue), 
+            icon: <DollarSign size={22} className="text-emerald-600" />,
+            badgeText: isFiltered ? 'Período' : 'Hoy',
+            badgeVariant: 'success' as const
+          },
+          { 
+            title: isFiltered ? 'Ventas del Período' : 'Ventas de Hoy', 
+            value: totalOrders.toLocaleString('es-MX'), 
+            icon: <ShoppingCart size={22} className="text-blue-600" />,
+            badgeText: isFiltered ? 'Período' : 'Hoy',
+            badgeVariant: 'info' as const
+          },
+          { 
+            title: isFiltered ? 'Ticket Promedio (Período)' : 'Ticket Promedio (Hoy)', 
+            value: formatter.format(avgTicket), 
+            icon: <DollarSign size={22} className="text-amber-500" />,
+            badgeText: isFiltered ? 'Período' : 'Hoy',
+            badgeVariant: 'warning' as const
+          },
         ].map(stat => (
-          <div key={stat.title} style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-              <h3 style={{ color: '#6b7280', fontSize: '0.875rem', fontWeight: 'bold', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stat.title}</h3>
-              {stat.icon}
-            </div>
-            <div style={{ fontSize: 'clamp(1.2rem, 1.8vw, 1.6rem)', fontWeight: '900', color: '#1f2937', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={stat.value}>{stat.value}</div>
-          </div>
+          <StatCard
+            key={stat.title}
+            title={stat.title}
+            value={stat.value}
+            icon={stat.icon}
+            badgeText={stat.badgeText}
+            badgeVariant={stat.badgeVariant}
+          />
         ))}
       </div>
 
@@ -325,44 +356,45 @@ export default async function DashboardPage(props: Props) {
         initialEndDate={initialEndDate} 
       />
 
-      <div className="dashboard-main-grid" style={{ marginBottom: '2rem' }}>
-        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #f3f4f6' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span>{isFiltered ? 'Ventas del Período' : 'Actividad Reciente'}</span>
-            <span style={{ fontSize: '0.8rem', backgroundColor: isFiltered ? '#ede9fe' : '#e0f2fe', color: isFiltered ? '#6d28d9' : '#0369a1', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontWeight: 'bold' }}>
-              {isFiltered ? 'Período' : 'Hoy'}
-            </span>
-          </h2>
+      <div className="dashboard-main-grid mb-8">
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold flex items-center gap-2.5 text-slate-900">
+              <span>{isFiltered ? 'Ventas del Período' : 'Actividad Reciente'}</span>
+              <Badge variant={isFiltered ? 'purple' : 'info'}>
+                {isFiltered ? 'Período' : 'Hoy'}
+              </Badge>
+            </h2>
+          </div>
           {recentSales.length > 0 ? (
-             <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+             <table className="responsive-table w-full border-collapse">
                <thead>
-                 <tr style={{ borderBottom: '2px solid #f3f4f6', textAlign: 'left' }}>
-                   <th style={{ padding: '0.75rem 0', color: '#6b7280', fontSize: '0.875rem' }}>Ticket / Cliente</th>
-                   <th style={{ padding: '0.75rem 0', color: '#6b7280', fontSize: '0.875rem' }}>{isFiltered ? 'Fecha y Hora' : 'Hora'}</th>
-                   <th style={{ padding: '0.75rem 0', color: '#6b7280', fontSize: '0.875rem' }}>Total</th>
+                 <tr className="border-b-2 border-slate-100 text-left">
+                   <th className="py-3 text-slate-500 text-xs font-bold uppercase tracking-wider">Ticket / Cliente</th>
+                   <th className="py-3 text-slate-500 text-xs font-bold uppercase tracking-wider">{isFiltered ? 'Fecha y Hora' : 'Hora'}</th>
+                   <th className="py-3 text-slate-500 text-xs font-bold uppercase tracking-wider">Total</th>
                  </tr>
                </thead>
                <tbody>
                  {recentSales.map(sale => (
-                   <tr key={sale.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                     <td data-label="Ticket / Cliente" style={{ padding: '1rem 0', fontSize: '0.9rem', fontWeight: '500' }}>
+                   <tr key={sale.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                     <td data-label="Ticket / Cliente" className="py-3.5 text-sm font-medium">
                        <Link 
                          href={`/ventas/detalle/${sale.id}`} 
-                         style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 'bold' }}
-                         className="hover:underline"
+                         className="text-purple-600 font-bold hover:underline"
                        >
                          {sale.folio ? `Folio ${sale.folio}` : `#${sale.id.slice(-6).toUpperCase()}`}
                        </Link>
                        {sale.customer && (
-                         <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.1rem', fontWeight: 'normal' }}>
+                         <div className="text-xs text-slate-500 mt-0.5 font-normal">
                            {sale.customer.name}
                          </div>
                        )}
                      </td>
-                     <td data-label={isFiltered ? 'Fecha y Hora' : 'Hora'} style={{ padding: '1rem 0', fontSize: '0.9rem', color: '#6b7280' }}>
+                     <td data-label={isFiltered ? 'Fecha y Hora' : 'Hora'} className="py-3.5 text-sm text-slate-500">
                        <Link 
                          href={`/ventas/detalle/${sale.id}`} 
-                         style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}
+                         className="text-inherit no-underline block"
                        >
                          {isFiltered
                            ? `${sale.createdAt.toLocaleDateString('es-MX', { timeZone: timezone, day: '2-digit', month: 'short' })} ${sale.createdAt.toLocaleTimeString('es-MX', { timeZone: timezone, hour: '2-digit', minute: '2-digit' })}`
@@ -370,10 +402,10 @@ export default async function DashboardPage(props: Props) {
                          }
                        </Link>
                      </td>
-                     <td data-label="Total" style={{ padding: '1rem 0', fontSize: '0.9rem', fontWeight: 'bold', color: '#10b981' }}>
+                     <td data-label="Total" className="py-3.5 text-sm font-black text-emerald-600">
                        <Link 
                          href={`/ventas/detalle/${sale.id}`} 
-                         style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}
+                         className="text-inherit no-underline block"
                        >
                          {formatter.format(sale.total)}
                        </Link>
@@ -383,117 +415,126 @@ export default async function DashboardPage(props: Props) {
                </tbody>
              </table>
           ) : (
-            <div style={{ padding: '2rem 0', textAlign: 'center', color: '#9ca3af' }}>
+            <div className="py-10 text-center text-slate-400 text-sm">
                {isFiltered ? 'No hay ventas registradas en el período seleccionado.' : 'No hay ventas registradas el día de hoy.'}
             </div>
           )}
-        </div>
+        </Card>
 
-        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #f3f4f6' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem', color: '#ef4444' }}>Advertencias</h2>
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-rose-600">Advertencias</h2>
+            <Badge variant="danger">Riesgo</Badge>
+          </div>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-             <div style={{ padding: '1rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px' }}>
-               <h4 style={{ color: '#b91c1c', fontWeight: 'bold', marginBottom: '0.25rem' }}>Cartera Vencida</h4>
-               <p style={{ color: '#7f1d1d', fontSize: '0.875rem' }}>Detectamos {activeDebts} cliente(s) con deudas activas o vencidas.</p>
-               <Link href="/clientes" style={{ display: 'inline-block', marginTop: '0.5rem', fontSize: '0.875rem', color: '#dc2626', fontWeight: 'bold', textDecoration: 'underline' }}>Revisar cartera</Link>
+          <div className="flex flex-col gap-3">
+             <div className="p-4 bg-rose-50 border border-rose-200/70 rounded-xl">
+               <h4 className="text-rose-900 font-bold text-sm mb-1">Cartera Vencida</h4>
+               <p className="text-rose-800 text-xs leading-relaxed">Detectamos {activeDebts} cliente(s) con deudas activas o vencidas.</p>
+               <Link href="/clientes" className="inline-block mt-2.5 text-xs text-rose-700 font-bold hover:underline">Revisar cartera &rarr;</Link>
              </div>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* Sección Premium: Reportes del Período / Día (Top 10) */}
       <div className="dashboard-reports-grid">
         
         {/* Card 1: 🏆 Mejores Clientes */}
-        <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <Card className="p-6 md:p-8">
+          <div className="flex justify-between items-center mb-6">
             <div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                🏆 Mejores Clientes <span style={{ fontSize: '0.8rem', backgroundColor: isFiltered ? '#ede9fe' : '#e0f2fe', color: isFiltered ? '#6d28d9' : '#0369a1', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontWeight: 'bold' }}>{isFiltered ? 'Período' : 'Hoy'}</span>
+              <h2 className="text-xl font-extrabold text-slate-900 m-0 flex items-center gap-2">
+                🏆 Mejores Clientes <Badge variant={isFiltered ? 'purple' : 'info'}>{isFiltered ? 'Período' : 'Hoy'}</Badge>
               </h2>
-              <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.25rem', marginBottom: 0 }}>
+              <p className="text-slate-500 text-xs mt-1 mb-0">
                 {isFiltered ? 'Basado en compras del período y volumen facturado' : 'Basado en compras de hoy y volumen facturado'}
               </p>
             </div>
-            <Link href="/reportes/top-clientes" style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#3b82f6', textDecoration: 'underline' }}>Ver detalle</Link>
+            <Link href="/reportes/top-clientes" className="text-xs font-bold text-blue-600 hover:underline">Ver detalle</Link>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div className="flex flex-col gap-5">
             {topCustomers.length > 0 ? (
               topCustomers.map((cust: any, idx: number) => {
                 const percentage = Math.min(100, Math.round((cust.totalPurchased / maxCustomerPurchased) * 100));
                 const avatarColor = getHslColor(cust.name);
                 return (
-                  <div key={cust.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: avatarColor, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.9rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                  <div key={cust.id} className="flex items-center gap-4">
+                    <div 
+                      className="w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-sm shadow-sm flex-shrink-0"
+                      style={{ backgroundColor: avatarColor }}
+                    >
                       {getInitials(cust.name)}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                        <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-bold text-slate-800 truncate">
                           {idx + 1}. {cust.name}
                         </span>
-                        <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#16a34a' }}>
+                        <span className="text-sm font-black text-emerald-600">
                           {formatter.format(cust.totalPurchased)}
                         </span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>
-                        <span style={{ flexShrink: 0 }}>🛒 {cust.orderCount.toLocaleString('es-MX')} compras</span>
-                        <div style={{ flex: 1, height: '6px', backgroundColor: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
-                          <div style={{ width: `${percentage}%`, height: '100%', backgroundColor: '#22c55e', borderRadius: '3px', transition: 'width 0.5s ease-out' }} />
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <span className="flex-shrink-0">🛒 {cust.orderCount.toLocaleString('es-MX')} compras</span>
+                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-emerald-500 rounded-full transition-all duration-500" 
+                            style={{ width: `${percentage}%` }} 
+                          />
                         </div>
-                        <span style={{ flexShrink: 0, fontWeight: 'bold', color: '#334155' }}>{percentage}%</span>
+                        <span className="flex-shrink-0 font-bold text-slate-700">{percentage}%</span>
                       </div>
                     </div>
                   </div>
                 );
               })
             ) : (
-              <div style={{ padding: '2rem 0', textAlign: 'center', color: '#9ca3af', fontSize: '0.9rem' }}>
+              <div className="py-8 text-center text-slate-400 text-sm">
                 {isFiltered ? 'No hay compras registradas en el período seleccionado.' : 'No hay compras registradas el día de hoy.'}
               </div>
             )}
           </div>
-        </div>
+        </Card>
 
         {/* Card 2: 📦 Productos Más Vendidos */}
-        <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <Card className="p-6 md:p-8">
+          <div className="flex justify-between items-center mb-6">
             <div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                📦 Productos Más Vendidos <span style={{ fontSize: '0.8rem', backgroundColor: isFiltered ? '#ede9fe' : '#fdf2f8', color: isFiltered ? '#6d28d9' : '#be185d', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontWeight: 'bold' }}>{isFiltered ? 'Período' : 'Hoy'}</span>
+              <h2 className="text-xl font-extrabold text-slate-900 m-0 flex items-center gap-2">
+                📦 Productos Más Vendidos <Badge variant={isFiltered ? 'purple' : 'danger'}>{isFiltered ? 'Período' : 'Hoy'}</Badge>
               </h2>
-              <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.25rem', marginBottom: 0 }}>
+              <p className="text-slate-500 text-xs mt-1 mb-0">
                 {isFiltered ? 'Artículos líderes por unidades desplazadas en el período' : 'Artículos líderes por unidades desplazadas'}
               </p>
             </div>
-            <Link href="/reportes/top-productos" style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#3b82f6', textDecoration: 'underline' }}>Ver detalle</Link>
+            <Link href="/reportes/top-productos" className="text-xs font-bold text-blue-600 hover:underline">Ver detalle</Link>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div className="flex flex-col gap-5">
             {topProducts.length > 0 ? (
               topProducts.map((prod: any, idx: number) => {
                 return (
-                  <div key={prod.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.8rem', color: '#64748b' }}>
+                  <div key={prod.id} className="flex items-center gap-4">
+                    <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center font-bold text-xs text-slate-500 flex-shrink-0">
                       #{idx + 1}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-                        <div style={{ minWidth: 0 }}>
-                          <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#1e293b', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="min-w-0">
+                          <span className="text-sm font-bold text-slate-800 block truncate">
                             {prod.name}
                           </span>
-                          <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontFamily: 'monospace', fontWeight: '600' }}>
+                          <span className="text-[11px] text-slate-400 font-mono font-semibold">
                             SKU: {prod.sku}
                           </span>
                         </div>
-                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a', display: 'block' }}>
+                        <div className="text-right flex-shrink-0">
+                          <span className="text-sm font-black text-slate-900 block">
                             {prod.quantitySold.toLocaleString('es-MX')} uds
                           </span>
-                          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                          <span className="text-xs text-slate-500">
                             {formatter.format(prod.totalRevenue)}
                           </span>
                         </div>
@@ -503,12 +544,12 @@ export default async function DashboardPage(props: Props) {
                 );
               })
             ) : (
-              <div style={{ padding: '2rem 0', textAlign: 'center', color: '#9ca3af', fontSize: '0.9rem' }}>
+              <div className="py-8 text-center text-slate-400 text-sm">
                 {isFiltered ? 'No hay ventas registradas en el período seleccionado.' : 'No hay ventas registradas el día de hoy.'}
               </div>
             )}
           </div>
-        </div>
+        </Card>
 
       </div>
     </div>
