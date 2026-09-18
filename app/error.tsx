@@ -95,6 +95,11 @@ export default function Error({
           overflowY: 'auto'
         }}>
           <strong>Detalle:</strong> {errorMessage}
+          {(errorMessage.includes('not a child of this node') || errorMessage.includes('removeChild')) && (
+            <div style={{ fontSize: '0.78rem', color: '#991b1b', marginTop: '0.6rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca', padding: '0.6rem', borderRadius: '6px', lineHeight: '1.4' }}>
+              💡 <strong>Causa detectada:</strong> El <strong>traductor automático de Google Chrome</strong> o una extensión de navegador modificó los textos de la página. Por favor desactiva la traducción automática en el icono del traductor de la barra de direcciones de Chrome y haz clic en <em>Reintentar Cargar</em>.
+            </div>
+          )}
           {error?.digest && (
             <div style={{ fontSize: '0.75rem', color: '#be123c', marginTop: '0.25rem' }}>
               Digest: {error.digest}

@@ -2580,9 +2580,13 @@ export default function POSClient({
           console.error('Failed to trigger iframe print:', e);
         }
         setTimeout(() => {
-          if (document.body.contains(iframe)) {
-            document.body.removeChild(iframe);
-          }
+          try {
+            if (typeof iframe.remove === 'function') {
+              iframe.remove();
+            } else if (iframe.parentNode) {
+              iframe.parentNode.removeChild(iframe);
+            }
+          } catch (_) {}
         }, 1500);
       }, 250);
     }

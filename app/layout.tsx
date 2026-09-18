@@ -59,13 +59,41 @@ export default async function RootLayout({
 
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      lang="es"
+      translate="no"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased notranslate`}
     >
       <head>
+        <meta name="google" content="notranslate" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
+              // Defensive DOM shield: Prevents Google Translate, browser extensions (Grammarly, password managers)
+              // and DOM mutations from crashing React with "Failed to execute 'removeChild' on 'Node'"
+              if (typeof Node === 'function' && Node.prototype) {
+                var origRemoveChild = Node.prototype.removeChild;
+                Node.prototype.removeChild = function(child) {
+                  if (child && child.parentNode !== this) {
+                    if (typeof console !== 'undefined') {
+                      console.warn('[DOM SHIELD] Blocked removeChild from mismatched parent', child, this);
+                    }
+                    return child;
+                  }
+                  return origRemoveChild.apply(this, arguments);
+                };
+
+                var origInsertBefore = Node.prototype.insertBefore;
+                Node.prototype.insertBefore = function(newNode, referenceNode) {
+                  if (referenceNode && referenceNode.parentNode !== this) {
+                    if (typeof console !== 'undefined') {
+                      console.warn('[DOM SHIELD] Blocked insertBefore with mismatched referenceNode', referenceNode, this);
+                    }
+                    return newNode;
+                  }
+                  return origInsertBefore.apply(this, arguments);
+                };
+              }
+
               // Force configured timezone globally in client rendering
               (function() {
                 const originalToLocaleDateString = Date.prototype.toLocaleDateString;
@@ -188,7 +216,7 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col notranslate" translate="no">
         <SWCleaner />
         <PWAUpdater />
         <CorporateToastProvider>
