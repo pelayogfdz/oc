@@ -719,15 +719,25 @@ export default async function ImprimirCotizacionPage({
 
                 <div className="pizca-summary-list">
                   <div className="pizca-summary-row">
-                    <span className="pizca-summary-label">PRECIO TOTAL:</span>
-                    <span className="pizca-summary-val">{formatCurrency(quote.total)}</span>
+                    <span className="pizca-summary-label">SUBTOTAL:</span>
+                    <span className="pizca-summary-val">{formatCurrency(netSubtotalExcludingIva)}</span>
                   </div>
+                  {totalIva > 0.01 && (
+                    <div className="pizca-summary-row">
+                      <span className="pizca-summary-label">IVA (16%):</span>
+                      <span className="pizca-summary-val">{formatCurrency(totalIva)}</span>
+                    </div>
+                  )}
                   {manualDiscount > 0.01 && (
                     <div className="pizca-summary-row">
                       <span className="pizca-summary-label">DESCUENTO:</span>
                       <span className="pizca-summary-val" style={{ color: '#dc2626' }}>-{formatCurrency(manualDiscount)}</span>
                     </div>
                   )}
+                  <div className="pizca-summary-row" style={{ borderTop: '2px solid #cbd5e1' }}>
+                    <span className="pizca-summary-label">PRECIO TOTAL:</span>
+                    <span className="pizca-summary-val" style={{ fontWeight: '900' }}>{formatCurrency(quote.total)}</span>
+                  </div>
                   <div className="pizca-summary-row">
                     <span className="pizca-summary-label">ANTICIPO (50% REQUERIDO):</span>
                     <span className="pizca-summary-val">{formatCurrency(quote.total * 0.5)}</span>

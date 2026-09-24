@@ -18,6 +18,13 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
   if (!isMobileMenuOpen) return null;
 
   const hasNodeVisible = (node: any) => {
+    if (node.localOnly) {
+      if (typeof window !== 'undefined') {
+        const host = window.location.hostname;
+        const isLocalHost = host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.168.') || host.endsWith('.local');
+        if (!isLocalHost) return false;
+      }
+    }
     if (!isOnline) {
       if (node.path === '/ventas/nueva' || node.path === '/ventas') return true;
       if (node.items) {

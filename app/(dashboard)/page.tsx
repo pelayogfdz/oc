@@ -3,6 +3,7 @@ import { getActiveBranch } from '@/app/actions/auth';
 import { ShoppingCart, PackagePlus, DollarSign, WalletCards } from 'lucide-react';
 import Link from 'next/link';
 import DashboardCharts from './DashboardCharts';
+import TopProductsWidget from './TopProductsWidget';
 import { getLocalTodayRange, getUtcDateFromLocal } from '@/app/lib/timezone';
 import { StatCard, Card, Badge } from '@/app/components/ui';
 
@@ -231,7 +232,7 @@ export default async function DashboardPage(props: Props) {
 
   const maxCustomerPurchased = topCustomers.length > 0 ? topCustomers[0].totalPurchased : 1;
 
-  // Format topProducts in-memory to group by SKU/barcode/name across branches
+  // Format topProducts in-memory to group by SKU/barcode/name across branches with units, revenue and margin
   const productMap = new Map<string, any>();
   periodSaleItems.forEach(item => {
     const prod = item.product;
@@ -251,17 +252,32 @@ export default async function DashboardPage(props: Props) {
       name: prod.name,
       sku: prod.sku || 'S/K',
       quantitySold: 0,
-      totalRevenue: 0
+      totalRevenue: 0,
+      totalCost: 0,
+      totalMargin: 0,
+      marginPercent: 0
     };
 
+    const costPerUnit = (item.cost && item.cost > 0) ? item.cost : ((prod.cost && prod.cost > 0) ? prod.cost : 0);
+    const itemRevenue = item.quantity * item.price;
+    const itemCost = item.quantity * costPerUnit;
+    const itemMargin = itemRevenue - itemCost;
+
     existing.quantitySold += item.quantity;
-    existing.totalRevenue += item.quantity * item.price;
+    existing.totalRevenue += itemRevenue;
+    existing.totalCost += itemCost;
+    existing.totalMargin += itemMargin;
+    existing.marginPercent = existing.totalRevenue > 0
+      ? Math.round((existing.totalMargin / existing.totalRevenue) * 100)
+      : 0;
+
     productMap.set(groupKey, existing);
   });
 
-  const topProducts = Array.from(productMap.values())
-    .sort((a, b) => b.quantitySold - a.quantitySold)
-    .slice(0, 10);
+  const allProcessedProducts = Array.from(productMap.values());
+  const topProductsByUnits = [...allProcessedProducts].sort((a, b) => b.quantitySold - a.quantitySold).slice(0, 10);
+  const topProductsByRevenue = [...allProcessedProducts].sort((a, b) => b.totalRevenue - a.totalRevenue).slice(0, 10);
+  const topProductsByMargin = [...allProcessedProducts].sort((a, b) => b.totalMargin - a.totalMargin).slice(0, 10);
 
   const getInitials = (name: string) => {
     if (!name) return "C";
@@ -286,7 +302,7 @@ export default async function DashboardPage(props: Props) {
   const formatter = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 
   return (
-    <div>
+    <div className="w-full min-w-0 max-w-full">
       <div className="page-header-container flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <h1 className="page-header-title text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
           Panel de Control <span className="text-purple-600 font-semibold text-lg md:text-xl">({branch.name})</span>
@@ -396,7 +412,7 @@ export default async function DashboardPage(props: Props) {
       />
 
       <div className="dashboard-main-grid mb-8">
-        <Card className="p-6">
+        <Card className="p-6 min-w-0">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold flex items-center gap-2.5 text-slate-900">
               <span>{isFiltered ? 'Ventas del Período' : 'Actividad Reciente'}</span>
@@ -406,53 +422,55 @@ export default async function DashboardPage(props: Props) {
             </h2>
           </div>
           {recentSales.length > 0 ? (
-             <table className="responsive-table w-full border-collapse">
-               <thead>
-                 <tr className="border-b-2 border-slate-100 text-left">
-                   <th className="py-3 text-slate-500 text-xs font-bold uppercase tracking-wider">Ticket / Cliente</th>
-                   <th className="py-3 text-slate-500 text-xs font-bold uppercase tracking-wider">{isFiltered ? 'Fecha y Hora' : 'Hora'}</th>
-                   <th className="py-3 text-slate-500 text-xs font-bold uppercase tracking-wider">Total</th>
-                 </tr>
-               </thead>
-               <tbody>
-                 {recentSales.map(sale => (
-                   <tr key={sale.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                     <td data-label="Ticket / Cliente" className="py-3.5 text-sm font-medium">
-                       <Link 
-                         href={`/ventas/detalle/${sale.id}`} 
-                         className="text-purple-600 font-bold hover:underline"
-                       >
-                         {sale.folio ? `Folio ${sale.folio}` : `#${sale.id.slice(-6).toUpperCase()}`}
-                       </Link>
-                       {sale.customer && (
-                         <div className="text-xs text-slate-500 mt-0.5 font-normal">
-                           {sale.customer.name}
-                         </div>
-                       )}
-                     </td>
-                     <td data-label={isFiltered ? 'Fecha y Hora' : 'Hora'} className="py-3.5 text-sm text-slate-500">
-                       <Link 
-                         href={`/ventas/detalle/${sale.id}`} 
-                         className="text-inherit no-underline block"
-                       >
-                         {isFiltered
-                           ? `${sale.createdAt.toLocaleDateString('es-MX', { timeZone: timezone, day: '2-digit', month: 'short' })} ${sale.createdAt.toLocaleTimeString('es-MX', { timeZone: timezone, hour: '2-digit', minute: '2-digit' })}`
-                           : sale.createdAt.toLocaleTimeString('es-MX', { timeZone: timezone, hour: '2-digit', minute: '2-digit' })
-                         }
-                       </Link>
-                     </td>
-                     <td data-label="Total" className="py-3.5 text-sm font-black text-emerald-600">
-                       <Link 
-                         href={`/ventas/detalle/${sale.id}`} 
-                         className="text-inherit no-underline block"
-                       >
-                         {formatter.format(sale.total)}
-                       </Link>
-                     </td>
+             <div className="overflow-x-auto w-full">
+               <table className="responsive-table w-full border-collapse">
+                 <thead>
+                   <tr className="border-b-2 border-slate-100 text-left">
+                     <th className="py-3 text-slate-500 text-xs font-bold uppercase tracking-wider">Ticket / Cliente</th>
+                     <th className="py-3 text-slate-500 text-xs font-bold uppercase tracking-wider">{isFiltered ? 'Fecha y Hora' : 'Hora'}</th>
+                     <th className="py-3 text-slate-500 text-xs font-bold uppercase tracking-wider">Total</th>
                    </tr>
-                 ))}
-               </tbody>
-             </table>
+                 </thead>
+                 <tbody>
+                   {recentSales.map(sale => (
+                     <tr key={sale.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                       <td data-label="Ticket / Cliente" className="py-3.5 text-sm font-medium">
+                         <Link 
+                           href={`/ventas/detalle/${sale.id}`} 
+                           className="text-purple-600 font-bold hover:underline"
+                         >
+                           {sale.folio ? `Folio ${sale.folio}` : `#${sale.id.slice(-6).toUpperCase()}`}
+                         </Link>
+                         {sale.customer && (
+                           <div className="text-xs text-slate-500 mt-0.5 font-normal">
+                             {sale.customer.name}
+                           </div>
+                         )}
+                       </td>
+                       <td data-label={isFiltered ? 'Fecha y Hora' : 'Hora'} className="py-3.5 text-sm text-slate-500">
+                         <Link 
+                           href={`/ventas/detalle/${sale.id}`} 
+                           className="text-inherit no-underline block"
+                         >
+                           {isFiltered
+                             ? `${sale.createdAt.toLocaleDateString('es-MX', { timeZone: timezone, day: '2-digit', month: 'short' })} ${sale.createdAt.toLocaleTimeString('es-MX', { timeZone: timezone, hour: '2-digit', minute: '2-digit' })}`
+                             : sale.createdAt.toLocaleTimeString('es-MX', { timeZone: timezone, hour: '2-digit', minute: '2-digit' })
+                           }
+                         </Link>
+                       </td>
+                       <td data-label="Total" className="py-3.5 text-sm font-black text-emerald-600">
+                         <Link 
+                           href={`/ventas/detalle/${sale.id}`} 
+                           className="text-inherit no-underline block"
+                         >
+                           {formatter.format(sale.total)}
+                         </Link>
+                       </td>
+                     </tr>
+                   ))}
+                 </tbody>
+               </table>
+             </div>
           ) : (
             <div className="py-10 text-center text-slate-400 text-sm">
                {isFiltered ? 'No hay ventas registradas en el período seleccionado.' : 'No hay ventas registradas el día de hoy.'}
@@ -460,7 +478,7 @@ export default async function DashboardPage(props: Props) {
           )}
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-6 min-w-0">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-rose-600">Advertencias</h2>
             <Badge variant="danger">Riesgo</Badge>
@@ -480,17 +498,17 @@ export default async function DashboardPage(props: Props) {
       <div className="dashboard-reports-grid">
         
         {/* Card 1: 🏆 Mejores Clientes */}
-        <Card className="p-6 md:p-8">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h2 className="text-xl font-extrabold text-slate-900 m-0 flex items-center gap-2">
+        <Card className="p-6 md:p-8 min-w-0">
+          <div className="flex justify-between items-center mb-6 gap-2">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-xl font-extrabold text-slate-900 m-0 flex items-center gap-2 flex-wrap">
                 🏆 Mejores Clientes <Badge variant={isFiltered ? 'purple' : 'info'}>{isFiltered ? 'Período' : 'Hoy'}</Badge>
               </h2>
               <p className="text-slate-500 text-xs mt-1 mb-0">
                 {isFiltered ? 'Basado en compras del período y volumen facturado' : 'Basado en compras de hoy y volumen facturado'}
               </p>
             </div>
-            <Link href="/reportes/top-clientes" className="text-xs font-bold text-blue-600 hover:underline">Ver detalle</Link>
+            <Link href="/reportes/top-clientes" className="text-xs font-bold text-blue-600 hover:underline flex-shrink-0">Ver detalle</Link>
           </div>
 
           <div className="flex flex-col gap-5">
@@ -499,7 +517,7 @@ export default async function DashboardPage(props: Props) {
                 const percentage = Math.min(100, Math.round((cust.totalPurchased / maxCustomerPurchased) * 100));
                 const avatarColor = getHslColor(cust.name);
                 return (
-                  <div key={cust.id} className="flex items-center gap-4">
+                  <div key={cust.id} className="flex items-center gap-3 sm:gap-4 min-w-0">
                     <div 
                       className="w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-sm shadow-sm flex-shrink-0"
                       style={{ backgroundColor: avatarColor }}
@@ -507,11 +525,11 @@ export default async function DashboardPage(props: Props) {
                       {getInitials(cust.name)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-bold text-slate-800 truncate">
+                      <div className="flex justify-between items-center mb-1 gap-2">
+                        <span className="text-sm font-bold text-slate-800 truncate min-w-0 flex-1" title={cust.name}>
                           {idx + 1}. {cust.name}
                         </span>
-                        <span className="text-sm font-black text-emerald-600">
+                        <span className="text-sm font-black text-emerald-600 flex-shrink-0">
                           {formatter.format(cust.totalPurchased)}
                         </span>
                       </div>
@@ -537,58 +555,13 @@ export default async function DashboardPage(props: Props) {
           </div>
         </Card>
 
-        {/* Card 2: 📦 Productos Más Vendidos */}
-        <Card className="p-6 md:p-8">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h2 className="text-xl font-extrabold text-slate-900 m-0 flex items-center gap-2">
-                📦 Productos Más Vendidos <Badge variant={isFiltered ? 'purple' : 'danger'}>{isFiltered ? 'Período' : 'Hoy'}</Badge>
-              </h2>
-              <p className="text-slate-500 text-xs mt-1 mb-0">
-                {isFiltered ? 'Artículos líderes por unidades desplazadas en el período' : 'Artículos líderes por unidades desplazadas'}
-              </p>
-            </div>
-            <Link href="/reportes/top-productos" className="text-xs font-bold text-blue-600 hover:underline">Ver detalle</Link>
-          </div>
-
-          <div className="flex flex-col gap-5">
-            {topProducts.length > 0 ? (
-              topProducts.map((prod: any, idx: number) => {
-                return (
-                  <div key={prod.id} className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center font-bold text-xs text-slate-500 flex-shrink-0">
-                      #{idx + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start gap-2">
-                        <div className="min-w-0">
-                          <span className="text-sm font-bold text-slate-800 block truncate">
-                            {prod.name}
-                          </span>
-                          <span className="text-[11px] text-slate-400 font-mono font-semibold">
-                            SKU: {prod.sku}
-                          </span>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <span className="text-sm font-black text-slate-900 block">
-                            {prod.quantitySold.toLocaleString('es-MX')} uds
-                          </span>
-                          <span className="text-xs text-slate-500">
-                            {formatter.format(prod.totalRevenue)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="py-8 text-center text-slate-400 text-sm">
-                {isFiltered ? 'No hay ventas registradas en el período seleccionado.' : 'No hay ventas registradas el día de hoy.'}
-              </div>
-            )}
-          </div>
-        </Card>
+        {/* Card 2: 📦 Productos Más Vendidos con 3 Vistas */}
+        <TopProductsWidget
+          isFiltered={isFiltered}
+          topByUnits={topProductsByUnits}
+          topByRevenue={topProductsByRevenue}
+          topByMargin={topProductsByMargin}
+        />
 
       </div>
     </div>

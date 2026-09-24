@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Search, Calculator, ArrowRight, X, ExternalLink, Printer, Download, ArrowUpDown } from 'lucide-react';
+import { Search, Calculator, ArrowRight, X, ExternalLink, Printer, Download, ArrowUpDown, Trash2, Receipt, CreditCard, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { exportToExcel } from '@/lib/exportExcel';
+import { deleteSupplierPayment } from '@/app/actions/supplierPayment';
 
 interface Branch {
   id: string;
@@ -32,19 +34,34 @@ interface Purchase {
 
 export default function CuentasPorPagarReportClient({
   initialPurchases,
+  initialPayments = [],
   branches
 }: {
   initialPurchases: Purchase[];
+  initialPayments?: any[];
   branches: Branch[];
 }) {
+  const router = useRouter();
+  const [purchases, setPurchases] = useState<Purchase[]>(initialPurchases);
+  const [payments, setPayments] = useState<any[]>(initialPayments);
   const [search, setSearch] = useState('');
   const [selectedBranchId, setSelectedBranchId] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState<'PENDING' | 'ALL' | 'PAID' | 'CURRENT' | 'OVERDUE'>('PENDING');
   const [modalStatusFilter, setModalStatusFilter] = useState<'ALL' | 'PENDING' | 'PAID' | 'CURRENT' | 'OVERDUE'>('ALL');
+  const [modalMainTab, setModalMainTab] = useState<'purchases' | 'payments'>('purchases');
+  const [deletingPaymentId, setDeletingPaymentId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'NOT_OVERDUE' | '0_15' | '15_30' | '30_60' | '60_90' | '90_PLUS'>('ALL');
   const [selectedGroup, setSelectedGroup] = useState<any | null>(null);
   const [sortBy, setSortBy] = useState<'NAME' | 'AMOUNT' | 'OVERDUE' | 'CURRENT' | 'ANTIQUITY'>('AMOUNT');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  useEffect(() => {
+    setPurchases(initialPurchases);
+  }, [initialPurchases]);
+
+  useEffect(() => {
+    setPayments(initialPayments || []);
+  }, [initialPayments]);
 
   const getDaysOverdue = (dueDateStr: string | null | undefined): number => {
     if (!dueDateStr) return -1;
@@ -80,7 +97,7 @@ export default function CuentasPorPagarReportClient({
 
   // Step 1: Filter purchases by branch, status filter and search term first
   const branchFilteredPurchases = useMemo(() => {
-    return initialPurchases.filter(purchase => {
+    return purchases.filter(purchase => {
       if (selectedBranchId !== 'ALL' && purchase.branchId !== selectedBranchId) {
         return false;
       }
@@ -106,7 +123,7 @@ export default function CuentasPorPagarReportClient({
       }
       return true;
     });
-  }, [initialPurchases, selectedBranchId, statusFilter, search]);
+  }, [purchases, selectedBranchId, statusFilter, search]);
 
   // Step 2: Categorize into buckets
   const buckets = useMemo(() => {
@@ -149,49 +166,42 @@ export default function CuentasPorPagarReportClient({
     return categories;
   }, [branchFilteredPurchases]);
 
-  // Step 3: Get purchases of the active filter/bucket
-  const activeBucketPurchases = useMemo(() => {
+  // Step 3: Filter by Active Age Bucket
+  const finalFilteredPurchases = useMemo(() => {
     return buckets[activeFilter].purchases;
   }, [buckets, activeFilter]);
 
-  // Step 4: Group filtered purchases by supplier
+  // Step 4: Group filtered purchases by Supplier
   const groupedSuppliers = useMemo(() => {
-    const groups: { [supplierId: string]: { 
-      supplier: any; 
-      purchases: Purchase[]; 
-      totalBalanceDue: number; 
-      overdueBalance: number;
-      currentBalance: number;
-      oldestDueDate: string | null; 
-      branches: Set<string> 
-    } } = {};
-    
-    activeBucketPurchases.forEach(purchase => {
+    const groups: { [key: string]: any } = {};
+
+    finalFilteredPurchases.forEach(purchase => {
       const supplierId = purchase.supplier?.id || 'unknown';
       if (!groups[supplierId]) {
         groups[supplierId] = {
-          supplier: purchase.supplier || { id: 'unknown', name: 'Sin Proveedor / Compra Directa', code: '', phone: '' },
+          supplier: purchase.supplier || { id: 'unknown', name: 'Proveedor Desconocido', code: '-', phone: '-' },
+          branch: purchase.branch,
           purchases: [],
           totalBalanceDue: 0,
-          overdueBalance: 0,
           currentBalance: 0,
-          oldestDueDate: null,
-          branches: new Set<string>()
+          overdueBalance: 0,
+          oldestDueDate: null as string | null
         };
       }
+
       groups[supplierId].purchases.push(purchase);
-      const balance = purchase.balanceDue || 0;
-      groups[supplierId].totalBalanceDue += balance;
-      
+      groups[supplierId].totalBalanceDue += purchase.balanceDue || 0;
+
       const days = getDaysOverdue(purchase.dueDate);
-      if (days > 0) {
-        groups[supplierId].overdueBalance += balance;
-      } else {
-        groups[supplierId].currentBalance += balance;
+      const isPaid = (purchase.balanceDue || 0) <= 0.001;
+      if (!isPaid) {
+        if (days > 0) {
+          groups[supplierId].overdueBalance += purchase.balanceDue || 0;
+        } else {
+          groups[supplierId].currentBalance += purchase.balanceDue || 0;
+        }
       }
 
-      groups[supplierId].branches.add(purchase.branch.name);
-      
       if (purchase.dueDate) {
         if (!groups[supplierId].oldestDueDate || new Date(purchase.dueDate) < new Date(groups[supplierId].oldestDueDate!)) {
           groups[supplierId].oldestDueDate = purchase.dueDate;
@@ -199,161 +209,159 @@ export default function CuentasPorPagarReportClient({
       }
     });
 
-    const list = Object.values(groups);
+    let list = Object.values(groups);
 
-    // Apply Sorting
+    // Sorting
     list.sort((a, b) => {
-      let comparison = 0;
+      let valA: any = 0;
+      let valB: any = 0;
+
       if (sortBy === 'NAME') {
-        const nameA = a.supplier.name.toLowerCase();
-        const nameB = b.supplier.name.toLowerCase();
-        comparison = nameA.localeCompare(nameB);
+        valA = a.supplier.name.toLowerCase();
+        valB = b.supplier.name.toLowerCase();
+        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
       } else if (sortBy === 'AMOUNT') {
-        comparison = a.totalBalanceDue - b.totalBalanceDue;
+        valA = a.totalBalanceDue;
+        valB = b.totalBalanceDue;
       } else if (sortBy === 'OVERDUE') {
-        comparison = a.overdueBalance - b.overdueBalance;
+        valA = a.overdueBalance;
+        valB = b.overdueBalance;
       } else if (sortBy === 'CURRENT') {
-        comparison = a.currentBalance - b.currentBalance;
+        valA = a.currentBalance;
+        valB = b.currentBalance;
       } else if (sortBy === 'ANTIQUITY') {
-        const dateA = a.oldestDueDate ? new Date(a.oldestDueDate).getTime() : 9999999999999;
-        const dateB = b.oldestDueDate ? new Date(b.oldestDueDate).getTime() : 9999999999999;
-        comparison = dateA - dateB;
+        valA = a.oldestDueDate ? new Date(a.oldestDueDate).getTime() : 9999999999999;
+        valB = b.oldestDueDate ? new Date(b.oldestDueDate).getTime() : 9999999999999;
+        // For antiquity asc means oldest first
+        return sortOrder === 'asc' ? valA - valB : valB - valA;
       }
-      return sortOrder === 'desc' ? -comparison : comparison;
+
+      return sortOrder === 'asc' ? valA - valB : valB - valA;
     });
 
     return list;
-  }, [activeBucketPurchases, sortBy, sortOrder]);
+  }, [finalFilteredPurchases, sortBy, sortOrder]);
 
-  // Totals calculations
-  const totals = useMemo(() => {
-    let totalPagar = 0;
-    let totalVencido = 0;
-    let totalCorriente = 0;
-    let totalDocs = 0;
+  const handleSort = (column: 'NAME' | 'AMOUNT' | 'OVERDUE' | 'CURRENT' | 'ANTIQUITY') => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder(column === 'NAME' ? 'asc' : 'desc');
+    }
+  };
 
-    branchFilteredPurchases.forEach(purchase => {
-      const balance = purchase.balanceDue || 0;
-      totalPagar += balance;
-      totalDocs++;
-      const days = getDaysOverdue(purchase.dueDate);
-      if (days > 0) {
-        totalVencido += balance;
-      } else {
-        totalCorriente += balance;
-      }
-    });
+  const handlePrint = () => {
+    window.print();
+  };
 
-    return { totalPagar, totalVencido, totalCorriente, totalDocs };
-  }, [branchFilteredPurchases]);
-
-  const downloadExcel = () => {
+  const handleExportGlobalExcel = () => {
     const headers = [
-      "Proveedor", 
-      "Sucursal(es)", 
-      "Documentos Pendientes", 
-      "Vencimiento Más Antiguo", 
-      "Deuda al Corriente", 
-      "Deuda Vencida", 
-      "Deuda Total"
+      'Proveedor',
+      'Código',
+      'Teléfono',
+      'Sucursal',
+      'Facturas Pendientes',
+      'Saldo al Corriente',
+      'Saldo Vencido',
+      'Deuda Total',
+      'Vencimiento Más Antiguo'
     ];
-    const rows = groupedSuppliers.map(supplier => {
-      const overdueInfo = getOldestDueDateText(supplier.oldestDueDate);
+    const rows = groupedSuppliers.map(group => {
+      const oldestDueInfo = getOldestDueDateText(group.oldestDueDate);
       return [
-        supplier.supplier.name,
-        Array.from(supplier.branches).join(', '),
-        supplier.purchases.length,
-        overdueInfo.text,
-        supplier.currentBalance,
-        supplier.overdueBalance,
-        supplier.totalBalanceDue
+        group.supplier.name,
+        group.supplier.code || '-',
+        group.supplier.phone || '-',
+        selectedBranchId === 'ALL' ? 'Todas las Sucursales' : group.branch.name,
+        group.purchases.length,
+        group.currentBalance,
+        group.overdueBalance,
+        group.totalBalanceDue,
+        oldestDueInfo.text
       ];
     });
-    exportToExcel(headers, rows, 'Reporte_Cuentas_Por_Pagar');
+
+    exportToExcel(headers, rows, `Reporte_Cuentas_Por_Pagar_${new Date().toISOString().split('T')[0]}`);
   };
 
   const handleExportSupplierPurchases = () => {
-    if (!selectedGroup || !selectedGroup.purchases) return;
-
-    const supplierName = selectedGroup.supplier?.name || 'Proveedor';
+    if (!selectedGroup) return;
     const headers = [
-      'Folio Interno Compra',
-      'Folio / Factura Proveedor',
-      'Sucursal',
-      'Fecha Emisión',
+      'Folio Compra',
+      'Folio Proveedor',
+      'Fecha Compra',
       'Fecha Vencimiento',
-      'Días de Vencimiento',
       'Estado',
-      'Total de la Compra',
-      'Monto Pagado / Abonado',
-      'Saldo Pendiente (Deuda)'
+      'Monto Total',
+      'Monto Pagado',
+      'Saldo Pendiente'
     ];
-
-    const purchasesToExport = modalFilteredPurchases.length > 0 ? modalFilteredPurchases : selectedGroup.purchases;
-    let sumTotal = 0;
-    let sumPaid = 0;
-    let sumDebt = 0;
-
-    const rows = purchasesToExport.map((purchase: Purchase) => {
-      const days = getDaysOverdue(purchase.dueDate);
-      const isPaid = (purchase.balanceDue || 0) <= 0.001;
-      const isOverdue = !isPaid && days > 0;
-      const folioStr = purchase.folio ? `#${purchase.folio}` : `#${purchase.id.slice(0, 8).toUpperCase()}`;
-      const supplierFolioStr = purchase.supplierFolio || 'S/F';
-      const branchName = purchase.branch?.name || '-';
-      const createdDate = new Date(purchase.createdAt).toLocaleDateString('es-MX');
-      const dueDateStr = purchase.dueDate ? new Date(purchase.dueDate).toLocaleDateString('es-MX') : 'N/A';
-      const statusStr = isPaid ? 'PAGADA' : isOverdue ? `VENCIDO (${days} días)` : 'AL CORRIENTE';
-      const totalAmount = (purchase as any).total !== undefined ? Number((purchase as any).total) : Number(purchase.balanceDue || 0);
-      const balanceDue = Number(purchase.balanceDue || 0);
+    const rows = selectedGroup.purchases.map((p: any) => {
+      const days = getDaysOverdue(p.dueDate);
+      const isPaid = (p.balanceDue || 0) <= 0.001;
+      const isItemOverdue = !isPaid && days > 0;
+      const totalAmount = p.total !== undefined ? Number(p.total) : Number(p.balanceDue || 0);
+      const balanceDue = Number(p.balanceDue || 0);
       const paidAmount = Math.max(0, totalAmount - balanceDue);
 
-      sumTotal += totalAmount;
-      sumPaid += paidAmount;
-      sumDebt += balanceDue;
-
       return [
-        folioStr,
-        supplierFolioStr,
-        branchName,
-        createdDate,
-        dueDateStr,
-        isPaid ? 0 : (isOverdue ? days : 0),
-        statusStr,
+        p.folio ? `#${p.folio}` : `#${p.id.slice(0, 8).toUpperCase()}`,
+        p.supplierFolio || '-',
+        new Date(p.createdAt).toLocaleDateString(),
+        p.dueDate ? new Date(p.dueDate).toLocaleDateString() : 'N/A',
+        isPaid ? 'Pagada' : isItemOverdue ? `Vencido (${days} días)` : 'Al Corriente',
         totalAmount,
         paidAmount,
         balanceDue
       ];
     });
 
-    // Totals row at the bottom for quick reconciliation
-    rows.push([
-      'TOTALES',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      sumTotal,
-      sumPaid,
-      sumDebt
-    ]);
-
-    const sanitizedSupplierName = supplierName.replace(/[^a-zA-Z0-9_\-]/g, '_');
-    const dateStr = new Date().toISOString().split('T')[0];
-    exportToExcel(headers, rows, `Facturas_Proveedor_${sanitizedSupplierName}_${dateStr}`);
+    exportToExcel(headers, rows, `Facturas_${selectedGroup.supplier.name.replace(/\s+/g, '_')}`);
   };
 
+  const handleExportSupplierPayments = () => {
+    if (!selectedGroup || supplierPayments.length === 0) return;
+    const headers = [
+      'ID Abono',
+      'Fecha',
+      'Proveedor',
+      'Concepto / Razón',
+      'Factura Compra',
+      'Folio Factura Proveedor',
+      'Usuario',
+      'Monto Abono'
+    ];
+    const rows = supplierPayments.map((p: any) => [
+      p.id.slice(0, 8).toUpperCase(),
+      new Date(p.createdAt).toLocaleDateString() + ' ' + new Date(p.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      selectedGroup.supplier.name,
+      p.reason || 'Abono a Proveedor',
+      p.purchase?.folio ? `#${p.purchase.folio}` : (p.purchaseId ? `#${p.purchaseId.slice(0, 8).toUpperCase()}` : 'Anticipo / Saldo a favor'),
+      p.purchase?.supplierFolio || '-',
+      p.user?.name || '-',
+      p.amount
+    ]);
+
+    exportToExcel(headers, rows, `Abonos_${selectedGroup.supplier.name.replace(/\s+/g, '_')}`);
+  };
+
+  // Supplier payments for selected group in modal
+  const supplierPayments = useMemo(() => {
+    if (!selectedGroup?.supplier?.id) return [];
+    return payments.filter((p: any) => p.supplierId === selectedGroup.supplier.id);
+  }, [payments, selectedGroup]);
+
+  // Modal specific status counts
   const modalCounts = useMemo(() => {
-    if (!selectedGroup || !selectedGroup.purchases) {
-      return { all: 0, pending: 0, paid: 0, current: 0, overdue: 0 };
-    }
-    let all = 0, pending = 0, paid = 0, current = 0, overdue = 0;
+    if (!selectedGroup) return { all: 0, pending: 0, current: 0, overdue: 0, paid: 0 };
+    let all = 0, pending = 0, current = 0, overdue = 0, paid = 0;
     selectedGroup.purchases.forEach((p: Purchase) => {
       all++;
-      const days = getDaysOverdue(p.dueDate);
       const isPaid = (p.balanceDue || 0) <= 0.001;
+      const days = getDaysOverdue(p.dueDate);
       if (isPaid) {
         paid++;
       } else {
@@ -362,105 +370,215 @@ export default function CuentasPorPagarReportClient({
         else current++;
       }
     });
-    return { all, pending, paid, current, overdue };
+    return { all, pending, current, overdue, paid };
   }, [selectedGroup]);
 
+  // Modal filtered purchases based on modalStatusFilter
   const modalFilteredPurchases = useMemo(() => {
-    if (!selectedGroup || !selectedGroup.purchases) return [];
-    return selectedGroup.purchases.filter((purchase: Purchase) => {
-      const days = getDaysOverdue(purchase.dueDate);
-      const isPaid = (purchase.balanceDue || 0) <= 0.001;
+    if (!selectedGroup) return [];
+    return selectedGroup.purchases.filter((p: Purchase) => {
+      const isPaid = (p.balanceDue || 0) <= 0.001;
+      const days = getDaysOverdue(p.dueDate);
       const isOverdue = !isPaid && days > 0;
       const isCurrent = !isPaid && days <= 0;
 
-      if (modalStatusFilter === 'PENDING') return !isPaid;
+      if (modalStatusFilter === 'ALL') return true;
       if (modalStatusFilter === 'PAID') return isPaid;
+      if (modalStatusFilter === 'PENDING') return !isPaid;
       if (modalStatusFilter === 'OVERDUE') return isOverdue;
       if (modalStatusFilter === 'CURRENT') return isCurrent;
-      return true; // 'ALL'
+      return true;
     });
   }, [selectedGroup, modalStatusFilter]);
 
-  const toggleSort = (field: 'NAME' | 'AMOUNT' | 'OVERDUE' | 'CURRENT' | 'ANTIQUITY') => {
-    if (sortBy === field) {
-      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-      setSortOrder('desc');
+  // Delete payment handler
+  const handleDeletePayment = async (payment: any) => {
+    const confirmMsg = `¿Estás seguro de que deseas eliminar este abono de ${formatCurrency(payment.amount)}?\n\nEsta acción revertirá la deuda en la factura de compra correspondiente y en el saldo pendiente del proveedor.`;
+    if (!confirm(confirmMsg)) return;
+
+    setDeletingPaymentId(payment.id);
+    try {
+      const res = await deleteSupplierPayment(payment.id);
+      if (res.success) {
+        // Update local payments
+        setPayments(prev => prev.filter(p => p.id !== payment.id));
+
+        // Update local purchases if purchaseId exists
+        if (payment.purchaseId) {
+          setPurchases(prev => prev.map(p => {
+            if (p.id === payment.purchaseId) {
+              const newBalance = Math.min((p as any).total || (p.balanceDue + payment.amount), p.balanceDue + payment.amount);
+              return { ...p, balanceDue: newBalance };
+            }
+            return p;
+          }));
+        }
+
+        // Update selectedGroup balances
+        setSelectedGroup((prev: any) => {
+          if (!prev) return null;
+          const updatedPurchases = prev.purchases.map((p: any) => {
+            if (p.id === payment.purchaseId) {
+              const newBalance = Math.min(p.total || (p.balanceDue + payment.amount), p.balanceDue + payment.amount);
+              return { ...p, balanceDue: newBalance };
+            }
+            return p;
+          });
+          const totalBalanceDue = updatedPurchases.reduce((acc: number, p: any) => acc + (p.balanceDue || 0), 0);
+          return {
+            ...prev,
+            purchases: updatedPurchases,
+            totalBalanceDue
+          };
+        });
+
+        alert("Abono eliminado y saldo revertido exitosamente.");
+        router.refresh();
+      } else {
+        alert("Error al eliminar el abono: " + (res.error || "Ocurrió un error inesperado"));
+      }
+    } catch (err: any) {
+      alert("Error: " + err.message);
+    } finally {
+      setDeletingPaymentId(null);
     }
   };
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+    <div style={{ paddingBottom: '3rem' }}>
+      {/* Header */}
+      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Reporte de Cuentas por Pagar (CxP)</h1>
-          <p style={{ color: 'var(--caanma-text-muted)' }}>Adeudos a proveedores por compras a crédito, vencimientos y antigüedad de saldos.</p>
+          <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>
+            Reporte de Cuentas por Pagar (CxP)
+          </h1>
+          <p style={{ color: '#64748b', fontSize: '0.875rem', marginTop: '0.25rem', margin: 0 }}>
+            Monitoreo y control de pasivos, facturas a crédito y antigüedad de saldos por proveedor
+          </p>
         </div>
-        <div className="no-print" style={{ display: 'flex', gap: '0.75rem' }}>
-          <button 
-            onClick={() => window.print()}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#6d28d9', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor='#5b21b6'}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor='#6d28d9'}
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <button
+            onClick={handlePrint}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.625rem 1.25rem',
+              backgroundColor: '#4f46e5',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 'bold',
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(79, 70, 229, 0.25)',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#4338ca'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = '#4f46e5'}
           >
-            <Printer size={18} /> Imprimir / PDF
+            <Printer size={16} /> Imprimir / PDF
           </button>
-          <button 
-            onClick={downloadExcel}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#0f172a', color: 'white', border: 'none', padding: '0.65rem 1.25rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor='#1e293b'}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor='#0f172a'}
+          <button
+            onClick={handleExportGlobalExcel}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.625rem 1.25rem',
+              backgroundColor: '#0f172a',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 'bold',
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(15, 23, 42, 0.25)',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#1e293b'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0f172a'}
           >
-            <Download size={18} /> Exportar Excel
+            <Download size={16} /> Exportar Excel
           </button>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
-          <h3 style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Total Cuentas por Pagar</h3>
-          <div style={{ fontSize: '1.85rem', fontWeight: '900', color: 'var(--caanma-text)' }}>{formatCurrency(totals.totalPagar)}</div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--caanma-text-muted)', marginTop: '0.5rem' }}>{totals.totalDocs} facturas pendientes</div>
-        </div>
-        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
-          <h3 style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Saldo Vencido</h3>
-          <div style={{ fontSize: '1.85rem', fontWeight: '900', color: '#dc2626' }}>{formatCurrency(totals.totalVencido)}</div>
-          <div style={{ fontSize: '0.8rem', color: '#dc2626', marginTop: '0.5rem', fontWeight: '500' }}>
-            {totals.totalPagar > 0 ? `${((totals.totalVencido / totals.totalPagar) * 100).toFixed(1)}%` : '0%'} vencido
+      {/* Summary KPI Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Total Cuentas por Pagar
+          </span>
+          <div style={{ fontSize: '1.875rem', fontWeight: '900', color: '#1e293b', marginTop: '0.5rem' }}>
+            {formatCurrency(groupedSuppliers.reduce((sum, g) => sum + g.totalBalanceDue, 0))}
           </div>
+          <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem', display: 'block' }}>
+            {finalFilteredPurchases.length} facturas pendientes de liquidar
+          </span>
         </div>
-        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
-          <h3 style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Saldo al Corriente</h3>
-          <div style={{ fontSize: '1.85rem', fontWeight: '900', color: '#16a34a' }}>{formatCurrency(totals.totalCorriente)}</div>
-          <div style={{ fontSize: '0.8rem', color: '#16a34a', marginTop: '0.5rem', fontWeight: '500' }}>
-            {totals.totalPagar > 0 ? `${((totals.totalCorriente / totals.totalPagar) * 100).toFixed(1)}%` : '0%'} al corriente
+
+        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Saldo Vencido
+          </span>
+          <div style={{ fontSize: '1.875rem', fontWeight: '900', color: '#dc2626', marginTop: '0.5rem' }}>
+            {formatCurrency(groupedSuppliers.reduce((sum, g) => sum + g.overdueBalance, 0))}
           </div>
+          <span style={{ fontSize: '0.75rem', color: '#dc2626', marginTop: '0.25rem', display: 'block', fontWeight: '500' }}>
+            {((groupedSuppliers.reduce((sum, g) => sum + g.overdueBalance, 0) / (groupedSuppliers.reduce((sum, g) => sum + g.totalBalanceDue, 0) || 1)) * 100).toFixed(1)}% del total vencido
+          </span>
+        </div>
+
+        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Saldo al Corriente
+          </span>
+          <div style={{ fontSize: '1.875rem', fontWeight: '900', color: '#16a34a', marginTop: '0.5rem' }}>
+            {formatCurrency(groupedSuppliers.reduce((sum, g) => sum + g.currentBalance, 0))}
+          </div>
+          <span style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '0.25rem', display: 'block', fontWeight: '500' }}>
+            {((groupedSuppliers.reduce((sum, g) => sum + g.currentBalance, 0) / (groupedSuppliers.reduce((sum, g) => sum + g.totalBalanceDue, 0) || 1)) * 100).toFixed(1)}% al corriente
+          </span>
         </div>
       </div>
 
-      <div className="card" style={{ padding: '1.5rem', backgroundColor: 'white', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
-        {/* Filters Panel */}
-        <div className="no-print" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ flex: 1, minWidth: '250px', position: 'relative' }}>
-            <Search size={18} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '1rem', color: '#94a3b8' }} />
-            <input 
-              type="text" 
-              placeholder="Buscar por proveedor o folio compra..." 
+      {/* Main Filter Section */}
+      <div className="no-print" style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', flex: 1, minWidth: '280px' }}>
+          {/* Search */}
+          <div style={{ position: 'relative', minWidth: '240px', flex: 1 }}>
+            <Search size={16} color="#64748b" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+            <input
+              type="text"
+              placeholder="Buscar proveedor o folio de factura..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ width: '100%', padding: '0.65rem 1rem 0.65rem 2.5rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.9rem' }}
+              onChange={e => setSearch(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.5rem 1rem 0.5rem 2.25rem',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '0.875rem',
+                outline: 'none'
+              }}
             />
           </div>
 
           {/* Branch Select */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Sucursal:</span>
+          <div>
             <select
               value={selectedBranchId}
-              onChange={(e) => setSelectedBranchId(e.target.value)}
-              style={{ padding: '0.6rem 2rem 0.6rem 1rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.875rem', backgroundColor: 'white', cursor: 'pointer' }}
+              onChange={e => setSelectedBranchId(e.target.value)}
+              style={{
+                padding: '0.5rem 2rem 0.5rem 0.75rem',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '0.875rem',
+                backgroundColor: 'white',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
             >
               <option value="ALL">Todas las Sucursales</option>
               {branches.map(b => (
@@ -468,164 +586,198 @@ export default function CuentasPorPagarReportClient({
               ))}
             </select>
           </div>
+        </div>
 
-          {/* Status Filter Select */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Estado:</span>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              style={{ padding: '0.6rem 2rem 0.6rem 1rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.875rem', backgroundColor: 'white', cursor: 'pointer', fontWeight: '500' }}
+        {/* Status Filter */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#475569' }}>Estado:</span>
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value as any)}
+            style={{
+              padding: '0.5rem 1.5rem 0.5rem 0.75rem',
+              borderRadius: '8px',
+              border: '1px solid #cbd5e1',
+              fontSize: '0.875rem',
+              backgroundColor: 'white',
+              outline: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="PENDING">Con Deuda (Pendientes)</option>
+            <option value="ALL">Todas las Facturas</option>
+            <option value="CURRENT">Solo al Corriente</option>
+            <option value="OVERDUE">Solo Vencidas</option>
+            <option value="PAID">Solo Pagadas</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Age Buckets Filter Bar */}
+      <div className="no-print" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+        {Object.entries(buckets).map(([key, bucket]) => {
+          const isActive = activeFilter === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setActiveFilter(key as any)}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '8px',
+                border: isActive ? '1px solid #4f46e5' : '1px solid #e2e8f0',
+                backgroundColor: isActive ? '#eef2ff' : 'white',
+                color: isActive ? '#4f46e5' : '#475569',
+                fontSize: '0.825rem',
+                fontWeight: isActive ? 'bold' : 'normal',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease'
+              }}
             >
-              <option value="PENDING">Con Deuda (Pendientes)</option>
-              <option value="ALL">Todas (Pendientes y Pagadas)</option>
-              <option value="CURRENT">Al Corriente</option>
-              <option value="OVERDUE">Vencidas</option>
-              <option value="PAID">Solo Pagadas</option>
-            </select>
-          </div>
-        </div>
+              <span>{bucket.label}</span>
+              <span style={{
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                backgroundColor: isActive ? '#4f46e5' : '#f1f5f9',
+                color: isActive ? 'white' : '#64748b',
+                padding: '0.1rem 0.4rem',
+                borderRadius: '9999px'
+              }}>
+                {bucket.purchases.length}
+              </span>
+              <span style={{ fontSize: '0.75rem', color: isActive ? '#4338ca' : '#94a3b8' }}>
+                ({formatCurrency(bucket.total)})
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
-        {/* Age buckets tab filter */}
-        <div className="no-print" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
-          {(Object.keys(buckets) as Array<keyof typeof buckets>).map((key) => {
-            const bucket = buckets[key];
-            const isActive = activeFilter === key;
-            return (
-              <button
-                key={key}
-                onClick={() => setActiveFilter(key)}
-                style={{
-                  padding: '0.4rem 0.95rem',
-                  borderRadius: '9999px',
-                  border: isActive ? '1px solid var(--caanma-primary)' : '1px solid #e2e8f0',
-                  backgroundColor: isActive ? 'rgba(109, 40, 217, 0.08)' : 'white',
-                  color: isActive ? 'var(--caanma-primary)' : '#64748b',
-                  fontSize: '0.825rem',
-                  fontWeight: isActive ? 'bold' : 'normal',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <span>{bucket.label}</span>
-                <span style={{ 
-                  fontSize: '0.7rem', 
-                  backgroundColor: isActive ? 'var(--caanma-primary)' : '#f1f5f9', 
-                  color: isActive ? 'white' : '#64748b', 
-                  padding: '0.05rem 0.35rem', 
-                  borderRadius: '9999px',
-                  fontWeight: 'bold'
-                }}>
-                  {bucket.purchases.length}
-                </span>
-                <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>
-                  ({formatCurrency(bucket.total, 0)})
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Report Table */}
-        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead style={{ backgroundColor: '#f8fafc' }}>
-            <tr style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-              <th 
-                onClick={() => toggleSort('NAME')} 
-                style={{ padding: '0.85rem 1rem', cursor: 'pointer', userSelect: 'none' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 'bold', fontSize: '0.85rem', color: '#475569' }}>
-                  Proveedor <ArrowUpDown size={14} />
+      {/* Table Section */}
+      <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+          <thead>
+            <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'left' }}>
+              <th onClick={() => handleSort('NAME')} style={{ padding: '0.85rem 1rem', cursor: 'pointer', userSelect: 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span>Proveedor</span>
+                  <ArrowUpDown size={13} color={sortBy === 'NAME' ? '#4f46e5' : '#94a3b8'} />
                 </div>
               </th>
               {selectedBranchId === 'ALL' && (
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 'bold', fontSize: '0.85rem', color: '#475569' }}>Sucursal(es)</th>
+                <th style={{ padding: '0.85rem 1rem' }}>Sucursal</th>
               )}
-              <th style={{ padding: '0.85rem 1rem', fontWeight: 'bold', fontSize: '0.85rem', color: '#475569', textAlign: 'center' }}>Facturas / Compras</th>
-              <th 
-                onClick={() => toggleSort('ANTIQUITY')} 
-                style={{ padding: '0.85rem 1rem', cursor: 'pointer', userSelect: 'none' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 'bold', fontSize: '0.85rem', color: '#475569' }}>
-                  Vencimiento Más Antiguo <ArrowUpDown size={14} />
+              <th style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>Facturas</th>
+              <th onClick={() => handleSort('CURRENT')} style={{ padding: '0.85rem 1rem', textAlign: 'right', cursor: 'pointer', userSelect: 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem' }}>
+                  <span>Al Corriente</span>
+                  <ArrowUpDown size={13} color={sortBy === 'CURRENT' ? '#4f46e5' : '#94a3b8'} />
                 </div>
               </th>
-              <th 
-                onClick={() => toggleSort('CURRENT')} 
-                style={{ padding: '0.85rem 1rem', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 'bold', fontSize: '0.85rem', color: '#16a34a', justifyContent: 'flex-end' }}>
-                  Deuda al Corriente <ArrowUpDown size={14} />
+              <th onClick={() => handleSort('OVERDUE')} style={{ padding: '0.85rem 1rem', textAlign: 'right', cursor: 'pointer', userSelect: 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem' }}>
+                  <span>Vencido</span>
+                  <ArrowUpDown size={13} color={sortBy === 'OVERDUE' ? '#4f46e5' : '#94a3b8'} />
                 </div>
               </th>
-              <th 
-                onClick={() => toggleSort('OVERDUE')} 
-                style={{ padding: '0.85rem 1rem', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 'bold', fontSize: '0.85rem', color: '#dc2626', justifyContent: 'flex-end' }}>
-                  Deuda Vencida <ArrowUpDown size={14} />
+              <th onClick={() => handleSort('AMOUNT')} style={{ padding: '0.85rem 1rem', textAlign: 'right', cursor: 'pointer', userSelect: 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem' }}>
+                  <span>Deuda Total</span>
+                  <ArrowUpDown size={13} color={sortBy === 'AMOUNT' ? '#4f46e5' : '#94a3b8'} />
                 </div>
               </th>
-              <th 
-                onClick={() => toggleSort('AMOUNT')} 
-                style={{ padding: '0.85rem 1rem', cursor: 'pointer', userSelect: 'none', textAlign: 'right' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 'bold', fontSize: '0.85rem', color: '#1e293b', justifyContent: 'flex-end' }}>
-                  Deuda Total <ArrowUpDown size={14} />
+              <th onClick={() => handleSort('ANTIQUITY')} style={{ padding: '0.85rem 1rem', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
+                  <span>Antigüedad / Vencimiento</span>
+                  <ArrowUpDown size={13} color={sortBy === 'ANTIQUITY' ? '#4f46e5' : '#94a3b8'} />
                 </div>
               </th>
-              <th className="no-print" style={{ padding: '0.85rem 1rem', fontWeight: 'bold', fontSize: '0.85rem', color: '#475569', textAlign: 'center' }}>Acciones</th>
+              <th className="no-print" style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {groupedSuppliers.map((supplier: any) => {
-              const overdueInfo = getOldestDueDateText(supplier.oldestDueDate);
+            {groupedSuppliers.map(group => {
+              const oldestDueInfo = getOldestDueDateText(group.oldestDueDate);
               return (
-                <tr key={supplier.supplier.id} style={{ borderBottom: '1px solid var(--caanma-border)', fontSize: '0.9rem' }}>
-                  <td data-label="Proveedor" style={{ padding: '0.85rem 1rem', fontWeight: 'bold' }}>
-                    {supplier.supplier.name}
-                    {supplier.supplier.code && (
-                      <span style={{ fontSize: '0.75rem', color: '#64748b', marginLeft: '0.5rem', fontWeight: 'normal', backgroundColor: '#f1f5f9', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>
-                        {supplier.supplier.code}
-                      </span>
-                    )}
+                <tr key={group.supplier.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.15s ease' }}>
+                  <td style={{ padding: '1rem' }}>
+                    <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{group.supplier.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
+                      {group.supplier.code && `Cod: ${group.supplier.code}`} {group.supplier.phone && `| Tel: ${group.supplier.phone}`}
+                    </div>
                   </td>
                   {selectedBranchId === 'ALL' && (
-                    <td data-label="Sucursal" style={{ padding: '0.85rem 1rem', color: '#64748b' }}>
-                      {Array.from(supplier.branches).join(', ')}
+                    <td style={{ padding: '1rem', color: '#64748b' }}>
+                      {group.branch?.name || '-'}
                     </td>
                   )}
-                  <td data-label="Documentos" style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
-                    <span style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.775rem', fontWeight: 'bold', border: '1px solid #cbd5e1' }}>
-                      {supplier.purchases.length} compras
+                  <td style={{ padding: '1rem', textAlign: 'center' }}>
+                    <span style={{ backgroundColor: '#f1f5f9', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.8rem', color: '#334155' }}>
+                      {group.purchases.length}
                     </span>
                   </td>
-                  <td data-label="Vencimiento" style={{ padding: '0.85rem 1rem', fontWeight: '500', color: overdueInfo.isOverdue ? '#dc2626' : '#16a34a' }}>
-                    {overdueInfo.text}
+                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: group.currentBalance > 0 ? '#16a34a' : '#94a3b8' }}>
+                    {formatCurrency(group.currentBalance)}
                   </td>
-                  <td data-label="Deuda Corriente" style={{ padding: '0.85rem 1rem', fontWeight: '600', color: supplier.currentBalance > 0 ? '#16a34a' : '#94a3b8', textAlign: 'right' }}>
-                    {supplier.currentBalance > 0 ? formatCurrency(supplier.currentBalance) : '-'}
+                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '700', color: group.overdueBalance > 0 ? '#dc2626' : '#94a3b8' }}>
+                    {formatCurrency(group.overdueBalance)}
                   </td>
-                  <td data-label="Deuda Vencida" style={{ padding: '0.85rem 1rem', fontWeight: 'bold', color: supplier.overdueBalance > 0 ? '#dc2626' : '#94a3b8', textAlign: 'right' }}>
-                    {supplier.overdueBalance > 0 ? formatCurrency(supplier.overdueBalance) : '-'}
+                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '900', color: '#1e293b', fontSize: '0.95rem' }}>
+                    {formatCurrency(group.totalBalanceDue)}
                   </td>
-                  <td data-label="Deuda Total" style={{ padding: '0.85rem 1rem', fontWeight: '900', color: '#1e293b', textAlign: 'right' }}>
-                    {formatCurrency(supplier.totalBalanceDue)}
+                  <td style={{ padding: '1rem', textAlign: 'center' }}>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold',
+                      color: oldestDueInfo.isOverdue ? '#dc2626' : '#16a34a',
+                      backgroundColor: oldestDueInfo.isOverdue ? '#fef2f2' : '#f0fdf4',
+                      padding: '0.2rem 0.5rem',
+                      borderRadius: '4px',
+                      border: `1px solid ${oldestDueInfo.isOverdue ? '#fecaca' : '#bbf7d0'}`
+                    }}>
+                      {oldestDueInfo.text}
+                    </span>
                   </td>
-                  <td data-label="Acciones" className="no-print" style={{ padding: '0.85rem 1rem' }}>
+                  <td className="no-print" style={{ padding: '1rem', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', alignItems: 'center' }}>
                       <button
-                        onClick={() => setSelectedGroup(supplier)}
-                        style={{ border: '1px solid #cbd5e1', padding: '0.3rem 0.6rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', backgroundColor: 'white', color: 'var(--caanma-primary)', fontSize: '0.775rem', transition: 'all 0.15s ease' }}
+                        onClick={() => {
+                          setSelectedGroup(group);
+                          setModalMainTab('purchases');
+                        }}
+                        style={{
+                          padding: '0.35rem 0.75rem',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          backgroundColor: 'white',
+                          color: '#475569',
+                          fontWeight: 'bold',
+                          fontSize: '0.8rem',
+                          cursor: 'pointer'
+                        }}
                       >
                         Ver Detalle
                       </button>
-                      {supplier.supplier?.id && supplier.supplier.id !== 'unknown' && (
-                        <Link href={`/proveedores/cuentas`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', textDecoration: 'none', color: '#64748b', fontWeight: 'bold', fontSize: '0.775rem' }}>
-                          Abonar <ArrowRight size={12}/>
+                      {group.supplier.id !== 'unknown' && (
+                        <Link
+                          href={`/proveedores/cuentas`}
+                          style={{
+                            padding: '0.35rem 0.75rem',
+                            borderRadius: '6px',
+                            backgroundColor: '#eef2ff',
+                            color: '#4f46e5',
+                            fontWeight: 'bold',
+                            fontSize: '0.8rem',
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.2rem'
+                          }}
+                        >
+                          Abonar <ArrowRight size={12} />
                         </Link>
                       )}
                     </div>
@@ -644,19 +796,19 @@ export default function CuentasPorPagarReportClient({
         </table>
       </div>
 
-      {/* Modal Detalle de Facturas */}
+      {/* Modal Detalle de Cuentas por Pagar (Facturas y Abonos) */}
       {selectedGroup && (
         <div className="no-print" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '750px', maxWidth: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '850px', maxWidth: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
             {/* Header */}
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc' }}>
               <div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#1e293b' }}>Detalle de Cuentas por Pagar</h3>
-                <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.15rem' }}>{selectedGroup.supplier.name}</p>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>Detalle de Cuentas por Pagar</h3>
+                <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.15rem', margin: 0 }}>{selectedGroup.supplier.name}</p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                 <button 
-                  onClick={handleExportSupplierPurchases}
+                  onClick={modalMainTab === 'purchases' ? handleExportSupplierPurchases : handleExportSupplierPayments}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -674,7 +826,7 @@ export default function CuentasPorPagarReportClient({
                   }}
                   onMouseEnter={e => e.currentTarget.style.backgroundColor='#059669'}
                   onMouseLeave={e => e.currentTarget.style.backgroundColor='#10b981'}
-                  title="Exportar facturas de compra a Excel para conciliación"
+                  title={modalMainTab === 'purchases' ? 'Exportar facturas de compra a Excel' : 'Exportar abonos realizados a Excel'}
                 >
                   <Download size={15} /> Exportar Excel
                 </button>
@@ -719,152 +871,305 @@ export default function CuentasPorPagarReportClient({
               )}
             </div>
 
-            {/* Modal Status Filter Tabs */}
-            <div style={{ padding: '0.75rem 1.5rem', backgroundColor: '#ffffff', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              {[
-                { key: 'ALL', label: 'Todas', count: modalCounts.all },
-                { key: 'PENDING', label: 'Con Deuda', count: modalCounts.pending },
-                { key: 'CURRENT', label: 'Al Corriente', count: modalCounts.current },
-                { key: 'OVERDUE', label: 'Vencidas', count: modalCounts.overdue },
-                { key: 'PAID', label: 'Pagadas', count: modalCounts.paid }
-              ].map(tab => {
-                const isActive = modalStatusFilter === tab.key;
-                return (
-                  <button
-                    key={tab.key}
-                    onClick={() => setModalStatusFilter(tab.key as any)}
-                    style={{
-                      padding: '0.3rem 0.75rem',
-                      borderRadius: '9999px',
-                      border: isActive ? '1px solid #6d28d9' : '1px solid #cbd5e1',
-                      backgroundColor: isActive ? '#f5f3ff' : '#f8fafc',
-                      color: isActive ? '#6d28d9' : '#475569',
-                      fontSize: '0.8rem',
-                      fontWeight: isActive ? 'bold' : 'normal',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.35rem'
-                    }}
-                  >
-                    <span>{tab.label}</span>
-                    <span style={{
-                      fontSize: '0.7rem',
-                      backgroundColor: isActive ? '#6d28d9' : '#e2e8f0',
-                      color: isActive ? 'white' : '#475569',
-                      padding: '0.05rem 0.35rem',
-                      borderRadius: '9999px',
-                      fontWeight: 'bold'
-                    }}>
-                      {tab.count}
-                    </span>
-                  </button>
-                );
-              })}
+            {/* Main Navigation Tabs: Facturas vs Historial de Abonos */}
+            <div style={{ padding: '0.75rem 1.5rem', backgroundColor: '#f1f5f9', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => setModalMainTab('purchases')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.45rem 1rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: modalMainTab === 'purchases' ? '#ffffff' : 'transparent',
+                  color: modalMainTab === 'purchases' ? '#0f172a' : '#64748b',
+                  fontWeight: 'bold',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  boxShadow: modalMainTab === 'purchases' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Receipt size={16} color={modalMainTab === 'purchases' ? '#4f46e5' : '#64748b'} />
+                <span>Facturas de Compra ({modalCounts.all})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModalMainTab('payments')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.45rem 1rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: modalMainTab === 'payments' ? '#ffffff' : 'transparent',
+                  color: modalMainTab === 'payments' ? '#0f172a' : '#64748b',
+                  fontWeight: 'bold',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  boxShadow: modalMainTab === 'payments' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <CreditCard size={16} color={modalMainTab === 'payments' ? '#10b981' : '#64748b'} />
+                <span>Historial de Abonos Realizados ({supplierPayments.length})</span>
+              </button>
             </div>
 
-            {/* List */}
-            <div style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', flex: 1 }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#475569', fontWeight: '600' }}>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Folio Compra</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Folio Proveedor</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Fecha</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Vencimiento</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'center' }}>Estado</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'right' }}>Total</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'right' }}>Pagado</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'right' }}>Deuda</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'center' }}>Acción</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {modalFilteredPurchases.map((purchase: Purchase) => {
-                    const days = getDaysOverdue(purchase.dueDate);
-                    const isPaid = (purchase.balanceDue || 0) <= 0.001;
-                    const isItemOverdue = !isPaid && days > 0;
-                    const totalAmount = (purchase as any).total !== undefined ? Number((purchase as any).total) : Number(purchase.balanceDue || 0);
-                    const balanceDue = Number(purchase.balanceDue || 0);
-                    const paidAmount = Math.max(0, totalAmount - balanceDue);
-
+            {/* TAB 1: Facturas de Compra */}
+            {modalMainTab === 'purchases' && (
+              <>
+                {/* Modal Status Filter Tabs */}
+                <div style={{ padding: '0.75rem 1.5rem', backgroundColor: '#ffffff', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  {[
+                    { key: 'ALL', label: 'Todas', count: modalCounts.all },
+                    { key: 'PENDING', label: 'Con Deuda', count: modalCounts.pending },
+                    { key: 'CURRENT', label: 'Al Corriente', count: modalCounts.current },
+                    { key: 'OVERDUE', label: 'Vencidas', count: modalCounts.overdue },
+                    { key: 'PAID', label: 'Pagadas', count: modalCounts.paid }
+                  ].map(tab => {
+                    const isActive = modalStatusFilter === tab.key;
                     return (
-                      <tr key={purchase.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                        <td style={{ padding: '0.65rem 0.5rem', fontFamily: 'monospace', fontWeight: '500' }}>
-                          {purchase.folio ? `#${purchase.folio}` : `#${purchase.id.slice(0,8).toUpperCase()}`}
-                        </td>
-                        <td style={{ padding: '0.65rem 0.5rem', color: '#64748b' }}>
-                          {purchase.supplierFolio ? purchase.supplierFolio : '-'}
-                        </td>
-                        <td style={{ padding: '0.65rem 0.5rem', color: '#64748b' }}>
-                          {new Date(purchase.createdAt).toLocaleDateString()}
-                        </td>
-                        <td style={{ padding: '0.65rem 0.5rem', color: isPaid ? '#64748b' : isItemOverdue ? '#dc2626' : '#16a34a', fontWeight: '500' }}>
-                          {purchase.dueDate ? new Date(purchase.dueDate).toLocaleDateString() : 'N/A'}
-                        </td>
-                        <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center' }}>
-                          {isPaid ? (
-                            <span style={{ 
-                              fontSize: '0.725rem', 
-                              fontWeight: 'bold', 
-                              padding: '0.15rem 0.45rem', 
-                              borderRadius: '4px',
-                              backgroundColor: '#eff6ff',
-                              color: '#1d4ed8',
-                              border: '1px solid #bfdbfe'
-                            }}>
-                              ✓ Pagada
-                            </span>
-                          ) : (
-                            <span style={{ 
-                              fontSize: '0.725rem', 
-                              fontWeight: 'bold', 
-                              padding: '0.15rem 0.45rem', 
-                              borderRadius: '4px',
-                              backgroundColor: isItemOverdue ? '#fef2f2' : '#f0fdf4',
-                              color: isItemOverdue ? '#dc2626' : '#16a34a',
-                              border: `1px solid ${isItemOverdue ? '#fecaca' : '#bbf7d0'}`
-                            }}>
-                              {isItemOverdue ? `Vencido (${days}d)` : 'Al Corriente'}
-                            </span>
-                          )}
-                        </td>
-                        <td style={{ padding: '0.65rem 0.5rem', textAlign: 'right', color: '#64748b' }}>
-                          {formatCurrency(totalAmount)}
-                        </td>
-                        <td style={{ padding: '0.65rem 0.5rem', textAlign: 'right', color: '#16a34a', fontWeight: '500' }}>
-                          {formatCurrency(paidAmount)}
-                        </td>
-                        <td style={{ padding: '0.65rem 0.5rem', textAlign: 'right', fontWeight: 'bold', color: isPaid ? '#10b981' : isItemOverdue ? '#dc2626' : '#16a34a' }}>
-                          {formatCurrency(balanceDue)}
-                        </td>
-                        <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center' }}>
-                          <Link 
-                            href={`/productos/compras/${purchase.id}`} 
-                            target="_blank"
-                            style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.825rem', display: 'inline-flex', alignItems: 'center', gap: '0.15rem' }}
-                          >
-                            Detalle <ExternalLink size={12} />
-                          </Link>
-                        </td>
-                      </tr>
+                      <button
+                        key={tab.key}
+                        onClick={() => setModalStatusFilter(tab.key as any)}
+                        style={{
+                          padding: '0.3rem 0.75rem',
+                          borderRadius: '9999px',
+                          border: isActive ? '1px solid #6d28d9' : '1px solid #cbd5e1',
+                          backgroundColor: isActive ? '#f5f3ff' : '#f8fafc',
+                          color: isActive ? '#6d28d9' : '#475569',
+                          fontSize: '0.8rem',
+                          fontWeight: isActive ? 'bold' : 'normal',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem'
+                        }}
+                      >
+                        <span>{tab.label}</span>
+                        <span style={{
+                          fontSize: '0.7rem',
+                          backgroundColor: isActive ? '#6d28d9' : '#e2e8f0',
+                          color: isActive ? 'white' : '#475569',
+                          padding: '0.05rem 0.35rem',
+                          borderRadius: '9999px',
+                          fontWeight: 'bold'
+                        }}>
+                          {tab.count}
+                        </span>
+                      </button>
                     );
                   })}
-                  {modalFilteredPurchases.length === 0 && (
-                    <tr>
-                      <td colSpan={9} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
-                        No hay facturas que coincidan con el filtro seleccionado.
-                      </td>
+                </div>
+
+                {/* List of Purchases */}
+                <div style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', flex: 1 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#475569', fontWeight: '600' }}>
+                        <th style={{ padding: '0.5rem', textAlign: 'left' }}>Folio Compra</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'left' }}>Folio Proveedor</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'left' }}>Fecha</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'left' }}>Vencimiento</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'center' }}>Estado</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'right' }}>Total</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'right' }}>Pagado</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'right' }}>Deuda</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'center' }}>Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {modalFilteredPurchases.map((purchase: Purchase) => {
+                        const days = getDaysOverdue(purchase.dueDate);
+                        const isPaid = (purchase.balanceDue || 0) <= 0.001;
+                        const isItemOverdue = !isPaid && days > 0;
+                        const totalAmount = (purchase as any).total !== undefined ? Number((purchase as any).total) : Number(purchase.balanceDue || 0);
+                        const balanceDue = Number(purchase.balanceDue || 0);
+                        const paidAmount = Math.max(0, totalAmount - balanceDue);
+
+                        return (
+                          <tr key={purchase.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                            <td style={{ padding: '0.65rem 0.5rem', fontFamily: 'monospace', fontWeight: '500' }}>
+                              {purchase.folio ? `#${purchase.folio}` : `#${purchase.id.slice(0,8).toUpperCase()}`}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.5rem', color: '#64748b' }}>
+                              {purchase.supplierFolio ? purchase.supplierFolio : '-'}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.5rem', color: '#64748b' }}>
+                              {new Date(purchase.createdAt).toLocaleDateString()}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.5rem', color: isPaid ? '#64748b' : isItemOverdue ? '#dc2626' : '#16a34a', fontWeight: '500' }}>
+                              {purchase.dueDate ? new Date(purchase.dueDate).toLocaleDateString() : 'N/A'}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center' }}>
+                              {isPaid ? (
+                                <span style={{ 
+                                  fontSize: '0.725rem', 
+                                  fontWeight: 'bold', 
+                                  padding: '0.15rem 0.45rem', 
+                                  borderRadius: '4px',
+                                  backgroundColor: '#eff6ff',
+                                  color: '#1d4ed8',
+                                  border: '1px solid #bfdbfe'
+                                }}>
+                                  ✓ Pagada
+                                </span>
+                              ) : (
+                                <span style={{ 
+                                  fontSize: '0.725rem', 
+                                  fontWeight: 'bold', 
+                                  padding: '0.15rem 0.45rem', 
+                                  borderRadius: '4px',
+                                  backgroundColor: isItemOverdue ? '#fef2f2' : '#f0fdf4',
+                                  color: isItemOverdue ? '#dc2626' : '#16a34a',
+                                  border: `1px solid ${isItemOverdue ? '#fecaca' : '#bbf7d0'}`
+                                }}>
+                                  {isItemOverdue ? `Vencido (${days}d)` : 'Al Corriente'}
+                                </span>
+                              )}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.5rem', textAlign: 'right', color: '#64748b' }}>
+                              {formatCurrency(totalAmount)}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.5rem', textAlign: 'right', color: '#16a34a', fontWeight: '500' }}>
+                              {formatCurrency(paidAmount)}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.5rem', textAlign: 'right', fontWeight: 'bold', color: isPaid ? '#10b981' : isItemOverdue ? '#dc2626' : '#16a34a' }}>
+                              {formatCurrency(balanceDue)}
+                            </td>
+                            <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center' }}>
+                              <Link 
+                                href={`/productos/compras/${purchase.id}`} 
+                                target="_blank"
+                                style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.825rem', display: 'inline-flex', alignItems: 'center', gap: '0.15rem' }}
+                              >
+                                Detalle <ExternalLink size={12} />
+                              </Link>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {modalFilteredPurchases.length === 0 && (
+                        <tr>
+                          <td colSpan={9} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                            No hay facturas que coincidan con el filtro seleccionado.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* TAB 2: Historial de Abonos Realizados */}
+            {modalMainTab === 'payments' && (
+              <div style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', flex: 1 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#475569', fontWeight: '600' }}>
+                      <th style={{ padding: '0.5rem', textAlign: 'left' }}>ID Abono</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'left' }}>Fecha y Hora</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'left' }}>Concepto / Razón</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'left' }}>Factura Asociada</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'left' }}>Usuario</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'right' }}>Monto</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'center' }}>Acción</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {supplierPayments.map((pmt: any) => {
+                      const isDeleting = deletingPaymentId === pmt.id;
+                      return (
+                        <tr key={pmt.id} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background-color 0.15s ease' }}>
+                          <td style={{ padding: '0.65rem 0.5rem', fontFamily: 'monospace', fontWeight: '600', color: '#334155' }}>
+                            #{pmt.id.slice(0, 8).toUpperCase()}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.5rem', color: '#64748b' }}>
+                            <div>{new Date(pmt.createdAt).toLocaleDateString()}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                              {new Date(pmt.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.65rem 0.5rem', color: '#334155' }}>
+                            {pmt.reason || 'Abono a Proveedor'}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.5rem' }}>
+                            {pmt.purchase ? (
+                              <Link
+                                href={`/productos/compras/${pmt.purchase.id}`}
+                                target="_blank"
+                                style={{ color: '#4f46e5', fontWeight: 'bold', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.15rem' }}
+                              >
+                                {pmt.purchase.folio ? `#${pmt.purchase.folio}` : `#${pmt.purchase.id.slice(0,8).toUpperCase()}`}
+                                {pmt.purchase.supplierFolio ? ` (${pmt.purchase.supplierFolio})` : ''}
+                                <ExternalLink size={11} />
+                              </Link>
+                            ) : (
+                              <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.8rem' }}>Anticipo / General</span>
+                            )}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.5rem', color: '#64748b', fontSize: '0.8rem' }}>
+                            {pmt.user?.name || '-'}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.5rem', textAlign: 'right', fontWeight: 'bold', color: '#16a34a', fontSize: '0.95rem' }}>
+                            +{formatCurrency(pmt.amount)}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePayment(pmt)}
+                              disabled={isDeleting}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.3rem',
+                                padding: '0.35rem 0.65rem',
+                                backgroundColor: '#fef2f2',
+                                color: '#dc2626',
+                                border: '1px solid #fecaca',
+                                borderRadius: '6px',
+                                fontSize: '0.75rem',
+                                fontWeight: 'bold',
+                                cursor: isDeleting ? 'not-allowed' : 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                              onMouseEnter={e => {
+                                if (!isDeleting) e.currentTarget.style.backgroundColor = '#fee2e2';
+                              }}
+                              onMouseLeave={e => {
+                                if (!isDeleting) e.currentTarget.style.backgroundColor = '#fef2f2';
+                              }}
+                              title="Eliminar este abono y revertir la deuda"
+                            >
+                              {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                              <span>Eliminar</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {supplierPayments.length === 0 && (
+                      <tr>
+                        <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: '#94a3b8' }}>
+                          No hay abonos registrados para este proveedor.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
             
             {/* Footer */}
             <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc' }}>
               <button 
-                onClick={handleExportSupplierPurchases}
+                onClick={modalMainTab === 'purchases' ? handleExportSupplierPurchases : handleExportSupplierPayments}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -879,7 +1184,7 @@ export default function CuentasPorPagarReportClient({
                   cursor: 'pointer'
                 }}
               >
-                <Download size={15} /> Exportar Facturas a Excel (.xlsx)
+                <Download size={15} /> {modalMainTab === 'purchases' ? 'Exportar Facturas a Excel (.xlsx)' : 'Exportar Abonos a Excel (.xlsx)'}
               </button>
               <button 
                 onClick={() => setSelectedGroup(null)}

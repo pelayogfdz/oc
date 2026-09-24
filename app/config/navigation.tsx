@@ -11,6 +11,7 @@ export type MenuItem = {
   path: string;
   badge?: string;
   desktopOnly?: boolean;
+  localOnly?: boolean;
   requiredPermission?: string | string[];
   requiresOnline?: boolean;
 };
@@ -22,6 +23,7 @@ export type MenuNode = {
   badge?: string;
   items?: MenuItem[]; // If it's a dropdown
   desktopOnly?: boolean;
+  localOnly?: boolean;
   requiredPermission?: string | string[]; // Permission ID(s) needed to show
   hasDividerAfter?: boolean; // If a divider should be rendered after this node
   requiresOnline?: boolean;
@@ -39,7 +41,8 @@ export const navStructure: MenuNode[] = [
     title: 'Agentes IA', 
     path: '/agentes', 
     icon: <Sparkles size={20} className="text-amber-500" />,
-    badge: 'IA',
+    badge: 'Local',
+    localOnly: true,
     requiredPermission: ['inv_view', 'pos_access', 'admin_reports_access']
   },
   { 

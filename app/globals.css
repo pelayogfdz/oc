@@ -862,19 +862,19 @@ img[data-header-img="true"]::after {
 @media (min-width: 769px) {
   .dashboard-stats-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1.5rem;
   }
 
   .dashboard-main-grid {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
     gap: 1.5rem;
   }
 
   .dashboard-reports-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.5rem;
   }
 }

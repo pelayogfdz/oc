@@ -241,7 +241,7 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
       </div>
 
       {/* Gráficas Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 450px), 1fr))', gap: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '1.5rem', width: '100%', minWidth: 0 }}>
         
         {/* Gráfica 1: Número de Ventas */}
         <div style={{
@@ -251,7 +251,9 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
           border: '1px solid #e2e8f0',
           height: '350px',
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
+          minWidth: 0,
+          overflow: 'hidden'
         }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <ShoppingCart size={18} color="#3b82f6" /> Transacciones Realizadas
@@ -281,7 +283,9 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
           border: '1px solid #e2e8f0',
           height: '350px',
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
+          minWidth: 0,
+          overflow: 'hidden'
         }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <DollarSign size={18} color="#10b981" /> Total de Ventas (Ingresos)

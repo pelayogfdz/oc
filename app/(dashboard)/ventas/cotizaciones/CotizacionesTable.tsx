@@ -288,8 +288,26 @@ export default function CotizacionesTable({ initialQuotes }: CotizacionesTablePr
                       {(() => {
                         const totalPurchaseCost = quote.items.reduce((sum: number, i: any) => sum + ((i.cost || i.product?.averageCost || i.product?.cost || 0) * i.quantity), 0);
                         const totalMarginPercent = quote.total > 0 ? ((quote.total - totalPurchaseCost) / quote.total) * 100 : 0;
+                        const subtotalSinIva = quote.items.reduce((sum: number, i: any) => {
+                          const rate = (i.product?.taxType === 'IVA' || i.product?.taxType === 'IVA_IEPS') ? (i.product?.taxRate ?? 16.0) : 0;
+                          return sum + ((i.price * i.quantity) / (1 + rate / 100));
+                        }, 0);
+                        const ivaTotal = Math.max(0, quote.total - subtotalSinIva);
+
                         return (
                           <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem' }}>
+                            {ivaTotal > 0.01 && (
+                              <>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <span>Subtotal (sin IVA):</span>
+                                  <strong style={{ color: '#475569' }}>{formatCurrency(subtotalSinIva)}</strong>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <span>IVA (16%):</span>
+                                  <strong style={{ color: '#475569' }}>{formatCurrency(ivaTotal)}</strong>
+                                </div>
+                              </>
+                            )}
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                               <span>Compra total (prom.):</span>
                               <strong style={{ color: '#475569' }}>{formatCurrency(totalPurchaseCost)}</strong>

@@ -28,6 +28,13 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
   const { isOnline } = useOfflineSync();
 
   const hasNodeVisible = (node: MenuNode) => {
+    if (node.localOnly) {
+      if (typeof window !== 'undefined') {
+        const host = window.location.hostname;
+        const isLocalHost = host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.168.') || host.endsWith('.local');
+        if (!isLocalHost) return false;
+      }
+    }
     if (!isOnline) {
       // En modo offline, permitir Punto de Venta e Historial de Ventas
       if (node.path === '/ventas/nueva' || node.path === '/ventas') return true;

@@ -58,12 +58,14 @@ export default function ClientesTable({ initialCustomers }: ClientesTableProps) 
   };
 
   const filteredCustomers = customers.filter((item) => {
-    const term = searchTerm.toLowerCase();
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return true;
     return (
-      item.name.toLowerCase().includes(term) ||
+      (item.name && item.name.toLowerCase().includes(term)) ||
+      (item.legalName && item.legalName.toLowerCase().includes(term)) ||
       (item.taxId && item.taxId.toLowerCase().includes(term)) ||
       (item.email && item.email.toLowerCase().includes(term)) ||
-      (item.phone && item.phone.includes(term))
+      (item.phone && item.phone.toLowerCase().includes(term))
     );
   });
 

@@ -133,6 +133,81 @@ export async function addSupplierPaymentBatch(
      }
   });
 
+  revalidatePath('/reportes/cuentas-por-pagar');
   revalidatePath('/proveedores/cuentas');
   revalidatePath('/caja/actual');
+  return { success: true };
+}
+
+export async function deleteSupplierPayment(paymentId: string) {
+  try {
+    const branch = await getActiveBranch();
+    const user = await getActiveUser();
+
+    const payment = await prisma.supplierPayment.findUnique({
+      where: { id: paymentId },
+      include: { purchase: true, supplier: true }
+    });
+
+    if (!payment) throw new Error("Abono no encontrado.");
+
+    if (payment.cfdiStatus === 'INVOICED') {
+      throw new Error("No se puede eliminar un abono que ya tiene CFDI timbrado.");
+    }
+
+    // 1. Revert Purchase balanceDue if associated with a purchase
+    if (payment.purchaseId && payment.purchase) {
+      const newBalanceDue = Math.min(payment.purchase.total, payment.purchase.balanceDue + payment.amount);
+      await prisma.purchase.update({
+        where: { id: payment.purchaseId },
+        data: { balanceDue: newBalanceDue }
+      });
+
+      await prisma.supplier.update({
+        where: { id: payment.supplierId },
+        data: { creditBalance: { increment: payment.amount } }
+      });
+    } else {
+      // It was excess / storeCredit
+      await prisma.supplier.update({
+        where: { id: payment.supplierId },
+        data: { storeCredit: { decrement: payment.amount } }
+      });
+    }
+
+    // 2. Revert cash movement if it was CASH
+    if (payment.reason?.includes('CASH') || payment.reason?.includes('Efectivo')) {
+      const targetBranchId = (payment.branchId && payment.branchId !== 'GLOBAL') ? payment.branchId : branch.id;
+      const sessionQuery: any = { userId: user.id, status: 'OPEN' };
+      if (targetBranchId !== 'GLOBAL') {
+        sessionQuery.branchId = targetBranchId;
+      }
+      const currentSession = await prisma.cashSession.findFirst({
+        where: sessionQuery
+      });
+
+      if (currentSession) {
+        await prisma.cashMovement.create({
+          data: {
+            sessionId: currentSession.id,
+            type: 'IN',
+            amount: payment.amount,
+            reason: `Reversión de Abono a Proveedor: #${paymentId.slice(0, 8)}`
+          }
+        });
+      }
+    }
+
+    // 3. Delete the supplier payment record
+    await prisma.supplierPayment.delete({
+      where: { id: paymentId }
+    });
+
+    revalidatePath('/reportes/cuentas-por-pagar');
+    revalidatePath('/proveedores/cuentas');
+    return { success: true };
+  } catch (err: any) {
+    console.error("Error al eliminar abono a proveedor:", err);
+    return { success: false, error: err.message || String(err) };
+  }
 }

@@ -62,7 +62,8 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
 
     setSendingEmailId(group.batchId);
     try {
-      const pmtId = group.payments[0].id;
+      const pmtWithInvoice = group.payments.find((p: any) => p.cfdiUrlPdf && p.cfdiStatus === 'INVOICED') || group.payments.find((p: any) => p.cfdiUrlPdf) || group.payments[0];
+      const pmtId = pmtWithInvoice?.id;
       const res = await sendPaymentComplementByEmail(pmtId, destEmail.trim());
       if (res.success) {
         alert("Complemento de pago enviado con éxito.");
@@ -85,7 +86,8 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
 
     setCancellingId(group.batchId);
     try {
-      const pmtId = group.payments[0].id;
+      const pmtWithInvoice = group.payments.find((p: any) => p.cfdiUrlPdf && p.cfdiStatus === 'INVOICED') || group.payments.find((p: any) => p.cfdiUrlPdf) || group.payments[0];
+      const pmtId = pmtWithInvoice?.id;
       const res = await cancelPaymentComplement(pmtId);
       if (res.success) {
         if (res.pending) {
@@ -106,10 +108,11 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
   const handleCheckSatStatus = async (group: any, type: 'sale' | 'payment') => {
     setCheckingSatId(group.batchId);
     try {
-      const pmtId = group.payments[0].id;
+      const pmtWithInvoice = group.payments.find((p: any) => p.cfdiUrlPdf && p.cfdiStatus === 'INVOICED') || group.payments.find((p: any) => p.cfdiUrlPdf) || group.payments[0];
+      const pmtId = pmtWithInvoice?.id;
       const res = await checkDocumentSatStatus(pmtId, type);
-      if (res.success && res.status && res.cancellationStatus) {
-        alert(`Estado SAT: ${res.status.toUpperCase()}\nEstado de Cancelación: ${res.cancellationStatus.toUpperCase()}\n\n${res.message}`);
+      if (res.success && res.status) {
+        alert(`Estado SAT: ${res.status.toUpperCase()}\nEstado de Cancelación: ${(res.cancellationStatus || 'NONE').toUpperCase()}\n\n${res.message || ''}`);
       } else {
         alert("Error al verificar: " + (res.error || "Respuesta incompleta de Facturapi"));
       }

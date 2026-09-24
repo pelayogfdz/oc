@@ -1811,9 +1811,40 @@ export async function stampPaymentBatch(paymentIds: string[], paymentDateStr?: s
   }
 }
 
+async function getFacturapiClient(branchId?: string | null): Promise<Facturapi> {
+  let apiKey: string | null = null;
+  if (branchId) {
+    const branchSettings = await prisma.branchSettings.findUnique({
+      where: { branchId }
+    });
+    if (branchSettings?.configJson) {
+      apiKey = getFacturapiApiKey(JSON.parse(branchSettings.configJson));
+    }
+  }
+
+  if (!apiKey) {
+    const allSettings = await prisma.branchSettings.findMany();
+    for (const settings of allSettings) {
+      if (settings.configJson) {
+        const key = getFacturapiApiKey(JSON.parse(settings.configJson));
+        if (key) {
+          apiKey = key;
+          break;
+        }
+      }
+    }
+  }
+
+  if (!apiKey) {
+    throw new Error("No hay llaves de Facturapi configuradas en las preferencias de las sucursales.");
+  }
+
+  return new Facturapi(apiKey);
+}
+
 export async function cancelPaymentComplement(paymentId: string) {
   try {
-    const payment = await prisma.customerPayment.findUnique({
+    let payment = await prisma.customerPayment.findUnique({
       where: { id: paymentId }
     });
 
@@ -1821,39 +1852,37 @@ export async function cancelPaymentComplement(paymentId: string) {
       throw new Error("El abono especificado no existe.");
     }
 
-    if (payment.cfdiStatus !== 'INVOICED' || !payment.cfdiUrlPdf) {
+    let invoiceId: string | null = null;
+    let branchId: string | null = payment.branchId;
+
+    if (payment.cfdiUrlPdf) {
+      const url = new URL(payment.cfdiUrlPdf, "http://localhost");
+      invoiceId = url.searchParams.get("invoiceId");
+    }
+
+    // Fallback: If this specific record in batch has no cfdiUrlPdf, lookup sibling in the same batch
+    if (!invoiceId && payment.reason) {
+      const match = payment.reason.match(/\[Batch: ([^\]]+)\]/);
+      if (match) {
+        const sibling = await prisma.customerPayment.findFirst({
+          where: {
+            reason: { contains: `[Batch: ${match[1]}]` },
+            cfdiUrlPdf: { not: null }
+          }
+        });
+        if (sibling?.cfdiUrlPdf) {
+          const url = new URL(sibling.cfdiUrlPdf, "http://localhost");
+          invoiceId = url.searchParams.get("invoiceId");
+          if (!branchId) branchId = sibling.branchId;
+        }
+      }
+    }
+
+    if (!invoiceId) {
       throw new Error("Este abono no tiene un complemento de pago timbrado.");
     }
 
-    // Extract invoiceId from cfdiUrlPdf
-    const url = new URL(payment.cfdiUrlPdf, "http://localhost");
-    const invoiceId = url.searchParams.get("invoiceId");
-
-    if (!invoiceId) {
-      throw new Error("No se pudo identificar el ID del complemento de pago en Facturapi.");
-    }
-
-    const branchId = payment.branchId;
-    if (!branchId) {
-      throw new Error("El abono no está asociado a ninguna sucursal.");
-    }
-
-    const branchSettings = await prisma.branchSettings.findUnique({
-      where: { branchId }
-    });
-
-    if (!branchSettings || !branchSettings.configJson) {
-      throw new Error("La sucursal no tiene configuraciones establecidas.");
-    }
-
-    const config = JSON.parse(branchSettings.configJson);
-    const apiKey = getFacturapiApiKey(config);
-
-    if (!apiKey) {
-      throw new Error("No hay llaves de Facturapi configuradas en las preferencias de esta Sucursal.");
-    }
-
-    const facturapi = new Facturapi(apiKey);
+    const facturapi = await getFacturapiClient(branchId);
 
     // Cancel in Facturapi with motive "02" (Comprobante emitido con errores sin relación)
     const cancelResult = await facturapi.invoices.cancel(invoiceId, { motive: "02" as any });
@@ -1914,39 +1943,37 @@ export async function sendPaymentComplementByEmail(paymentId: string, email: str
       throw new Error("El abono especificado no existe.");
     }
 
-    if (!payment.cfdiUrlPdf || payment.cfdiStatus !== 'INVOICED') {
+    let invoiceId: string | null = null;
+    let branchId: string | null = payment.branchId;
+
+    if (payment.cfdiUrlPdf) {
+      const url = new URL(payment.cfdiUrlPdf, "http://localhost");
+      invoiceId = url.searchParams.get("invoiceId");
+    }
+
+    // Fallback: If this specific record in batch has no cfdiUrlPdf, lookup sibling in the same batch
+    if (!invoiceId && payment.reason) {
+      const match = payment.reason.match(/\[Batch: ([^\]]+)\]/);
+      if (match) {
+        const sibling = await prisma.customerPayment.findFirst({
+          where: {
+            reason: { contains: `[Batch: ${match[1]}]` },
+            cfdiUrlPdf: { not: null }
+          }
+        });
+        if (sibling?.cfdiUrlPdf) {
+          const url = new URL(sibling.cfdiUrlPdf, "http://localhost");
+          invoiceId = url.searchParams.get("invoiceId");
+          if (!branchId) branchId = sibling.branchId;
+        }
+      }
+    }
+
+    if (!invoiceId) {
       throw new Error("Este abono no cuenta con un complemento de pago timbrado para enviar.");
     }
 
-    // Extract invoiceId from cfdiUrlPdf
-    const url = new URL(payment.cfdiUrlPdf, "http://localhost");
-    const invoiceId = url.searchParams.get("invoiceId");
-
-    if (!invoiceId) {
-      throw new Error("No se pudo identificar el ID del complemento de pago en Facturapi.");
-    }
-
-    const branchId = payment.branchId;
-    if (!branchId) {
-      throw new Error("El abono no está asociado a ninguna sucursal.");
-    }
-
-    const branchSettings = await prisma.branchSettings.findUnique({
-      where: { branchId }
-    });
-
-    if (!branchSettings || !branchSettings.configJson) {
-      throw new Error("La sucursal no tiene configuraciones establecidas.");
-    }
-
-    const config = JSON.parse(branchSettings.configJson);
-    const apiKey = getFacturapiApiKey(config);
-
-    if (!apiKey) {
-      throw new Error("No hay llaves de Facturapi configuradas en las preferencias de esta Sucursal.");
-    }
-
-    const facturapi = new Facturapi(apiKey);
+    const facturapi = await getFacturapiClient(branchId);
 
     // Fetch PDF and XML binary buffers from Facturapi
     const pdfBlob = await facturapi.invoices.downloadPdf(invoiceId);
@@ -2010,7 +2037,26 @@ export async function checkDocumentSatStatus(documentId: string, type: 'sale' | 
         const url = new URL(payment.cfdiUrlPdf, "http://localhost");
         invoiceId = url.searchParams.get("invoiceId");
       }
-      branchId = payment.branchId;
+
+      // Fallback: If this payment was part of a batch, lookup sibling in the same batch
+      if (!invoiceId && payment.reason) {
+        const match = payment.reason.match(/\[Batch: ([^\]]+)\]/);
+        if (match) {
+          const sibling = await prisma.customerPayment.findFirst({
+            where: {
+              reason: { contains: `[Batch: ${match[1]}]` },
+              cfdiUrlPdf: { not: null }
+            }
+          });
+          if (sibling?.cfdiUrlPdf) {
+            const url = new URL(sibling.cfdiUrlPdf, "http://localhost");
+            invoiceId = url.searchParams.get("invoiceId");
+            if (!payment.branchId) branchId = sibling.branchId;
+          }
+        }
+      }
+
+      branchId = branchId || payment.branchId;
       customerId = payment.customerId;
     }
 
@@ -2018,32 +2064,14 @@ export async function checkDocumentSatStatus(documentId: string, type: 'sale' | 
       return { success: false, error: "Este documento no cuenta con un folio o ID de factura timbrado." };
     }
 
-    if (!branchId) {
-      return { success: false, error: "El documento no está asociado a una sucursal." };
-    }
-
-    const branchSettings = await prisma.branchSettings.findUnique({
-      where: { branchId }
-    });
-
-    if (!branchSettings || !branchSettings.configJson) {
-      throw new Error("La sucursal no tiene configuraciones establecidas.");
-    }
-
-    const config = JSON.parse(branchSettings.configJson);
-    const apiKey = getFacturapiApiKey(config);
-
-    if (!apiKey) {
-      throw new Error("No hay llaves de Facturapi configuradas en las preferencias de esta Sucursal.");
-    }
-
-    const facturapi = new Facturapi(apiKey);
+    const facturapi = await getFacturapiClient(branchId);
 
     // Retrieve invoice detail from Facturapi to get its live status and cancellation_status
     const invoiceDetail = await facturapi.invoices.retrieve(invoiceId);
 
     const status = invoiceDetail.status; // 'valid' | 'canceled'
     const cancellationStatus = invoiceDetail.cancellation_status; // 'none' | 'pending' | 'accepted' | 'rejected' | 'expired'
+    const uuid = invoiceDetail.uuid;
 
     // If the invoice is marked as canceled in Facturapi but not in our database, we can update our database automatically!
     if (status === 'canceled') {
@@ -2109,7 +2137,8 @@ export async function checkDocumentSatStatus(documentId: string, type: 'sale' | 
       success: true,
       status,
       cancellationStatus,
-      message: getSatStatusDescription(status, cancellationStatus)
+      uuid,
+      message: getSatStatusDescription(status, cancellationStatus, uuid)
     };
   } catch (error: any) {
     console.error("Error al verificar estado SAT:", error);
@@ -2117,25 +2146,35 @@ export async function checkDocumentSatStatus(documentId: string, type: 'sale' | 
   }
 }
 
-function getSatStatusDescription(status: string, cancellationStatus: string): string {
+function getSatStatusDescription(status: string, cancellationStatus: string, uuid?: string): string {
+  let text = "";
+  if (uuid) {
+    text += `Folio Fiscal (UUID): ${uuid}\n`;
+  }
   if (status === 'canceled') {
     if (cancellationStatus === 'accepted') {
-      return "El CFDI ha sido cancelado exitosamente ante el SAT (Aceptado por el receptor o por vencimiento de plazo).";
+      text += "El CFDI ha sido cancelado exitosamente ante el SAT (Aceptado por el receptor o por vencimiento de plazo).";
+    } else {
+      text += "El CFDI ha sido cancelado exitosamente ante el SAT.";
     }
-    return "El CFDI ha sido cancelado exitosamente ante el SAT.";
+  } else {
+    switch (cancellationStatus) {
+      case 'pending':
+        text += "Solicitud de cancelación enviada al cliente. Pendiente de aceptación en su buzón tributario.";
+        break;
+      case 'rejected':
+        text += "La solicitud de cancelación fue RECHAZADA por el cliente en el SAT.";
+        break;
+      case 'expired':
+        text += "La solicitud de cancelación ha expirado.";
+        break;
+      case 'none':
+      default:
+        text += "El CFDI se encuentra VIGENTE y timbrado ante el SAT.";
+        break;
+    }
   }
-
-  switch (cancellationStatus) {
-    case 'pending':
-      return "Solicitud de cancelación enviada al cliente. Pendiente de aceptación en su buzón tributario.";
-    case 'rejected':
-      return "La solicitud de cancelación fue RECHAZADA por el cliente en el SAT.";
-    case 'expired':
-      return "La solicitud de cancelación ha expirado.";
-    case 'none':
-    default:
-      return "El CFDI se encuentra vigente en el SAT y no cuenta con solicitudes de cancelación activas.";
-  }
+  return text;
 }
 
 export async function syncAndFixAllSalesAndCreditBalancesAction() {

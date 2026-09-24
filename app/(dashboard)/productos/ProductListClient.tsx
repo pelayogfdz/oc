@@ -54,6 +54,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
   const [filterImage, setFilterImage] = useState('ALL');
   const [filterBrand, setFilterBrand] = useState('ALL');
   const [filterType, setFilterType] = useState('ALL');
+  const [filterMeli, setFilterMeli] = useState('ALL');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
 
@@ -110,6 +111,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       const persistedImage = sessionStorage.getItem('products_filterImage');
       const persistedBrand = sessionStorage.getItem('products_filterBrand');
       const persistedType = sessionStorage.getItem('products_filterType');
+      const persistedMeli = sessionStorage.getItem('products_filterMeli');
       const persistedMinPrice = sessionStorage.getItem('products_minPrice');
       const persistedMaxPrice = sessionStorage.getItem('products_maxPrice');
       const persistedPage = sessionStorage.getItem('products_currentPage');
@@ -124,6 +126,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       if (persistedImage !== null) setFilterImage(persistedImage);
       if (persistedBrand !== null) setFilterBrand(persistedBrand);
       if (persistedType !== null) setFilterType(persistedType);
+      if (persistedMeli !== null) setFilterMeli(persistedMeli);
       if (persistedMinPrice !== null) setMinPrice(persistedMinPrice);
       if (persistedMaxPrice !== null) setMaxPrice(persistedMaxPrice);
       if (persistedPageSize !== null) setPageSize(Number(persistedPageSize));
@@ -145,6 +148,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       sessionStorage.setItem('products_filterImage', filterImage);
       sessionStorage.setItem('products_filterBrand', filterBrand);
       sessionStorage.setItem('products_filterType', filterType);
+      sessionStorage.setItem('products_filterMeli', filterMeli);
       sessionStorage.setItem('products_minPrice', minPrice);
       sessionStorage.setItem('products_maxPrice', maxPrice);
       sessionStorage.setItem('products_currentPage', String(currentPage));
@@ -152,7 +156,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       sessionStorage.setItem('products_sortBy', sortBy);
       sessionStorage.setItem('products_sortOrder', sortOrder);
     }
-  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, minPrice, maxPrice, currentPage, pageSize, sortBy, sortOrder, isInitialized]);
+  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, filterMeli, minPrice, maxPrice, currentPage, pageSize, sortBy, sortOrder, isInitialized]);
 
   useEffect(() => {
     setDisplayedProducts(initialProducts);
@@ -201,6 +205,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             image: filterImage,
             brand: filterBrand,
             type: filterType,
+            meliStatus: filterMeli,
             minPrice: parsedMin,
             maxPrice: parsedMax,
             sortBy,
@@ -242,6 +247,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     filterImage,
     filterBrand,
     filterType,
+    filterMeli,
     minPrice,
     maxPrice,
     sortBy,
@@ -279,6 +285,15 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     if (filterType === 'PRODUCT' && p.isService) return false;
     if (filterType === 'SERVICE' && !p.isService) return false;
 
+    // Mercado Libre Filter
+    const isMeliPublished = Boolean(
+      p.externalMaps && p.externalMaps.some((m: any) => 
+        m.platform === 'MERCADO_LIBRE' || m.platform?.toLowerCase() === 'mercadolibre'
+      )
+    );
+    if (filterMeli === 'PUBLISHED' && !isMeliPublished) return false;
+    if (filterMeli === 'NOT_PUBLISHED' && isMeliPublished) return false;
+
     // Price Range Filter
     const pPrice = Number(p.price) || 0;
     if (minPrice !== '' && !isNaN(Number(minPrice))) {
@@ -289,7 +304,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     }
 
     return true;
-  }), [displayedProducts, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, minPrice, maxPrice]);
+  }), [displayedProducts, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, filterMeli, minPrice, maxPrice]);
 
   const sortedProducts = useMemo(() => {
     const products = [...filteredProducts];
@@ -326,7 +341,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     if (isInitialized) {
       setCurrentPage(1);
     }
-  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, minPrice, maxPrice, sortBy, sortOrder, isInitialized]);
+  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, filterMeli, minPrice, maxPrice, sortBy, sortOrder, isInitialized]);
 
   const totalPages = Math.ceil(sortedProducts.length / pageSize) || 1;
   const startRange = sortedProducts.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
@@ -577,22 +592,48 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             )}
           </div>
 
-          <button 
-            type="button"
-            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            style={{ 
-              display: 'flex', alignItems: 'center', gap: '0.5rem', 
-              backgroundColor: showAdvancedFilters ? '#eff6ff' : 'white', 
-              border: `1px solid ${showAdvancedFilters ? 'var(--caanma-primary)' : '#cbd5e1'}`, 
-              color: showAdvancedFilters ? 'var(--caanma-primary)' : 'var(--caanma-text)',
-              padding: '0.75rem 1rem', 
-              borderRadius: '8px', 
-              fontWeight: '500', 
-              cursor: 'pointer',
-              fontSize: '0.95rem'
-            }}>
-            <Filter size={18} /> {showAdvancedFilters ? 'Ocultar Filtros' : 'Filtros'}
-          </button>
+          {(() => {
+            let count = 0;
+            if (filterCategory !== 'ALL') count++;
+            if (filterStatus !== 'ACTIVE') count++;
+            if (filterStock !== 'ALL') count++;
+            if (filterImage !== 'ALL') count++;
+            if (filterBrand !== 'ALL') count++;
+            if (filterType !== 'ALL') count++;
+            if (filterMeli !== 'ALL') count++;
+            if (minPrice !== '' || maxPrice !== '') count++;
+
+            return (
+              <button 
+                type="button"
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                style={{ 
+                  display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                  backgroundColor: showAdvancedFilters ? '#eff6ff' : 'white', 
+                  border: `1px solid ${showAdvancedFilters ? 'var(--caanma-primary)' : '#cbd5e1'}`, 
+                  color: showAdvancedFilters ? 'var(--caanma-primary)' : 'var(--caanma-text)',
+                  padding: '0.75rem 1rem', 
+                  borderRadius: '8px', 
+                  fontWeight: '500', 
+                  cursor: 'pointer',
+                  fontSize: '0.95rem'
+                }}>
+                <Filter size={18} /> {showAdvancedFilters ? 'Ocultar Filtros' : 'Filtros'}
+                {count > 0 && (
+                  <span style={{ 
+                    backgroundColor: 'var(--caanma-primary)', 
+                    color: 'white', 
+                    fontSize: '0.75rem', 
+                    padding: '0.1rem 0.45rem', 
+                    borderRadius: '9999px', 
+                    fontWeight: 'bold' 
+                  }}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })()}
         </div>
 
         {/* Filters Row */}
@@ -658,6 +699,30 @@ export default function ProductListClient({ initialProducts, branchId, categorie
               <option value="SERVICE">Solo Servicios</option>
             </select>
           </div>
+          {/* Mercado Libre Filter */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#eab308' }}></span>
+              Mercado Libre
+            </label>
+            <select 
+              value={filterMeli} 
+              onChange={e => setFilterMeli(e.target.value)} 
+              style={{ 
+                padding: '0.5rem', 
+                borderRadius: '6px', 
+                border: `1px solid ${filterMeli !== 'ALL' ? '#fde047' : '#e2e8f0'}`, 
+                minWidth: '190px',
+                backgroundColor: filterMeli !== 'ALL' ? '#fefce8' : 'white',
+                fontWeight: filterMeli !== 'ALL' ? '600' : 'normal',
+                color: filterMeli !== 'ALL' ? '#854d0e' : 'inherit'
+              }}
+            >
+              <option value="ALL">Todos (Publicados y No)</option>
+              <option value="PUBLISHED">🟡 Publicados en Mercado Libre</option>
+              <option value="NOT_PUBLISHED">⚪ No publicados en Mercado Libre</option>
+            </select>
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Rango de Precio ($)</label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -695,7 +760,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             </div>
           </div>
           <div style={{ flexGrow: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end' }}>
-             <button onClick={() => { setSearchTerm(''); setFilterCategory('ALL'); setFilterStatus('ACTIVE'); setFilterStock('ALL'); setFilterImage('ALL'); setFilterBrand('ALL'); setFilterType('ALL'); setMinPrice(''); setMaxPrice(''); }} style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '500' }}>
+             <button onClick={() => { setSearchTerm(''); setFilterCategory('ALL'); setFilterStatus('ACTIVE'); setFilterStock('ALL'); setFilterImage('ALL'); setFilterBrand('ALL'); setFilterType('ALL'); setFilterMeli('ALL'); setMinPrice(''); setMaxPrice(''); }} style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: '500' }}>
                Limpiar Filtros
              </button>
           </div>

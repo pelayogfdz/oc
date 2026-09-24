@@ -1040,6 +1040,7 @@ export async function searchProducts(
     image?: string;
     brand?: string;
     type?: string;
+    meliStatus?: string;
     minPrice?: number;
     maxPrice?: number;
     sortBy?: string;
@@ -1350,6 +1351,23 @@ export async function searchProducts(
       };
     });
     await enrichProductsWithTenantExternalMaps(mergedList, tenantBranchIds);
+
+    if (options?.meliStatus && options.meliStatus !== 'ALL') {
+      if (options.meliStatus === 'PUBLISHED') {
+        return mergedList.filter(prod => 
+          prod.externalMaps && prod.externalMaps.some((m: any) => 
+            m.platform === 'MERCADO_LIBRE' || m.platform?.toLowerCase() === 'mercadolibre'
+          )
+        );
+      } else if (options.meliStatus === 'NOT_PUBLISHED') {
+        return mergedList.filter(prod => 
+          !prod.externalMaps || !prod.externalMaps.some((m: any) => 
+            m.platform === 'MERCADO_LIBRE' || m.platform?.toLowerCase() === 'mercadolibre'
+          )
+        );
+      }
+    }
+
     return mergedList;
   }
 
@@ -1363,6 +1381,23 @@ export async function searchProducts(
     };
   });
   await enrichProductsWithTenantExternalMaps(localList, tenantBranchIds);
+
+  if (options?.meliStatus && options.meliStatus !== 'ALL') {
+    if (options.meliStatus === 'PUBLISHED') {
+      return localList.filter(prod => 
+        prod.externalMaps && prod.externalMaps.some((m: any) => 
+          m.platform === 'MERCADO_LIBRE' || m.platform?.toLowerCase() === 'mercadolibre'
+        )
+      );
+    } else if (options.meliStatus === 'NOT_PUBLISHED') {
+      return localList.filter(prod => 
+        !prod.externalMaps || !prod.externalMaps.some((m: any) => 
+          m.platform === 'MERCADO_LIBRE' || m.platform?.toLowerCase() === 'mercadolibre'
+        )
+      );
+    }
+  }
+
   return localList;
 }
 

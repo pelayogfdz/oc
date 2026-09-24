@@ -4429,10 +4429,31 @@ export default function POSClient({
               </div>
             )}
             
-            <div className="pos-subtotal-row">
-              <span>Subtotal ({cart.reduce((s, i) => s + i.quantity, 0)} artículos)</span>
-              <span className="pos-subtotal-value">{formatCurrency((breakdownDiscounts) ? subTotal : (subTotal - discount))}</span>
-            </div>
+            {scaledTaxBreakdown.iva > 0.01 || scaledTaxBreakdown.ieps > 0.01 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '0.5rem' }}>
+                <div className="pos-subtotal-row">
+                  <span>Subtotal (sin IVA)</span>
+                  <span className="pos-subtotal-value">{formatCurrency(scaledTaxBreakdown.subtotal)}</span>
+                </div>
+                {scaledTaxBreakdown.iva > 0.01 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#64748b' }}>
+                    <span>IVA (16%):</span>
+                    <strong style={{ color: '#334155' }}>{formatCurrency(scaledTaxBreakdown.iva)}</strong>
+                  </div>
+                )}
+                {scaledTaxBreakdown.ieps > 0.01 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#64748b' }}>
+                    <span>IEPS:</span>
+                    <strong style={{ color: '#334155' }}>{formatCurrency(scaledTaxBreakdown.ieps)}</strong>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="pos-subtotal-row">
+                <span>Subtotal ({cart.reduce((s, i) => s + i.quantity, 0)} artículos)</span>
+                <span className="pos-subtotal-value">{formatCurrency((breakdownDiscounts) ? subTotal : (subTotal - discount))}</span>
+              </div>
+            )}
 
             {mode === 'QUOTE' && cart.length > 0 && (() => {
               const totalPurchaseCost = cart.reduce((sum, item) => sum + ((item.averageCost || item.cost || 0) * item.quantity), 0);
@@ -4457,14 +4478,14 @@ export default function POSClient({
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#475569' }}>
                     <span>Venta Total:</span>
-                    <strong>{formatCurrency(total)}</strong>
+                    <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{formatCurrency(total)}</strong>
                   </div>
                 </div>
               );
             })()}
 
-            {(breakdownDiscounts) && discount > 0 && (
-              <div className="pos-subtotal-row" style={{ color: '#16a34a', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+            {discount > 0 && (
+              <div className="pos-subtotal-row" style={{ color: '#16a34a', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
                 <span>Descuento aplicado</span>
                 <span>-{formatCurrency(discount)}</span>
               </div>

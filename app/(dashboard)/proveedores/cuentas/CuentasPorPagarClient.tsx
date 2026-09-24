@@ -163,6 +163,10 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
                           return filtered.map((purchase: any) => {
                             const overdue = isOverdue(purchase.dueDate);
                             const isSelected = !!selectedPurchases.find(s => s.id === purchase.id);
+                            const total = purchase.total !== undefined && purchase.total > 0 ? purchase.total : (purchase.balanceDue || 0);
+                            const balanceDue = purchase.balanceDue || 0;
+                            const paidAmount = Math.max(0, total - balanceDue);
+                            const hasAbonos = paidAmount > 0.01;
                             
                             return (
                               <div 
@@ -183,9 +187,9 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
                                     {isSelected ? <CheckSquare size={24} color="#6366f1" /> : <Square size={24} color="#cbd5e1" />}
                                  </div>
                                  <div style={{ flex: 1 }}>
-                                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.35rem' }}>
                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                       <span style={{ fontWeight: 'bold', color: '#334155' }}>
+                                       <span style={{ fontWeight: 'bold', color: '#334155', fontSize: '0.95rem' }}>
                                          Nota: #{purchase.folio || purchase.id.slice(0,8).toUpperCase()}
                                        </span>
                                        {purchase.supplierFolio && (
@@ -194,9 +198,45 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
                                          </span>
                                        )}
                                      </div>
-                                     <span style={{ fontWeight: 'bold', color: '#dc2626' }}>{formatCurrency(purchase.balanceDue)}</span>
+                                     <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                       <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.025em' }}>
+                                         Saldo Pendiente
+                                       </span>
+                                       <span style={{ fontWeight: 'bold', fontSize: '1.05rem', color: '#dc2626' }}>
+                                         {formatCurrency(balanceDue)}
+                                       </span>
+                                     </div>
                                    </div>
-                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+
+                                   {/* Desglose de Total y Abonado */}
+                                   <div style={{ 
+                                     display: 'flex', 
+                                     justifyContent: 'space-between', 
+                                     alignItems: 'center', 
+                                     backgroundColor: isSelected ? '#e0e7ff' : '#f8fafc', 
+                                     padding: '0.35rem 0.6rem', 
+                                     borderRadius: '6px', 
+                                     margin: '0.4rem 0',
+                                     fontSize: '0.8rem',
+                                     border: `1px solid ${isSelected ? '#c7d2fe' : '#f1f5f9'}`
+                                   }}>
+                                     <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                       <span style={{ color: '#64748b' }}>
+                                         Total: <strong style={{ color: '#334155' }}>{formatCurrency(total)}</strong>
+                                       </span>
+                                       <span style={{ color: '#cbd5e1' }}>•</span>
+                                       <span style={{ color: hasAbonos ? '#16a34a' : '#64748b', fontWeight: hasAbonos ? '600' : 'normal' }}>
+                                         Abonado: <strong style={{ color: hasAbonos ? '#16a34a' : '#64748b' }}>{formatCurrency(paidAmount)}</strong>
+                                       </span>
+                                     </div>
+                                     {hasAbonos && (
+                                       <span style={{ fontSize: '0.72rem', backgroundColor: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: '4px', fontWeight: '600' }}>
+                                         {Math.min(100, Math.round((paidAmount / total) * 100))}% abonado
+                                       </span>
+                                     )}
+                                   </div>
+
+                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem' }}>
                                      <span style={{ color: '#64748b' }}>C: {new Date(purchase.createdAt).toLocaleDateString()}</span>
                                      {purchase.dueDate && (
                                        <span style={{ color: overdue ? '#ef4444' : '#16a34a', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -245,9 +285,29 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
                               onChange={e => setAmount(e.target.value)} 
                               style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a' }} 
                             />
-                            {!isGeneralPayment && selectedPurchases.length > 0 && parseFloat(amount) > selectedPurchases.reduce((a,b)=>a+b.balanceDue,0) && (
-                              <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#16a34a' }}>
-                                Nota: El remanente pasará a Saldo a Favor con el Proveedor.
+                            {!isGeneralPayment && selectedPurchases.length > 0 && (
+                              <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
+                                  <span>Saldo actual seleccionado:</span>
+                                  <strong style={{ color: '#334155' }}>
+                                    {formatCurrency(selectedPurchases.reduce((a, b) => a + (b.balanceDue || 0), 0))}
+                                  </strong>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a' }}>
+                                  <span>Abono a aplicar:</span>
+                                  <strong>- {formatCurrency(parseFloat(amount) || 0)}</strong>
+                                </div>
+                                <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '4px', marginTop: '2px', display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                                  <span style={{ color: '#334155' }}>Nuevo saldo restante:</span>
+                                  <span style={{ color: Math.max(0, selectedPurchases.reduce((a, b) => a + (b.balanceDue || 0), 0) - (parseFloat(amount) || 0)) <= 0 ? '#16a34a' : '#dc2626' }}>
+                                    {formatCurrency(Math.max(0, selectedPurchases.reduce((a, b) => a + (b.balanceDue || 0), 0) - (parseFloat(amount) || 0)))}
+                                  </span>
+                                </div>
+                                {parseFloat(amount) > selectedPurchases.reduce((a, b) => a + (b.balanceDue || 0), 0) && (
+                                  <div style={{ marginTop: '4px', fontSize: '0.75rem', color: '#16a34a', fontWeight: '500' }}>
+                                    ✓ El remanente de {formatCurrency(parseFloat(amount) - selectedPurchases.reduce((a, b) => a + (b.balanceDue || 0), 0))} pasará a Saldo a Favor.
+                                  </div>
+                                )}
                               </div>
                             )}
                          </div>

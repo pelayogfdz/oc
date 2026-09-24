@@ -1,5 +1,7 @@
 import PDFDocument from 'pdfkit';
 
+const formatMoney = (n: number) => '$' + (Number(n) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     try {
@@ -11,9 +13,9 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
       const italicPath = path.join(process.cwd(), 'lib/fonts/ariali.ttf');
       
       const hasCustomFonts = fs.existsSync(regularPath) && fs.existsSync(boldPath) && fs.existsSync(italicPath);
-      // Use autoFirstPage: false if custom fonts exist to prevent PDFKit from loading Helvetica.afm during initialization
+      
       const doc = new PDFDocument({ 
-        margin: 50, 
+        margins: { top: 30, bottom: 25, left: 40, right: 40 },
         size: 'LETTER',
         autoFirstPage: !hasCustomFonts
       });
@@ -37,7 +39,7 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
       const primaryColor = invoiceConfig.primaryColor || '#1d4ed8'; // Default premium blue
       const daysValid = config.cotizaciones?.diasVigencia || 7;
 
-      // Load custom Arial fonts to avoid Helvetica.afm ENOENT errors in Next.js / serverless
+      // Load custom Arial fonts
       let useCustomFonts = false;
       if (hasCustomFonts) {
         try {
@@ -59,14 +61,14 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
       const fontBold = useCustomFonts ? 'Arial-Bold' : 'Helvetica-Bold';
       const fontItalic = useCustomFonts ? 'Arial-Italic' : 'Helvetica-Oblique';
 
-      // 1. Header (Compact)
+      // 1. Header
       let logoDrawn = false;
       if (logoUrl) {
         try {
           if (logoUrl.startsWith('data:image/')) {
             const base64Data = logoUrl.replace(/^data:image\/\w+;base64,/, '');
             const imgBuffer = Buffer.from(base64Data, 'base64');
-            doc.image(imgBuffer, 40, 35, { height: 45, width: 140, fit: [140, 45] });
+            doc.image(imgBuffer, 40, 26, { fit: [105, 46] });
             logoDrawn = true;
           }
         } catch (e) {
@@ -74,17 +76,23 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
         }
       }
 
-      if (!logoDrawn) {
-        doc.font(fontBold).fontSize(16).fillColor('#0f172a').text(quote.branch?.tenant?.name || 'CAANMA', 40, 35);
-      }
-
-      // Branch Details
       const branchName = quote.branch?.name || 'Matriz';
       const branchAddress = quote.branch?.location || '';
-      doc.font(fontRegular).fontSize(7.5).fillColor('#64748b');
-      doc.text(`Sucursal: ${branchName}`, 40, 58);
-      if (branchAddress) {
-        doc.text(branchAddress.replace(/\n/g, ', '), 40, 68, { width: 280 });
+      const tenantName = quote.branch?.tenant?.name || 'CAANMA';
+
+      if (logoDrawn) {
+        // Draw branch info adjacent to logo (no overlap)
+        doc.font(fontBold).fontSize(10).fillColor('#0f172a').text(tenantName, 155, 26, { width: 200, ellipsis: true });
+        doc.font(fontRegular).fontSize(7.5).fillColor('#64748b').text(`Sucursal: ${branchName}`, 155, 39, { width: 200, ellipsis: true });
+        if (branchAddress) {
+          doc.text(branchAddress.replace(/\n/g, ', '), 155, 50, { width: 195, height: 24, ellipsis: true });
+        }
+      } else {
+        doc.font(fontBold).fontSize(14).fillColor('#0f172a').text(tenantName, 40, 26);
+        doc.font(fontRegular).fontSize(7.5).fillColor('#64748b').text(`Sucursal: ${branchName}`, 40, 44);
+        if (branchAddress) {
+          doc.text(branchAddress.replace(/\n/g, ', '), 40, 55, { width: 280, height: 20, ellipsis: true });
+        }
       }
 
       // Title Box (Top Right)
@@ -95,23 +103,25 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
         day: 'numeric'
       });
 
-      doc.font(fontBold).fontSize(14).fillColor(primaryColor).text('COTIZACIÓN', 350, 35, { align: 'right', width: 222 });
-      doc.font(fontBold).fontSize(9).fillColor('#0f172a').text(`Folio: #${displayFolio}`, 350, 52, { align: 'right', width: 222 });
-      doc.font(fontRegular).fontSize(8).fillColor('#64748b').text(`Fecha: ${dateStr}`, 350, 65, { align: 'right', width: 222 });
+      doc.font(fontBold).fontSize(14).fillColor(primaryColor).text('COTIZACIÓN', 350, 26, { align: 'right', width: 222 });
+      doc.font(fontBold).fontSize(9).fillColor('#0f172a').text(`Folio: #${displayFolio}`, 350, 43, { align: 'right', width: 222 });
+      doc.font(fontRegular).fontSize(8).fillColor('#64748b').text(`Fecha: ${dateStr}`, 350, 56, { align: 'right', width: 222 });
 
-      // Colored rule line
-      doc.strokeColor(primaryColor).lineWidth(1.5).moveTo(40, 88).lineTo(572, 88).stroke();
+      // Colored divider line
+      doc.strokeColor(primaryColor).lineWidth(1.5).moveTo(40, 78).lineTo(572, 78).stroke();
 
-      // 2. Info Cards (Compact: Left = Client, Right = Quote details)
-      const infoTop = 96;
+      // 2. Info Cards (Left = Client, Right = Quote details)
+      const infoTop = 86;
+      const infoHeight = 58;
+
       // Client Box
-      doc.fillColor('#f8fafc').rect(40, infoTop, 255, 60).fill();
-      doc.strokeColor('#e2e8f0').lineWidth(0.5).rect(40, infoTop, 255, 60).stroke();
+      doc.fillColor('#f8fafc').rect(40, infoTop, 255, infoHeight).fill();
+      doc.strokeColor('#e2e8f0').lineWidth(0.5).rect(40, infoTop, 255, infoHeight).stroke();
 
       doc.font(fontBold).fontSize(7.5).fillColor(primaryColor).text('DATOS DEL CLIENTE', 48, infoTop + 6);
-      doc.font(fontBold).fontSize(8.5).fillColor('#1e293b').text(quote.customer?.name || 'Público en General', 48, infoTop + 18, { width: 240, ellipsis: true });
+      doc.font(fontBold).fontSize(8.5).fillColor('#1e293b').text(quote.customer?.legalName || quote.customer?.name || 'Público en General', 48, infoTop + 17, { width: 240, ellipsis: true });
       doc.font(fontRegular).fontSize(7.5).fillColor('#475569');
-      let clientLineY = infoTop + 30;
+      let clientLineY = infoTop + 29;
       if (quote.customer?.taxId) {
         doc.text(`RFC: ${quote.customer.taxId}`, 48, clientLineY);
         clientLineY += 10;
@@ -122,8 +132,8 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
       }
 
       // Quote details Box
-      doc.fillColor('#f8fafc').rect(310, infoTop, 262, 60).fill();
-      doc.strokeColor('#e2e8f0').lineWidth(0.5).rect(310, infoTop, 262, 60).stroke();
+      doc.fillColor('#f8fafc').rect(310, infoTop, 262, infoHeight).fill();
+      doc.strokeColor('#e2e8f0').lineWidth(0.5).rect(310, infoTop, 262, infoHeight).stroke();
 
       doc.font(fontBold).fontSize(7.5).fillColor(primaryColor).text('DETALLES DEL DOCUMENTO', 318, infoTop + 6);
       doc.font(fontRegular).fontSize(7.5).fillColor('#475569');
@@ -132,7 +142,7 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
       doc.text(`Elaboró: ${quote.user?.name || 'Sistema'}`, 318, infoTop + 40);
 
       // 3. Items Table Header
-      const tableTop = 166;
+      const tableTop = 152;
       const renderTableHeader = (y: number) => {
         doc.fillColor('#f8fafc').rect(40, y, 532, 18).fill();
         doc.strokeColor('#cbd5e1').lineWidth(0.75).rect(40, y, 532, 18).stroke();
@@ -153,10 +163,10 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
       quote.items.forEach((item: any) => {
         doc.fontSize(8);
         const nameHeight = doc.heightOfString(item.product?.name || 'Artículo', { width: 175 });
-        const rowHeight = Math.max(20, Math.min(32, nameHeight + 6));
+        const rowHeight = Math.max(18, Math.min(32, nameHeight + 6));
 
-        // Check if row overflows page (budget height ~620pt)
-        if (currentY + rowHeight > 620) {
+        // Check if row overflows page (budget height ~670pt)
+        if (currentY + rowHeight > 670) {
           doc.addPage();
           currentY = 40;
           renderTableHeader(currentY);
@@ -186,15 +196,15 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
         doc.font(fontRegular).fontSize(8).fillColor('#0f172a');
         doc.text(item.product?.name || 'Artículo', 170, currentY + 4, { width: 175, align: 'left', height: rowHeight - 4, ellipsis: true });
 
-        doc.text(`$${finalPriceExcludingIva.toFixed(2)}`, 350, currentY + 4, { width: 68, align: 'right' });
-        doc.font(fontRegular).fontSize(7).fillColor('#64748b').text(`${rate}% ($${rowIva.toFixed(2)})`, 422, currentY + 4, { width: 65, align: 'right' });
-        doc.font(fontBold).fontSize(8).fillColor('#0f172a').text(`$${rowImporteExcludingIva.toFixed(2)}`, 492, currentY + 4, { width: 74, align: 'right' });
+        doc.text(formatMoney(finalPriceExcludingIva), 350, currentY + 4, { width: 68, align: 'right' });
+        doc.font(fontRegular).fontSize(7).fillColor('#64748b').text(`${rate}% (${formatMoney(rowIva)})`, 422, currentY + 4, { width: 65, align: 'right' });
+        doc.font(fontBold).fontSize(8).fillColor('#0f172a').text(formatMoney(rowImporteExcludingIva), 492, currentY + 4, { width: 74, align: 'right' });
 
         currentY += rowHeight;
       });
 
-      // 4. Bottom Section (Left: Notes/Terms/Images, Right: Totals)
-      let bottomY = currentY + 10;
+      // 4. Bottom Section (Left: Notes/Terms, Right: Totals)
+      let bottomY = currentY + 8;
       if (bottomY + 100 > 710) {
         doc.addPage();
         bottomY = 40;
@@ -240,36 +250,36 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
 
       doc.font(fontRegular).fontSize(8).fillColor('#475569');
       doc.text('Subtotal:', totalsX, totY, { width: 100, align: 'left' });
-      doc.text(`$${subtotalExcludingIva.toFixed(2)}`, 450, totY, { width: 116, align: 'right' });
+      doc.text(formatMoney(subtotalExcludingIva), 450, totY, { width: 116, align: 'right' });
       totY += 13;
 
       if (breakdownDiscounts && discountExcludingIva > 0.01) {
         doc.fillColor('#ef4444');
         doc.text('Descuento:', totalsX, totY, { width: 100, align: 'left' });
-        doc.text(`-$${discountExcludingIva.toFixed(2)}`, 450, totY, { width: 116, align: 'right' });
+        doc.text(`-${formatMoney(discountExcludingIva)}`, 450, totY, { width: 116, align: 'right' });
         totY += 13;
 
         doc.fillColor('#475569');
         doc.font(fontBold).text('Subtotal Neto:', totalsX, totY, { width: 100, align: 'left' });
         const netExcludingIva = subtotalExcludingIva - discountExcludingIva;
-        doc.text(`$${netExcludingIva.toFixed(2)}`, 450, totY, { width: 116, align: 'right' });
+        doc.text(formatMoney(netExcludingIva), 450, totY, { width: 116, align: 'right' });
         doc.font(fontRegular);
         totY += 13;
       }
 
-      doc.font(fontRegular).fillColor('#475569').text('IVA:', totalsX, totY, { width: 100, align: 'left' });
-      doc.text(`$${totalIva.toFixed(2)}`, 450, totY, { width: 116, align: 'right' });
-      totY += 15;
+      doc.font(fontRegular).fillColor('#475569').text('IVA (16%):', totalsX, totY, { width: 100, align: 'left' });
+      doc.text(formatMoney(totalIva), 450, totY, { width: 116, align: 'right' });
+      totY += 14;
 
       doc.strokeColor('#0f172a').lineWidth(1.2).moveTo(totalsX, totY).lineTo(572, totY).stroke();
       totY += 5;
 
       doc.font(fontBold).fontSize(10).fillColor('#0f172a');
       doc.text('Total:', totalsX, totY, { width: 100, align: 'left' });
-      doc.text(`$${finalTotalWithIva.toFixed(2)}`, 450, totY, { width: 116, align: 'right' });
+      doc.text(formatMoney(finalTotalWithIva), 450, totY, { width: 116, align: 'right' });
       totY += 18;
 
-      // Left Column: Terms & Conditions + Observations + Reference Images
+      // Left Column: Terms & Conditions + Observations
       let leftY = bottomY;
       const terminosCot = config.cotizaciones?.terminosCot || '';
       if (terminosCot && terminosCot.trim()) {
@@ -349,11 +359,11 @@ export function generateQuotePdfBuffer(quote: any): Promise<Buffer> {
         }
       }
 
-      // 5. Footer (at bottom of page)
-      const footerY = 740;
-      doc.strokeColor('#e2e8f0').lineWidth(0.5).moveTo(40, footerY - 6).lineTo(572, footerY - 6).stroke();
-      doc.font(fontItalic).fontSize(7).fillColor('#94a3b8');
-      doc.text('Esta cotización es de carácter informativo. Precios y existencias sujetos a cambio sin previo aviso. Generado por CAANMA PRO.', 40, footerY, { align: 'center', width: 532 });
+      // 5. Fixed Single-Page Footer
+      const footerY = 745;
+      doc.strokeColor('#e2e8f0').lineWidth(0.5).moveTo(40, footerY - 4).lineTo(572, footerY - 4).stroke();
+      doc.font(fontItalic).fontSize(6.8).fillColor('#94a3b8');
+      doc.text('Esta cotización es de carácter informativo. Precios y existencias sujetos a cambio sin previo aviso. Generado por CAANMA PRO.', 40, footerY, { align: 'center', width: 532, lineBreak: false });
 
       doc.end();
     } catch (e) {
