@@ -140,13 +140,19 @@ async function updateSessionInAllDbs(branchId, data) {
                     data
                 });
             } else {
-                await client.whatsAppSession.create({
-                    data: {
-                        branchId,
-                        status: data.status || 'DISCONNECTED',
-                        sessionData: data.sessionData || null
-                    }
+                const branchExists = await client.branch.findUnique({
+                    where: { id: branchId },
+                    select: { id: true }
                 });
+                if (branchExists) {
+                    await client.whatsAppSession.create({
+                        data: {
+                            branchId,
+                            status: data.status || 'DISCONNECTED',
+                            sessionData: data.sessionData || null
+                        }
+                    });
+                }
             }
         } catch (e) {
             console.error(`[WHATSAPP] Failed to update session in DB ${name} for branch ${branchId}:`, e.message);
