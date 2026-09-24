@@ -88,10 +88,13 @@ export async function addSupplierPaymentBatch(
        remainingAmount -= deduct;
        totalEffectiveToDebt += deduct;
 
+       const rawNewBalance = purchase.balanceDue - deduct;
+       const newBalance = Math.max(0, Number(rawNewBalance.toFixed(4)));
+
        // Update Individual Purchase
        await prisma.purchase.update({
           where: { id: purchase.id },
-          data: { balanceDue: purchase.balanceDue - deduct }
+          data: { balanceDue: newBalance <= 0.01 ? 0 : newBalance }
        });
 
        // Create Specific Payment Record

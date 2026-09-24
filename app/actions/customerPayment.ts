@@ -82,9 +82,12 @@ export async function addCustomerPaymentBatch(
        remainingAmount -= deduct;
        totalEffectiveToDebt += deduct;
 
+       const rawNewBalance = sale.balanceDue - deduct;
+       const newBalance = Math.max(0, Number(rawNewBalance.toFixed(4)));
+
        await prisma.sale.update({
           where: { id: sale.id },
-          data: { balanceDue: sale.balanceDue - deduct }
+          data: { balanceDue: newBalance <= 0.01 ? 0 : newBalance }
        });
 
        const isSaleInvoiced = !!sale.invoiceId;

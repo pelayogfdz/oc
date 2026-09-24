@@ -108,28 +108,31 @@ export default function CuentasPorCobrarReportClient({
     };
 
     branchFilteredSales.forEach(sale => {
+      const balance = sale.balanceDue || 0;
+      if (balance <= 0.01) return;
+
       const days = getDaysOverdue(sale.dueDate);
       categories.ALL.sales.push(sale);
-      categories.ALL.total += sale.balanceDue || 0;
+      categories.ALL.total += balance;
 
       if (days === 0 || days === -1) {
         categories.NOT_OVERDUE.sales.push(sale);
-        categories.NOT_OVERDUE.total += sale.balanceDue || 0;
+        categories.NOT_OVERDUE.total += balance;
       } else if (days > 0 && days <= 15) {
         categories['0_15'].sales.push(sale);
-        categories['0_15'].total += sale.balanceDue || 0;
+        categories['0_15'].total += balance;
       } else if (days > 15 && days <= 30) {
         categories['15_30'].sales.push(sale);
-        categories['15_30'].total += sale.balanceDue || 0;
+        categories['15_30'].total += balance;
       } else if (days > 30 && days <= 60) {
         categories['30_60'].sales.push(sale);
-        categories['30_60'].total += sale.balanceDue || 0;
+        categories['30_60'].total += balance;
       } else if (days > 60 && days <= 90) {
         categories['60_90'].sales.push(sale);
-        categories['60_90'].total += sale.balanceDue || 0;
+        categories['60_90'].total += balance;
       } else if (days > 90) {
         categories['90_PLUS'].sales.push(sale);
-        categories['90_PLUS'].total += sale.balanceDue || 0;
+        categories['90_PLUS'].total += balance;
       }
     });
 
@@ -154,6 +157,9 @@ export default function CuentasPorCobrarReportClient({
     } } = {};
     
     activeBucketSales.forEach(sale => {
+      const balance = sale.balanceDue || 0;
+      if (balance <= 0.01) return;
+
       const customerId = sale.customer?.id || 'public';
       if (!groups[customerId]) {
         groups[customerId] = {
@@ -167,13 +173,13 @@ export default function CuentasPorCobrarReportClient({
         };
       }
       groups[customerId].sales.push(sale);
-      groups[customerId].totalBalanceDue += sale.balanceDue || 0;
+      groups[customerId].totalBalanceDue += balance;
       
       const days = getDaysOverdue(sale.dueDate);
       if (days > 0) {
-        groups[customerId].overdueBalance += sale.balanceDue || 0;
+        groups[customerId].overdueBalance += balance;
       } else {
-        groups[customerId].currentBalance += sale.balanceDue || 0;
+        groups[customerId].currentBalance += balance;
       }
 
       groups[customerId].branches.add(sale.branch.name);
@@ -216,6 +222,8 @@ export default function CuentasPorCobrarReportClient({
 
     branchFilteredSales.forEach(sale => {
       const balance = sale.balanceDue || 0;
+      if (balance <= 0.01) return;
+
       totalCobrar += balance;
       totalDocs++;
       const days = getDaysOverdue(sale.dueDate);

@@ -76,28 +76,31 @@ export default function CobranzaGlobalClient({
   };
 
   preFilteredSales.forEach(sale => {
+    const balance = sale.balanceDue || 0;
+    if (balance <= 0.01) return;
+
     const days = getDaysOverdue(sale.dueDate);
     buckets.ALL.sales.push(sale);
-    buckets.ALL.total += sale.balanceDue || 0;
+    buckets.ALL.total += balance;
 
     if (days === 0 || days === -1) {
       buckets.NOT_OVERDUE.sales.push(sale);
-      buckets.NOT_OVERDUE.total += sale.balanceDue || 0;
+      buckets.NOT_OVERDUE.total += balance;
     } else if (days > 0 && days <= 15) {
       buckets['0_15'].sales.push(sale);
-      buckets['0_15'].total += sale.balanceDue || 0;
+      buckets['0_15'].total += balance;
     } else if (days > 15 && days <= 30) {
       buckets['15_30'].sales.push(sale);
-      buckets['15_30'].total += sale.balanceDue || 0;
+      buckets['15_30'].total += balance;
     } else if (days > 30 && days <= 60) {
       buckets['30_60'].sales.push(sale);
-      buckets['30_60'].total += sale.balanceDue || 0;
+      buckets['30_60'].total += balance;
     } else if (days > 60 && days <= 90) {
       buckets['60_90'].sales.push(sale);
-      buckets['60_90'].total += sale.balanceDue || 0;
+      buckets['60_90'].total += balance;
     } else if (days > 90) {
       buckets['90_PLUS'].sales.push(sale);
-      buckets['90_PLUS'].total += sale.balanceDue || 0;
+      buckets['90_PLUS'].total += balance;
     }
   });
 
@@ -116,6 +119,9 @@ export default function CobranzaGlobalClient({
     const groups: { [customerId: string]: { customer: any; sales: any[]; totalBalanceDue: number; oldestDueDate: string | null } } = {};
     
     filteredSales.forEach(sale => {
+      const balance = sale.balanceDue || 0;
+      if (balance <= 0.01) return;
+
       const customerId = sale.customer?.id || 'public';
       if (!groups[customerId]) {
         groups[customerId] = {
@@ -126,7 +132,7 @@ export default function CobranzaGlobalClient({
         };
       }
       groups[customerId].sales.push(sale);
-      groups[customerId].totalBalanceDue += sale.balanceDue || 0;
+      groups[customerId].totalBalanceDue += balance;
       
       if (sale.dueDate) {
         if (!groups[customerId].oldestDueDate || new Date(sale.dueDate) < new Date(groups[customerId].oldestDueDate!)) {

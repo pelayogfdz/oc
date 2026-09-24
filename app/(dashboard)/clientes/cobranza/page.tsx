@@ -5,7 +5,7 @@ export default async function CobranzaGlobalPage() {
   const pendingSales = await prisma.sale.findMany({
     where: { 
       paymentMethod: 'CREDIT',
-      balanceDue: { gt: 0 }
+      balanceDue: { gt: 0.01 }
     },
     include: {
       customer: true,
