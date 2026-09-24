@@ -72,6 +72,7 @@ export default async function DashboardPage(props: Props) {
     periodAggregate,
     recentSales,
     topCustomersGroup,
+    topSellersGroup,
     periodSaleItems,
     lowStockProducts,
     chartSales,
@@ -109,6 +110,21 @@ export default async function DashboardPage(props: Props) {
         createdAt: { gte: queryStartUtc, lte: queryEndUtc },
         status: 'COMPLETED',
         customerId: { not: null }
+      },
+      _sum: { total: true },
+      _count: { id: true },
+      orderBy: {
+        _sum: { total: 'desc' }
+      },
+      take: 10
+    }),
+    prisma.sale.groupBy({
+      by: ['userId'],
+      where: {
+        ...branchFilter,
+        createdAt: { gte: queryStartUtc, lte: queryEndUtc },
+        status: 'COMPLETED',
+        userId: { not: '' }
       },
       _sum: { total: true },
       _count: { id: true },
@@ -206,17 +222,23 @@ export default async function DashboardPage(props: Props) {
     }
   });
 
-  // Phase 2: Fetching of metadata for Top 10 Clientes
+  // Phase 2: Fetching of metadata for Top 10 Clientes and Top 10 Vendedores
   const customerIds = topCustomersGroup.map(g => g.customerId).filter(Boolean) as string[];
+  const sellerIds = topSellersGroup.map(g => g.userId).filter(Boolean) as string[];
 
-  const [customers] = await Promise.all([
+  const [customers, sellers] = await Promise.all([
     prisma.customer.findMany({
       where: { id: { in: customerIds } },
       select: { id: true, name: true, phone: true }
+    }),
+    prisma.user.findMany({
+      where: { id: { in: sellerIds } },
+      select: { id: true, name: true, email: true }
     })
   ]);
 
   const customerLookup = new Map(customers.map(c => [c.id, c]));
+  const sellerLookup = new Map(sellers.map(s => [s.id, s]));
 
   // Format topCustomers
   const topCustomers = topCustomersGroup.map(g => {
@@ -231,6 +253,43 @@ export default async function DashboardPage(props: Props) {
   });
 
   const maxCustomerPurchased = topCustomers.length > 0 ? topCustomers[0].totalPurchased : 1;
+
+  // Format topSellers
+  const topSellers = topSellersGroup.map(g => {
+    const seller = sellerLookup.get(g.userId);
+    const totalSold = g._sum.total || 0;
+    const orderCount = g._count.id || 0;
+    return {
+      id: g.userId,
+      name: seller?.name || seller?.email?.split('@')[0] || "Usuario",
+      totalSold,
+      orderCount,
+      avgTicket: orderCount > 0 ? totalSold / orderCount : 0
+    };
+  });
+
+  const maxSellerSold = topSellers.length > 0 ? topSellers[0].totalSold : 1;
+
+  // Format topCategories in-memory from periodSaleItems
+  const categoryMap = new Map<string, any>();
+  periodSaleItems.forEach(item => {
+    const catName = item.product?.category?.trim() || 'Sin Categoría';
+    const existing = categoryMap.get(catName) || {
+      category: catName,
+      totalRevenue: 0,
+      quantitySold: 0,
+      itemCount: 0
+    };
+    existing.totalRevenue += (item.quantity * item.price);
+    existing.quantitySold += item.quantity;
+    existing.itemCount += 1;
+    categoryMap.set(catName, existing);
+  });
+
+  const topCategories = Array.from(categoryMap.values())
+    .sort((a, b) => b.totalRevenue - a.totalRevenue)
+    .slice(0, 10);
+  const maxCategoryRevenue = topCategories.length > 0 ? topCategories[0].totalRevenue : 1;
 
   // Format topProducts in-memory to group by SKU/barcode/name across branches with units, revenue and margin
   const productMap = new Map<string, any>();
@@ -562,6 +621,118 @@ export default async function DashboardPage(props: Props) {
           topByRevenue={topProductsByRevenue}
           topByMargin={topProductsByMargin}
         />
+
+        {/* Card 3: 🏷️ Categorías Más Vendidas */}
+        <Card className="p-6 md:p-8 min-w-0">
+          <div className="flex justify-between items-center mb-6 gap-2">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-xl font-extrabold text-slate-900 m-0 flex items-center gap-2 flex-wrap">
+                🏷️ Categorías Más Vendidas <Badge variant={isFiltered ? 'purple' : 'info'}>{isFiltered ? 'Período' : 'Hoy'}</Badge>
+              </h2>
+              <p className="text-slate-500 text-xs mt-1 mb-0">
+                {isFiltered ? 'Categorías líderes en facturación del período' : 'Categorías líderes en facturación de hoy'}
+              </p>
+            </div>
+            <Link href="/reportes/top-categorias" className="text-xs font-bold text-blue-600 hover:underline flex-shrink-0">Ver detalle</Link>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            {topCategories.length > 0 ? (
+              topCategories.map((cat: any, idx: number) => {
+                const percentage = Math.min(100, Math.round((cat.totalRevenue / maxCategoryRevenue) * 100));
+                return (
+                  <div key={cat.category} className="flex items-center gap-3 sm:gap-4 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center font-bold text-xs text-emerald-700 flex-shrink-0">
+                      #{idx + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center mb-1 gap-2">
+                        <span className="text-sm font-bold text-slate-800 truncate min-w-0 flex-1" title={cat.category}>
+                          {cat.category}
+                        </span>
+                        <span className="text-sm font-black text-emerald-600 flex-shrink-0">
+                          {formatter.format(cat.totalRevenue)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <span className="flex-shrink-0">📦 {cat.quantitySold.toLocaleString('es-MX')} uds</span>
+                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-emerald-500 rounded-full transition-all duration-500" 
+                            style={{ width: `${percentage}%` }} 
+                          />
+                        </div>
+                        <span className="flex-shrink-0 font-bold text-slate-700">{percentage}%</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="py-8 text-center text-slate-400 text-sm">
+                {isFiltered ? 'No hay categorías vendidas en el período seleccionado.' : 'No hay categorías vendidas el día de hoy.'}
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Card 4: 👔 Ventas por Vendedor */}
+        <Card className="p-6 md:p-8 min-w-0">
+          <div className="flex justify-between items-center mb-6 gap-2">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-xl font-extrabold text-slate-900 m-0 flex items-center gap-2 flex-wrap">
+                👔 Ventas por Vendedor <Badge variant={isFiltered ? 'purple' : 'info'}>{isFiltered ? 'Período' : 'Hoy'}</Badge>
+              </h2>
+              <p className="text-slate-500 text-xs mt-1 mb-0">
+                {isFiltered ? 'Rendimiento y volumen colocado en el período' : 'Rendimiento y volumen colocado hoy'}
+              </p>
+            </div>
+            <Link href="/reportes/ventas-por-vendedor" className="text-xs font-bold text-blue-600 hover:underline flex-shrink-0">Ver detalle</Link>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            {topSellers.length > 0 ? (
+              topSellers.map((seller: any, idx: number) => {
+                const percentage = Math.min(100, Math.round((seller.totalSold / maxSellerSold) * 100));
+                const avatarColor = getHslColor(seller.name);
+                return (
+                  <div key={seller.id} className="flex items-center gap-3 sm:gap-4 min-w-0">
+                    <div 
+                      className="w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-sm shadow-sm flex-shrink-0"
+                      style={{ backgroundColor: avatarColor }}
+                    >
+                      {getInitials(seller.name)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center mb-1 gap-2">
+                        <span className="text-sm font-bold text-slate-800 truncate min-w-0 flex-1" title={seller.name}>
+                          {idx + 1}. {seller.name}
+                        </span>
+                        <span className="text-sm font-black text-blue-600 flex-shrink-0">
+                          {formatter.format(seller.totalSold)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <span className="flex-shrink-0">🏷️ {seller.orderCount.toLocaleString('es-MX')} tickets</span>
+                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-blue-500 rounded-full transition-all duration-500" 
+                            style={{ width: `${percentage}%` }} 
+                          />
+                        </div>
+                        <span className="flex-shrink-0 font-bold text-slate-700">{percentage}%</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="py-8 text-center text-slate-400 text-sm">
+                {isFiltered ? 'No hay ventas de vendedores en el período seleccionado.' : 'No hay ventas de vendedores el día de hoy.'}
+              </div>
+            )}
+          </div>
+        </Card>
 
       </div>
     </div>
