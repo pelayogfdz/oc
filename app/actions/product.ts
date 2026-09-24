@@ -137,30 +137,15 @@ export async function createProduct(prevState: any, formData: FormData) {
      return { error: "Faltan campos obligatorios (SKU, Nombre o Sucursal)." };
   }
 
-  // Cross-match check to prevent duplicates in the same branch
-  if (barcode) {
-    const existingDuplicate = await prisma.product.findFirst({
-      where: {
-        branchId,
-        OR: [
-          { barcode },
-          { sku: barcode }
-        ]
-      }
-    });
-    if (existingDuplicate) {
-      return { error: `Ya existe un producto con el código de barras o SKU "${barcode}" (${existingDuplicate.name}) en esta sucursal.` };
-    }
-  }
-
+  // Check duplicate SKU in the same branch
   const existingDuplicateSku = await prisma.product.findFirst({
     where: {
       branchId,
-      barcode: sku
+      sku
     }
   });
   if (existingDuplicateSku) {
-    return { error: `Ya existe un producto con el código de barras "${sku}" (${existingDuplicateSku.name}) en esta sucursal.` };
+    return { error: `Ya existe un producto con el SKU "${sku}" (${existingDuplicateSku.name}) en esta sucursal.` };
   }
 
   // Find tenantId for branchId
@@ -593,36 +578,20 @@ export async function updateProduct(productId: string, formData: FormData) {
 
 
 
-    // Cross-match check to prevent duplicates in the same branch during update
+    // Cross-match check to prevent SKU collisions with another product's barcode/SKU
     const newBarcode = data.barcode;
     const newSku = data.sku;
-
-    if (newBarcode) {
-      const existingDuplicate = await prisma.product.findFirst({
-        where: {
-          branchId: currentProduct.branchId,
-          id: { not: productId },
-          OR: [
-            { barcode: newBarcode },
-            { sku: newBarcode }
-          ]
-        }
-      });
-      if (existingDuplicate) {
-        throw new Error(`Ya existe un producto con el código de barras o SKU "${newBarcode}" (${existingDuplicate.name}) en esta sucursal.`);
-      }
-    }
 
     if (newSku) {
       const existingDuplicateSku = await prisma.product.findFirst({
         where: {
           branchId: currentProduct.branchId,
           id: { not: productId },
-          barcode: newSku
+          sku: newSku
         }
       });
       if (existingDuplicateSku) {
-        throw new Error(`Ya existe un producto con el código de barras "${newSku}" (${existingDuplicateSku.name}) en esta sucursal.`);
+        throw new Error(`Ya existe un producto con el SKU "${newSku}" (${existingDuplicateSku.name}) en esta sucursal.`);
       }
     }
 
@@ -711,37 +680,41 @@ export async function updateProduct(productId: string, formData: FormData) {
             // 3. Create missing products only in branches that have NEITHER the old SKU nor the new SKU
             for (const bId of siblingBranchIds) {
               if (bId !== updatedProduct.branchId && !branchesWithOldSku.has(bId) && !branchesWithNewSku.has(bId)) {
-                await prisma.product.create({
-                  data: {
-                    branchId: bId,
-                    sku: updatedProduct.sku,
-                    barcode: updatedProduct.barcode,
-                    name: updatedProduct.name,
-                    description: updatedProduct.description,
-                    price: updatedProduct.price,
-                    cost: updatedProduct.cost,
-                    taxRate: updatedProduct.taxRate,
-                    taxType: updatedProduct.taxType,
-                    iepsRate: updatedProduct.iepsRate,
-                    brand: updatedProduct.brand,
-                    imageUrl: updatedProduct.imageUrl,
-                    youtubeUrl: updatedProduct.youtubeUrl,
-                    isActive: updatedProduct.isActive,
-                    allowProduction: updatedProduct.allowProduction,
-                    isProductionInput: updatedProduct.isProductionInput,
-                    isService: updatedProduct.isService,
-                    unit: updatedProduct.unit,
-                    stock: 0,
-                    minStock: 0,
-                    supplierId: null,
-                    satKey: updatedProduct.satKey,
-                    satUnit: updatedProduct.satUnit,
-                    expirationDate: updatedProduct.expirationDate,
-                    hasTraceability: updatedProduct.hasTraceability,
-                    // @ts-ignore
-                    showInWeb: updatedProduct.showInWeb
-                  }
-                });
+                try {
+                  await prisma.product.create({
+                    data: {
+                      branchId: bId,
+                      sku: updatedProduct.sku,
+                      barcode: updatedProduct.barcode,
+                      name: updatedProduct.name,
+                      description: updatedProduct.description,
+                      price: updatedProduct.price,
+                      cost: updatedProduct.cost,
+                      taxRate: updatedProduct.taxRate,
+                      taxType: updatedProduct.taxType,
+                      iepsRate: updatedProduct.iepsRate,
+                      brand: updatedProduct.brand,
+                      imageUrl: updatedProduct.imageUrl,
+                      youtubeUrl: updatedProduct.youtubeUrl,
+                      isActive: updatedProduct.isActive,
+                      allowProduction: updatedProduct.allowProduction,
+                      isProductionInput: updatedProduct.isProductionInput,
+                      isService: updatedProduct.isService,
+                      unit: updatedProduct.unit,
+                      stock: 0,
+                      minStock: 0,
+                      supplierId: null,
+                      satKey: updatedProduct.satKey,
+                      satUnit: updatedProduct.satUnit,
+                      expirationDate: updatedProduct.expirationDate,
+                      hasTraceability: updatedProduct.hasTraceability,
+                      // @ts-ignore
+                      showInWeb: updatedProduct.showInWeb
+                    }
+                  });
+                } catch (createSibErr) {
+                  console.warn(`[SIBLING CREATION WARNING] Could not create sibling product in branch ${bId}:`, createSibErr);
+                }
               }
             }
 

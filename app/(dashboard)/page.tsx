@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getActiveBranch } from '@/app/actions/auth';
-import { ShoppingCart, PackagePlus, DollarSign, WalletCards } from 'lucide-react';
+import { ShoppingCart, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import DashboardCharts from './DashboardCharts';
 import TopProductsWidget from './TopProductsWidget';
@@ -391,27 +391,6 @@ export default async function DashboardPage(props: Props) {
         <h1 className="page-header-title text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
           Panel de Control <span className="text-purple-600 font-semibold text-lg md:text-xl">({branch.name})</span>
         </h1>
-        
-        <div className="page-header-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem' }}>
-          <Link 
-            href="/ventas/nueva" 
-            className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs"
-          >
-            <ShoppingCart size={15} /> <span>Nueva Venta</span>
-          </Link>
-          <Link 
-            href="/productos/nuevo" 
-            className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs"
-          >
-            <PackagePlus size={15} className="text-blue-600" /> <span>Crear Producto</span>
-          </Link>
-          <Link 
-            href="/caja/actual" 
-            className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs"
-          >
-            <WalletCards size={15} className="text-emerald-600" /> <span>Arqueo de Caja</span>
-          </Link>
-        </div>
       </div>
 
       <div className="dashboard-stats-grid mb-6">

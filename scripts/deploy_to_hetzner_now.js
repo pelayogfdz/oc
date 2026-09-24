@@ -12,7 +12,7 @@ console.log('1. Packing core source files and public assets...');
 if (fs.existsSync(tarPath)) fs.unlinkSync(tarPath);
 
 // Exclude heavy dev files and product images (already stored on Hetzner persistent volume)
-execSync('tar --exclude="prisma/dev.db" --exclude="public/img/products" --exclude="node_modules" --exclude=".next" --exclude=".git" --exclude="*.log" --exclude="*.tar.gz" --exclude="*.bundle" -czf fast_update.tar.gz app lib prisma public package.json package-lock.json next.config.ts tsconfig.json docker-compose.yml Dockerfile', { cwd: rootDir });
+execSync('tar --exclude="prisma/dev.db" --exclude="public/img/products" --exclude="node_modules" --exclude=".next" --exclude=".git" --exclude="*.log" --exclude="*.tar.gz" --exclude="*.bundle" -czf fast_update.tar.gz app lib prisma public whatsapp-service package.json package-lock.json next.config.ts tsconfig.json docker-compose.yml Dockerfile', { cwd: rootDir });
 
 const archiveSizeMB = (fs.statSync(tarPath).size / 1024 / 1024).toFixed(2);
 console.log(`Archive created. Size: ${archiveSizeMB} MB`);
@@ -40,8 +40,8 @@ conn.on('ready', () => {
         'tar -xzf /root/fast_update.tar.gz -C /root/oc',
         'rm -f /root/fast_update.tar.gz',
         'cd /root/oc',
-        'docker compose build web',
-        'docker compose up -d --no-deps web',
+        'docker compose build web whatsapp',
+        'docker compose up -d --no-deps web whatsapp',
         'sleep 4',
         'docker compose exec -T web node -e "const { execSync } = require(\'child_process\'); [\'neondb\', \'neondb_officecity\', \'neondb_petqro\', \'neondb_seit\', \'neondb_pizca\'].forEach(db => { try { console.log(\'Syncing schema for: \' + db); execSync(\'npx prisma db push --skip-generate --accept-data-loss\', { env: { ...process.env, DATABASE_URL: \'postgresql://postgres:caanma_postgres_secure_2026@db:5432/\' + db + \'?sslmode=disable\' }, stdio: \'inherit\' }); } catch(e){ console.error(\'Error pushing to \' + db, e.message); } });" || true',
         'docker compose ps',
