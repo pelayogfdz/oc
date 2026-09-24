@@ -76,7 +76,8 @@ export default async function DashboardPage(props: Props) {
     periodSaleItems,
     lowStockProducts,
     chartSales,
-    periodReturnsAggregate
+    periodReturnsAggregate,
+    pendingCreditSales
   ] = await Promise.all([
     prisma.sale.aggregate({
       _sum: { total: true },
@@ -168,6 +169,20 @@ export default async function DashboardPage(props: Props) {
       where: {
         ...branchFilter,
         createdAt: { gte: queryStartUtc, lte: queryEndUtc }
+      }
+    }),
+    prisma.sale.findMany({
+      where: {
+        ...branchFilter,
+        paymentMethod: 'CREDIT',
+        balanceDue: { gt: 0 },
+        status: { not: 'CANCELLED' }
+      },
+      select: {
+        id: true,
+        customerId: true,
+        balanceDue: true,
+        dueDate: true
       }
     })
   ]);
@@ -338,116 +353,87 @@ export default async function DashboardPage(props: Props) {
   const topProductsByRevenue = [...allProcessedProducts].sort((a, b) => b.totalRevenue - a.totalRevenue).slice(0, 10);
   const topProductsByMargin = [...allProcessedProducts].sort((a, b) => b.totalMargin - a.totalMargin).slice(0, 10);
 
-  const getInitials = (name: string) => {
-    if (!name) return "C";
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return name.slice(0, 2).toUpperCase();
-  };
+  // Portfolio & Accounts Receivable (CxC) calculations
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
 
-  const getHslColor = (name: string) => {
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const h = Math.abs(hash % 360);
-    return `hsl(${h}, 75%, 40%)`;
-  };
+  const debtorCustomerIds = new Set<string>();
+  let totalReceivableBalance = 0;
+  let overdueReceivableBalance = 0;
+  const overdueCustomerIds = new Set<string>();
 
-  const activeDebts = 0; // TODO: Implement accounts receivable logic based on unpaid Sales OR add balance field to Customer model
+  pendingCreditSales.forEach(sale => {
+    totalReceivableBalance += sale.balanceDue || 0;
+    if (sale.customerId) {
+      debtorCustomerIds.add(sale.customerId);
+    } else {
+      debtorCustomerIds.add('PUBLIC');
+    }
+
+    if (sale.dueDate) {
+      const due = new Date(sale.dueDate);
+      due.setHours(0, 0, 0, 0);
+      if (now.getTime() > due.getTime()) {
+        overdueReceivableBalance += sale.balanceDue || 0;
+        if (sale.customerId) overdueCustomerIds.add(sale.customerId);
+      }
+    }
+  });
+
+  const totalDebtorClients = debtorCustomerIds.size;
+  const overdueClientsCount = overdueCustomerIds.size;
 
   const formatter = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 
   return (
     <div className="w-full min-w-0 max-w-full">
-      <div className="page-header-container flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+      <div className="page-header-container flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
         <h1 className="page-header-title text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
           Panel de Control <span className="text-purple-600 font-semibold text-lg md:text-xl">({branch.name})</span>
         </h1>
         
-        <div className="page-header-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div className="page-header-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem' }}>
           <Link 
             href="/ventas/nueva" 
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              backgroundColor: '#db2777',
-              color: '#ffffff',
-              padding: '0.65rem 1.25rem',
-              borderRadius: '10px',
-              fontWeight: '700',
-              fontSize: '0.9rem',
-              textDecoration: 'none',
-              boxShadow: '0 2px 6px rgba(219, 39, 119, 0.35)',
-              transition: 'all 0.2s ease'
-            }}
+            className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs"
           >
-            <ShoppingCart size={18} color="#ffffff" /> <span style={{ color: '#ffffff' }}>Nueva Venta</span>
+            <ShoppingCart size={15} /> <span>Nueva Venta</span>
           </Link>
           <Link 
             href="/productos/nuevo" 
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              backgroundColor: '#2563eb',
-              color: '#ffffff',
-              padding: '0.65rem 1.25rem',
-              borderRadius: '10px',
-              fontWeight: '700',
-              fontSize: '0.9rem',
-              textDecoration: 'none',
-              boxShadow: '0 2px 6px rgba(37, 99, 235, 0.35)',
-              transition: 'all 0.2s ease'
-            }}
+            className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs"
           >
-            <PackagePlus size={18} color="#ffffff" /> <span style={{ color: '#ffffff' }}>Crear Producto</span>
+            <PackagePlus size={15} className="text-blue-600" /> <span>Crear Producto</span>
           </Link>
           <Link 
             href="/caja/actual" 
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              backgroundColor: '#059669',
-              color: '#ffffff',
-              padding: '0.65rem 1.25rem',
-              borderRadius: '10px',
-              fontWeight: '700',
-              fontSize: '0.9rem',
-              textDecoration: 'none',
-              boxShadow: '0 2px 6px rgba(5, 150, 105, 0.35)',
-              transition: 'all 0.2s ease'
-            }}
+            className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs"
           >
-            <WalletCards size={18} color="#ffffff" /> <span style={{ color: '#ffffff' }}>Arqueo de Caja</span>
+            <WalletCards size={15} className="text-emerald-600" /> <span>Arqueo de Caja</span>
           </Link>
         </div>
       </div>
 
-      <div className="dashboard-stats-grid mb-8">
+      <div className="dashboard-stats-grid mb-6">
         {[
           { 
             title: isFiltered ? 'Ingresos del Período' : 'Ingresos de Hoy', 
             value: formatter.format(totalSalesValue), 
-            icon: <DollarSign size={22} className="text-emerald-600" />,
+            icon: <DollarSign size={20} className="text-emerald-600" />,
             badgeText: isFiltered ? 'Período' : 'Hoy',
             badgeVariant: 'success' as const
           },
           { 
             title: isFiltered ? 'Ventas del Período' : 'Ventas de Hoy', 
             value: totalOrders.toLocaleString('es-MX'), 
-            icon: <ShoppingCart size={22} className="text-blue-600" />,
+            icon: <ShoppingCart size={20} className="text-blue-600" />,
             badgeText: isFiltered ? 'Período' : 'Hoy',
             badgeVariant: 'info' as const
           },
           { 
             title: isFiltered ? 'Ticket Promedio (Período)' : 'Ticket Promedio (Hoy)', 
             value: formatter.format(avgTicket), 
-            icon: <DollarSign size={22} className="text-amber-500" />,
+            icon: <DollarSign size={20} className="text-amber-500" />,
             badgeText: isFiltered ? 'Período' : 'Hoy',
             badgeVariant: 'warning' as const
           },
@@ -470,147 +456,245 @@ export default async function DashboardPage(props: Props) {
         initialEndDate={initialEndDate} 
       />
 
-      <div className="dashboard-main-grid mb-8">
-        <Card className="p-6 min-w-0">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold flex items-center gap-2.5 text-slate-900">
-              <span>{isFiltered ? 'Ventas del Período' : 'Actividad Reciente'}</span>
-              <Badge variant={isFiltered ? 'purple' : 'info'}>
-                {isFiltered ? 'Período' : 'Hoy'}
-              </Badge>
-            </h2>
-          </div>
-          {recentSales.length > 0 ? (
-             <div className="overflow-x-auto w-full">
-               <table className="responsive-table w-full border-collapse">
-                 <thead>
-                   <tr className="border-b-2 border-slate-100 text-left">
-                     <th className="py-3 text-slate-500 text-xs font-bold uppercase tracking-wider">Ticket / Cliente</th>
-                     <th className="py-3 text-slate-500 text-xs font-bold uppercase tracking-wider">{isFiltered ? 'Fecha y Hora' : 'Hora'}</th>
-                     <th className="py-3 text-slate-500 text-xs font-bold uppercase tracking-wider">Total</th>
-                   </tr>
-                 </thead>
-                 <tbody>
-                   {recentSales.map(sale => (
-                     <tr key={sale.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                       <td data-label="Ticket / Cliente" className="py-3.5 text-sm font-medium">
-                         <Link 
-                           href={`/ventas/detalle/${sale.id}`} 
-                           className="text-purple-600 font-bold hover:underline"
-                         >
-                           {sale.folio ? `Folio ${sale.folio}` : `#${sale.id.slice(-6).toUpperCase()}`}
-                         </Link>
-                         {sale.customer && (
-                           <div className="text-xs text-slate-500 mt-0.5 font-normal">
-                             {sale.customer.name}
-                           </div>
-                         )}
-                       </td>
-                       <td data-label={isFiltered ? 'Fecha y Hora' : 'Hora'} className="py-3.5 text-sm text-slate-500">
-                         <Link 
-                           href={`/ventas/detalle/${sale.id}`} 
-                           className="text-inherit no-underline block"
-                         >
-                           {isFiltered
-                             ? `${sale.createdAt.toLocaleDateString('es-MX', { timeZone: timezone, day: '2-digit', month: 'short' })} ${sale.createdAt.toLocaleTimeString('es-MX', { timeZone: timezone, hour: '2-digit', minute: '2-digit' })}`
-                             : sale.createdAt.toLocaleTimeString('es-MX', { timeZone: timezone, hour: '2-digit', minute: '2-digit' })
-                           }
-                         </Link>
-                       </td>
-                       <td data-label="Total" className="py-3.5 text-sm font-black text-emerald-600">
-                         <Link 
-                           href={`/ventas/detalle/${sale.id}`} 
-                           className="text-inherit no-underline block"
-                         >
-                           {formatter.format(sale.total)}
-                         </Link>
-                       </td>
-                     </tr>
-                   ))}
-                 </tbody>
-               </table>
-             </div>
-          ) : (
-            <div className="py-10 text-center text-slate-400 text-sm">
-               {isFiltered ? 'No hay ventas registradas en el período seleccionado.' : 'No hay ventas registradas el día de hoy.'}
+      <div className="dashboard-main-grid mb-6">
+        <Card className="p-5 md:p-6 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-base font-bold text-slate-900 tracking-tight">
+                  {isFiltered ? 'Ventas del Período' : 'Actividad Reciente'}
+                </span>
+                <Badge variant={isFiltered ? 'purple' : 'info'} size="sm">
+                  {isFiltered ? 'Período' : 'Hoy'}
+                </Badge>
+              </div>
+              <Link 
+                href="/ventas" 
+                className="text-xs font-semibold text-purple-600 hover:text-purple-700 hover:underline"
+              >
+                Historial &rarr;
+              </Link>
             </div>
-          )}
+            {recentSales.length > 0 ? (
+               <div className="overflow-x-auto w-full">
+                 <table className="responsive-table w-full border-collapse">
+                   <thead>
+                     <tr className="border-b border-slate-100 text-left">
+                       <th className="py-2.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider">Ticket / Cliente</th>
+                       <th className="py-2.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider">{isFiltered ? 'Fecha y Hora' : 'Hora'}</th>
+                       <th className="py-2.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider text-right">Total</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {recentSales.map(sale => (
+                       <tr key={sale.id} className="border-b border-slate-50 hover:bg-slate-50/70 transition-colors">
+                         <td data-label="Ticket / Cliente" className="py-2.5 text-xs font-medium">
+                           <Link 
+                             href={`/ventas/detalle/${sale.id}`} 
+                             className="text-purple-600 font-bold hover:underline"
+                           >
+                             {sale.folio ? `Folio ${sale.folio}` : `#${sale.id.slice(-6).toUpperCase()}`}
+                           </Link>
+                           {sale.customer && (
+                             <div className="text-[11px] text-slate-500 mt-0.5 font-normal truncate max-w-[200px]" title={sale.customer.name}>
+                               {sale.customer.name}
+                             </div>
+                           )}
+                         </td>
+                         <td data-label={isFiltered ? 'Fecha y Hora' : 'Hora'} className="py-2.5 text-xs text-slate-500">
+                           <Link 
+                             href={`/ventas/detalle/${sale.id}`} 
+                             className="text-inherit no-underline block"
+                           >
+                             {isFiltered
+                               ? `${sale.createdAt.toLocaleDateString('es-MX', { timeZone: timezone, day: '2-digit', month: 'short' })} ${sale.createdAt.toLocaleTimeString('es-MX', { timeZone: timezone, hour: '2-digit', minute: '2-digit' })}`
+                               : sale.createdAt.toLocaleTimeString('es-MX', { timeZone: timezone, hour: '2-digit', minute: '2-digit' })
+                             }
+                           </Link>
+                         </td>
+                         <td data-label="Total" className="py-2.5 text-xs font-black text-slate-900 text-right">
+                           <Link 
+                             href={`/ventas/detalle/${sale.id}`} 
+                             className="text-inherit no-underline block"
+                           >
+                             {formatter.format(sale.total)}
+                           </Link>
+                         </td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+               </div>
+            ) : (
+              <div className="py-10 text-center text-slate-400 text-xs">
+                 {isFiltered ? 'No hay ventas registradas en el período seleccionado.' : 'No hay ventas registradas el día de hoy.'}
+              </div>
+            )}
+          </div>
         </Card>
 
-        <Card className="p-6 min-w-0">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-rose-600">Advertencias</h2>
-            <Badge variant="danger">Riesgo</Badge>
-          </div>
-          
-          <div className="flex flex-col gap-3">
-             <div className="p-4 bg-rose-50 border border-rose-200/70 rounded-xl">
-               <h4 className="text-rose-900 font-bold text-sm mb-1">Cartera Vencida</h4>
-               <p className="text-rose-800 text-xs leading-relaxed">Detectamos {activeDebts} cliente(s) con deudas activas o vencidas.</p>
-               <Link href="/clientes" className="inline-block mt-2.5 text-xs text-rose-700 font-bold hover:underline">Revisar cartera &rarr;</Link>
-             </div>
+        <Card className="p-5 md:p-6 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+              <span className="text-base font-bold text-slate-900 tracking-tight">Alertas y Cartera</span>
+              <Badge variant={overdueReceivableBalance > 0 ? 'danger' : 'info'} size="sm">
+                {overdueReceivableBalance > 0 ? 'Por Cobrar' : 'Al Día'}
+              </Badge>
+            </div>
+            
+            <div className="flex flex-col gap-3">
+               {/* Alerta 1: Cartera Vencida y Por Cobrar */}
+               <div className={`p-3.5 rounded-xl border ${
+                 overdueReceivableBalance > 0 
+                   ? 'bg-rose-50/60 border-rose-200/70' 
+                   : totalReceivableBalance > 0 
+                   ? 'bg-amber-50/60 border-amber-200/70' 
+                   : 'bg-emerald-50/60 border-emerald-200/70'
+               }`}>
+                 <div className="flex items-center justify-between mb-1.5">
+                   <h4 className={`font-bold text-xs ${
+                     overdueReceivableBalance > 0 
+                       ? 'text-rose-900' 
+                       : totalReceivableBalance > 0 
+                       ? 'text-amber-900' 
+                       : 'text-emerald-900'
+                   }`}>
+                     {overdueReceivableBalance > 0 ? '⚠️ Cartera Vencida' : '💳 Cuentas por Cobrar'}
+                   </h4>
+                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                     overdueReceivableBalance > 0 
+                       ? 'text-rose-700 bg-rose-100/90' 
+                       : totalReceivableBalance > 0 
+                       ? 'text-amber-700 bg-amber-100/90' 
+                       : 'text-emerald-700 bg-emerald-100/90'
+                   }`}>
+                     {overdueReceivableBalance > 0 
+                       ? `${overdueClientsCount} cliente(s) vencido(s)` 
+                       : `${totalDebtorClients} cliente(s)`
+                     }
+                   </span>
+                 </div>
+                 
+                 <div className="flex justify-between items-baseline my-1">
+                   <span className="text-[11px] text-slate-500 font-medium">Saldo por cobrar:</span>
+                   <span className="text-xs font-black text-slate-900">{formatter.format(totalReceivableBalance)}</span>
+                 </div>
+
+                 {overdueReceivableBalance > 0 && (
+                   <div className="flex justify-between items-baseline mb-2">
+                     <span className="text-[11px] text-rose-700 font-semibold">Monto vencido:</span>
+                     <span className="text-xs font-black text-rose-700">{formatter.format(overdueReceivableBalance)}</span>
+                   </div>
+                 )}
+
+                 <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-200/40">
+                   <Link 
+                     href="/reportes/cuentas-por-cobrar" 
+                     className="text-xs font-bold text-purple-600 hover:text-purple-700 hover:underline"
+                   >
+                     Reporte CxC &rarr;
+                   </Link>
+                   <Link 
+                     href="/clientes/cobranza" 
+                     className="text-xs font-bold text-slate-600 hover:text-slate-900 hover:underline"
+                   >
+                     Gestión de Cobranza &rarr;
+                   </Link>
+                 </div>
+               </div>
+
+               {/* Alerta 2: Stock Bajo */}
+               {lowStockProducts > 0 && (
+                 <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between gap-2">
+                   <div>
+                     <span className="text-xs font-bold text-slate-800 block">📦 Stock Crítico</span>
+                     <span className="text-[11px] text-slate-500 block">{lowStockProducts} producto(s) con ≤ 5 unidades</span>
+                   </div>
+                   <Link 
+                     href="/productos?filter=low_stock" 
+                     className="text-xs font-semibold text-purple-600 hover:underline flex-shrink-0"
+                   >
+                     Ver &rarr;
+                   </Link>
+                 </div>
+               )}
+            </div>
           </div>
         </Card>
       </div>
 
-      {/* Sección Premium: Reportes del Período / Día (Top 10) */}
+      {/* Sección Premium: Reportes Ejecutivos (Top 10) */}
       <div className="dashboard-reports-grid">
         
         {/* Card 1: 🏆 Mejores Clientes */}
-        <Card className="p-6 md:p-8 min-w-0">
-          <div className="flex justify-between items-center mb-6 gap-2">
-            <div className="min-w-0 flex-1">
-              <h2 className="text-xl font-extrabold text-slate-900 m-0 flex items-center gap-2 flex-wrap">
-                🏆 Mejores Clientes <Badge variant={isFiltered ? 'purple' : 'info'}>{isFiltered ? 'Período' : 'Hoy'}</Badge>
-              </h2>
-              <p className="text-slate-500 text-xs mt-1 mb-0">
-                {isFiltered ? 'Basado en compras del período y volumen facturado' : 'Basado en compras de hoy y volumen facturado'}
-              </p>
-            </div>
-            <Link href="/reportes/top-clientes" className="text-xs font-bold text-blue-600 hover:underline flex-shrink-0">Ver detalle</Link>
-          </div>
-
-          <div className="flex flex-col gap-5">
-            {topCustomers.length > 0 ? (
-              topCustomers.map((cust: any, idx: number) => {
-                const percentage = Math.min(100, Math.round((cust.totalPurchased / maxCustomerPurchased) * 100));
-                const avatarColor = getHslColor(cust.name);
-                return (
-                  <div key={cust.id} className="flex items-center gap-3 sm:gap-4 min-w-0">
-                    <div 
-                      className="w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-sm shadow-sm flex-shrink-0"
-                      style={{ backgroundColor: avatarColor }}
-                    >
-                      {getInitials(cust.name)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center mb-1 gap-2">
-                        <span className="text-sm font-bold text-slate-800 truncate min-w-0 flex-1" title={cust.name}>
-                          {idx + 1}. {cust.name}
-                        </span>
-                        <span className="text-sm font-black text-emerald-600 flex-shrink-0">
-                          {formatter.format(cust.totalPurchased)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <span className="flex-shrink-0">🛒 {cust.orderCount.toLocaleString('es-MX')} compras</span>
-                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-emerald-500 rounded-full transition-all duration-500" 
-                            style={{ width: `${percentage}%` }} 
-                          />
-                        </div>
-                        <span className="flex-shrink-0 font-bold text-slate-700">{percentage}%</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="py-8 text-center text-slate-400 text-sm">
-                {isFiltered ? 'No hay compras registradas en el período seleccionado.' : 'No hay compras registradas el día de hoy.'}
+        <Card className="p-5 md:p-6 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-start mb-5 gap-3 border-b border-slate-100 pb-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-base font-bold text-slate-900 tracking-tight">🏆 Mejores Clientes</span>
+                  <Badge variant={isFiltered ? 'purple' : 'info'} size="sm">
+                    {isFiltered ? 'Período' : 'Hoy'}
+                  </Badge>
+                </div>
+                <p className="text-slate-400 text-xs mt-0.5 mb-0 font-normal">
+                  {isFiltered ? 'Top compradores por volumen facturado en el período' : 'Top compradores por volumen facturado hoy'}
+                </p>
               </div>
-            )}
+              <Link 
+                href="/reportes/top-clientes" 
+                className="text-xs font-semibold text-purple-600 hover:text-purple-700 hover:underline flex-shrink-0 pt-0.5"
+              >
+                Ver detalle &rarr;
+              </Link>
+            </div>
+
+            <div className="flex flex-col gap-3.5">
+              {topCustomers.length > 0 ? (
+                topCustomers.map((cust: any, idx: number) => {
+                  const percentage = Math.min(100, Math.round((cust.totalPurchased / maxCustomerPurchased) * 100));
+                  return (
+                    <div key={cust.id} className="flex items-center gap-3 min-w-0 py-1 px-1.5 rounded-lg hover:bg-slate-50/70 transition-colors">
+                      <div className={`w-7 h-7 rounded-md flex items-center justify-center font-bold text-xs flex-shrink-0 ${
+                        idx === 0 
+                          ? 'bg-amber-100 text-amber-800 font-extrabold' 
+                          : idx === 1 
+                          ? 'bg-slate-200 text-slate-700' 
+                          : idx === 2 
+                          ? 'bg-orange-100 text-orange-800' 
+                          : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        #{idx + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center mb-1 gap-2">
+                          <span className="text-xs font-bold text-slate-800 truncate min-w-0 flex-1" title={cust.name}>
+                            {cust.name}
+                          </span>
+                          <span className="text-xs font-black text-slate-900 flex-shrink-0">
+                            {formatter.format(cust.totalPurchased)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                          <span className="flex-shrink-0 text-slate-400">{cust.orderCount.toLocaleString('es-MX')} compras</span>
+                          <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-slate-700 rounded-full transition-all duration-500" 
+                              style={{ width: `${percentage}%` }} 
+                            />
+                          </div>
+                          <span className="flex-shrink-0 font-medium text-slate-500">{percentage}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="py-8 text-center text-slate-400 text-xs">
+                  {isFiltered ? 'No hay compras registradas en el período seleccionado.' : 'No hay compras registradas el día de hoy.'}
+                </div>
+              )}
+            </div>
           </div>
         </Card>
 
@@ -623,114 +707,146 @@ export default async function DashboardPage(props: Props) {
         />
 
         {/* Card 3: 🏷️ Categorías Más Vendidas */}
-        <Card className="p-6 md:p-8 min-w-0">
-          <div className="flex justify-between items-center mb-6 gap-2">
-            <div className="min-w-0 flex-1">
-              <h2 className="text-xl font-extrabold text-slate-900 m-0 flex items-center gap-2 flex-wrap">
-                🏷️ Categorías Más Vendidas <Badge variant={isFiltered ? 'purple' : 'info'}>{isFiltered ? 'Período' : 'Hoy'}</Badge>
-              </h2>
-              <p className="text-slate-500 text-xs mt-1 mb-0">
-                {isFiltered ? 'Categorías líderes en facturación del período' : 'Categorías líderes en facturación de hoy'}
-              </p>
-            </div>
-            <Link href="/reportes/top-categorias" className="text-xs font-bold text-blue-600 hover:underline flex-shrink-0">Ver detalle</Link>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            {topCategories.length > 0 ? (
-              topCategories.map((cat: any, idx: number) => {
-                const percentage = Math.min(100, Math.round((cat.totalRevenue / maxCategoryRevenue) * 100));
-                return (
-                  <div key={cat.category} className="flex items-center gap-3 sm:gap-4 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center font-bold text-xs text-emerald-700 flex-shrink-0">
-                      #{idx + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center mb-1 gap-2">
-                        <span className="text-sm font-bold text-slate-800 truncate min-w-0 flex-1" title={cat.category}>
-                          {cat.category}
-                        </span>
-                        <span className="text-sm font-black text-emerald-600 flex-shrink-0">
-                          {formatter.format(cat.totalRevenue)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <span className="flex-shrink-0">📦 {cat.quantitySold.toLocaleString('es-MX')} uds</span>
-                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-emerald-500 rounded-full transition-all duration-500" 
-                            style={{ width: `${percentage}%` }} 
-                          />
-                        </div>
-                        <span className="flex-shrink-0 font-bold text-slate-700">{percentage}%</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="py-8 text-center text-slate-400 text-sm">
-                {isFiltered ? 'No hay categorías vendidas en el período seleccionado.' : 'No hay categorías vendidas el día de hoy.'}
+        <Card className="p-5 md:p-6 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-start mb-5 gap-3 border-b border-slate-100 pb-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-base font-bold text-slate-900 tracking-tight">🏷️ Categorías Más Vendidas</span>
+                  <Badge variant={isFiltered ? 'purple' : 'info'} size="sm">
+                    {isFiltered ? 'Período' : 'Hoy'}
+                  </Badge>
+                </div>
+                <p className="text-slate-400 text-xs mt-0.5 mb-0 font-normal">
+                  {isFiltered ? 'Categorías líderes en facturación del período' : 'Categorías líderes en facturación de hoy'}
+                </p>
               </div>
-            )}
+              <Link 
+                href="/reportes/top-categorias" 
+                className="text-xs font-semibold text-purple-600 hover:text-purple-700 hover:underline flex-shrink-0 pt-0.5"
+              >
+                Ver detalle &rarr;
+              </Link>
+            </div>
+
+            <div className="flex flex-col gap-3.5">
+              {topCategories.length > 0 ? (
+                topCategories.map((cat: any, idx: number) => {
+                  const percentage = Math.min(100, Math.round((cat.totalRevenue / maxCategoryRevenue) * 100));
+                  return (
+                    <div key={cat.category} className="flex items-center gap-3 min-w-0 py-1 px-1.5 rounded-lg hover:bg-slate-50/70 transition-colors">
+                      <div className={`w-7 h-7 rounded-md flex items-center justify-center font-bold text-xs flex-shrink-0 ${
+                        idx === 0 
+                          ? 'bg-amber-100 text-amber-800 font-extrabold' 
+                          : idx === 1 
+                          ? 'bg-slate-200 text-slate-700' 
+                          : idx === 2 
+                          ? 'bg-orange-100 text-orange-800' 
+                          : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        #{idx + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center mb-1 gap-2">
+                          <span className="text-xs font-bold text-slate-800 truncate min-w-0 flex-1" title={cat.category}>
+                            {cat.category}
+                          </span>
+                          <span className="text-xs font-black text-slate-900 flex-shrink-0">
+                            {formatter.format(cat.totalRevenue)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                          <span className="flex-shrink-0 text-slate-400">{cat.quantitySold.toLocaleString('es-MX')} uds</span>
+                          <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-slate-700 rounded-full transition-all duration-500" 
+                              style={{ width: `${percentage}%` }} 
+                            />
+                          </div>
+                          <span className="flex-shrink-0 font-medium text-slate-500">{percentage}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="py-8 text-center text-slate-400 text-xs">
+                  {isFiltered ? 'No hay categorías vendidas en el período seleccionado.' : 'No hay categorías vendidas el día de hoy.'}
+                </div>
+              )}
+            </div>
           </div>
         </Card>
 
         {/* Card 4: 👔 Ventas por Vendedor */}
-        <Card className="p-6 md:p-8 min-w-0">
-          <div className="flex justify-between items-center mb-6 gap-2">
-            <div className="min-w-0 flex-1">
-              <h2 className="text-xl font-extrabold text-slate-900 m-0 flex items-center gap-2 flex-wrap">
-                👔 Ventas por Vendedor <Badge variant={isFiltered ? 'purple' : 'info'}>{isFiltered ? 'Período' : 'Hoy'}</Badge>
-              </h2>
-              <p className="text-slate-500 text-xs mt-1 mb-0">
-                {isFiltered ? 'Rendimiento y volumen colocado en el período' : 'Rendimiento y volumen colocado hoy'}
-              </p>
-            </div>
-            <Link href="/reportes/ventas-por-vendedor" className="text-xs font-bold text-blue-600 hover:underline flex-shrink-0">Ver detalle</Link>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            {topSellers.length > 0 ? (
-              topSellers.map((seller: any, idx: number) => {
-                const percentage = Math.min(100, Math.round((seller.totalSold / maxSellerSold) * 100));
-                const avatarColor = getHslColor(seller.name);
-                return (
-                  <div key={seller.id} className="flex items-center gap-3 sm:gap-4 min-w-0">
-                    <div 
-                      className="w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-sm shadow-sm flex-shrink-0"
-                      style={{ backgroundColor: avatarColor }}
-                    >
-                      {getInitials(seller.name)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center mb-1 gap-2">
-                        <span className="text-sm font-bold text-slate-800 truncate min-w-0 flex-1" title={seller.name}>
-                          {idx + 1}. {seller.name}
-                        </span>
-                        <span className="text-sm font-black text-blue-600 flex-shrink-0">
-                          {formatter.format(seller.totalSold)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <span className="flex-shrink-0">🏷️ {seller.orderCount.toLocaleString('es-MX')} tickets</span>
-                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-blue-500 rounded-full transition-all duration-500" 
-                            style={{ width: `${percentage}%` }} 
-                          />
-                        </div>
-                        <span className="flex-shrink-0 font-bold text-slate-700">{percentage}%</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="py-8 text-center text-slate-400 text-sm">
-                {isFiltered ? 'No hay ventas de vendedores en el período seleccionado.' : 'No hay ventas de vendedores el día de hoy.'}
+        <Card className="p-5 md:p-6 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-start mb-5 gap-3 border-b border-slate-100 pb-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-base font-bold text-slate-900 tracking-tight">👔 Ventas por Vendedor</span>
+                  <Badge variant={isFiltered ? 'purple' : 'info'} size="sm">
+                    {isFiltered ? 'Período' : 'Hoy'}
+                  </Badge>
+                </div>
+                <p className="text-slate-400 text-xs mt-0.5 mb-0 font-normal">
+                  {isFiltered ? 'Rendimiento y volumen colocado en el período' : 'Rendimiento y volumen colocado hoy'}
+                </p>
               </div>
-            )}
+              <Link 
+                href="/reportes/ventas-por-vendedor" 
+                className="text-xs font-semibold text-purple-600 hover:text-purple-700 hover:underline flex-shrink-0 pt-0.5"
+              >
+                Ver detalle &rarr;
+              </Link>
+            </div>
+
+            <div className="flex flex-col gap-3.5">
+              {topSellers.length > 0 ? (
+                topSellers.map((seller: any, idx: number) => {
+                  const percentage = Math.min(100, Math.round((seller.totalSold / maxSellerSold) * 100));
+                  return (
+                    <div key={seller.id} className="flex items-center gap-3 min-w-0 py-1 px-1.5 rounded-lg hover:bg-slate-50/70 transition-colors">
+                      <div className={`w-7 h-7 rounded-md flex items-center justify-center font-bold text-xs flex-shrink-0 ${
+                        idx === 0 
+                          ? 'bg-amber-100 text-amber-800 font-extrabold' 
+                          : idx === 1 
+                          ? 'bg-slate-200 text-slate-700' 
+                          : idx === 2 
+                          ? 'bg-orange-100 text-orange-800' 
+                          : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        #{idx + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center mb-1 gap-2">
+                          <span className="text-xs font-bold text-slate-800 truncate min-w-0 flex-1" title={seller.name}>
+                            {seller.name}
+                          </span>
+                          <span className="text-xs font-black text-slate-900 flex-shrink-0">
+                            {formatter.format(seller.totalSold)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                          <span className="flex-shrink-0 text-slate-400">{seller.orderCount.toLocaleString('es-MX')} tickets</span>
+                          <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-slate-700 rounded-full transition-all duration-500" 
+                              style={{ width: `${percentage}%` }} 
+                            />
+                          </div>
+                          <span className="flex-shrink-0 font-medium text-slate-500">{percentage}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="py-8 text-center text-slate-400 text-xs">
+                  {isFiltered ? 'No hay ventas de vendedores en el período seleccionado.' : 'No hay ventas de vendedores el día de hoy.'}
+                </div>
+              )}
+            </div>
           </div>
         </Card>
 

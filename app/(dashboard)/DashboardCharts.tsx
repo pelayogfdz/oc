@@ -116,40 +116,24 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
   })();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.5rem' }}>
       {/* Filtros Bar */}
-      <div style={{
-        backgroundColor: 'white',
-        padding: '1.25rem 1.5rem',
-        borderRadius: '12px',
-        border: '1px solid #e2e8f0',
-        display: 'flex',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '1rem'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Calendar size={20} color="#64748b" />
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Rendimiento de Ventas</h2>
+      <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap justify-between items-center gap-3">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xs flex-shrink-0">
+            <Calendar size={16} />
+          </div>
+          <h2 className="text-sm font-bold text-slate-900 m-0">Rendimiento de Ventas</h2>
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div className="flex items-center flex-wrap gap-2.5">
           {/* Selector de Agrupamiento */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#475569' }}>Agrupar:</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-slate-500">Agrupar:</span>
             <select
               value={groupBy}
               onChange={(e) => setGroupBy(e.target.value as any)}
-              style={{
-                border: '1px solid #cbd5e1',
-                padding: '0.4rem 0.75rem',
-                borderRadius: '6px',
-                fontSize: '0.875rem',
-                outline: 'none',
-                color: '#1e293b',
-                backgroundColor: 'white'
-              }}
+              className="border border-slate-200 py-1 px-2.5 rounded-lg text-xs font-medium text-slate-700 bg-white hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
             >
               <option value="day">Por Día</option>
               <option value="week">Por Semana</option>
@@ -158,58 +142,31 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
             </select>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#475569' }}>Desde:</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-slate-500">Desde:</span>
             <input 
               type="date" 
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              style={{
-                border: '1px solid #cbd5e1',
-                padding: '0.4rem 0.75rem',
-                borderRadius: '6px',
-                fontSize: '0.875rem',
-                outline: 'none',
-                color: '#1e293b'
-              }}
+              className="border border-slate-200 py-1 px-2 rounded-lg text-xs font-medium text-slate-700 bg-white hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
             />
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#475569' }}>Hasta:</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-slate-500">Hasta:</span>
             <input 
               type="date" 
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              style={{
-                border: '1px solid #cbd5e1',
-                padding: '0.4rem 0.75rem',
-                borderRadius: '6px',
-                fontSize: '0.875rem',
-                outline: 'none',
-                color: '#1e293b'
-              }}
+              className="border border-slate-200 py-1 px-2 rounded-lg text-xs font-medium text-slate-700 bg-white hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div className="flex items-center gap-1.5">
             <button 
               onClick={handleFilter}
               disabled={isUpdating}
-              style={{
-                backgroundColor: '#6d28d9',
-                color: 'white',
-                border: 'none',
-                padding: '0.4rem 1.25rem',
-                borderRadius: '6px',
-                fontSize: '0.875rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s',
-                opacity: isUpdating ? 0.7 : 1
-              }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor='#5b21b6'}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor='#6d28d9'}
+              className="bg-slate-900 hover:bg-slate-800 text-white border-0 py-1 px-3.5 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
             >
               {isUpdating ? 'Filtrando...' : 'Filtrar'}
             </button>
@@ -218,20 +175,7 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
               <button 
                 onClick={handleResetToday}
                 disabled={isUpdating}
-                style={{
-                  backgroundColor: '#f1f5f9',
-                  color: '#475569',
-                  border: '1px solid #cbd5e1',
-                  padding: '0.4rem 1rem',
-                  borderRadius: '6px',
-                  fontSize: '0.875rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  opacity: isUpdating ? 0.7 : 1
-                }}
-                onMouseEnter={e => { e.currentTarget.style.backgroundColor='#e2e8f0'; e.currentTarget.style.color='#1e293b'; }}
-                onMouseLeave={e => { e.currentTarget.style.backgroundColor='#f1f5f9'; e.currentTarget.style.color='#475569'; }}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 py-1 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
               >
                 Ver Hoy
               </button>
@@ -241,32 +185,27 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
       </div>
 
       {/* Gráficas Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '1.5rem', width: '100%', minWidth: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '1.25rem', width: '100%', minWidth: 0 }}>
         
         {/* Gráfica 1: Número de Ventas */}
-        <div style={{
-          backgroundColor: 'white',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-          height: '350px',
-          display: 'flex',
-          flexDirection: 'column',
-          minWidth: 0,
-          overflow: 'hidden'
-        }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <ShoppingCart size={18} color="#3b82f6" /> Transacciones Realizadas
-          </h3>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs h-[330px] flex flex-col min-w-0 overflow-hidden">
+          <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2 m-0">
+              <ShoppingCart size={15} className="text-blue-600" /> Transacciones Realizadas
+            </h3>
+            <span className="text-xs font-black text-slate-900">
+              {groupedData.reduce((acc, d) => acc + d.count, 0).toLocaleString('es-MX')} ventas
+            </span>
+          </div>
           <div style={{ flex: 1, minHeight: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={groupedData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <XAxis dataKey="label" tick={{fontSize: 11, fill: '#64748b'}} tickLine={false} axisLine={false} dy={5} />
                 <YAxis tick={{fontSize: 11, fill: '#64748b'}} tickLine={false} axisLine={false} />
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <Tooltip 
                   formatter={(value: any) => [`${value} ventas`, 'Transacciones']}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}
                   cursor={{fill: '#f8fafc'}}
                 />
                 <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
@@ -276,37 +215,32 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
         </div>
 
         {/* Gráfica 2: Monto de Ventas */}
-        <div style={{
-          backgroundColor: 'white',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-          height: '350px',
-          display: 'flex',
-          flexDirection: 'column',
-          minWidth: 0,
-          overflow: 'hidden'
-        }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <DollarSign size={18} color="#10b981" /> Total de Ventas (Ingresos)
-          </h3>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs h-[330px] flex flex-col min-w-0 overflow-hidden">
+          <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2 m-0">
+              <DollarSign size={15} className="text-emerald-600" /> Facturación / Ingresos
+            </h3>
+            <span className="text-xs font-black text-emerald-700">
+              {formatCurrency(groupedData.reduce((acc, d) => acc + d.amount, 0))}
+            </span>
+          </div>
           <div style={{ flex: 1, minHeight: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={groupedData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.18}/>
                     <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="label" tick={{fontSize: 11, fill: '#64748b'}} tickLine={false} axisLine={false} dy={5} />
                 <YAxis tickFormatter={formatYAxisAmount} tick={{fontSize: 11, fill: '#64748b'}} tickLine={false} axisLine={false} />
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <Tooltip 
                   formatter={(value: any) => [formatCurrency(Number(value)), 'Ingresos']}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}
                 />
-                <Area type="monotone" dataKey="amount" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorAmount)" />
+                <Area type="monotone" dataKey="amount" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorAmount)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -314,8 +248,8 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
 
       </div>
 
-      {/* Resumen del Período Seleccionado */}
-      {(() => {
+      {/* Resumen del Período Seleccionado (Visible solo cuando se filtra un rango específico de fechas) */}
+      {hasActiveFilter && (() => {
         const periodTotalSales = chartData.reduce((sum, d) => sum + d.count, 0);
         const periodTotalAmount = chartData.reduce((sum, d) => sum + d.amount, 0);
         const periodAvgTicket = periodTotalSales > 0 ? periodTotalAmount / periodTotalSales : 0;
@@ -328,95 +262,59 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
         };
 
         return (
-          <div style={{
-            marginTop: '0.5rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Calendar size={18} color="#64748b" />
-              <h4 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#475569', margin: 0 }}>
+          <div className="flex flex-col gap-2 mt-1">
+            <div className="flex items-center gap-1.5 px-1">
+              <span className="text-xs font-semibold text-slate-500">
                 {startDate === endDate 
-                  ? `Resumen de Hoy: ${formatPeriodDate(startDate)}`
+                  ? `Resumen de Fecha: ${formatPeriodDate(startDate)}`
                   : `Resumen del Período: ${formatPeriodDate(startDate)} al ${formatPeriodDate(endDate)}`
                 }
-              </h4>
+              </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
               {/* Card 1: Ventas */}
-              <div style={{
-                backgroundColor: 'white',
-                padding: '1.25rem 1.5rem',
-                borderRadius: '12px',
-                border: '1px solid #cbd5e1',
-                borderLeft: '4px solid #3b82f6',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
+              <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex justify-between items-center">
                 <div>
-                  <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
-                    {startDate === endDate ? 'Ventas de Hoy' : 'Ventas del Período'}
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Ventas del Período
                   </span>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#1e293b', marginTop: '0.25rem' }}>
+                  <div className="text-xl font-black text-slate-900 mt-0.5">
                     {periodTotalSales.toLocaleString('es-MX')}
                   </div>
                 </div>
-                <div style={{ backgroundColor: '#eff6ff', padding: '0.75rem', borderRadius: '50%' }}>
-                  <ShoppingCart size={20} color="#3b82f6" />
+                <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                  <ShoppingCart size={18} />
                 </div>
               </div>
 
               {/* Card 2: Monto Total */}
-              <div style={{
-                backgroundColor: 'white',
-                padding: '1.25rem 1.5rem',
-                borderRadius: '12px',
-                border: '1px solid #cbd5e1',
-                borderLeft: '4px solid #10b981',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
+              <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex justify-between items-center">
                 <div>
-                  <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
-                    {startDate === endDate ? 'Monto de Hoy' : 'Monto del Período'}
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Monto del Período
                   </span>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#1e293b', marginTop: '0.25rem' }}>
+                  <div className="text-xl font-black text-slate-900 mt-0.5">
                     {formatCurrency(periodTotalAmount)}
                   </div>
                 </div>
-                <div style={{ backgroundColor: '#ecfdf5', padding: '0.75rem', borderRadius: '50%' }}>
-                  <DollarSign size={20} color="#10b981" />
+                <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                  <DollarSign size={18} />
                 </div>
               </div>
 
               {/* Card 3: Ticket Promedio */}
-              <div style={{
-                backgroundColor: 'white',
-                padding: '1.25rem 1.5rem',
-                borderRadius: '12px',
-                border: '1px solid #cbd5e1',
-                borderLeft: '4px solid #f59e0b',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
+              <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex justify-between items-center">
                 <div>
-                  <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
-                    {startDate === endDate ? 'Ticket Medio de Hoy' : 'Ticket Medio del Período'}
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Ticket Promedio
                   </span>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#1e293b', marginTop: '0.25rem' }}>
+                  <div className="text-xl font-black text-slate-900 mt-0.5">
                     {formatCurrency(periodAvgTicket)}
                   </div>
                 </div>
-                <div style={{ backgroundColor: '#fffbeb', padding: '0.75rem', borderRadius: '50%' }}>
-                  <DollarSign size={20} color="#f59e0b" />
+                <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                  <DollarSign size={18} />
                 </div>
               </div>
             </div>
