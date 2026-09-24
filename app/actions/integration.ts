@@ -1226,19 +1226,26 @@ export async function syncMeliStockAction(productId: string, tenantId: string | 
     const { getClientForTenant, masterClient } = await import('@/lib/prisma');
     const tenantClient = tenantId ? getClientForTenant(tenantId) : masterClient;
 
-    // 1. Get the product SKU and branchId from the tenant DB
+    // 1. Get the product SKU and barcode from the tenant DB
     const product = await tenantClient.product.findUnique({
       where: { id: productId }
     });
 
-    if (!product || !product.sku) return;
+    if (!product) return;
 
-    const cleanSku = product.sku.trim();
+    const cleanSku = product.sku ? product.sku.trim() : '';
+    const cleanBarcode = product.barcode ? product.barcode.trim() : '';
 
-    // 2. Find all products sharing this SKU in active branches, and find mappings for any of them
+    if (!cleanSku && !cleanBarcode) return;
+
+    // 2. Find all products sharing this SKU or Barcode in active branches
+    const whereOr: any[] = [];
+    if (cleanSku) whereOr.push({ sku: { equals: cleanSku, mode: 'insensitive' } });
+    if (cleanBarcode) whereOr.push({ barcode: { equals: cleanBarcode, mode: 'insensitive' } });
+
     const productsWithSameSku = await tenantClient.product.findMany({
       where: {
-        sku: { equals: cleanSku, mode: 'insensitive' },
+        OR: whereOr,
         isActive: true
       },
       select: { id: true }
@@ -1254,7 +1261,7 @@ export async function syncMeliStockAction(productId: string, tenantId: string | 
 
     if (maps.length === 0) return;
 
-    console.log(`[MELI STOCK SYNC] [Tenant: ${tenantId}] Sincronizando stock para producto ${product.name} (SKU: ${product.sku})...`);
+    console.log(`[MELI STOCK SYNC] [Tenant: ${tenantId}] Sincronizando stock para producto ${product.name} (SKU: ${product.sku || 'N/A'}, Barcode: ${product.barcode || 'N/A'})...`);
 
     // 3. For each mapping, update the stock on Mercado Libre
     for (const map of maps) {
@@ -1356,21 +1363,23 @@ export async function syncMeliStockAction(productId: string, tenantId: string | 
       // Sum stock across all selected branches
       const productInBranches = await tenantClient.product.findMany({
         where: {
-          sku: { equals: cleanSku, mode: 'insensitive' },
+          OR: whereOr,
           branchId: { in: stockBranchIds },
           isActive: true
-        }
+        },
+        select: { stock: true }
       });
 
       const totalStock = productInBranches.reduce((sum, p) => sum + Math.max(0, p.stock), 0);
       const clampedStock = Math.max(0, totalStock);
+      const expectedStatus = clampedStock > 0 ? 'active' : 'paused';
 
-      console.log(`[MELI STOCK SYNC] Publicación ${map.externalId}: Nuevo stock a enviar = ${totalStock} (clamped to ${clampedStock})`);
+      console.log(`[MELI STOCK SYNC] Publicación ${map.externalId}: Nuevo stock a enviar = ${totalStock} (clamped to ${clampedStock}, status: ${expectedStatus})`);
 
-      // Push stock to Mercado Libre and reactivate if greater than 0
+      // Push stock to Mercado Libre and update status explicitly
       const stockPayload = {
         available_quantity: clampedStock,
-        ...(clampedStock > 0 ? { status: 'active' } : {})
+        status: expectedStatus
       };
 
       const { fetchMeliWithRetry } = await import('@/app/utils/meliToken');
@@ -1388,6 +1397,13 @@ export async function syncMeliStockAction(productId: string, tenantId: string | 
         console.error(`[MELI STOCK SYNC] Error al actualizar stock en ML para ${map.externalId}:`, errBody);
       } else {
         console.log(`[MELI STOCK SYNC] Stock actualizado exitosamente en ML para ${map.externalId}.`);
+        await tenantClient.externalProductMap.update({
+          where: { id: map.id },
+          data: {
+            syncStatus: expectedStatus,
+            lastSync: new Date()
+          }
+        });
       }
     }
   } catch (error) {

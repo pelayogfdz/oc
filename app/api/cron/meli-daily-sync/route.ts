@@ -441,121 +441,154 @@ async function handleSync(onlyStock = false) {
           }
         }
 
+        // ----------------------------------------------------
+        // PASO B: SINCRONIZAR PRECIOS E INVENTARIOS CON DIRTY-CHECKING Y PAYLOAD UNIFICADO
+        // ----------------------------------------------------
+        console.log(`[MELI DAILY CRON] Iniciando sincronización inteligente de precios e inventarios (${mappings.length} artículos vinculados)...`);
+
+        // Cache de listas de precios para no consultar en cada iteración
+        let priceList = null;
+        if (!onlyStock) {
+          priceList = await tenantClient.priceList.findFirst({
+            where: {
+              branchId: branchId,
+              name: { mode: 'insensitive', equals: 'mercado libre' }
+            }
+          });
+
+          if (!priceList) {
+            priceList = await tenantClient.priceList.create({
+              data: {
+                branchId: branchId,
+                name: 'Mercado Libre'
+              }
+            });
+          }
+        }
+
+        const retentionRate = hasTaxRetention ? (satRetentionPct / 100) : 0;
+        const denominator = 1 - listingType - retentionRate - (targetMargin / 100);
+
         const batchSize = 10;
         for (let i = 0; i < mappings.length; i += batchSize) {
           const batch = mappings.slice(i, i + batchSize);
+          let hadApiCallInBatch = false;
 
           await Promise.all(batch.map(async (map) => {
             const product = map.product;
+            const cleanSku = product.sku ? product.sku.trim() : '';
+            const cleanBarcode = product.barcode ? product.barcode.trim() : '';
 
-            if (!onlyStock) {
-              // Buscar lista de precios "Mercado Libre"
-              let priceList = await tenantClient.priceList.findFirst({
-                where: {
-                  branchId: branchId,
-                  name: { mode: 'insensitive', equals: 'mercado libre' }
-                }
-              });
-
-              if (!priceList) {
-                priceList = await tenantClient.priceList.create({
-                  data: {
-                    branchId: branchId,
-                    name: 'Mercado Libre'
-                  }
-                });
-              }
-
-              const retentionRate = hasTaxRetention ? (satRetentionPct / 100) : 0;
-              const denominator = 1 - listingType - retentionRate - (targetMargin / 100);
-
-              // 1. Recalcular precio meta
-              let suggestedPrice = 0;
-              if (denominator > 0 && !map.isFixedPrice) {
-                suggestedPrice = (shippingCost + product.cost) / denominator;
-                suggestedPrice = Math.round(suggestedPrice * 100) / 100;
-              }
-
-              if (suggestedPrice > 0 && !map.isFixedPrice) {
-                // Guardar localmente
-                await tenantClient.productPrice.upsert({
-                  where: {
-                    productId_priceListId: {
-                      productId: product.id,
-                      priceListId: priceList.id
-                    }
-                  },
-                  create: {
-                    productId: product.id,
-                    priceListId: priceList.id,
-                    price: suggestedPrice
-                  },
-                  update: {
-                    price: suggestedPrice
-                  }
-                });
-
-                // Actualizar en Mercado Libre
-                const priceResponse = await fetchMeliWithRetry(`https://api.mercadolibre.com/items/${map.externalId}`, {
-                  method: 'PUT',
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({ price: suggestedPrice })
-                });
-
-                if (priceResponse.ok) {
-                  totalPricesSynced++;
-                } else {
-                  const errBody = await priceResponse.json().catch(() => ({}));
-                  console.error(`[MELI DAILY CRON] Error al actualizar precio en ML para ${map.externalId}:`, errBody);
-                }
-              }
+            // 1. Calcular precio meta sugerido
+            let suggestedPrice = 0;
+            if (denominator > 0 && !map.isFixedPrice) {
+              suggestedPrice = (shippingCost + product.cost) / denominator;
+              suggestedPrice = Math.round(suggestedPrice * 100) / 100;
             }
 
-            // 2. Sumar stock global
+            const targetPrice = map.isFixedPrice ? (map.precioMeli || 0) : suggestedPrice;
+            const priceChanged = !onlyStock && !map.isFixedPrice && targetPrice > 0 && Math.abs((map.precioMeli || 0) - targetPrice) > 0.05;
+
+            // 2. Sumar stock en sucursales seleccionadas (buscando por SKU o Barcode)
+            let clampedStock = 0;
             try {
-              const cleanSku = product.sku ? product.sku.trim() : '';
-              const productInBranches = await tenantClient.product.findMany({
+              const whereOr: any[] = [];
+              if (cleanSku) whereOr.push({ sku: { equals: cleanSku, mode: 'insensitive' } });
+              if (cleanBarcode) whereOr.push({ barcode: { equals: cleanBarcode, mode: 'insensitive' } });
+
+              const productInBranches = whereOr.length > 0 ? await tenantClient.product.findMany({
                 where: {
-                  sku: { equals: cleanSku, mode: 'insensitive' },
+                  OR: whereOr,
                   branchId: { in: stockBranchIds },
                   isActive: true
-                }
-              });
+                },
+                select: { stock: true }
+              }) : [];
 
               const totalStock = productInBranches.reduce((sum, p) => sum + Math.max(0, p.stock), 0);
-              const clampedStock = Math.max(0, totalStock);
+              clampedStock = Math.max(0, totalStock);
+            } catch (stockCalcErr) {
+              console.error(`[MELI DAILY CRON] Error calculando stock para ${map.externalId}:`, stockCalcErr);
+              clampedStock = 0;
+            }
 
-              // Actualizar stock en Mercado Libre y reactivar si es mayor a 0
-              const stockPayload = {
-                available_quantity: clampedStock,
-                ...(clampedStock > 0 ? { status: 'active' } : {})
-              };
+            const expectedStatus = clampedStock > 0 ? 'active' : 'paused';
+            const statusChanged = map.syncStatus !== expectedStatus;
 
-              const stockResponse = await fetchMeliWithRetry(`https://api.mercadolibre.com/items/${map.externalId}`, {
+            // 3. Evaluar si es necesario llamar a la API de Mercado Libre
+            const needsUpdate = priceChanged || statusChanged;
+
+            if (!needsUpdate) {
+              return; // Omitir llamada HTTP si no hubo cambios
+            }
+
+            hadApiCallInBatch = true;
+
+            const updatePayload: Record<string, any> = {};
+            if (priceChanged && targetPrice > 0) {
+              updatePayload.price = targetPrice;
+            }
+            if (statusChanged) {
+              updatePayload.available_quantity = clampedStock;
+              updatePayload.status = expectedStatus;
+            }
+
+            try {
+              const response = await fetchMeliWithRetry(`https://api.mercadolibre.com/items/${map.externalId}`, {
                 method: 'PUT',
                 headers: {
                   'Authorization': `Bearer ${token}`,
                   'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(stockPayload)
+                body: JSON.stringify(updatePayload)
               });
 
-              if (stockResponse.ok) {
-                totalStocksSynced++;
+              if (response.ok) {
+                if (priceChanged) totalPricesSynced++;
+                if (statusChanged) totalStocksSynced++;
+
+                // Actualizar registro local
+                await tenantClient.externalProductMap.update({
+                  where: { id: map.id },
+                  data: {
+                    ...(priceChanged && targetPrice > 0 ? { precioMeli: targetPrice } : {}),
+                    syncStatus: expectedStatus,
+                    lastSync: new Date()
+                  }
+                });
+
+                // Guardar precio en la lista de precios local
+                if (priceChanged && targetPrice > 0 && priceList) {
+                  await tenantClient.productPrice.upsert({
+                    where: {
+                      productId_priceListId: {
+                        productId: product.id,
+                        priceListId: priceList.id
+                      }
+                    },
+                    create: {
+                      productId: product.id,
+                      priceListId: priceList.id,
+                      price: targetPrice
+                    },
+                    update: {
+                      price: targetPrice
+                    }
+                  });
+                }
               } else {
-                const errBody = await stockResponse.json().catch(() => ({}));
-                console.error(`[MELI DAILY CRON] Error al actualizar stock en ML para ${map.externalId}:`, errBody);
+                const errBody = await response.json().catch(() => ({}));
+                console.error(`[MELI DAILY CRON] Error al actualizar ML para ${map.externalId}:`, errBody);
               }
-            } catch (stockErr) {
-              console.error(`[MELI DAILY CRON] Error sincronizando stock para ${map.externalId}:`, stockErr);
+            } catch (putErr) {
+              console.error(`[MELI DAILY CRON] Excepción actualizando ML para ${map.externalId}:`, putErr);
             }
           }));
 
-          // Retardo de 1.5 segundos entre lotes para no saturar rate limit
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          // Si este lote hizo llamadas a la API, dar una pausa breve de 400ms para cortesía de rate limit
+          if (hadApiCallInBatch) {
+            await new Promise(resolve => setTimeout(resolve, 400));
+          }
         }
       } catch (syncErr) {
         console.error(`[MELI DAILY CRON] Error en sincronización de precios/inventarios para sucursal ${integration.branch.name}:`, syncErr);

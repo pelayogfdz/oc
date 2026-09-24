@@ -88,7 +88,7 @@ export interface IndexedOfflineCustomer extends OfflineCustomer {
 
 // In-Memory Search Caches
 let productMemoryCache: IndexedOfflineProduct[] | null = null;
-let exactBarcodeSkuMap = new Map<string, IndexedOfflineProduct>();
+let exactBarcodeSkuMap = new Map<string, IndexedOfflineProduct[]>();
 let productLoadPromise: Promise<IndexedOfflineProduct[]> | null = null;
 
 let customerMemoryCache: IndexedOfflineCustomer[] | null = null;
@@ -133,7 +133,17 @@ async function getOrLoadMemoryProducts(database: CAANMAOfflineDB): Promise<Index
     try {
       const rawProducts = await database.products.toArray();
       const indexed: IndexedOfflineProduct[] = [];
-      const newExactMap = new Map<string, IndexedOfflineProduct>();
+      const newExactMap = new Map<string, IndexedOfflineProduct[]>();
+
+      const addToExactMap = (key: string, prod: IndexedOfflineProduct) => {
+        if (!key) return;
+        const list = newExactMap.get(key);
+        if (!list) {
+          newExactMap.set(key, [prod]);
+        } else if (!list.some(existing => existing.id === prod.id)) {
+          list.push(prod);
+        }
+      };
 
       for (let i = 0; i < rawProducts.length; i++) {
         const p = rawProducts[i];
@@ -173,12 +183,12 @@ async function getOrLoadMemoryProducts(database: CAANMAOfflineDB): Promise<Index
         indexed.push(item);
 
         // Registro en mapa O(1) de escaneo exacto
-        if (normBarcode) newExactMap.set(normBarcode, item);
-        if (normSku) newExactMap.set(normSku, item);
+        if (normBarcode) addToExactMap(normBarcode, item);
+        if (normSku) addToExactMap(normSku, item);
         for (let vIdx = 0; vIdx < variantTokens.length; vIdx++) {
           const v = variantTokens[vIdx];
-          if (v.barcode) newExactMap.set(v.barcode, item);
-          if (v.sku) newExactMap.set(v.sku, item);
+          if (v.barcode) addToExactMap(v.barcode, item);
+          if (v.sku) addToExactMap(v.sku, item);
         }
       }
 
@@ -268,15 +278,22 @@ export async function searchOfflineProducts(
 
     // 1. Optimización para Código de Barras / SKU Exacto (Escáner de código de barras) -> O(1) < 0.1ms
     if (searchWords.length === 1 && exactBarcodeSkuMap.has(normalizedQuery)) {
-      const exactMatch = exactBarcodeSkuMap.get(normalizedQuery)!;
-      let branchOk = true;
-      if (branchId && branchId !== 'GLOBAL' && branchId !== 'ALL') {
-        if (exactMatch.branchId && exactMatch.branchId !== 'GLOBAL' && exactMatch.branchId !== 'ALL' && exactMatch.branchId !== branchId) {
-          branchOk = false;
+      const exactMatches = exactBarcodeSkuMap.get(normalizedQuery)!;
+      const validMatches = exactMatches.filter(exactMatch => {
+        if (branchId && branchId !== 'GLOBAL' && branchId !== 'ALL') {
+          if (exactMatch.branchId && exactMatch.branchId !== 'GLOBAL' && exactMatch.branchId !== 'ALL' && exactMatch.branchId !== branchId) {
+            return false;
+          }
         }
-      }
-      if (branchOk) {
-        return [exactMatch];
+        if (options?.status) {
+          if (options.status === 'ACTIVE' && (exactMatch as any).isActive === false) return false;
+          if (options.status === 'INACTIVE' && (exactMatch as any).isActive !== false) return false;
+        }
+        return true;
+      });
+
+      if (validMatches.length > 0) {
+        return validMatches;
       }
     }
 
