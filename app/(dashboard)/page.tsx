@@ -421,8 +421,8 @@ export default async function DashboardPage(props: Props) {
   const formatter = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 
   return (
-    <div className="w-full min-w-0 max-w-full">
-      <div className="dashboard-stats-grid mb-6">
+    <div className="w-full min-w-0 max-w-full" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className="dashboard-stats-grid">
         {[
           { 
             title: isFiltered ? 'Ingresos del Período' : 'Ingresos de Hoy', 
@@ -464,7 +464,7 @@ export default async function DashboardPage(props: Props) {
         initialEndDate={initialEndDate} 
       />
 
-      <div className="dashboard-main-grid mb-6">
+      <div className="dashboard-main-grid">
         <Card className="p-5 md:p-6 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">

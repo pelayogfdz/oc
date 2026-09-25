@@ -116,7 +116,7 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
   })();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '1.5rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Filtros Bar Ampliado (+50% tamaño) */}
       <div className="bg-white p-4 sm:p-5 md:p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap justify-between items-center gap-4">
         <div className="flex items-center gap-3">
