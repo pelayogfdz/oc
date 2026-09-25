@@ -116,24 +116,24 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
   })();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.5rem' }}>
-      {/* Filtros Bar */}
-      <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap justify-between items-center gap-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xs flex-shrink-0">
-            <Calendar size={16} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '1.5rem' }}>
+      {/* Filtros Bar Ampliado (+50% tamaño) */}
+      <div className="bg-white p-4 sm:p-5 md:p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap justify-between items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-xs">
+            <Calendar size={20} />
           </div>
-          <h2 className="text-sm font-bold text-slate-900 m-0">Rendimiento de Ventas</h2>
+          <h2 className="text-base md:text-lg font-extrabold text-slate-900 m-0 tracking-tight">Rendimiento de Ventas</h2>
         </div>
         
-        <div className="flex items-center flex-wrap gap-2.5">
+        <div className="flex items-center flex-wrap gap-3">
           {/* Selector de Agrupamiento */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-slate-500">Agrupar:</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-slate-600">Agrupar:</span>
             <select
               value={groupBy}
               onChange={(e) => setGroupBy(e.target.value as any)}
-              className="border border-slate-200 py-1 px-2.5 rounded-lg text-xs font-medium text-slate-700 bg-white hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
+              className="border border-slate-300 py-2 px-3.5 rounded-xl text-sm font-semibold text-slate-800 bg-white hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 shadow-xs cursor-pointer h-10 transition-colors"
             >
               <option value="day">Por Día</option>
               <option value="week">Por Semana</option>
@@ -142,31 +142,31 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
             </select>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-slate-500">Desde:</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-slate-600">Desde:</span>
             <input 
               type="date" 
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="border border-slate-200 py-1 px-2 rounded-lg text-xs font-medium text-slate-700 bg-white hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
+              className="border border-slate-300 py-2 px-3 rounded-xl text-sm font-semibold text-slate-800 bg-white hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 shadow-xs cursor-pointer h-10 transition-colors"
             />
           </div>
           
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-slate-500">Hasta:</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-slate-600">Hasta:</span>
             <input 
               type="date" 
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="border border-slate-200 py-1 px-2 rounded-lg text-xs font-medium text-slate-700 bg-white hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
+              className="border border-slate-300 py-2 px-3 rounded-xl text-sm font-semibold text-slate-800 bg-white hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 shadow-xs cursor-pointer h-10 transition-colors"
             />
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <button 
               onClick={handleFilter}
               disabled={isUpdating}
-              className="bg-slate-900 hover:bg-slate-800 text-white border-0 py-1 px-3.5 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
+              className="bg-slate-900 hover:bg-slate-800 text-white border-0 py-2 px-5 rounded-xl text-sm font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50 h-10 flex items-center justify-center"
             >
               {isUpdating ? 'Filtrando...' : 'Filtrar'}
             </button>
@@ -175,7 +175,7 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
               <button 
                 onClick={handleResetToday}
                 disabled={isUpdating}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 py-1 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 py-2 px-4 rounded-xl text-sm font-bold transition-all cursor-pointer disabled:opacity-50 h-10 flex items-center justify-center"
               >
                 Ver Hoy
               </button>
@@ -185,7 +185,7 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
       </div>
 
       {/* Gráficas Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '1.25rem', width: '100%', minWidth: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '1.5rem', width: '100%', minWidth: 0 }}>
         
         {/* Gráfica 1: Número de Ventas */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs h-[330px] flex flex-col min-w-0 overflow-hidden">
@@ -208,7 +208,7 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
                   contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}
                   cursor={{fill: '#f8fafc'}}
                 />
-                <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" fill="#818cf8" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -218,9 +218,9 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs h-[330px] flex flex-col min-w-0 overflow-hidden">
           <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2 m-0">
-              <DollarSign size={15} className="text-emerald-600" /> Facturación / Ingresos
+              <DollarSign size={15} className="text-emerald-500" /> Facturación / Ingresos
             </h3>
-            <span className="text-xs font-black text-emerald-700">
+            <span className="text-xs font-black text-slate-900">
               {formatCurrency(groupedData.reduce((acc, d) => acc + d.amount, 0))}
             </span>
           </div>
@@ -229,8 +229,8 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
               <AreaChart data={groupedData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.18}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#34d399" stopOpacity={0.25}/>
+                    <stop offset="95%" stopColor="#34d399" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="label" tick={{fontSize: 11, fill: '#64748b'}} tickLine={false} axisLine={false} dy={5} />

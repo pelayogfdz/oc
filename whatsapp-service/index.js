@@ -631,6 +631,9 @@ async function getClientForBranch(originalBranchId, forceRecreate = false) {
             clientId: `br-${shortBranchId}`,
             dataPath: './.wwebjs_auth'
         }),
+        authTimeoutMs: 120000,
+        takeoverOnConflict: true,
+        takeoverTimeoutMs: 60000,
         puppeteer: {
             launcher: puppeteer,
             args: [
@@ -638,9 +641,13 @@ async function getClientForBranch(originalBranchId, forceRecreate = false) {
                 '--disable-setuid-sandbox',
                 '--disable-blink-features=AutomationControlled',
                 '--disable-gpu',
-                '--disable-dev-shm-usage'
+                '--disable-dev-shm-usage',
+                '--no-first-run',
+                '--no-zygote',
+                '--disable-extensions'
             ],
             headless: true,
+            timeout: 120000,
         }
     });
 
@@ -685,16 +692,69 @@ async function getClientForBranch(originalBranchId, forceRecreate = false) {
         }
     });
 
-    client.on('disconnected', async (reason) => {
-        console.log(`[WHATSAPP] Client was disconnected for branch ${branchId}`, reason);
+    client.on('auth_failure', async (msg) => {
+        console.error(`[WHATSAPP] Authentication failure for branch ${branchId}:`, msg);
         clients.delete(branchId);
+        
+        try {
+            await client.destroy();
+        } catch (e) {}
+
+        // Clean folder ONLY when auth has actually failed (e.g. unlinked from phone)
+        const shortBranchId = branchId.split('-')[0];
+        const authPath = path.resolve(process.cwd(), `./.wwebjs_auth/session-br-${shortBranchId}`);
+        if (fs.existsSync(authPath)) {
+            try {
+                fs.rmSync(authPath, { recursive: true, force: true });
+                console.log(`[WHATSAPP] Cleaned up invalidated credentials folder for branch ${branchId} after auth_failure.`);
+            } catch (fsErr) {
+                console.error(`[WHATSAPP] Failed to clean credentials folder:`, fsErr);
+            }
+        }
+
         try {
             await updateSessionInAllDbs(branchId, {
                 status: 'DISCONNECTED',
                 sessionData: null
             });
         } catch (e) {
-            console.error(`[WHATSAPP] Failed to update Disconnect status in DB for branch ${branchId}`, e);
+            console.error(`[WHATSAPP] Failed to update auth_failure in DB for branch ${branchId}`, e);
+        }
+    });
+
+    client.on('disconnected', async (reason) => {
+        console.log(`[WHATSAPP] Client was disconnected for branch ${branchId}. Reason:`, reason);
+        clients.delete(branchId);
+
+        const isExplicitLogout = reason === 'LOGOUT' || reason === 'UNPAIRED';
+
+        if (isExplicitLogout) {
+            const shortBranchId = branchId.split('-')[0];
+            const authPath = path.resolve(process.cwd(), `./.wwebjs_auth/session-br-${shortBranchId}`);
+            if (fs.existsSync(authPath)) {
+                try {
+                    fs.rmSync(authPath, { recursive: true, force: true });
+                    console.log(`[WHATSAPP] Removed auth folder on explicit logout for branch ${branchId}`);
+                } catch (e) {}
+            }
+            try {
+                await updateSessionInAllDbs(branchId, {
+                    status: 'DISCONNECTED',
+                    sessionData: null
+                });
+            } catch (e) {}
+        } else {
+            console.log(`[WHATSAPP] Non-logout disconnect (${reason}). Retaining session credentials and scheduling auto-reconnect in 5s for branch ${branchId}...`);
+            setTimeout(async () => {
+                try {
+                    if (!clients.has(branchId)) {
+                        console.log(`[WHATSAPP] Executing auto-reconnect for branch ${branchId}...`);
+                        await getClientForBranch(branchId, false);
+                    }
+                } catch (recErr) {
+                    console.error(`[WHATSAPP] Auto-reconnect attempt failed for branch ${branchId}:`, recErr.message);
+                }
+            }, 5000);
         }
     });
 
@@ -730,7 +790,7 @@ async function getClientForBranch(originalBranchId, forceRecreate = false) {
     });
 
     client.initialize().catch(async err => {
-        console.error(`[WHATSAPP] Initialization crash for branch ${branchId}:`, err);
+        console.error(`[WHATSAPP] Initialization crash for branch ${branchId}:`, err.message || err);
         
         clients.delete(branchId);
         
@@ -741,30 +801,9 @@ async function getClientForBranch(originalBranchId, forceRecreate = false) {
             console.warn(`[WHATSAPP] Failed to destroy client browser for branch ${branchId}:`, destroyErr.message);
         }
 
-        // Wait briefly for OS lock release
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // Clean folder
-        const shortBranchId = branchId.split('-')[0];
-        const authPath = path.resolve(process.cwd(), `./.wwebjs_auth/session-br-${shortBranchId}`);
-        if (fs.existsSync(authPath)) {
-            try {
-                fs.rmSync(authPath, { recursive: true, force: true });
-                console.log(`[WHATSAPP] Cleaned up corrupt credentials folder for branch ${branchId} after initialization crash.`);
-            } catch (fsErr) {
-                console.error(`[WHATSAPP] Failed to clean credentials folder for branch ${branchId} after initialization crash:`, fsErr);
-            }
-        }
-
-        try {
-            await updateSessionInAllDbs(branchId, {
-                status: 'DISCONNECTED',
-                sessionData: null
-            });
-            console.log(`[WHATSAPP] Reset session status to DISCONNECTED in DB for branch ${branchId} after initialization crash.`);
-        } catch (dbErr) {
-            console.error(`[WHATSAPP] Failed to reset database session status on crash for branch ${branchId}:`, dbErr);
-        }
+        // NOTE: We do NOT delete .wwebjs_auth directory here!
+        // Transient timeouts or startup delays must not delete the session.
+        // The background polling will resume it safely.
     });
 
     return client;
@@ -1847,6 +1886,22 @@ async function pollWhatsAppSessions() {
 
 // Check every 5 seconds for any session signaling changes
 setInterval(pollWhatsAppSessions, 5000);
+
+// Keep-Alive Ping every 45 seconds to keep Chromium WebSocket connection warm
+setInterval(async () => {
+    for (const [branchId, client] of clients.entries()) {
+        try {
+            if (client && client.pupPage && !client.pupPage.isClosed()) {
+                const state = await client.getState().catch(() => null);
+                if (state && state !== 'CONNECTED') {
+                    console.log(`[WHATSAPP KEEP-ALIVE] Branch ${branchId} state is ${state}`);
+                }
+            }
+        } catch (e) {
+            // Ignore keepalive ping errors
+        }
+    }
+}, 45000);
 
 const PORT = process.env.PORT || process.env.WHATSAPP_PORT || 3001;
 app.listen(PORT, () => {

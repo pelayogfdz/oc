@@ -74,7 +74,6 @@ export default async function DashboardPage(props: Props) {
     topCustomersGroup,
     topSellersGroup,
     periodSaleItems,
-    lowStockProducts,
     chartSales,
     periodReturnsAggregate,
     pendingCreditSales
@@ -146,13 +145,6 @@ export default async function DashboardPage(props: Props) {
         product: true
       }
     }),
-    prisma.product.count({
-      where: {
-        ...branchFilter,
-        isService: false,
-        stock: { lte: 5 }
-      }
-    }),
     prisma.sale.findMany({
       where: {
         ...branchFilter,
@@ -175,12 +167,20 @@ export default async function DashboardPage(props: Props) {
       where: {
         ...branchFilter,
         paymentMethod: 'CREDIT',
-        balanceDue: { gt: 0 },
+        balanceDue: { gt: 0.01 },
         status: { not: 'CANCELLED' }
       },
       select: {
         id: true,
+        folio: true,
         customerId: true,
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            phone: true
+          }
+        },
         balanceDue: true,
         dueDate: true
       }
@@ -357,42 +357,71 @@ export default async function DashboardPage(props: Props) {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
-  const debtorCustomerIds = new Set<string>();
+  const debtorMap = new Map<string, {
+    id: string;
+    name: string;
+    phone: string | null;
+    totalBalance: number;
+    overdueBalance: number;
+    overdueCount: number;
+    totalSalesCount: number;
+    maxDaysOverdue: number;
+  }>();
+
   let totalReceivableBalance = 0;
   let overdueReceivableBalance = 0;
-  const overdueCustomerIds = new Set<string>();
 
   pendingCreditSales.forEach(sale => {
-    totalReceivableBalance += sale.balanceDue || 0;
-    if (sale.customerId) {
-      debtorCustomerIds.add(sale.customerId);
-    } else {
-      debtorCustomerIds.add('PUBLIC');
-    }
+    const bal = sale.balanceDue || 0;
+    if (bal <= 0.01) return;
+
+    totalReceivableBalance += bal;
+
+    const custKey = sale.customerId || 'PUBLIC';
+    const existing = debtorMap.get(custKey) || {
+      id: sale.customerId || '',
+      name: sale.customer?.name || (sale.customerId ? 'Cliente sin nombre' : 'Público en General'),
+      phone: sale.customer?.phone || null,
+      totalBalance: 0,
+      overdueBalance: 0,
+      overdueCount: 0,
+      totalSalesCount: 0,
+      maxDaysOverdue: 0
+    };
+
+    existing.totalBalance += bal;
+    existing.totalSalesCount += 1;
 
     if (sale.dueDate) {
       const due = new Date(sale.dueDate);
       due.setHours(0, 0, 0, 0);
       if (now.getTime() > due.getTime()) {
-        overdueReceivableBalance += sale.balanceDue || 0;
-        if (sale.customerId) overdueCustomerIds.add(sale.customerId);
+        overdueReceivableBalance += bal;
+        existing.overdueBalance += bal;
+        existing.overdueCount += 1;
+        const days = Math.max(1, Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)));
+        if (days > existing.maxDaysOverdue) {
+          existing.maxDaysOverdue = days;
+        }
       }
     }
+
+    debtorMap.set(custKey, existing);
   });
 
-  const totalDebtorClients = debtorCustomerIds.size;
-  const overdueClientsCount = overdueCustomerIds.size;
+  const allDebtors = Array.from(debtorMap.values());
+  const overdueAccounts = allDebtors
+    .filter(d => d.overdueBalance > 0.01)
+    .sort((a, b) => b.overdueBalance - a.overdueBalance);
+
+  const totalDebtorClients = allDebtors.length;
+  const overdueClientsCount = overdueAccounts.length;
+  const topOverdueAccounts = overdueAccounts.slice(0, 10);
 
   const formatter = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 
   return (
     <div className="w-full min-w-0 max-w-full">
-      <div className="page-header-container flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
-        <h1 className="page-header-title text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-          Panel de Control <span className="text-purple-600 font-semibold text-lg md:text-xl">({branch.name})</span>
-        </h1>
-      </div>
-
       <div className="dashboard-stats-grid mb-6">
         {[
           { 
@@ -515,89 +544,115 @@ export default async function DashboardPage(props: Props) {
         <Card className="p-5 md:p-6 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-              <span className="text-base font-bold text-slate-900 tracking-tight">Alertas y Cartera</span>
-              <Badge variant={overdueReceivableBalance > 0 ? 'danger' : 'info'} size="sm">
-                {overdueReceivableBalance > 0 ? 'Por Cobrar' : 'Al Día'}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <span className="text-base font-bold text-slate-900 tracking-tight">Alertas y Cartera</span>
+                <Badge variant={overdueReceivableBalance > 0 ? 'danger' : 'info'} size="sm">
+                  {overdueReceivableBalance > 0 ? `${overdueClientsCount} vencido(s)` : 'Al Día'}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-3">
+                <Link 
+                  href="/reportes/cuentas-por-cobrar" 
+                  className="text-xs font-semibold text-purple-600 hover:text-purple-700 hover:underline"
+                >
+                  Reporte CxC &rarr;
+                </Link>
+                <Link 
+                  href="/clientes/cobranza" 
+                  className="text-xs font-semibold text-slate-600 hover:text-slate-900 hover:underline"
+                >
+                  Cobranza &rarr;
+                </Link>
+              </div>
             </div>
             
-            <div className="flex flex-col gap-3">
-               {/* Alerta 1: Cartera Vencida y Por Cobrar */}
-               <div className={`p-3.5 rounded-xl border ${
-                 overdueReceivableBalance > 0 
-                   ? 'bg-rose-50/60 border-rose-200/70' 
-                   : totalReceivableBalance > 0 
-                   ? 'bg-amber-50/60 border-amber-200/70' 
-                   : 'bg-emerald-50/60 border-emerald-200/70'
-               }`}>
-                 <div className="flex items-center justify-between mb-1.5">
-                   <h4 className={`font-bold text-xs ${
-                     overdueReceivableBalance > 0 
-                       ? 'text-rose-900' 
-                       : totalReceivableBalance > 0 
-                       ? 'text-amber-900' 
-                       : 'text-emerald-900'
-                   }`}>
-                     {overdueReceivableBalance > 0 ? '⚠️ Cartera Vencida' : '💳 Cuentas por Cobrar'}
-                   </h4>
-                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                     overdueReceivableBalance > 0 
-                       ? 'text-rose-700 bg-rose-100/90' 
-                       : totalReceivableBalance > 0 
-                       ? 'text-amber-700 bg-amber-100/90' 
-                       : 'text-emerald-700 bg-emerald-100/90'
-                   }`}>
-                     {overdueReceivableBalance > 0 
-                       ? `${overdueClientsCount} cliente(s) vencido(s)` 
-                       : `${totalDebtorClients} cliente(s)`
-                     }
-                   </span>
-                 </div>
-                 
-                 <div className="flex justify-between items-baseline my-1">
-                   <span className="text-[11px] text-slate-500 font-medium">Saldo por cobrar:</span>
-                   <span className="text-xs font-black text-slate-900">{formatter.format(totalReceivableBalance)}</span>
-                 </div>
-
-                 {overdueReceivableBalance > 0 && (
-                   <div className="flex justify-between items-baseline mb-2">
-                     <span className="text-[11px] text-rose-700 font-semibold">Monto vencido:</span>
-                     <span className="text-xs font-black text-rose-700">{formatter.format(overdueReceivableBalance)}</span>
-                   </div>
-                 )}
-
-                 <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-200/40">
-                   <Link 
-                     href="/reportes/cuentas-por-cobrar" 
-                     className="text-xs font-bold text-purple-600 hover:text-purple-700 hover:underline"
-                   >
-                     Reporte CxC &rarr;
-                   </Link>
-                   <Link 
-                     href="/clientes/cobranza" 
-                     className="text-xs font-bold text-slate-600 hover:text-slate-900 hover:underline"
-                   >
-                     Gestión de Cobranza &rarr;
-                   </Link>
-                 </div>
-               </div>
-
-               {/* Alerta 2: Stock Bajo */}
-               {lowStockProducts > 0 && (
-                 <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between gap-2">
-                   <div>
-                     <span className="text-xs font-bold text-slate-800 block">📦 Stock Crítico</span>
-                     <span className="text-[11px] text-slate-500 block">{lowStockProducts} producto(s) con ≤ 5 unidades</span>
-                   </div>
-                   <Link 
-                     href="/productos?filter=low_stock" 
-                     className="text-xs font-semibold text-purple-600 hover:underline flex-shrink-0"
-                   >
-                     Ver &rarr;
-                   </Link>
-                 </div>
-               )}
+            {/* Banner de Resumen de Cartera */}
+            <div className={`p-3 rounded-xl border mb-3.5 flex items-center justify-between gap-2 ${
+              overdueReceivableBalance > 0 
+                ? 'bg-rose-50/60 border-rose-200/70' 
+                : totalReceivableBalance > 0 
+                ? 'bg-amber-50/60 border-amber-200/70' 
+                : 'bg-emerald-50/60 border-emerald-200/70'
+            }`}>
+              <div className="flex items-center gap-4 md:gap-6 flex-wrap">
+                <div>
+                  <span className="text-[10px] text-slate-500 font-medium block">Saldo por cobrar:</span>
+                  <span className="text-xs md:text-sm font-black text-slate-900">{formatter.format(totalReceivableBalance)}</span>
+                  <span className="text-[10px] text-slate-400 block">{totalDebtorClients} cliente(s)</span>
+                </div>
+                {overdueReceivableBalance > 0 && (
+                  <div className="border-l border-rose-200 pl-3 md:pl-4">
+                    <span className="text-[10px] text-rose-700 font-semibold block">Monto vencido:</span>
+                    <span className="text-xs md:text-sm font-black text-rose-700">{formatter.format(overdueReceivableBalance)}</span>
+                    <span className="text-[10px] text-rose-600 font-medium block">{overdueClientsCount} con adeudo vencido</span>
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* Detalle de Cuentas con Mayor Saldo Vencido */}
+            {topOverdueAccounts.length > 0 ? (
+              <div className="overflow-x-auto w-full">
+                <table className="responsive-table w-full border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-left">
+                      <th className="py-2.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider">Cliente</th>
+                      <th className="py-2.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider">Atraso</th>
+                      <th className="py-2.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider text-right">Vencido</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {topOverdueAccounts.map(acc => (
+                      <tr key={acc.id} className="border-b border-slate-50 hover:bg-slate-50/70 transition-colors">
+                        <td data-label="Cliente" className="py-2.5 text-xs font-medium">
+                          {acc.id && acc.id !== 'PUBLIC' ? (
+                            <Link 
+                              href={`/clientes/${acc.id}`} 
+                              className="text-purple-600 font-bold hover:underline block truncate max-w-[190px]" 
+                              title={acc.name}
+                            >
+                              {acc.name}
+                            </Link>
+                          ) : (
+                            <span className="text-slate-800 font-bold block truncate max-w-[190px]" title={acc.name}>
+                              {acc.name}
+                            </span>
+                          )}
+                          <div className="text-[11px] text-slate-500 mt-0.5 font-normal truncate max-w-[190px]">
+                            {acc.phone ? `Tel: ${acc.phone}` : `${acc.totalSalesCount} venta(s) a crédito`}
+                          </div>
+                        </td>
+                        <td data-label="Atraso" className="py-2.5 text-xs">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">
+                            {acc.maxDaysOverdue > 0 ? `${acc.maxDaysOverdue}d de atraso` : 'Vencido'}
+                          </span>
+                          <div className="text-[10px] text-slate-400 mt-0.5">
+                            {acc.overdueCount} nota(s) vencida(s)
+                          </div>
+                        </td>
+                        <td data-label="Vencido" className="py-2.5 text-xs font-black text-right">
+                          <span className="text-rose-600 font-black block">
+                            {formatter.format(acc.overdueBalance)}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-normal block">
+                            Total: {formatter.format(acc.totalBalance)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : totalReceivableBalance > 0 ? (
+              <div className="py-10 text-center text-slate-500 text-xs">
+                <span className="font-semibold text-emerald-600 block mb-1">✓ Todos los créditos están al día</span>
+                No hay cuentas con saldo vencido en este momento.
+              </div>
+            ) : (
+              <div className="py-10 text-center text-slate-400 text-xs">
+                No hay cuentas por cobrar registradas.
+              </div>
+            )}
           </div>
         </Card>
       </div>
@@ -658,7 +713,7 @@ export default async function DashboardPage(props: Props) {
                           <span className="flex-shrink-0 text-slate-400">{cust.orderCount.toLocaleString('es-MX')} compras</span>
                           <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                             <div 
-                              className="h-full bg-slate-700 rounded-full transition-all duration-500" 
+                              className="h-full bg-purple-500/80 rounded-full transition-all duration-500" 
                               style={{ width: `${percentage}%` }} 
                             />
                           </div>
@@ -738,7 +793,7 @@ export default async function DashboardPage(props: Props) {
                           <span className="flex-shrink-0 text-slate-400">{cat.quantitySold.toLocaleString('es-MX')} uds</span>
                           <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                             <div 
-                              className="h-full bg-slate-700 rounded-full transition-all duration-500" 
+                              className="h-full bg-purple-500/80 rounded-full transition-all duration-500" 
                               style={{ width: `${percentage}%` }} 
                             />
                           </div>
@@ -810,7 +865,7 @@ export default async function DashboardPage(props: Props) {
                           <span className="flex-shrink-0 text-slate-400">{seller.orderCount.toLocaleString('es-MX')} tickets</span>
                           <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                             <div 
-                              className="h-full bg-slate-700 rounded-full transition-all duration-500" 
+                              className="h-full bg-purple-500/80 rounded-full transition-all duration-500" 
                               style={{ width: `${percentage}%` }} 
                             />
                           </div>
