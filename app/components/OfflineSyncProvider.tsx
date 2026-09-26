@@ -595,9 +595,27 @@ export function OfflineSyncProvider({
             if (!res || !res.success) {
               throw new Error(res?.error || 'Error al procesar la venta en el servidor');
             }
+            if (res.updatedStocks && Array.isArray(res.updatedStocks)) {
+              for (const s of res.updatedStocks) {
+                const localProd = await db.products.get(s.id);
+                if (localProd) {
+                  let updatedVariants = localProd.variants;
+                  if (Array.isArray(localProd.variants) && Array.isArray(s.variants)) {
+                    updatedVariants = localProd.variants.map((v: any) => {
+                      const sv = s.variants.find((x: any) => x.id === v.id);
+                      return sv ? { ...v, stock: sv.stock } : v;
+                    });
+                  }
+                  await db.products.update(s.id, { stock: s.stock, variants: updatedVariants });
+                }
+              }
+              const { invalidateOfflineSearchCache } = await import('@/lib/offlineSearch');
+              invalidateOfflineSearchCache();
+            }
           }
           await db.pendingSales.delete(sale.id);
           syncedAny = true;
+
         } catch (e: any) { 
           console.error('Sync error sale', e);
           const newCount = (sale.retryCount || 0) + 1;

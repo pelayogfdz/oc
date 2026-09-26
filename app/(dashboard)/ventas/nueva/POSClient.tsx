@@ -786,11 +786,22 @@ export default function POSClient({
   const [hasDefaultedCustomer, setHasDefaultedCustomer] = useState(false);
 
   const [isSearching, setIsSearching] = useState(false);
+  const [masterProducts, setMasterProducts] = useState<any[]>(initialProducts);
   const [displayedProducts, setDisplayedProducts] = useState<any[]>(initialProducts);
+
+  useEffect(() => {
+    if (initialProducts && Array.isArray(initialProducts)) {
+      setMasterProducts(initialProducts);
+      if (searchTerm === '') {
+        setDisplayedProducts(initialProducts);
+      }
+    }
+  }, [initialProducts]);
   
   // Offline Data Mirrors
   const [activeCustomers, setActiveCustomers] = useState<any[]>(customers);
   const [localOfflineQuotes, setLocalOfflineQuotes] = useState<any[]>([]);
+
   
   // Live Customer Search & Dropdown states
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
@@ -888,14 +899,15 @@ export default function POSClient({
   useEffect(() => {
     if (searchTerm === '') {
       if (isOnline) {
-        setDisplayedProducts(initialProducts);
+        setDisplayedProducts(masterProducts);
       } else {
         searchOfflineProducts('', branchId, { limit: 50 }).then(res => {
           if (res.length) setDisplayedProducts(res);
         });
       }
     }
-  }, [searchTerm, isOnline, initialProducts, branchId]);
+  }, [searchTerm, isOnline, masterProducts, branchId]);
+
 
   // Default to "Público en General" on initial mount
   useEffect(() => {
@@ -1789,10 +1801,10 @@ export default function POSClient({
         const cleanTerm = searchTerm.trim();
         if (cleanTerm === '') {
           if (isOnline) {
-            setDisplayedProducts(initialProducts);
+            setDisplayedProducts(masterProducts);
           } else {
             const results = await searchOfflineProducts('', branchId, { limit: 50 });
-            setDisplayedProducts(results && results.length > 0 ? results : initialProducts);
+            setDisplayedProducts(results && results.length > 0 ? results : masterProducts);
           }
           return;
         }
@@ -1817,7 +1829,8 @@ export default function POSClient({
     }, 60);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, branchId, isOnline, initialProducts]);
+  }, [searchTerm, branchId, isOnline, masterProducts]);
+
 
 
 
@@ -2701,9 +2714,86 @@ export default function POSClient({
     localStorage.setItem(`caanma_on_hold_${branchId}_${mode}`, JSON.stringify(updated));
   };
 
+  const updateLocalProductStocks = useCallback(async (soldItems: any[], updatedStocksFromServer?: any[]) => {
+    if (!soldItems || !Array.isArray(soldItems) || soldItems.length === 0) return;
+
+    const applyStockChange = (prevList: any[]) => {
+      return prevList.map(p => {
+        const serverMatch = updatedStocksFromServer?.find((s: any) => s.id === p.id);
+        if (serverMatch) {
+          let updatedVariants = p.variants;
+          if (Array.isArray(p.variants) && Array.isArray(serverMatch.variants)) {
+            updatedVariants = p.variants.map((v: any) => {
+              const sv = serverMatch.variants.find((x: any) => x.id === v.id);
+              return sv ? { ...v, stock: sv.stock } : v;
+            });
+          }
+          return { ...p, stock: serverMatch.stock, variants: updatedVariants };
+        }
+
+        const soldItem = soldItems.find((i: any) => (i.productId || i.id) === p.id);
+        if (!soldItem) return p;
+
+        const soldQty = Number(soldItem.quantity) || 1;
+        const newStock = Math.max(0, (Number(p.stock) || 0) - soldQty);
+        let updatedVariants = p.variants;
+        if (soldItem.variantId && Array.isArray(p.variants)) {
+          updatedVariants = p.variants.map((v: any) => 
+            v.id === soldItem.variantId 
+              ? { ...v, stock: Math.max(0, (Number(v.stock) || 0) - soldQty) }
+              : v
+          );
+        }
+        return { ...p, stock: newStock, variants: updatedVariants };
+      });
+    };
+
+    setMasterProducts(prev => applyStockChange(prev));
+    setDisplayedProducts(prev => applyStockChange(prev));
+
+    // Update local IndexedDB mirror and invalidate offline in-memory cache immediately
+    try {
+      const { db } = await import('@/lib/offlineDB');
+      const { invalidateOfflineSearchCache } = await import('@/lib/offlineSearch');
+      
+      for (const item of soldItems) {
+        const prodId = item.productId || item.id;
+        if (prodId) {
+          const localProd = await db.products.get(prodId);
+          if (localProd) {
+            const serverMatch = updatedStocksFromServer?.find((s: any) => s.id === prodId);
+            const newStock = serverMatch !== undefined 
+              ? serverMatch.stock 
+              : Math.max(0, (Number(localProd.stock) || 0) - (Number(item.quantity) || 1));
+            
+            let updatedVariants = localProd.variants;
+            if (item.variantId && Array.isArray(localProd.variants)) {
+              updatedVariants = localProd.variants.map((v: any) => {
+                if (v.id === item.variantId) {
+                  const sv = serverMatch?.variants?.find((x: any) => x.id === v.id);
+                  return {
+                    ...v,
+                    stock: sv !== undefined ? sv.stock : Math.max(0, (Number(v.stock) || 0) - (Number(item.quantity) || 1))
+                  };
+                }
+                return v;
+              });
+            }
+
+            await db.products.update(prodId, { stock: newStock, variants: updatedVariants });
+          }
+        }
+      }
+      invalidateOfflineSearchCache();
+    } catch (errStock) {
+      console.warn('[POS] Error updating local stock mirror:', errStock);
+    }
+  }, []);
+
   const handleCheckout = async (overridePaymentMethod?: string) => {
     if (cart.length === 0) return;
     const activePaymentMethod = overridePaymentMethod || paymentMethod;
+
 
     if (transactionType === 'PEDIDO') {
       if (!deliveryDate) {
@@ -2855,10 +2945,12 @@ export default function POSClient({
           } as any);
           saleId = offlineSaleId;
           responseSale = { folio: offlineFolio };
+          await updateLocalProductStocks(items);
         } else {
           const consignment = await createConsignment(items, finalTotalWithTip, paymentMethod, selectedCustomerId || null);
           saleId = consignment?.id;
           responseSale = consignment;
+          await updateLocalProductStocks(items, (consignment as any)?.updatedStocks);
         }
       } else {
         const cashValue = typeof amountReceived === 'number' ? amountReceived : undefined;
@@ -2922,6 +3014,7 @@ export default function POSClient({
           } as any);
           saleId = offlineSaleId;
           responseSale = { folio: offlineFolio };
+          await updateLocalProductStocks(items);
         } else {
           // ONLINE MODE
           // Use the real dynamic total calculated by the POS (total + tipAmount) to preserve edits (quantities, customer, additional products)
@@ -2972,7 +3065,9 @@ export default function POSClient({
           saleId = response.sale?.id;
           responseSale = response.sale;
           invoiceError = response.invoiceError;
+          await updateLocalProductStocks(items, (response as any)?.updatedStocks);
         }
+
       }
       resetActiveTab();
       setIsCheckoutOpen(false);
@@ -6816,8 +6911,9 @@ export default function POSClient({
         onClose={() => setIsAssistantModalOpen(false)}
         branchId={branchId}
         customers={customers}
-        allProducts={initialProducts}
+        allProducts={masterProducts}
         initialCustomerId={selectedCustomerId}
+
         onApplyToQuote={handleApplyAssistantQuote}
       />
 

@@ -95,8 +95,9 @@ export async function createSale(
     if (items.length === 0) throw new Error("Ticket is empty");
 
     // Ejecutar todas las operaciones de escritura y lectura Críticas en una sola transacción Prisma
-    const { sale, finalSaleTotal, resolvedCustomerId } = await prisma.$transaction(async (tx) => {
+    const { sale, finalSaleTotal, resolvedCustomerId, updatedStocks } = await prisma.$transaction(async (tx) => {
       let resolvedCustId = customerId;
+
       if (!resolvedCustId) {
         const publicCustomer = await getOrCreateGenericCustomer(tx);
         resolvedCustId = publicCustomer.id;
@@ -584,7 +585,19 @@ export async function createSale(
          });
       }
 
-      return { sale: createdSale, finalSaleTotal, resolvedCustomerId: resolvedCustId };
+      // Fetch fresh updated stocks for all products involved in the sale
+      const updatedStocks = await tx.product.findMany({
+        where: { id: { in: items.map(i => i.productId) } },
+        select: {
+          id: true,
+          stock: true,
+          variants: {
+            select: { id: true, stock: true }
+          }
+        }
+      });
+
+      return { sale: createdSale, finalSaleTotal, resolvedCustomerId: resolvedCustId, updatedStocks };
     }, { timeout: 35000, maxWait: 15000 });
 
     // Si se solicitó factura, actualizar datos fiscales del cliente si existe y timbrar la factura (fuera de la transacción)
@@ -635,16 +648,19 @@ export async function createSale(
     }
 
     revalidatePath('/ventas');
+    revalidatePath('/ventas/nueva');
     revalidatePath('/ventas/citas');
     revalidatePath('/procesos');
     revalidatePath('/productos');
     if (paymentMethod === 'CREDIT') revalidatePath('/clientes/cobranza');
     
-    return { success: true, sale, invoiceError };
+    return { success: true, sale, invoiceError, updatedStocks };
   } catch (error: any) {
+
     return { success: false, error: error.message || String(error) };
   }
 }
+
 
 export async function refundSale(formData: FormData) {
   const saleId = formData.get('saleId') as string;

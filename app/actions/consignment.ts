@@ -133,10 +133,23 @@ export async function createConsignment(
     }
   }
 
+  const updatedStocks = await prisma.product.findMany({
+    where: { id: { in: items.map(i => i.productId) } },
+    select: {
+      id: true,
+      stock: true,
+      variants: {
+        select: { id: true, stock: true }
+      }
+    }
+  });
+
   revalidatePath('/ventas/consignaciones');
+  revalidatePath('/ventas/nueva');
   revalidatePath('/productos');
-  return consignment;
+  return { ...consignment, updatedStocks };
 }
+
 
 export async function getConsignmentForPOS(consignmentId: string) {
   const consignment = await prisma.consignment.findUnique({
