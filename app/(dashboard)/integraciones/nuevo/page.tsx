@@ -1,6 +1,7 @@
 import { crudAction } from "@/app/actions/crud";
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import BackButton from "@/app/components/ui/BackButton";
 
 export default function Nuevo() {
   const saveAction = async (formData: FormData) => {
@@ -12,9 +13,10 @@ export default function Nuevo() {
   return (
     <div style={{ maxWidth: '600px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
-        <Link href="/integraciones" style={{ textDecoration: 'none', color: 'var(--caanma-text-muted)', fontSize: '1.25rem' }}>← Volver</Link>
+        <BackButton fallbackHref="/integraciones" label="Volver" style={{ fontSize: '1.1rem' }} />
         <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Ingresar Registro / Integraciones (API)</h1>
       </div>
+
       <form action={saveAction} className="card" style={{ padding: '2rem' }}>
         
         <div style={{ marginBottom: '1.5rem' }}>

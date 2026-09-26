@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from 'next/link';
 import EditarProveedorForm from "./EditarProveedorForm";
+import BackButton from "@/app/components/ui/BackButton";
 
 export const dynamic = 'force-dynamic';
 
@@ -19,9 +20,7 @@ export default async function EditarProveedorPage({ params }: PageProps) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
         <h2 style={{ color: '#ef4444', fontWeight: 'bold' }}>Proveedor no encontrado</h2>
-        <Link href="/proveedores" style={{ color: '#3b82f6', textDecoration: 'underline', marginTop: '1rem', display: 'inline-block' }}>
-          Volver a la lista de proveedores
-        </Link>
+        <BackButton fallbackHref="/proveedores" label="Volver a la lista de proveedores" style={{ color: '#3b82f6', textDecoration: 'underline', marginTop: '1rem', display: 'inline-flex' }} />
       </div>
     );
   }
@@ -32,9 +31,10 @@ export default async function EditarProveedorPage({ params }: PageProps) {
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
-        <Link href="/proveedores" style={{ textDecoration: 'none', color: 'var(--caanma-text-muted)', fontSize: '1.25rem' }}>← Volver a Proveedores</Link>
+        <BackButton fallbackHref="/proveedores" label="Volver a Proveedores" style={{ fontSize: '1.1rem' }} />
         <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Editar Proveedor: {safeSupplier.name}</h1>
       </div>
+
 
       <EditarProveedorForm supplier={safeSupplier} />
     </div>

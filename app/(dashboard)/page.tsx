@@ -465,9 +465,9 @@ export default async function DashboardPage(props: Props) {
       />
 
       <div className="dashboard-main-grid">
-        <Card className="p-5 md:p-6 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <Card className="p-6 sm:p-7 md:p-8 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+            <div className="flex items-center justify-between mb-5 border-b border-slate-100 pb-4">
               <div className="flex items-center gap-2">
                 <span className="text-base font-bold text-slate-900 tracking-tight">
                   {isFiltered ? 'Ventas del Período' : 'Actividad Reciente'}
@@ -488,15 +488,15 @@ export default async function DashboardPage(props: Props) {
                  <table className="responsive-table w-full border-collapse">
                    <thead>
                      <tr className="border-b border-slate-100 text-left">
-                       <th className="py-2.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider">Ticket / Cliente</th>
-                       <th className="py-2.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider">{isFiltered ? 'Fecha y Hora' : 'Hora'}</th>
-                       <th className="py-2.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider text-right">Total</th>
+                       <th className="py-3 text-slate-400 text-[11px] font-bold uppercase tracking-wider">Ticket / Cliente</th>
+                       <th className="py-3 text-slate-400 text-[11px] font-bold uppercase tracking-wider">{isFiltered ? 'Fecha y Hora' : 'Hora'}</th>
+                       <th className="py-3 text-slate-400 text-[11px] font-bold uppercase tracking-wider text-right">Total</th>
                      </tr>
                    </thead>
                    <tbody>
                      {recentSales.map(sale => (
                        <tr key={sale.id} className="border-b border-slate-50 hover:bg-slate-50/70 transition-colors">
-                         <td data-label="Ticket / Cliente" className="py-2.5 text-xs font-medium">
+                         <td data-label="Ticket / Cliente" className="py-3 text-xs font-medium">
                            <Link 
                              href={`/ventas/detalle/${sale.id}`} 
                              className="text-purple-600 font-bold hover:underline"
@@ -509,7 +509,7 @@ export default async function DashboardPage(props: Props) {
                              </div>
                            )}
                          </td>
-                         <td data-label={isFiltered ? 'Fecha y Hora' : 'Hora'} className="py-2.5 text-xs text-slate-500">
+                         <td data-label={isFiltered ? 'Fecha y Hora' : 'Hora'} className="py-3 text-xs text-slate-500">
                            <Link 
                              href={`/ventas/detalle/${sale.id}`} 
                              className="text-inherit no-underline block"
@@ -520,7 +520,7 @@ export default async function DashboardPage(props: Props) {
                              }
                            </Link>
                          </td>
-                         <td data-label="Total" className="py-2.5 text-xs font-black text-slate-900 text-right">
+                         <td data-label="Total" className="py-3 text-xs font-black text-slate-900 text-right">
                            <Link 
                              href={`/ventas/detalle/${sale.id}`} 
                              className="text-inherit no-underline block"
@@ -541,9 +541,9 @@ export default async function DashboardPage(props: Props) {
           </div>
         </Card>
 
-        <Card className="p-5 md:p-6 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <Card className="p-6 sm:p-7 md:p-8 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+            <div className="flex items-center justify-between mb-5 border-b border-slate-100 pb-4">
               <div className="flex items-center gap-2">
                 <span className="text-base font-bold text-slate-900 tracking-tight">Alertas y Cartera</span>
                 <Badge variant={overdueReceivableBalance > 0 ? 'danger' : 'info'} size="sm">
@@ -567,7 +567,7 @@ export default async function DashboardPage(props: Props) {
             </div>
             
             {/* Banner de Resumen de Cartera */}
-            <div className={`p-3 rounded-xl border mb-3.5 flex items-center justify-between gap-2 ${
+            <div className={`p-4 sm:p-5 rounded-2xl border mb-4 flex items-center justify-between gap-2 ${
               overdueReceivableBalance > 0 
                 ? 'bg-rose-50/60 border-rose-200/70' 
                 : totalReceivableBalance > 0 
@@ -596,15 +596,15 @@ export default async function DashboardPage(props: Props) {
                 <table className="responsive-table w-full border-collapse">
                   <thead>
                     <tr className="border-b border-slate-100 text-left">
-                      <th className="py-2.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider">Cliente</th>
-                      <th className="py-2.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider">Atraso</th>
-                      <th className="py-2.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider text-right">Vencido</th>
+                      <th className="py-3 text-slate-400 text-[11px] font-bold uppercase tracking-wider">Cliente</th>
+                      <th className="py-3 text-slate-400 text-[11px] font-bold uppercase tracking-wider">Atraso</th>
+                      <th className="py-3 text-slate-400 text-[11px] font-bold uppercase tracking-wider text-right">Vencido</th>
                     </tr>
                   </thead>
                   <tbody>
                     {topOverdueAccounts.map(acc => (
                       <tr key={acc.id} className="border-b border-slate-50 hover:bg-slate-50/70 transition-colors">
-                        <td data-label="Cliente" className="py-2.5 text-xs font-medium">
+                        <td data-label="Cliente" className="py-3 text-xs font-medium">
                           {acc.id && acc.id !== 'PUBLIC' ? (
                             <Link 
                               href={`/clientes/${acc.id}`} 
@@ -622,7 +622,7 @@ export default async function DashboardPage(props: Props) {
                             {acc.phone ? `Tel: ${acc.phone}` : `${acc.totalSalesCount} venta(s) a crédito`}
                           </div>
                         </td>
-                        <td data-label="Atraso" className="py-2.5 text-xs">
+                        <td data-label="Atraso" className="py-3 text-xs">
                           <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">
                             {acc.maxDaysOverdue > 0 ? `${acc.maxDaysOverdue}d de atraso` : 'Vencido'}
                           </span>
@@ -630,7 +630,7 @@ export default async function DashboardPage(props: Props) {
                             {acc.overdueCount} nota(s) vencida(s)
                           </div>
                         </td>
-                        <td data-label="Vencido" className="py-2.5 text-xs font-black text-right">
+                        <td data-label="Vencido" className="py-3 text-xs font-black text-right">
                           <span className="text-rose-600 font-black block">
                             {formatter.format(acc.overdueBalance)}
                           </span>
@@ -661,7 +661,7 @@ export default async function DashboardPage(props: Props) {
       <div className="dashboard-reports-grid">
         
         {/* Card 1: 🏆 Mejores Clientes */}
-        <Card className="p-5 md:p-6 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <Card className="p-6 sm:p-7 md:p-8 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-start mb-5 gap-3 border-b border-slate-100 pb-4">
               <div className="min-w-0 flex-1">
@@ -688,7 +688,7 @@ export default async function DashboardPage(props: Props) {
                 topCustomers.map((cust: any, idx: number) => {
                   const percentage = Math.min(100, Math.round((cust.totalPurchased / maxCustomerPurchased) * 100));
                   return (
-                    <div key={cust.id} className="flex items-center gap-3 min-w-0 py-1 px-1.5 rounded-lg hover:bg-slate-50/70 transition-colors">
+                    <div key={cust.id} className="flex items-center gap-3 min-w-0 py-2 px-3 rounded-xl hover:bg-slate-50/80 transition-colors">
                       <div className={`w-7 h-7 rounded-md flex items-center justify-center font-bold text-xs flex-shrink-0 ${
                         idx === 0 
                           ? 'bg-amber-100 text-amber-800 font-extrabold' 
@@ -741,7 +741,7 @@ export default async function DashboardPage(props: Props) {
         />
 
         {/* Card 3: 🏷️ Categorías Más Vendidas */}
-        <Card className="p-5 md:p-6 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <Card className="p-6 sm:p-7 md:p-8 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-start mb-5 gap-3 border-b border-slate-100 pb-4">
               <div className="min-w-0 flex-1">
@@ -768,7 +768,7 @@ export default async function DashboardPage(props: Props) {
                 topCategories.map((cat: any, idx: number) => {
                   const percentage = Math.min(100, Math.round((cat.totalRevenue / maxCategoryRevenue) * 100));
                   return (
-                    <div key={cat.category} className="flex items-center gap-3 min-w-0 py-1 px-1.5 rounded-lg hover:bg-slate-50/70 transition-colors">
+                    <div key={cat.category} className="flex items-center gap-3 min-w-0 py-2 px-3 rounded-xl hover:bg-slate-50/80 transition-colors">
                       <div className={`w-7 h-7 rounded-md flex items-center justify-center font-bold text-xs flex-shrink-0 ${
                         idx === 0 
                           ? 'bg-amber-100 text-amber-800 font-extrabold' 
@@ -813,7 +813,7 @@ export default async function DashboardPage(props: Props) {
         </Card>
 
         {/* Card 4: 👔 Ventas por Vendedor */}
-        <Card className="p-5 md:p-6 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <Card className="p-6 sm:p-7 md:p-8 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-start mb-5 gap-3 border-b border-slate-100 pb-4">
               <div className="min-w-0 flex-1">
@@ -840,7 +840,7 @@ export default async function DashboardPage(props: Props) {
                 topSellers.map((seller: any, idx: number) => {
                   const percentage = Math.min(100, Math.round((seller.totalSold / maxSellerSold) * 100));
                   return (
-                    <div key={seller.id} className="flex items-center gap-3 min-w-0 py-1 px-1.5 rounded-lg hover:bg-slate-50/70 transition-colors">
+                    <div key={seller.id} className="flex items-center gap-3 min-w-0 py-2 px-3 rounded-xl hover:bg-slate-50/80 transition-colors">
                       <div className={`w-7 h-7 rounded-md flex items-center justify-center font-bold text-xs flex-shrink-0 ${
                         idx === 0 
                           ? 'bg-amber-100 text-amber-800 font-extrabold' 

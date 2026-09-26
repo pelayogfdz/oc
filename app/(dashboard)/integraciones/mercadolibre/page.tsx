@@ -8,6 +8,8 @@ import MeliCalculator from './Calculator';
 import MeliQuestions from './MeliQuestions';
 import { headers } from 'next/headers';
 import MeliCatalogTable from './MeliCatalogTable';
+import BackButton from '@/app/components/ui/BackButton';
+
 
 interface PageProps {
   searchParams: Promise<{
@@ -282,10 +284,9 @@ export default async function MercadoLibreConfigPage({ searchParams }: PageProps
     <div className="meli-page-container" style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '3rem', transition: 'max-width 0.3s ease' }}>
       {/* Cabecera */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-        <Link href="/integraciones" style={{ color: 'var(--caanma-text-muted)', textDecoration: 'none' }}>
-          <ArrowLeft size={24} />
-        </Link>
+        <BackButton fallbackHref="/integraciones" label="" iconSize={24} />
         <div>
+
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Panel de Mercado Libre</h1>
           <p style={{ color: 'var(--caanma-text-muted)' }}>Administra tu sincronización, margen de ganancias, publicaciones y preguntas de clientes.</p>
         </div>

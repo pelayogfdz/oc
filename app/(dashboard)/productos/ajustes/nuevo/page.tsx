@@ -2,6 +2,7 @@ import Link from 'next/link';
 import AdjustmentClient from '../AdjustmentClient';
 import { getActiveBranch } from '@/app/actions/auth';
 import { prisma } from '@/lib/prisma';
+import BackButton from '@/app/components/ui/BackButton';
 
 export default async function Nuevo() {
   const branch = await getActiveBranch();
@@ -26,9 +27,10 @@ export default async function Nuevo() {
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
-        <Link href="/productos/ajustes" style={{ textDecoration: 'none', color: 'var(--caanma-text-muted)', fontSize: '1.25rem' }}>← Volver</Link>
+        <BackButton fallbackHref="/productos/ajustes" label="Volver" style={{ fontSize: '1.1rem' }} />
         <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Ingresar Registro / Ajustes Manuales</h1>
       </div>
+
       
       <div className="card" style={{ padding: '0', backgroundColor: 'transparent', border: 'none', boxShadow: 'none' }}>
         <AdjustmentClient branchId={branch?.id || ''} initialProducts={products} />

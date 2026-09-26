@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Search, Loader2, ArrowRight, CheckCircle, FileText, AlertTriangle, Mail, Send, MessageCircle } from 'lucide-react';
 import { searchSaleForReturn, createCreditNoteAction, sendCreditNoteEmailAction } from '@/app/actions/creditNote';
 import { formatCurrency } from '@/lib/utils';
+import BackButton from '@/app/components/ui/BackButton';
+
 
 export default function DevolucionesNuevoClient() {
   const [step, setStep] = useState(1);
@@ -240,10 +242,9 @@ export default function DevolucionesNuevoClient() {
       {step === 1 && (
         <div style={{ maxWidth: '700px', margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem', gap: '1rem' }}>
-            <Link href="/facturas/notas-credito" style={{ textDecoration: 'none', color: '#f43f5e', fontSize: '1rem', fontWeight: '500' }}>
-              ← Volver al Panel de Notas de Crédito
-            </Link>
+            <BackButton fallbackHref="/facturas/notas-credito" label="Volver al Panel de Notas de Crédito" style={{ color: '#f43f5e', fontSize: '1rem', fontWeight: '500' }} />
           </div>
+
 
           <form onSubmit={handleSearch} className="card" style={{ padding: '3.5rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'center', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
             <div style={{ textAlign: 'center', maxWidth: '500px' }}>

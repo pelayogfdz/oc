@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { updateCustomerAction } from '@/app/actions/customer';
+import BackButton from '@/app/components/ui/BackButton';
+
 
 interface EditarClienteFormProps {
   id: string;
@@ -90,9 +92,10 @@ export default function EditarClienteForm({
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
-        <Link href="/clientes" style={{ textDecoration: 'none', color: 'var(--caanma-text-muted)', fontSize: '1.25rem' }}>← Volver a Clientes</Link>
+        <BackButton fallbackHref={`/clientes/${id}`} label="Volver" style={{ fontSize: '1.1rem' }} />
         <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Editar Cliente: {customer.name}</h1>
       </div>
+
 
       {errorMsg && (
         <div style={{ padding: '1rem 1.25rem', backgroundColor: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: '8px', marginBottom: '1.5rem', fontWeight: '500' }}>
@@ -260,10 +263,9 @@ export default function EditarClienteForm({
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-           <Link href={`/clientes/${id}`} style={{ padding: '0.75rem 2rem', textDecoration: 'none', color: 'var(--caanma-text)', border: '1px solid var(--caanma-border)', borderRadius: '4px', fontWeight: 'bold' }}>
-             {isGenericPublic ? 'Volver al Perfil' : 'Cancelar'}
-           </Link>
+           <BackButton fallbackHref={`/clientes/${id}`} label={isGenericPublic ? 'Volver al Perfil' : 'Cancelar'} style={{ padding: '0.75rem 2rem', color: 'var(--caanma-text)', border: '1px solid var(--caanma-border)', borderRadius: '4px', fontWeight: 'bold' }} showIcon={false} />
            {!isGenericPublic && (
+
              <button className="btn-primary" type="submit" disabled={isSubmitting} style={{ padding: '0.75rem 3rem', fontSize: '1.1rem', opacity: isSubmitting ? 0.7 : 1 }}>
                {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
              </button>

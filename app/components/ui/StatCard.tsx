@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 
 export interface StatCardProps {
   title: string;
@@ -30,7 +30,7 @@ export function StatCard({
 
   return (
     <div
-      className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-5 hover:shadow-md hover:border-slate-200 transition-all duration-200 min-w-0 ${className}`}
+      className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-7 md:p-8 hover:shadow-md hover:border-slate-200 transition-all duration-200 min-w-0 ${className}`}
     >
       <div className="flex items-start justify-between mb-3 gap-2">
         <span className="text-xs font-bold uppercase tracking-wider text-slate-500 truncate" title={title}>

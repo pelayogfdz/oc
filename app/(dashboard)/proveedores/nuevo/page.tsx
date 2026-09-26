@@ -1,6 +1,7 @@
 import { crudAction } from "@/app/actions/crud";
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import BackButton from "@/app/components/ui/BackButton";
 
 export default function NuevoProveedor() {
   const saveAction = async (formData: FormData) => {
@@ -12,9 +13,10 @@ export default function NuevoProveedor() {
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
-        <Link href="/proveedores" style={{ textDecoration: 'none', color: 'var(--caanma-text-muted)', fontSize: '1.25rem' }}>← Volver a Proveedors</Link>
+        <BackButton fallbackHref="/proveedores" label="Volver a Proveedores" style={{ fontSize: '1.1rem' }} />
         <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Alta de Nuevo Proveedor B2B</h1>
       </div>
+
 
       <form action={saveAction} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         
@@ -150,9 +152,10 @@ export default function NuevoProveedor() {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-           <Link href="/proveedores" style={{ padding: '0.75rem 2rem', textDecoration: 'none', color: 'var(--caanma-text)', border: '1px solid var(--caanma-border)', borderRadius: '4px', fontWeight: 'bold' }}>Cancelar</Link>
+           <BackButton fallbackHref="/proveedores" label="Cancelar" style={{ padding: '0.75rem 2rem', color: 'var(--caanma-text)', border: '1px solid var(--caanma-border)', borderRadius: '4px', fontWeight: 'bold' }} showIcon={false} />
            <button className="btn-primary" type="submit" style={{ padding: '0.75rem 3rem', fontSize: '1.1rem' }}>Crear Proveedor</button>
         </div>
+
       </form>
     </div>
   );

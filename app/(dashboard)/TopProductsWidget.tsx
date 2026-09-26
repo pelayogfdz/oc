@@ -61,10 +61,10 @@ export default function TopProductsWidget({
   const currentList = getActiveList();
 
   return (
-    <Card className="p-5 md:p-6 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
+    <Card className="p-6 sm:p-7 md:p-8 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
       <div>
         {/* Header */}
-        <div className="flex justify-between items-start mb-4 gap-3 border-b border-slate-100 pb-4">
+        <div className="flex justify-between items-start mb-5 gap-3 border-b border-slate-100 pb-4">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-base font-bold text-slate-900 tracking-tight">📦 Productos Más Vendidos</span>
@@ -85,11 +85,11 @@ export default function TopProductsWidget({
         </div>
 
         {/* View Switcher Pills */}
-        <div className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-lg mb-4 overflow-x-auto">
+        <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/90 rounded-xl mb-5 overflow-x-auto">
           <button
             type="button"
             onClick={() => setViewMode('units')}
-            className={`flex-1 min-w-[85px] flex items-center justify-center gap-1.5 py-1 px-2.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex-1 min-w-[85px] flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               viewMode === 'units'
                 ? 'bg-white text-slate-900 shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
@@ -102,7 +102,7 @@ export default function TopProductsWidget({
           <button
             type="button"
             onClick={() => setViewMode('revenue')}
-            className={`flex-1 min-w-[85px] flex items-center justify-center gap-1.5 py-1 px-2.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex-1 min-w-[85px] flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               viewMode === 'revenue'
                 ? 'bg-white text-slate-900 shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
@@ -115,7 +115,7 @@ export default function TopProductsWidget({
           <button
             type="button"
             onClick={() => setViewMode('margin')}
-            className={`flex-1 min-w-[85px] flex items-center justify-center gap-1.5 py-1 px-2.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex-1 min-w-[85px] flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               viewMode === 'margin'
                 ? 'bg-white text-slate-900 shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
@@ -131,7 +131,7 @@ export default function TopProductsWidget({
           {currentList.length > 0 ? (
             currentList.map((prod, idx) => {
               return (
-                <div key={`${viewMode}-${prod.id}-${idx}`} className="flex items-center gap-3 min-w-0 py-1 px-1.5 rounded-lg hover:bg-slate-50/70 transition-colors">
+                <div key={`${viewMode}-${prod.id}-${idx}`} className="flex items-center gap-3 min-w-0 py-1.5 px-2.5 rounded-xl hover:bg-slate-50/80 transition-colors">
                   <div className={`w-7 h-7 rounded-md flex items-center justify-center font-bold text-xs flex-shrink-0 ${
                     idx === 0 
                       ? 'bg-amber-100 text-amber-800 font-extrabold' 

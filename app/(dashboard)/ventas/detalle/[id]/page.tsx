@@ -6,6 +6,7 @@ import { getActiveBranch } from "@/app/actions/auth";
 import Link from "next/link";
 import { Printer, ArrowLeft, Receipt } from "lucide-react";
 import VentaActionsClient from "./VentaActionsClient";
+import BackButton from "@/app/components/ui/BackButton";
 
 export default async function VentaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -37,9 +38,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
         <p style={{ color: 'var(--caanma-text-muted)', fontSize: '0.9rem', lineHeight: '1.5', marginBottom: '1.75rem' }}>
           El registro solicitado no existe o ya concluyó su ciclo en el servidor. Si se trata de una venta generada recientemente en modo offline, revisa la cola de sincronización o regresa al listado.
         </p>
-        <Link href="/ventas" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', backgroundColor: 'var(--caanma-primary)', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem' }}>
-          <ArrowLeft size={16} /> Volver al Historial de Ventas
-        </Link>
+        <BackButton fallbackHref="/ventas" label="Volver al Historial de Ventas" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', backgroundColor: 'var(--caanma-primary)', color: 'white', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem' }} />
       </div>
     );
   }
@@ -95,9 +94,8 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
       
       {/* Top Header & Navigation */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem', width: '100%' }}>
-         <Link href="/ventas" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--caanma-text-muted)', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem' }}>
-            <ArrowLeft size={18} /> Volver a Ventas
-         </Link>
+         <BackButton fallbackHref="/ventas" label="Volver a Ventas" />
+
          <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
             Folio: <strong style={{ color: '#0f172a' }}>#{sale.folio || sale.id.slice(0, 8).toUpperCase()}</strong>
          </div>

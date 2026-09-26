@@ -5,6 +5,7 @@ import { getTenantSuppliers } from "@/app/actions/supplier";
 import Link from 'next/link';
 import { ArrowLeft, ShoppingCart } from 'lucide-react';
 import EditarPedidoForm from "./EditarPedidoForm";
+import BackButton from "@/app/components/ui/BackButton";
 
 export const dynamic = 'force-dynamic';
 
@@ -42,10 +43,9 @@ export default async function PurchaseOrderDetailPage({ params }: { params: { id
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <Link href="/productos/pedidos" style={{ color: 'var(--caanma-text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-          <ArrowLeft size={18} /> Volver a Pedidos
-        </Link>
+        <BackButton fallbackHref="/productos/pedidos" label="Volver a Pedidos" />
       </div>
+
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>

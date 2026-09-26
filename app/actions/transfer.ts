@@ -274,7 +274,9 @@ export async function dispatchDirectTransfer(
       where: { branchId: branchActive.id }
     });
     const config = settings?.configJson ? JSON.parse(settings.configJson) : {};
-    const venderSinStock = config.ventas?.venderSinStock === true;
+    const traspasarSinStock = config.ventas?.traspasarSinStock !== undefined 
+      ? config.ventas?.traspasarSinStock === true 
+      : config.ventas?.venderSinStock === true;
 
     let transferId = '';
     await prisma.$transaction(async (tx) => {
@@ -305,8 +307,8 @@ export async function dispatchDirectTransfer(
 
         let originVariantId = item.variantId || null;
 
-        // Check stock availability if venderSinStock is disabled
-        if (!venderSinStock) {
+        // Check stock availability if traspasarSinStock is disabled
+        if (!traspasarSinStock) {
           if (originProduct.stock < dispatchedQty) {
             throw new Error(`El producto "${originProduct.name}" no tiene suficiente existencia en origen (disponible: ${originProduct.stock}, solicitado: ${dispatchedQty}).`);
           }

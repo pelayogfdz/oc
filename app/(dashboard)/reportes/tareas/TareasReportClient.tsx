@@ -8,6 +8,8 @@ import {
 import { getCollaboratorTaskReport } from '@/app/actions/task';
 import Link from 'next/link';
 import { exportToExcel } from '@/lib/exportExcel';
+import BackButton from '@/app/components/ui/BackButton';
+
 
 type CollaboratorReport = {
   collaborator: {
@@ -139,23 +141,19 @@ export default function TareasReportClient({
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <Link 
-            href="/reportes" 
+          <BackButton 
+            fallbackHref="/reportes" 
             className="no-print"
+            label="Volver a Reportes"
             style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '0.5rem', 
               color: 'var(--caanma-primary)', 
               fontSize: '0.85rem', 
               fontWeight: 'bold', 
-              textDecoration: 'none',
               marginBottom: '0.75rem' 
             }}
-          >
-            <ArrowLeft size={16} /> Volver a Reportes
-          </Link>
+          />
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', margin: 0, color: 'var(--caanma-text)' }}>
+
             📋 Reporte de Rendimiento de Tareas
           </h1>
           <p style={{ color: 'var(--caanma-text-muted)', margin: '0.25rem 0 0 0' }}>

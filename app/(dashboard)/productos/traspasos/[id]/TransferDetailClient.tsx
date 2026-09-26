@@ -7,6 +7,8 @@ import { useTransition, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatCurrency } from '@/lib/utils';
 import { compressImageFile } from '@/lib/imageUtils';
+import BackButton from '@/app/components/ui/BackButton';
+
 
 export default function TransferDetailClient({ transfer, branchId }: { transfer: any, branchId: string }) {
   const isOrigin = transfer.branchId === branchId; // La sucursal que surte
@@ -135,9 +137,10 @@ export default function TransferDetailClient({ transfer, branchId }: { transfer:
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '1rem' }}>
-      <Link href="/productos/traspasos" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--caanma-primary)', textDecoration: 'none', marginBottom: '1.5rem', fontWeight: 500 }}>
-        <ArrowLeft size={16} /> Volver a Traspasos
-      </Link>
+      <div style={{ marginBottom: '1.5rem' }}>
+        <BackButton fallbackHref="/productos/traspasos" label="Volver a Traspasos" style={{ color: 'var(--caanma-primary)', fontWeight: 500 }} />
+      </div>
+
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>

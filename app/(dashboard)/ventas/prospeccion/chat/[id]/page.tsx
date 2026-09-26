@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ChatInterface from "./ChatInterface";
 import DeleteProspectButton from "./DeleteProspectButton";
+import BackButton from "@/app/components/ui/BackButton";
 
 export default async function ProspectChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,7 +29,7 @@ export default async function ProspectChatPage({ params }: { params: Promise<{ i
       <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
         <h2 style={{ color: '#ef4444' }}>Acceso Denegado</h2>
         <p>No tienes permiso para ver este prospecto porque está asignado a otro vendedor.</p>
-        <Link href="/ventas/prospeccion" className="btn-primary" style={{ marginTop: '1rem', display: 'inline-block' }}>Volver</Link>
+        <BackButton fallbackHref="/ventas/prospeccion" label="Volver" style={{ marginTop: '1rem', display: 'inline-flex', padding: '0.5rem 1rem', backgroundColor: 'var(--caanma-primary)', color: 'white', borderRadius: '6px' }} />
       </div>
     );
   }
@@ -36,10 +37,8 @@ export default async function ProspectChatPage({ params }: { params: Promise<{ i
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingBottom: '1rem', borderBottom: '1px solid var(--caanma-border)' }}>
-        <Link href="/ventas/prospeccion" style={{ color: 'var(--caanma-text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-          Volver
-        </Link>
+        <BackButton fallbackHref="/ventas/prospeccion" label="Volver" />
+
         <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', fontWeight: 'bold', color: '#64748b' }}>
           {prospect.name.charAt(0).toUpperCase()}
         </div>

@@ -5,6 +5,8 @@ import { submitAuditCount, updateAuditStatus, finalizeAudit } from '@/app/action
 import { Save, UploadCloud, Download, CheckCircle, AlertTriangle, ArrowRight, Upload, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import BackButton from '@/app/components/ui/BackButton';
+
 
 export default function AuditDetailClient({ audit, products }: { audit: any, products: any[] }) {
   const router = useRouter();
@@ -198,10 +200,11 @@ export default function AuditDetailClient({ audit, products }: { audit: any, pro
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>
-          <Link href="/productos/auditorias" style={{ color: '#3b82f6', textDecoration: 'none', fontSize: '0.9rem', marginBottom: '0.5rem', display: 'inline-block' }}>
-            &larr; Volver a Auditorías
-          </Link>
+          <div style={{ marginBottom: '0.5rem' }}>
+            <BackButton fallbackHref="/productos/auditorias" label="Volver a Auditorías" style={{ color: '#3b82f6', fontSize: '0.9rem' }} />
+          </div>
           <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+
             {audit.name}
             {isCompleted && <CheckCircle color="#10b981" size={24} />}
           </h1>

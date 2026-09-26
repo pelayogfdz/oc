@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
-import { Calendar, DollarSign, ShoppingCart } from 'lucide-react';
+import { Calendar, DollarSign, ShoppingCart, Filter, RotateCcw } from 'lucide-react';
 
 interface ChartDataPoint {
   date: string;
@@ -118,7 +118,7 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Filtros Bar Ampliado (+50% tamaño) */}
-      <div className="bg-white p-4 sm:p-5 md:p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap justify-between items-center gap-4">
+      <div className="bg-white p-5 sm:p-6 md:p-7 lg:p-8 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap justify-between items-center gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-xs">
             <Calendar size={20} />
@@ -128,7 +128,7 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
         
         <div className="flex items-center flex-wrap gap-3">
           {/* Selector de Agrupamiento */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-sm font-bold text-slate-600">Agrupar:</span>
             <select
               value={groupBy}
@@ -142,7 +142,7 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-sm font-bold text-slate-600">Desde:</span>
             <input 
               type="date" 
@@ -152,7 +152,7 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
             />
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-sm font-bold text-slate-600">Hasta:</span>
             <input 
               type="date" 
@@ -162,22 +162,24 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button 
               onClick={handleFilter}
               disabled={isUpdating}
-              className="bg-slate-900 hover:bg-slate-800 text-white border-0 py-2 px-5 rounded-xl text-sm font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50 h-10 flex items-center justify-center"
+              className="bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-bold py-2 px-5 rounded-xl text-sm transition-all shadow-sm shadow-purple-200 cursor-pointer disabled:opacity-50 h-10 inline-flex items-center justify-center gap-2 flex-shrink-0"
             >
-              {isUpdating ? 'Filtrando...' : 'Filtrar'}
+              <Filter size={16} />
+              <span>{isUpdating ? 'Filtrando...' : 'Filtrar'}</span>
             </button>
 
             {hasActiveFilter && (
               <button 
                 onClick={handleResetToday}
                 disabled={isUpdating}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 py-2 px-4 rounded-xl text-sm font-bold transition-all cursor-pointer disabled:opacity-50 h-10 flex items-center justify-center"
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 py-2 px-4 rounded-xl text-sm font-bold transition-all cursor-pointer disabled:opacity-50 h-10 inline-flex items-center justify-center gap-1.5 flex-shrink-0"
               >
-                Ver Hoy
+                <RotateCcw size={15} />
+                <span>Ver Hoy</span>
               </button>
             )}
           </div>
@@ -188,7 +190,7 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '1.5rem', width: '100%', minWidth: 0 }}>
         
         {/* Gráfica 1: Número de Ventas */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs h-[330px] flex flex-col min-w-0 overflow-hidden">
+        <div className="bg-white p-6 sm:p-7 md:p-8 rounded-2xl border border-slate-200/80 shadow-xs h-[350px] flex flex-col min-w-0 overflow-hidden">
           <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2 m-0">
               <ShoppingCart size={15} className="text-blue-600" /> Transacciones Realizadas
@@ -215,7 +217,7 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
         </div>
 
         {/* Gráfica 2: Monto de Ventas */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs h-[330px] flex flex-col min-w-0 overflow-hidden">
+        <div className="bg-white p-6 sm:p-7 md:p-8 rounded-2xl border border-slate-200/80 shadow-xs h-[350px] flex flex-col min-w-0 overflow-hidden">
           <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2 m-0">
               <DollarSign size={15} className="text-emerald-500" /> Facturación / Ingresos
@@ -274,7 +276,7 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
               {/* Card 1: Ventas */}
-              <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex justify-between items-center">
+              <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs flex justify-between items-center">
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
                     Ventas del Período
@@ -283,13 +285,13 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
                     {periodTotalSales.toLocaleString('es-MX')}
                   </div>
                 </div>
-                <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
                   <ShoppingCart size={18} />
                 </div>
               </div>
 
               {/* Card 2: Monto Total */}
-              <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex justify-between items-center">
+              <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs flex justify-between items-center">
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
                     Monto del Período
@@ -298,13 +300,13 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
                     {formatCurrency(periodTotalAmount)}
                   </div>
                 </div>
-                <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
                   <DollarSign size={18} />
                 </div>
               </div>
 
               {/* Card 3: Ticket Promedio */}
-              <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex justify-between items-center">
+              <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs flex justify-between items-center">
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
                     Ticket Promedio
@@ -313,7 +315,7 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
                     {formatCurrency(periodAvgTicket)}
                   </div>
                 </div>
-                <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
                   <DollarSign size={18} />
                 </div>
               </div>

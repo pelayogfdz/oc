@@ -178,6 +178,7 @@ export const PERMISSION_MODULES = [
         name: 'Reportes de Inventario',
         permissions: [
           { id: 'report_valued_inventory', label: 'Inventario Valorizado' },
+          { id: 'report_purchases_remaining', label: 'Compras vs Stock Remanente' },
           { id: 'report_costs_prices', label: 'Costos y Precios' },
           { id: 'report_replenishment', label: 'Reporte de Resurtido' },
           { id: 'report_inventory_log', label: 'Bitácora de Inventario' },

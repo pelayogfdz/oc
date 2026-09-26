@@ -2226,6 +2226,14 @@ export async function syncAndFixAllSalesAndCreditBalancesAction() {
       }
       const apiKeys = Array.from(apiKeysSet);
 
+      // Pre-map invoices to identify multi-ticket invoices (invoices grouping multiple sales)
+      const invoiceCountMap = new Map<string, number>();
+      for (const s of sales) {
+        if (s.invoiceId) {
+          invoiceCountMap.set(s.invoiceId, (invoiceCountMap.get(s.invoiceId) || 0) + 1);
+        }
+      }
+
       for (const sale of sales) {
         let targetTotal = sale.total;
         let isInvoiceMatched = false;
@@ -2239,7 +2247,17 @@ export async function syncAndFixAllSalesAndCreditBalancesAction() {
           isInvoiceMatched = true;
         }
 
-        if (sale.invoiceId && !isInvoiceMatched) {
+        const isMultiTicket = sale.invoiceId && (invoiceCountMap.get(sale.invoiceId) || 0) > 1;
+
+        if (isMultiTicket) {
+          // In a multi-ticket invoice, this sale's total MUST be the sum of its own items!
+          // Never overwrite individual sale total with the consolidated invoice total from Facturapi.
+          const itemsSum = (sale.items || []).reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity)), 0);
+          if (itemsSum > 0) {
+            targetTotal = itemsSum;
+            isInvoiceMatched = true;
+          }
+        } else if (sale.invoiceId && !isInvoiceMatched) {
           for (const key of apiKeys) {
             try {
               const Facturapi = (await import('facturapi')).default;
@@ -2254,9 +2272,20 @@ export async function syncAndFixAllSalesAndCreditBalancesAction() {
           }
         }
 
-        // Check if total or balanceDue needs correction
+        // Calculate expected balance due
         const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
-        const expectedBalanceDue = sale.paymentMethod === 'CREDIT' ? Math.max(0, targetTotal - totalPaid) : 0;
+        let expectedBalanceDue = sale.paymentMethod === 'CREDIT' ? Math.max(0, targetTotal - totalPaid) : 0;
+
+        // If it's a multi-ticket credit invoice where the total group payment covers the total group sum
+        if (isMultiTicket && sale.paymentMethod === 'CREDIT' && sale.invoiceId) {
+          const siblingSales = sales.filter(s => s.invoiceId === sale.invoiceId && s.paymentMethod === 'CREDIT');
+          const groupTotalItems = siblingSales.reduce((sum, s) => sum + (s.items || []).reduce((isum, it) => isum + (Number(it.price) * Number(it.quantity)), 0), 0);
+          const groupTotalPaid = siblingSales.reduce((sum, s) => sum + (s.payments || []).reduce((psum, p) => psum + p.amount, 0), 0);
+          if (groupTotalPaid >= groupTotalItems - 0.05) {
+            expectedBalanceDue = 0;
+          }
+        }
+
         const totalDiff = Math.abs(sale.total - targetTotal);
         const balanceDiff = Math.abs(sale.balanceDue - expectedBalanceDue);
 
@@ -2340,35 +2369,62 @@ export async function syncSingleSaleWithInvoiceAction(saleId: string) {
     let isInvoiceMatched = false;
 
     if (sale.invoiceId) {
-      const branchSettingsList = await prisma.branchSettings.findMany({ select: { configJson: true } });
-      const apiKeysSet = new Set<string>();
-      for (const bs of branchSettingsList) {
-        if (bs.configJson) {
-          try {
-            const cfg = JSON.parse(bs.configJson);
-            if (cfg.facturacion?.liveKey) apiKeysSet.add(cfg.facturacion.liveKey);
-            if (cfg.facturacion?.apiTokenLive) apiKeysSet.add(cfg.facturacion.apiTokenLive);
-            if (cfg.facturacion?.testKey) apiKeysSet.add(cfg.facturacion.testKey);
-            if (cfg.facturacion?.apiTokenTest) apiKeysSet.add(cfg.facturacion.apiTokenTest);
-          } catch (e) {}
+      const siblingCount = await prisma.sale.count({
+        where: { invoiceId: sale.invoiceId }
+      });
+
+      if (siblingCount > 1) {
+        // Multi-ticket invoice: calculate total from items
+        const itemsSum = (sale.items || []).reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity)), 0);
+        if (itemsSum > 0) {
+          targetTotal = itemsSum;
+          isInvoiceMatched = true;
         }
-      }
-      for (const key of Array.from(apiKeysSet)) {
-        try {
-          const Facturapi = (await import('facturapi')).default;
-          const facturapi = new Facturapi(key);
-          const inv = await facturapi.invoices.retrieve(sale.invoiceId);
-          if (inv && typeof inv.total === 'number') {
-            targetTotal = inv.total;
-            isInvoiceMatched = true;
-            break;
+      } else {
+        const branchSettingsList = await prisma.branchSettings.findMany({ select: { configJson: true } });
+        const apiKeysSet = new Set<string>();
+        for (const bs of branchSettingsList) {
+          if (bs.configJson) {
+            try {
+              const cfg = JSON.parse(bs.configJson);
+              if (cfg.facturacion?.liveKey) apiKeysSet.add(cfg.facturacion.liveKey);
+              if (cfg.facturacion?.apiTokenLive) apiKeysSet.add(cfg.facturacion.apiTokenLive);
+              if (cfg.facturacion?.testKey) apiKeysSet.add(cfg.facturacion.testKey);
+              if (cfg.facturacion?.apiTokenTest) apiKeysSet.add(cfg.facturacion.apiTokenTest);
+            } catch (e) {}
           }
-        } catch (err) {}
+        }
+        for (const key of Array.from(apiKeysSet)) {
+          try {
+            const Facturapi = (await import('facturapi')).default;
+            const facturapi = new Facturapi(key);
+            const inv = await facturapi.invoices.retrieve(sale.invoiceId);
+            if (inv && typeof inv.total === 'number') {
+              targetTotal = inv.total;
+              isInvoiceMatched = true;
+              break;
+            }
+          } catch (err) {}
+        }
       }
     }
 
     const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
-    const newBalanceDue = sale.paymentMethod === 'CREDIT' ? Math.max(0, targetTotal - totalPaid) : 0;
+    let newBalanceDue = sale.paymentMethod === 'CREDIT' ? Math.max(0, targetTotal - totalPaid) : 0;
+
+    if (sale.invoiceId && sale.paymentMethod === 'CREDIT') {
+      const siblingSales = await prisma.sale.findMany({
+        where: { invoiceId: sale.invoiceId, paymentMethod: 'CREDIT' },
+        include: { items: true, payments: true }
+      });
+      if (siblingSales.length > 1) {
+        const groupTotalItems = siblingSales.reduce((sum, s) => sum + (s.items || []).reduce((isum, it) => isum + (Number(it.price) * Number(it.quantity)), 0), 0);
+        const groupTotalPaid = siblingSales.reduce((sum, s) => sum + (s.payments || []).reduce((psum, p) => psum + p.amount, 0), 0);
+        if (groupTotalPaid >= groupTotalItems - 0.05) {
+          newBalanceDue = 0;
+        }
+      }
+    }
 
     await prisma.sale.update({
       where: { id: sale.id },

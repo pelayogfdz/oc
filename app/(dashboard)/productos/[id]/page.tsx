@@ -15,6 +15,8 @@ import SatKeyAutocomplete from "@/app/components/SatKeyAutocomplete";
 import SatUnitAutocomplete from "@/app/components/SatUnitAutocomplete";
 import CategorySelector from "@/app/components/CategorySelector";
 import BrandSelector from "@/app/components/BrandSelector";
+import BackButton from "@/app/components/ui/BackButton";
+
 
 
 
@@ -266,10 +268,9 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <Link href="/productos" style={{ color: 'var(--caanma-text-muted)', textDecoration: 'none' }}>
-          &larr; Volver
-        </Link>
+        <BackButton fallbackHref="/productos" label="Volver" />
         <div style={{ display: 'flex', gap: '0.5rem' }}>
+
           <Link href={`/productos/nuevo?cloneFrom=${product.id}`} style={{ padding: '0.5rem 1rem', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 'bold', textDecoration: 'none', display: 'inline-block' }}>
             Clonar
           </Link>

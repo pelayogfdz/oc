@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from 'next/link';
 import ClientProfile from "./ClientProfile";
+import BackButton from "@/app/components/ui/BackButton";
 
 export default async function ClientProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -13,7 +14,7 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
     return (
       <div style={{ textAlign: 'center', padding: '4rem' }}>
         <h2>Cliente no encontrado</h2>
-        <Link href="/clientes" className="btn-primary" style={{ marginTop: '1rem', display: 'inline-block', textDecoration: 'none' }}>Volver al Directorio</Link>
+        <BackButton fallbackHref="/clientes" label="Volver al Directorio" style={{ marginTop: '1rem', display: 'inline-flex', padding: '0.5rem 1rem', backgroundColor: 'var(--caanma-primary)', color: 'white', borderRadius: '6px', textDecoration: 'none' }} />
       </div>
     );
   }
@@ -33,10 +34,9 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 0.75rem 2rem 0.75rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.25rem', gap: '1rem' }}>
-        <Link href="/clientes" style={{ textDecoration: 'none', color: 'var(--caanma-text-muted)', fontSize: '1rem', fontWeight: '500', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-          ← Volver al Directorio
-        </Link>
+        <BackButton fallbackHref="/clientes" label="Volver al Directorio" style={{ fontSize: '1rem', fontWeight: '500' }} />
       </div>
+
 
       <ClientProfile customer={customer} sales={sales} payments={payments} />
     </div>

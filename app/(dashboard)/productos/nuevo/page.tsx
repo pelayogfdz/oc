@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Image as ImageIcon } from 'lucide-react';
 import ProductFormClient from "./ProductFormClient";
 import { getTenantSuppliers } from "@/app/actions/supplier";
+import BackButton from "@/app/components/ui/BackButton";
+
 
 export default async function NuevoProductoPage({ searchParams }: { searchParams: { cloneId?: string; cloneFrom?: string } }) {
   const branch = await getActiveBranch();
@@ -86,9 +88,10 @@ export default async function NuevoProductoPage({ searchParams }: { searchParams
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
-        <Link href="/productos" style={{ textDecoration: 'none', color: 'var(--caanma-text-muted)', fontSize: '1.25rem' }}>← Volver</Link>
+        <BackButton fallbackHref="/productos" label="Volver" style={{ fontSize: '1.1rem' }} />
         <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{cloneProduct ? `Clonar: ${cloneProduct.name}` : 'Crear Nuevo Producto'}</h1>
       </div>
+
 
       <ProductFormClient 
         cloneProduct={cloneProduct} 

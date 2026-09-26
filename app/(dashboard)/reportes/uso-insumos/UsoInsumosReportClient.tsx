@@ -5,6 +5,8 @@ import { ChefHat, Calendar, MapPin, Search, Download, FileSpreadsheet, User, Arr
 import { getSupplyUsageReportData } from '@/app/actions/reportes';
 import { exportToExcel } from '@/lib/exportExcel';
 import Link from 'next/link';
+import BackButton from '@/app/components/ui/BackButton';
+
 
 interface UsoInsumosReportClientProps {
   initialData: {
@@ -166,10 +168,9 @@ export default function UsoInsumosReportClient({
     <div style={{ maxWidth: '1200px', margin: '0 auto', fontFamily: 'var(--font-geist-sans)' }}>
       {/* Back link & Title header */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
-        <Link href="/reportes" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#64748b', fontSize: '0.85rem', textDecoration: 'none', fontWeight: 'bold', width: 'fit-content' }}>
-          <ArrowLeft size={16} /> Volver a Reportes
-        </Link>
+        <BackButton fallbackHref="/reportes" label="Volver a Reportes" style={{ fontSize: '0.85rem', fontWeight: 'bold' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+
           <div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#0f172a' }}>
               <ChefHat size={30} color="#0d9488" /> Reporte de Uso de Insumos / Consumo Interno

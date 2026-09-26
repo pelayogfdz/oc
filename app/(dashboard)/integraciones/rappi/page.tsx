@@ -3,6 +3,7 @@ import { getActiveBranch } from '@/app/actions/auth';
 import { saveIntegrationTokens, deleteIntegration } from '@/app/actions/integration';
 import { ArrowLeft, Save, Trash2, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import BackButton from '@/app/components/ui/BackButton';
 
 export default async function RappiConfigPage() {
   const branch = await getActiveBranch();
@@ -18,9 +19,8 @@ export default async function RappiConfigPage() {
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-        <Link href="/integraciones" style={{ color: 'var(--caanma-text-muted)', textDecoration: 'none' }}>
-          <ArrowLeft size={24} />
-        </Link>
+        <BackButton fallbackHref="/integraciones" label="" iconSize={24} />
+
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Configuración de Rappi</h1>
           <p style={{ color: 'var(--caanma-text-muted)' }}>Asocia una cuenta mediante credenciales API para sincronizar inventario de tu menú y pedidos.</p>

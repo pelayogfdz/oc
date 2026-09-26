@@ -4,6 +4,8 @@ import { getActiveBranch } from "@/app/actions/auth";
 import Link from "next/link";
 import { Printer, ArrowLeft, ShoppingCart, Download } from "lucide-react";
 import PurchaseActionsClient from "./PurchaseActionsClient";
+import BackButton from "@/app/components/ui/BackButton";
+
 
 export default async function PurchaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -85,10 +87,9 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
     <div style={{ maxWidth: '900px', margin: '0 auto', fontFamily: 'sans-serif', color: 'black' }}>
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-         <Link href="/productos/compras" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--caanma-text-muted)', textDecoration: 'none', fontWeight: 'bold' }}>
-            <ArrowLeft size={20} /> Volver a Compras
-         </Link>
+         <BackButton fallbackHref="/productos/compras" label="Volver a Compras" style={{ gap: '0.5rem', fontWeight: 'bold' }} />
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+
              <Link target="_blank" href={`/productos/compras/${purchase.id}/imprimir`} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px' }}>
                 <Printer size={20} /> Imprimir Orden
              </Link>

@@ -4,6 +4,8 @@ import { ArrowLeft, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 import CrearCompraForm from './CrearCompraForm';
 import { getTenantSuppliers } from "@/app/actions/supplier";
+import BackButton from "@/app/components/ui/BackButton";
+
 
 export const dynamic = 'force-dynamic';
 
@@ -32,10 +34,9 @@ export default async function NuevaCompraPage() {
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <Link href="/productos/compras" style={{ color: 'var(--pulpos-text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-          <ArrowLeft size={18} /> Volver a Historial de Compras
-        </Link>
+        <BackButton fallbackHref="/productos/compras" label="Volver a Historial de Compras" />
       </div>
+
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
         <div>

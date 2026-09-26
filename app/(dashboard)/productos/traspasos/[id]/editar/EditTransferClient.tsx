@@ -6,6 +6,8 @@ import { searchProducts } from '@/app/actions/product';
 import { useRouter } from 'next/navigation';
 import { Truck, ArrowLeft, Trash2, Search, Plus, Minus, FileText, CheckCircle2, ShoppingBag, Camera, ArrowDownUp, Package } from 'lucide-react';
 import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
+import BackButton from '@/app/components/ui/BackButton';
+
 
 export default function EditTransferClient({ transfer, otherBranches, inventory, ventasConfig = {}, currentBranchId }: any) {
   const router = useRouter();
@@ -43,6 +45,7 @@ export default function EditTransferClient({ transfer, otherBranches, inventory,
   const [isLoadingStocks, setIsLoadingStocks] = useState(false);
 
   const isDispatched = transfer.status === 'DISPATCHED';
+  const allowTraspasoSinStock = ventasConfig?.traspasarSinStock !== undefined ? Boolean(ventasConfig.traspasarSinStock) : Boolean(ventasConfig?.venderSinStock);
 
   // Debounced search for products on-demand
   useEffect(() => {
@@ -120,14 +123,14 @@ export default function EditTransferClient({ transfer, otherBranches, inventory,
 
         if (item.maxStock !== newMaxStock) {
           changed = true;
-          const newQty = (!ventasConfig.venderSinStock && item.quantity > newMaxStock) ? Math.max(1, newMaxStock) : item.quantity;
+          const newQty = (!allowTraspasoSinStock && item.quantity > newMaxStock) ? Math.max(1, newMaxStock) : item.quantity;
           return { ...item, maxStock: newMaxStock, quantity: newQty };
         }
         return item;
       });
       return changed ? updated : prevItems;
     });
-  }, [sourceStocks, ventasConfig.venderSinStock]);
+  }, [sourceStocks, allowTraspasoSinStock]);
 
   const removeAccents = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
@@ -172,13 +175,13 @@ export default function EditTransferClient({ transfer, otherBranches, inventory,
 
     const existing = transferItems.find(i => i.listId === listId);
     if (existing) {
-      if (!ventasConfig.venderSinStock && isDispatched && existing.quantity >= maxStock) {
+      if (!allowTraspasoSinStock && isDispatched && existing.quantity >= maxStock) {
           alert('Cantidad excede el stock disponible en origen.');
           return;
       }
       setTransferItems(transferItems.map(i => i.listId === listId ? { ...i, quantity: i.quantity + 1 } : i));
     } else {
-      if (!ventasConfig.venderSinStock && isDispatched && maxStock <= 0) {
+      if (!allowTraspasoSinStock && isDispatched && maxStock <= 0) {
           alert('Este producto no tiene stock disponible en origen.');
           return;
       }
@@ -210,7 +213,7 @@ export default function EditTransferClient({ transfer, otherBranches, inventory,
       if (newQty < 1) newQty = 1;
       
       // Enforce stock limit only if it's already dispatched
-      if (isDispatched && !ventasConfig.venderSinStock && newQty > item.maxStock) {
+      if (isDispatched && !allowTraspasoSinStock && newQty > item.maxStock) {
         alert(`No hay stock suficiente en la sucursal de origen (Disponible: ${item.maxStock})`);
         return item;
       }
@@ -262,13 +265,9 @@ export default function EditTransferClient({ transfer, otherBranches, inventory,
       {/* HEADER SECTION */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <div>
-          <button 
-            onClick={() => router.back()} 
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#6366f1', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', padding: 0, marginBottom: '0.75rem' }}
-          >
-            <ArrowLeft size={16} /> Volver a Detalles
-          </button>
+          <BackButton fallbackHref={`/productos/traspasos/${transfer.id}`} label="Volver a Detalles" style={{ color: '#6366f1', marginBottom: '0.75rem' }} />
           <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.75rem', margin: 0 }}>
+
             <Truck size={28} color="#6366f1" /> Editar Traspaso #{transfer.id.substring(0,8).toUpperCase()}
           </h1>
           <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.25rem' }}>
@@ -616,7 +615,7 @@ export default function EditTransferClient({ transfer, otherBranches, inventory,
                 displayedProducts.slice(0, 30).map((p: any) => {
                   const inCart = transferItems.some(i => i.productId === p.id);
                   const sourceStock = sourceStocks ? (sourceStocks.productStocks[p.sku] ?? 0) : 0;
-                  const isSelectable = ventasConfig.venderSinStock || !isDispatched || sourceStock > 0;
+                  const isSelectable = allowTraspasoSinStock || !isDispatched || sourceStock > 0;
                   return (
                     <div 
                       key={p.id}
@@ -681,7 +680,7 @@ export default function EditTransferClient({ transfer, otherBranches, inventory,
               {selectedProductForVariant.variants.map((v: any) => {
                 const key = `${selectedProductForVariant.sku}_${v.attribute}`;
                 const sourceVStock = sourceStocks ? (sourceStocks.variantStocks[key] ?? 0) : 0;
-                const canSelect = ventasConfig.venderSinStock || !isDispatched || sourceVStock > 0;
+                const canSelect = allowTraspasoSinStock || !isDispatched || sourceVStock > 0;
                 return (
                   <button
                     key={v.id}

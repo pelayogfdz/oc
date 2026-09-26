@@ -8,8 +8,14 @@ export default async function Page() {
   const fields: FieldConfig[] = [
     { 
       name: 'venderSinStock', 
-      label: 'Permitir ventas y traspasos sin stock', 
-      description: 'Permitir procesar ventas locales y traspasos a otras sucursales incluso cuando el inventario es 0 o insuficiente.',
+      label: 'Permitir ventas sin stock', 
+      description: 'Permitir procesar ventas locales en el punto de venta incluso cuando el inventario es 0 o insuficiente.',
+      type: 'boolean' 
+    },
+    { 
+      name: 'traspasarSinStock', 
+      label: 'Permitir traspasos sin stock', 
+      description: 'Permitir crear y enviar traspasos a otras sucursales incluso cuando el inventario de origen es 0 o insuficiente.',
       type: 'boolean' 
     },
     { 

@@ -35,6 +35,10 @@ export default function TransferClient({ originBranchId, originBranchName, other
   const [sourceStocks, setSourceStocks] = useState<any>(null);
   const [isLoadingStocks, setIsLoadingStocks] = useState(false);
 
+  const allowTraspasoSinStock = ventasConfig?.traspasarSinStock !== undefined 
+    ? Boolean(ventasConfig.traspasarSinStock) 
+    : Boolean(ventasConfig?.venderSinStock);
+
   useEffect(() => {
     setIsMounted(true);
     if (typeof window !== 'undefined') {
@@ -125,14 +129,14 @@ export default function TransferClient({ originBranchId, originBranchName, other
 
         if (item.maxStock !== newMaxStock) {
           changed = true;
-          const newQty = (!ventasConfig.venderSinStock && item.quantity > newMaxStock) ? Math.max(1, newMaxStock) : item.quantity;
+          const newQty = (!allowTraspasoSinStock && item.quantity > newMaxStock) ? Math.max(1, newMaxStock) : item.quantity;
           return { ...item, maxStock: newMaxStock, quantity: newQty };
         }
         return item;
       });
       return changed ? updated : prevItems;
     });
-  }, [sourceStocks, inventory, ventasConfig.venderSinStock]);
+  }, [sourceStocks, inventory, allowTraspasoSinStock]);
 
   const handlePutOnHold = () => {
     if (transferItems.length === 0) {
@@ -226,14 +230,14 @@ export default function TransferClient({ originBranchId, originBranchName, other
 
     const existing = transferItems.find(i => i.listId === listId);
     if (existing) {
-      if (!ventasConfig.venderSinStock && existing.quantity >= maxStock) {
+      if (!allowTraspasoSinStock && existing.quantity >= maxStock) {
           alert('Cantidad excede el stock disponible en origen.');
           return;
       }
       const updatedItem = { ...existing, quantity: existing.quantity + 1 };
       setTransferItems([updatedItem, ...transferItems.filter(i => i.listId !== listId)]);
     } else {
-      if (!ventasConfig.venderSinStock && maxStock <= 0) {
+      if (!allowTraspasoSinStock && maxStock <= 0) {
           alert('Este producto no tiene stock disponible en origen y los traspasos sin stock están desactivados.');
           return;
       }
@@ -263,7 +267,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
     if (isNaN(parsed) || parsed < 1) return;
     setTransferItems(transferItems.map(i => {
       if (i.listId === listId) {
-         if (!ventasConfig.venderSinStock && parsed > i.maxStock) {
+         if (!allowTraspasoSinStock && parsed > i.maxStock) {
            return { ...i, quantity: i.maxStock };
          }
          return { ...i, quantity: parsed };
@@ -852,7 +856,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
                 displayedProducts.slice(0, 30).map((p: any) => {
                   const inCart = transferItems.some(i => i.productId === p.id);
                   const sourceStock = sourceStocks ? (sourceStocks.productStocks[p.sku] ?? 0) : 0;
-                  const isSelectable = ventasConfig.venderSinStock || sourceStock > 0;
+                  const isSelectable = allowTraspasoSinStock || sourceStock > 0;
                   return (
                     <div 
                       key={p.id}
@@ -918,7 +922,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
               {selectedProductForVariant.variants.map((v: any) => {
                 const key = `${selectedProductForVariant.sku}_${v.attribute}`;
                 const sourceVStock = sourceStocks ? (sourceStocks.variantStocks[key] ?? 0) : 0;
-                const canSelect = ventasConfig.venderSinStock || sourceVStock > 0;
+                const canSelect = allowTraspasoSinStock || sourceVStock > 0;
                 return (
                   <button
                     key={v.id}

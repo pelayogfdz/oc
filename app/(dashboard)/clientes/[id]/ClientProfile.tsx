@@ -964,23 +964,84 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
       {activeTab === 'ventas' && (
          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
             <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-              <table className="responsive-table" style={{ width: '100%', minWidth: '500px', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <table className="responsive-table" style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left' }}>
                  <thead style={{ backgroundColor: '#f8fafc' }}>
                     <tr>
                        <th style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem' }}>Ticket / Factura</th>
                        <th style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem' }}>Fecha</th>
                        <th style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem' }}>Total</th>
                        <th style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem' }}>Estado</th>
+                       <th style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--caanma-border)', fontSize: '0.85rem', textAlign: 'center' }}>Acción</th>
                     </tr>
                  </thead>
                  <tbody>
-                    {sales.map((sale: any) => (
-                       <tr key={sale.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
-                          <td style={{ padding: '0.85rem 1rem', fontWeight: 'bold', fontSize: '0.9rem' }}>#{sale.id.slice(0,8).toUpperCase()}</td>
-                          <td style={{ padding: '0.85rem 1rem', color: '#64748b', fontSize: '0.85rem' }}>{new Date(sale.createdAt).toLocaleDateString()}</td>
-                          <td style={{ padding: '0.85rem 1rem', fontWeight: 'bold', fontSize: '0.9rem' }}>{formatCurrency(sale.total)}</td>
-                          <td style={{ padding: '0.85rem 1rem' }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
+                    {sales.map((sale: any) => {
+                       const hasInvoice = Boolean(sale.invoiceId || sale.invoiceFolio);
+                       const saleFolioText = sale.folio ? `Folio ${sale.folio}` : `#${sale.id.slice(0,8).toUpperCase()}`;
+
+                       return (
+                        <tr key={sale.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
+                           
+                           {/* Ticket / Factura */}
+                           <td style={{ padding: '0.85rem 1rem' }}>
+                              <Link 
+                                href={`/ventas/detalle/${sale.id}`}
+                                style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#6366f1', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                              >
+                                {saleFolioText}
+                              </Link>
+                              
+                              {/* Folio de la Factura (si está facturada) */}
+                              {hasInvoice ? (
+                                 <div style={{ marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                    <span style={{ 
+                                       display: 'inline-flex', 
+                                       alignItems: 'center', 
+                                       gap: '0.25rem', 
+                                       padding: '0.15rem 0.45rem', 
+                                       backgroundColor: '#e0f2fe', 
+                                       color: '#0369a1', 
+                                       border: '1px solid #bae6fd', 
+                                       borderRadius: '6px', 
+                                       fontSize: '0.75rem', 
+                                       fontWeight: 'bold' 
+                                    }}>
+                                       <FileText size={12} />
+                                       {sale.invoiceFolio ? `Factura: ${sale.invoiceFolio}` : 'Facturado (CFDI)'}
+                                    </span>
+                                 </div>
+                              ) : (
+                                 <div style={{ marginTop: '0.2rem', fontSize: '0.75rem', color: '#94a3b8' }}>
+                                    Sin facturar
+                                 </div>
+                              )}
+                           </td>
+
+                           {/* Fecha y Hora */}
+                           <td style={{ padding: '0.85rem 1rem' }}>
+                              <div style={{ color: '#334155', fontWeight: '500', fontSize: '0.85rem' }}>
+                                 {new Date(sale.createdAt).toLocaleDateString('es-MX')}
+                              </div>
+                              <div style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '0.1rem' }}>
+                                 {new Date(sale.createdAt).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                           </td>
+
+                           {/* Total y Saldo */}
+                           <td style={{ padding: '0.85rem 1rem' }}>
+                              <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#0f172a' }}>
+                                 {formatCurrency(sale.total)}
+                              </div>
+                              {sale.balanceDue > 0.01 && (
+                                 <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#dc2626', marginTop: '0.15rem' }}>
+                                    Saldo: {formatCurrency(sale.balanceDue)}
+                                 </div>
+                              )}
+                           </td>
+
+                           {/* Estado */}
+                           <td style={{ padding: '0.85rem 1rem' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', alignItems: 'flex-start' }}>
                                  {sale.status === 'CANCELLED' ? (
                                     <span style={{ padding: '0.2rem 0.45rem', backgroundColor: '#fee2e2', color: '#dc2626', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>CANCELADO</span>
                                  ) : sale.paymentMethod === 'CREDIT' ? (
@@ -988,17 +1049,44 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
                                  ) : (
                                     <span style={{ padding: '0.2rem 0.45rem', backgroundColor: '#dcfce7', color: '#16a34a', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>PAGADO</span>
                                  )}
+
+                                 {hasInvoice && (
+                                    <span style={{ padding: '0.15rem 0.4rem', backgroundColor: '#e0f2fe', color: '#0284c7', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 'bold' }}>
+                                       FACTURADO
+                                    </span>
+                                 )}
+
                                  {sale.cancellationStatus === 'pending' && (
                                     <span style={{ padding: '0.15rem 0.35rem', backgroundColor: '#fff7ed', color: '#ea580c', border: '1px solid #fed7aa', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
                                        Cancelación en proceso
                                     </span>
                                  )}
                               </div>
-                          </td>
-                       </tr>
-                    ))}
+                           </td>
+
+                           {/* Acción */}
+                           <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
+                              <Link 
+                                href={`/ventas/detalle/${sale.id}`}
+                                style={{ 
+                                   fontSize: '0.8rem', 
+                                   fontWeight: 'bold', 
+                                   color: '#6366f1', 
+                                   textDecoration: 'none',
+                                   display: 'inline-flex',
+                                   alignItems: 'center',
+                                   gap: '0.25rem'
+                                }}
+                              >
+                                 Ver detalle &rarr;
+                              </Link>
+                           </td>
+
+                        </tr>
+                       );
+                    })}
                     {sales.length === 0 && (
-                       <tr><td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>Aún no hay ventas para este cliente</td></tr>
+                       <tr><td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>Aún no hay ventas para este cliente</td></tr>
                     )}
                  </tbody>
               </table>

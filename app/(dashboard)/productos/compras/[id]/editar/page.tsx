@@ -5,6 +5,8 @@ import { ArrowLeft, Edit } from "lucide-react";
 import Link from "next/link";
 import EditarCompraForm from "./EditarCompraForm";
 import { getTenantSuppliers } from "@/app/actions/supplier";
+import BackButton from "@/app/components/ui/BackButton";
+
 
 export const dynamic = "force-dynamic";
 
@@ -49,9 +51,7 @@ export default async function EditarCompraPage({ params }: PageProps) {
       <div style={{ padding: "3rem", textAlign: "center", backgroundColor: "#fee2e2", borderRadius: "12px", color: "#991b1b", border: "1px solid #f87171", margin: "2rem auto", maxWidth: "600px" }}>
         <h2 style={{ fontSize: "1.25rem", fontWeight: "bold" }}>COMPRA CANCELADA</h2>
         <p>No se puede editar una compra que ha sido cancelada.</p>
-        <Link href={`/productos/compras/${purchase.id}`} style={{ marginTop: "1rem", display: "inline-block", color: "var(--caanma-primary)", fontWeight: "bold" }}>
-          Volver al detalle de la compra
-        </Link>
+        <BackButton fallbackHref={`/productos/compras/${purchase.id}`} label="Volver al detalle de la compra" style={{ marginTop: "1rem", display: "inline-block", color: "var(--caanma-primary)", fontWeight: "bold" }} />
       </div>
     );
   }
@@ -69,10 +69,9 @@ export default async function EditarCompraPage({ params }: PageProps) {
   return (
     <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
       <div style={{ marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "1rem" }}>
-        <Link href={`/productos/compras/${purchase.id}`} style={{ color: "var(--caanma-text-muted)", textDecoration: "none", display: "flex", alignItems: "center", gap: "0.25rem" }}>
-          <ArrowLeft size={18} /> Volver al Detalle de Compra
-        </Link>
+        <BackButton fallbackHref={`/productos/compras/${purchase.id}`} label="Volver al Detalle de Compra" />
       </div>
+
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem" }}>
         <div>

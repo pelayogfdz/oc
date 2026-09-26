@@ -37,6 +37,10 @@ export default function TransferClient({ originBranchId, originBranchName, other
   // Variant Modal
   const [selectedProductForVariant, setSelectedProductForVariant] = useState<any | null>(null);
 
+  const allowTraspasoSinStock = ventasConfig?.traspasarSinStock !== undefined 
+    ? Boolean(ventasConfig.traspasarSinStock) 
+    : Boolean(ventasConfig?.venderSinStock);
+
   useEffect(() => {
     setIsMounted(true);
     if (typeof window !== 'undefined') {
@@ -179,14 +183,14 @@ export default function TransferClient({ originBranchId, originBranchName, other
 
     const existing = transferItems.find(i => i.listId === listId);
     if (existing) {
-      if (isDirectDispatch && !ventasConfig.venderSinStock && existing.quantity >= maxStock) {
+      if (isDirectDispatch && !allowTraspasoSinStock && existing.quantity >= maxStock) {
           alert('Cantidad excede el stock disponible.');
           return;
       }
       const updatedItem = { ...existing, quantity: existing.quantity + 1 };
       setTransferItems([updatedItem, ...transferItems.filter(i => i.listId !== listId)]);
     } else {
-      if (isDirectDispatch && !ventasConfig.venderSinStock && maxStock <= 0) {
+      if (isDirectDispatch && !allowTraspasoSinStock && maxStock <= 0) {
           alert('Este producto no tiene stock y los traspasos sin stock están desactivados.');
           return;
       }
@@ -214,7 +218,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
     if (isNaN(parsed) || parsed < 1) return;
     setTransferItems(transferItems.map(i => {
       if (i.listId === listId) {
-         if (isDirectDispatch && !ventasConfig.venderSinStock && parsed > i.maxStock) {
+         if (isDirectDispatch && !allowTraspasoSinStock && parsed > i.maxStock) {
            return { ...i, quantity: i.maxStock };
          }
          return { ...i, quantity: parsed };
@@ -882,7 +886,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
               ) : (
                 displayedProducts.slice(0, 30).map((p: any) => {
                   const inCart = transferItems.some(i => i.productId === p.id);
-                  const isSelectable = ventasConfig.venderSinStock || p.stock > 0 || !isDirectDispatch;
+                  const isSelectable = allowTraspasoSinStock || p.stock > 0 || !isDirectDispatch;
                   return (
                     <div 
                       key={p.id}
@@ -946,7 +950,7 @@ export default function TransferClient({ originBranchId, originBranchName, other
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '50vh', overflowY: 'auto' }}>
               {selectedProductForVariant.variants.map((v: any) => {
-                const canSelect = ventasConfig.venderSinStock || v.stock > 0 || !isDirectDispatch;
+                const canSelect = allowTraspasoSinStock || v.stock > 0 || !isDirectDispatch;
                 return (
                   <button
                     key={v.id}

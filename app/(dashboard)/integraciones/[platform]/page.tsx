@@ -2,6 +2,7 @@ import { crudAction } from "@/app/actions/crud";
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { KeyRound, ShieldAlert } from 'lucide-react';
+import BackButton from '@/app/components/ui/BackButton';
 
 export default async function NuevoIntegracion({ params }: { params: Promise<{ platform: string }> }) {
   const { platform } = await params;
@@ -20,9 +21,10 @@ export default async function NuevoIntegracion({ params }: { params: Promise<{ p
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
-        <Link href="/integraciones" style={{ textDecoration: 'none', color: 'var(--caanma-text-muted)', fontSize: '1.25rem' }}>← Cancelar Conexión</Link>
+        <BackButton fallbackHref="/integraciones" label="Cancelar Conexión" style={{ fontSize: '1.1rem' }} />
         <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>Vincular Plataforma: {platform}</h1>
       </div>
+
 
       <div style={{ backgroundColor: '#fffbe1', border: '1px solid #fde047', color: '#854d0e', padding: '1rem', borderRadius: '8px', display: 'flex', gap: '1rem', marginBottom: '2rem', alignItems: 'flex-start' }}>
          <ShieldAlert size={24} style={{ flexShrink: 0 }} />
