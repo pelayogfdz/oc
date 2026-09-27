@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
-import { TrendingUp, FileText, Percent, DollarSign, Loader2, Printer, Download } from 'lucide-react';
+import { TrendingUp, FileText, Percent, DollarSign, Loader2, Printer, Download, Clock, Calendar, Sparkles, Zap } from 'lucide-react';
 import ReportFilterBar, { ReportFilterState } from '@/components/ui/ReportFilterBar';
 import { exportToExcel } from '@/lib/exportExcel';
 import { getGeneralAnalyticsData } from '@/app/actions/reportes';
@@ -11,6 +11,7 @@ import { getGeneralAnalyticsData } from '@/app/actions/reportes';
 export default function GeneralAnalyticsClient({ initialData, initialBranchId }: { initialData: any, initialBranchId: string }) {
   const [data, setData] = useState(initialData);
   const [isLoading, setIsLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<'day' | 'hour'>('day');
 
   const formatYAxis = (tickItem: any) => {
     if (tickItem >= 1000) {
@@ -19,15 +20,33 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
     return `$${tickItem}`;
   };
 
+  const hourlyData = data?.hourlyData || [];
+  const peakHour = data?.peakHour || null;
+  const peakTicketsHour = data?.peakTicketsHour || null;
+
   const downloadExcel = () => {
-    const headers = ["Fecha", "Ventas (MXN)", "Ganancia (MXN)", "Tickets"];
-    const rows = data.chartData.map((c: any) => [
-      c.date,
-      c.Ventas,
-      c.Ganancia,
-      c.Tickets
-    ]);
-    exportToExcel(headers, rows, 'Reporte_Analitica_General');
+    if (viewMode === 'hour') {
+      const headers = ["Horario", "Formato 12h", "Ventas (MXN)", "Ganancia (MXN)", "Tickets", "Ticket Promedio (MXN)", "% del Total"];
+      const rows = hourlyData.map((h: any) => [
+        h.hourLabel,
+        h.timeLabel,
+        h.Ventas,
+        h.Ganancia,
+        h.Tickets,
+        h.avgTicket,
+        `${(h.percentage || 0).toFixed(2)}%`
+      ]);
+      exportToExcel(headers, rows, 'Reporte_Analitica_General_Por_Hora');
+    } else {
+      const headers = ["Fecha", "Ventas (MXN)", "Ganancia (MXN)", "Tickets"];
+      const rows = data.chartData.map((c: any) => [
+        c.date,
+        c.Ventas,
+        c.Ganancia,
+        c.Tickets
+      ]);
+      exportToExcel(headers, rows, 'Reporte_Analitica_General');
+    }
   };
 
   const handleFilterChange = async (filters: ReportFilterState) => {
@@ -54,7 +73,7 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>Analítica General</h1>
-          <p style={{ color: 'var(--caanma-text-muted)' }}>Desempeño global de tus ventas y márgenes.</p>
+          <p style={{ color: 'var(--caanma-text-muted)' }}>Desempeño global de tus ventas, horarios pico y márgenes.</p>
         </div>
         <div className="no-print" style={{ display: 'flex', gap: '0.75rem' }}>
           <button 
@@ -71,7 +90,7 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
             onMouseEnter={e => e.currentTarget.style.backgroundColor='#1e293b'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor='#0f172a'}
           >
-            <Download size={18} /> Exportar Excel
+            <Download size={18} /> {viewMode === 'hour' ? 'Exportar Excel (Horas)' : 'Exportar Excel'}
           </button>
         </div>
       </div>
@@ -140,13 +159,101 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
           </div>
         </div>
 
+        {/* View Mode Switcher Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Visualización Temporal</h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)' }}>Elige entre desglose diario histórico o distribución horaria del día.</p>
+          </div>
+
+          <div className="no-print" style={{ display: 'flex', alignItems: 'center', backgroundColor: '#f1f5f9', padding: '0.3rem', borderRadius: '8px', gap: '0.25rem' }}>
+            <button
+              type="button"
+              onClick={() => setViewMode('day')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.45rem 0.9rem',
+                borderRadius: '6px',
+                border: 'none',
+                fontSize: '0.88rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                backgroundColor: viewMode === 'day' ? 'white' : 'transparent',
+                color: viewMode === 'day' ? 'var(--caanma-primary)' : '#64748b',
+                boxShadow: viewMode === 'day' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Calendar size={15} /> Por Día
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('hour')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.45rem 0.9rem',
+                borderRadius: '6px',
+                border: 'none',
+                fontSize: '0.88rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                backgroundColor: viewMode === 'hour' ? 'white' : 'transparent',
+                color: viewMode === 'hour' ? '#0284c7' : '#64748b',
+                boxShadow: viewMode === 'hour' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Clock size={15} /> Por Hora
+            </button>
+          </div>
+        </div>
+
+        {/* Hourly Peak Highlights */}
+        {viewMode === 'hour' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+            <div style={{ backgroundColor: '#f0fdf4', padding: '1rem 1.25rem', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                <Sparkles size={16} color="#16a34a" />
+                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#15803d', textTransform: 'uppercase' }}>Hora Pico en Ventas</span>
+              </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#166534' }}>
+                {peakHour && peakHour.Ventas > 0 ? `${peakHour.timeLabel} (${peakHour.shortLabel})` : 'Sin ventas'}
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#15803d', marginTop: '0.2rem' }}>
+                {peakHour && peakHour.Ventas > 0 
+                  ? `${formatCurrency(peakHour.Ventas)} (${(peakHour.percentage || 0).toFixed(1)}% del total)` 
+                  : '$0.00'}
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: '#f0f9ff', padding: '1rem 1.25rem', borderRadius: '10px', border: '1px solid #bae6fd' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                <Zap size={16} color="#0284c7" />
+                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#0369a1', textTransform: 'uppercase' }}>Mayor Afluencia (Tickets)</span>
+              </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#075985' }}>
+                {peakTicketsHour && peakTicketsHour.Tickets > 0 ? `${peakTicketsHour.timeLabel} (${peakTicketsHour.shortLabel})` : 'Sin ventas'}
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#0369a1', marginTop: '0.2rem' }}>
+                {peakTicketsHour && peakTicketsHour.Tickets > 0 ? `${peakTicketsHour.Tickets} tickets emitidos` : '0 tickets'}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Charts Container */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           {/* Main Chart */}
           <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', height: '400px' }}>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '2rem' }}>Tendencia de Ingresos vs Utilidad</h2>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '2rem' }}>
+              {viewMode === 'day' ? 'Tendencia de Ingresos vs Utilidad por Día' : 'Ingresos y Utilidad por Hora del Día (00:00 - 23:00 hrs)'}
+            </h2>
             <ResponsiveContainer width="100%" height="85%">
-              <AreaChart data={data.chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <AreaChart data={viewMode === 'day' ? data.chartData : hourlyData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#16a34a" stopOpacity={0.3}/>
@@ -157,7 +264,7 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
                     <stop offset="95%" stopColor="#0284c7" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="date" tick={{fontSize: 12, fill: '#64748b'}} tickLine={false} axisLine={false} dy={10} />
+                <XAxis dataKey={viewMode === 'day' ? 'date' : 'shortLabel'} tick={{fontSize: 12, fill: '#64748b'}} tickLine={false} axisLine={false} dy={10} />
                 <YAxis tickFormatter={formatYAxis} tick={{fontSize: 12, fill: '#64748b'}} tickLine={false} axisLine={false} dx={-10} />
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <Tooltip 
@@ -172,17 +279,26 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
 
           {/* Tickets Chart */}
           <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', height: '350px' }}>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '2rem' }}>Tickets Emitidos por Día</h2>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '2rem' }}>
+              {viewMode === 'day' ? 'Tickets Emitidos por Día' : 'Tickets y Clientes por Hora del Día'}
+            </h2>
             <ResponsiveContainer width="100%" height="85%">
-              <BarChart data={data.chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <XAxis dataKey="date" tick={{fontSize: 12, fill: '#64748b'}} tickLine={false} axisLine={false} dy={10} />
+              <BarChart data={viewMode === 'day' ? data.chartData : hourlyData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <XAxis dataKey={viewMode === 'day' ? 'date' : 'shortLabel'} tick={{fontSize: 12, fill: '#64748b'}} tickLine={false} axisLine={false} dy={10} />
                 <YAxis tick={{fontSize: 12, fill: '#64748b'}} tickLine={false} axisLine={false} dx={-10} />
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <Tooltip 
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                   cursor={{fill: '#f8fafc'}}
                 />
-                <Bar dataKey="Tickets" fill="#9333ea" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Tickets" fill="#9333ea" radius={[4, 4, 0, 0]}>
+                  {viewMode === 'hour' && hourlyData.map((entry: any, index: number) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.hour === peakTicketsHour?.hour && entry.Tickets > 0 ? '#16a34a' : '#9333ea'} 
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>

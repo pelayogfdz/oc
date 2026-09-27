@@ -17,6 +17,35 @@ function formatDateString(d: Date, timezone: string): string {
   return `${year}-${month}-${day}`;
 }
 
+function getLocalHour(d: Date, timezone: string): number {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    hour: 'numeric',
+    hourCycle: 'h23'
+  });
+  const parsed = parseInt(formatter.format(d), 10);
+  return isNaN(parsed) ? 0 : (parsed % 24);
+}
+
+function buildEmptyHourlyData() {
+  return Array.from({ length: 24 }, (_, hour) => {
+    const hourPadded = String(hour).padStart(2, '0');
+    const period = hour < 12 ? 'a.m.' : 'p.m.';
+    const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+    return {
+      hour,
+      hourLabel: `${hourPadded}:00 - ${hourPadded}:59`,
+      shortLabel: `${hourPadded}:00`,
+      timeLabel: `${hour12}:00 ${period}`,
+      Ventas: 0,
+      Ganancia: 0,
+      Tickets: 0,
+      avgTicket: 0,
+      percentage: 0
+    };
+  });
+}
+
 export async function getGeneralAnalyticsData(
   startDate: Date, 
   endDate: Date, 
@@ -150,6 +179,7 @@ export async function getGeneralAnalyticsData(
     current.setUTCDate(current.getUTCDate() + 1);
   }
 
+  const hourlyData = buildEmptyHourlyData();
   let totalRevenue = 0;
   let totalCost = 0;
   let totalRevenueSinIva = 0;
@@ -186,6 +216,13 @@ export async function getGeneralAnalyticsData(
     dailyData[dStr].Ganancia += profit;
     dailyData[dStr].Tickets += 1;
 
+    const hour = getLocalHour(sale.createdAt, timezone);
+    if (hourlyData[hour]) {
+      hourlyData[hour].Ventas += sale.total;
+      hourlyData[hour].Ganancia += profit;
+      hourlyData[hour].Tickets += 1;
+    }
+
     totalRevenue += sale.total;
     totalCost += saleCost;
     totalRevenueSinIva += saleRevenueSinIva;
@@ -196,8 +233,24 @@ export async function getGeneralAnalyticsData(
   const margin = totalRevenueSinIva > 0 ? (totalProfit / totalRevenueSinIva) * 100 : 0;
   const avgTicket = processedSales.length > 0 ? totalRevenue / processedSales.length : 0;
 
+  let peakHour = hourlyData[0];
+  let peakTicketsHour = hourlyData[0];
+  hourlyData.forEach(h => {
+    h.avgTicket = h.Tickets > 0 ? (h.Ventas / h.Tickets) : 0;
+    h.percentage = totalRevenue > 0 ? (h.Ventas / totalRevenue) * 100 : 0;
+    if (h.Ventas > peakHour.Ventas) {
+      peakHour = h;
+    }
+    if (h.Tickets > peakTicketsHour.Tickets) {
+      peakTicketsHour = h;
+    }
+  });
+
   return {
     chartData,
+    hourlyData,
+    peakHour,
+    peakTicketsHour,
     totalRevenue,
     totalProfit,
     margin,
@@ -335,8 +388,9 @@ export async function getSalesDetailData(
     }).filter(sale => sale.items.length > 0);
   }
 
-  // Calculate gross profits per sale and aggregate by User
+  // Calculate gross profits per sale and aggregate by User and Hour
   const salesByUser: Record<string, number> = {};
+  const hourlyData = buildEmptyHourlyData();
   
   const mappedSales = processedSales.map(sale => {
     let cost = 0;
@@ -351,6 +405,13 @@ export async function getSalesDetailData(
     if (!salesByUser[userName]) salesByUser[userName] = 0;
     salesByUser[userName] += sale.total;
 
+    const hour = getLocalHour(sale.createdAt, timezone);
+    if (hourlyData[hour]) {
+      hourlyData[hour].Ventas += sale.total;
+      hourlyData[hour].Ganancia += profit;
+      hourlyData[hour].Tickets += 1;
+    }
+
     const paymentMethodUpper = String(sale.paymentMethod || '').toUpperCase();
     const pueOrPpd = paymentMethodUpper === 'CREDIT' ? 'PPD' : 'PUE';
 
@@ -358,6 +419,7 @@ export async function getSalesDetailData(
       id: sale.id,
       folio: sale.folio || sale.id.split('-')[0].toUpperCase(),
       date: sale.createdAt.toISOString(),
+      hour: hour,
       user: userName,
       customer: sale.customer?.name || 'Mostrador',
       method: sale.paymentMethod,
@@ -402,8 +464,30 @@ export async function getSalesDetailData(
   });
 
   const chartData = Object.values(dailyData);
+  const totalPeriodRevenue = processedSales.reduce((sum, s) => sum + s.total, 0);
 
-  return { sales: mappedSales, pieData, chartData };
+  let peakHour = hourlyData[0];
+  let peakTicketsHour = hourlyData[0];
+  hourlyData.forEach(h => {
+    h.avgTicket = h.Tickets > 0 ? (h.Ventas / h.Tickets) : 0;
+    h.percentage = totalPeriodRevenue > 0 ? (h.Ventas / totalPeriodRevenue) * 100 : 0;
+    if (h.Ventas > peakHour.Ventas) {
+      peakHour = h;
+    }
+    if (h.Tickets > peakTicketsHour.Tickets) {
+      peakTicketsHour = h;
+    }
+  });
+
+  return {
+    sales: mappedSales,
+    pieData,
+    chartData,
+    hourlyData,
+    peakHour,
+    peakTicketsHour,
+    totalPeriodRevenue
+  };
 }
 
 export async function getInventoryValuationData(branchIdFilter?: string, brandFilter?: string, searchQuery?: string) {
