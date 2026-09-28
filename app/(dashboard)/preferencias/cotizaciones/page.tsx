@@ -9,13 +9,13 @@ export default async function Page() {
     { 
       name: 'formatoPlantilla', 
       label: 'Estilo de Plantilla de Cotización', 
-      description: 'Elige el formato visual para las cotizaciones (Pasteles/Repostería Boutique o Corporativo Estándar).',
+      description: 'Elige el formato visual predeterminado para las cotizaciones (Corporativo Estándar o Repostería / Boutique).',
       type: 'select',
       options: [
-        { label: '🍰 Repostería & Pasteles Personalizados (Pizca de Azúcar)', value: 'boutique' },
-        { label: '📄 Corporativo Estándar', value: 'standard' }
+        { label: '📄 Corporativo Estándar (Recomendado para Office City / Comercial)', value: 'standard' },
+        { label: '🍰 Repostería & Pasteles Personalizados (Pizca de Azúcar / Boutique)', value: 'boutique' }
       ],
-      defaultValue: 'boutique'
+      defaultValue: 'standard'
     },
     { 
       name: 'diasVigencia', 

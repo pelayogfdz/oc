@@ -64,11 +64,20 @@ export default async function ImprimirCotizacionPage({
   const diasVigencia = parseInt(cotizacionesConfig.diasVigencia || '30', 10);
   const isBreakdownDiscounts = quote.breakdownDiscounts === true;
 
-  // Detect default template: if tenant is PIZCA DE AZÚCAR or config says boutique
+  // Detect default template: if tenant is PIZCA DE AZÚCAR / Pastelería defaults to boutique, otherwise standard
   const tenantName = (quote.branch?.tenant?.name || '').toUpperCase();
   const isPizca = tenantName.includes('PIZCA') || tenantName.includes('AZUCAR') || tenantName.includes('PASTEL') || tenantName.includes('REPOSTERIA');
-  const configuredTemplate = cotizacionesConfig.formatoPlantilla || (isPizca ? 'boutique' : 'standard');
-  const activeTemplate = queryTemplate || configuredTemplate;
+  const isOfficeCity = tenantName.includes('OFFICE');
+
+  let defaultTemplate = isPizca ? 'boutique' : 'standard';
+  if (cotizacionesConfig.formatoPlantilla) {
+    if (isOfficeCity && cotizacionesConfig.formatoPlantilla === 'boutique' && !queryTemplate) {
+      defaultTemplate = 'standard';
+    } else {
+      defaultTemplate = cotizacionesConfig.formatoPlantilla;
+    }
+  }
+  const activeTemplate = queryTemplate || defaultTemplate;
 
   // Auto-print script
   const printScript = `
