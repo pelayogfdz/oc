@@ -129,11 +129,12 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
         <div className="flex items-center flex-wrap gap-3">
           {/* Selector de Agrupamiento */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-sm font-bold text-slate-600">Agrupar:</span>
+            <span className="text-xs sm:text-sm font-bold text-slate-700">Agrupar:</span>
             <select
               value={groupBy}
               onChange={(e) => setGroupBy(e.target.value as any)}
-              className="border border-slate-300 py-2 px-3.5 rounded-xl text-sm font-semibold text-slate-800 bg-white hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 shadow-xs cursor-pointer h-10 transition-colors"
+              className="border border-slate-300 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 bg-white hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 shadow-xs cursor-pointer h-10 transition-colors"
+              style={{ backgroundColor: '#ffffff', color: '#1e293b', borderColor: '#cbd5e1' }}
             >
               <option value="day">Por Día</option>
               <option value="week">Por Semana</option>
@@ -143,22 +144,24 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-sm font-bold text-slate-600">Desde:</span>
+            <span className="text-xs sm:text-sm font-bold text-slate-700">Desde:</span>
             <input 
               type="date" 
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="border border-slate-300 py-2 px-3 rounded-xl text-sm font-semibold text-slate-800 bg-white hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 shadow-xs cursor-pointer h-10 transition-colors"
+              className="border border-slate-300 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 bg-white hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 shadow-xs cursor-pointer h-10 transition-colors"
+              style={{ backgroundColor: '#ffffff', color: '#1e293b', borderColor: '#cbd5e1' }}
             />
           </div>
           
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-sm font-bold text-slate-600">Hasta:</span>
+            <span className="text-xs sm:text-sm font-bold text-slate-700">Hasta:</span>
             <input 
               type="date" 
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="border border-slate-300 py-2 px-3 rounded-xl text-sm font-semibold text-slate-800 bg-white hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 shadow-xs cursor-pointer h-10 transition-colors"
+              className="border border-slate-300 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 bg-white hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 shadow-xs cursor-pointer h-10 transition-colors"
+              style={{ backgroundColor: '#ffffff', color: '#1e293b', borderColor: '#cbd5e1' }}
             />
           </div>
 
@@ -166,20 +169,22 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
             <button 
               onClick={handleFilter}
               disabled={isUpdating}
-              className="bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-bold py-2 px-5 rounded-xl text-sm transition-all shadow-sm shadow-purple-200 cursor-pointer disabled:opacity-50 h-10 inline-flex items-center justify-center gap-2 flex-shrink-0"
+              className="btn-filter bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-bold py-2 px-5 rounded-xl text-xs sm:text-sm transition-all shadow-md shadow-purple-200 cursor-pointer disabled:opacity-50 h-10 inline-flex items-center justify-center gap-2 flex-shrink-0"
+              style={{ backgroundColor: '#7c3aed', color: '#ffffff', border: 'none' }}
             >
-              <Filter size={16} />
-              <span>{isUpdating ? 'Filtrando...' : 'Filtrar'}</span>
+              <Filter size={16} color="#ffffff" className="flex-shrink-0" />
+              <span style={{ color: '#ffffff' }}>{isUpdating ? 'Filtrando...' : 'Filtrar'}</span>
             </button>
 
             {hasActiveFilter && (
               <button 
                 onClick={handleResetToday}
                 disabled={isUpdating}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 py-2 px-4 rounded-xl text-sm font-bold transition-all cursor-pointer disabled:opacity-50 h-10 inline-flex items-center justify-center gap-1.5 flex-shrink-0"
+                className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 border border-slate-300 py-2 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer disabled:opacity-50 h-10 inline-flex items-center justify-center gap-1.5 flex-shrink-0"
+                style={{ backgroundColor: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1' }}
               >
-                <RotateCcw size={15} />
-                <span>Ver Hoy</span>
+                <RotateCcw size={15} color="#334155" className="flex-shrink-0" />
+                <span style={{ color: '#334155' }}>Ver Hoy</span>
               </button>
             )}
           </div>

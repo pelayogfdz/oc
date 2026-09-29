@@ -85,43 +85,55 @@ export default function TopProductsWidget({
         </div>
 
         {/* View Switcher Pills */}
-        <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/90 rounded-xl mb-5 overflow-x-auto">
+        <div className="flex items-center gap-1.5 p-1.5 bg-slate-100 rounded-xl mb-5 overflow-x-auto border border-slate-200/60">
           <button
             type="button"
             onClick={() => setViewMode('units')}
-            className={`flex-1 min-w-[85px] flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex-1 min-w-[85px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               viewMode === 'units'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
             }`}
+            style={{
+              backgroundColor: viewMode === 'units' ? '#ffffff' : 'transparent',
+              color: viewMode === 'units' ? '#0f172a' : '#475569'
+            }}
           >
-            <Layers size={13} className={viewMode === 'units' ? 'text-slate-900' : 'text-slate-400'} />
+            <Layers size={14} color={viewMode === 'units' ? '#0f172a' : '#64748b'} />
             <span>Por Unidades</span>
           </button>
 
           <button
             type="button"
             onClick={() => setViewMode('revenue')}
-            className={`flex-1 min-w-[85px] flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex-1 min-w-[85px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               viewMode === 'revenue'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
             }`}
+            style={{
+              backgroundColor: viewMode === 'revenue' ? '#ffffff' : 'transparent',
+              color: viewMode === 'revenue' ? '#0f172a' : '#475569'
+            }}
           >
-            <DollarSign size={13} className={viewMode === 'revenue' ? 'text-emerald-600' : 'text-slate-400'} />
+            <DollarSign size={14} color={viewMode === 'revenue' ? '#059669' : '#64748b'} />
             <span>Monto de Venta</span>
           </button>
 
           <button
             type="button"
             onClick={() => setViewMode('margin')}
-            className={`flex-1 min-w-[85px] flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex-1 min-w-[85px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               viewMode === 'margin'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
             }`}
+            style={{
+              backgroundColor: viewMode === 'margin' ? '#ffffff' : 'transparent',
+              color: viewMode === 'margin' ? '#0f172a' : '#475569'
+            }}
           >
-            <TrendingUp size={13} className={viewMode === 'margin' ? 'text-emerald-600' : 'text-slate-400'} />
+            <TrendingUp size={14} color={viewMode === 'margin' ? '#059669' : '#64748b'} />
             <span>Margen Total</span>
           </button>
         </div>

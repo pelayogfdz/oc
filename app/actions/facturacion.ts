@@ -86,12 +86,14 @@ function cleanConditions(str: string | null | undefined): string | undefined {
 }
 
 export async function stampInvoice(saleId: string, customerId?: string | null, customCfdiUse?: string | null) {
+  let currentSale: any = null;
   try {
     const resolved = await resolveClientForSale(saleId);
     if (!resolved) {
       throw new Error("La venta especificada no existe.");
     }
     const { client: db, sale } = resolved;
+    currentSale = sale;
 
     if (sale.status === 'TIMBRADA' || sale.invoiceId) {
        throw new Error("Esta venta ya fue facturada.");
@@ -199,8 +201,10 @@ export async function stampInvoice(saleId: string, customerId?: string | null, c
     let discountSum = 0;
 
     const items = (sale.items as any[]).map((item: any, idx: number) => {
-      if (!item.product.satKey || !item.product.satUnit) {
-        throw new Error(`El producto "${item.product.name}" no cuenta con Clave del SAT o Unidad del SAT. Debes configurarlas desde el Catálogo antes de facturar esta venta.`);
+      const prodSatKey = String(item.product?.satKey || '').trim();
+      const prodSatUnit = String(item.product?.satUnit || '').trim();
+      if (!prodSatKey || prodSatKey === 'null' || !prodSatUnit || prodSatUnit === 'null') {
+        throw new Error(`El producto "${item.product.name}" (SKU: ${item.product.sku || 'S/N'}) de la venta #${sale.folio || sale.id.substring(0, 8).toUpperCase()} no cuenta con Clave del SAT o Unidad del SAT válida. Debes configurarla en el Catálogo de Productos antes de facturar.`);
       }
 
       const itemSubtotal = Number(item.price) * Number(item.quantity);
@@ -364,7 +368,19 @@ export async function stampInvoice(saleId: string, customerId?: string | null, c
     return { success: true, invoiceId: invoice.id };
   } catch (error: any) {
     console.error("Facturapi Error:", error);
-    return { success: false, error: error.message || "Error desconocido al timbrar." };
+    let errMsg = error.message || "Error desconocido al timbrar.";
+    const keyMatch = errMsg.match(/\b\d{8}\b/);
+    if (keyMatch && currentSale && currentSale.items) {
+      const key = keyMatch[0];
+      for (const it of (currentSale.items as any[])) {
+        const prod = it.product;
+        if (prod && String(prod.satKey || '').trim() === key) {
+          errMsg += `\n\n🔍 Artículo detectado con el error: "${prod.name}" (SKU: ${prod.sku || 'S/N'}). Corrige su Clave SAT en el Catálogo de Productos antes de volver a timbrar.`;
+          break;
+        }
+      }
+    }
+    return { success: false, error: errMsg };
   }
 }
 
@@ -745,6 +761,7 @@ export async function cancelInvoice(saleId: string, cancelSale: boolean = true) 
 }
 
 export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: string | null, customCfdiUse?: string | null) {
+  let currentSales: any[] = [];
   try {
     if (!saleIds || saleIds.length === 0) {
       throw new Error("No se seleccionaron ventas para facturar.");
@@ -788,6 +805,7 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
         customer: true
       }
     });
+    currentSales = sales;
 
     if (sales.length === 0) {
       throw new Error("Ninguna de las ventas especificadas existe en esta sucursal.");
@@ -880,8 +898,10 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
       let discountSum = 0;
 
       (sale.items as any[]).forEach((item: any, idx: number) => {
-        if (!item.product.satKey || !item.product.satUnit) {
-          throw new Error(`El producto "${item.product.name}" de la venta #${sale.folio || sale.id.substring(0, 8).toUpperCase()} no cuenta con Clave del SAT o Unidad del SAT. Debes configurarlas desde el Catálogo.`);
+        const prodSatKey = String(item.product?.satKey || '').trim();
+        const prodSatUnit = String(item.product?.satUnit || '').trim();
+        if (!prodSatKey || prodSatKey === 'null' || !prodSatUnit || prodSatUnit === 'null') {
+          throw new Error(`El producto "${item.product.name}" (SKU: ${item.product.sku || 'S/N'}) de la venta #${sale.folio || sale.id.substring(0, 8).toUpperCase()} no cuenta con Clave del SAT o Unidad del SAT válida. Debes configurarla en el Catálogo de Productos.`);
         }
 
         const itemSubtotal = Number(item.price) * Number(item.quantity);
@@ -1078,7 +1098,21 @@ export async function stampMultipleSalesInvoice(saleIds: string[], customerId?: 
     return { success: true, invoiceId: invoice.id };
   } catch (error: any) {
     console.error("Facturapi Multiple Sales Invoice Error:", error);
-    return { success: false, error: error.message || "Error desconocido al timbrar factura agrupada." };
+    let errMsg = error.message || "Error desconocido al timbrar factura agrupada.";
+    const keyMatch = errMsg.match(/\b\d{8}\b/);
+    if (keyMatch && currentSales && currentSales.length > 0) {
+      const key = keyMatch[0];
+      for (const s of currentSales) {
+        for (const it of (s.items as any[])) {
+          const prod = it.product;
+          if (prod && String(prod.satKey || '').trim() === key) {
+            errMsg += `\n\n🔍 Artículo detectado con el error: "${prod.name}" (SKU: ${prod.sku || 'S/N'}) en la venta #${s.folio || s.id.substring(0,8)}. Por favor actualiza su Clave SAT en el Catálogo de Productos antes de volver a timbrar.`;
+            break;
+          }
+        }
+      }
+    }
+    return { success: false, error: errMsg };
   }
 }
 
