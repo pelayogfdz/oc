@@ -60,6 +60,7 @@ export default function HeaderTitle() {
     if (segments.length > 0) {
       const baseRoute = '/' + segments[0];
       if (segments[0] === 'ventas' && segments.length === 2 && segments[1] === 'whatsapp') info = { title: 'Bandeja WhatsApp' };
+      else if (segments[0] === 'ventas' && segments[1] === 'detalle') info = { title: 'Detalle de Venta' };
       else if (segments[0] === 'ventas' && segments.length === 2) info = { title: 'Resumen de Venta' };
       else if (segments[0] === 'ventas' && segments.includes('imprimir-cotizacion')) info = { title: 'Imprimir Cotización' };
       else if (segments[0] === 'ventas' && segments.includes('imprimir')) info = { title: 'Imprimir Venta' };

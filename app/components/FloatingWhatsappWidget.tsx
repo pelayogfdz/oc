@@ -690,21 +690,31 @@ export default function FloatingWhatsappWidget() {
   };
 
   return (
-    <div style={{ 
-      position: 'fixed', 
-      bottom: '24px', 
-      right: '24px', 
-      zIndex: 100, 
-      display: 'flex', 
-      flexDirection: isTopHalf ? 'column-reverse' : 'column', 
-      alignItems: 'flex-end',
-      gap: '12px',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      transform: `translate(${position.x}px, ${position.y}px)`,
-      transition: dragRef.current.isDragging ? 'none' : 'transform 0.15s ease-out'
-    }}>
+    <div 
+      className="floating-whatsapp-container"
+      style={{ 
+        zIndex: 100, 
+        display: 'flex', 
+        flexDirection: isTopHalf ? 'column-reverse' : 'column', 
+        alignItems: 'flex-end',
+        gap: '12px',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        transform: `translate(${position.x}px, ${position.y}px)`,
+        transition: dragRef.current.isDragging ? 'none' : 'transform 0.15s ease-out'
+      }}>
       {/* Style tag for keyframes and custom scrollbars */}
       <style>{`
+        .floating-whatsapp-container {
+          position: fixed;
+          bottom: 24px;
+          right: 24px;
+        }
+        @media (max-width: 768px) {
+          .floating-whatsapp-container {
+            bottom: 84px !important;
+            right: 14px !important;
+          }
+        }
         @keyframes floatingPulse {
           0% { transform: scale(1); box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4); }
           50% { transform: scale(1.05); box-shadow: 0 4px 25px rgba(37, 211, 102, 0.7); }

@@ -421,54 +421,27 @@ export default function VentaActionsClient({
   };
 
   return (
-    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+    <div style={{ display: 'contents' }}>
       {/* Sincronizar Total con Factura SAT */}
       {invoiceId && (
         <button
           onClick={handleSyncSaleTotal}
           disabled={isPending}
-          className="btn-secondary"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.5rem 0.85rem',
-            borderRadius: '6px',
-            backgroundColor: '#f0fdf4',
-            color: '#16a34a',
-            border: '1px solid #bbf7d0',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            fontSize: '0.85rem',
-            opacity: isPending ? 0.7 : 1
-          }}
+          className="btn-secondary flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold w-full sm:w-auto text-center border border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm"
           title="Sincronizar total y saldos de CxC con el comprobante fiscal SAT"
         >
-          <CheckCircle size={16} />
-          {isPending ? 'Sincronizando...' : 'Cuadrar Venta con SAT'}
+          <CheckCircle size={16} className="shrink-0" />
+          <span>{isPending ? 'Sincronizando...' : 'Cuadrar Venta con SAT'}</span>
         </button>
       )}
       {/* Share WhatsApp */}
       {status !== 'CANCELLED' && (
         <button
           onClick={() => setIsModalOpen(true)}
-          className="btn-secondary"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.5rem 0.85rem',
-            borderRadius: '6px',
-            backgroundColor: '#e6f4ea',
-            color: '#137333',
-            border: '1px solid #c2e7cc',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            fontSize: '0.85rem',
-          }}
+          className="btn-secondary flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold w-full sm:w-auto text-center border border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm hover:bg-emerald-100"
         >
-          <Share2 size={16} />
-          Enviar Venta (WhatsApp)
+          <Share2 size={16} className="shrink-0" />
+          <span>Enviar (WhatsApp)</span>
         </button>
       )}
 
@@ -476,23 +449,10 @@ export default function VentaActionsClient({
       {status !== 'CANCELLED' && (
         <button
           onClick={() => setIsEditModalOpen(true)}
-          className="btn-secondary"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.5rem 0.85rem',
-            borderRadius: '6px',
-            backgroundColor: '#f1f5f9',
-            color: '#475569',
-            border: '1px solid #cbd5e1',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            fontSize: '0.85rem',
-          }}
+          className="btn-secondary flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold w-full sm:w-auto text-center border border-slate-200 bg-slate-50 text-slate-700 shadow-sm hover:bg-slate-100"
         >
-          <Edit3 size={16} />
-          Editar Venta
+          <Edit3 size={16} className="shrink-0" />
+          <span>Editar Venta</span>
         </button>
       )}
 
@@ -500,29 +460,21 @@ export default function VentaActionsClient({
       {status !== 'CANCELLED' && (
         <button
           onClick={() => setIsDeliveryModalOpen(true)}
-          className="btn-secondary"
+          className="btn-secondary flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold w-full sm:w-auto text-center shadow-sm"
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.5rem 0.85rem',
-            borderRadius: '6px',
             backgroundColor: deliveryOrder ? (deliveryOrder.status === 'DELIVERED' ? '#f0fdf4' : '#eff6ff') : '#f8fafc',
             color: deliveryOrder ? (deliveryOrder.status === 'DELIVERED' ? '#16a34a' : '#1d4ed8') : '#475569',
             border: `1px solid ${deliveryOrder ? (deliveryOrder.status === 'DELIVERED' ? '#bbf7d0' : '#bfdbfe') : '#cbd5e1'}`,
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            fontSize: '0.85rem',
           }}
           title="Ver o editar datos de entrega a domicilio y chofer asignado"
         >
-          <Truck size={16} />
+          <Truck size={16} className="shrink-0" />
           {deliveryOrder ? (
-            <span>
+            <span className="truncate">
               {deliveryOrder.status === 'DELIVERED' ? '✅ Entregado' : deliveryOrder.driver ? `🚚 Chofer: ${deliveryOrder.driver.name.split(' ')[0]}` : '🚚 Envío Sin Chofer'}
             </span>
           ) : (
-            'Enviar a Domicilio / Chofer'
+            <span>Envío a Domicilio</span>
           )}
         </button>
       )}
@@ -533,48 +485,32 @@ export default function VentaActionsClient({
           <button
             onClick={handleToggleDeliveryStatus}
             disabled={isPending}
-            className="btn-secondary"
+            className="btn-secondary flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold w-full sm:w-auto text-center shadow-sm"
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.5rem 0.85rem',
-              borderRadius: '6px',
               backgroundColor: deliveryOrder.status === 'DELIVERED' ? '#fff7ed' : '#eff6ff',
               color: deliveryOrder.status === 'DELIVERED' ? '#c2410c' : '#1d4ed8',
               border: `1px solid ${deliveryOrder.status === 'DELIVERED' ? '#fde68a' : '#bfdbfe'}`,
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '0.85rem',
               opacity: isPending ? 0.7 : 1
             }}
           >
-            {deliveryOrder.status === 'DELIVERED' ? <Square size={16} /> : <CheckSquare size={16} />}
-            {deliveryOrder.status === 'DELIVERED' ? 'Marcar Pendiente' : 'Marcar Entregado'}
+            {deliveryOrder.status === 'DELIVERED' ? <Square size={16} className="shrink-0" /> : <CheckSquare size={16} className="shrink-0" />}
+            <span>{deliveryOrder.status === 'DELIVERED' ? 'Marcar Pendiente' : 'Marcar Entregado'}</span>
           </button>
 
           {status === 'PENDING' && (
             <button
               onClick={() => setIsConfirmPaymentModalOpen(true)}
               disabled={isPending}
-              className="btn-secondary"
+              className="btn-secondary flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold w-full sm:w-auto text-center shadow-sm"
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.5rem 0.85rem',
-                borderRadius: '6px',
                 backgroundColor: '#fef3c7',
                 color: '#b45309',
                 border: '1px solid #fde68a',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                fontSize: '0.85rem',
                 opacity: isPending ? 0.7 : 1
               }}
             >
-              <DollarSign size={16} />
-              Confirmar Pago
+              <DollarSign size={16} className="shrink-0" />
+              <span>Confirmar Pago</span>
             </button>
           )}
         </>
@@ -586,22 +522,14 @@ export default function VentaActionsClient({
         <button
           onClick={handleCancelSale}
           disabled={isPending}
-          className="btn-danger"
+          className="btn-danger flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold w-full sm:w-auto text-center bg-red-600 hover:bg-red-700 text-white shadow-sm"
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.5rem 0.85rem',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            fontSize: '0.85rem',
             border: 'none',
             opacity: isPending ? 0.7 : 1
           }}
         >
-          <AlertTriangle size={16} />
-          {isPending ? 'Cancelando...' : 'Cancelar Venta'}
+          <AlertTriangle size={16} className="shrink-0" />
+          <span>{isPending ? 'Cancelando...' : 'Cancelar Venta'}</span>
         </button>
       )}
 
@@ -613,24 +541,17 @@ export default function VentaActionsClient({
             setIsInvoiceModalOpen(true);
           }}
           disabled={isPending}
-          className="btn-primary"
+          className="btn-primary flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold w-full sm:w-auto text-center col-span-2 sm:col-span-1 text-white shadow-sm"
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.5rem 0.85rem',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            fontSize: '0.85rem',
             border: 'none',
             opacity: isPending ? 0.7 : 1
           }}
         >
-          <FileText size={16} />
-          {isPending ? 'Facturando...' : 'Timbrar Factura (SAT)'}
+          <FileText size={16} className="shrink-0" />
+          <span>{isPending ? 'Facturando...' : 'Timbrar Factura (SAT)'}</span>
         </button>
       )}
+
 
       {/* Descargar PDF y XML */}
       {invoiceId && (
@@ -638,46 +559,18 @@ export default function VentaActionsClient({
           <a
             href={`/api/facturacion/download?invoiceId=${invoiceId}&format=pdf`}
             download
-            className="btn-secondary"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.5rem 0.85rem',
-              borderRadius: '6px',
-              backgroundColor: '#eff6ff',
-              color: '#1d4ed8',
-              border: '1px solid #bfdbfe',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '0.85rem',
-              textDecoration: 'none'
-            }}
+            className="btn-secondary flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold w-full sm:w-auto text-center border border-blue-200 bg-blue-50 text-blue-700 shadow-sm no-underline"
           >
-            <FileText size={16} />
-            Descargar PDF (CFDI)
+            <FileText size={16} className="shrink-0" />
+            <span>Descargar PDF</span>
           </a>
           <a
             href={`/api/facturacion/download?invoiceId=${invoiceId}&format=xml`}
             download
-            className="btn-secondary"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.5rem 0.85rem',
-              borderRadius: '6px',
-              backgroundColor: '#f8fafc',
-              color: '#475569',
-              border: '1px solid #cbd5e1',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '0.85rem',
-              textDecoration: 'none'
-            }}
+            className="btn-secondary flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold w-full sm:w-auto text-center border border-slate-200 bg-slate-50 text-slate-700 shadow-sm no-underline"
           >
-            <FileText size={16} />
-            Descargar XML (CFDI)
+            <FileText size={16} className="shrink-0" />
+            <span>Descargar XML</span>
           </a>
 
           {/* Botones de Acuse de Cancelación */}
@@ -686,46 +579,18 @@ export default function VentaActionsClient({
               <a
                 href={`/api/facturacion/download?invoiceId=${invoiceId}&format=pdf&type=cancellation`}
                 download
-                className="btn-secondary"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  padding: '0.5rem 0.85rem',
-                  borderRadius: '6px',
-                  backgroundColor: '#fef2f2',
-                  color: '#dc2626',
-                  border: '1px solid #fca5a5',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                  fontSize: '0.85rem',
-                  textDecoration: 'none'
-                }}
+                className="btn-secondary flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold w-full sm:w-auto text-center border border-red-200 bg-red-50 text-red-700 shadow-sm no-underline"
               >
-                <FileText size={16} />
-                Descargar Acuse PDF
+                <FileText size={16} className="shrink-0" />
+                <span>Acuse PDF</span>
               </a>
               <a
                 href={`/api/facturacion/download?invoiceId=${invoiceId}&format=xml&type=cancellation`}
                 download
-                className="btn-secondary"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  padding: '0.5rem 0.85rem',
-                  borderRadius: '6px',
-                  backgroundColor: '#fff7ed',
-                  color: '#c2410c',
-                  border: '1px solid #ffedd5',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                  fontSize: '0.85rem',
-                  textDecoration: 'none'
-                }}
+                className="btn-secondary flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold w-full sm:w-auto text-center border border-orange-200 bg-orange-50 text-orange-700 shadow-sm no-underline"
               >
-                <FileText size={16} />
-                Descargar Acuse XML
+                <FileText size={16} className="shrink-0" />
+                <span>Acuse XML</span>
               </a>
             </>
           )}
@@ -737,26 +602,17 @@ export default function VentaActionsClient({
         <button
           onClick={handleCancelInvoice}
           disabled={isPending}
-          className="btn-danger"
+          className="btn-danger flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold w-full sm:w-auto text-center bg-red-600 hover:bg-red-700 text-white shadow-sm"
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.5rem 0.85rem',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            fontSize: '0.85rem',
             border: 'none',
-            backgroundColor: '#dc2626',
-            color: 'white',
             opacity: isPending ? 0.7 : 1
           }}
         >
-          <AlertTriangle size={16} />
-          {isPending ? 'Cancelando Factura...' : 'Cancelar Factura (SAT)'}
+          <AlertTriangle size={16} className="shrink-0" />
+          <span>{isPending ? 'Cancelando...' : 'Cancelar Factura'}</span>
         </button>
       )}
+
 
       {/* WhatsApp Share Modal */}
       {isModalOpen && (

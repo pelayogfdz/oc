@@ -211,7 +211,7 @@ button {
     padding-left: 2% !important;
     padding-right: 2% !important;
     padding-top: 1rem !important;
-    padding-bottom: 95px !important; /* Make room for bottom nav */
+    padding-bottom: 110px !important; /* Make room for bottom nav and floating tools */
     max-width: 100vw !important;
     overflow-x: hidden !important;
   }

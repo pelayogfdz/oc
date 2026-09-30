@@ -102,12 +102,12 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
       </div>
 
       {/* Action Buttons Toolbar */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', alignItems: 'center', width: '100%', marginBottom: '1.5rem' }}>
-         <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir`} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none', padding: '0.5rem 0.85rem', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold' }}>
-            <Printer size={16} /> Imprimir Nota (A4)
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 items-center w-full mb-6">
+         <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir`} className="btn-primary flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold w-full sm:w-auto text-center text-white no-underline shadow-sm">
+            <Printer size={16} className="shrink-0" /> <span>Imprimir Nota (A4)</span>
          </Link>
-         <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir-ticket`} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none', padding: '0.5rem 0.85rem', borderRadius: '6px', border: '1px solid var(--caanma-border)', backgroundColor: '#fff', color: '#334155', fontSize: '0.85rem', fontWeight: 'bold' }}>
-            <Receipt size={16} /> Imprimir Ticket
+         <Link target="_blank" href={`/ventas/detalle/${sale.id}/imprimir-ticket`} className="btn-secondary flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold w-full sm:w-auto text-center border border-slate-200 bg-white text-slate-700 no-underline shadow-sm">
+            <Receipt size={16} className="shrink-0" /> <span>Imprimir Ticket</span>
          </Link>
          <VentaActionsClient 
            saleId={sale.id}
@@ -162,14 +162,15 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
 
       <div className="card p-4 sm:p-8">
         {/* Header Membretado */}
-        <div className="pb-4 mb-8 flex flex-col sm:flex-row justify-between items-start border-b-2 border-slate-100 gap-4">
+        <div className="pb-4 mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start border-b-2 border-slate-100 gap-4">
           <div>
-            <h1 style={{ fontSize: '2rem', fontWeight: 'bold', margin: '0 0 0.5rem 0', color: '#1e293b' }}>Resumen de Venta</h1>
-            <div style={{ fontSize: '1.2rem', color: '#64748b' }}>Folio: #{sale.folio || sale.id.slice(0, 8).toUpperCase()}</div>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-800 m-0 mb-1">Resumen de Venta</h2>
+            <div style={{ fontSize: '1.1rem', color: '#64748b' }}>Folio: #{sale.folio || sale.id.slice(0, 8).toUpperCase()}</div>
             <div style={{ display: 'inline-block', marginTop: '0.5rem', padding: '0.25rem 0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold', backgroundColor: sale.status === 'COMPLETED' ? '#dcfce7' : sale.status === 'CANCELLED' ? '#fee2e2' : '#fef3c7', color: sale.status === 'COMPLETED' ? '#166534' : sale.status === 'CANCELLED' ? '#991b1b' : '#b45309' }}>
               {sale.status === 'COMPLETED' ? 'Venta Concluida' : sale.status === 'CANCELLED' ? 'Cancelada' : sale.status}
             </div>
           </div>
+
 
           <div className="text-left sm:text-right w-full sm:w-auto break-all">
              <div style={{ fontSize: '1rem', color: '#64748b' }}>Fecha de Emisión</div>
@@ -261,8 +262,8 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
             <tbody>
               {sale.items.map((item) => (
                 <tr key={item.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                  <td data-label="Descripción del Artículo" style={{ padding: '0.4rem 0.75rem' }}>
-                    <div className="flex flex-col text-right sm:text-left min-w-0 break-words">
+                  <td data-label="Descripción del Artículo" className="full-width no-label" style={{ padding: '0.5rem 0.75rem' }}>
+                    <div className="flex flex-col text-left min-w-0 break-words w-full">
                       {item.product ? (
                         <Link 
                           href={`/productos/${item.productId}`} 
@@ -271,7 +272,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
                             color: 'var(--caanma-primary, #8b5cf6)', 
                             textDecoration: 'none' 
                           }}
-                          className="hover:underline break-words"
+                          className="hover:underline break-words text-sm sm:text-base leading-snug"
                         >
                           {item.product.name}
                         </Link>
@@ -279,7 +280,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
                         <div style={{ fontWeight: 'bold', color: '#0f172a' }}>Artículo Retirado del Catálogo</div>
                       )}
                       {item.variant && <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Var: {item.variant.attribute}</div>}
-                      <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>SKU: {item.product?.sku || '-'} | Código: {item.product?.barcode || '-'}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.25rem' }}>SKU: {item.product?.sku || '-'} | Código: {item.product?.barcode || '-'}</div>
                     </div>
                   </td>
                   <td data-label="Cant." style={{ padding: '0.4rem 0.75rem', fontWeight: 'bold', textAlign: 'center', color: '#0f172a' }}>{item.quantity}</td>
@@ -290,8 +291,8 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
 
               {unallocatedAmount > 0.009 && (
                 <tr style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '#fffbeb' }}>
-                  <td data-label="Descripción del Artículo" style={{ padding: '0.45rem 0.75rem' }}>
-                    <div className="flex flex-col text-right sm:text-left min-w-0 break-words">
+                  <td data-label="Descripción del Artículo" className="full-width no-label" style={{ padding: '0.45rem 0.75rem' }}>
+                    <div className="flex flex-col text-left min-w-0 break-words w-full">
                       <div style={{ fontWeight: 'bold', color: '#b45309' }}>
                         📦 Ajuste por Artículo(s) Eliminado(s) del Catálogo
                       </div>
@@ -310,15 +311,15 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
         </div>
 
         {/* Totals */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.5rem', width: '100%' }}>
-          <div style={{ flex: 1, minWidth: '260px' }}>
+        <div className="flex flex-col sm:flex-row justify-between mb-8 items-start gap-6 w-full">
+          <div className="w-full sm:flex-1">
              {sale.notes && (() => {
                const shipmentMatch = sale.notes.match(/\/shipments\/(\d+)/);
                const shipmentId = shipmentMatch ? shipmentMatch[1] : null;
                const guideUrl = shipmentId ? `/api/mercadolibre/labels?shipmentId=${shipmentId}&branchId=${sale.branchId}` : null;
                
                return (
-                 <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                 <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
                      <div>
                        <p style={{ margin: 0, fontSize: '0.875rem', color: '#475569', fontWeight: 'bold' }}>Notas del Ticket:</p>
@@ -351,23 +352,24 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
                );
              })()}
           </div>
-          <div style={{ minWidth: '260px', width: '100%', maxWidth: '320px' }}>
-             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #e2e8f0' }}>
-                <span style={{ color: '#64748b', fontSize: '1.1rem' }}>Subtotal:</span>
-                <span style={{ fontSize: '1.1rem', color: '#0f172a' }}>${finalSubtotal.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+          <div className="w-full sm:w-80 ml-auto bg-slate-50 sm:bg-transparent p-4 sm:p-0 rounded-xl sm:rounded-none border sm:border-0 border-slate-100">
+             <div className="flex justify-between py-2 border-b border-slate-200">
+                <span className="text-slate-500 font-medium">Subtotal:</span>
+                <span className="text-slate-900 font-semibold">${finalSubtotal.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
              </div>
              {discount > 0.01 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #e2e8f0', color: '#dc2626' }}>
-                   <span style={{ fontSize: '1.1rem' }}>Descuento:</span>
-                   <span style={{ fontSize: '1.1rem' }}>-${discount.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
+                <div className="flex justify-between py-2 border-b border-slate-200 text-red-600">
+                   <span className="font-medium">Descuento:</span>
+                   <span className="font-semibold">-${discount.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
                 </div>
              )}
-             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0', fontWeight: 'bold', fontSize: '1.5rem', color: '#0ea5e9' }}>
+             <div className="flex justify-between py-3 font-bold text-xl sm:text-2xl text-sky-600">
                 <span>Pago Total:</span>
                 <span>${effectiveTotal.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
              </div>
           </div>
         </div>
+
       </div>
     </div>
   );
