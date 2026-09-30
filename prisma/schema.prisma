@@ -33,6 +33,11 @@ model Tenant {
   Recipe               Recipe[]
   users                User[]
   customRoles          CustomRole[]
+  restaurantAreas      RestaurantArea[]
+  restaurantTables     RestaurantTable[]
+  kitchenStations      KitchenStation[]
+  restaurantOrders     RestaurantOrder[]
+  restaurantTransfers  RestaurantTableTransferLog[]
 }
 
 model SystemSettings {
@@ -134,6 +139,9 @@ model User {
   customRoleId              String?
   customRole                CustomRole?              @relation(fields: [customRoleId], references: [id])
   priceChanges              PriceChangeLog[]
+  restaurantOrders          RestaurantOrder[]        @relation("RestaurantOrderWaiter")
+  activeTables              RestaurantTable[]        @relation("ActiveTableWaiter")
+  restaurantTransfers       RestaurantTableTransferLog[]
 }
 
 
@@ -190,6 +198,11 @@ model Branch {
   collaboratorTasks       CollaboratorTask[]
   fuelTransactions        FuelTransaction[]
   priceChanges            PriceChangeLog[]
+  restaurantAreas         RestaurantArea[]
+  restaurantTables        RestaurantTable[]
+  kitchenStations         KitchenStation[]
+  restaurantOrders        RestaurantOrder[]
+  restaurantTransfers     RestaurantTableTransferLog[]
 }
 
 model BranchSettings {
@@ -316,6 +329,7 @@ model Product {
   isActive            Boolean              @default(true)
   allowProduction     Boolean              @default(false)
   isProductionInput   Boolean              @default(false)
+  isRestaurantAvailable Boolean            @default(false)
   isService           Boolean              @default(false)
   unit                String               @default("Pza")
   stock               Int                  @default(0)
@@ -349,6 +363,10 @@ model Product {
   hasTraceability     Boolean              @default(false)
   fuelTraceabilities  FuelTraceability[]
   priceChanges        PriceChangeLog[]
+  kitchenStationId    String?
+  kitchenStation      KitchenStation?      @relation("ProductKitchenStation", fields: [kitchenStationId], references: [id])
+  restaurantOrderItems RestaurantOrderItem[]
+  modifierIngredients  RestaurantOrderItemModifier[] @relation("ModifierIngredientProduct")
 
   @@unique([sku, branchId])
   @@index([branchId, stock])
@@ -379,6 +397,7 @@ model ProductVariant {
   consignmentItems   ConsignmentItem[]
   saleItems          SaleItem[]
   transferItems      TransferItem[]
+  restaurantOrderItems RestaurantOrderItem[]
 
   @@unique([productId, attribute])
   @@index([barcode])
@@ -442,6 +461,7 @@ model Sale {
   returns       SaleReturn[]
   fuelTransaction FuelTransaction?
   cartaPortes   CartaPorte[]
+  restaurantOrder RestaurantOrder?
 
   @@index([branchId, createdAt(sort: Desc)])
   @@index([customerId])
@@ -1331,5 +1351,161 @@ model PriceChangeLog {
   @@index([branchId, createdAt])
   @@index([productId])
 }
+
+model RestaurantArea {
+  id        String            @id @default(uuid())
+  name      String
+  sortOrder Int               @default(0)
+  isActive  Boolean           @default(true)
+  branchId  String
+  tenantId  String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  branch    Branch            @relation(fields: [branchId], references: [id])
+  tenant    Tenant?           @relation(fields: [tenantId], references: [id])
+  tables    RestaurantTable[]
+
+  @@index([branchId])
+}
+
+model RestaurantTable {
+  id             String                       @id @default(uuid())
+  areaId         String
+  branchId       String
+  tenantId       String?
+  number         Int
+  name           String
+  capacity       Int                          @default(4)
+  posX           Float                        @default(0)
+  posY           Float                        @default(0)
+  shape          String                       @default("SQUARE") // SQUARE, ROUND, RECTANGLE
+  status         String                       @default("FREE") // FREE, OCCUPIED, ORDER_PLACED, READY, BILL_REQUESTED
+  currentOrderId String?
+  activeWaiterId String?
+  isActive       Boolean                      @default(true)
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
+  area           RestaurantArea               @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  branch         Branch                       @relation(fields: [branchId], references: [id])
+  tenant         Tenant?                      @relation(fields: [tenantId], references: [id])
+  activeWaiter   User?                        @relation("ActiveTableWaiter", fields: [activeWaiterId], references: [id])
+  orders         RestaurantOrder[]
+  transfersFrom  RestaurantTableTransferLog[] @relation("TransferFromTable")
+  transfersTo    RestaurantTableTransferLog[] @relation("TransferToTable")
+
+  @@index([branchId, areaId])
+}
+
+model KitchenStation {
+  id          String                @id @default(uuid())
+  name        String
+  color       String?               @default("#3B82F6")
+  printerIp   String?
+  printerType String?               @default("ESC/POS")
+  isActive    Boolean               @default(true)
+  branchId    String
+  tenantId    String?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  branch      Branch                @relation(fields: [branchId], references: [id])
+  tenant      Tenant?               @relation(fields: [tenantId], references: [id])
+  products    Product[]             @relation("ProductKitchenStation")
+  orderItems  RestaurantOrderItem[]
+
+  @@index([branchId])
+}
+
+model RestaurantOrder {
+  id          String                       @id @default(uuid())
+  folio       String?
+  tableId     String
+  waiterId    String
+  branchId    String
+  tenantId    String?
+  dinersCount Int                          @default(1)
+  status      String                       @default("OPEN") // OPEN, IN_PREP, READY, BILLED, CLOSED, CANCELLED
+  notes       String?
+  subtotal    Float                        @default(0)
+  tax         Float                        @default(0)
+  discount    Float                        @default(0)
+  tip         Float                        @default(0)
+  total       Float                        @default(0)
+  openedAt    DateTime                     @default(now())
+  closedAt    DateTime?
+  saleId      String?                      @unique
+  table       RestaurantTable              @relation(fields: [tableId], references: [id])
+  waiter      User                         @relation("RestaurantOrderWaiter", fields: [waiterId], references: [id])
+  branch      Branch                       @relation(fields: [branchId], references: [id])
+  tenant      Tenant?                      @relation(fields: [tenantId], references: [id])
+  sale        Sale?                        @relation(fields: [saleId], references: [id])
+  items       RestaurantOrderItem[]
+  transfers   RestaurantTableTransferLog[]
+
+  @@index([branchId, status, openedAt(sort: Desc)])
+  @@index([tableId])
+}
+
+model RestaurantOrderItem {
+  id               String                        @id @default(uuid())
+  orderId          String
+  productId        String
+  variantId        String?
+  kitchenStationId String?
+  dinerNumber      Int                           @default(1)
+  quantity         Int                           @default(1)
+  unitPrice        Float
+  course           String                        @default("MAIN") // STARTER, MAIN, DESSERT, DRINK, SIDE
+  status           String                        @default("PENDING") // PENDING, SENT_TO_KITCHEN, IN_PREP, READY, SERVED, CANCELLED
+  notes            String?
+  recipeDeducted   Boolean                       @default(false)
+  sentAt           DateTime?
+  preparedAt       DateTime?
+  servedAt         DateTime?
+  createdAt        DateTime                      @default(now())
+  updatedAt        DateTime                      @updatedAt
+  order            RestaurantOrder               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product          Product                       @relation(fields: [productId], references: [id])
+  variant          ProductVariant?               @relation(fields: [variantId], references: [id])
+  kitchenStation   KitchenStation?               @relation(fields: [kitchenStationId], references: [id])
+  modifiers        RestaurantOrderItemModifier[]
+
+  @@index([orderId])
+  @@index([kitchenStationId, status])
+}
+
+model RestaurantOrderItemModifier {
+  id                  String              @id @default(uuid())
+  orderItemId         String
+  name                String
+  extraPrice          Float               @default(0)
+  ingredientProductId String?
+  ingredientQty       Float?
+  orderItem           RestaurantOrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  ingredientProduct   Product?            @relation("ModifierIngredientProduct", fields: [ingredientProductId], references: [id])
+
+  @@index([orderItemId])
+}
+
+model RestaurantTableTransferLog {
+  id          String          @id @default(uuid())
+  orderId     String
+  fromTableId String
+  toTableId   String
+  userId      String
+  branchId    String
+  tenantId    String?
+  reason      String?
+  createdAt   DateTime        @default(now())
+  order       RestaurantOrder @relation(fields: [orderId], references: [id])
+  fromTable   RestaurantTable @relation("TransferFromTable", fields: [fromTableId], references: [id])
+  toTable     RestaurantTable @relation("TransferToTable", fields: [toTableId], references: [id])
+  user        User            @relation(fields: [userId], references: [id])
+  branch      Branch          @relation(fields: [branchId], references: [id])
+  tenant      Tenant?         @relation(fields: [tenantId], references: [id])
+
+  @@index([orderId])
+  @@index([branchId])
+}
+
 
 

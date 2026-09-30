@@ -91,6 +91,7 @@ export async function createProduct(prevState: any, formData: FormData) {
   const isActive = formData.get('isActive') !== 'false';
   const allowProduction = formData.getAll('allowProduction').includes('true');
   const isProductionInput = formData.getAll('isProductionInput').includes('true');
+  const isRestaurantAvailable = formData.getAll('isRestaurantAvailable').includes('true');
   const isService = formData.getAll('isService').includes('true');
   const hasTraceability = formData.getAll('hasTraceability').includes('true');
   const unit = formData.get('unit') as string || 'Pza';
@@ -1023,9 +1024,15 @@ export async function searchProducts(
 ) {
   const isGlobal = branchId === 'GLOBAL' || branchId === 'ALL' || !branchId;
   const session = await getSession();
-  const activeBranch = await getActiveBranch();
-  if (!activeBranch) return [];
-  const tenantId = session?.tenantId || activeBranch.tenantId;
+  if (!session) return [];
+
+  let tenantId = session.tenantId;
+  if (!tenantId) {
+    try {
+      const activeBranch = await getActiveBranch();
+      tenantId = activeBranch?.tenantId;
+    } catch (e) {}
+  }
   if (!tenantId) return [];
 
   const tenantBranches = await prisma.branch.findMany({
@@ -1116,6 +1123,39 @@ export async function searchProducts(
     if (options.maxPrice !== undefined && options.maxPrice !== null && !isNaN(options.maxPrice)) {
       extraConditions.push({ price: { lte: options.maxPrice } });
     }
+
+    if (options.meliStatus && options.meliStatus !== 'ALL') {
+      const meliMappedSkus = await prisma.externalProductMap.findMany({
+        where: {
+          platform: { in: ['MERCADO_LIBRE', 'mercadolibre'] },
+          product: { branchId: { in: tenantBranchIds } }
+        },
+        select: { product: { select: { sku: true } } }
+      });
+      const validSkus = Array.from(new Set(
+        meliMappedSkus
+          .map(m => m.product?.sku?.trim())
+          .filter((s): s is string => Boolean(s))
+      ));
+
+      if (options.meliStatus === 'PUBLISHED') {
+        if (validSkus.length > 0) {
+          extraConditions.push({ sku: { in: validSkus } });
+        } else {
+          extraConditions.push({
+            externalMaps: {
+              some: {
+                platform: { in: ['MERCADO_LIBRE', 'mercadolibre'] }
+              }
+            }
+          });
+        }
+      } else if (options.meliStatus === 'NOT_PUBLISHED') {
+        if (validSkus.length > 0) {
+          extraConditions.push({ sku: { notIn: validSkus } });
+        }
+      }
+    }
   }
 
   // Configurar ordenación nativa
@@ -1130,9 +1170,17 @@ export async function searchProducts(
     }
   }
 
-  const limitCount = options?.limit !== undefined
+  let limitCount = options?.limit !== undefined
     ? (options.limit === 0 ? undefined : options.limit)
     : (isGlobal ? 2500 : 2000);
+
+  // Si se filtra específicamente por productos publicados en Mercado Libre,
+  // el universo ya está acotado por los SKUs / publicaciones de Mercado Libre (~847 productos).
+  // No debemos truncar a 2,500 filas de base de datos porque al tener ~12 sucursales,
+  // 2,500 filas equivalen a solo ~221 productos únicos deduplicados (cortando de la letra 'D' en adelante).
+  if (options?.meliStatus === 'PUBLISHED') {
+    limitCount = undefined;
+  }
 
   let products = [];
   if (!query || query.trim() === '') {
@@ -1190,7 +1238,19 @@ export async function searchProducts(
   const productBarcodes = products.map(p => p.barcode).filter((barcode): barcode is string => typeof barcode === 'string' && barcode.trim() !== '');
 
   let otherBranchStocks: any[] = [];
-  if (productSkus.length > 0 || productBarcodes.length > 0) {
+  if (isGlobal) {
+    // En modo global ya consultamos todas las sucursales del tenant en `products`,
+    // por lo que reutilizamos los registros existentes y evitamos una segunda consulta masiva a la BD.
+    otherBranchStocks = products.map(p => ({
+      id: p.id,
+      sku: p.sku,
+      barcode: p.barcode,
+      name: p.name,
+      stock: p.stock,
+      branchId: p.branchId,
+      branch: p.branch
+    }));
+  } else if (productSkus.length > 0 || productBarcodes.length > 0) {
     otherBranchStocks = await prisma.product.findMany({
       where: {
         branchId: { in: tenantBranchIds },

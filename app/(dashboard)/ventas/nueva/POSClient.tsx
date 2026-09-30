@@ -541,55 +541,175 @@ export default function POSClient({
     }
   }, [branchId, mode]);
 
-  // Reset active tab and clear tabs list when changing active branch to prevent cross-branch cart sales
+  // Real-time Draft Auto-Save & Recovery for POS Tabs, Quotations, and Consignments
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const hasRecovery = localStorage.getItem(`caanma_pos_recovery_${branchId}_${mode}`);
-      if (hasRecovery) {
-        console.log('[POS] Recovery data found, skipping default tab reset on branch change.');
-        return;
+    if (typeof window === 'undefined') return;
+
+    // 1. Try restoring from persistent draft storage
+    const draftKey = `caanma_pos_draft_${branchId}_${mode}`;
+    const recoveryKey = `caanma_pos_recovery_${branchId}_${mode}`;
+    const storedDraft = localStorage.getItem(draftKey);
+    const storedRecovery = localStorage.getItem(recoveryKey);
+
+    let restored = false;
+
+    if (storedDraft) {
+      try {
+        const parsed = JSON.parse(storedDraft);
+        if (parsed && Array.isArray(parsed.tabs) && parsed.tabs.length > 0) {
+          const targetTabId = parsed.activeTabId || parsed.tabs[0].id;
+          const targetTab = parsed.tabs.find((t: any) => t.id === targetTabId) || parsed.tabs[0];
+
+          setTabs(parsed.tabs);
+          setActiveTabId(targetTab.id);
+
+          setCart(targetTab.cart || []);
+          setSelectedCustomerId(targetTab.selectedCustomerId || null);
+          setCustomerSearchTerm(targetTab.customerSearchTerm || '');
+          setPriceList(targetTab.priceList || 'price');
+          setManualDiscountType(targetTab.manualDiscountType || '$');
+          setManualDiscountValue(targetTab.manualDiscountValue || '');
+          setPointsRedeemed(targetTab.pointsRedeemed || 0);
+          setTipAmount(targetTab.tipAmount || 0);
+          setPaymentMethod(targetTab.paymentMethod || 'CASH');
+          setAmountReceived(targetTab.amountReceived || '');
+          setCardAmount(targetTab.cardAmount || '');
+          setTransferAmount(targetTab.transferAmount || '');
+          setNotes(targetTab.notes || '');
+          setObservationImageUrl(targetTab.observationImageUrl || '');
+          setDeliveryNotes(targetTab.deliveryNotes || '');
+          setShippingDate(targetTab.shippingDate || '');
+          setDeliveryDate(targetTab.deliveryDate || '');
+          setDeliveryTime(targetTab.deliveryTime || '');
+          setDeliveryStreet(targetTab.deliveryStreet || '');
+          setDeliveryType(targetTab.deliveryType || 'PICKUP');
+          setIsDelivery(targetTab.isDelivery || false);
+          setDeliveryExtNumber(targetTab.deliveryExtNumber || '');
+          setDeliveryIntNumber(targetTab.deliveryIntNumber || '');
+          setDeliveryColonia(targetTab.deliveryColonia || '');
+          setDeliveryCity(targetTab.deliveryCity || '');
+          setDeliveryZipCode(targetTab.deliveryZipCode || '');
+          setDeliveryDriverId(targetTab.deliveryDriverId || '');
+          setDocumentType(targetTab.documentType || 'TICKET');
+          setTransactionType(targetTab.transactionType || 'VENTA');
+          setAppliedPromotionIds(targetTab.appliedPromotionIds || null);
+          setLoadedQuoteId(targetTab.loadedQuoteId || null);
+          setLoadedConsignmentId(targetTab.loadedConsignmentId || null);
+          setBreakdownDiscounts(targetTab.breakdownDiscounts !== undefined ? targetTab.breakdownDiscounts : true);
+          setIsQuoteClone(targetTab.isQuoteClone || false);
+
+          restored = true;
+        }
+      } catch (e) {
+        console.error('Failed to parse draft POS tabs:', e);
       }
     }
 
-    resetActiveTab();
-    setTabs([
-      {
-        id: '1',
-        name: mode === 'QUOTE' ? 'Nueva Cotización' : mode === 'CONSIGNMENT' ? 'Nueva Consignación' : 'Nueva Venta',
-        cart: [],
-        selectedCustomerId: null,
-        customerSearchTerm: '',
-        priceList: 'price',
-        manualDiscountType: '$',
-        manualDiscountValue: '',
-        pointsRedeemed: 0,
-        tipAmount: 0,
-        paymentMethod: 'CASH',
-        amountReceived: '',
-        cardAmount: '',
-        transferAmount: '',
-        notes: '',
-        shippingDate: '',
-        deliveryDate: '',
-        deliveryTime: '',
-        deliveryStreet: '',
-        deliveryType: 'PICKUP',
-        isDelivery: false,
-        deliveryExtNumber: '',
-        deliveryIntNumber: '',
-        deliveryColonia: '',
-        deliveryCity: '',
-        deliveryZipCode: '',
-        deliveryNotes: '',
-        deliveryDriverId: '',
-        documentType: 'TICKET',
-        transactionType: 'VENTA',
-        appliedPromotionIds: null,
-        breakdownDiscounts: true
+    if (!restored && storedRecovery) {
+      try {
+        const state = JSON.parse(storedRecovery);
+        if (state.cart && state.cart.length > 0) {
+          setCart(state.cart);
+          setSelectedCustomerId(state.selectedCustomerId || null);
+          setCustomerSearchTerm(state.customerSearchTerm || '');
+          setPriceList(state.priceList || 'price');
+          setManualDiscountType(state.manualDiscountType || '$');
+          setManualDiscountValue(state.manualDiscountValue || '');
+          setPointsRedeemed(state.pointsRedeemed || 0);
+          setTipAmount(state.tipAmount || 0);
+          setPaymentMethod(state.paymentMethod || 'CASH');
+          setAmountReceived(state.amountReceived || '');
+          setCardAmount(state.cardAmount || '');
+          setTransferAmount(state.transferAmount || '');
+          setNotes(state.notes || '');
+          setObservationImageUrl(state.observationImageUrl || '');
+          setDeliveryNotes(state.deliveryNotes || '');
+          setShippingDate(state.shippingDate || '');
+          setDeliveryDate(state.deliveryDate || '');
+          setDeliveryTime(state.deliveryTime || '');
+          setDeliveryStreet(state.deliveryStreet || '');
+          setDeliveryType(state.deliveryType || 'PICKUP');
+          setDocumentType(state.documentType || 'TICKET');
+          setTransactionType(state.transactionType || 'VENTA');
+          setAppliedPromotionIds(state.appliedPromotionIds || null);
+          setLoadedQuoteId(state.loadedQuoteId || null);
+          setLoadedConsignmentId(state.loadedConsignmentId || null);
+          setBreakdownDiscounts(state.breakdownDiscounts !== undefined ? state.breakdownDiscounts : true);
+
+          setTabs(prev => prev.map(t => t.id === '1' ? {
+            ...t,
+            cart: state.cart || [],
+            selectedCustomerId: state.selectedCustomerId || null,
+            customerSearchTerm: state.customerSearchTerm || '',
+            priceList: state.priceList || 'price',
+            manualDiscountType: state.manualDiscountType || '$',
+            manualDiscountValue: state.manualDiscountValue || '',
+            notes: state.notes || '',
+            observationImageUrl: state.observationImageUrl || '',
+            deliveryNotes: state.deliveryNotes || '',
+            shippingDate: state.shippingDate || '',
+            deliveryDate: state.deliveryDate || '',
+            deliveryTime: state.deliveryTime || '',
+            deliveryStreet: state.deliveryStreet || '',
+            deliveryType: state.deliveryType || 'PICKUP',
+            documentType: state.documentType || 'TICKET',
+            transactionType: state.transactionType || 'VENTA',
+            loadedQuoteId: state.loadedQuoteId || null,
+            loadedConsignmentId: state.loadedConsignmentId || null,
+            breakdownDiscounts: state.breakdownDiscounts !== undefined ? state.breakdownDiscounts : true
+          } : t));
+          restored = true;
+        }
+      } catch (e) {
+        console.error('Failed to restore recovery state:', e);
       }
-    ]);
-    setActiveTabId('1');
-  }, [branchId]);
+      setTimeout(() => {
+        localStorage.removeItem(recoveryKey);
+      }, 5000);
+    }
+
+    if (!restored) {
+      resetActiveTab();
+      setTabs([
+        {
+          id: '1',
+          name: mode === 'QUOTE' ? 'Nueva Cotización' : mode === 'CONSIGNMENT' ? 'Nueva Consignación' : 'Nueva Venta',
+          cart: [],
+          selectedCustomerId: null,
+          customerSearchTerm: '',
+          priceList: 'price',
+          manualDiscountType: '$',
+          manualDiscountValue: '',
+          pointsRedeemed: 0,
+          tipAmount: 0,
+          paymentMethod: 'CASH',
+          amountReceived: '',
+          cardAmount: '',
+          transferAmount: '',
+          notes: '',
+          shippingDate: '',
+          deliveryDate: '',
+          deliveryTime: '',
+          deliveryStreet: '',
+          deliveryType: 'PICKUP',
+          isDelivery: false,
+          deliveryExtNumber: '',
+          deliveryIntNumber: '',
+          deliveryColonia: '',
+          deliveryCity: '',
+          deliveryZipCode: '',
+          deliveryNotes: '',
+          deliveryDriverId: '',
+          documentType: 'TICKET',
+          transactionType: 'VENTA',
+          appliedPromotionIds: null,
+          breakdownDiscounts: true
+        }
+      ]);
+      setActiveTabId('1');
+    }
+  }, [branchId, mode]);
+
 
   const handleActionError = (e: any): boolean => {
     const errStr = String(e);
@@ -641,76 +761,6 @@ export default function POSClient({
     }
     return false;
   };
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const recovery = localStorage.getItem(`caanma_pos_recovery_${branchId}_${mode}`);
-      if (recovery) {
-        try {
-          const state = JSON.parse(recovery);
-          if (state.cart && state.cart.length > 0) {
-            setCart(state.cart);
-            setSelectedCustomerId(state.selectedCustomerId || null);
-            setCustomerSearchTerm(state.customerSearchTerm || '');
-            setPriceList(state.priceList || 'price');
-            setManualDiscountType(state.manualDiscountType || '$');
-            setManualDiscountValue(state.manualDiscountValue || '');
-            setPointsRedeemed(state.pointsRedeemed || 0);
-            setTipAmount(state.tipAmount || 0);
-            setPaymentMethod(state.paymentMethod || 'CASH');
-            setAmountReceived(state.amountReceived || '');
-            setCardAmount(state.cardAmount || '');
-            setTransferAmount(state.transferAmount || '');
-            setNotes(state.notes || '');
-            setObservationImageUrl(state.observationImageUrl || '');
-            setDeliveryNotes(state.deliveryNotes || '');
-            setShippingDate(state.shippingDate || '');
-            setDeliveryDate(state.deliveryDate || '');
-            setDeliveryTime(state.deliveryTime || '');
-            setDeliveryStreet(state.deliveryStreet || '');
-            setDeliveryType(state.deliveryType || 'PICKUP');
-            setDocumentType(state.documentType || 'TICKET');
-            setTransactionType(state.transactionType || 'VENTA');
-            setAppliedPromotionIds(state.appliedPromotionIds || null);
-            setLoadedQuoteId(state.loadedQuoteId || null);
-            setLoadedConsignmentId(state.loadedConsignmentId || null);
-            setBreakdownDiscounts(state.breakdownDiscounts !== undefined ? state.breakdownDiscounts : true);
-
-            setTabs(prev => prev.map(t => t.id === '1' ? {
-              ...t,
-              cart: state.cart || [],
-              selectedCustomerId: state.selectedCustomerId || null,
-              customerSearchTerm: state.customerSearchTerm || '',
-              priceList: state.priceList || 'price',
-              manualDiscountType: state.manualDiscountType || '$',
-              manualDiscountValue: state.manualDiscountValue || '',
-              notes: state.notes || '',
-              observationImageUrl: state.observationImageUrl || '',
-              deliveryNotes: state.deliveryNotes || '',
-              shippingDate: state.shippingDate || '',
-              deliveryDate: state.deliveryDate || '',
-              deliveryTime: state.deliveryTime || '',
-              deliveryStreet: state.deliveryStreet || '',
-              deliveryType: state.deliveryType || 'PICKUP',
-              documentType: state.documentType || 'TICKET',
-              transactionType: state.transactionType || 'VENTA',
-              loadedQuoteId: state.loadedQuoteId || null,
-              loadedConsignmentId: state.loadedConsignmentId || null,
-               breakdownDiscounts: state.breakdownDiscounts !== undefined ? state.breakdownDiscounts : true
-            } : t));
-          }
-        } catch (e) {
-          console.error('Failed to restore recovery state:', e);
-        }
-
-        // Delay deletion of recovery state to survive React 18 hydration double-renders and quick unmounts
-        const timer = setTimeout(() => {
-          localStorage.removeItem(`caanma_pos_recovery_${branchId}_${mode}`);
-        }, 5000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [branchId, mode]);
 
   const [isMobileSearchActive, setIsMobileSearchActive] = useState(false);
 
@@ -1626,6 +1676,106 @@ export default function POSClient({
 
   const [loadedConsignmentId, setLoadedConsignmentId] = useState<string | null>(null);
 
+  // Continuously debounced auto-save current POS tabs & quotation drafts
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const timer = setTimeout(() => {
+      const updatedTabs = tabs.map(t => t.id === activeTabId ? {
+        ...t,
+        cart,
+        selectedCustomerId,
+        customerSearchTerm,
+        priceList,
+        manualDiscountType,
+        manualDiscountValue,
+        pointsRedeemed,
+        tipAmount,
+        paymentMethod,
+        amountReceived,
+        cardAmount,
+        transferAmount,
+        notes,
+        observationImageUrl,
+        shippingDate,
+        deliveryDate,
+        deliveryTime,
+        deliveryStreet,
+        deliveryType,
+        isDelivery,
+        deliveryExtNumber,
+        deliveryIntNumber,
+        deliveryColonia,
+        deliveryCity,
+        deliveryZipCode,
+        deliveryNotes,
+        deliveryDriverId,
+        documentType,
+        transactionType,
+        appliedPromotionIds,
+        loadedQuoteId,
+        loadedConsignmentId,
+        breakdownDiscounts,
+        isQuoteClone
+      } : t);
+
+      const hasContent = updatedTabs.some(t => 
+        (t.cart && t.cart.length > 0) || 
+        (t.notes && t.notes.trim() !== '') || 
+        (t.observationImageUrl && t.observationImageUrl.trim() !== '') ||
+        (t.selectedCustomerId && t.customerSearchTerm && t.customerSearchTerm.trim() !== '' && !t.customerSearchTerm.toUpperCase().includes('PUBLICO'))
+      );
+
+      const draftKey = `caanma_pos_draft_${branchId}_${mode}`;
+      if (hasContent) {
+        localStorage.setItem(draftKey, JSON.stringify({ tabs: updatedTabs, activeTabId }));
+      } else {
+        localStorage.removeItem(draftKey);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [
+    tabs,
+    activeTabId,
+    cart,
+    selectedCustomerId,
+    customerSearchTerm,
+    priceList,
+    manualDiscountType,
+    manualDiscountValue,
+    pointsRedeemed,
+    tipAmount,
+    paymentMethod,
+    amountReceived,
+    cardAmount,
+    transferAmount,
+    notes,
+    observationImageUrl,
+    shippingDate,
+    deliveryDate,
+    deliveryTime,
+    deliveryStreet,
+    deliveryType,
+    isDelivery,
+    deliveryExtNumber,
+    deliveryIntNumber,
+    deliveryColonia,
+    deliveryCity,
+    deliveryZipCode,
+    deliveryNotes,
+    deliveryDriverId,
+    documentType,
+    transactionType,
+    appliedPromotionIds,
+    loadedQuoteId,
+    loadedConsignmentId,
+    breakdownDiscounts,
+    isQuoteClone,
+    branchId,
+    mode
+  ]);
+
   const handleLoadConsignment = async (incomingId: string) => {
     if (!incomingId) return;
     setIsLoadingQuote(true);
@@ -1826,7 +1976,7 @@ export default function POSClient({
       } finally {
         setIsSearching(false);
       }
-    }, 60);
+    }, 250);
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm, branchId, isOnline, masterProducts]);

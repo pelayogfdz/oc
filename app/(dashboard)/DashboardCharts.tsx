@@ -118,9 +118,9 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Filtros Bar Ampliado (+50% tamaño) */}
-      <div className="bg-white p-5 sm:p-6 md:p-7 lg:p-8 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap justify-between items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-xs">
+      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap justify-between items-center gap-4">
+        <div className="flex items-center gap-3 min-w-fit">
+          <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-xs border border-purple-100/60">
             <Calendar size={20} />
           </div>
           <h2 className="text-base md:text-lg font-extrabold text-slate-900 m-0 tracking-tight">Rendimiento de Ventas</h2>
@@ -195,12 +195,13 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '1.5rem', width: '100%', minWidth: 0 }}>
         
         {/* Gráfica 1: Número de Ventas */}
-        <div className="bg-white p-6 sm:p-7 md:p-8 rounded-2xl border border-slate-200/80 shadow-xs h-[350px] flex flex-col min-w-0 overflow-hidden">
-          <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2 m-0">
-              <ShoppingCart size={15} className="text-blue-600" /> Transacciones Realizadas
+        <div className="bg-white p-5 sm:p-6 md:p-7 rounded-2xl border border-slate-200/80 shadow-xs h-[360px] flex flex-col min-w-0">
+          <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3 gap-3 flex-wrap">
+            <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-600 flex items-center gap-2 m-0 min-w-0">
+              <ShoppingCart size={16} className="text-blue-600 flex-shrink-0" /> 
+              <span className="truncate">Transacciones Realizadas</span>
             </h3>
-            <span className="text-xs font-black text-slate-900">
+            <span className="text-xs sm:text-sm font-extrabold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg flex-shrink-0 border border-blue-100/60">
               {groupedData.reduce((acc, d) => acc + d.count, 0).toLocaleString('es-MX')} ventas
             </span>
           </div>
@@ -222,12 +223,13 @@ export default function DashboardCharts({ chartData, initialStartDate, initialEn
         </div>
 
         {/* Gráfica 2: Monto de Ventas */}
-        <div className="bg-white p-6 sm:p-7 md:p-8 rounded-2xl border border-slate-200/80 shadow-xs h-[350px] flex flex-col min-w-0 overflow-hidden">
-          <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2 m-0">
-              <DollarSign size={15} className="text-emerald-500" /> Facturación / Ingresos
+        <div className="bg-white p-5 sm:p-6 md:p-7 rounded-2xl border border-slate-200/80 shadow-xs h-[360px] flex flex-col min-w-0">
+          <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3 gap-3 flex-wrap">
+            <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-600 flex items-center gap-2 m-0 min-w-0">
+              <DollarSign size={16} className="text-emerald-500 flex-shrink-0" /> 
+              <span className="truncate">Facturación / Ingresos</span>
             </h3>
-            <span className="text-xs font-black text-slate-900">
+            <span className="text-xs sm:text-sm font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg flex-shrink-0 border border-emerald-100/60">
               {formatCurrency(groupedData.reduce((acc, d) => acc + d.amount, 0))}
             </span>
           </div>

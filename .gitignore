@@ -59,3 +59,8 @@ next-env.d.ts
 /test_*
 /trigger_*
 /tmp_*
+deploy_full_native.js
+inspect_collections_runner.js
+inspect_live_runner.js
+fast_update.tar.gz
+

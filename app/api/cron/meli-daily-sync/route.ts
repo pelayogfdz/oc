@@ -170,12 +170,68 @@ async function handleSync(onlyStock = false) {
                 console.log(`[MELI DAILY CRON] Creado nuevo usuario 'VENTAS ONLINE' para el tenant.`);
               }
 
-              for (const order of ordersList) {
-                // Filtrar solo órdenes pagadas
-                if (order.status !== 'paid') continue;
+              const CUTOFF_DATE = new Date('2026-09-29T00:00:00.000Z');
 
+              for (const order of ordersList) {
                 const orderId = String(order.id);
                 const checkNote = `Mercado Libre Orden ${orderId}`;
+
+                // GESTIÓN DE CANCELACIONES EN SINCRONIZACIÓN (A partir del 29 de Septiembre de 2026 en adelante)
+                if (order.status === 'cancelled') {
+                  const existingSale = await tenantClient.sale.findFirst({
+                    where: {
+                      OR: [
+                        { folio: `ML-${orderId}` },
+                        { notes: { contains: checkNote } },
+                        { notes: { contains: `[Mercado Libre Orden: ${orderId}]` } }
+                      ]
+                    },
+                    include: { items: true }
+                  });
+
+                  if (existingSale && existingSale.status === 'COMPLETED') {
+                    const orderDate = order.date_closed || order.date_last_updated || order.date_created;
+                    const isEligibleDate = existingSale.createdAt >= CUTOFF_DATE || (orderDate && new Date(orderDate) >= CUTOFF_DATE);
+
+                    if (isEligibleDate) {
+                      console.log(`[MELI DAILY CRON] Procesando cancelación automática para orden ML-${orderId}...`);
+                      for (const item of existingSale.items) {
+                        const product = await tenantClient.product.findUnique({ where: { id: item.productId } });
+                        if (product && !product.isService) {
+                          await tenantClient.product.update({
+                            where: { id: item.productId },
+                            data: { stock: { increment: item.quantity } }
+                          });
+
+                          await tenantClient.inventoryMovement.create({
+                            data: {
+                              productId: item.productId,
+                              type: 'IN',
+                              quantity: item.quantity,
+                              reason: `Cancelación Venta Mercado Libre (Pedido #${orderId})`,
+                              userId: existingSale.userId
+                            }
+                          });
+                          console.log(`[MELI DAILY CRON] Reincorporadas +${item.quantity} unidades de ${product.name}`);
+                        }
+                      }
+
+                      const cancelReason = order.cancel_detail?.description || order.cancel_detail?.code || 'Cancelación detectada en sincronización Mercado Libre';
+                      await tenantClient.sale.update({
+                        where: { id: existingSale.id },
+                        data: {
+                          status: 'CANCELLED',
+                          notes: `${existingSale.notes || ''}\n[CANCELACIÓN AUTOMÁTICA MERCADO LIBRE: ${cancelReason} - ${new Date().toLocaleString('es-MX')}]`
+                        }
+                      });
+                      console.log(`[MELI DAILY CRON] Venta ${existingSale.folio || existingSale.id} actualizada a CANCELLED.`);
+                    }
+                  }
+                  continue;
+                }
+
+                // Filtrar solo órdenes pagadas
+                if (order.status !== 'paid') continue;
                 
                 // Verificar si ya está registrada la venta
                 const existingSale = await tenantClient.sale.findFirst({

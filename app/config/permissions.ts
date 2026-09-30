@@ -336,8 +336,48 @@ export const PERMISSION_MODULES = [
         ]
       }
     ]
+  },
+  {
+    id: 'restaurante',
+    name: 'Restaurante y Alimentos',
+    submodules: [
+      {
+        id: 'rest_salon',
+        name: 'Salón y Mesas',
+        permissions: [
+          { id: 'rest_view_tables', label: 'Ver Plano y Estado de Mesas' },
+          { id: 'rest_take_orders', label: 'Abrir Mesas y Tomar Comandas' },
+          { id: 'rest_transfer_tables', label: 'Transferir / Unir Mesas' },
+        ]
+      },
+      {
+        id: 'rest_cocina',
+        name: 'Cocina y KDS',
+        permissions: [
+          { id: 'rest_kds_access', label: 'Acceder a Pantalla KDS (Cocina/Barra)' },
+          { id: 'rest_kds_update', label: 'Cambiar Estado de Comandas (Listo/Servido)' },
+        ]
+      },
+      {
+        id: 'rest_caja',
+        name: 'Cuentas y Cobro',
+        permissions: [
+          { id: 'rest_split_bill', label: 'Dividir y Separar Cuentas' },
+          { id: 'rest_bill_collect', label: 'Cobrar y Liberar Mesas' },
+        ]
+      },
+      {
+        id: 'rest_admin',
+        name: 'Administración y Recetas',
+        permissions: [
+          { id: 'rest_manage_recipes', label: 'Gestionar Recetas e Insumos' },
+          { id: 'rest_config_layout', label: 'Configurar Áreas, Mesas y Estaciones' },
+        ]
+      }
+    ]
   }
 ];
+
 
 export function hasPermission(userPermissions: Record<string, boolean>, permissionId: string): boolean {
   let foundModuleId: string | null = null;
@@ -398,7 +438,7 @@ export function hasNodeAccess(
   isSuperAdmin = false,
   userRole = 'USER'
 ): boolean {
-  if (isSuperAdmin || userRole === 'OWNER' || userRole === 'ADMIN') {
+  if (isSuperAdmin || userRole === 'OWNER' || userRole === 'ADMIN' || userRole === 'MANAGER') {
     return true;
   }
   if (!requiredPermission) {

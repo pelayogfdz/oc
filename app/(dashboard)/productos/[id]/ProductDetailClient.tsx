@@ -30,6 +30,7 @@ export function ProductDetailClient({
   siblingProducts,
   mediaContent,
   tenantId,
+  isGlobal,
   children
 }: { 
   product: any, 
@@ -40,6 +41,7 @@ export function ProductDetailClient({
   siblingProducts?: any[],
   mediaContent?: React.ReactNode,
   tenantId?: string,
+  isGlobal?: boolean,
   children: React.ReactNode
 }) {
   const router = useRouter();
@@ -97,6 +99,7 @@ export function ProductDetailClient({
           
           productParams.allowProduction = formData.get('allowProduction') === 'true';
           productParams.isProductionInput = formData.get('isProductionInput') === 'true';
+          productParams.isRestaurantAvailable = formData.get('isRestaurantAvailable') === 'true';
           productParams.isActive = formData.get('isActive') !== 'false';
           
           await pushOfflineProduct(productParams);
@@ -449,9 +452,24 @@ export function ProductDetailClient({
             <span><strong>Código de Barras:</strong> {product.barcode || '-'}</span>
             <span><strong>Existencia:</strong> {product.isService ? (
               <span style={{ color: '#2563eb', fontWeight: '600', backgroundColor: '#dbeafe', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>Servicio</span>
-            ) : (
-              <span style={{ color: product.stock > 0 ? '#16a34a' : '#dc2626', fontWeight: '600' }}>{product.stock} {product.unit || 'pzas'}</span>
-            )}</span>
+            ) : (() => {
+              const totalConsolidatedStock = (siblingProducts && siblingProducts.length > 0)
+                ? siblingProducts.reduce((sum: number, sp: any) => sum + (sp.stock || 0), 0)
+                : product.stock;
+              const displayStock = isGlobal ? totalConsolidatedStock : product.stock;
+              const branchesWithStock = (siblingProducts || []).filter((sp: any) => sp.stock > 0).length;
+
+              return (
+                <span style={{ color: displayStock > 0 ? '#16a34a' : '#dc2626', fontWeight: '600' }}>
+                  {displayStock} {product.unit || 'pzas'}
+                  {isGlobal && siblingProducts && siblingProducts.length > 1 && (
+                    <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'normal', marginLeft: '0.35rem' }}>
+                      (Consolidado en {branchesWithStock} {branchesWithStock === 1 ? 'sucursal' : 'sucursales'})
+                    </span>
+                  )}
+                </span>
+              );
+            })()}</span>
             <span><strong>Precio Normal:</strong> <span style={{ color: '#0f172a', fontWeight: 'bold' }}>{formatCurrency(product.price || 0)}</span></span>
           </div>
         </div>
@@ -720,6 +738,7 @@ export function ProductDetailClient({
             <thead>
               <tr style={{ borderBottom: '1px solid var(--caanma-border)', backgroundColor: '#f8fafc' }}>
                 <th style={{ padding: '1rem', color: '#64748b', fontWeight: 'bold', fontSize: '0.85rem' }}>Folio Venta</th>
+                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 'bold', fontSize: '0.85rem' }}>Sucursal</th>
                 <th style={{ padding: '1rem', color: '#64748b', fontWeight: 'bold', fontSize: '0.85rem' }}>Fecha</th>
                 <th style={{ padding: '1rem', color: '#64748b', fontWeight: 'bold', fontSize: '0.85rem' }}>Vendedor</th>
                 <th style={{ padding: '1rem', color: '#64748b', fontWeight: 'bold', fontSize: '0.85rem', textAlign: 'center' }}>Unidades Vendidas</th>
@@ -732,6 +751,7 @@ export function ProductDetailClient({
                 const displayFolio = s.sale?.folio || `#${s.saleId.slice(0, 8).toUpperCase()}`;
                 const saleDate = s.sale?.createdAt ? new Date(s.sale.createdAt).toLocaleString() : 'N/A';
                 const sellerName = s.sale?.user?.name || s.sale?.user?.email || 'Sistema';
+                const branchName = s.sale?.branch?.name || 'Sucursal';
 
                 return (
                   <tr key={s.id} style={{ borderBottom: '1px solid var(--caanma-border)' }}>
@@ -739,6 +759,11 @@ export function ProductDetailClient({
                       <Link href={`/ventas/detalle/${s.saleId}`} style={{ color: 'var(--caanma-primary)', textDecoration: 'none' }}>
                         {displayFolio}
                       </Link>
+                    </td>
+                    <td data-label="Sucursal" style={{ padding: '1rem', color: '#475569', fontSize: '0.85rem' }}>
+                      <span style={{ backgroundColor: '#f1f5f9', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '0.8rem', fontWeight: '500' }}>
+                        {branchName}
+                      </span>
                     </td>
                     <td data-label="Fecha" style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>{saleDate}</td>
                     <td data-label="Vendedor" style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>{sellerName}</td>
@@ -754,7 +779,7 @@ export function ProductDetailClient({
               })}
               {sales.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ padding: '4rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
+                  <td colSpan={7} style={{ padding: '4rem', textAlign: 'center', color: 'var(--caanma-text-muted)' }}>
                     Este producto no tiene ventas históricas registradas.
                   </td>
                 </tr>

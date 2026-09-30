@@ -27,6 +27,17 @@ export default async function ChoferPage() {
             }
           }
         }
+      },
+      transfer: {
+        include: {
+          branch: true,
+          toBranch: true,
+          items: {
+            include: {
+              product: true
+            }
+          }
+        }
       }
     },
     orderBy: [

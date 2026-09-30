@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import React from 'react';
 import { Badge } from '@/app/components/ui/Badge';
 import { Card, CardTitle } from '@/app/components/ui/Card';
@@ -47,7 +47,7 @@ describe('Atomic UI Components', () => {
       });
 
       expect(stat.props.className).toContain('rounded-2xl');
-      expect(stat.props.className).toContain('p-5');
+      expect(stat.props.className).toContain('p-6');
     });
   });
 

@@ -31,13 +31,6 @@ export const getActiveUser = cache(async () => {
     redirect('/login?error=user_not_found');
   }
 
-  if (user.currentSessionId && session.sessionId) {
-    const activeSessions = user.currentSessionId.split(',').filter(Boolean);
-    if (!activeSessions.includes(session.sessionId)) {
-      redirect('/login?error=session_expired');
-    }
-  }
-
   return user;
 });
 
@@ -52,6 +45,9 @@ export const getActiveBranch = cache(async () => {
     select: { id: true, email: true, role: true, permissions: true, branchId: true, customRole: true }
   });
   
+  if (!user) {
+    redirect('/login');
+  }
   let isGlobal = true;
   const allowedBranchIds: string[] = [];
   

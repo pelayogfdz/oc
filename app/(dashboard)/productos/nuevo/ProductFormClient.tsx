@@ -170,6 +170,20 @@ export default function ProductFormClient({ cloneProduct, suppliers, priceLists,
               </label>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input type="hidden" name="isRestaurantAvailable" value="false" />
+              <input 
+                type="checkbox" 
+                id="isRestaurantAvailable"
+                name="isRestaurantAvailable" 
+                value="true"
+                defaultChecked={(cloneProduct as any)?.isRestaurantAvailable || false} 
+                style={{ width: '20px', height: '20px', cursor: 'pointer' }} 
+              />
+              <label htmlFor="isRestaurantAvailable" style={{ fontWeight: '500', cursor: 'pointer', fontSize: '0.95rem' }}>
+                🍽️ Disponible para Restaurante (Habilitado para venta en comandas y mesas)
+              </label>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <input type="hidden" name="isService" value="false" />
               <input 
                 type="checkbox" 

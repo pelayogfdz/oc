@@ -127,6 +127,17 @@ export const navStructure: MenuNode[] = [
     ]
   },
   { 
+    title: 'Restaurante', icon: <ChefHat size={20} />, 
+    requiredPermission: ['rest_view_tables', 'rest_take_orders', 'rest_kds_access', 'rest_manage_recipes', 'rest_config_layout', 'rest_bill_collect'],
+    items: [
+      { name: 'Salón y Mesas', path: '/restaurante/mesas', requiredPermission: ['rest_view_tables'] },
+      { name: 'Cocina y KDS', path: '/restaurante/kds', badge: 'KDS', requiredPermission: ['rest_kds_access'] },
+      { name: 'Historial de Comandas', path: '/restaurante/comandas', requiredPermission: ['rest_view_tables'] },
+      { name: 'Recetas', path: '/restaurante/recetas', requiredPermission: ['rest_manage_recipes'] },
+      { name: 'Configuración del Salón', path: '/restaurante/configuracion', requiredPermission: ['rest_config_layout'] },
+    ]
+  },
+  { 
     title: 'Procesos', icon: <ClipboardList size={20} />, 
     requiredPermission: ['panaderia_access', 'procesos_tareas', 'procesos_formulas'],
     items: [

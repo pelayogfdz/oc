@@ -1,20 +1,25 @@
-const CACHE_NAME = 'caanma-offline-cache-v6';
+const CACHE_NAME = 'caanma-offline-cache-v10';
 
 const PRECACHE_ASSETS = [
   '/',
   '/login',
   '/ventas/nueva',
   '/ventas',
+  '/restaurante/mesas',
+  '/restaurante/kds',
+  '/restaurante/recetas',
+  '/restaurante/comandas',
+  '/restaurante/configuracion',
   '/ventas/cotizaciones/nueva',
   '/ventas/consignaciones/nueva',
-  '/manifest.json?v=7',
+  '/manifest.json?v=10',
   '/favicon.ico',
   '/icon-192x192.png',
   '/icon-512x512.png'
 ];
 
-// Helper: fetch con límite estricto de tiempo para evitar los 15-30s de congelamiento por reintentos TCP
-function fetchWithTimeout(request, timeoutMs = 1200) {
+// Helper: fetch con límite razonable para evitar cortar compilaciones de Next.js
+function fetchWithTimeout(request, timeoutMs = 20000) {
   return new Promise((resolve, reject) => {
     let finished = false;
     const timer = setTimeout(() => {
@@ -58,7 +63,7 @@ self.addEventListener('install', (event) => {
 
 // 2. Activate Event - Limpiar cachés antiguos
 self.addEventListener('activate', (event) => {
-  console.log('[Service Worker] Activando versión v5...');
+  console.log('[Service Worker] Activando versión v10...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -79,6 +84,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
+
+  // En desarrollo local (localhost / 127.0.0.1), no interceptar peticiones para evitar bloqueos
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+    return;
+  }
 
   // Solo gestionar peticiones GET
   if (request.method !== 'GET') {
@@ -210,9 +220,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Si parece haber red, competir con timeout de 1.2 segundos para responder al instante si la red está colgada
+  // Si parece haber red, competir con timeout de 20 segundos para responder al instante si la red está colgada
   event.respondWith(
-    fetchWithTimeout(request, 1200)
+    fetchWithTimeout(request, 20000)
       .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200 && (networkResponse.type === 'basic' || networkResponse.type === 'cors')) {
           const responseToCache = networkResponse.clone();

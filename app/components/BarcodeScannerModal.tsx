@@ -18,8 +18,9 @@ export default function BarcodeScannerModal({ onScan, onClose }: BarcodeScannerM
       "reader",
       { 
         fps: 10, 
-        qrbox: {width: 250, height: 100},
+        qrbox: {width: 250, height: 250},
         formatsToSupport: [
+          Html5QrcodeSupportedFormats.QR_CODE,
           Html5QrcodeSupportedFormats.UPC_A,
           Html5QrcodeSupportedFormats.UPC_E,
           Html5QrcodeSupportedFormats.EAN_13,

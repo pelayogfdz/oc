@@ -100,15 +100,15 @@ export async function getBranchSettings() {
 }
 
 export const getTenantSettings = cache(async () => {
-  const branch = await getActiveBranch();
-  if (!branch || !branch.tenantId) {
-    return { decimals: 2 };
+  const session = await getSession();
+  if (!session || !session.tenantId) {
+    return { decimals: 2, timezone: 'America/Mexico_City' };
   }
   
   const tenant = await prisma.tenant.findUnique({
-    where: { id: branch.tenantId }
+    where: { id: session.tenantId }
   });
-  return tenant || { decimals: 2 };
+  return tenant || { decimals: 2, timezone: 'America/Mexico_City' };
 });
 
 export async function updateTenantSettings(formData: FormData) {

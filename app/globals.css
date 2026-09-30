@@ -608,7 +608,7 @@ button {
 /* Print Styles */
 /* ------------------------------------- */
 @media print {
-  /* Asegurar que se conserven los colores de fondo e imágenes (badges, cabeceras, etc.) */
+  /* Ensure backgrounds, badges, and colors print accurately */
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -616,25 +616,58 @@ button {
     text-shadow: none !important;
   }
 
-  /* Desbloquear altura fija y desborde para permitir impresión completa sin scrollbars */
-  html, body, #__next, #root, main, section, article,
-  .dashboard-main, .dashboard-content-wrapper, .card {
+  @page {
+    margin: 8mm 8mm;
+    size: auto;
+  }
+
+  body, html {
+    background-color: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #000000 !important;
     height: auto !important;
     min-height: 0 !important;
     max-height: none !important;
     overflow: visible !important;
     overflow-x: visible !important;
     overflow-y: visible !important;
+    display: block !important;
+    position: static !important;
   }
 
-  /* Ocultar barra lateral, cabeceras, botones, widgets flotantes de chat y elementos innecesarios */
+  /* Unblock all height, overflow, and layout containers across dashboard */
+  #__next, #root, main, section, article,
+  .dashboard-layout-container,
+  .dashboard-content-wrapper,
+  .dashboard-main,
+  .card {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    display: block !important;
+    position: static !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Hide navigation, sidebars, buttons, floating widgets, and interaction controls */
   .dashboard-sidebar, 
+  .desktop-sidebar-wrapper,
   .sidebar-overlay, 
   .mobile-menu-toggle,
   .dashboard-header,
   .no-print, 
   .btn-primary, 
   .btn-secondary, 
+  .btn-filter,
   button,
   a[href^="tel:"],
   a[href^="mailto:"],
@@ -649,118 +682,120 @@ button {
     display: none !important;
   }
 
-  /* El contenido principal debe tomar toda la hoja, sin márgenes laterales extra */
-  .dashboard-main {
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow: visible !important;
-    display: block !important;
-  }
-
-  .dashboard-content-wrapper {
-    height: auto !important;
-    overflow: visible !important;
-    display: block !important;
-    flex: none !important;
-  }
-
-  /* Colapsar layouts de cuadrícula a una sola columna para que ocupen todo el ancho y no se encimen */
-  .report-grid,
-  .grid, 
-  [class*="grid-cols"] {
+  /* Format summary cards and KPI stats compactly in horizontal rows */
+  .dashboard-stats-grid,
+  .report-kpi-grid,
+  div[style*="repeat(auto-fit, minmax(240px"] {
     display: flex !important;
-    flex-direction: column !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 0.75rem !important;
     width: 100% !important;
-    max-width: 100% !important;
-    gap: 1.5rem !important;
-  }
-
-  /* Estilizar tarjetas de KPIs para que se distribuyan bien y no se desborden */
-  .grid > div, 
-  [class*="grid-cols"] > div {
-    width: 100% !important;
+    margin-bottom: 1rem !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
 
-  /* Optimizar gráficos SVG de Recharts para que sean responsivos al ancho del PDF y no se corten */
+  .dashboard-stats-grid > div,
+  .report-kpi-grid > div,
+  div[style*="repeat(auto-fit, minmax(240px"] > div {
+    flex: 1 1 0 !important;
+    padding: 0.6rem 0.75rem !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    background-color: #f8fafc !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Two-column dashboard widgets in print */
+  .dashboard-main-grid,
+  .dashboard-reports-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+    width: 100% !important;
+  }
+
+  .dashboard-main-grid > div,
+  .dashboard-reports-grid > div {
+    width: 100% !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-bottom: 1rem !important;
+  }
+
+  /* Recharts responsiveness in print */
   .recharts-responsive-container {
     width: 100% !important;
-    height: 280px !important; /* Altura fija óptima para impresión */
+    height: 240px !important;
     min-width: 100% !important;
-    min-height: 280px !important;
+    min-height: 240px !important;
+    page-break-inside: avoid !important;
   }
 
   .recharts-wrapper,
-  .recharts-wrapper svg {
+  .recharts-wrapper svg,
+  svg.recharts-surface {
     width: 100% !important;
     max-width: 100% !important;
     height: auto !important;
   }
-  
-  svg.recharts-surface {
-    width: 100% !important;
-    height: auto !important;
-  }
 
-  /* Evitar recortes (scrolls) de tablas y contenedores de reportes, expandiendo su altura completa */
-  .dashboard-main * {
+  /* Universal un-clipping for tables and table scroll wrappers */
+  .dashboard-main *,
+  div:has(> table),
+  .overflow-x-auto,
+  .overflow-y-auto {
     max-height: none !important;
     overflow: visible !important;
     overflow-x: visible !important;
     overflow-y: visible !important;
   }
 
-  /* Estilo premium para tablas impresas, impidiendo desborde horizontal */
-  table {
+  /* Full width, cleanly bordered multi-page tables */
+  table,
+  table.responsive-table {
     width: 100% !important;
     max-width: 100% !important;
     table-layout: auto !important;
-    font-size: 10px !important; /* Letra compacta para que quepan todas las columnas */
+    font-size: 8pt !important;
     border-collapse: collapse !important;
     background-color: white !important;
     color: #000000 !important;
+    page-break-inside: auto !important;
+    margin-top: 0.5rem !important;
+    margin-bottom: 1rem !important;
   }
 
   thead {
     display: table-header-group !important;
-    position: static !important; /* Quitar sticky en impresión para evitar encimar texto */
+    position: static !important;
+  }
+
+  tfoot {
+    display: table-footer-group !important;
   }
 
   th, td {
-    padding: 5px 6px !important;
+    padding: 4px 6px !important;
     border: 1px solid #cbd5e1 !important;
-    word-break: break-word !important; /* Ajustar texto largo en celdas */
+    word-break: break-word !important;
     white-space: normal !important;
-    font-size: 10px !important;
+    font-size: 8pt !important;
+    color: #000000 !important;
   }
 
   th {
     background-color: #f1f5f9 !important;
     color: #0f172a !important;
-    font-weight: bold !important;
+    font-weight: 700 !important;
   }
 
-  /* Evitar romper filas de tabla a la mitad en saltos de página */
-  tr {
+  /* Keep table rows and sections from tearing across page breaks */
+  tr, .info-card, .info-grid, .totals-box, .qr-section {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-  }
-
-  /* Asegurar que el fondo del documento aparezca blanco puro y usar márgenes por defecto */
-  body, html {
-    background-color: white !important;
-    margin: 0 !important;
-    color: #000000 !important;
-    height: auto !important;
-    overflow: visible !important;
-  }
-
-  @page {
-    margin: 15mm 10mm;
-    size: portrait;
   }
 }
   

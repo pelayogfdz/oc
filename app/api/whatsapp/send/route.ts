@@ -48,6 +48,20 @@ export async function POST(request: Request) {
       data: { updatedAt: new Date() }
     });
 
+    // Disparar envío inmediato al microservicio en segundo plano para entrega instantánea
+    const whatsappUrl = process.env.WHATSAPP_SERVICE_URL || 'http://caanma-whatsapp:3001';
+    fetch(`${whatsappUrl}/api/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        branchId: prospect.branchId,
+        prospectId: prospect.id,
+        phone: prospect.phone,
+        message: message,
+        media: data.media
+      })
+    }).catch(() => {});
+
     return NextResponse.json({ success: true, messageId: newMessage.id });
   } catch (error) {
     console.error("Error in Next.js WhatsApp proxy:", error);

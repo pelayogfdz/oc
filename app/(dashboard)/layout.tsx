@@ -104,7 +104,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     >
       <TenantSettingsInjector decimals={tenantSettings.decimals} />
       <MobileMenuProvider>
-        <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', minWidth: 0 }}>
+        <div className="dashboard-layout-container" style={{ display: 'flex', height: '100vh', overflow: 'hidden', minWidth: 0 }}>
           <DesktopSidebarWrapper>
             <Sidebar isSuperAdmin={isSuperAdmin} userPermissions={userPermissions} userRole={userRole} />
           </DesktopSidebarWrapper>

@@ -61,7 +61,7 @@ export default function TopProductsWidget({
   const currentList = getActiveList();
 
   return (
-    <Card className="p-6 sm:p-7 md:p-8 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
+    <Card className="p-5 sm:p-6 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
       <div>
         {/* Header */}
         <div className="flex justify-between items-start mb-5 gap-3 border-b border-slate-100 pb-4">

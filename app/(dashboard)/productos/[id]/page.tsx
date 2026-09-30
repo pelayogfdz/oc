@@ -105,10 +105,60 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
   }
   const dynamicPriceLists = Array.from(priceListsMap.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
 
+  const isGlobal = !branch || branch.id === 'GLOBAL';
+
+  const siblingConditions: any[] = [];
+  if (product.sku && product.sku.trim() !== '' && product.sku !== 'S/K') {
+    siblingConditions.push({ sku: product.sku.trim() });
+  }
+  if (product.barcode && product.barcode.trim() !== '' && product.barcode !== 'N/A') {
+    siblingConditions.push({ barcode: product.barcode.trim() });
+  }
+  if (siblingConditions.length === 0) {
+    siblingConditions.push({ id: product.id });
+  }
+
   const siblingProducts = await prisma.product.findMany({
-    where: { sku: product.sku },
+    where: { 
+      branch: { tenantId: branch?.tenantId },
+      isActive: true,
+      OR: siblingConditions 
+    },
     include: { branch: true },
     orderBy: { branch: { name: 'asc' } }
+  });
+
+  const siblingProductIds = Array.from(new Set([
+    product.id,
+    ...siblingProducts.map(p => p.id)
+  ]));
+
+  const salesOrConditions: any[] = [
+    { productId: { in: siblingProductIds } }
+  ];
+  if (product.sku && product.sku.trim() !== '' && product.sku !== 'S/K') {
+    salesOrConditions.push({ productSku: product.sku.trim() });
+  }
+  if (product.barcode && product.barcode.trim() !== '' && product.barcode !== 'N/A') {
+    salesOrConditions.push({ productBarcode: product.barcode.trim() });
+  }
+
+  const salesItems = await prisma.saleItem.findMany({
+    where: {
+      OR: isGlobal ? salesOrConditions : [{ productId: product.id }],
+      sale: {
+        status: { not: 'CANCELLED' }
+      }
+    },
+    orderBy: { sale: { createdAt: 'desc' } },
+    include: {
+      sale: {
+        include: {
+          user: true,
+          branch: { select: { id: true, name: true } }
+        }
+      }
+    }
   });
 
   // Fetch distinct categories for the product's branch
@@ -283,11 +333,12 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
       <ProductDetailClient 
         product={product} 
         movements={enrichedMovements} 
-        sales={product.saleItems}
+        sales={salesItems}
         variants={product.variants}
         batches={product.batches}
         siblingProducts={siblingProducts}
         tenantId={branch?.tenantId || undefined}
+        isGlobal={isGlobal}
         mediaContent={
           <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
             <h2 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--caanma-border)', paddingBottom: '0.5rem' }}>Multimedia</h2>
@@ -371,6 +422,20 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
                   />
                   <label htmlFor="isProductionInput" style={{ fontWeight: '500', cursor: 'pointer', fontSize: '0.95rem' }}>
                     🧪 Insumo para Producción (Se puede usar como ingrediente)
+                  </label>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input type="hidden" name="isRestaurantAvailable" value="false" />
+                  <input 
+                    type="checkbox" 
+                    id="isRestaurantAvailable"
+                    name="isRestaurantAvailable" 
+                    value="true"
+                    defaultChecked={(product as any).isRestaurantAvailable || false} 
+                    style={{ width: '20px', height: '20px', cursor: 'pointer' }} 
+                  />
+                  <label htmlFor="isRestaurantAvailable" style={{ fontWeight: '500', cursor: 'pointer', fontSize: '0.95rem' }}>
+                    🍽️ Disponible para Restaurante (Habilitado para venta en comandas y mesas)
                   </label>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

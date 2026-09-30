@@ -93,7 +93,7 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
               <span>Modo Offline: Punto de Venta e Historial disponibles sin conexión.</span>
             </div>
           )}
-          {!isSuperAdmin && navStructure.map((node) => {
+          {navStructure.map((node) => {
             if (!hasNodeVisible(node)) return null;
             const NodeActive = isNodeActive(node);
             
@@ -192,11 +192,9 @@ export default function MobileGridMenu({ isSuperAdmin, userPermissions = {}, use
             );
           })}
  
-          {!isSuperAdmin && (
-            <div style={{ height: '1px', backgroundColor: 'var(--caanma-border)', margin: '1rem 0' }} />
-          )}
+          <div style={{ height: '1px', backgroundColor: 'var(--caanma-border)', margin: '1rem 0' }} />
  
-          {!isSuperAdmin && footerNodes.filter(node => {
+          {footerNodes.filter(node => {
             return hasNodeAccess(userPermissions, node.requiredPermission, isSuperAdmin, userRole);
           }).map(node => (
             <Link 

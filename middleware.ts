@@ -5,29 +5,8 @@ export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   const cleanPath = pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
 
-  const publicRoutes = ['/login', '/api/auth', '/api/cron', '/api/mercadolibre/webhooks', '/api/ping', '/_next', '/clientes/portal', '/sw.js', '/api/facturacion/download'];
-  const isPublicRoute = publicRoutes.some(route => cleanPath === route || cleanPath.startsWith(`${route}/`))
-    || (cleanPath.startsWith('/ventas/detalle/') && (
-        cleanPath.endsWith('/imprimir') || 
-        cleanPath.endsWith('/imprimir-cotizacion') || 
-        cleanPath.endsWith('/imprimir-ticket')
-    ));
-  
-  if (!isPublicRoute) {
-    const sessionCookie = req.cookies.get('session')?.value;
-    const session = await decrypt(sessionCookie);
-
-    if (!session || !session.userId) {
-      return NextResponse.redirect(new URL('/login', req.nextUrl));
-    }
-  }
-
-  // Si estamos en /login redirigimos al app si ya hay sesión (solo para GET)
-  if (req.nextUrl.pathname === '/login') {
-    if (req.method !== 'GET') {
-      return NextResponse.next();
-    }
-    
+  // Si estamos en /login, permitimos el acceso libremente
+  if (cleanPath === '/login') {
     const errorParam = req.nextUrl.searchParams.get('error');
     const openParam = req.nextUrl.searchParams.get('open');
     
@@ -36,12 +15,26 @@ export async function middleware(req: NextRequest) {
       response.cookies.delete('session');
       return response;
     }
+    return NextResponse.next();
+  }
 
-    const sessionCookie = req.cookies.get('session')?.value;
-    const session = await decrypt(sessionCookie);
-    if (session?.userId) {
-       return NextResponse.redirect(new URL('/', req.nextUrl));
-    }
+  const publicRoutes = ['/api/auth', '/api/cron', '/api/mercadolibre/webhooks', '/api/ping', '/_next', '/clientes/portal', '/sw.js', '/api/facturacion/download', '/limpiar-cache'];
+  const isPublicRoute = publicRoutes.some(route => cleanPath === route || cleanPath.startsWith(`${route}/`))
+    || (cleanPath.startsWith('/ventas/detalle/') && (
+        cleanPath.endsWith('/imprimir') || 
+        cleanPath.endsWith('/imprimir-cotizacion') || 
+        cleanPath.endsWith('/imprimir-ticket')
+    ));
+  
+  if (isPublicRoute) {
+    return NextResponse.next();
+  }
+
+  const sessionCookie = req.cookies.get('session')?.value;
+  const session = await decrypt(sessionCookie);
+
+  if (!session || !session.userId) {
+    return NextResponse.redirect(new URL('/login', req.nextUrl));
   }
 
   return NextResponse.next();

@@ -1,13 +1,24 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Package, Truck, Clock, CheckCircle2, AlertTriangle, MapPin, Search, X, Navigation, Eye, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
+import { Package, Truck, Clock, CheckCircle2, AlertTriangle, MapPin, Search, X, Navigation, Eye, ArrowUp, ArrowDown, Loader2, QrCode, Camera } from 'lucide-react';
 import Link from 'next/link';
-import { updateDeliveryOrder, updateRouteSequence } from '@/app/actions/logistica';
+import { updateDeliveryOrder, updateRouteSequence, addTransferToRouteByQr } from '@/app/actions/logistica';
+import BarcodeScannerModal from '@/app/components/BarcodeScannerModal';
 
 type DeliveryOrder = any;
 
-export default function LogisticaClient({ initialOrders, branch, drivers }: { initialOrders: DeliveryOrder[], branch: any, drivers: any[] }) {
+export default function LogisticaClient({ 
+  initialOrders, 
+  branch, 
+  drivers,
+  branches = []
+}: { 
+  initialOrders: DeliveryOrder[], 
+  branch: any, 
+  drivers: any[],
+  branches?: any[]
+}) {
   const [orders, setOrders] = useState<DeliveryOrder[]>(initialOrders);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -20,6 +31,142 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
   const [editMaxTime, setEditMaxTime] = useState('');
   const [editStreet, setEditStreet] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Transfer QR scan modal state
+  const [showScanTraspasoModal, setShowScanTraspasoModal] = useState(false);
+  const [scanDestinationBranchId, setScanDestinationBranchId] = useState<string>('');
+  const [scanDriverId, setScanDriverId] = useState<string>('');
+  const [scanDeliveryDate, setScanDeliveryDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [scanInputCode, setScanInputCode] = useState<string>('');
+  const [isProcessingScan, setIsProcessingScan] = useState(false);
+  const [scannedSessionTransfers, setScannedSessionTransfers] = useState<any[]>([]);
+  const [scanMessage, setScanMessage] = useState<{ text: string; type: 'success' | 'error' | 'warning' } | null>(null);
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
+  const [mismatchWarning, setMismatchWarning] = useState<{
+    pendingCode: string;
+    errorText: string;
+    transferData: any;
+  } | null>(null);
+
+  const scanInputRef = useRef<HTMLInputElement>(null);
+
+  // Audio feedback helper using Web Audio API
+  const playScanSound = (type: 'success' | 'error' | 'warning') => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      
+      if (type === 'success') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.15);
+      } else {
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.type = 'sawtooth';
+        osc1.frequency.setValueAtTime(220, ctx.currentTime);
+        gain1.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
+        osc1.start();
+        osc1.stop(ctx.currentTime + 0.18);
+      }
+    } catch (e) {
+      // Audio fallback
+    }
+  };
+
+  const handleScanSubmit = async (codeToScan?: string, forceMismatch = false) => {
+    const code = (codeToScan || scanInputCode).trim();
+    if (!code) return;
+
+    setIsProcessingScan(true);
+    setScanMessage(null);
+
+    try {
+      const res = await addTransferToRouteByQr({
+        code,
+        selectedDestinationBranchId: scanDestinationBranchId || null,
+        driverId: scanDriverId || null,
+        deliveryDate: scanDeliveryDate || null,
+        shippingDate: scanDeliveryDate || null,
+        forceMismatch
+      });
+
+      if (res.success && res.order) {
+        playScanSound('success');
+        setScanMessage({ text: res.message || 'Traspaso agregado exitosamente', type: 'success' });
+        
+        setScannedSessionTransfers(prev => [
+          {
+            id: res.transfer?.id || res.order.transferId,
+            folio: res.transfer?.folio || (res.order as any)?.transfer?.folio || 'TR',
+            origin: res.transfer?.originBranchName || (res.order as any)?.transfer?.branch?.name || 'Origen',
+            destination: res.transfer?.destinationBranchName || (res.order as any)?.transfer?.toBranch?.name || 'Destino',
+            totalItems: res.transfer?.totalItems || 0,
+            driverName: drivers.find(d => d.id === (res.order.driverId || scanDriverId))?.name || 'Sin asignar',
+            isExisting: res.isExisting || false,
+            timestamp: new Date()
+          },
+          ...prev
+        ]);
+
+        setOrders(prev => {
+          const exists = prev.some(o => o.id === res.order.id);
+          if (exists) {
+            return prev.map(o => o.id === res.order.id ? res.order : o);
+          } else {
+            return [res.order, ...prev];
+          }
+        });
+
+        setScanInputCode('');
+        setMismatchWarning(null);
+      } else if (res.mismatch) {
+        playScanSound('warning');
+        setMismatchWarning({
+          pendingCode: code,
+          errorText: res.error,
+          transferData: res.transfer
+        });
+      } else {
+        playScanSound('error');
+        setScanMessage({ text: res.error || 'Error al procesar el código', type: 'error' });
+      }
+    } catch (err: any) {
+      playScanSound('error');
+      setScanMessage({ text: err.message || 'Error de conexión con el servidor', type: 'error' });
+    } finally {
+      setIsProcessingScan(false);
+      setTimeout(() => {
+        scanInputRef.current?.focus();
+      }, 100);
+    }
+  };
+
+  const handleCameraScan = (decodedText: string) => {
+    setShowCameraScanner(false);
+    setScanInputCode(decodedText);
+    handleScanSubmit(decodedText);
+  };
+
+  useEffect(() => {
+    if (showScanTraspasoModal) {
+      setTimeout(() => {
+        scanInputRef.current?.focus();
+      }, 150);
+    }
+  }, [showScanTraspasoModal]);
 
   // Smart Routing states
   const [showSmartRouteModal, setShowSmartRouteModal] = useState(false);
@@ -481,7 +628,27 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
           <p style={{ color: 'var(--caanma-text-muted)' }}>Gestión de rutas y despachos de pedidos</p>
         </div>
         
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button 
+            onClick={() => setShowScanTraspasoModal(true)} 
+            className="btn-primary" 
+            style={{ 
+              padding: '0.75rem 1.25rem', 
+              backgroundColor: '#059669', 
+              color: 'white', 
+              border: 'none', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem',
+              fontWeight: '600',
+              borderRadius: '8px',
+              boxShadow: '0 2px 4px rgba(5, 150, 105, 0.2)'
+            }}
+          >
+            <QrCode size={18} />
+            📦 Escanear Traspasos a Ruta
+          </button>
+
           <button 
             onClick={() => setShowMapModal(true)} 
             className="btn-secondary" 
@@ -1256,6 +1423,352 @@ export default function LogisticaClient({ initialOrders, branch, drivers }: { in
 
           </div>
         </div>
+      )}
+
+      {/* Transfer QR Scan & Route Assignment Modal */}
+      {showScanTraspasoModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100, padding: '1rem' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '750px', borderRadius: '20px', padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '90vh', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+            
+            {/* Modal Header */}
+            <div style={{ padding: '1.25rem 1.5rem', background: 'linear-gradient(135deg, #059669, #0d9488)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <QrCode size={22} /> Añadir Traspasos a la Ruta por Escaneo QR
+                </h3>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#ccfbf1' }}>
+                  Escanea la etiqueta del traspaso para agregarlo automáticamente al reparto y optimizar la ruta.
+                </p>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowScanTraspasoModal(false);
+                  setMismatchWarning(null);
+                  setScanMessage(null);
+                }} 
+                style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Controls Bar */}
+            <div style={{ padding: '1.25rem 1.5rem', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '0.35rem' }}>
+                  🎯 Sucursal Destino (Filtro/Validación)
+                </label>
+                <select 
+                  value={scanDestinationBranchId} 
+                  onChange={e => {
+                    setScanDestinationBranchId(e.target.value);
+                    setMismatchWarning(null);
+                  }}
+                  className="form-control"
+                  style={{ fontSize: '0.875rem', fontWeight: '500' }}
+                >
+                  <option value="">-- Todas las sucursales (Cualquier destino) --</option>
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id}>Sucursal {b.name}</option>
+                  ))}
+                </select>
+                <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.25rem' }}>
+                  {scanDestinationBranchId ? 'Te avisará si escaneas un paquete de otra sucursal' : 'Aceptará cualquier traspaso y asignará su ubicación'}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '0.35rem' }}>
+                  🚚 Chofer Asignado (Opcional)
+                </label>
+                <select 
+                  value={scanDriverId} 
+                  onChange={e => setScanDriverId(e.target.value)}
+                  className="form-control"
+                  style={{ fontSize: '0.875rem' }}
+                >
+                  <option value="">-- Sin chofer (Pendiente) --</option>
+                  {drivers.map(d => (
+                    <option key={d.id} value={d.id}>{d.name} ({d.role})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '0.35rem' }}>
+                  📅 Fecha de Envío / Entrega
+                </label>
+                <input 
+                  type="date"
+                  value={scanDeliveryDate}
+                  onChange={e => setScanDeliveryDate(e.target.value)}
+                  className="form-control"
+                  style={{ fontSize: '0.875rem' }}
+                />
+              </div>
+            </div>
+
+            {/* Main Scanner Section */}
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', backgroundColor: 'white' }}>
+              <form 
+                onSubmit={e => {
+                  e.preventDefault();
+                  handleScanSubmit();
+                }}
+                style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}
+              >
+                <div style={{ flex: '1 1 300px', position: 'relative' }}>
+                  <input 
+                    ref={scanInputRef}
+                    type="text"
+                    value={scanInputCode}
+                    onChange={e => setScanInputCode(e.target.value)}
+                    placeholder="Escanea el código QR de la etiqueta o ingresa el folio (ej. QUE-1422)..."
+                    disabled={isProcessingScan}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem 1rem',
+                      paddingLeft: '2.5rem',
+                      fontSize: '1rem',
+                      borderRadius: '10px',
+                      border: '2px solid #059669',
+                      outline: 'none',
+                      backgroundColor: '#f0fdf4',
+                      color: '#064e3b',
+                      fontWeight: '600',
+                      boxShadow: '0 2px 4px rgba(5, 150, 105, 0.1)'
+                    }}
+                    autoFocus
+                  />
+                  <QrCode size={20} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#059669' }} />
+                </div>
+
+                <button 
+                  type="submit"
+                  disabled={isProcessingScan || !scanInputCode.trim()}
+                  className="btn-primary"
+                  style={{
+                    backgroundColor: '#059669',
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '10px',
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem'
+                  }}
+                >
+                  {isProcessingScan ? <Loader2 size={18} className="animate-spin" /> : 'Añadir'}
+                </button>
+
+                <button 
+                  type="button"
+                  onClick={() => setShowCameraScanner(true)}
+                  className="btn-secondary"
+                  style={{
+                    padding: '0.75rem 1rem',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    backgroundColor: '#e0f2fe',
+                    color: '#0369a1',
+                    border: '1px solid #bae6fd',
+                    fontWeight: '600'
+                  }}
+                  title="Abrir lector con cámara web"
+                >
+                  <Camera size={18} />
+                  Cámara
+                </button>
+              </form>
+
+              {/* Status / Feedback message */}
+              {scanMessage && (
+                <div style={{
+                  marginTop: '0.75rem',
+                  padding: '0.6rem 0.85rem',
+                  borderRadius: '8px',
+                  fontSize: '0.85rem',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  backgroundColor: scanMessage.type === 'success' ? '#dcfce7' : scanMessage.type === 'warning' ? '#fef3c7' : '#fee2e2',
+                  color: scanMessage.type === 'success' ? '#166534' : scanMessage.type === 'warning' ? '#92400e' : '#991b1b',
+                  border: `1px solid ${scanMessage.type === 'success' ? '#bbf7d0' : scanMessage.type === 'warning' ? '#fde68a' : '#fecaca'}`
+                }}>
+                  {scanMessage.type === 'success' ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+                  <span>{scanMessage.text}</span>
+                </div>
+              )}
+
+              {/* Mismatch Warning Alert Box */}
+              {mismatchWarning && (
+                <div style={{
+                  marginTop: '0.75rem',
+                  padding: '1rem',
+                  borderRadius: '10px',
+                  backgroundColor: '#fffbeb',
+                  border: '2px solid #f59e0b',
+                  color: '#78350f'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                    <AlertTriangle size={20} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div>
+                      <strong style={{ fontSize: '0.95rem', display: 'block', color: '#b45309' }}>
+                        ¡Atención! La sucursal destino no coincide
+                      </strong>
+                      <div style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>
+                        {mismatchWarning.errorText}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#92400e', marginTop: '0.2rem' }}>
+                        Destino real: <strong>Sucursal {mismatchWarning.transferData?.actualDestinationBranchName}</strong> ({mismatchWarning.transferData?.totalItems} pzs).
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      onClick={() => setMismatchWarning(null)}
+                      className="btn-secondary"
+                      style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                    >
+                      Cancelar (No agregar)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleScanSubmit(mismatchWarning.pendingCode, true)}
+                      style={{
+                        backgroundColor: '#d97706',
+                        color: 'white',
+                        border: 'none',
+                        padding: '0.4rem 0.8rem',
+                        borderRadius: '6px',
+                        fontSize: '0.8rem',
+                        fontWeight: 'bold',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Sí, agregar a esta ruta
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Session Scanned List */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>
+                  📦 Traspasos añadidos en esta sesión ({scannedSessionTransfers.length}):
+                </span>
+                {scannedSessionTransfers.length > 0 && (
+                  <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 'bold' }}>
+                    ✓ Sincronizados con la ruta
+                  </span>
+                )}
+              </div>
+
+              {scannedSessionTransfers.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#94a3b8', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                  <QrCode size={36} style={{ margin: '0 auto 0.5rem', opacity: 0.4 }} />
+                  <p style={{ margin: 0, fontWeight: '600', color: '#64748b' }}>Aún no has escaneado ningún traspaso</p>
+                  <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem' }}>
+                    Apunta la pistola lectora a la etiqueta de traspaso o usa el botón de cámara para empezar.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {scannedSessionTransfers.map((item, idx) => (
+                    <div 
+                      key={item.id + idx}
+                      style={{
+                        padding: '0.75rem 1rem',
+                        borderRadius: '10px',
+                        border: '1px solid #e2e8f0',
+                        backgroundColor: idx === 0 ? '#f0fdf4' : 'white',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span style={{ 
+                          width: '24px', 
+                          height: '24px', 
+                          borderRadius: '50%', 
+                          backgroundColor: '#059669', 
+                          color: 'white', 
+                          fontSize: '0.75rem', 
+                          fontWeight: 'bold', 
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center' 
+                        }}>
+                          {scannedSessionTransfers.length - idx}
+                        </span>
+                        <div>
+                          <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#0f172a' }}>
+                            Traspaso #{item.folio}
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.1rem' }}>
+                            {item.origin} ➔ <strong style={{ color: '#059669' }}>{item.destination}</strong> ({item.totalItems} pzs)
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem' }}>
+                        <span style={{ 
+                          fontSize: '0.72rem', 
+                          padding: '0.2rem 0.5rem', 
+                          borderRadius: '6px', 
+                          backgroundColor: item.isExisting ? '#fef3c7' : '#dcfce7', 
+                          color: item.isExisting ? '#92400e' : '#166534',
+                          fontWeight: 'bold' 
+                        }}>
+                          {item.isExisting ? 'Actualizado' : '✓ En Ruta'}
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                          Chofer: {item.driverName}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc' }}>
+              <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                Total agregados: <strong>{scannedSessionTransfers.length}</strong>
+              </span>
+
+              <button 
+                onClick={() => {
+                  setShowScanTraspasoModal(false);
+                  setMismatchWarning(null);
+                  setScanMessage(null);
+                }}
+                className="btn-primary"
+                style={{ backgroundColor: '#059669', margin: 0, padding: '0.5rem 1.25rem' }}
+              >
+                Listo / Cerrar
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Camera Barcode Scanner Modal if triggered */}
+      {showCameraScanner && (
+        <BarcodeScannerModal 
+          onScan={handleCameraScan}
+          onClose={() => setShowCameraScanner(false)}
+        />
       )}
     </div>
   );

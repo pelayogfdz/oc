@@ -43,8 +43,33 @@ export default async function LogisticaPage() {
     select: { id: true, name: true, role: true }
   });
 
+  // Fetch branches for destination selection
+  const branches = await prisma.branch.findMany({
+    where: {
+      tenantId: session?.tenantId,
+      isActive: true
+    },
+    select: {
+      id: true,
+      name: true,
+      location: true,
+      hrLocation: {
+        select: {
+          lat: true,
+          lng: true
+        }
+      }
+    },
+    orderBy: { name: 'asc' }
+  });
+
   return (
-    <LogisticaClient initialOrders={deliveryOrders} branch={branch} drivers={drivers} />
+    <LogisticaClient 
+      initialOrders={deliveryOrders} 
+      branch={branch} 
+      drivers={drivers} 
+      branches={branches}
+    />
   );
 }
 

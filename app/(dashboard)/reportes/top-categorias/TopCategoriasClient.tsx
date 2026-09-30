@@ -90,9 +90,12 @@ export default function TopCategoriasClient({ initialData, initialBranchId, avai
     const totalCategories = data.length;
     const totalUnits = data.reduce((acc, c) => acc + c.quantitySold, 0);
     const totalRevenue = data.reduce((acc, c) => acc + c.totalRevenue, 0);
+    const totalRevenueSinIva = data.reduce((acc, c) => acc + (c.totalRevenueSinIva || 0), 0);
     const totalCost = data.reduce((acc, c) => acc + c.totalCost, 0);
-    const grossProfit = totalRevenue - totalCost;
-    const avgMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+    const grossProfit = data.reduce((acc, c) => acc + (c.grossProfit !== undefined ? c.grossProfit : (c.totalRevenue - c.totalCost)), 0);
+    const avgMargin = totalRevenueSinIva > 0 
+      ? (grossProfit / totalRevenueSinIva) * 100 
+      : (totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0);
 
     return {
       totalCategories,

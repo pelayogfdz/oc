@@ -130,7 +130,15 @@ export default function ChoferPortalClient({ initialOrders, currentUser }: { ini
 
                 {/* Customer Details */}
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', margin: '0 0 0.5rem 0' }}>
-                  {order.sale?.customer?.name || 'Cliente de Mostrador'}
+                  {order.sale ? (
+                    order.sale.customer?.name || 'Cliente de Mostrador'
+                  ) : order.transfer ? (
+                    <span style={{ color: '#4338ca' }}>
+                      📦 Traspaso a Sucursal {order.transfer.toBranch?.name || 'Destino'}
+                    </span>
+                  ) : (
+                    'Entrega'
+                  )}
                 </h3>
 
                 {order.sale?.customer?.phone && (
@@ -148,11 +156,11 @@ export default function ChoferPortalClient({ initialOrders, currentUser }: { ini
                   <div>
                     {order.street ? (
                       <>
-                        <strong style={{ display: 'block', color: '#0f172a' }}>{order.street} {order.exteriorNumber} {order.interiorNumber ? `Int. ${order.interiorNumber}` : ''}</strong>
-                        <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Col. {order.neighborhood}, {order.city}, {order.state}</span>
+                        <strong style={{ display: 'block', color: '#0f172a' }}>{order.street} {order.exteriorNumber || ''} {order.interiorNumber ? `Int. ${order.interiorNumber}` : ''}</strong>
+                        <span style={{ color: '#64748b', fontSize: '0.85rem' }}>{order.neighborhood ? `Col. ${order.neighborhood}, ` : ''}{order.city || ''} {order.state || ''}</span>
                       </>
                     ) : (
-                      <span style={{ color: '#ef4444' }}>Sin dirección registrada en esta venta.</span>
+                      <span style={{ color: '#ef4444' }}>Sin dirección registrada.</span>
                     )}
                   </div>
                 </div>
@@ -185,6 +193,28 @@ export default function ChoferPortalClient({ initialOrders, currentUser }: { ini
                       {order.sale.items.map((item: any) => (
                         <li key={item.id} style={{ marginBottom: '0.2rem' }}>
                           <strong>{item.quantity}x</strong> {item.product?.name}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {order.transfer?.items && (
+                  <div style={{ 
+                    backgroundColor: '#f0fdf4', 
+                    border: '1px solid #bbf7d0',
+                    padding: '0.75rem 1rem', 
+                    borderRadius: '10px', 
+                    marginBottom: '1rem',
+                    fontSize: '0.875rem'
+                  }}>
+                    <div style={{ fontWeight: '600', color: '#166534', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Package size={14} /> Artículos a traspasar ({order.transfer.folio ? `#${order.transfer.folio}` : ''}):
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: '1.25rem', color: '#14532d' }}>
+                      {order.transfer.items.map((item: any) => (
+                        <li key={item.id} style={{ marginBottom: '0.2rem' }}>
+                          <strong>{item.quantity}x</strong> {item.product?.name || item.productName || 'Producto'}
                         </li>
                       ))}
                     </ul>

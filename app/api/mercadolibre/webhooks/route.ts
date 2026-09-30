@@ -60,7 +60,89 @@ export async function POST(req: Request) {
       }
 
       const orderData = await orderResponse.json();
-      console.log(`[MELI WEBHOOK] Detalles de la orden recuperados. Orden ID: ${orderData.id}, Comprador: ${orderData.buyer?.nickname}`);
+      console.log(`[MELI WEBHOOK] Detalles de la orden recuperados. Orden ID: ${orderData.id}, Estado: ${orderData.status}, Comprador: ${orderData.buyer?.nickname}`);
+
+      const orderIdStr = String(orderData.id);
+      const checkFolio = `ML-${orderIdStr}`;
+      const checkNote = `Mercado Libre Orden ${orderIdStr}`;
+      const CUTOFF_DATE = new Date('2026-09-29T00:00:00.000Z');
+
+      // GESTIÓN DE CANCELACIONES DE MERCADO LIBRE (A partir del 29 de Septiembre de 2026 en adelante)
+      if (orderData.status === 'cancelled') {
+        const existingSale = await tenantClient.sale.findFirst({
+          where: {
+            OR: [
+              { folio: checkFolio },
+              { notes: { contains: checkNote } },
+              { notes: { contains: `[Mercado Libre Orden: ${orderIdStr}]` } }
+            ]
+          },
+          include: { items: true }
+        });
+
+        if (existingSale) {
+          if (existingSale.status === 'CANCELLED') {
+            console.log(`[MELI WEBHOOK] La venta ${existingSale.folio || existingSale.id} ya está en estado CANCELLED. No se requiere acción.`);
+            return new NextResponse('OK', { status: 200 });
+          }
+
+          const orderDate = orderData.date_closed || orderData.date_last_updated || orderData.date_created;
+          const isEligibleDate = existingSale.createdAt >= CUTOFF_DATE || (orderDate && new Date(orderDate) >= CUTOFF_DATE);
+
+          if (!isEligibleDate) {
+            console.log(`[MELI WEBHOOK] La orden cancelada ML-${orderIdStr} es anterior al 29 Sep 2026. No se altera el histórico.`);
+            return new NextResponse('OK', { status: 200 });
+          }
+
+          if (existingSale.status === 'COMPLETED') {
+            console.log(`[MELI WEBHOOK] Procesando cancelación automática para la venta ${existingSale.folio || existingSale.id}...`);
+
+            // 1. Revertir inventario en Kardex
+            for (const item of existingSale.items) {
+              const product = await tenantClient.product.findUnique({ where: { id: item.productId } });
+              if (product && !product.isService) {
+                await tenantClient.product.update({
+                  where: { id: item.productId },
+                  data: { stock: { increment: item.quantity } }
+                });
+
+                await tenantClient.inventoryMovement.create({
+                  data: {
+                    productId: item.productId,
+                    type: 'IN',
+                    quantity: item.quantity,
+                    reason: `Cancelación Venta Mercado Libre (Pedido #${orderData.id})`,
+                    userId: existingSale.userId
+                  }
+                });
+                console.log(`[MELI WEBHOOK] Reincorporadas +${item.quantity} unidades del producto ${product.name} (ID: ${product.id})`);
+              }
+            }
+
+            // 2. Marcar venta como CANCELLED
+            const cancelReason = orderData.cancel_detail?.description || orderData.cancel_detail?.code || 'Cancelación notificada por Mercado Libre';
+            await tenantClient.sale.update({
+              where: { id: existingSale.id },
+              data: {
+                status: 'CANCELLED',
+                notes: `${existingSale.notes || ''}\n[CANCELACIÓN AUTOMÁTICA MERCADO LIBRE: ${cancelReason} - ${new Date().toLocaleString('es-MX')}]`
+              }
+            });
+
+            console.log(`[MELI WEBHOOK] Venta ${existingSale.folio || existingSale.id} cancelada y stock restaurado exitosamente.`);
+          }
+        } else {
+          console.log(`[MELI WEBHOOK] La orden cancelada ML-${orderIdStr} no existía en Caanma. No se generó venta ni descuento de stock.`);
+        }
+
+        return new NextResponse('OK', { status: 200 });
+      }
+
+      // Si la orden no está pagada ni cancelada (ej. pendiente de pago), no registrar venta todavía
+      if (orderData.status !== 'paid') {
+        console.log(`[MELI WEBHOOK] La orden ${orderData.id} tiene estado '${orderData.status}' (no pagada). No se genera venta.`);
+        return new NextResponse('OK', { status: 200 });
+      }
 
       const orderItems = orderData.order_items || [];
       const itemsToSale: any[] = [];

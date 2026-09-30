@@ -465,7 +465,7 @@ export default async function DashboardPage(props: Props) {
       />
 
       <div className="dashboard-main-grid">
-        <Card className="p-6 sm:p-7 md:p-8 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <Card className="p-5 sm:p-6 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-5 border-b border-slate-100 pb-4">
               <div className="flex items-center gap-2">
@@ -541,7 +541,7 @@ export default async function DashboardPage(props: Props) {
           </div>
         </Card>
 
-        <Card className="p-6 sm:p-7 md:p-8 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <Card className="p-5 sm:p-6 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-5 border-b border-slate-100 pb-4">
               <div className="flex items-center gap-2">
@@ -661,7 +661,7 @@ export default async function DashboardPage(props: Props) {
       <div className="dashboard-reports-grid">
         
         {/* Card 1: 🏆 Mejores Clientes */}
-        <Card className="p-6 sm:p-7 md:p-8 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <Card className="p-5 sm:p-6 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-start mb-5 gap-3 border-b border-slate-100 pb-4">
               <div className="min-w-0 flex-1">
@@ -741,7 +741,7 @@ export default async function DashboardPage(props: Props) {
         />
 
         {/* Card 3: 🏷️ Categorías Más Vendidas */}
-        <Card className="p-6 sm:p-7 md:p-8 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <Card className="p-5 sm:p-6 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-start mb-5 gap-3 border-b border-slate-100 pb-4">
               <div className="min-w-0 flex-1">
@@ -813,7 +813,7 @@ export default async function DashboardPage(props: Props) {
         </Card>
 
         {/* Card 4: 👔 Ventas por Vendedor */}
-        <Card className="p-6 sm:p-7 md:p-8 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <Card className="p-5 sm:p-6 min-w-0 border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-start mb-5 gap-3 border-b border-slate-100 pb-4">
               <div className="min-w-0 flex-1">

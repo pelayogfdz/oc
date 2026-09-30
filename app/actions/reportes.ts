@@ -367,7 +367,10 @@ export async function getSalesDetailData(
           product: {
             select: {
               cost: true,
-              brand: true
+              brand: true,
+              taxRate: true,
+              taxType: true,
+              iepsRate: true
             }
           }
         }
@@ -394,12 +397,27 @@ export async function getSalesDetailData(
   
   const mappedSales = processedSales.map(sale => {
     let cost = 0;
+    let saleRevenueSinIva = 0;
     sale.items.forEach(item => {
+      const taxRate = item.product?.taxRate ?? 16.0;
+      const taxType = item.product?.taxType ?? 'IVA';
+      const iepsRate = (item.product as any)?.iepsRate ?? 0.0;
+      
+      let itemPriceSinIva = item.price;
+      if (taxType === 'IVA') {
+        itemPriceSinIva = item.price / (1 + taxRate / 100);
+      } else if (taxType === 'IEPS') {
+        itemPriceSinIva = item.price / (1 + iepsRate / 100);
+      } else if (taxType === 'IVA_IEPS') {
+        itemPriceSinIva = item.price / ((1 + iepsRate / 100) * (1 + taxRate / 100));
+      }
+      saleRevenueSinIva += (itemPriceSinIva * item.quantity);
+
       const unitCost = (item.cost !== undefined && item.cost !== null && item.cost > 0) ? item.cost : (item.product?.cost || 0);
       cost += (unitCost * item.quantity);
     });
     
-    const profit = Math.max(0, sale.total - cost);
+    const profit = Math.max(0, saleRevenueSinIva - cost);
     const userName = sale.user?.name || 'Vendedor Desconocido';
     
     if (!salesByUser[userName]) salesByUser[userName] = 0;
@@ -1077,8 +1095,8 @@ export async function getTopCustomersReport(
 }
 
 export async function getTopProductsReport(
-  startDate: Date,
-  endDate: Date,
+  startDate: Date | string,
+  endDate: Date | string,
   branchIdFilter?: string,
   categoryFilter?: string,
   brandFilter?: string,
@@ -1097,103 +1115,98 @@ export async function getTopProductsReport(
   });
   const tenantBranchIds = tenantBranches.map(b => b.id);
   
-  let branchCondition: any = branch.id === 'GLOBAL' ? { branchId: { in: tenantBranchIds } } : { branchId: branch.id };
-  if (branchIdFilter && branchIdFilter !== 'ALL') {
-    if (tenantBranchIds.includes(branchIdFilter)) {
-      branchCondition = { branchId: branchIdFilter };
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  const conditions = ['s."createdAt" >= $1', 's."createdAt" <= $2', "s.status = 'COMPLETED'"];
+  const params: any[] = [start, end];
+  let paramIdx = 3;
+
+  // Branch condition
+  if (branchIdFilter && branchIdFilter !== 'ALL' && tenantBranchIds.includes(branchIdFilter)) {
+    conditions.push(`s."branchId" = $${paramIdx++}`);
+    params.push(branchIdFilter);
+  } else if (branch.id !== 'GLOBAL' && (!branchIdFilter || branchIdFilter === 'ALL')) {
+    if (tenantBranchIds.length > 0) {
+      conditions.push(`s."branchId" IN (${tenantBranchIds.map((_, i) => `$${paramIdx + i}`).join(', ')})`);
+      params.push(...tenantBranchIds);
+      paramIdx += tenantBranchIds.length;
+    }
+  } else if (tenantBranchIds.length > 0) {
+    conditions.push(`s."branchId" IN (${tenantBranchIds.map((_, i) => `$${paramIdx + i}`).join(', ')})`);
+    params.push(...tenantBranchIds);
+    paramIdx += tenantBranchIds.length;
+  }
+
+  // User condition
+  if (userIdFilter && userIdFilter !== 'ALL') {
+    conditions.push(`s."userId" = $${paramIdx++}`);
+    params.push(userIdFilter);
+  }
+
+  // Category condition
+  if (categoryFilter && categoryFilter !== 'ALL') {
+    if (categoryFilter === 'Sin Categoría' || categoryFilter === 'Sin Categoria') {
+      conditions.push(`(p.category IS NULL OR TRIM(p.category) = '' OR LOWER(TRIM(p.category)) LIKE '%sin cat%')`);
+    } else {
+      conditions.push(`LOWER(TRIM(p.category)) = LOWER($${paramIdx++})`);
+      params.push(categoryFilter.trim());
     }
   }
 
-  const categoryCondition = (categoryFilter && categoryFilter !== 'ALL') 
-    ? { product: { category: categoryFilter } } 
-    : {};
-
-  const brandCondition = (brandFilter && brandFilter !== 'ALL')
-    ? { product: { brand: brandFilter } }
-    : {};
-
-  const userCondition = (userIdFilter && userIdFilter !== 'ALL')
-    ? { userId: userIdFilter }
-    : {};
-
-  const saleItems = await prisma.saleItem.findMany({
-    where: {
-      sale: {
-        ...branchCondition,
-        ...userCondition,
-        createdAt: { gte: startDate, lte: endDate },
-        status: 'COMPLETED'
-      },
-      ...categoryCondition,
-      ...brandCondition
-    },
-    include: {
-      product: true
+  // Brand condition
+  if (brandFilter && brandFilter !== 'ALL') {
+    if (brandFilter === 'Sin Marca') {
+      conditions.push(`(p.brand IS NULL OR TRIM(p.brand) = '' OR LOWER(TRIM(p.brand)) LIKE '%sin mar%')`);
+    } else {
+      conditions.push(`LOWER(TRIM(p.brand)) = LOWER($${paramIdx++})`);
+      params.push(brandFilter.trim());
     }
-  });
+  }
 
-  const productMap = new Map();
-  saleItems.forEach(item => {
-    const name = item.product?.name || "Producto Desconocido";
-    const sku = item.product?.sku || "S/K";
-    const category = item.product?.category || "Sin Categoría";
-    const cost = item.product?.cost || 0;
-    const price = item.product?.price || 0;
+  const sql = `
+    SELECT 
+      COALESCE(NULLIF(TRIM(p.sku), 'S/K'), NULLIF(TRIM(p.barcode), 'N/A'), TRIM(p.name), TRIM(si."productName")) as id,
+      MAX(COALESCE(p.name, si."productName", 'Producto Desconocido')) as name,
+      MAX(COALESCE(NULLIF(TRIM(p.sku), 'S/K'), NULLIF(TRIM(si."productSku"), 'S/K'), NULLIF(TRIM(p.barcode), 'N/A'), 'S/K')) as sku,
+      MAX(COALESCE(p.barcode, si."productBarcode", 'N/A')) as barcode,
+      MAX(COALESCE(p.category, 'Sin Categoría')) as category,
+      MAX(COALESCE(p.brand, 'Sin Marca')) as brand,
+      MAX(p."imageUrl") as "imageUrl",
+      CAST(SUM(si.quantity) AS INTEGER) as "quantitySold",
+      CAST(SUM(si.quantity * si.price) AS FLOAT) as "totalRevenue",
+      CAST(SUM(si.quantity * COALESCE(NULLIF(si.cost, 0), p.cost, 0)) AS FLOAT) as "totalCost",
+      CAST(SUM(si.quantity * (
+        CASE 
+          WHEN p."taxType" = 'IVA' THEN si.price / (1 + COALESCE(p."taxRate", 16.0) / 100.0)
+          WHEN p."taxType" = 'IEPS' THEN si.price / (1 + COALESCE(p."iepsRate", 0.0) / 100.0)
+          WHEN p."taxType" = 'IVA_IEPS' THEN si.price / ((1 + COALESCE(p."iepsRate", 0.0) / 100.0) * (1 + COALESCE(p."taxRate", 16.0) / 100.0))
+          ELSE si.price / 1.16
+        END
+      )) AS FLOAT) as "totalRevenueSinIva"
+    FROM "SaleItem" si
+    JOIN "Sale" s ON si."saleId" = s.id
+    LEFT JOIN "Product" p ON si."productId" = p.id
+    WHERE ${conditions.join(' AND ')}
+    GROUP BY COALESCE(NULLIF(TRIM(p.sku), 'S/K'), NULLIF(TRIM(p.barcode), 'N/A'), TRIM(p.name), TRIM(si."productName"))
+    ORDER BY "totalRevenue" DESC
+  `;
 
-    const key = (item.product?.sku && item.product.sku !== 'S/K')
-      ? `SKU_${item.product.sku.trim().toUpperCase()}`
-      : ((item.product?.barcode)
-         ? `BC_${item.product.barcode.trim().toUpperCase()}`
-         : `NAME_${name.trim().toUpperCase()}_${item.productId}`);
+  const rows = await prisma.$queryRawUnsafe<any[]>(sql, ...params);
 
-    const existing = productMap.get(key) || {
-      id: item.productId,
-      name,
-      sku,
-      barcode: item.product?.barcode || "N/A",
-      category,
+  return rows.map(r => {
+    const grossProfit = (r.totalRevenueSinIva || 0) - (r.totalCost || 0);
+    const margin = r.totalRevenueSinIva > 0 ? (grossProfit / r.totalRevenueSinIva) * 100 : 0;
+    const cost = r.quantitySold > 0 ? (r.totalCost || 0) / r.quantitySold : 0;
+    const price = r.quantitySold > 0 ? (r.totalRevenue || 0) / r.quantitySold : 0;
+    return {
+      ...r,
       cost,
       price,
-      imageUrl: item.product?.imageUrl || null,
-      quantitySold: 0,
-      totalRevenue: 0,
-      totalRevenueSinIva: 0,
-      totalCost: 0
+      grossProfit,
+      margin
     };
-
-    const taxRate = item.product?.taxRate ?? 16.0;
-    const taxType = item.product?.taxType ?? 'IVA';
-    const iepsRate = (item.product as any)?.iepsRate ?? 0.0;
-    let itemPriceSinIva = item.price;
-    if (taxType === 'IVA') {
-      itemPriceSinIva = item.price / (1 + taxRate / 100);
-    } else if (taxType === 'IEPS') {
-      itemPriceSinIva = item.price / (1 + iepsRate / 100);
-    } else if (taxType === 'IVA_IEPS') {
-      itemPriceSinIva = item.price / ((1 + iepsRate / 100) * (1 + taxRate / 100));
-    }
-
-    const itemUnitCost = (item.cost !== undefined && item.cost !== null && item.cost > 0) ? item.cost : (item.product?.cost || 0);
-    existing.quantitySold += item.quantity;
-    existing.totalRevenue += (item.quantity * item.price);
-    existing.totalRevenueSinIva += (item.quantity * itemPriceSinIva);
-    existing.totalCost += (item.quantity * itemUnitCost);
-    productMap.set(key, existing);
   });
-
-  const result = Array.from(productMap.values())
-    .map(p => {
-      const grossProfit = p.totalRevenueSinIva - p.totalCost;
-      const margin = p.totalRevenueSinIva > 0 ? (grossProfit / p.totalRevenueSinIva) * 100 : 0;
-      return {
-        ...p,
-        grossProfit,
-        margin
-      };
-    })
-    .sort((a, b) => b.totalRevenue - a.totalRevenue);
-
-  return result;
 }
 
 export async function getSalesByCategory(

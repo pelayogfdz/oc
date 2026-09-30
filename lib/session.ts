@@ -21,8 +21,8 @@ export async function createSession(userId: string, tenantId: string | null, rol
   }
   
   activeSessions.push(sessionId);
-  if (activeSessions.length > 10) {
-    activeSessions = activeSessions.slice(-10);
+  if (activeSessions.length > 50) {
+    activeSessions = activeSessions.slice(-50);
   }
 
   const updatedSessionIds = activeSessions.join(',');

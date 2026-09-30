@@ -210,7 +210,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             maxPrice: parsedMax,
             sortBy,
             sortOrder,
-            limit: 2500
+            limit: filterMeli === 'PUBLISHED' ? 0 : 2500
           });
           setDisplayedProducts(results);
         } else {

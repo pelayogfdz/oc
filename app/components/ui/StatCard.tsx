@@ -30,30 +30,32 @@ export function StatCard({
 
   return (
     <div
-      className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-7 md:p-8 hover:shadow-md hover:border-slate-200 transition-all duration-200 min-w-0 ${className}`}
+      className={`bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6 hover:shadow-md hover:border-slate-300 transition-all duration-200 min-w-0 flex flex-col justify-between ${className}`}
     >
-      <div className="flex items-start justify-between mb-3 gap-2">
-        <span className="text-xs font-bold uppercase tracking-wider text-slate-500 truncate" title={title}>
-          {title}
-        </span>
-        <div className="p-2 rounded-xl bg-slate-50 text-slate-600 flex-shrink-0">
-          {icon}
+      <div>
+        <div className="flex items-center justify-between gap-3 mb-2.5 min-w-0">
+          <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate flex-1 min-w-0" title={title}>
+            {title}
+          </span>
+          <div className="w-8 h-8 rounded-xl bg-slate-50 text-slate-600 flex-shrink-0 flex items-center justify-center border border-slate-100/80">
+            {icon}
+          </div>
+        </div>
+
+        <div className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight truncate my-1" title={String(value)}>
+          {value}
         </div>
       </div>
 
-      <div className="text-2xl lg:text-3xl font-black text-slate-800 tracking-tight truncate" title={String(value)}>
-        {value}
-      </div>
-
       {(subtitle || badgeText) && (
-        <div className="flex items-center gap-2 mt-2 text-xs">
+        <div className="flex items-center gap-2 mt-2.5 text-xs">
           {badgeText && (
-            <span className={`px-2 py-0.5 rounded-full font-semibold ${badgeClasses[badgeVariant]}`}>
+            <span className={`px-2.5 py-0.5 rounded-full font-semibold text-[11px] ${badgeClasses[badgeVariant]}`}>
               {badgeText}
             </span>
           )}
           {subtitle && (
-            <span className="text-slate-400 truncate">
+            <span className="text-slate-400 truncate text-[11px]">
               {subtitle}
             </span>
           )}

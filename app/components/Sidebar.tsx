@@ -80,7 +80,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
 
   const toggleGroup = (title: string, e: React.MouseEvent) => {
     e.preventDefault();
-    setOpenGroups(prev => ({ [title]: !prev[title] }));
+    setOpenGroups(prev => ({ ...prev, [title]: !prev[title] }));
   };
 
   const isNodeActive = (node: MenuNode) => {
