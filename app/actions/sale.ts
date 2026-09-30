@@ -735,7 +735,7 @@ export async function refundSale(formData: FormData) {
 export async function cancelSaleInternal(saleId: string, userId: string) {
   const sale = await prisma.sale.findUnique({
     where: { id: saleId },
-    include: { items: true, cashSession: true }
+    include: { items: true, cashSession: true, deliveryOrder: true }
   });
 
   if (!sale || sale.status === 'CANCELLED') throw new Error("Venta no encontrada o ya cancelada");
@@ -786,6 +786,46 @@ export async function cancelSaleInternal(saleId: string, userId: string) {
         userId
       }
     });
+  }
+
+  // Cancel delivery order if linked
+  if (sale.deliveryOrder) {
+    await prisma.deliveryOrder.update({
+      where: { id: sale.deliveryOrder.id },
+      data: { status: 'CANCELLED' }
+    });
+  }
+
+  // Cancel any associated pending production orders
+  try {
+    const saleFolioPrefix = sale.folio ? `Pedido #${sale.folio}` : `Pedido #${sale.id.slice(0, 8)}`;
+    await prisma.productionOrder.updateMany({
+      where: {
+        notes: { startsWith: saleFolioPrefix },
+        status: 'PENDING'
+      },
+      data: {
+        status: 'CANCELLED'
+      }
+    });
+  } catch (errProd) {
+    console.error('[cancelSaleInternal] Error cancelling associated production orders:', errProd);
+  }
+
+  // Cancel any associated calendar appointments
+  try {
+    const saleFolioPrefix = sale.folio ? `Pedido #${sale.folio}` : `Pedido #${sale.id.slice(0, 8)}`;
+    await prisma.appointment.updateMany({
+      where: {
+        title: { startsWith: saleFolioPrefix },
+        status: { not: 'CANCELLED' }
+      },
+      data: {
+        status: 'CANCELLED'
+      }
+    });
+  } catch (errApp) {
+    console.error('[cancelSaleInternal] Error cancelling associated appointments:', errApp);
   }
 
   // Revert customer credit by the actual remaining balance due of this sale (to avoid mismatch if they made payments)
@@ -839,31 +879,33 @@ export async function cancelSaleInternal(saleId: string, userId: string) {
     }
   }
 
-  // Handle cash logic if paid in cash
-  if (sale.paymentMethod === 'CASH' && sale.cashSessionId) {
-    const targetSession = await prisma.cashSession.findUnique({ where: { id: sale.cashSessionId } });
-    if (targetSession && targetSession.status === 'OPEN') {
-      await prisma.cashMovement.create({
-         data: {
-           sessionId: targetSession.id,
-           type: 'OUT',
-           amount: sale.total,
-           reason: `Cancelación Venta #${sale.id.slice(0, 8)}`
-         }
-      });
-    }
-  } else if (sale.paymentMethod === 'MIXTO' && sale.cashSessionId && sale.cashAmount) {
-     const targetSession = await prisma.cashSession.findUnique({ where: { id: sale.cashSessionId } });
-     if (targetSession && targetSession.status === 'OPEN') {
+  // Handle cash logic if paid in cash and sale was COMPLETED
+  if (sale.status === 'COMPLETED') {
+    if (sale.paymentMethod === 'CASH' && sale.cashSessionId) {
+      const targetSession = await prisma.cashSession.findUnique({ where: { id: sale.cashSessionId } });
+      if (targetSession && targetSession.status === 'OPEN') {
         await prisma.cashMovement.create({
            data: {
              sessionId: targetSession.id,
              type: 'OUT',
-             amount: sale.cashAmount,
-             reason: `Cancelación Venta Mixta #${sale.id.slice(0, 8)}`
+             amount: sale.total,
+             reason: `Cancelación Venta #${sale.id.slice(0, 8)}`
            }
         });
-     }
+      }
+    } else if (sale.paymentMethod === 'MIXTO' && sale.cashSessionId && sale.cashAmount) {
+       const targetSession = await prisma.cashSession.findUnique({ where: { id: sale.cashSessionId } });
+       if (targetSession && targetSession.status === 'OPEN') {
+          await prisma.cashMovement.create({
+             data: {
+               sessionId: targetSession.id,
+               type: 'OUT',
+               amount: sale.cashAmount,
+               reason: `Cancelación Venta Mixta #${sale.id.slice(0, 8)}`
+             }
+          });
+       }
+    }
   }
 
   await prisma.sale.update({
@@ -875,6 +917,8 @@ export async function cancelSaleInternal(saleId: string, userId: string) {
   });
 
   revalidatePath('/ventas');
+  revalidatePath('/ventas/pedidos');
+  revalidatePath(`/ventas/detalle/${sale.id}`);
   revalidatePath('/productos');
 }
 

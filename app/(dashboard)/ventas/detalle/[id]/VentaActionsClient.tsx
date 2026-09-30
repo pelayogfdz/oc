@@ -518,7 +518,7 @@ export default function VentaActionsClient({
 
 
       {/* Cancel Sale */}
-      {status === 'COMPLETED' && (
+      {status !== 'CANCELLED' && (
         <button
           onClick={handleCancelSale}
           disabled={isPending}

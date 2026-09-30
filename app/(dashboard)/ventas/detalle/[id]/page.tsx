@@ -167,7 +167,7 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
             <h2 className="text-xl sm:text-2xl font-bold text-slate-800 m-0 mb-1">Resumen de Venta</h2>
             <div style={{ fontSize: '1.1rem', color: '#64748b' }}>Folio: #{sale.folio || sale.id.slice(0, 8).toUpperCase()}</div>
             <div style={{ display: 'inline-block', marginTop: '0.5rem', padding: '0.25rem 0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold', backgroundColor: sale.status === 'COMPLETED' ? '#dcfce7' : sale.status === 'CANCELLED' ? '#fee2e2' : '#fef3c7', color: sale.status === 'COMPLETED' ? '#166534' : sale.status === 'CANCELLED' ? '#991b1b' : '#b45309' }}>
-              {sale.status === 'COMPLETED' ? 'Venta Concluida' : sale.status === 'CANCELLED' ? 'Cancelada' : sale.status}
+              {sale.status === 'COMPLETED' ? 'Venta Concluida' : sale.status === 'CANCELLED' ? 'Cancelada' : sale.status === 'PENDING' ? 'Pendiente' : sale.status}
             </div>
           </div>
 
