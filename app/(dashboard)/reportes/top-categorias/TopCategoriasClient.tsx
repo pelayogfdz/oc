@@ -247,46 +247,74 @@ export default function TopCategoriasClient({ initialData, initialBranchId, avai
 
       <div style={{ opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
         {/* KPI Panel Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#eff6ff', borderRadius: '8px' }}><Package size={20} color="#3b82f6" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Categorías Activas</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem', minWidth: 0 }}>
+              <div style={{ padding: '0.45rem', backgroundColor: '#eff6ff', borderRadius: '8px', flexShrink: 0 }}><Package size={18} color="#3b82f6" /></div>
+              <h3 style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#64748b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Categorías Activas</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#1e293b' }}>{stats.totalCategories}</div>
+            <div 
+              style={{ fontSize: 'clamp(1.15rem, 1.4vw, 1.55rem)', fontWeight: '900', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+              title={stats.totalCategories.toLocaleString('es-MX')}
+            >
+              {stats.totalCategories.toLocaleString('es-MX')}
+            </div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#fdf2f8', borderRadius: '8px' }}><Package size={20} color="#be185d" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Unidades Vendidas</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem', minWidth: 0 }}>
+              <div style={{ padding: '0.45rem', backgroundColor: '#fdf2f8', borderRadius: '8px', flexShrink: 0 }}><Package size={18} color="#be185d" /></div>
+              <h3 style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#64748b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Unidades Vendidas</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#be185d' }}>{stats.totalUnits} uds</div>
+            <div 
+              style={{ fontSize: 'clamp(1.15rem, 1.4vw, 1.55rem)', fontWeight: '900', color: '#be185d', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+              title={`${stats.totalUnits.toLocaleString('es-MX')} uds`}
+            >
+              {stats.totalUnits.toLocaleString('es-MX')}{' '}
+              <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#94a3b8' }}>uds</span>
+            </div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#f0fdf4', borderRadius: '8px' }}><DollarSign size={20} color="#16a34a" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Ingresos Totales</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem', minWidth: 0 }}>
+              <div style={{ padding: '0.45rem', backgroundColor: '#f0fdf4', borderRadius: '8px', flexShrink: 0 }}><DollarSign size={18} color="#16a34a" /></div>
+              <h3 style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#64748b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Ingresos Totales</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#16a34a' }}>{formatter.format(stats.totalRevenue)}</div>
+            <div 
+              style={{ fontSize: 'clamp(1.1rem, 1.3vw, 1.45rem)', fontWeight: '900', color: '#16a34a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+              title={formatter.format(stats.totalRevenue)}
+            >
+              {formatter.format(stats.totalRevenue)}
+            </div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#fef2f2', borderRadius: '8px' }}><DollarSign size={20} color="#ef4444" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Costo de lo Vendido</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem', minWidth: 0 }}>
+              <div style={{ padding: '0.45rem', backgroundColor: '#fef2f2', borderRadius: '8px', flexShrink: 0 }}><DollarSign size={18} color="#ef4444" /></div>
+              <h3 style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#64748b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Costo de lo Vendido</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#ef4444' }}>{formatter.format(stats.totalCost)}</div>
+            <div 
+              style={{ fontSize: 'clamp(1.1rem, 1.3vw, 1.45rem)', fontWeight: '900', color: '#ef4444', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+              title={formatter.format(stats.totalCost)}
+            >
+              {formatter.format(stats.totalCost)}
+            </div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#f5f3ff', borderRadius: '8px' }}><TrendingUp size={20} color="#7c3aed" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Ganancia Bruta</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem', minWidth: 0 }}>
+              <div style={{ padding: '0.45rem', backgroundColor: '#f5f3ff', borderRadius: '8px', flexShrink: 0 }}><TrendingUp size={18} color="#7c3aed" /></div>
+              <h3 style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#64748b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Ganancia Bruta</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#7c3aed' }}>{formatter.format(stats.grossProfit)}</div>
-            <div style={{ fontSize: '0.775rem', color: '#7c3aed', fontWeight: 'bold', marginTop: '0.1rem' }}>Margen: {stats.avgMargin.toFixed(1)}%</div>
+            <div 
+              style={{ fontSize: 'clamp(1.1rem, 1.3vw, 1.45rem)', fontWeight: '900', color: '#7c3aed', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+              title={formatter.format(stats.grossProfit)}
+            >
+              {formatter.format(stats.grossProfit)}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#7c3aed', fontWeight: 'bold', marginTop: '0.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              Margen: {stats.avgMargin.toFixed(1)}%
+            </div>
           </div>
         </div>
 

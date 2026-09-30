@@ -105,32 +105,47 @@ export default function ReposicionMinimosClient({
   return (
     <div>
       {/* KPI Section */}
-      <div className="kpis-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ backgroundColor: '#fee2e2', padding: '0.75rem', borderRadius: '10px', color: '#dc2626' }}>
-            <AlertTriangle size={24} />
+      <div className="kpis-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ backgroundColor: '#fee2e2', padding: '0.65rem', borderRadius: '10px', color: '#dc2626', flexShrink: 0 }}>
+            <AlertTriangle size={20} />
           </div>
-          <div>
-            <h3 style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginBottom: '0.25rem', fontWeight: 'bold' }}>Artículos Críticos</h3>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#dc2626' }}>{kpis.criticalCount}</div>
-          </div>
-        </div>
-        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ backgroundColor: '#eff6ff', padding: '0.75rem', borderRadius: '10px', color: '#2563eb' }}>
-            <AlertTriangle size={24} style={{ color: '#2563eb' }} />
-          </div>
-          <div>
-            <h3 style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginBottom: '0.25rem', fontWeight: 'bold' }}>Unidades Faltantes</h3>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: 'var(--caanma-text)' }}>{kpis.missingUnits}</div>
+          <div style={{ minWidth: 0 }}>
+            <h3 style={{ fontSize: '0.825rem', color: 'var(--caanma-text-muted)', marginBottom: '0.2rem', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Artículos Críticos</h3>
+            <div 
+              style={{ fontSize: 'clamp(1.15rem, 1.4vw, 1.55rem)', fontWeight: '900', color: '#dc2626', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+              title={kpis.criticalCount.toLocaleString('es-MX')}
+            >
+              {kpis.criticalCount.toLocaleString('es-MX')}
+            </div>
           </div>
         </div>
-        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ backgroundColor: '#f0fdf4', padding: '0.75rem', borderRadius: '10px', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '42px', height: '42px' }}>
-            <span style={{ fontSize: '24px', fontWeight: 'bold' }}>$</span>
+        <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ backgroundColor: '#eff6ff', padding: '0.65rem', borderRadius: '10px', color: '#2563eb', flexShrink: 0 }}>
+            <AlertTriangle size={20} style={{ color: '#2563eb' }} />
           </div>
-          <div>
-            <h3 style={{ fontSize: '0.85rem', color: 'var(--caanma-text-muted)', marginBottom: '0.25rem', fontWeight: 'bold' }}>Inversión Requerida</h3>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#16a34a' }}>{formatCurrency(kpis.totalInvestment)}</div>
+          <div style={{ minWidth: 0 }}>
+            <h3 style={{ fontSize: '0.825rem', color: 'var(--caanma-text-muted)', marginBottom: '0.2rem', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Unidades Faltantes</h3>
+            <div 
+              style={{ fontSize: 'clamp(1.15rem, 1.4vw, 1.55rem)', fontWeight: '900', color: 'var(--caanma-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+              title={kpis.missingUnits.toLocaleString('es-MX')}
+            >
+              {kpis.missingUnits.toLocaleString('es-MX')}
+            </div>
+          </div>
+        </div>
+        <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ backgroundColor: '#f0fdf4', padding: '0.65rem', borderRadius: '10px', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', flexShrink: 0 }}>
+            <span style={{ fontSize: '20px', fontWeight: 'bold' }}>$</span>
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <h3 style={{ fontSize: '0.825rem', color: 'var(--caanma-text-muted)', marginBottom: '0.2rem', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Inversión Requerida</h3>
+            <div 
+              style={{ fontSize: 'clamp(1.1rem, 1.3vw, 1.45rem)', fontWeight: '900', color: '#16a34a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+              title={formatCurrency(kpis.totalInvestment)}
+            >
+              {formatCurrency(kpis.totalInvestment)}
+            </div>
           </div>
         </div>
       </div>

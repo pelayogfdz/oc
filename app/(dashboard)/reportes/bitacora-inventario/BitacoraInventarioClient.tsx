@@ -255,38 +255,59 @@ export default function BitacoraInventarioClient({ initialData, initialBranchId,
 
       <div style={{ opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
         {/* KPI Panel Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#eff6ff', borderRadius: '8px' }}><Clock size={20} color="#3b82f6" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Movimientos Registrados</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem', minWidth: 0 }}>
+              <div style={{ padding: '0.45rem', backgroundColor: '#eff6ff', borderRadius: '8px', flexShrink: 0 }}><Clock size={18} color="#3b82f6" /></div>
+              <h3 style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#64748b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Movimientos Registrados</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#1e293b' }}>{data.metrics?.totalCount || 0}</div>
+            <div 
+              style={{ fontSize: 'clamp(1.15rem, 1.4vw, 1.55rem)', fontWeight: '900', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+              title={String(data.metrics?.totalCount || 0)}
+            >
+              {(data.metrics?.totalCount || 0).toLocaleString('es-MX')}
+            </div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#f0fdf4', borderRadius: '8px' }}><PlusCircle size={20} color="#16a34a" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Artículos Ingresados (+)</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem', minWidth: 0 }}>
+              <div style={{ padding: '0.45rem', backgroundColor: '#f0fdf4', borderRadius: '8px', flexShrink: 0 }}><PlusCircle size={18} color="#16a34a" /></div>
+              <h3 style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#64748b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Artículos Ingresados (+)</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#16a34a' }}>+{data.metrics?.itemsAdded || 0} uds</div>
+            <div 
+              style={{ fontSize: 'clamp(1.15rem, 1.4vw, 1.55rem)', fontWeight: '900', color: '#16a34a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+              title={`+${(data.metrics?.itemsAdded || 0).toLocaleString('es-MX')} uds`}
+            >
+              +{(data.metrics?.itemsAdded || 0).toLocaleString('es-MX')}{' '}
+              <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#94a3b8' }}>uds</span>
+            </div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#fef2f2', borderRadius: '8px' }}><MinusCircle size={20} color="#ef4444" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Artículos Egresados (-)</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem', minWidth: 0 }}>
+              <div style={{ padding: '0.45rem', backgroundColor: '#fef2f2', borderRadius: '8px', flexShrink: 0 }}><MinusCircle size={18} color="#ef4444" /></div>
+              <h3 style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#64748b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Artículos Egresados (-)</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#ef4444' }}>-{data.metrics?.itemsRemoved || 0} uds</div>
+            <div 
+              style={{ fontSize: 'clamp(1.15rem, 1.4vw, 1.55rem)', fontWeight: '900', color: '#ef4444', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+              title={`-${(data.metrics?.itemsRemoved || 0).toLocaleString('es-MX')} uds`}
+            >
+              -{(data.metrics?.itemsRemoved || 0).toLocaleString('es-MX')}{' '}
+              <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#94a3b8' }}>uds</span>
+            </div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#f5f3ff', borderRadius: '8px' }}><Info size={20} color="#7c3aed" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Flujo Neto Stock</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem', minWidth: 0 }}>
+              <div style={{ padding: '0.45rem', backgroundColor: '#f5f3ff', borderRadius: '8px', flexShrink: 0 }}><Info size={18} color="#7c3aed" /></div>
+              <h3 style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#64748b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Flujo Neto Stock</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: (data.metrics?.itemsAdded - data.metrics?.itemsRemoved) >= 0 ? '#16a34a' : '#ef4444' }}>
-              {(data.metrics?.itemsAdded - data.metrics?.itemsRemoved) >= 0 ? '+' : ''}{data.metrics?.itemsAdded - data.metrics?.itemsRemoved} uds
+            <div 
+              style={{ fontSize: 'clamp(1.15rem, 1.4vw, 1.55rem)', fontWeight: '900', color: (data.metrics?.itemsAdded - data.metrics?.itemsRemoved) >= 0 ? '#16a34a' : '#ef4444', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+              title={`${(data.metrics?.itemsAdded - data.metrics?.itemsRemoved) >= 0 ? '+' : ''}${(data.metrics?.itemsAdded - data.metrics?.itemsRemoved).toLocaleString('es-MX')} uds`}
+            >
+              {(data.metrics?.itemsAdded - data.metrics?.itemsRemoved) >= 0 ? '+' : ''}{(data.metrics?.itemsAdded - data.metrics?.itemsRemoved).toLocaleString('es-MX')}{' '}
+              <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#94a3b8' }}>uds</span>
             </div>
           </div>
         </div>

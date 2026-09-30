@@ -487,37 +487,58 @@ export default function InsumosClient({
 
       <div style={{ opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
         {/* KPI Panel Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#eff6ff', borderRadius: '8px' }}><Package size={20} color="#3b82f6" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Insumos Analizados</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem', minWidth: 0 }}>
+              <div style={{ padding: '0.45rem', backgroundColor: '#eff6ff', borderRadius: '8px', flexShrink: 0 }}><Package size={18} color="#3b82f6" /></div>
+              <h3 style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#64748b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Insumos Analizados</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#1e293b' }}>{stats.totalSKUs}</div>
+            <div 
+              style={{ fontSize: 'clamp(1.15rem, 1.4vw, 1.55rem)', fontWeight: '900', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+              title={stats.totalSKUs.toLocaleString('es-MX')}
+            >
+              {stats.totalSKUs.toLocaleString('es-MX')}
+            </div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#fee2e2', borderRadius: '8px' }}><Package size={20} color="#ef4444" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Insumos con Faltante</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem', minWidth: 0 }}>
+              <div style={{ padding: '0.45rem', backgroundColor: '#fee2e2', borderRadius: '8px', flexShrink: 0 }}><Package size={18} color="#ef4444" /></div>
+              <h3 style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#64748b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Insumos con Faltante</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#ef4444' }}>{stats.skusToRestock}</div>
+            <div 
+              style={{ fontSize: 'clamp(1.15rem, 1.4vw, 1.55rem)', fontWeight: '900', color: '#ef4444', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+              title={stats.skusToRestock.toLocaleString('es-MX')}
+            >
+              {stats.skusToRestock.toLocaleString('es-MX')}
+            </div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#f0fdf4', borderRadius: '8px' }}><ShoppingCart size={20} color="#16a34a" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Sugerido a Comprar</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem', minWidth: 0 }}>
+              <div style={{ padding: '0.45rem', backgroundColor: '#f0fdf4', borderRadius: '8px', flexShrink: 0 }}><ShoppingCart size={18} color="#16a34a" /></div>
+              <h3 style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#64748b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Sugerido a Comprar</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#16a34a' }}>{stats.totalUnitsToRestock} uds</div>
+            <div 
+              style={{ fontSize: 'clamp(1.15rem, 1.4vw, 1.55rem)', fontWeight: '900', color: '#16a34a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+              title={`${stats.totalUnitsToRestock.toLocaleString('es-MX')} uds`}
+            >
+              {stats.totalUnitsToRestock.toLocaleString('es-MX')}{' '}
+              <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#94a3b8' }}>uds</span>
+            </div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#f5f3ff', borderRadius: '8px' }}><DollarSign size={20} color="#7c3aed" /></div>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Inversión Requerida</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem', minWidth: 0 }}>
+              <div style={{ padding: '0.45rem', backgroundColor: '#f5f3ff', borderRadius: '8px', flexShrink: 0 }}><DollarSign size={18} color="#7c3aed" /></div>
+              <h3 style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#64748b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Inversión Requerida</h3>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#7c3aed' }}>{formatter.format(stats.totalCostToRestock)}</div>
+            <div 
+              style={{ fontSize: 'clamp(1.1rem, 1.3vw, 1.45rem)', fontWeight: '900', color: '#7c3aed', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+              title={formatter.format(stats.totalCostToRestock)}
+            >
+              {formatter.format(stats.totalCostToRestock)}
+            </div>
           </div>
         </div>
 

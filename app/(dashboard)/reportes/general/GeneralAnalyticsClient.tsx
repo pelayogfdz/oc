@@ -115,45 +115,45 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
       <div style={{ opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
         {/* KPI Widgets */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-          <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', minWidth: 0, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#dcfce7', borderRadius: '8px', flexShrink: 0 }}><DollarSign size={20} color="#16a34a" /></div>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Ingresos Brutos</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
+              <div style={{ padding: '0.45rem', backgroundColor: '#dcfce7', borderRadius: '8px', flexShrink: 0 }}><DollarSign size={18} color="#16a34a" /></div>
+              <h3 style={{ fontSize: '0.825rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>Ingresos Brutos</h3>
             </div>
-            <div style={{ fontSize: 'clamp(1.25rem, 1.8vw, 1.7rem)', fontWeight: '900', color: '#16a34a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatCurrency(data.totalRevenue)}>
+            <div style={{ fontSize: 'clamp(1.1rem, 1.3vw, 1.45rem)', fontWeight: '900', color: '#16a34a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }} title={formatCurrency(data.totalRevenue)}>
               {formatCurrency(data.totalRevenue)}
             </div>
           </div>
           
-          <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', minWidth: 0, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#e0f2fe', borderRadius: '8px', flexShrink: 0 }}><TrendingUp size={20} color="#0284c7" /></div>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Utilidad (basada en margen)</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
+              <div style={{ padding: '0.45rem', backgroundColor: '#e0f2fe', borderRadius: '8px', flexShrink: 0 }}><TrendingUp size={18} color="#0284c7" /></div>
+              <h3 style={{ fontSize: '0.825rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>Utilidad (basada en margen)</h3>
             </div>
-            <div style={{ fontSize: 'clamp(1.25rem, 1.8vw, 1.7rem)', fontWeight: '900', color: '#0284c7', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatCurrency(data.totalProfit)}>
+            <div style={{ fontSize: 'clamp(1.1rem, 1.3vw, 1.45rem)', fontWeight: '900', color: '#0284c7', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }} title={formatCurrency(data.totalProfit)}>
               {formatCurrency(data.totalProfit)}
             </div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', minWidth: 0, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#fef3c7', borderRadius: '8px', flexShrink: 0 }}><Percent size={20} color="#d97706" /></div>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Margen Global</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
+              <div style={{ padding: '0.45rem', backgroundColor: '#fef3c7', borderRadius: '8px', flexShrink: 0 }}><Percent size={18} color="#d97706" /></div>
+              <h3 style={{ fontSize: '0.825rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>Margen Global</h3>
             </div>
-            <div style={{ fontSize: 'clamp(1.25rem, 1.8vw, 1.7rem)', fontWeight: '900', color: '#d97706', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontSize: 'clamp(1.15rem, 1.4vw, 1.55rem)', fontWeight: '900', color: '#d97706', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
               {data.margin.toFixed(2)}%
             </div>
           </div>
 
-          <div style={{ backgroundColor: 'white', padding: '1.25rem 1.5rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', minWidth: 0, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', backgroundColor: '#f3e8ff', borderRadius: '8px', flexShrink: 0 }}><FileText size={20} color="#9333ea" /></div>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Tickets y Ticket Prom.</h3>
+          <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
+              <div style={{ padding: '0.45rem', backgroundColor: '#f3e8ff', borderRadius: '8px', flexShrink: 0 }}><FileText size={18} color="#9333ea" /></div>
+              <h3 style={{ fontSize: '0.825rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>Tickets y Ticket Prom.</h3>
             </div>
-            <div style={{ fontSize: 'clamp(1.25rem, 1.8vw, 1.7rem)', fontWeight: '900', color: '#9333ea', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontSize: 'clamp(1.15rem, 1.4vw, 1.55rem)', fontWeight: '900', color: '#9333ea', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
               {data.totalTickets.toLocaleString('es-MX')}
             </div>
-            <div style={{ fontSize: '0.82rem', color: 'var(--caanma-text-muted)', marginTop: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontSize: '0.78rem', color: 'var(--caanma-text-muted)', marginTop: '0.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               Promedio: {formatCurrency(data.avgTicket)}
             </div>
           </div>

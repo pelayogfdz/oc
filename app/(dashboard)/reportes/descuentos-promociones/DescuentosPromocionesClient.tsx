@@ -307,104 +307,119 @@ export default function DescuentosPromocionesClient({
       </div>
 
       {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         
         {/* Total Descuentos */}
-        <div style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', position: 'relative', overflow: 'hidden', minWidth: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', minWidth: 0 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 Total Descontado
               </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#dc2626', marginTop: '0.25rem' }}>
+              <div 
+                style={{ fontSize: 'clamp(1.1rem, 1.3vw, 1.45rem)', fontWeight: '900', color: '#dc2626', marginTop: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+                title={formatCurrency(data.kpis.totalDiscountAmount)}
+              >
                 {formatCurrency(data.kpis.totalDiscountAmount)}
               </div>
             </div>
-            <div style={{ backgroundColor: '#fee2e2', padding: '0.6rem', borderRadius: '10px', color: '#dc2626' }}>
-              <TrendingDown size={22} />
+            <div style={{ backgroundColor: '#fee2e2', padding: '0.5rem', borderRadius: '10px', color: '#dc2626', flexShrink: 0 }}>
+              <TrendingDown size={20} />
             </div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>
-            Ahorro total otorgado a clientes
+          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.4rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            Ahorro otorgado a clientes
           </div>
         </div>
 
         {/* Unidades Vendidas */}
-        <div style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', overflow: 'hidden', minWidth: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', minWidth: 0 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 Piezas con Descuento
               </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#2563eb', marginTop: '0.25rem' }}>
-                {data.kpis.totalDiscountedUnits.toLocaleString()} <span style={{ fontSize: '0.9rem', fontWeight: 'normal', color: '#64748b' }}>uds</span>
+              <div 
+                style={{ fontSize: 'clamp(1.15rem, 1.4vw, 1.55rem)', fontWeight: '900', color: '#2563eb', marginTop: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+                title={`${data.kpis.totalDiscountedUnits.toLocaleString('es-MX')} uds`}
+              >
+                {data.kpis.totalDiscountedUnits.toLocaleString('es-MX')}{' '}
+                <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b' }}>uds</span>
               </div>
             </div>
-            <div style={{ backgroundColor: '#dbeafe', padding: '0.6rem', borderRadius: '10px', color: '#2563eb' }}>
-              <Package size={22} />
+            <div style={{ backgroundColor: '#dbeafe', padding: '0.5rem', borderRadius: '10px', color: '#2563eb', flexShrink: 0 }}>
+              <Package size={20} />
             </div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>
-            Unidades vendidas bajo oferta o descuento
+          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.4rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            Vendidas bajo oferta o descuento
           </div>
         </div>
 
         {/* Tickets con Descuento */}
-        <div style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', overflow: 'hidden', minWidth: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', minWidth: 0 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 Tickets con Beneficio
               </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#7c3aed', marginTop: '0.25rem' }}>
-                {data.kpis.totalDiscountedSalesCount.toLocaleString()}
+              <div 
+                style={{ fontSize: 'clamp(1.15rem, 1.4vw, 1.55rem)', fontWeight: '900', color: '#7c3aed', marginTop: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+                title={data.kpis.totalDiscountedSalesCount.toLocaleString('es-MX')}
+              >
+                {data.kpis.totalDiscountedSalesCount.toLocaleString('es-MX')}
               </div>
             </div>
-            <div style={{ backgroundColor: '#ede9fe', padding: '0.6rem', borderRadius: '10px', color: '#7c3aed' }}>
-              <Receipt size={22} />
+            <div style={{ backgroundColor: '#ede9fe', padding: '0.5rem', borderRadius: '10px', color: '#7c3aed', flexShrink: 0 }}>
+              <Receipt size={20} />
             </div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>
-            Transacciones con descuentos aplicados
+          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.4rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            Transacciones con descuentos
           </div>
         </div>
 
         {/* % Descuento Promedio */}
-        <div style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', overflow: 'hidden', minWidth: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', minWidth: 0 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 % Descuento Promedio
               </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#d97706', marginTop: '0.25rem' }}>
+              <div 
+                style={{ fontSize: 'clamp(1.15rem, 1.4vw, 1.55rem)', fontWeight: '900', color: '#d97706', marginTop: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+              >
                 {data.kpis.averageDiscountPct}%
               </div>
             </div>
-            <div style={{ backgroundColor: '#fef3c7', padding: '0.6rem', borderRadius: '10px', color: '#d97706' }}>
-              <Percent size={22} />
+            <div style={{ backgroundColor: '#fef3c7', padding: '0.5rem', borderRadius: '10px', color: '#d97706', flexShrink: 0 }}>
+              <Percent size={20} />
             </div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>
-            Sobre el valor regular de los artículos
+          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.4rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            Sobre el valor regular de artículos
           </div>
         </div>
 
         {/* Total Cobrado */}
-        <div style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--caanma-border)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', overflow: 'hidden', minWidth: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', minWidth: 0 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--caanma-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 Total Cobrado Neto
               </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#16a34a', marginTop: '0.25rem' }}>
+              <div 
+                style={{ fontSize: 'clamp(1.1rem, 1.3vw, 1.45rem)', fontWeight: '900', color: '#16a34a', marginTop: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+                title={formatCurrency(data.kpis.totalChargedAmount)}
+              >
                 {formatCurrency(data.kpis.totalChargedAmount)}
               </div>
             </div>
-            <div style={{ backgroundColor: '#dcfce7', padding: '0.6rem', borderRadius: '10px', color: '#16a34a' }}>
-              <DollarSign size={22} />
+            <div style={{ backgroundColor: '#dcfce7', padding: '0.5rem', borderRadius: '10px', color: '#16a34a', flexShrink: 0 }}>
+              <DollarSign size={20} />
             </div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>
+          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.4rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             Valor regular: {formatCurrency(data.kpis.totalRegularAmount)}
           </div>
         </div>

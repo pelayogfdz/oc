@@ -319,47 +319,66 @@ export default function CostosPreciosClient({
       )}
 
       {/* KPI Cards */}
-      <div style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.2s', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
-        <div style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'var(--caanma-text-muted)' }}>
-            <Package size={16} />
-            <span style={{ fontSize: '0.85rem', fontWeight: '600' }}>Artículos Filtrados</span>
+      <div style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.2s', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem', marginBottom: '2.5rem' }}>
+        <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'var(--caanma-text-muted)', minWidth: 0 }}>
+            <Package size={16} className="shrink-0" />
+            <span style={{ fontSize: '0.825rem', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Artículos Filtrados</span>
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: '900', color: 'var(--caanma-text)' }}>{kpis.totalSKUs}</div>
+          <div 
+            style={{ fontSize: 'clamp(1.15rem, 1.4vw, 1.55rem)', fontWeight: '900', color: 'var(--caanma-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+            title={kpis.totalSKUs.toLocaleString('es-MX')}
+          >
+            {kpis.totalSKUs.toLocaleString('es-MX')}
+          </div>
         </div>
 
-        <div style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'var(--caanma-text-muted)' }}>
-            <DollarSign size={16} color="#ef4444" />
-            <span style={{ fontSize: '0.85rem', fontWeight: '600' }}>Costo Promedio</span>
+        <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'var(--caanma-text-muted)', minWidth: 0 }}>
+            <DollarSign size={16} color="#ef4444" className="shrink-0" />
+            <span style={{ fontSize: '0.825rem', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Costo Promedio</span>
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#ef4444' }}>{formatCurrency(kpis.avgCost)}</div>
+          <div 
+            style={{ fontSize: 'clamp(1.1rem, 1.3vw, 1.45rem)', fontWeight: '900', color: '#ef4444', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+            title={formatCurrency(kpis.avgCost)}
+          >
+            {formatCurrency(kpis.avgCost)}
+          </div>
         </div>
 
-        <div style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'var(--caanma-text-muted)' }}>
-            <DollarSign size={16} color="#16a34a" />
-            <span style={{ fontSize: '0.85rem', fontWeight: '600' }}>Precio Promedio</span>
+        <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'var(--caanma-text-muted)', minWidth: 0 }}>
+            <DollarSign size={16} color="#16a34a" className="shrink-0" />
+            <span style={{ fontSize: '0.825rem', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Precio Promedio</span>
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#16a34a' }}>{formatCurrency(kpis.avgPrice)}</div>
+          <div 
+            style={{ fontSize: 'clamp(1.1rem, 1.3vw, 1.45rem)', fontWeight: '900', color: '#16a34a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+            title={formatCurrency(kpis.avgPrice)}
+          >
+            {formatCurrency(kpis.avgPrice)}
+          </div>
         </div>
 
-        <div style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'var(--caanma-text-muted)' }}>
-            <TrendingUp size={16} color="#0284c7" />
-            <span style={{ fontSize: '0.85rem', fontWeight: '600' }}>Margen Promedio</span>
+        <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'var(--caanma-text-muted)', minWidth: 0 }}>
+            <TrendingUp size={16} color="#0284c7" className="shrink-0" />
+            <span style={{ fontSize: '0.825rem', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Margen Promedio</span>
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: '900', color: '#0284c7' }}>{kpis.avgMargin.toFixed(1)}%</div>
+          <div 
+            style={{ fontSize: 'clamp(1.15rem, 1.4vw, 1.55rem)', fontWeight: '900', color: '#0284c7', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+          >
+            {kpis.avgMargin.toFixed(1)}%
+          </div>
         </div>
 
-        <div style={{ backgroundColor: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'var(--caanma-text-muted)' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: '600' }}>Valuación (Costo / Venta)</span>
+        <div style={{ backgroundColor: 'white', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid var(--caanma-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'var(--caanma-text-muted)', minWidth: 0 }}>
+            <span style={{ fontSize: '0.825rem', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Valuación (Costo / Venta)</span>
           </div>
-          <div style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--caanma-text)', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.95rem', fontWeight: '800', color: 'var(--caanma-text)', marginTop: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             Costo: <span style={{ color: '#ef4444' }}>{formatCurrency(kpis.totalInvCost)}</span>
           </div>
-          <div style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--caanma-text)' }}>
+          <div style={{ fontSize: '0.95rem', fontWeight: '800', color: 'var(--caanma-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             Venta: <span style={{ color: '#16a34a' }}>{formatCurrency(kpis.totalInvValue)}</span>
           </div>
         </div>
