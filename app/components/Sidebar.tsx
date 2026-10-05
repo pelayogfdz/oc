@@ -23,7 +23,7 @@ import { useOfflineSync } from './OfflineSyncProvider';
 
 export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole = 'USER' }: { isSuperAdmin?: boolean; userPermissions?: Record<string, boolean>; userRole?: string }) {
   const pathname = usePathname();
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
   const { isMobileMenuOpen, closeMenu } = useMobileMenu();
   const { isOnline } = useOfflineSync();
 
@@ -67,20 +67,17 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
 
   // Auto-expand group if currently on a sub-path
   useEffect(() => {
-    const newOpenGroups = { ...openGroups };
-    navStructure.forEach(node => {
-      if (node.items) {
-        if (node.items.some(item => pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path)))) {
-          newOpenGroups[node.title] = true;
-        }
-      }
-    });
-    setOpenGroups(newOpenGroups);
-  }, []); // Only run once on mount
+    const activeNode = navStructure.find(node =>
+      node.items && node.items.some(item => pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path)))
+    );
+    if (activeNode) {
+      setOpenGroup(activeNode.title);
+    }
+  }, [pathname]);
 
   const toggleGroup = (title: string, e: React.MouseEvent) => {
     e.preventDefault();
-    setOpenGroups(prev => ({ ...prev, [title]: !prev[title] }));
+    setOpenGroup(prev => prev === title ? null : title);
   };
 
   const isNodeActive = (node: MenuNode) => {
@@ -217,7 +214,7 @@ export default function Sidebar({ isSuperAdmin, userPermissions = {}, userRole =
             );
           } else {
             // Dropdown Group
-            const isOpen = openGroups[node.title];
+            const isOpen = openGroup === node.title;
             
             content = (
               <div className={node.desktopOnly ? 'desktop-only-menu-item' : ''} style={{ display: 'flex', flexDirection: 'column' }}>
