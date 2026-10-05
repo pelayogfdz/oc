@@ -149,7 +149,12 @@ export default function CuentasPorPagarClient({ suppliers }: { suppliers: any[] 
                                 p.id.toLowerCase().includes(term)
                               );
                             })
-                            .sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+                            .sort((a: any, b: any) => {
+                              const dateA = a.dueDate ? new Date(a.dueDate).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+                              const dateB = b.dueDate ? new Date(b.dueDate).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+                              if (dateA !== dateB) return dateA - dateB;
+                              return (a.supplierFolio || a.folio || a.id).localeCompare(b.supplierFolio || b.folio || b.id, undefined, { numeric: true });
+                            });
 
                           if (filtered.length === 0) {
                             return (

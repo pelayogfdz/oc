@@ -141,6 +141,15 @@ export default function CobranzaGlobalClient({
       }
     });
 
+    Object.values(groups).forEach(g => {
+      g.sales.sort((a: any, b: any) => {
+        const timeA = new Date(a.createdAt).getTime();
+        const timeB = new Date(b.createdAt).getTime();
+        if (timeA !== timeB) return timeA - timeB;
+        return (a.folio || a.id).localeCompare(b.folio || b.id, undefined, { numeric: true });
+      });
+    });
+
     return Object.values(groups).sort((a, b) => b.totalBalanceDue - a.totalBalanceDue);
   }, [filteredSales]);
 

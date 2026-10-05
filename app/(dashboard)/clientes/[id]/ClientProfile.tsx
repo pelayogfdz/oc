@@ -264,7 +264,16 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
     }
   };
 
-  const pendingSales = sales.filter((s:any) => s.paymentMethod === 'CREDIT' && s.balanceDue > 0.01 && s.status !== 'CANCELLED');
+  const pendingSales = useMemo(() => {
+    return sales
+      .filter((s: any) => s.paymentMethod === 'CREDIT' && s.balanceDue > 0.01 && s.status !== 'CANCELLED')
+      .sort((a: any, b: any) => {
+        const timeA = new Date(a.createdAt).getTime();
+        const timeB = new Date(b.createdAt).getTime();
+        if (timeA !== timeB) return timeA - timeB;
+        return (a.folio || a.id).localeCompare(b.folio || b.id, undefined, { numeric: true });
+      });
+  }, [sales]);
 
   const isOverdue = (dateDate: Date | string | null) => dateDate ? new Date(dateDate) < new Date() : false;
 
@@ -300,6 +309,11 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
     const entries = Object.entries(selectedSales).map(([id, amount]) => {
       const sale = sales.find((s: any) => s.id === id);
       return { id, amount: Number(amount), sale };
+    }).sort((a, b) => {
+      const timeA = a.sale?.createdAt ? new Date(a.sale.createdAt).getTime() : 0;
+      const timeB = b.sale?.createdAt ? new Date(b.sale.createdAt).getTime() : 0;
+      if (timeA !== timeB) return timeA - timeB;
+      return (a.sale?.folio || a.id).localeCompare(b.sale?.folio || b.id, undefined, { numeric: true });
     });
 
     for (const entry of entries) {
@@ -327,7 +341,16 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
     
     setLoading(true);
     try {
-      const salePayments = Object.entries(selectedSales).map(([id, amount]) => ({ id, amount: Number(amount) }));
+      const salePayments = Object.entries(selectedSales)
+        .map(([id, amount]) => ({ id, amount: Number(amount) }))
+        .sort((a, b) => {
+          const saleA = sales.find((s: any) => s.id === a.id);
+          const saleB = sales.find((s: any) => s.id === b.id);
+          const timeA = saleA?.createdAt ? new Date(saleA.createdAt).getTime() : 0;
+          const timeB = saleB?.createdAt ? new Date(saleB.createdAt).getTime() : 0;
+          if (timeA !== timeB) return timeA - timeB;
+          return (saleA?.folio || a.id).localeCompare(saleB?.folio || b.id, undefined, { numeric: true });
+        });
       const response = await addCustomerPaymentBatch(
         customer.id, 
         parseFloat(globalAmount), 
@@ -808,7 +831,38 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
             
             {/* LADO IZQUIERDO: FACTURAS */}
             <div className="client-cobranza-left">
-              <h4 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '1rem', color: '#334155' }}>Selecciona Facturas a Abonar</h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0, color: '#334155' }}>Selecciona Facturas a Abonar</h4>
+                {pendingSales.length > 0 && (
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const all: Record<string, number> = {};
+                        pendingSales.forEach((s: any) => { all[s.id] = s.balanceDue; });
+                        setSelectedSales(all);
+                        const total = pendingSales.reduce((sum: number, s: any) => sum + s.balanceDue, 0);
+                        setGlobalAmount(total > 0 ? total.toFixed(2) : '');
+                      }}
+                      style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', color: '#475569', cursor: 'pointer', fontWeight: '600' }}
+                    >
+                      Seleccionar Todas
+                    </button>
+                    {Object.keys(selectedSales).length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedSales({});
+                          setGlobalAmount('');
+                        }}
+                        style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'pointer', fontWeight: '600' }}
+                      >
+                        Limpiar
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
               {pendingSales.length === 0 ? (
                 <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
                   <HandCoins size={32} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
@@ -1334,7 +1388,14 @@ export default function ClientProfile({ customer, sales, payments }: { customer:
       )}
 
       {activeTab === 'estado' && (() => {
-        const activeSales = sales.filter((s: any) => s.status !== 'CANCELLED' && s.balanceDue >= 0.01);
+        const activeSales = sales
+          .filter((s: any) => s.status !== 'CANCELLED' && s.balanceDue >= 0.01)
+          .sort((a: any, b: any) => {
+            const timeA = new Date(a.createdAt).getTime();
+            const timeB = new Date(b.createdAt).getTime();
+            if (timeA !== timeB) return timeA - timeB;
+            return (a.folio || a.id).localeCompare(b.folio || b.id, undefined, { numeric: true });
+          });
         
         const facturasVencidas = activeSales
           .filter((s: any) => s.invoiceId && s.dueDate && new Date(s.dueDate) < new Date())
