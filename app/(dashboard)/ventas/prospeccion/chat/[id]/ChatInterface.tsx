@@ -52,6 +52,37 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
     return { isMedia: false, type: "", caption: "" };
   };
 
+  const formatChatDisplayBody = (body: string) => {
+    if (!body) return '';
+    if (body.startsWith('[Mensaje tipo:')) {
+      if (body.includes('e2e_notification')) {
+        return '🔒 Los mensajes y llamadas están cifrados de extremo a extremo. Nadie fuera de este chat puede leerlos ni escucharlos.';
+      }
+      if (body.includes('notification_template') || body.includes('ciphertext') || body.includes('biz_content')) {
+        return '🔒 Los mensajes en este chat están protegidos con cifrado de extremo a extremo.';
+      }
+      if (body.includes('call_log')) return '📞 [Llamada de WhatsApp]';
+      if (body.includes('interactive') || body.includes('template')) return '📋 [Mensaje interactivo de WhatsApp]';
+      if (body.includes('album')) return '📎 [Álbum de fotos/videos]';
+      if (body.includes('video')) return '📎 [Video]';
+      if (body.includes('ptt') || body.includes('audio')) return '📎 [Nota de voz]';
+      if (body.includes('pinned')) return '📌 [Mensaje fijado]';
+      return '💬 [Mensaje de WhatsApp]';
+    }
+    return body;
+  };
+
+  const isSystemNotice = (body: string) => {
+    if (!body) return false;
+    const clean = body.trim();
+    return (
+      clean.startsWith('🔒') ||
+      clean.startsWith('ℹ️') ||
+      clean.startsWith('🚫 [Mensaje eliminado') ||
+      clean.startsWith('[Mensaje tipo:')
+    );
+  };
+
   const getExtensionFromMimetype = (mimetype: string): string => {
     if (!mimetype) return '';
     const mime = mimetype.toLowerCase();
@@ -313,6 +344,27 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
     localStorage.setItem(customKey, JSON.stringify(updated));
   };
 
+  const deduplicateMessages = (msgList: any[]) => {
+    const seenIds = new Set<string>();
+    const seenMessageIds = new Set<string>();
+    const result: any[] = [];
+
+    for (const m of msgList) {
+      if (!m) continue;
+      const dbId = m.id ? String(m.id) : '';
+      const waId = m.messageId ? String(m.messageId) : '';
+
+      if (dbId && seenIds.has(dbId)) continue;
+      if (waId && seenMessageIds.has(waId)) continue;
+
+      if (dbId) seenIds.add(dbId);
+      if (waId) seenMessageIds.add(waId);
+
+      result.push(m);
+    }
+    return result;
+  };
+
   // Sync with parent prospect messages updates
   useEffect(() => {
     if (prospect.messages) {
@@ -321,9 +373,9 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
         const filteredOptimistic = optimisticMsgs.filter((om: any) => 
           !prospect.messages.some((nm: any) => nm.body === om.body && nm.isFromMe)
         );
-        setMessages([...prospect.messages, ...filteredOptimistic]);
+        setMessages(deduplicateMessages([...prospect.messages, ...filteredOptimistic]));
       } else {
-        setMessages(prospect.messages);
+        setMessages(deduplicateMessages(prospect.messages));
       }
     }
   }, [prospect.messages]);
@@ -357,9 +409,9 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
                 const filteredOptimistic = optimisticMsgs.filter((om: any) => 
                   !data.messages.some((nm: any) => nm.body === om.body && nm.isFromMe)
                 );
-                setMessages([...data.messages, ...filteredOptimistic]);
+                setMessages(deduplicateMessages([...data.messages, ...filteredOptimistic]));
               } else {
-                setMessages(data.messages);
+                setMessages(deduplicateMessages(data.messages));
               }
             }
           }
@@ -572,204 +624,237 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
             No hay mensajes aún. ¡Envía el primero!
           </div>
         ) : (
-          messages.map(msg => (
-            <div 
-              key={msg.id} 
-              style={{
-                alignSelf: msg.isFromMe ? 'flex-end' : 'flex-start',
-                backgroundColor: msg.isFromMe ? '#dcf8c6' : '#ffffff',
-                padding: '0.75rem 1rem',
-                borderRadius: '8px',
-                borderTopRightRadius: msg.isFromMe ? '0' : '8px',
-                borderTopLeftRadius: !msg.isFromMe ? '0' : '8px',
-                maxWidth: '75%',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                position: 'relative'
-              }}
-            >
-              <div style={{ fontSize: '0.95rem', color: '#1e293b', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
-                {msg.body && msg.body.includes("📍 *Ubicación Compartida") ? (
-                  <div style={{ 
-                    border: '1px solid #cbd5e1', 
-                    borderRadius: '8px', 
-                    overflow: 'hidden', 
-                    backgroundColor: '#f8fafc',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                    marginTop: '0.25rem',
-                    width: '100%',
-                    minWidth: '240px',
-                    maxWidth: '280px'
-                  }}>
+          messages.map(msg => {
+            const displayBody = formatChatDisplayBody(msg.body || '');
+            if (isSystemNotice(msg.body || '')) {
+              return (
+                <div 
+                  key={msg.id}
+                  style={{
+                    alignSelf: 'center',
+                    backgroundColor: '#fef9c3',
+                    border: '1px solid #fef08a',
+                    padding: '0.45rem 0.9rem',
+                    borderRadius: '8px',
+                    maxWidth: '85%',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                    textAlign: 'center',
+                    fontSize: '0.78rem',
+                    color: '#854d0e',
+                    margin: '0.25rem 0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.2rem'
+                  }}
+                >
+                  <span style={{ fontWeight: 500, lineHeight: 1.4 }}>{displayBody}</span>
+                  <span style={{ fontSize: '0.65rem', color: '#a16207' }}>
+                    {new Date(msg.timestamp).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              );
+            }
+
+            return (
+              <div 
+                key={msg.id} 
+                style={{
+                  alignSelf: msg.isFromMe ? 'flex-end' : 'flex-start',
+                  backgroundColor: msg.isFromMe ? '#dcf8c6' : '#ffffff',
+                  padding: '0.75rem 1rem',
+                  borderRadius: '8px',
+                  borderTopRightRadius: msg.isFromMe ? '0' : '8px',
+                  borderTopLeftRadius: !msg.isFromMe ? '0' : '8px',
+                  maxWidth: '75%',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                  position: 'relative'
+                }}
+              >
+                <div style={{ fontSize: '0.95rem', color: '#1e293b', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+                  {displayBody && displayBody.includes("📍 *Ubicación Compartida") ? (
                     <div style={{ 
-                      height: '100px', 
-                      backgroundImage: `url("https://maps.googleapis.com/maps/api/staticmap?center=${getCoordsFromMessage(msg.body)}&zoom=14&size=280x100&sensor=false&markers=color:red%7C${getCoordsFromMessage(msg.body)}")`,
-                      backgroundColor: '#e2e8f0', 
-                      backgroundSize: 'cover', 
-                      backgroundPosition: 'center',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#475569',
-                      fontWeight: 'bold',
-                      fontSize: '0.8rem'
+                      border: '1px solid #cbd5e1', 
+                      borderRadius: '8px', 
+                      overflow: 'hidden', 
+                      backgroundColor: '#f8fafc',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                      marginTop: '0.25rem',
+                      width: '100%',
+                      minWidth: '240px',
+                      maxWidth: '280px'
                     }}>
-                      🗺️ Vista de Mapa {tenantName}
+                      <div style={{ 
+                        height: '100px', 
+                        backgroundImage: `url("https://maps.googleapis.com/maps/api/staticmap?center=${getCoordsFromMessage(displayBody)}&zoom=14&size=280x100&sensor=false&markers=color:red%7C${getCoordsFromMessage(displayBody)}")`,
+                        backgroundColor: '#e2e8f0', 
+                        backgroundSize: 'cover', 
+                        backgroundPosition: 'center',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#475569',
+                        fontWeight: 'bold',
+                        fontSize: '0.8rem'
+                      }}>
+                        🗺️ Vista de Mapa {tenantName}
+                      </div>
+                      <div style={{ padding: '0.65rem', fontSize: '0.825rem', color: '#334155' }}>
+                        {displayBody}
+                      </div>
                     </div>
-                    <div style={{ padding: '0.65rem', fontSize: '0.825rem', color: '#334155' }}>
-                      {msg.body}
+                  ) : displayBody && displayBody.includes("👤 *Tarjeta de Contacto") ? (
+                    <div style={{ 
+                      border: '1px solid #cbd5e1', 
+                      borderRadius: '8px', 
+                      backgroundColor: '#f0fdf4',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                      marginTop: '0.25rem',
+                      width: '100%',
+                      minWidth: '240px',
+                      maxWidth: '280px',
+                      padding: '0.65rem',
+                      borderLeft: '4px solid #22c55e'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem', borderBottom: '1px solid #bbf7d0', paddingBottom: '0.25rem' }}>
+                        <span style={{ fontSize: '1.1rem' }}>👤</span>
+                        <strong style={{ color: '#166534', fontSize: '0.825rem' }}>Contacto de Ventas</strong>
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#1e293b' }}>
+                        {displayBody}
+                      </div>
                     </div>
-                  </div>
-                ) : msg.body && msg.body.includes("👤 *Tarjeta de Contacto") ? (
-                  <div style={{ 
-                    border: '1px solid #cbd5e1', 
-                    borderRadius: '8px', 
-                    backgroundColor: '#f0fdf4',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                    marginTop: '0.25rem',
-                    width: '100%',
-                    minWidth: '240px',
-                    maxWidth: '280px',
-                    padding: '0.65rem',
-                    borderLeft: '4px solid #22c55e'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem', borderBottom: '1px solid #bbf7d0', paddingBottom: '0.25rem' }}>
-                      <span style={{ fontSize: '1.1rem' }}>👤</span>
-                      <strong style={{ color: '#166534', fontSize: '0.825rem' }}>Contacto de Ventas</strong>
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: '#1e293b' }}>
-                      {msg.body}
-                    </div>
-                  </div>
-                ) : parseMediaMsg(msg.body).isMedia ? (
-                  (() => {
-                    const mediaInfo = parseMediaMsg(msg.body);
-                    const isDownloaded = !!downloadedMedia[msg.messageId || msg.id];
-                    const isLoading = !!loadingMedia[msg.messageId || msg.id];
-                    const mediaData = downloadedMedia[msg.messageId || msg.id];
+                  ) : parseMediaMsg(displayBody).isMedia ? (
+                    (() => {
+                      const mediaInfo = parseMediaMsg(displayBody);
+                      const isDownloaded = !!downloadedMedia[msg.messageId || msg.id];
+                      const isLoading = !!loadingMedia[msg.messageId || msg.id];
+                      const mediaData = downloadedMedia[msg.messageId || msg.id];
 
-                    let mediaEmoji = "📎";
-                    if (mediaInfo.type === "Imagen") mediaEmoji = "🖼️";
-                    else if (mediaInfo.type === "Video") mediaEmoji = "🎥";
-                    else if (mediaInfo.type === "Audio") mediaEmoji = "🎵";
+                      let mediaEmoji = "📎";
+                      if (mediaInfo.type === "Imagen") mediaEmoji = "🖼️";
+                      else if (mediaInfo.type === "Video") mediaEmoji = "🎥";
+                      else if (mediaInfo.type === "Audio") mediaEmoji = "🎵";
 
-                    return (
-                      <div 
-                        onClick={() => {
-                          if (!isLoading) {
-                            handleDownloadMedia(msg.messageId || msg.id, mediaInfo.type.toLowerCase());
-                          }
-                        }}
-                        style={{
-                          border: '1px solid #cbd5e1',
-                          borderRadius: '8px',
-                          overflow: 'hidden',
-                          backgroundColor: '#f8fafc',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                          marginTop: '0.25rem',
-                          width: '100%',
-                          minWidth: '240px',
-                          maxWidth: '280px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          cursor: isLoading ? 'default' : 'pointer',
-                          transition: 'all 0.2s ease-in-out'
-                        }}
-                        onMouseOver={evt => {
-                          if (!isLoading) {
-                            evt.currentTarget.style.borderColor = '#3b82f6';
-                            evt.currentTarget.style.boxShadow = '0 4px 12px rgba(59,130,246,0.15)';
-                            evt.currentTarget.style.transform = 'translateY(-1px)';
-                          }
-                        }}
-                        onMouseOut={evt => {
-                          evt.currentTarget.style.borderColor = '#cbd5e1';
-                          evt.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
-                          evt.currentTarget.style.transform = 'none';
-                        }}
-                      >
-                        <div style={{ padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: (mediaInfo.caption || isDownloaded) ? '1px solid #e2e8f0' : 'none' }}>
-                          <span style={{ fontSize: '1.75rem' }}>{mediaEmoji}</span>
-                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#334155' }}>
-                              {mediaInfo.type} de WhatsApp
-                            </span>
-                            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                              {isLoading ? '⏳ Descargando...' : isDownloaded ? '✅ Descargado (Click para guardar)' : '📥 Click para guardar en PC'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {isDownloaded && mediaData.mimetype.startsWith('image/') && (
-                          <div style={{ width: '100%', maxHeight: '200px', overflow: 'hidden', borderBottom: mediaInfo.caption ? '1px solid #e2e8f0' : 'none', display: 'flex', justifyContent: 'center', backgroundColor: '#f1f5f9' }}>
-                            <img 
-                              src={`data:${mediaData.mimetype};base64,${mediaData.data}`} 
-                              alt={mediaData.filename} 
-                              style={{ width: '100%', objectFit: 'contain', maxHeight: '200px' }} 
-                            />
-                          </div>
-                        )}
-
-                        {mediaInfo.caption && (
-                          <div style={{ padding: '0.5rem 0.75rem', fontSize: '0.8rem', color: '#334155', borderBottom: '1px solid #e2e8f0' }}>
-                            {mediaInfo.caption}
-                          </div>
-                        )}
-
-                        <div
+                      return (
+                        <div 
+                          onClick={() => {
+                            if (!isLoading) {
+                              handleDownloadMedia(msg.messageId || msg.id, mediaInfo.type.toLowerCase());
+                            }
+                          }}
                           style={{
-                            padding: '0.5rem',
-                            fontSize: '0.8rem',
-                            fontWeight: 'bold',
-                            color: isLoading ? '#94a3b8' : isDownloaded ? '#16a34a' : '#2563eb',
-                            textAlign: 'center',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '8px',
+                            overflow: 'hidden',
+                            backgroundColor: '#f8fafc',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                            marginTop: '0.25rem',
                             width: '100%',
+                            minWidth: '240px',
+                            maxWidth: '280px',
                             display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.25rem',
-                            backgroundColor: '#f1f5f9',
-                            userSelect: 'none'
+                            flexDirection: 'column',
+                            cursor: isLoading ? 'default' : 'pointer',
+                            transition: 'all 0.2s ease-in-out'
+                          }}
+                          onMouseOver={evt => {
+                            if (!isLoading) {
+                              evt.currentTarget.style.borderColor = '#3b82f6';
+                              evt.currentTarget.style.boxShadow = '0 4px 12px rgba(59,130,246,0.15)';
+                              evt.currentTarget.style.transform = 'translateY(-1px)';
+                            }
+                          }}
+                          onMouseOut={evt => {
+                            evt.currentTarget.style.borderColor = '#cbd5e1';
+                            evt.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                            evt.currentTarget.style.transform = 'none';
                           }}
                         >
-                          {isLoading ? (
-                            <span>⏳ Descargando...</span>
-                          ) : isDownloaded ? (
-                            <span>💾 Guardar de nuevo</span>
-                          ) : (
-                            <span>📥 Descargar y Guardar</span>
+                          <div style={{ padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: (mediaInfo.caption || isDownloaded) ? '1px solid #e2e8f0' : 'none' }}>
+                            <span style={{ fontSize: '1.75rem' }}>{mediaEmoji}</span>
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#334155' }}>
+                                {mediaInfo.type} de WhatsApp
+                              </span>
+                              <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                                {isLoading ? '⏳ Descargando...' : isDownloaded ? '✅ Descargado (Click para guardar)' : '📥 Click para guardar en PC'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {isDownloaded && mediaData.mimetype.startsWith('image/') && (
+                            <div style={{ width: '100%', maxHeight: '200px', overflow: 'hidden', borderBottom: mediaInfo.caption ? '1px solid #e2e8f0' : 'none', display: 'flex', justifyContent: 'center', backgroundColor: '#f1f5f9' }}>
+                              <img 
+                                src={`data:${mediaData.mimetype};base64,${mediaData.data}`} 
+                                alt={mediaData.filename} 
+                                style={{ width: '100%', objectFit: 'contain', maxHeight: '200px' }} 
+                              />
+                            </div>
                           )}
+
+                          {mediaInfo.caption && (
+                            <div style={{ padding: '0.5rem 0.75rem', fontSize: '0.8rem', color: '#334155', borderBottom: '1px solid #e2e8f0' }}>
+                              {mediaInfo.caption}
+                            </div>
+                          )}
+
+                          <div
+                            style={{
+                              padding: '0.5rem',
+                              fontSize: '0.8rem',
+                              fontWeight: 'bold',
+                              color: isLoading ? '#94a3b8' : isDownloaded ? '#16a34a' : '#2563eb',
+                              textAlign: 'center',
+                              width: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.25rem',
+                              backgroundColor: '#f1f5f9',
+                              userSelect: 'none'
+                            }}
+                          >
+                            {isLoading ? (
+                              <span>⏳ Descargando...</span>
+                            ) : isDownloaded ? (
+                              <span>💾 Guardar de nuevo</span>
+                            ) : (
+                              <span>📥 Descargar y Guardar</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })()
-                ) : (
-                  msg.body
-                )}
+                      );
+                    })()
+                  ) : (
+                    displayBody
+                  )}
+                </div>
+                <div style={{ fontSize: '0.65rem', color: '#94a3b8', textAlign: 'right', marginTop: '0.25rem', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.25rem' }}>
+                  {new Date(msg.timestamp).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  {msg.isFromMe && (
+                    <span style={{ 
+                      display: 'flex', 
+                      color: msg.status === 3 ? '#3b82f6' : '#94a3b8' 
+                    }}>
+                      {msg.status === 0 && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      )}
+                      {msg.status === 1 && (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      )}
+                      {(msg.status === 2 || msg.status === 3) && (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="18 6 7 17 2 12"/>
+                          <polyline points="22 6 11 17 9.5 15.5"/>
+                        </svg>
+                      )}
+                    </span>
+                  )}
+                </div>
               </div>
-              <div style={{ fontSize: '0.65rem', color: '#94a3b8', textAlign: 'right', marginTop: '0.25rem', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.25rem' }}>
-                {new Date(msg.timestamp).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                {msg.isFromMe && (
-                  <span style={{ 
-                    display: 'flex', 
-                    color: msg.status === 3 ? '#3b82f6' : '#94a3b8' 
-                  }}>
-                    {msg.status === 0 && (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    )}
-                    {msg.status === 1 && (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    )}
-                    {(msg.status === 2 || msg.status === 3) && (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="18 6 7 17 2 12"/>
-                        <polyline points="22 6 11 17 9.5 15.5"/>
-                      </svg>
-                    )}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
         <div ref={bottomRef} />
       </div>

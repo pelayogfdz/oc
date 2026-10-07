@@ -58,7 +58,8 @@ export default function GeneralAnalyticsClient({ initialData, initialBranchId }:
         filters.branchId, 
         filters.userId,
         filters.brandId,
-        filters.paymentMethod
+        filters.paymentMethod,
+        filters.restockable
       );
       setData(newData);
     } catch (error) {

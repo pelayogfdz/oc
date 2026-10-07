@@ -58,6 +58,7 @@ export async function POST(request: Request) {
         prospectId: prospect.id,
         phone: prospect.phone,
         message: message,
+        pendingMessageId: newMessage.id,
         media: data.media
       })
     }).catch(() => {});

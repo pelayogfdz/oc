@@ -326,6 +326,26 @@ const ProductTableUI = memo(function ProductTableUI({
                                {prod.name}
                              </Link>
                           )}
+                          {prod.isNonRestockable && (
+                            <span 
+                              title="Producto no resurtible (Descontinuado o liquidación)"
+                              style={{
+                                backgroundColor: '#fef2f2',
+                                color: '#dc2626',
+                                fontSize: '0.65rem',
+                                fontWeight: 'bold',
+                                padding: '0.12rem 0.4rem',
+                                borderRadius: '5px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '2px',
+                                lineHeight: '1',
+                                border: '1px solid #fecaca'
+                              }}
+                            >
+                              🚫 No Resurtible
+                            </span>
+                          )}
                           {(() => {
                             const meliMap = prod.externalMaps?.find((m: any) => m.platform === 'MERCADO_LIBRE');
                             if (!meliMap) return null;

@@ -21,6 +21,7 @@ export default function CostosPreciosClient({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBranchId, setSelectedBranchId] = useState(initialBranchId);
   const [selectedBrandId, setSelectedBrandId] = useState('ALL');
+  const [selectedRestockable, setSelectedRestockable] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [activePriceListKey, setActivePriceListKey] = useState('price');
   
@@ -38,6 +39,7 @@ export default function CostosPreciosClient({
   const handleFilterChange = async (filters: ReportFilterState) => {
     setSelectedBranchId(filters.branchId);
     setSelectedBrandId(filters.brandId || 'ALL');
+    setSelectedRestockable(filters.restockable || 'ALL');
   };
 
   // Pre-load / filter search on the server side with a debounce
@@ -45,7 +47,7 @@ export default function CostosPreciosClient({
     const delayDebounceFn = setTimeout(async () => {
       setLoading(true);
       try {
-        const newData = await getCostAndPricesData(selectedBranchId, selectedBrandId, searchTerm);
+        const newData = await getCostAndPricesData(selectedBranchId, selectedBrandId, searchTerm, selectedRestockable);
         setData(newData);
       } catch (e) {
         console.error(e);
@@ -54,7 +56,7 @@ export default function CostosPreciosClient({
     }, 400);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, selectedBranchId, selectedBrandId]);
+  }, [searchTerm, selectedBranchId, selectedBrandId, selectedRestockable]);
 
   // Combine standard and custom price lists
   const PRICE_LISTS = useMemo(() => {

@@ -243,21 +243,21 @@ export default function ComandaClient({
 
   const getCourseBadge = (course: string) => {
     switch (course) {
-      case 'STARTER': return { label: 'Entrada', bg: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300' };
-      case 'MAIN': return { label: 'Fuerte', bg: 'bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300' };
-      case 'DESSERT': return { label: 'Postre', bg: 'bg-pink-100 text-pink-700 dark:bg-pink-950/50 dark:text-pink-300' };
-      case 'DRINK': return { label: 'Bebida', bg: 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300' };
-      default: return { label: 'Servicio', bg: 'bg-slate-100 text-slate-700 dark:bg-slate-800' };
+      case 'STARTER': return { label: 'Entrada', bg: 'bg-emerald-100 text-emerald-700  ' };
+      case 'MAIN': return { label: 'Fuerte', bg: 'bg-blue-100 text-blue-700  ' };
+      case 'DESSERT': return { label: 'Postre', bg: 'bg-pink-100 text-pink-700  ' };
+      case 'DRINK': return { label: 'Bebida', bg: 'bg-amber-100 text-amber-700  ' };
+      default: return { label: 'Servicio', bg: 'bg-slate-100 text-slate-700 ' };
     }
   };
 
   const getItemStatusBadge = (status: string) => {
     switch (status) {
       case 'PENDING': return { label: 'Pendiente', color: 'text-slate-500 bg-slate-100' };
-      case 'SENT_TO_KITCHEN': return { label: 'En Cocina', color: 'text-amber-600 bg-amber-50 dark:bg-amber-950/40' };
-      case 'IN_PREP': return { label: 'Preparando', color: 'text-amber-600 bg-amber-50 dark:bg-amber-950/40' };
-      case 'READY': return { label: '¡Listo!', color: 'text-purple-600 bg-purple-50 dark:bg-purple-950/40 font-bold' };
-      case 'SERVED': return { label: 'Servido', color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40' };
+      case 'SENT_TO_KITCHEN': return { label: 'En Cocina', color: 'text-amber-600 bg-amber-50 ' };
+      case 'IN_PREP': return { label: 'Preparando', color: 'text-amber-600 bg-amber-50 ' };
+      case 'READY': return { label: '¡Listo!', color: 'text-purple-600 bg-purple-50  font-bold' };
+      case 'SERVED': return { label: 'Servido', color: 'text-emerald-600 bg-emerald-50 ' };
       case 'CANCELLED': return { label: 'Cancelado', color: 'text-rose-600 bg-rose-50 line-through' };
       default: return { label: status, color: 'text-slate-500 bg-slate-100' };
     }
@@ -266,21 +266,21 @@ export default function ComandaClient({
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] max-w-[1700px] mx-auto overflow-hidden">
       {/* Barra Superior */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between gap-4 shrink-0">
+      <div className="bg-white  border-b border-slate-200  px-4 py-3 flex items-center justify-between gap-4 shrink-0">
         <div className="flex items-center gap-3">
           <Link
             href="/restaurante/mesas"
-            className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-xl transition-all"
+            className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100   rounded-xl transition-all"
             title="Regresar a Mesas"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+              <h1 className="text-xl font-bold text-slate-900 ">
                 {table.name}
               </h1>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 font-semibold">
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700   font-semibold">
                 {table.area?.name}
               </span>
               <span className="text-xs text-slate-400 font-mono">
@@ -288,7 +288,7 @@ export default function ComandaClient({
               </span>
             </div>
             <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
-              <span>Mesero: <strong className="text-slate-700 dark:text-slate-300">{activeOrder?.waiter?.name}</strong></span>
+              <span>Mesero: <strong className="text-slate-700 ">{activeOrder?.waiter?.name}</strong></span>
               <span>•</span>
               <span className="flex items-center gap-1">
                 <Users className="w-3.5 h-3.5" />
@@ -300,7 +300,7 @@ export default function ComandaClient({
 
         {/* Asignación Rápida de Comensal y Tiempo */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          <div className="flex items-center gap-1 bg-slate-100  p-1 rounded-xl">
             <span className="text-xs font-semibold px-2 text-slate-500">Asignar a:</span>
             {Array.from({ length: Math.max(4, activeOrder?.dinersCount || 1) }, (_, i) => i + 1).map(num => (
               <button
@@ -309,7 +309,7 @@ export default function ComandaClient({
                 className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
                   selectedDiner === num
                     ? 'bg-purple-600 text-white shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    : 'text-slate-600  hover:bg-slate-200 '
                 }`}
               >
                 C{num}
@@ -317,7 +317,7 @@ export default function ComandaClient({
             ))}
           </div>
 
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          <div className="flex items-center gap-1 bg-slate-100  p-1 rounded-xl">
             {[
               { id: 'STARTER', label: 'Entrada' },
               { id: 'MAIN', label: 'Fuerte' },
@@ -329,8 +329,8 @@ export default function ComandaClient({
                 onClick={() => setSelectedCourse(c.id)}
                 className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
                   selectedCourse === c.id
-                    ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    ? 'bg-slate-900 text-white   shadow-sm'
+                    : 'text-slate-600  hover:bg-slate-200 '
                 }`}
               >
                 {c.label}
@@ -343,8 +343,8 @@ export default function ComandaClient({
       {/* Menú y Comanda */}
       <div className="flex-1 flex overflow-hidden">
         {/* LADO IZQUIERDO: Menú Táctil */}
-        <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-950 overflow-hidden border-r border-slate-200 dark:border-slate-800">
-          <div className="p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 space-y-3 shrink-0">
+        <div className="flex-1 flex flex-col bg-slate-50  overflow-hidden border-r border-slate-200 ">
+          <div className="p-4 bg-white  border-b border-slate-200  space-y-3 shrink-0">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               <input
@@ -352,7 +352,7 @@ export default function ComandaClient({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar platillo, bebida o código..."
-                className="w-full pl-10 pr-4 py-2 text-sm bg-slate-100 dark:bg-slate-800 border-0 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-slate-900 dark:text-white"
+                className="w-full pl-10 pr-4 py-2 text-sm bg-slate-100  border-0 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-slate-900 "
               />
             </div>
 
@@ -362,7 +362,7 @@ export default function ComandaClient({
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                   selectedCategory === 'ALL'
                     ? 'bg-purple-600 text-white shadow-sm'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                    : 'bg-slate-100  text-slate-600  hover:bg-slate-200'
                 }`}
               >
                 Todos ({products.length})
@@ -374,7 +374,7 @@ export default function ComandaClient({
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                     selectedCategory === cat
                       ? 'bg-purple-600 text-white shadow-sm'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                      : 'bg-slate-100  text-slate-600  hover:bg-slate-200'
                   }`}
                 >
                   {cat}
@@ -390,15 +390,15 @@ export default function ComandaClient({
                 return (
                   <div
                     key={product.id}
-                    className="group relative bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-blue-500 hover:shadow-md transition-all flex flex-col justify-between"
+                    className="group relative bg-white  p-3.5 rounded-2xl border border-slate-200  hover:border-blue-500 hover:shadow-md transition-all flex flex-col justify-between"
                   >
                     <div>
                       <div className="flex items-start justify-between gap-1 mb-1">
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug">
+                        <h3 className="text-sm font-bold text-slate-900  line-clamp-2 leading-snug">
                           {product.name}
                         </h3>
                         {hasRecipe && (
-                          <span className="shrink-0 p-1 rounded-md bg-amber-50 text-amber-600 dark:bg-amber-950/40 text-[10px] font-bold" title="Tiene receta BOM">
+                          <span className="shrink-0 p-1 rounded-md bg-amber-50 text-amber-600  text-[10px] font-bold" title="Tiene receta BOM">
                             REC
                           </span>
                         )}
@@ -408,15 +408,15 @@ export default function ComandaClient({
                       </p>
                     </div>
 
-                    <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-                      <span className="text-base font-extrabold text-purple-600 dark:text-blue-400">
+                    <div className="mt-2 pt-2 border-t border-slate-100  flex items-center justify-between gap-2">
+                      <span className="text-base font-extrabold text-purple-600 ">
                         ${product.price.toFixed(2)}
                       </span>
 
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => handleOpenCustomize(product)}
-                          className="p-1.5 text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 rounded-lg transition-all"
+                          className="p-1.5 text-xs text-slate-600 bg-slate-100 hover:bg-slate-200   rounded-lg transition-all"
                           title="Personalizar / Modificadores"
                         >
                           <MessageSquarePlus className="w-4 h-4" />
@@ -438,10 +438,10 @@ export default function ComandaClient({
         </div>
 
         {/* LADO DERECHO: Comanda Activa */}
-        <div className="w-full max-w-md bg-white dark:bg-slate-900 flex flex-col shrink-0 shadow-lg">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div className="w-full max-w-md bg-white  flex flex-col shrink-0 shadow-lg">
+          <div className="p-4 border-b border-slate-200  flex items-center justify-between">
             <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <h2 className="text-base font-bold text-slate-900  flex items-center gap-2">
                 <Receipt className="w-4 h-4 text-purple-600" />
                 Comanda de Mesa
               </h2>
@@ -449,7 +449,7 @@ export default function ComandaClient({
                 {existingItems.length} enviados • {stagedItems.length} por enviar
               </span>
             </div>
-            <span className="text-lg font-extrabold text-slate-900 dark:text-white">
+            <span className="text-lg font-extrabold text-slate-900 ">
               ${grandTotal.toFixed(2)}
             </span>
           </div>
@@ -473,22 +473,22 @@ export default function ComandaClient({
                         key={item.id}
                         className={`p-3 rounded-xl border transition-all ${
                           item.status === 'READY'
-                            ? 'bg-purple-50/60 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800'
+                            ? 'bg-purple-50/60  border-purple-200 '
                             : item.status === 'CANCELLED'
-                            ? 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 opacity-60'
-                            : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
+                            ? 'bg-slate-50  border-slate-200 opacity-60'
+                            : 'bg-slate-50  border-slate-200 '
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-xs font-bold text-purple-600 bg-purple-50 dark:bg-blue-950/50 px-1.5 py-0.5 rounded">
+                              <span className="text-xs font-bold text-purple-600 bg-purple-50  px-1.5 py-0.5 rounded">
                                 C{item.dinerNumber}
                               </span>
                               <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${courseBadge.bg}`}>
                                 {courseBadge.label}
                               </span>
-                              <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                              <span className="text-sm font-bold text-slate-800 ">
                                 {item.quantity}x {item.product.name}
                               </span>
                             </div>
@@ -496,7 +496,7 @@ export default function ComandaClient({
                             {item.modifiers && item.modifiers.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {item.modifiers.map((m: any, idx: number) => (
-                                  <span key={idx} className="text-[11px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded">
+                                  <span key={idx} className="text-[11px] text-amber-600  bg-amber-50  px-1.5 py-0.5 rounded">
                                     +{m.name} (${m.extraPrice})
                                   </span>
                                 ))}
@@ -511,7 +511,7 @@ export default function ComandaClient({
                           </div>
 
                           <div className="text-right shrink-0">
-                            <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                            <span className="text-xs font-bold text-slate-900  block">
                               ${(item.unitPrice * item.quantity).toFixed(2)}
                             </span>
                             <span className={`text-[10px] px-2 py-0.5 rounded-full inline-block mt-1 font-semibold ${statusBadge.color}`}>
@@ -521,7 +521,7 @@ export default function ComandaClient({
                         </div>
 
                         {item.status !== 'CANCELLED' && item.status !== 'SERVED' && (
-                          <div className="mt-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-end">
+                          <div className="mt-2 pt-2 border-t border-slate-200/60  flex justify-end">
                             <button
                               onClick={() => handleCancelSavedItem(item.id)}
                               className="text-[11px] text-rose-500 hover:text-rose-700 font-medium flex items-center gap-1"
@@ -540,8 +540,8 @@ export default function ComandaClient({
 
             {/* ÍTEMS POR ENVIAR */}
             {stagedItems.length > 0 && (
-              <div className="space-y-2 pt-2 border-t border-dashed border-slate-200 dark:border-slate-800">
-                <div className="flex items-center justify-between text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+              <div className="space-y-2 pt-2 border-t border-dashed border-slate-200 ">
+                <div className="flex items-center justify-between text-xs font-bold text-amber-600  uppercase tracking-wider">
                   <span className="flex items-center gap-1">
                     <Sparkles className="w-3.5 h-3.5" />
                     Nuevos por Enviar ({stagedItems.length})
@@ -556,18 +556,18 @@ export default function ComandaClient({
                     return (
                       <div
                         key={item.id}
-                        className="p-3 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/60 rounded-xl space-y-2"
+                        className="p-3 bg-amber-50/50  border border-amber-200  rounded-xl space-y-2"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-xs font-bold text-purple-600 bg-blue-100 dark:bg-blue-950/50 px-1.5 py-0.5 rounded">
+                              <span className="text-xs font-bold text-purple-600 bg-blue-100  px-1.5 py-0.5 rounded">
                                 C{item.dinerNumber}
                               </span>
                               <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${courseBadge.bg}`}>
                                 {courseBadge.label}
                               </span>
-                              <span className="text-sm font-bold text-slate-900 dark:text-white">
+                              <span className="text-sm font-bold text-slate-900 ">
                                 {item.productName}
                               </span>
                             </div>
@@ -579,7 +579,7 @@ export default function ComandaClient({
                             {item.modifiers.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {item.modifiers.map((m, idx) => (
-                                  <span key={idx} className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded">
+                                  <span key={idx} className="text-[11px] text-amber-700  bg-amber-100  px-1.5 py-0.5 rounded">
                                     +{m.name} (${m.extraPrice})
                                   </span>
                                 ))}
@@ -587,18 +587,18 @@ export default function ComandaClient({
                             )}
 
                             {item.notes && (
-                              <p className="text-xs text-slate-600 dark:text-slate-400 italic mt-0.5">
+                              <p className="text-xs text-slate-600  italic mt-0.5">
                                 💬 {item.notes}
                               </p>
                             )}
                           </div>
 
-                          <span className="text-xs font-bold text-slate-900 dark:text-white">
+                          <span className="text-xs font-bold text-slate-900 ">
                             ${(item.unitPrice * item.quantity).toFixed(2)}
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between pt-1 border-t border-amber-100 dark:border-amber-900/40">
+                        <div className="flex items-center justify-between pt-1 border-t border-amber-100 ">
                           <button
                             onClick={() => handleRemoveStagedItem(item.id)}
                             className="text-rose-500 hover:text-rose-700 text-xs flex items-center gap-1"
@@ -610,14 +610,14 @@ export default function ComandaClient({
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handleUpdateStagedQuantity(item.id, -1)}
-                              className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xs"
+                              className="w-6 h-6 rounded-lg bg-white  text-slate-700  border border-slate-200  flex items-center justify-center font-bold text-xs"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
                             <span className="text-xs font-bold px-1">{item.quantity}</span>
                             <button
                               onClick={() => handleUpdateStagedQuantity(item.id, 1)}
-                              className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xs"
+                              className="w-6 h-6 rounded-lg bg-white  text-slate-700  border border-slate-200  flex items-center justify-center font-bold text-xs"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
@@ -639,10 +639,10 @@ export default function ComandaClient({
             )}
           </div>
 
-          <div className="p-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 space-y-3">
+          <div className="p-4 bg-slate-50  border-t border-slate-200  space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-600 dark:text-slate-400">Total Acumulado:</span>
-              <span className="text-xl font-black text-slate-900 dark:text-white">
+              <span className="text-slate-600 ">Total Acumulado:</span>
+              <span className="text-xl font-black text-slate-900 ">
                 ${grandTotal.toFixed(2)}
               </span>
             </div>
@@ -661,7 +661,7 @@ export default function ComandaClient({
                 <button
                   onClick={handleRequestBillClick}
                   disabled={isRequestingBill || existingItems.length === 0}
-                  className="py-3 px-3 text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 rounded-xl transition-all flex items-center justify-center gap-1.5"
+                  className="py-3 px-3 text-xs font-bold text-slate-700  bg-slate-200  hover:bg-slate-300 rounded-xl transition-all flex items-center justify-center gap-1.5"
                 >
                   <Receipt className="w-4 h-4" />
                   Pre-cuenta
@@ -683,14 +683,14 @@ export default function ComandaClient({
       {/* Modal Personalizar Platillo */}
       {customizingProduct && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white  rounded-3xl max-w-lg w-full p-6 border border-slate-200  shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="flex items-start justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-start justify-between pb-3 border-b border-slate-100 ">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 bg-purple-50 dark:bg-purple-950/50 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 bg-purple-50  px-2 py-0.5 rounded-md border border-purple-200 ">
                   Opciones de Platillo
                 </span>
-                <h3 className="text-lg font-black text-slate-900 dark:text-white mt-1">
+                <h3 className="text-lg font-black text-slate-900  mt-1">
                   {customizingProduct.name}
                 </h3>
                 <p className="text-xs text-slate-500 font-semibold">
@@ -699,7 +699,7 @@ export default function ComandaClient({
               </div>
               <button
                 onClick={() => setCustomizingProduct(null)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg font-bold p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                className="text-slate-400 hover:text-slate-600  text-lg font-bold p-1 rounded-lg hover:bg-slate-100  transition-all"
               >
                 ✕
               </button>
@@ -709,7 +709,7 @@ export default function ComandaClient({
               {/* Variante / Tamaño si existen */}
               {customizingProduct.variants && customizingProduct.variants.length > 0 && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-slate-700  uppercase tracking-wider mb-2">
                     Variante / Tamaño
                   </label>
                   <div className="grid grid-cols-2 gap-2">
@@ -721,7 +721,7 @@ export default function ComandaClient({
                         className={`p-2.5 text-xs font-bold rounded-xl border text-left transition-all ${
                           customVariantId === v.id
                             ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-500/20'
-                            : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                            : 'bg-slate-50  text-slate-700  border-slate-200  hover:bg-slate-100'
                         }`}
                       >
                         {v.attribute} {v.price ? `(${v.price.toFixed(2)})` : ''}
@@ -734,7 +734,7 @@ export default function ComandaClient({
               {/* 1. TÉRMINO DE LA CARNE */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <label className="text-xs font-bold text-slate-700  uppercase tracking-wider flex items-center gap-1.5">
                     🥩 Término de la Carne
                   </label>
                   {selectedMeatDoneness && (
@@ -758,11 +758,11 @@ export default function ComandaClient({
                         className={`p-2.5 text-xs font-bold rounded-xl border flex items-center justify-between transition-all ${
                           isSelected
                             ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-500/20 ring-2 ring-purple-400/40'
-                            : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-750'
+                            : 'bg-slate-50  text-slate-700  border-slate-200  hover:bg-slate-100 '
                         }`}
                       >
                         <span>{opt.label}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-200  text-slate-600 '}`}>
                           {opt.badge}
                         </span>
                       </button>
@@ -773,7 +773,7 @@ export default function ComandaClient({
 
               {/* 2. ANOTACIONES ESPECIALES */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-700  uppercase tracking-wider mb-1.5">
                   📝 Anotaciones Especiales para Cocina
                 </label>
                 <textarea
@@ -781,28 +781,28 @@ export default function ComandaClient({
                   value={customNotes}
                   onChange={(e) => setCustomNotes(e.target.value)}
                   placeholder="Ej. Sin cebolla, salsa aparte, alérgico a mariscos, bien dorado..."
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-slate-900 dark:text-white placeholder:text-slate-400 resize-none"
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50  border border-slate-200  rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-slate-900  placeholder:text-slate-400 resize-none"
                 />
               </div>
 
               {/* 3. CANTIDAD */}
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100 ">
+                <span className="text-xs font-bold text-slate-700  uppercase tracking-wider">
                   Cantidad:
                 </span>
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={() => setCustomQuantity(q => Math.max(1, q - 1))}
-                    className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold transition-all"
+                    className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200   text-slate-700  flex items-center justify-center font-bold transition-all"
                   >
                     -
                   </button>
-                  <span className="text-base font-bold px-2 text-slate-900 dark:text-white">{customQuantity}</span>
+                  <span className="text-base font-bold px-2 text-slate-900 ">{customQuantity}</span>
                   <button
                     type="button"
                     onClick={() => setCustomQuantity(q => q + 1)}
-                    className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold transition-all"
+                    className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200   text-slate-700  flex items-center justify-center font-bold transition-all"
                   >
                     +
                   </button>
@@ -811,11 +811,11 @@ export default function ComandaClient({
             </div>
 
             {/* Modal Actions */}
-            <div className="pt-2 flex items-center gap-3 border-t border-slate-100 dark:border-slate-800">
+            <div className="pt-2 flex items-center gap-3 border-t border-slate-100 ">
               <button
                 type="button"
                 onClick={() => setCustomizingProduct(null)}
-                className="flex-1 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all"
+                className="flex-1 py-2.5 text-xs font-bold text-slate-600  bg-slate-100  hover:bg-slate-200  rounded-xl transition-all"
               >
                 Cancelar
               </button>

@@ -18,12 +18,14 @@ export default function ReposicionMinimosClient({
     stock: number;
     minStock: number;
     cost: number;
+    isNonRestockable?: boolean;
     branch: { id: string; name: string };
     supplier: { id: string; name: string } | null;
   }[];
 }) {
   const [search, setSearch] = useState('');
   const [selectedBranchId, setSelectedBranchId] = useState('ALL');
+  const [selectedRestockable, setSelectedRestockable] = useState('ALL');
 
   // Filter products based on search and branch selection
   const filteredProducts = useMemo(() => {
@@ -32,6 +34,10 @@ export default function ReposicionMinimosClient({
       if (selectedBranchId !== 'ALL' && p.branch.id !== selectedBranchId) {
         return false;
       }
+
+      // Restockable filter
+      if (selectedRestockable === 'RESTOCKABLE' && p.isNonRestockable) return false;
+      if (selectedRestockable === 'NON_RESTOCKABLE' && !p.isNonRestockable) return false;
 
       // Search filter
       if (search.trim()) {
@@ -47,7 +53,7 @@ export default function ReposicionMinimosClient({
 
       return true;
     });
-  }, [products, search, selectedBranchId]);
+  }, [products, search, selectedBranchId, selectedRestockable]);
 
   // Compute KPI metrics
   const kpis = useMemo(() => {

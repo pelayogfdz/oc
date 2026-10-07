@@ -27,7 +27,8 @@ export default function VentasDesgloseClient({ initialData, initialBranchId }: {
         filters.userId,
         filters.brandId,
         filters.paymentMethod,
-        filters.invoiced
+        filters.invoiced,
+        filters.restockable
       );
       setData(newData);
     } catch (e) {

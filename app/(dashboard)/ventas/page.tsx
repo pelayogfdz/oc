@@ -123,6 +123,30 @@ export default async function VentasPage(props: { searchParams: Promise<any> }) 
     where.OR = orConditions;
   }
 
+  // Product filter (name, SKU, barcode, or ID)
+  const productTerm = (params?.product || params?.productId || '').trim();
+  if (productTerm !== '') {
+    where.items = {
+      some: {
+        OR: [
+          { productId: productTerm },
+          { productName: { contains: productTerm, mode: 'insensitive' } },
+          { productSku: { contains: productTerm, mode: 'insensitive' } },
+          { productBarcode: { contains: productTerm, mode: 'insensitive' } },
+          {
+            product: {
+              OR: [
+                { name: { contains: productTerm, mode: 'insensitive' } },
+                { sku: { contains: productTerm, mode: 'insensitive' } },
+                { barcode: { contains: productTerm, mode: 'insensitive' } }
+              ]
+            }
+          }
+        ]
+      }
+    };
+  }
+
   // Date range filter (ONLY applied if startDate or endDate are provided in searchParams)
   if (params?.startDate || params?.endDate) {
     where.createdAt = {};
@@ -190,7 +214,17 @@ export default async function VentasPage(props: { searchParams: Promise<any> }) 
     } : null,
     items: s.items.map(item => ({
       id: item.id,
-      quantity: item.quantity
+      quantity: item.quantity,
+      price: item.price,
+      productName: item.productName || item.product?.name || '',
+      productSku: item.productSku || item.product?.sku || '',
+      productBarcode: item.productBarcode || item.product?.barcode || '',
+      product: item.product ? {
+        id: item.product.id,
+        name: item.product.name,
+        sku: item.product.sku,
+        barcode: item.product.barcode
+      } : null
     }))
   }));
 

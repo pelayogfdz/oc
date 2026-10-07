@@ -12,7 +12,7 @@ console.log('1. Packing core source files and public assets...');
 if (fs.existsSync(tarPath)) fs.unlinkSync(tarPath);
 
 // Exclude heavy dev files and product images (already stored on Hetzner persistent volume)
-execSync('tar --exclude="prisma/dev.db" --exclude="public/img/products" --exclude="node_modules" --exclude=".next" --exclude=".git" --exclude="*.log" --exclude="*.tar.gz" --exclude="*.bundle" -czf fast_update.tar.gz app lib prisma public scripts whatsapp-service package.json package-lock.json next.config.ts tsconfig.json docker-compose.yml Dockerfile middleware.ts run_build_safely.js', { cwd: rootDir });
+execSync('tar --exclude="prisma/dev.db" --exclude="public/img/products" --exclude="node_modules" --exclude=".next" --exclude=".git" --exclude="*.log" --exclude="*.tar.gz" --exclude="*.bundle" -czf fast_update.tar.gz app components lib prisma public scripts whatsapp-service package.json package-lock.json next.config.ts tsconfig.json docker-compose.yml Dockerfile middleware.ts run_build_safely.js', { cwd: rootDir });
 
 const archiveSizeMB = (fs.statSync(tarPath).size / 1024 / 1024).toFixed(2);
 console.log(`Archive created. Size: ${archiveSizeMB} MB`);

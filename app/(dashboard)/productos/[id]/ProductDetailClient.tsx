@@ -101,6 +101,7 @@ export function ProductDetailClient({
           productParams.isProductionInput = formData.get('isProductionInput') === 'true';
           productParams.isRestaurantAvailable = formData.get('isRestaurantAvailable') === 'true';
           productParams.isActive = formData.get('isActive') !== 'false';
+          productParams.isNonRestockable = formData.get('isNonRestockable') === 'true';
           
           await pushOfflineProduct(productParams);
           window.location.href = '/productos';

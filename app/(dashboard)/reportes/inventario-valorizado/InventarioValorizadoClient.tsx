@@ -14,11 +14,13 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBranchId, setSelectedBranchId] = useState(initialBranchId);
   const [selectedBrandId, setSelectedBrandId] = useState('ALL');
+  const [selectedRestockable, setSelectedRestockable] = useState('ALL');
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const handleFilterChange = async (filters: ReportFilterState) => {
     setSelectedBranchId(filters.branchId);
     setSelectedBrandId(filters.brandId || 'ALL');
+    setSelectedRestockable(filters.restockable || 'ALL');
   };
 
   // Pre-load / filter search on the server side with a debounce
@@ -26,7 +28,7 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
     const delayDebounceFn = setTimeout(async () => {
       setLoading(true);
       try {
-        const newData = await getInventoryValuationData(selectedBranchId, selectedBrandId, searchTerm);
+        const newData = await getInventoryValuationData(selectedBranchId, selectedBrandId, searchTerm, selectedRestockable);
         setData(newData);
       } catch (e) {
         console.error(e);
@@ -35,7 +37,7 @@ export default function InventarioValorizadoClient({ initialData, initialBranchI
     }, 400);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, selectedBranchId, selectedBrandId]);
+  }, [searchTerm, selectedBranchId, selectedBrandId, selectedRestockable]);
 
   const filteredInventory = data.inventory.filter((i: any) => 
     i.name.toLowerCase().includes(searchTerm.toLowerCase()) || 

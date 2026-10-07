@@ -142,6 +142,7 @@ export default function RestockClient({
   };
   const [category, setCategory] = useState('ALL');
   const [brand, setBrand] = useState('ALL');
+  const [restockable, setRestockable] = useState('ALL');
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [coverageDays, setCoverageDays] = useState(30);
@@ -199,13 +200,13 @@ export default function RestockClient({
 
     setStartDateStr(start.toISOString().split('T')[0]);
     setEndDateStr(end.toISOString().split('T')[0]);
-    triggerUpdate(start, end, branchId, category, brand);
+    triggerUpdate(start, end, branchId, category, brand, restockable);
   };
 
-  const triggerUpdate = async (start: Date, end: Date, bId: string, cat: string, brnd: string) => {
+  const triggerUpdate = async (start: Date, end: Date, bId: string, cat: string, brnd: string, restk: string = restockable) => {
     setIsLoading(true);
     try {
-      const res = await getRestockReportData(start, end, bId, cat, brnd);
+      const res = await getRestockReportData(start, end, bId, cat, brnd, restk);
       setData(res || []);
       setCurrentPage(1);
     } catch (error) {
@@ -218,7 +219,7 @@ export default function RestockClient({
   const handleApplyFilters = () => {
     const start = new Date(startDateStr + 'T00:00:00');
     const end = new Date(endDateStr + 'T23:59:59');
-    triggerUpdate(start, end, branchId, category, brand);
+    triggerUpdate(start, end, branchId, category, brand, restockable);
   };
 
   // Format currency

@@ -189,7 +189,7 @@ export default function RecetasClient({
           <div className="flex items-center gap-2">
             <Link
               href="/procesos/formulas"
-              className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all"
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700  bg-slate-100  hover:bg-slate-200  rounded-xl transition-all"
             >
               <Boxes className="w-4 h-4 text-purple-600" />
               <span>Fórmulas en Procesos</span>
@@ -208,33 +208,33 @@ export default function RecetasClient({
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 rounded-xl">
+        <div className="p-4 bg-white  rounded-2xl border border-slate-200  shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-purple-50  text-purple-600  rounded-xl">
             <BookOpen className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Recetas Configuradas</p>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white mt-0.5">{recipes.length}</p>
+            <p className="text-xs font-semibold text-slate-500 ">Recetas Configuradas</p>
+            <p className="text-2xl font-bold text-slate-900  mt-0.5">{recipes.length}</p>
           </div>
         </div>
 
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-xl">
+        <div className="p-4 bg-white  rounded-2xl border border-slate-200  shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-emerald-50  text-emerald-600  rounded-xl">
             <PackageCheck className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Insumos Disponibles</p>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white mt-0.5">{rawIngredients.length}</p>
+            <p className="text-xs font-semibold text-slate-500 ">Insumos Disponibles</p>
+            <p className="text-2xl font-bold text-slate-900  mt-0.5">{rawIngredients.length}</p>
           </div>
         </div>
 
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-xl">
+        <div className="p-4 bg-white  rounded-2xl border border-slate-200  shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-blue-50  text-blue-600  rounded-xl">
             <TrendingUp className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Platillos / Menú</p>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white mt-0.5">{dishProducts.length}</p>
+            <p className="text-xs font-semibold text-slate-500 ">Platillos / Menú</p>
+            <p className="text-2xl font-bold text-slate-900  mt-0.5">{dishProducts.length}</p>
           </div>
         </div>
       </div>
@@ -247,15 +247,15 @@ export default function RecetasClient({
           placeholder="Buscar receta por nombre, platillo o categoría..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:text-white shadow-sm"
+          className="w-full pl-9 pr-4 py-2.5 text-sm bg-white  border border-slate-200  rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500  shadow-sm"
         />
       </div>
 
       {/* Lista / Grid de Recetas */}
       {filteredRecipes.length === 0 ? (
-        <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-          <ChefHat className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-          <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">No hay recetas registradas</h3>
+        <div className="p-12 text-center bg-white  rounded-2xl border border-slate-200 ">
+          <ChefHat className="w-12 h-12 text-slate-300  mx-auto mb-3" />
+          <h3 className="text-base font-bold text-slate-800 ">No hay recetas registradas</h3>
           <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
             Crea fichas técnicas para tus platillos y bebidas para controlar el costo de insumos y descargar stock automáticamente.
           </p>
@@ -280,29 +280,29 @@ export default function RecetasClient({
             return (
               <div
                 key={recipe.id}
-                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm flex flex-col justify-between hover:border-purple-300 dark:hover:border-purple-800 transition-all"
+                className="bg-white  rounded-2xl border border-slate-200  p-5 shadow-sm flex flex-col justify-between hover:border-purple-300  transition-all"
               >
                 <div>
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400 border border-purple-200 dark:border-purple-800">
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-600   border border-purple-200 ">
                         {recipe.product.category || 'Platillo'}
                       </span>
-                      <h3 className="text-base font-bold text-slate-900 dark:text-white mt-1.5">{recipe.name}</h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Producto: {recipe.product.name}</p>
+                      <h3 className="text-base font-bold text-slate-900  mt-1.5">{recipe.name}</h3>
+                      <p className="text-xs text-slate-500 ">Producto: {recipe.product.name}</p>
                     </div>
 
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => handleOpenEdit(recipe)}
-                        className="p-1.5 text-slate-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 rounded-lg transition-all"
+                        className="p-1.5 text-slate-500 hover:text-purple-600 hover:bg-purple-50  rounded-lg transition-all"
                         title="Editar Receta"
                       >
                         <Edit3 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteRecipe(recipe.id, recipe.name)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-all"
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50  rounded-lg transition-all"
                         title="Eliminar Receta"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -311,18 +311,18 @@ export default function RecetasClient({
                   </div>
 
                   {/* Resumen Financiero de la Receta */}
-                  <div className="grid grid-cols-3 gap-2 mt-4 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center text-xs">
+                  <div className="grid grid-cols-3 gap-2 mt-4 p-3 bg-slate-50  rounded-xl text-center text-xs">
                     <div>
-                      <span className="text-slate-500 dark:text-slate-400 block text-[10px]">Costo Insumos</span>
-                      <strong className="text-slate-800 dark:text-slate-200 text-sm">${recipeCost.toFixed(2)}</strong>
+                      <span className="text-slate-500  block text-[10px]">Costo Insumos</span>
+                      <strong className="text-slate-800  text-sm">${recipeCost.toFixed(2)}</strong>
                     </div>
                     <div>
-                      <span className="text-slate-500 dark:text-slate-400 block text-[10px]">Precio Venta</span>
-                      <strong className="text-blue-600 dark:text-blue-400 text-sm">${sellPrice.toFixed(2)}</strong>
+                      <span className="text-slate-500  block text-[10px]">Precio Venta</span>
+                      <strong className="text-blue-600  text-sm">${sellPrice.toFixed(2)}</strong>
                     </div>
                     <div>
-                      <span className="text-slate-500 dark:text-slate-400 block text-[10px]">Margen</span>
-                      <strong className={`text-sm ${marginPct >= 60 ? 'text-emerald-600 dark:text-emerald-400' : marginPct >= 30 ? 'text-amber-600' : 'text-rose-600'}`}>
+                      <span className="text-slate-500  block text-[10px]">Margen</span>
+                      <strong className={`text-sm ${marginPct >= 60 ? 'text-emerald-600 ' : marginPct >= 30 ? 'text-amber-600' : 'text-rose-600'}`}>
                         {marginPct.toFixed(1)}%
                       </strong>
                     </div>
@@ -330,20 +330,20 @@ export default function RecetasClient({
 
                   {/* Insumos */}
                   <div className="mt-4 space-y-1.5">
-                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                    <span className="text-xs font-semibold text-slate-700  block">
                       Insumos ({recipe.ingredients.length}):
                     </span>
                     <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
                       {recipe.ingredients.map(ing => (
                         <div 
                           key={ing.id}
-                          className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800"
+                          className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-slate-50  border border-slate-100 "
                         >
                           <div className="flex items-center gap-1.5 truncate">
                             <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
-                            <span className="text-slate-700 dark:text-slate-300 truncate">{ing.product.name}</span>
+                            <span className="text-slate-700  truncate">{ing.product.name}</span>
                           </div>
-                          <span className="font-semibold text-slate-900 dark:text-slate-100 shrink-0 ml-2">
+                          <span className="font-semibold text-slate-900  shrink-0 ml-2">
                             {ing.quantity} {ing.product.unit || 'pza'}
                           </span>
                         </div>
@@ -353,8 +353,8 @@ export default function RecetasClient({
                 </div>
 
                 {recipe.instructions && (
-                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
-                    <strong className="text-slate-700 dark:text-slate-300">Preparación:</strong> {recipe.instructions}
+                  <div className="mt-4 pt-3 border-t border-slate-100  text-xs text-slate-500  line-clamp-2">
+                    <strong className="text-slate-700 ">Preparación:</strong> {recipe.instructions}
                   </div>
                 )}
               </div>
@@ -366,18 +366,18 @@ export default function RecetasClient({
       {/* Modal Crear / Editar Receta */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 max-w-2xl w-full shadow-2xl animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+          <div className="bg-white  rounded-2xl border border-slate-200  p-6 max-w-2xl w-full shadow-2xl animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold text-slate-900 ">
               {editingRecipeId ? 'Editar Receta' : 'Nueva Receta de Platillo / Bebida'}
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500  mt-0.5">
               Define los insumos e ingredientes exactos que componen este platillo
             </p>
 
             <form onSubmit={handleSaveRecipeSubmit} className="mt-5 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700  mb-1">
                     Platillo / Bebida del Menú
                   </label>
                   <select
@@ -388,7 +388,7 @@ export default function RecetasClient({
                       if (prod && !recipeName) setRecipeName(`Receta ${prod.name}`);
                     }}
                     required
-                    className="w-full px-3.5 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:text-white"
+                    className="w-full px-3.5 py-2 text-sm bg-slate-50  border border-slate-200  rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 "
                   >
                     <option value="">Selecciona un platillo...</option>
                     {dishProducts.map(p => (
@@ -400,7 +400,7 @@ export default function RecetasClient({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700  mb-1">
                     Nombre de la Receta / Ficha
                   </label>
                   <input
@@ -409,7 +409,7 @@ export default function RecetasClient({
                     placeholder="Ej. Hamburguesa Clásica con Queso"
                     value={recipeName}
                     onChange={(e) => setRecipeName(e.target.value)}
-                    className="w-full px-3.5 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:text-white"
+                    className="w-full px-3.5 py-2 text-sm bg-slate-50  border border-slate-200  rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 "
                   />
                 </div>
               </div>
@@ -417,14 +417,14 @@ export default function RecetasClient({
               {/* Insumos de la Receta */}
               <div className="space-y-3 pt-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <label className="text-xs font-bold text-slate-800  flex items-center gap-1.5">
                     <Boxes className="w-4 h-4 text-purple-500" />
                     Insumos e Ingredientes
                   </label>
                   <button
                     type="button"
                     onClick={handleAddIngredientRow}
-                    className="flex items-center gap-1 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 bg-purple-50 dark:bg-purple-950/40 px-3 py-1.5 rounded-lg transition-all"
+                    className="flex items-center gap-1 text-xs font-semibold text-purple-600  hover:text-purple-700 bg-purple-50  px-3 py-1.5 rounded-lg transition-all"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Agregar Insumo
@@ -432,7 +432,7 @@ export default function RecetasClient({
                 </div>
 
                 {stagedIngredients.length === 0 ? (
-                  <div className="p-4 text-center bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 text-xs text-slate-500">
+                  <div className="p-4 text-center bg-slate-50  rounded-xl border border-dashed border-slate-200  text-xs text-slate-500">
                     Haz clic en "+ Agregar Insumo" para añadir los ingredientes necesarios.
                   </div>
                 ) : (
@@ -445,13 +445,13 @@ export default function RecetasClient({
                       return (
                         <div 
                           key={idx}
-                          className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700"
+                          className="flex items-center gap-2 p-2 bg-slate-50  rounded-xl border border-slate-200 "
                         >
                           <div className="flex-1">
                             <select
                               value={item.productId}
                               onChange={(e) => handleUpdateIngredient(idx, 'productId', e.target.value)}
-                              className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 dark:text-white"
+                              className="w-full px-2.5 py-1.5 text-xs bg-white  border border-slate-200  rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 "
                             >
                               {rawIngredients.map(ing => (
                                 <option key={ing.id} value={ing.id}>
@@ -469,7 +469,7 @@ export default function RecetasClient({
                               placeholder="Cant."
                               value={item.quantity}
                               onChange={(e) => handleUpdateIngredient(idx, 'quantity', parseFloat(e.target.value) || 0)}
-                              className="w-full px-2.5 py-1.5 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 dark:text-white text-right"
+                              className="w-full px-2.5 py-1.5 text-xs font-semibold bg-white  border border-slate-200  rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500  text-right"
                             />
                           </div>
 
@@ -477,7 +477,7 @@ export default function RecetasClient({
                             {selectedIng?.unit || 'pza'}
                           </span>
 
-                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 w-20 text-right">
+                          <span className="text-xs font-bold text-slate-800  w-20 text-right">
                             ${subtotalIng.toFixed(2)}
                           </span>
 
@@ -496,25 +496,25 @@ export default function RecetasClient({
               </div>
 
               {/* Resumen en Vivo del Costo */}
-              <div className="p-4 bg-purple-50/50 dark:bg-purple-950/30 rounded-xl border border-purple-100 dark:border-purple-900/50 space-y-2">
-                <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <div className="p-4 bg-purple-50/50  rounded-xl border border-purple-100  space-y-2">
+                <div className="flex justify-between text-xs font-semibold text-slate-700 ">
                   <span>Costo Teórico de la Receta:</span>
-                  <strong className="text-purple-600 dark:text-purple-400">${calculatedTheoreticalCost.toFixed(2)}</strong>
+                  <strong className="text-purple-600 ">${calculatedTheoreticalCost.toFixed(2)}</strong>
                 </div>
-                <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <div className="flex justify-between text-xs font-semibold text-slate-700 ">
                   <span>Precio de Venta al Público:</span>
-                  <strong className="text-blue-600 dark:text-blue-400">${price.toFixed(2)}</strong>
+                  <strong className="text-blue-600 ">${price.toFixed(2)}</strong>
                 </div>
-                <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 pt-1 border-t border-purple-200 dark:border-purple-800">
+                <div className="flex justify-between text-xs font-semibold text-slate-700  pt-1 border-t border-purple-200 ">
                   <span>Margen Bruto de Ganancia:</span>
-                  <strong className={`${profitMarginPct >= 60 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600'}`}>
+                  <strong className={`${profitMarginPct >= 60 ? 'text-emerald-600 ' : 'text-amber-600'}`}>
                     ${grossProfit.toFixed(2)} ({profitMarginPct.toFixed(1)}%)
                   </strong>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700  mb-1">
                   Instrucciones de Preparación (Opcional)
                 </label>
                 <textarea
@@ -522,15 +522,15 @@ export default function RecetasClient({
                   placeholder="Pasos, temperatura, tiempo de cocción, emplatado..."
                   value={instructions}
                   onChange={(e) => setInstructions(e.target.value)}
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:text-white"
+                  className="w-full px-3.5 py-2 text-sm bg-slate-50  border border-slate-200  rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 "
                 />
               </div>
 
-              <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100 ">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                  className="px-4 py-2 text-sm font-medium text-slate-600  hover:bg-slate-100  rounded-xl"
                 >
                   Cancelar
                 </button>

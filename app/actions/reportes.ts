@@ -52,7 +52,8 @@ export async function getGeneralAnalyticsData(
   branchIdFilter?: string, 
   userIdFilter?: string, 
   brandFilter?: string,
-  paymentMethodFilter?: string
+  paymentMethodFilter?: string,
+  restockableFilter?: string
 ) {
   const session = await getSession();
   const branch = await getActiveBranch();
@@ -266,7 +267,8 @@ export async function getSalesDetailData(
   userIdFilter?: string, 
   brandFilter?: string,
   paymentMethodFilter?: string,
-  invoicedFilter?: string
+  invoicedFilter?: string,
+  restockableFilter?: string
 ) {
   const session = await getSession();
   const branch = await getActiveBranch();
@@ -508,7 +510,7 @@ export async function getSalesDetailData(
   };
 }
 
-export async function getInventoryValuationData(branchIdFilter?: string, brandFilter?: string, searchQuery?: string) {
+export async function getInventoryValuationData(branchIdFilter?: string, brandFilter?: string, searchQuery?: string, restockableFilter?: string) {
   const session = await getSession();
   const branch = await getActiveBranch();
   if (!branch) throw new Error('Unauthorized');
@@ -541,7 +543,7 @@ export async function getInventoryValuationData(branchIdFilter?: string, brandFi
   if (branchCondition.branchId) {
     if (typeof branchCondition.branchId === 'string') {
       const result = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT COALESCE(SUM(stock * cost), 0) as cost_val, COALESCE(SUM(stock * price), 0) as sell_val FROM "Product" WHERE "isActive" = true AND stock > 0 AND "branchId" = $1 ${brandFilter && brandFilter !== 'ALL' ? `AND brand = $2` : ''}`,
+        `SELECT COALESCE(SUM(stock * cost), 0) as cost_val, COALESCE(SUM(stock * price), 0) as sell_val FROM "Product" WHERE "isActive" = true AND stock > 0 AND "branchId" = $1 ${brandFilter && brandFilter !== 'ALL' ? `AND brand = $2` : ''} ${restockableFilter === 'RESTOCKABLE' ? 'AND ("isNonRestockable" = false OR "isNonRestockable" IS NULL)' : restockableFilter === 'NON_RESTOCKABLE' ? 'AND "isNonRestockable" = true' : ''}`,
         branchCondition.branchId,
         ...(brandFilter && brandFilter !== 'ALL' ? [brandFilter] : [])
       );
@@ -551,7 +553,7 @@ export async function getInventoryValuationData(branchIdFilter?: string, brandFi
       const branchIds = branchCondition.branchId.in;
       if (branchIds.length > 0) {
         const placeholders = branchIds.map((_: any, idx: number) => `$${idx + 1}`).join(', ');
-        const queryText = `SELECT COALESCE(SUM(stock * cost), 0) as cost_val, COALESCE(SUM(stock * price), 0) as sell_val FROM "Product" WHERE "isActive" = true AND stock > 0 AND "branchId" IN (${placeholders}) ${brandFilter && brandFilter !== 'ALL' ? `AND brand = $${branchIds.length + 1}` : ''}`;
+        const queryText = `SELECT COALESCE(SUM(stock * cost), 0) as cost_val, COALESCE(SUM(stock * price), 0) as sell_val FROM "Product" WHERE "isActive" = true AND stock > 0 AND "branchId" IN (${placeholders}) ${brandFilter && brandFilter !== 'ALL' ? `AND brand = ${branchIds.length + 1}` : ''} ${restockableFilter === 'RESTOCKABLE' ? 'AND ("isNonRestockable" = false OR "isNonRestockable" IS NULL)' : restockableFilter === 'NON_RESTOCKABLE' ? 'AND "isNonRestockable" = true' : ''}`;
         const params = [...branchIds, ...(brandFilter && brandFilter !== 'ALL' ? [brandFilter] : [])];
         const result = await prisma.$queryRawUnsafe<any[]>(queryText, ...params);
         totalValue = Number(result[0]?.cost_val || 0);
@@ -560,7 +562,7 @@ export async function getInventoryValuationData(branchIdFilter?: string, brandFi
     }
   } else {
     const result = await prisma.$queryRawUnsafe<any[]>(
-      `SELECT COALESCE(SUM(stock * cost), 0) as cost_val, COALESCE(SUM(stock * price), 0) as sell_val FROM "Product" WHERE "isActive" = true AND stock > 0 ${brandFilter && brandFilter !== 'ALL' ? `AND brand = $1` : ''}`,
+      `SELECT COALESCE(SUM(stock * cost), 0) as cost_val, COALESCE(SUM(stock * price), 0) as sell_val FROM "Product" WHERE "isActive" = true AND stock > 0 ${brandFilter && brandFilter !== 'ALL' ? `AND brand = $1` : ''} ${restockableFilter === 'RESTOCKABLE' ? 'AND ("isNonRestockable" = false OR "isNonRestockable" IS NULL)' : restockableFilter === 'NON_RESTOCKABLE' ? 'AND "isNonRestockable" = true' : ''}`,
       ...(brandFilter && brandFilter !== 'ALL' ? [brandFilter] : [])
     );
     totalValue = Number(result[0]?.cost_val || 0);
@@ -791,7 +793,8 @@ export async function getConsignmentReportData(
   branchIdFilter?: string, 
   userIdFilter?: string,
   customerIdFilter?: string,
-  brandFilter?: string
+  brandFilter?: string,
+  restockableFilter?: string
 ) {
   const session = await getSession();
   const branch = await getActiveBranch();
@@ -1100,7 +1103,8 @@ export async function getTopProductsReport(
   branchIdFilter?: string,
   categoryFilter?: string,
   brandFilter?: string,
-  userIdFilter?: string
+  userIdFilter?: string,
+  restockableFilter?: string
 ) {
   const session = await getSession();
   const branch = await getActiveBranch();
@@ -1161,6 +1165,15 @@ export async function getTopProductsReport(
     } else {
       conditions.push(`LOWER(TRIM(p.brand)) = LOWER($${paramIdx++})`);
       params.push(brandFilter.trim());
+    }
+  }
+
+  // Restockable condition in top products
+  if (restockableFilter && restockableFilter !== 'ALL') {
+    if (restockableFilter === 'RESTOCKABLE') {
+      conditions.push('(p."isNonRestockable" = false OR p."isNonRestockable" IS NULL)');
+    } else if (restockableFilter === 'NON_RESTOCKABLE') {
+      conditions.push('p."isNonRestockable" = true');
     }
   }
 
@@ -1560,7 +1573,8 @@ export async function getRestockReportData(
   endDate: Date,
   branchIdFilter?: string,
   categoryFilter?: string,
-  brandFilter?: string
+  brandFilter?: string,
+  restockableFilter?: string
 ) {
   const session = await getSession();
   const branch = await getActiveBranch();
@@ -2008,7 +2022,7 @@ export async function getInsumosReportData(
   return data;
 }
 
-export async function getCostAndPricesData(branchIdFilter?: string, brandFilter?: string, searchQuery?: string) {
+export async function getCostAndPricesData(branchIdFilter?: string, brandFilter?: string, searchQuery?: string, restockableFilter?: string) {
   const session = await getSession();
   const branch = await getActiveBranch();
   if (!branch) throw new Error('Unauthorized');

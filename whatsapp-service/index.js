@@ -488,6 +488,166 @@ async function findOrCreateProspect(targetDb, branchId, tenantId, phoneInfo) {
     return prospect;
 }
 
+// Universal helper to format and extract rich content from any WhatsApp message
+function extractMessageContent(m) {
+    if (!m) return '';
+    const type = m.type || 'chat';
+    const subtype = m.subtype || '';
+    
+    // 1. Direct text fields
+    let text = (typeof m.body === 'string' ? m.body : '') || 
+               (typeof m.caption === 'string' ? m.caption : '') || 
+               (typeof m.text === 'string' ? m.text : '') || 
+               (typeof m.content === 'string' ? m.content : '');
+
+    // Ignore raw debug placeholder strings if encountered
+    if (text && text.startsWith('[Mensaje tipo:')) {
+        text = '';
+    }
+
+    // 2. Interactive / Templates / Buttons / Lists / Catalogs
+    if (type === 'interactive' || type === 'template' || m.interactivePayload || m.hydratedTemplate || m.list || m.buttons || m._data?.interactivePayload || m._data?.hydratedTemplate) {
+        const parts = [];
+        const headerTitle = m.interactiveHeader?.title || m.title || m._data?.title || m._data?.interactiveHeader?.title || '';
+        if (headerTitle) parts.push(`*${headerTitle}*`);
+        
+        const bodyContent = text || m.interactivePayload?.body?.text || m.hydratedTemplate?.hydratedContentText || m._data?.body || m._data?.interactivePayload?.body?.text || m._data?.hydratedTemplate?.hydratedContentText || m.description || m._data?.description || '';
+        if (bodyContent && bodyContent !== headerTitle) parts.push(bodyContent);
+        
+        const footer = m.interactivePayload?.footer?.text || m.footer || m._data?.footer || m._data?.interactivePayload?.footer?.text || '';
+        if (footer) parts.push(`_${footer}_`);
+        
+        // Buttons
+        const buttons = m.interactivePayload?.buttons || m.buttons || m.hydratedTemplate?.hydratedButtons || m._data?.buttons || m._data?.interactivePayload?.buttons || m._data?.hydratedTemplate?.hydratedButtons;
+        if (Array.isArray(buttons) && buttons.length > 0) {
+            const btnTexts = buttons.map(b => {
+                const label = b.buttonText?.displayText || b.name || b.id || b.quickReplyButton?.displayText || b.urlButton?.displayText || b.callButton?.displayText || (typeof b === 'string' ? b : '');
+                return label ? `[🔘 ${label}]` : '';
+            }).filter(Boolean);
+            if (btnTexts.length > 0) parts.push(btnTexts.join(' '));
+        }
+        
+        // List items
+        const listSections = m.list?.sections || m._data?.list?.sections;
+        if (Array.isArray(listSections) && listSections.length > 0) {
+            listSections.forEach(sec => {
+                if (sec.title) parts.push(`📋 *${sec.title}*`);
+                if (Array.isArray(sec.rows)) {
+                    sec.rows.forEach(row => {
+                        const rowTitle = row.title || row.id || '';
+                        const rowDesc = row.description ? ` - ${row.description}` : '';
+                        if (rowTitle) parts.push(`• ${rowTitle}${rowDesc}`);
+                    });
+                }
+            });
+        }
+        
+        if (parts.length > 0) return parts.join('\n');
+    }
+
+    // 3. Button / List responses
+    if (type === 'buttons_response' || type === 'template_button_reply' || type === 'list_response') {
+        const selected = m.selectedDisplayText || m.selectedButtonId || m.selectedRowId || text || m._data?.selectedDisplayText || m._data?.selectedButtonId || m._data?.selectedRowId || '';
+        return `🔘 ${selected || 'Opción seleccionada'}`;
+    }
+
+    // 4. Polls
+    if (type === 'poll_creation' || type === 'poll_update' || type === 'poll') {
+        const pollName = m.pollName || m.pollTitle || m._data?.pollName || text || 'Encuesta';
+        const options = m.pollOptions || m._data?.pollOptions;
+        let pollText = `📊 *Encuesta: ${pollName}*`;
+        if (Array.isArray(options) && options.length > 0) {
+            const optLines = options.map(opt => `• ${opt.name || opt.optionName || opt}`);
+            pollText += '\n' + optLines.join('\n');
+        }
+        return pollText;
+    }
+
+    // 5. Reactions
+    if (type === 'reaction') {
+        const emoji = m.reaction || m._data?.reactionText || text || '❤️';
+        return `Reacción: ${emoji}`;
+    }
+
+    // 6. Location
+    if (type === 'location' || type === 'live_location') {
+        const locName = m.name || m.address || m.loc || (m.lat && m.lng ? `${m.lat},${m.lng}` : '');
+        return `📍 [Ubicación]${locName ? ': ' + locName : ''}${text && text !== locName ? ' - ' + text : ''}`;
+    }
+
+    // 7. VCard / Contacts
+    if (type === 'vcard' || type === 'multi_vcard') {
+        const vcards = m.vCards || m.vcardList || m._data?.vcardList;
+        let vcardName = '';
+        if (Array.isArray(vcards) && vcards.length > 0) {
+            vcardName = vcards.map(v => typeof v === 'string' ? (v.match(/FN:(.*?)\n/) || [])[1] || '' : v.displayName || v.name || '').filter(Boolean).join(', ');
+        }
+        return `📇 [Contacto]${vcardName ? ': ' + vcardName : ''}`;
+    }
+
+    // 8. Call Log
+    if (type === 'call_log') {
+        if (subtype === 'miss' || subtype === 'missed') {
+            return '📞 [Llamada perdida de WhatsApp]';
+        }
+        if (m.isVideo) {
+            return '📹 [Videollamada de WhatsApp]';
+        }
+        return '📞 [Llamada de WhatsApp]';
+    }
+
+    // 9. E2E Notification / Security notices
+    if (type === 'e2e_notification') {
+        if (subtype === 'identity_change') {
+            return '🔒 Se actualizó el código de seguridad de este contacto.';
+        }
+        return '🔒 Los mensajes y llamadas están cifrados de extremo a extremo. Nadie fuera de este chat puede leerlos ni escucharlos.';
+    }
+
+    // 10. Notification template / Business notices
+    if (type === 'notification_template' || type === 'notification') {
+        if (text) return `ℹ️ ${text}`;
+        if (Array.isArray(m.templateParams) && m.templateParams.length > 0) {
+            return `ℹ️ ${m.templateParams.join(' ')}`;
+        }
+        return '🔒 Los mensajes en este chat están protegidos con cifrado de extremo a extremo.';
+    }
+
+    // 11. Ciphertext / Encrypted placeholders
+    if (type === 'ciphertext' || type === 'biz_content_placeholder') {
+        if (text) return text;
+        return '🔒 [Mensaje cifrado de WhatsApp]';
+    }
+
+    // 12. Media types
+    if (type === 'image') return '📎 [Imagen]' + (text ? ': ' + text : '');
+    if (type === 'video') return '📎 [Video]' + (text ? ': ' + text : '');
+    if (type === 'audio') return '📎 [Audio]' + (text ? ': ' + text : '');
+    if (type === 'ptt') return '📎 [Nota de voz]' + (text ? ': ' + text : '');
+    if (type === 'sticker') return '📎 [Sticker]' + (text ? ': ' + text : '');
+    if (type === 'album') return '📎 [Álbum de fotos/videos]' + (text ? ': ' + text : '');
+    if (type === 'document') {
+        const filename = m.filename || m._data?.filename || '';
+        const tag = filename ? `📎 [Documento: ${filename}]` : '📎 [Documento]';
+        return tag + (text && text !== filename ? ': ' + text : '');
+    }
+
+    // 13. System / other types
+    if (type === 'revoked') return '🚫 [Mensaje eliminado]';
+    if (type === 'pinned_message' || type === 'pin_message') return '📌 [Mensaje fijado]' + (text ? ': ' + text : '');
+    if (type === 'gp2' || type === 'group_notification') return 'ℹ️ [Notificación de grupo]' + (text ? ': ' + text : '');
+    if (type === 'protocol') return 'ℹ️ [Aviso del sistema]' + (text ? ': ' + text : '');
+
+    // If media flag is set
+    if (m.hasMedia || m.isMedia) {
+        return '📎 [Archivo]' + (text ? ': ' + text : '');
+    }
+
+    // Fallback
+    if (text) return text;
+    return '💬 [Mensaje de WhatsApp]';
+}
+
 // Helper to save a single WhatsApp message and map it to a prospect
 async function saveWhatsAppMessage(branchId, client, msg, fallbackContactName = null) {
     if (msg.isStatus) return;
@@ -573,34 +733,7 @@ async function saveWhatsAppMessage(branchId, client, msg, fallbackContactName = 
         else initialStatus = 1; // default to sent
     }
 
-    let bodyText = msg.body || '';
-    if (msg.hasMedia) {
-        let mediaTag = '📎 [Archivo]';
-        if (msg.type === 'image') {
-            mediaTag = '📎 [Imagen]';
-        } else if (msg.type === 'video') {
-            mediaTag = '📎 [Video]';
-        } else if (msg.type === 'audio' || msg.type === 'ptt') {
-            mediaTag = '📎 [Audio]';
-        } else if (msg.type === 'sticker') {
-            mediaTag = '📎 [Sticker]';
-        } else if (msg.type === 'document') {
-            mediaTag = '📎 [Documento]';
-        }
-        bodyText = mediaTag + (msg.body ? ": " + msg.body : "");
-    } else if (!bodyText) {
-        if (msg.type === 'sticker') {
-            bodyText = '📎 [Sticker]';
-        } else if (msg.type === 'location') {
-            bodyText = '📍 [Ubicación]';
-        } else if (msg.type === 'vcard' || msg.type === 'multi_vcard') {
-            bodyText = '📇 [Contacto]';
-        } else if (msg.type === 'revoked') {
-            bodyText = '🚫 [Mensaje eliminado]';
-        } else {
-            bodyText = `[Mensaje tipo: ${msg.type || 'desconocido'}]`;
-        }
-    }
+    const bodyText = extractMessageContent(msg);
 
     // Determine target DB clients to save to:
     const { client: branchDbClient, tenantId } = await getPrismaForBranch(branchId);
@@ -712,6 +845,96 @@ async function attachNativeWhatsAppListeners(branchId, client) {
 
         // Inject event listeners into WhatsApp Web
         await client.pupPage.evaluate(() => {
+            function extractBrowserMessageContent(m) {
+                if (!m) return '';
+                const type = m.type || 'chat';
+                const subtype = m.subtype || '';
+                let text = (typeof m.body === 'string' ? m.body : '') || 
+                           (typeof m.caption === 'string' ? m.caption : '') || 
+                           (typeof m.text === 'string' ? m.text : '') || 
+                           (typeof m.content === 'string' ? m.content : '');
+
+                if (type === 'interactive' || type === 'template' || m.interactivePayload || m.hydratedTemplate || m.list || m.buttons) {
+                    const parts = [];
+                    const headerTitle = m.interactiveHeader?.title || m.title || '';
+                    if (headerTitle) parts.push(`*${headerTitle}*`);
+                    const bodyContent = text || m.interactivePayload?.body?.text || m.hydratedTemplate?.hydratedContentText || m.description || '';
+                    if (bodyContent && bodyContent !== headerTitle) parts.push(bodyContent);
+                    const footer = m.interactivePayload?.footer?.text || m.footer || '';
+                    if (footer) parts.push(`_${footer}_`);
+                    const buttons = m.interactivePayload?.buttons || m.buttons || m.hydratedTemplate?.hydratedButtons;
+                    if (Array.isArray(buttons) && buttons.length > 0) {
+                        const btnTexts = buttons.map(b => {
+                            const label = b.buttonText?.displayText || b.name || b.id || b.quickReplyButton?.displayText || b.urlButton?.displayText || (typeof b === 'string' ? b : '');
+                            return label ? `[🔘 ${label}]` : '';
+                        }).filter(Boolean);
+                        if (btnTexts.length > 0) parts.push(btnTexts.join(' '));
+                    }
+                    if (parts.length > 0) return parts.join('\n');
+                }
+
+                if (type === 'buttons_response' || type === 'template_button_reply' || type === 'list_response') {
+                    const selected = m.selectedDisplayText || m.selectedButtonId || m.selectedRowId || text || '';
+                    return `🔘 ${selected || 'Opción seleccionada'}`;
+                }
+
+                if (type === 'poll_creation' || type === 'poll_update' || type === 'poll') {
+                    const pollName = m.pollName || m.pollTitle || text || 'Encuesta';
+                    const options = m.pollOptions;
+                    let pollText = `📊 *Encuesta: ${pollName}*`;
+                    if (Array.isArray(options) && options.length > 0) {
+                        const optLines = options.map(opt => `• ${opt.name || opt.optionName || opt}`);
+                        pollText += '\n' + optLines.join('\n');
+                    }
+                    return pollText;
+                }
+
+                if (type === 'reaction') {
+                    const emoji = m.reaction || text || '❤️';
+                    return `Reacción: ${emoji}`;
+                }
+
+                if (type === 'location' || type === 'live_location') {
+                    const locName = m.name || m.address || m.loc || (m.lat && m.lng ? `${m.lat},${m.lng}` : '');
+                    return `📍 [Ubicación]${locName ? ': ' + locName : ''}${text && text !== locName ? ' - ' + text : ''}`;
+                }
+
+                if (type === 'call_log') {
+                    return (subtype === 'miss' || subtype === 'missed') ? '📞 [Llamada perdida de WhatsApp]' : '📞 [Llamada de WhatsApp]';
+                }
+
+                if (type === 'e2e_notification') {
+                    return (subtype === 'identity_change') 
+                        ? '🔒 Se actualizó el código de seguridad de este contacto.'
+                        : '🔒 Los mensajes y llamadas están cifrados de extremo a extremo. Nadie fuera de este chat puede leerlos ni escucharlos.';
+                }
+
+                if (type === 'notification_template' || type === 'notification') {
+                    if (text) return `ℹ️ ${text}`;
+                    return '🔒 Los mensajes en este chat están protegidos con cifrado de extremo a extremo.';
+                }
+
+                if (type === 'ciphertext' || type === 'biz_content_placeholder') {
+                    return text || '🔒 [Mensaje cifrado de WhatsApp]';
+                }
+
+                if (type === 'image') return '📎 [Imagen]' + (text ? ': ' + text : '');
+                if (type === 'video') return '📎 [Video]' + (text ? ': ' + text : '');
+                if (type === 'audio') return '📎 [Audio]' + (text ? ': ' + text : '');
+                if (type === 'ptt') return '📎 [Nota de voz]' + (text ? ': ' + text : '');
+                if (type === 'sticker') return '📎 [Sticker]' + (text ? ': ' + text : '');
+                if (type === 'album') return '📎 [Álbum de fotos/videos]' + (text ? ': ' + text : '');
+                if (type === 'document') {
+                    const filename = m.filename || '';
+                    return (filename ? `📎 [Documento: ${filename}]` : '📎 [Documento]') + (text && text !== filename ? ': ' + text : '');
+                }
+
+                if (type === 'revoked') return '🚫 [Mensaje eliminado]';
+                if (type === 'pinned_message' || type === 'pin_message') return '📌 [Mensaje fijado]' + (text ? ': ' + text : '');
+                if (m.hasMedia || m.isMedia) return '📎 [Archivo]' + (text ? ': ' + text : '');
+                return text || '💬 [Mensaje de WhatsApp]';
+            }
+
             function setupListeners() {
                 if (!window.require) return false;
                 try {
@@ -729,8 +952,9 @@ async function attachNativeWhatsAppListeners(branchId, client) {
 
                             const payload = {
                                 id: { _serialized: m.id?._serialized || String(m.id) },
-                                body: m.body || m.caption || '',
+                                body: extractBrowserMessageContent(m),
                                 type: m.type || 'chat',
+                                subtype: m.subtype || '',
                                 timestamp: m.t || Math.floor(Date.now() / 1000),
                                 fromMe: fromMe,
                                 from: fromJid,
@@ -786,6 +1010,96 @@ async function syncRecentChatsHistory(branchId, client) {
 
         const rawChatsData = await client.pupPage.evaluate(() => {
             try {
+                function extractBrowserMessageContent(m) {
+                    if (!m) return '';
+                    const type = m.type || 'chat';
+                    const subtype = m.subtype || '';
+                    let text = (typeof m.body === 'string' ? m.body : '') || 
+                               (typeof m.caption === 'string' ? m.caption : '') || 
+                               (typeof m.text === 'string' ? m.text : '') || 
+                               (typeof m.content === 'string' ? m.content : '');
+
+                    if (type === 'interactive' || type === 'template' || m.interactivePayload || m.hydratedTemplate || m.list || m.buttons) {
+                        const parts = [];
+                        const headerTitle = m.interactiveHeader?.title || m.title || '';
+                        if (headerTitle) parts.push(`*${headerTitle}*`);
+                        const bodyContent = text || m.interactivePayload?.body?.text || m.hydratedTemplate?.hydratedContentText || m.description || '';
+                        if (bodyContent && bodyContent !== headerTitle) parts.push(bodyContent);
+                        const footer = m.interactivePayload?.footer?.text || m.footer || '';
+                        if (footer) parts.push(`_${footer}_`);
+                        const buttons = m.interactivePayload?.buttons || m.buttons || m.hydratedTemplate?.hydratedButtons;
+                        if (Array.isArray(buttons) && buttons.length > 0) {
+                            const btnTexts = buttons.map(b => {
+                                const label = b.buttonText?.displayText || b.name || b.id || b.quickReplyButton?.displayText || b.urlButton?.displayText || (typeof b === 'string' ? b : '');
+                                return label ? `[🔘 ${label}]` : '';
+                            }).filter(Boolean);
+                            if (btnTexts.length > 0) parts.push(btnTexts.join(' '));
+                        }
+                        if (parts.length > 0) return parts.join('\n');
+                    }
+
+                    if (type === 'buttons_response' || type === 'template_button_reply' || type === 'list_response') {
+                        const selected = m.selectedDisplayText || m.selectedButtonId || m.selectedRowId || text || '';
+                        return `🔘 ${selected || 'Opción seleccionada'}`;
+                    }
+
+                    if (type === 'poll_creation' || type === 'poll_update' || type === 'poll') {
+                        const pollName = m.pollName || m.pollTitle || text || 'Encuesta';
+                        const options = m.pollOptions;
+                        let pollText = `📊 *Encuesta: ${pollName}*`;
+                        if (Array.isArray(options) && options.length > 0) {
+                            const optLines = options.map(opt => `• ${opt.name || opt.optionName || opt}`);
+                            pollText += '\n' + optLines.join('\n');
+                        }
+                        return pollText;
+                    }
+
+                    if (type === 'reaction') {
+                        const emoji = m.reaction || text || '❤️';
+                        return `Reacción: ${emoji}`;
+                    }
+
+                    if (type === 'location' || type === 'live_location') {
+                        const locName = m.name || m.address || m.loc || (m.lat && m.lng ? `${m.lat},${m.lng}` : '');
+                        return `📍 [Ubicación]${locName ? ': ' + locName : ''}${text && text !== locName ? ' - ' + text : ''}`;
+                    }
+
+                    if (type === 'call_log') {
+                        return (subtype === 'miss' || subtype === 'missed') ? '📞 [Llamada perdida de WhatsApp]' : '📞 [Llamada de WhatsApp]';
+                    }
+
+                    if (type === 'e2e_notification') {
+                        return (subtype === 'identity_change') 
+                            ? '🔒 Se actualizó el código de seguridad de este contacto.'
+                            : '🔒 Los mensajes y llamadas están cifrados de extremo a extremo. Nadie fuera de este chat puede leerlos ni escucharlos.';
+                    }
+
+                    if (type === 'notification_template' || type === 'notification') {
+                        if (text) return `ℹ️ ${text}`;
+                        return '🔒 Los mensajes en este chat están protegidos con cifrado de extremo a extremo.';
+                    }
+
+                    if (type === 'ciphertext' || type === 'biz_content_placeholder') {
+                        return text || '🔒 [Mensaje cifrado de WhatsApp]';
+                    }
+
+                    if (type === 'image') return '📎 [Imagen]' + (text ? ': ' + text : '');
+                    if (type === 'video') return '📎 [Video]' + (text ? ': ' + text : '');
+                    if (type === 'audio') return '📎 [Audio]' + (text ? ': ' + text : '');
+                    if (type === 'ptt') return '📎 [Nota de voz]' + (text ? ': ' + text : '');
+                    if (type === 'sticker') return '📎 [Sticker]' + (text ? ': ' + text : '');
+                    if (type === 'album') return '📎 [Álbum de fotos/videos]' + (text ? ': ' + text : '');
+                    if (type === 'document') {
+                        const filename = m.filename || '';
+                        return (filename ? `📎 [Documento: ${filename}]` : '📎 [Documento]') + (text && text !== filename ? ': ' + text : '');
+                    }
+
+                    if (type === 'revoked') return '🚫 [Mensaje eliminado]';
+                    if (type === 'pinned_message' || type === 'pin_message') return '📌 [Mensaje fijado]' + (text ? ': ' + text : '');
+                    if (m.hasMedia || m.isMedia) return '📎 [Archivo]' + (text ? ': ' + text : '');
+                    return text || '💬 [Mensaje de WhatsApp]';
+                }
+
                 const req = window.require;
                 if (!req) return [];
                 const collections = req('WAWebCollections');
@@ -806,8 +1120,9 @@ async function syncRecentChatsHistory(branchId, client) {
                     const msgs = (c.msgs && c.msgs._models) ? c.msgs._models.slice(-50) : [];
                     const mappedMsgs = msgs.map(m => ({
                         id: { _serialized: m.id?._serialized || String(m.id) },
-                        body: m.body || m.caption || '',
+                        body: extractBrowserMessageContent(m),
                         type: m.type || 'chat',
+                        subtype: m.subtype || '',
                         timestamp: m.t || Math.floor(Date.now() / 1000),
                         fromMe: Boolean(m.id?.fromMe ?? m.fromMe),
                         from: m.from?._serialized || m.from || '',
@@ -897,22 +1212,7 @@ async function syncRecentChatsHistory(branchId, client) {
                                 else initialStatus = 1;
                             }
 
-                            let bodyText = msg.body || '';
-                            if (msg.hasMedia) {
-                                let mediaTag = '📎 [Archivo]';
-                                if (msg.type === 'image') mediaTag = '📎 [Imagen]';
-                                else if (msg.type === 'video') mediaTag = '📎 [Video]';
-                                else if (msg.type === 'audio' || msg.type === 'ptt') mediaTag = '📎 [Audio]';
-                                else if (msg.type === 'sticker') mediaTag = '📎 [Sticker]';
-                                else if (msg.type === 'document') mediaTag = '📎 [Documento]';
-                                bodyText = mediaTag + (msg.body ? ": " + msg.body : "");
-                            } else if (!bodyText) {
-                                if (msg.type === 'sticker') bodyText = '📎 [Sticker]';
-                                else if (msg.type === 'location') bodyText = '📍 [Ubicación]';
-                                else if (msg.type === 'vcard' || msg.type === 'multi_vcard') bodyText = '📇 [Contacto]';
-                                else if (msg.type === 'revoked') bodyText = '🚫 [Mensaje eliminado]';
-                                else bodyText = `[Mensaje tipo: ${msg.type || 'desconocido'}]`;
-                            }
+                            const bodyText = extractMessageContent(msg);
 
                             await targetDb.whatsAppMessage.create({
                                 data: {
@@ -1198,7 +1498,7 @@ async function getClientForBranch(originalBranchId, forceRecreate = false) {
 }
 
 app.post('/api/send', async (req, res) => {
-    const { phone, message, prospectId, media, branchId } = req.body;
+    const { phone, message, prospectId, media, branchId, pendingMessageId } = req.body;
     
     if (!phone && !prospectId) {
         return res.status(400).json({ error: 'Phone or prospectId is required' });
@@ -1327,23 +1627,72 @@ app.post('/api/send', async (req, res) => {
 
             for (const tDb of targetDbs) {
                 try {
-                    const existing = await tDb.whatsAppMessage.findFirst({
-                        where: { messageId: messageIdSerialized }
-                    });
+                    let linkedPending = false;
 
-                    if (!existing) {
-                        await tDb.whatsAppMessage.create({
-                            data: {
-                                messageId: messageIdSerialized,
-                                prospectId: prospectId,
-                                body: bodyText,
-                                isFromMe: true,
-                                status: 1, // Sent (1 tick)
-                                timestamp: msgTimestamp
+                    // 1. If explicit pendingMessageId is passed from Next.js, link and update it
+                    if (pendingMessageId) {
+                        try {
+                            const updated = await tDb.whatsAppMessage.updateMany({
+                                where: { id: pendingMessageId },
+                                data: {
+                                    messageId: messageIdSerialized,
+                                    body: bodyText,
+                                    status: 1,
+                                    timestamp: msgTimestamp
+                                }
+                            });
+                            if (updated && updated.count > 0) {
+                                linkedPending = true;
                             }
-                        });
-                        console.log(`[WHATSAPP] /api/send saved message ${messageIdSerialized} successfully.`);
+                        } catch (e) {}
                     }
+
+                    // 2. If not linked yet, look for any pending message with messageId: null for this prospect
+                    if (!linkedPending) {
+                        const pendingMsg = await tDb.whatsAppMessage.findFirst({
+                            where: {
+                                prospectId: prospectId,
+                                messageId: null,
+                                isFromMe: true
+                            },
+                            orderBy: { timestamp: 'desc' }
+                        });
+
+                        if (pendingMsg) {
+                            await tDb.whatsAppMessage.update({
+                                where: { id: pendingMsg.id },
+                                data: {
+                                    messageId: messageIdSerialized,
+                                    body: bodyText,
+                                    status: 1,
+                                    timestamp: msgTimestamp
+                                }
+                            }).catch(() => {});
+                            linkedPending = true;
+                        }
+                    }
+
+                    // 3. If no pending message existed, insert only if not already saved
+                    if (!linkedPending) {
+                        const existing = await tDb.whatsAppMessage.findFirst({
+                            where: { messageId: messageIdSerialized }
+                        });
+
+                        if (!existing) {
+                            await tDb.whatsAppMessage.create({
+                                data: {
+                                    messageId: messageIdSerialized,
+                                    prospectId: prospectId,
+                                    body: bodyText,
+                                    isFromMe: true,
+                                    status: 1, // Sent (1 tick)
+                                    timestamp: msgTimestamp
+                                }
+                            }).catch(() => {});
+                        }
+                    }
+
+                    console.log(`[WHATSAPP] /api/send saved message ${messageIdSerialized} successfully.`);
 
                     await tDb.prospect.update({
                         where: { id: prospectId },
@@ -2111,7 +2460,10 @@ setInterval(async () => {
                 pendingMessages = await dbClient.whatsAppMessage.findMany({
                     where: {
                         messageId: null,
-                        isFromMe: true
+                        isFromMe: true,
+                        timestamp: {
+                            lte: new Date(Date.now() - 5000)
+                        }
                     },
                     include: {
                         prospect: true

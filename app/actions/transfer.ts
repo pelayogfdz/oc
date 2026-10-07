@@ -107,10 +107,11 @@ async function findOrCreateDestinationProduct(
     return { destProduct: originProduct, destVariantId: originVariantId || null };
   }
 
-  // 1. Search in destination branch by SKU or Barcode or exact Name
+  // 1. Search in destination branch by SKU or Barcode or exact Name (active first)
   let destProduct = await tx.product.findFirst({
     where: {
       branchId: toBranchId,
+      isActive: true,
       OR: [
         ...(originProduct.sku ? [{ sku: originProduct.sku.trim() }] : []),
         ...(originProduct.barcode ? [{ barcode: originProduct.barcode.trim() }] : []),
@@ -118,6 +119,19 @@ async function findOrCreateDestinationProduct(
       ]
     }
   });
+
+  if (!destProduct) {
+    destProduct = await tx.product.findFirst({
+      where: {
+        branchId: toBranchId,
+        OR: [
+          ...(originProduct.sku ? [{ sku: originProduct.sku.trim() }] : []),
+          ...(originProduct.barcode ? [{ barcode: originProduct.barcode.trim() }] : []),
+          { name: originProduct.name }
+        ]
+      }
+    });
+  }
 
   // 2. If not found in destination branch, auto-create it seamlessly
   if (!destProduct) {
@@ -191,6 +205,7 @@ async function findOrCreateOriginProduct(
   let originProduct = await tx.product.findFirst({
     where: {
       branchId: originBranchId,
+      isActive: true,
       OR: [
         ...(productToSearch.sku ? [{ sku: productToSearch.sku.trim() }] : []),
         ...(productToSearch.barcode ? [{ barcode: productToSearch.barcode.trim() }] : []),
@@ -198,6 +213,19 @@ async function findOrCreateOriginProduct(
       ]
     }
   });
+
+  if (!originProduct) {
+    originProduct = await tx.product.findFirst({
+      where: {
+        branchId: originBranchId,
+        OR: [
+          ...(productToSearch.sku ? [{ sku: productToSearch.sku.trim() }] : []),
+          ...(productToSearch.barcode ? [{ barcode: productToSearch.barcode.trim() }] : []),
+          { name: productToSearch.name }
+        ]
+      }
+    });
+  }
 
   if (!originProduct) {
     originProduct = await tx.product.create({
@@ -621,15 +649,61 @@ export async function cancelTransfer(transferId: string) {
         for (const item of transfer.items) {
           if (item.quantity <= 0) continue;
 
-          const productToSearch = item.product;
-          const variantToSearch = item.variant;
-
-          const originProduct = await tx.product.findFirst({
-            where: { sku: productToSearch.sku, branchId: transfer.branchId! }
+          // 1. Try to find the exact origin movement logged when this transfer was dispatched
+          const outMovement = await tx.inventoryMovement.findFirst({
+            where: {
+              type: 'OUT',
+              OR: [
+                { reason: { contains: transfer.id } },
+                ...(transfer.folio ? [{ reason: { contains: transfer.folio } }] : [])
+              ]
+            }
           });
 
+          let originProduct: any = null;
+          let originVariantId = outMovement?.variantId || null;
+
+          if (outMovement?.productId) {
+            const prod = await tx.product.findUnique({ where: { id: outMovement.productId } });
+            if (prod && prod.branchId === transfer.branchId) {
+              originProduct = prod;
+            }
+          }
+
+          // 2. If not found via movement, search active product by SKU, Barcode or Name
           if (!originProduct) {
-            throw new Error(`Producto SKU: ${productToSearch.sku} no existe en la sucursal origen para realizar la devolución.`);
+            const candidateSku = item.productSku || item.product?.sku;
+            const candidateBarcode = item.productBarcode || item.product?.barcode;
+            const candidateName = item.productName || item.product?.name;
+
+            originProduct = await tx.product.findFirst({
+              where: {
+                branchId: transfer.branchId!,
+                isActive: true,
+                OR: [
+                  ...(candidateSku ? [{ sku: candidateSku.trim() }] : []),
+                  ...(candidateBarcode ? [{ barcode: candidateBarcode.trim() }] : []),
+                  ...(candidateName ? [{ name: candidateName }] : [])
+                ]
+              }
+            });
+
+            if (!originProduct) {
+              originProduct = await tx.product.findFirst({
+                where: {
+                  branchId: transfer.branchId!,
+                  OR: [
+                    ...(candidateSku ? [{ sku: candidateSku.trim() }] : []),
+                    ...(candidateBarcode ? [{ barcode: candidateBarcode.trim() }] : []),
+                    ...(candidateName ? [{ name: candidateName }] : [])
+                  ]
+                }
+              });
+            }
+          }
+
+          if (!originProduct) {
+            throw new Error(`Producto ${item.productName || item.productSku || item.product?.name || 'solicitado'} no existe en la sucursal origen para realizar la devolución.`);
           }
 
           // Return stock at Origin
@@ -638,8 +712,8 @@ export async function cancelTransfer(transferId: string) {
             data: { stock: { increment: item.quantity } }
           });
 
-          let originVariantId = null;
-          if (variantToSearch) {
+          const variantToSearch = item.variant;
+          if (variantToSearch && !originVariantId) {
             const originVariant = await tx.productVariant.findFirst({
               where: { productId: originProduct.id, sku: variantToSearch.sku, attribute: variantToSearch.attribute }
             });
@@ -650,6 +724,11 @@ export async function cancelTransfer(transferId: string) {
                 data: { stock: { increment: item.quantity } }
               });
             }
+          } else if (originVariantId) {
+            await tx.productVariant.update({
+              where: { id: originVariantId },
+              data: { stock: { increment: item.quantity } }
+            });
           }
 
           await tx.inventoryMovement.create({

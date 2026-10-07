@@ -28,6 +28,7 @@ export default function TopProductosClient({
   const [category, setCategory] = useState('ALL');
   const [brand, setBrand] = useState('ALL');
   const [sellerId, setSellerId] = useState('ALL');
+  const [restockable, setRestockable] = useState('ALL');
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
@@ -92,14 +93,14 @@ export default function TopProductosClient({
 
     setStartDateStr(formatDateInput(start));
     setEndDateStr(formatDateInput(end));
-    triggerUpdate(start, end, branchId, category, brand, sellerId);
+    triggerUpdate(start, end, branchId, category, brand, sellerId, restockable);
   };
 
-  const triggerUpdate = async (start: Date, end: Date, bId: string, cat: string, brnd: string, sId: string) => {
+  const triggerUpdate = async (start: Date, end: Date, bId: string, cat: string, brnd: string, sId: string, restk: string = restockable) => {
     setIsLoading(true);
     try {
       const [res, filterRes] = await Promise.all([
-        getTopProductsReport(start, end, bId, cat, brnd, sId),
+        getTopProductsReport(start, end, bId, cat, brnd, sId, restk),
         getAvailableFilters({ startDate: start, endDate: end, branchId: bId !== 'ALL' ? bId : undefined })
       ]);
       setData(res || []);
@@ -121,7 +122,7 @@ export default function TopProductosClient({
     const [ey, em, ed] = endDateStr.split('-').map(Number);
     const start = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
     const end = new Date(ey, em - 1, ed, 23, 59, 59, 999);
-    triggerUpdate(start, end, branchId, category, brand, sellerId);
+    triggerUpdate(start, end, branchId, category, brand, sellerId, restockable);
   };
 
   // Format currency

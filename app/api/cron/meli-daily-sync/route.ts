@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma, getClientForTenant } from '@/lib/prisma';
 import { getOrRefreshMeliToken, fetchMeliWithRetry } from '@/app/utils/meliToken';
+import { sendMeliPostSaleMessage } from '@/app/utils/meliMessages';
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -394,6 +395,22 @@ async function handleSync(onlyStock = false) {
                   }
 
                   console.log(`[MELI DAILY CRON] Descontado stock local (${item.quantity}) y registrado movimiento OUT para producto ${item.productId} en sucursal ${item.branchId}`);
+                }
+
+                // Enviar mensaje post-venta automático al comprador con folio y enlace de autofacturación
+                try {
+                  await sendMeliPostSaleMessage({
+                    branchId: integration.branchId,
+                    orderId: order.id,
+                    packId: order.pack_id,
+                    sellerId: meliUserId,
+                    buyerId: order.buyer?.id,
+                    buyerNickname: order.buyer?.nickname,
+                    folio: `ML-${orderId}`,
+                    saleId: newSale.id
+                  });
+                } catch (msgErr) {
+                  console.error('[MELI DAILY CRON] Error enviando mensaje post-venta:', msgErr);
                 }
 
                 totalSalesSynced++;

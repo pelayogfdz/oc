@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Eye, Printer, RotateCcw, Calendar, User, MapPin, Tag, Receipt, Send, Share2, Loader2, CheckCircle, Mail, Download, X, AlertTriangle, Filter, Truck, WifiOff } from 'lucide-react';
+import { Eye, Printer, RotateCcw, Calendar, User, MapPin, Tag, Receipt, Send, Share2, Loader2, CheckCircle, Mail, Download, X, AlertTriangle, Filter, Truck, WifiOff, Package } from 'lucide-react';
 import { sendSaleByEmail, getSalesForExport } from '@/app/actions/sale';
 import { createDeliveryOrder } from '@/app/actions/logistica';
 import { formatCurrency } from '@/lib/utils';
@@ -436,6 +436,7 @@ export default function VentasHistoryClient({
   const [filterClient, setFilterClient] = useState(queryParams.client || '');
   const [filterCfdi, setFilterCfdi] = useState(queryParams.cfdi || '');
   const [filterFolio, setFilterFolio] = useState(queryParams.folio || '');
+  const [filterProduct, setFilterProduct] = useState(queryParams.product || queryParams.productId || '');
   const [filterPaymentMethod, setFilterPaymentMethod] = useState(queryParams.paymentMethod || '');
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
@@ -478,6 +479,7 @@ export default function VentasHistoryClient({
       if (key === 'cfdi') setFilterCfdi(val);
       if (key === 'paymentMethod') setFilterPaymentMethod(val);
       if (key === 'folio') setFilterFolio(val);
+      if (key === 'product') setFilterProduct(val);
     });
 
     if (!isOnline) {
@@ -936,6 +938,17 @@ export default function VentasHistoryClient({
 
         if (!matches) return false;
       }
+      if (filterProduct.trim()) {
+        const term = filterProduct.toLowerCase().trim();
+        const hasMatch = sale.items?.some((it: any) => {
+          const pName = (it.productName || it.product?.name || '').toLowerCase();
+          const pSku = (it.productSku || it.product?.sku || '').toLowerCase();
+          const pBarcode = (it.productBarcode || it.product?.barcode || '').toLowerCase();
+          const pId = (it.productId || it.product?.id || '').toLowerCase();
+          return pName.includes(term) || pSku.includes(term) || pBarcode.includes(term) || pId === term;
+        });
+        if (!hasMatch) return false;
+      }
       if (filterStartDate) {
         const start = new Date(filterStartDate);
         start.setHours(0, 0, 0, 0);
@@ -948,9 +961,9 @@ export default function VentasHistoryClient({
       }
       return true;
     });
-  }, [allCombinedSales, isOnline, filterBranch, filterUser, filterStatus, filterPaymentMethod, filterClient, filterCfdi, filterStartDate, filterEndDate, filterFolio]);
+  }, [allCombinedSales, isOnline, filterBranch, filterUser, filterStatus, filterPaymentMethod, filterClient, filterCfdi, filterStartDate, filterEndDate, filterFolio, filterProduct]);
 
-  const hasActiveFilters = Boolean(filterStartDate || filterEndDate || filterUser || (currentBranch.id === 'GLOBAL' && filterBranch) || filterStatus || filterClient || filterCfdi || filterPaymentMethod || filterFolio);
+  const hasActiveFilters = Boolean(filterStartDate || filterEndDate || filterUser || (currentBranch.id === 'GLOBAL' && filterBranch) || filterStatus || filterClient || filterCfdi || filterPaymentMethod || filterFolio || filterProduct);
 
   const handleClearFilters = () => {
     setFilterStartDate('');
@@ -962,6 +975,7 @@ export default function VentasHistoryClient({
     setFilterCfdi('');
     setFilterPaymentMethod('');
     setFilterFolio('');
+    setFilterProduct('');
     if (isOnline) {
       router.push(pathname);
     }
@@ -979,7 +993,8 @@ export default function VentasHistoryClient({
         paymentMethod: filterPaymentMethod,
         client: filterClient,
         cfdi: filterCfdi,
-        folio: filterFolio
+        folio: filterFolio,
+        product: filterProduct
       });
 
       if (!res.success || !res.sales) {
@@ -1213,6 +1228,26 @@ export default function VentasHistoryClient({
               }
             }}
             onBlur={() => updateUrlParams({ cfdi: filterCfdi, page: '1' })}
+            style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
+          />
+        </div>
+
+        {/* Product Filter */}
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--caanma-text-muted)', marginBottom: '0.5rem' }}>
+            <Package size={14} /> Producto
+          </label>
+          <input 
+            type="text" 
+            placeholder="Buscar por nombre, SKU o código" 
+            value={filterProduct} 
+            onChange={(e) => setFilterProduct(e.target.value)} 
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                updateUrlParams({ product: filterProduct, page: '1' });
+              }
+            }}
+            onBlur={() => updateUrlParams({ product: filterProduct, page: '1' })}
             style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--caanma-border)', outline: 'none', backgroundColor: 'white', fontSize: '0.9rem' }} 
           />
         </div>

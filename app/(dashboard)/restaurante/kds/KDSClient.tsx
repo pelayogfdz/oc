@@ -130,14 +130,14 @@ export default function KDSClient({
     const diffMins = Math.floor(diffMs / 60000);
     const diffSecs = Math.floor((diffMs % 60000) / 1000);
 
-    let color = 'text-emerald-400 bg-emerald-950/60 border-emerald-500/40';
+    let color = 'text-emerald-700 bg-emerald-50 border-emerald-300 shadow-xs';
     let urgency = 'NORMAL';
 
     if (diffMins >= 20) {
-      color = 'text-rose-400 bg-rose-950/80 border-rose-500/80 animate-pulse';
+      color = 'text-rose-700 bg-rose-50 border-rose-300 shadow-xs animate-pulse';
       urgency = 'CRITICAL';
     } else if (diffMins >= 10) {
-      color = 'text-amber-400 bg-amber-950/60 border-amber-500/50';
+      color = 'text-purple-700 bg-amber-950/60 border-amber-500/50';
       urgency = 'WARNING';
     }
 
@@ -147,11 +147,11 @@ export default function KDSClient({
 
   const getCourseBadge = (course: string) => {
     switch (course) {
-      case 'STARTER': return { label: 'Entrada', bg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' };
-      case 'MAIN': return { label: 'Plato Fuerte', bg: 'bg-blue-500/20 text-blue-300 border-blue-500/30' };
-      case 'DESSERT': return { label: 'Postre', bg: 'bg-pink-500/20 text-pink-300 border-pink-500/30' };
-      case 'DRINK': return { label: 'Bebida', bg: 'bg-amber-500/20 text-amber-300 border-amber-500/30' };
-      default: return { label: 'Servicio', bg: 'bg-slate-700 text-slate-300 border-slate-600' };
+      case 'STARTER': return { label: 'Entrada', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+      case 'MAIN': return { label: 'Plato Fuerte', bg: 'bg-blue-50 text-blue-700 border-blue-200' };
+      case 'DESSERT': return { label: 'Postre', bg: 'bg-pink-50 text-pink-700 border-pink-200' };
+      case 'DRINK': return { label: 'Bebida', bg: 'bg-amber-50 text-amber-700 border-amber-200' };
+      default: return { label: 'Servicio', bg: 'bg-slate-700 text-slate-900 font-bold border-slate-600' };
     }
   };
 
@@ -175,7 +175,7 @@ export default function KDSClient({
         subtitle="Control de preparación de comandas, tiempos de cocción y ruteo a barra y cocina"
         actions={
           <div className="flex items-center flex-wrap gap-2">
-            <span className="text-xs px-2.5 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 font-semibold">
+            <span className="text-xs px-2.5 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600  border border-emerald-500/30 flex items-center gap-1.5 font-semibold">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
               En Vivo ({currentTime.toLocaleTimeString('es-MX')})
             </span>
@@ -188,8 +188,8 @@ export default function KDSClient({
               }}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
                 soundEnabled 
-                  ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30' 
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
+                  ? 'bg-amber-500/15 text-amber-600  border-amber-500/30' 
+                  : 'bg-slate-100  text-slate-500 border-slate-200 '
               }`}
               title={soundEnabled ? 'Sonido de timbre activado' : 'Sonido silenciado'}
             >
@@ -200,7 +200,7 @@ export default function KDSClient({
             <button
               onClick={handleRefresh}
               disabled={isLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all border border-slate-200 dark:border-slate-700"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200   text-slate-700  rounded-xl text-xs font-bold transition-all border border-slate-200 "
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-purple-600' : ''}`} />
               <span>Actualizar</span>
@@ -216,7 +216,7 @@ export default function KDSClient({
           className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all ${
             activeStationId === 'ALL'
               ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'bg-slate-900 text-slate-400 hover:bg-slate-800 border border-slate-800'
+              : 'bg-slate-900 text-slate-500 hover:bg-slate-100 border border-slate-200'
           }`}
         >
           Todas las Estaciones ({orders.length} comandas)
@@ -228,7 +228,7 @@ export default function KDSClient({
             className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all flex items-center gap-2 ${
               activeStationId === station.id
                 ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                : 'bg-slate-900 text-slate-400 hover:bg-slate-800 border border-slate-800'
+                : 'bg-slate-900 text-slate-500 hover:bg-slate-100 border border-slate-200'
             }`}
           >
             <span 
@@ -242,12 +242,12 @@ export default function KDSClient({
 
       {/* Grid de Tarjetas de Comanda KDS */}
       {orders.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-16 text-center text-slate-500 space-y-3 bg-slate-900/50 rounded-3xl border border-slate-800/80">
-          <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400">
+        <div className="flex-1 flex flex-col items-center justify-center p-16 text-center text-slate-500 space-y-3 bg-white rounded-3xl border border-slate-200 shadow-sm">
+          <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
             <CheckCircle2 className="w-8 h-8 text-emerald-400" />
           </div>
-          <h3 className="text-xl font-bold text-slate-300">¡Cocina al día!</h3>
-          <p className="text-sm max-w-sm text-slate-400">
+          <h3 className="text-xl font-bold text-slate-900 font-bold">¡Cocina al día!</h3>
+          <p className="text-sm max-w-sm text-slate-500">
             No hay comandas pendientes de preparación en este momento. Las nuevas órdenes sonarán y aparecerán automáticamente aquí.
           </p>
         </div>
@@ -260,22 +260,22 @@ export default function KDSClient({
             return (
               <div
                 key={order.id}
-                className="bg-slate-900 border border-slate-800 rounded-2xl flex flex-col justify-between shadow-2xl overflow-hidden hover:border-slate-700 transition-all"
+                className="bg-white border-2 border-slate-200 rounded-2xl flex flex-col justify-between shadow-md overflow-hidden hover:border-purple-300 hover:shadow-lg transition-all"
               >
                 {/* Cabecera de la Orden */}
                 <div>
-                  <div className="p-4 bg-slate-800/80 border-b border-slate-800 flex items-start justify-between gap-2">
+                  <div className="p-4 bg-slate-50/90 border-b border-slate-200 flex items-start justify-between gap-2">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xl font-black text-amber-400">
+                        <span className="text-xl font-black text-purple-700">
                           {order.table.name}
                         </span>
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-slate-500">
                           #{order.folio || 'S/F'}
                         </span>
                       </div>
-                      <span className="text-xs text-slate-400 block mt-0.5">
-                        Mesero: <strong className="text-slate-200">{order.waiter.name}</strong>
+                      <span className="text-xs text-slate-500 block mt-0.5">
+                        Mesero: <strong className="text-slate-900">{order.waiter.name}</strong>
                       </span>
                     </div>
 
@@ -298,28 +298,28 @@ export default function KDSClient({
                           key={item.id}
                           className={`p-3 rounded-xl border transition-all ${
                             isReady
-                              ? 'bg-purple-950/40 border-purple-500/40'
+                              ? 'bg-purple-50/70 border-purple-200 text-purple-900'
                               : isPrepping
-                              ? 'bg-amber-950/30 border-amber-500/40'
-                              : 'bg-slate-950/60 border-slate-800'
+                              ? 'bg-amber-50/70 border-amber-200 text-amber-900'
+                              : 'bg-white border-slate-200'
                           }`}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-xs font-bold text-amber-400 bg-amber-950/60 px-1.5 py-0.5 rounded">
+                                <span className="text-xs font-bold text-purple-700 bg-amber-100 text-amber-900 px-1.5 py-0.5 border border-amber-200 rounded">
                                   C{item.dinerNumber}
                                 </span>
                                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${courseBadge.bg}`}>
                                   {courseBadge.label}
                                 </span>
-                                <span className={`text-sm font-black ${isReady ? 'text-purple-300' : 'text-white'}`}>
+                                <span className={`text-sm font-black ${isReady ? 'text-purple-800 font-bold' : 'text-slate-900'}`}>
                                   {item.quantity}x {item.product.name}
                                 </span>
                               </div>
 
                               {item.variant && (
-                                <p className="text-xs text-slate-400 mt-0.5 font-medium">
+                                <p className="text-xs text-slate-500 mt-0.5 font-medium">
                                   {item.variant.attribute}
                                 </p>
                               )}
@@ -329,7 +329,7 @@ export default function KDSClient({
                                   {item.modifiers.map(m => (
                                     <span
                                       key={m.id}
-                                      className="text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-lg"
+                                      className="text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 font-bold px-2 py-0.5 rounded-lg"
                                     >
                                       ★ {m.name}
                                     </span>
@@ -338,7 +338,7 @@ export default function KDSClient({
                               )}
 
                               {item.notes && (
-                                <div className="mt-1.5 p-1.5 bg-rose-950/40 border border-rose-500/30 rounded-lg text-xs font-bold text-rose-300">
+                                <div className="mt-1.5 p-1.5 bg-rose-50 border border-rose-200 rounded-lg text-xs font-bold text-rose-800">
                                   ⚠️ NOTA: {item.notes}
                                 </div>
                               )}
@@ -346,7 +346,7 @@ export default function KDSClient({
                           </div>
 
                           {/* Botonera táctil de acción de estado por platillo */}
-                          <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-end gap-1.5">
+                          <div className="mt-3 pt-2 border-t border-slate-200 flex items-center justify-end gap-1.5">
                             {item.status === 'SENT_TO_KITCHEN' && (
                               <button
                                 onClick={() => handleStatusChange(item.id, 'IN_PREP')}
@@ -359,7 +359,7 @@ export default function KDSClient({
                             {item.status !== 'READY' && item.status !== 'SERVED' && (
                               <button
                                 onClick={() => handleStatusChange(item.id, 'READY')}
-                                className="px-3 py-1.5 text-xs font-bold text-purple-200 bg-purple-600 hover:bg-purple-700 rounded-lg transition-all shadow-md shadow-purple-500/20"
+                                className="px-3 py-1.5 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 shadow-sm rounded-lg transition-all shadow-md shadow-purple-500/20"
                               >
                                 ✓ Listo
                               </button>
@@ -368,7 +368,7 @@ export default function KDSClient({
                             {item.status === 'READY' && (
                               <button
                                 onClick={() => handleStatusChange(item.id, 'SERVED')}
-                                className="px-3 py-1.5 text-xs font-bold text-emerald-200 bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-all shadow-md shadow-emerald-500/20"
+                                className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm rounded-lg transition-all shadow-md shadow-emerald-500/20"
                               >
                                 🍽️ Servido
                               </button>
@@ -381,10 +381,10 @@ export default function KDSClient({
                 </div>
 
                 {/* Footer de la Orden */}
-                <div className="p-3 bg-slate-950/80 border-t border-slate-800">
+                <div className="p-3 bg-slate-50 border-t border-slate-200">
                   <button
                     onClick={() => handleMarkAllReady(order)}
-                    className="w-full py-2.5 px-3 text-xs font-black text-slate-950 bg-amber-400 hover:bg-amber-500 rounded-xl transition-all shadow-md shadow-amber-400/10 flex items-center justify-center gap-1.5"
+                    className="w-full py-2.5 px-3 text-xs font-black text-slate-900 bg-amber-400 hover:bg-amber-500 font-black shadow-sm rounded-xl transition-all shadow-md shadow-amber-400/10 flex items-center justify-center gap-1.5"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     Marcar Todo Listo

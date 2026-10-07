@@ -15,6 +15,7 @@ import FloatingWhatsappWidget from '../components/FloatingWhatsappWidget';
 import CollaboratorTaskPopup from '../components/CollaboratorTaskPopup';
 import PriceChangesAlertPopup from '../components/PriceChangesAlertPopup';
 import MeliSalesAlertPopup from '../components/MeliSalesAlertPopup';
+import MeliQuestionsAlertPopup from '../components/MeliQuestionsAlertPopup';
 import { redirect, unstable_rethrow } from 'next/navigation';
 import { hasPermission, hasNodeAccess } from '@/app/config/permissions';
 
@@ -123,6 +124,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {user && <CollaboratorTaskPopup userId={user.id} />}
         {user && <PriceChangesAlertPopup />}
         {user && <MeliSalesAlertPopup />}
+        {user && <MeliQuestionsAlertPopup />}
       </MobileMenuProvider>
     </OfflineSyncProvider>
   );

@@ -93,6 +93,7 @@ export async function createProduct(prevState: any, formData: FormData) {
   const isProductionInput = formData.getAll('isProductionInput').includes('true');
   const isRestaurantAvailable = formData.getAll('isRestaurantAvailable').includes('true');
   const isService = formData.getAll('isService').includes('true');
+  const isNonRestockable = formData.getAll('isNonRestockable').includes('true');
   const hasTraceability = formData.getAll('hasTraceability').includes('true');
   const unit = formData.get('unit') as string || 'Pza';
   const satKey = (formData.get('satKey') as string) || null;
@@ -185,6 +186,7 @@ export async function createProduct(prevState: any, formData: FormData) {
       allowProduction,
       isProductionInput,
       isService,
+      isNonRestockable,
       unit,
       stock,
       minStock,
@@ -309,6 +311,7 @@ export async function createProduct(prevState: any, formData: FormData) {
     allowProduction,
     isProductionInput,
     isService,
+    isNonRestockable,
     unit,
     satKey,
     satUnit,
@@ -360,6 +363,7 @@ export async function createProduct(prevState: any, formData: FormData) {
               allowProduction,
               isProductionInput,
               isService,
+              isNonRestockable,
               unit,
               stock: 0,
               minStock: 0,
@@ -541,6 +545,9 @@ export async function updateProduct(productId: string, formData: FormData) {
     const isService = formData.get('isService');
     if (isService !== null) data.isService = formData.getAll('isService').includes('true');
 
+    const isNonRestockable = formData.get('isNonRestockable');
+    if (isNonRestockable !== null) data.isNonRestockable = formData.getAll('isNonRestockable').includes('true');
+
     const unit = formData.get('unit');
     if (unit !== null) data.unit = (unit as string) || 'Pza';
 
@@ -701,6 +708,7 @@ export async function updateProduct(productId: string, formData: FormData) {
                       allowProduction: updatedProduct.allowProduction,
                       isProductionInput: updatedProduct.isProductionInput,
                       isService: updatedProduct.isService,
+                      isNonRestockable: updatedProduct.isNonRestockable,
                       unit: updatedProduct.unit,
                       stock: 0,
                       minStock: 0,
@@ -1015,6 +1023,7 @@ export async function searchProducts(
     brand?: string;
     type?: string;
     meliStatus?: string;
+    restockable?: string;
     minPrice?: number;
     maxPrice?: number;
     sortBy?: string;
@@ -1106,6 +1115,14 @@ export async function searchProducts(
 
     if (options.brand && options.brand !== 'ALL') {
       extraConditions.push({ brand: options.brand });
+    }
+
+    if (options.restockable) {
+      if (options.restockable === 'RESTOCKABLE') {
+        extraConditions.push({ isNonRestockable: false });
+      } else if (options.restockable === 'NON_RESTOCKABLE') {
+        extraConditions.push({ isNonRestockable: true });
+      }
     }
 
     if (options.type) {
@@ -1832,6 +1849,7 @@ export async function syncTenantCatalogs(tenantId: string) {
               allowProduction: template.allowProduction,
               isProductionInput: template.isProductionInput,
               isService: template.isService,
+              isNonRestockable: template.isNonRestockable,
               unit: template.unit,
               stock: 0,
               minStock: 0,
@@ -1921,6 +1939,7 @@ export async function syncTenantCatalogs(tenantId: string) {
             allowProduction: template.allowProduction,
             isProductionInput: template.isProductionInput,
             isService: template.isService,
+            isNonRestockable: template.isNonRestockable,
             unit: template.unit,
             satKey: template.satKey,
             satUnit: template.satUnit,

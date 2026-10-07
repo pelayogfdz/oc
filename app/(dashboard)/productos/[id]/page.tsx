@@ -480,6 +480,20 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
                     ⛽ Trazabilidad de Combustible
                   </label>
                 </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input type="hidden" name="isNonRestockable" value="false" />
+                  <input 
+                    type="checkbox" 
+                    id="isNonRestockable"
+                    name="isNonRestockable" 
+                    value="true"
+                    defaultChecked={product.isNonRestockable || false} 
+                    style={{ width: '20px', height: '20px', cursor: 'pointer' }} 
+                  />
+                  <label htmlFor="isNonRestockable" style={{ fontWeight: '500', cursor: 'pointer', fontSize: '0.95rem' }}>
+                    🚫 Producto No Resurtible (No se volverá a surtir)
+                  </label>
+                </div>
               </div>
               <div style={{ padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '4px', border: '1px dashed #22c55e', gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
                 <div>

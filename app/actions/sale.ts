@@ -1037,6 +1037,7 @@ export async function getSalesForExport(params: {
   client?: string;
   cfdi?: string;
   folio?: string;
+  product?: string;
 }) {
   try {
     const branch = await getActiveBranch();
@@ -1081,6 +1082,30 @@ export async function getSalesForExport(params: {
         name: {
           contains: params.client.trim(),
           mode: 'insensitive'
+        }
+      };
+    }
+
+    // Product filter
+    if (params?.product && params.product.trim() !== '') {
+      const pTerm = params.product.trim();
+      where.items = {
+        some: {
+          OR: [
+            { productId: pTerm },
+            { productName: { contains: pTerm, mode: 'insensitive' } },
+            { productSku: { contains: pTerm, mode: 'insensitive' } },
+            { productBarcode: { contains: pTerm, mode: 'insensitive' } },
+            {
+              product: {
+                OR: [
+                  { name: { contains: pTerm, mode: 'insensitive' } },
+                  { sku: { contains: pTerm, mode: 'insensitive' } },
+                  { barcode: { contains: pTerm, mode: 'insensitive' } }
+                ]
+              }
+            }
+          ]
         }
       };
     }

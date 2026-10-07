@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import DateRangeFilter, { DateRange } from './DateRangeFilter';
 import { getAvailableFilters } from '@/app/actions/reportes';
-import { Store, User, Filter, Tag, DollarSign, FileText } from 'lucide-react';
+import { Store, User, Filter, Tag, DollarSign, FileText, Package } from 'lucide-react';
 import { startOfDay, subDays, endOfDay } from 'date-fns';
 
 export interface ReportFilterState {
@@ -13,6 +13,7 @@ export interface ReportFilterState {
   brandId: string;
   paymentMethod?: string;
   invoiced?: string;
+  restockable?: string;
 }
 
 interface ReportFilterBarProps {
@@ -24,6 +25,7 @@ interface ReportFilterBarProps {
   showBrand?: boolean;
   showPaymentMethod?: boolean;
   showInvoiced?: boolean;
+  showRestockable?: boolean;
   initialBranchId?: string;
 }
 
@@ -36,6 +38,7 @@ export default function ReportFilterBar({
   showBrand = true,
   showPaymentMethod = false,
   showInvoiced = false,
+  showRestockable = true,
   initialBranchId = 'ALL'
 }: ReportFilterBarProps) {
   
@@ -49,6 +52,7 @@ export default function ReportFilterBar({
   const [brandId, setBrandId] = useState('ALL');
   const [paymentMethod, setPaymentMethod] = useState('ALL');
   const [invoiced, setInvoiced] = useState('ALL');
+  const [restockable, setRestockable] = useState('ALL');
   
   // Default date range is last 30 days
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -118,7 +122,8 @@ export default function ReportFilterBar({
     newUserId?: string, 
     newBrandId?: string,
     newPaymentMethod?: string,
-    newInvoiced?: string
+    newInvoiced?: string,
+    newRestockable?: string
   ) => {
     const dr = newDateRange || dateRange;
     const bid = newBranchId !== undefined ? newBranchId : branchId;
@@ -126,6 +131,7 @@ export default function ReportFilterBar({
     const brid = newBrandId !== undefined ? newBrandId : brandId;
     const pmet = newPaymentMethod !== undefined ? newPaymentMethod : paymentMethod;
     const inv = newInvoiced !== undefined ? newInvoiced : invoiced;
+    const restk = newRestockable !== undefined ? newRestockable : restockable;
 
     onFilterChange({
       dateRange: dr,
@@ -133,7 +139,8 @@ export default function ReportFilterBar({
       userId: uid,
       brandId: brid,
       paymentMethod: pmet,
-      invoiced: inv
+      invoiced: inv,
+      restockable: restk
     });
   };
 
@@ -169,7 +176,13 @@ export default function ReportFilterBar({
   const handleInvoicedChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     setInvoiced(val);
-    handleApply(dateRange, branchId, userId, brandId, paymentMethod, val);
+    handleApply(dateRange, branchId, userId, brandId, paymentMethod, val, restockable);
+  };
+
+  const handleRestockableChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setRestockable(val);
+    handleApply(dateRange, branchId, userId, brandId, paymentMethod, invoiced, val);
   };
 
   return (
@@ -299,6 +312,31 @@ export default function ReportFilterBar({
         </div>
       )}
 
+
+      {showRestockable && (
+        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--caanma-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>
+          <Package size={16} color="var(--caanma-text-muted)" style={{ marginLeft: '0.5rem' }} />
+          <select 
+            value={restockable}
+            onChange={handleRestockableChange}
+            disabled={disabled || loadingFilters}
+            style={{ 
+              border: 'none', 
+              padding: '0.6rem 0.5rem', 
+              backgroundColor: 'transparent',
+              outline: 'none',
+              fontWeight: '500',
+              color: 'var(--caanma-text)',
+              cursor: 'pointer',
+              minWidth: '150px'
+            }}
+          >
+            <option value="ALL">Resurtido: Todos</option>
+            <option value="RESTOCKABLE">✅ Resurtibles</option>
+            <option value="NON_RESTOCKABLE">🚫 No resurtibles</option>
+          </select>
+        </div>
+      )}
 
       {showInvoiced && (
         <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--caanma-border)', borderRadius: '8px', padding: '0 0.5rem', backgroundColor: 'white' }}>

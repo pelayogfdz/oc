@@ -22,7 +22,8 @@ export default function ConsignacionesReportClient({ initialData, initialBranchI
         filters.branchId, 
         filters.userId,
         undefined,
-        filters.brandId
+        filters.brandId,
+        filters.restockable
       );
       setData(newData);
     } catch (e) {

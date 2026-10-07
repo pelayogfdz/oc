@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma, masterClient, getClientForTenant } from '@/lib/prisma';
 import { getOrRefreshMeliToken } from '@/app/utils/meliToken';
+import { sendMeliPostSaleMessage } from '@/app/utils/meliMessages';
 
 export async function POST(req: Request) {
   try {
@@ -302,7 +303,7 @@ export async function POST(req: Request) {
           : '';
 
         // Crear la venta
-        await tenantClient.sale.create({
+        const createdSale = await tenantClient.sale.create({
           data: {
             folio: checkFolio,
             total: totalSaleAmount,
@@ -324,7 +325,29 @@ export async function POST(req: Request) {
         });
 
         console.log(`[MELI WEBHOOK] Venta registrada exitosamente con Folio: ML-${orderData.id} en sucursal: ${saleBranchId}`);
+
+        // Enviar mensaje post-venta automático al comprador con folio y enlace de autofacturación
+        try {
+          const hostHeader = req.headers.get('host');
+          await sendMeliPostSaleMessage({
+            branchId: integration.branchId,
+            orderId: orderData.id,
+            packId: orderData.pack_id,
+            sellerId: payload.user_id,
+            buyerId: orderData.buyer?.id,
+            buyerNickname: orderData.buyer?.nickname,
+            folio: checkFolio,
+            saleId: createdSale.id,
+            host: hostHeader
+          });
+        } catch (msgErr) {
+          console.error('[MELI WEBHOOK] Error enviando mensaje post-venta al comprador:', msgErr);
+        }
       }
+    } else if (payload.topic === 'questions') {
+      console.log(`[MELI WEBHOOK] Evento de pregunta recibido en Mercado Libre. Recurso: ${payload.resource}, UserID: ${payload.user_id}`);
+      // Se acusa recibo a Mercado Libre; el popup del frontend sondea periódicamente y muestra la notificación interactiva
+      return new NextResponse('OK', { status: 200 });
     }
 
     // Retornar 200 de inmediato a Mercado Libre para acusar de recibida la notificación

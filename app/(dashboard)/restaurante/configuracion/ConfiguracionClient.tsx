@@ -234,13 +234,13 @@ export default function ConfiguracionClient({
       />
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-200  pb-2">
         <button
           onClick={() => setActiveTab('AREAS')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
             activeTab === 'AREAS'
               ? 'bg-purple-600 text-white shadow-sm'
-              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 border border-slate-200 dark:border-slate-800'
+              : 'bg-white  text-slate-600  hover:bg-slate-100 border border-slate-200 '
           }`}
         >
           <Layers className="w-4 h-4" />
@@ -252,7 +252,7 @@ export default function ConfiguracionClient({
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
             activeTab === 'TABLES'
               ? 'bg-purple-600 text-white shadow-sm'
-              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 border border-slate-200 dark:border-slate-800'
+              : 'bg-white  text-slate-600  hover:bg-slate-100 border border-slate-200 '
           }`}
         >
           <Utensils className="w-4 h-4" />
@@ -264,7 +264,7 @@ export default function ConfiguracionClient({
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
             activeTab === 'STATIONS'
               ? 'bg-purple-600 text-white shadow-sm'
-              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 border border-slate-200 dark:border-slate-800'
+              : 'bg-white  text-slate-600  hover:bg-slate-100 border border-slate-200 '
           }`}
         >
           <ChefHat className="w-4 h-4" />
@@ -274,15 +274,15 @@ export default function ConfiguracionClient({
 
       {/* TAB 1: ÁREAS */}
       {activeTab === 'AREAS' && (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800 font-bold text-sm text-slate-700 dark:text-slate-300">
+        <div className="bg-white  rounded-3xl border border-slate-200  overflow-hidden shadow-sm">
+          <div className="p-4 border-b border-slate-200  font-bold text-sm text-slate-700 ">
             Listado de Áreas Físicas
           </div>
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+          <div className="divide-y divide-slate-100 ">
             {areas.map(area => (
-              <div key={area.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all">
+              <div key={area.id} className="p-4 flex items-center justify-between hover:bg-slate-50  transition-all">
                 <div>
-                  <h4 className="text-base font-bold text-slate-900 dark:text-white">
+                  <h4 className="text-base font-bold text-slate-900 ">
                     {area.name}
                   </h4>
                   <span className="text-xs text-slate-400">
@@ -293,13 +293,13 @@ export default function ConfiguracionClient({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleOpenEditArea(area)}
-                    className="p-2 text-slate-600 hover:text-purple-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                    className="p-2 text-slate-600 hover:text-purple-600 hover:bg-slate-100  rounded-xl"
                   >
                     <Edit3 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDeleteArea(area.id)}
-                    className="p-2 text-slate-600 hover:text-rose-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                    className="p-2 text-slate-600 hover:text-rose-600 hover:bg-slate-100  rounded-xl"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -312,18 +312,18 @@ export default function ConfiguracionClient({
 
       {/* TAB 2: MESAS */}
       {activeTab === 'TABLES' && (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800 font-bold text-sm text-slate-700 dark:text-slate-300">
+        <div className="bg-white  rounded-3xl border border-slate-200  overflow-hidden shadow-sm">
+          <div className="p-4 border-b border-slate-200  font-bold text-sm text-slate-700 ">
             Catálogo de Mesas
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 p-4">
             {allTables.map(table => (
               <div
                 key={table.id}
-                className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between"
+                className="p-4 rounded-2xl border border-slate-200  bg-slate-50  flex items-center justify-between"
               >
                 <div>
-                  <h4 className="text-base font-bold text-slate-900 dark:text-white">
+                  <h4 className="text-base font-bold text-slate-900 ">
                     {table.name}
                   </h4>
                   <p className="text-xs text-slate-500">
@@ -356,20 +356,20 @@ export default function ConfiguracionClient({
 
       {/* TAB 3: ESTACIONES */}
       {activeTab === 'STATIONS' && (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800 font-bold text-sm text-slate-700 dark:text-slate-300">
+        <div className="bg-white  rounded-3xl border border-slate-200  overflow-hidden shadow-sm">
+          <div className="p-4 border-b border-slate-200  font-bold text-sm text-slate-700 ">
             Estaciones de Cocina e Impresoras Térmicas
           </div>
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+          <div className="divide-y divide-slate-100 ">
             {stations.map(station => (
-              <div key={station.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all">
+              <div key={station.id} className="p-4 flex items-center justify-between hover:bg-slate-50  transition-all">
                 <div className="flex items-center gap-3">
                   <span
                     className="w-4 h-4 rounded-full shadow-sm"
                     style={{ backgroundColor: station.color || '#3B82F6' }}
                   />
                   <div>
-                    <h4 className="text-base font-bold text-slate-900 dark:text-white">
+                    <h4 className="text-base font-bold text-slate-900 ">
                       {station.name}
                     </h4>
                     <span className="text-xs text-slate-400">
@@ -381,13 +381,13 @@ export default function ConfiguracionClient({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleOpenEditStation(station)}
-                    className="p-2 text-slate-600 hover:text-purple-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                    className="p-2 text-slate-600 hover:text-purple-600 hover:bg-slate-100  rounded-xl"
                   >
                     <Edit3 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDeleteStation(station.id)}
-                    className="p-2 text-slate-600 hover:text-rose-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                    className="p-2 text-slate-600 hover:text-rose-600 hover:bg-slate-100  rounded-xl"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -401,13 +401,13 @@ export default function ConfiguracionClient({
       {/* Modal Área */}
       {isAreaModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="bg-white  rounded-3xl max-w-md w-full p-6 border border-slate-200  shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-slate-900 ">
               {editingAreaId ? 'Editar Área' : 'Nueva Área de Salón'}
             </h3>
             <form onSubmit={handleSaveArea} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-700  uppercase tracking-wider mb-1.5">
                   Nombre del Área
                 </label>
                 <input
@@ -416,19 +416,19 @@ export default function ConfiguracionClient({
                   onChange={(e) => setAreaName(e.target.value)}
                   required
                   placeholder="Ej. Terraza, Planta Alta, Barra..."
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none"
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50  border border-slate-200  rounded-xl outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-700  uppercase tracking-wider mb-1.5">
                   Orden de Visualización
                 </label>
                 <input
                   type="number"
                   value={areaSortOrder}
                   onChange={(e) => setAreaSortOrder(parseInt(e.target.value) || 1)}
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none"
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50  border border-slate-200  rounded-xl outline-none"
                 />
               </div>
 
@@ -436,7 +436,7 @@ export default function ConfiguracionClient({
                 <button
                   type="button"
                   onClick={() => setIsAreaModalOpen(false)}
-                  className="flex-1 py-2.5 text-sm font-medium bg-slate-100 dark:bg-slate-800 rounded-xl"
+                  className="flex-1 py-2.5 text-sm font-medium bg-slate-100  rounded-xl"
                 >
                   Cancelar
                 </button>
@@ -456,20 +456,20 @@ export default function ConfiguracionClient({
       {/* Modal Mesa */}
       {isTableModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="bg-white  rounded-3xl max-w-md w-full p-6 border border-slate-200  shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-slate-900 ">
               {editingTableId ? 'Editar Mesa' : 'Nueva Mesa'}
             </h3>
             <form onSubmit={handleSaveTable} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-700  uppercase tracking-wider mb-1.5">
                   Área asignada
                 </label>
                 <select
                   value={tableAreaId}
                   onChange={(e) => setTableAreaId(e.target.value)}
                   required
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none"
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50  border border-slate-200  rounded-xl outline-none"
                 >
                   {areas.map(a => (
                     <option key={a.id} value={a.id}>{a.name}</option>
@@ -479,7 +479,7 @@ export default function ConfiguracionClient({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700  uppercase tracking-wider mb-1.5">
                     Número
                   </label>
                   <input
@@ -487,11 +487,11 @@ export default function ConfiguracionClient({
                     value={tableNumber}
                     onChange={(e) => setTableNumber(parseInt(e.target.value) || 1)}
                     required
-                    className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none"
+                    className="w-full px-3.5 py-2.5 text-sm bg-slate-50  border border-slate-200  rounded-xl outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700  uppercase tracking-wider mb-1.5">
                     Capacidad (Personas)
                   </label>
                   <input
@@ -499,13 +499,13 @@ export default function ConfiguracionClient({
                     value={tableCapacity}
                     onChange={(e) => setTableCapacity(parseInt(e.target.value) || 4)}
                     required
-                    className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none"
+                    className="w-full px-3.5 py-2.5 text-sm bg-slate-50  border border-slate-200  rounded-xl outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-700  uppercase tracking-wider mb-1.5">
                   Nombre de Mesa
                 </label>
                 <input
@@ -514,18 +514,18 @@ export default function ConfiguracionClient({
                   onChange={(e) => setTableName(e.target.value)}
                   required
                   placeholder="Ej. Mesa 1, Barra 2, VIP 1..."
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none"
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50  border border-slate-200  rounded-xl outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-700  uppercase tracking-wider mb-1.5">
                   Forma
                 </label>
                 <select
                   value={tableShape}
                   onChange={(e) => setTableShape(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none"
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50  border border-slate-200  rounded-xl outline-none"
                 >
                   <option value="SQUARE">Cuadrada</option>
                   <option value="ROUND">Redonda</option>
@@ -537,7 +537,7 @@ export default function ConfiguracionClient({
                 <button
                   type="button"
                   onClick={() => setIsTableModalOpen(false)}
-                  className="flex-1 py-2.5 text-sm font-medium bg-slate-100 dark:bg-slate-800 rounded-xl"
+                  className="flex-1 py-2.5 text-sm font-medium bg-slate-100  rounded-xl"
                 >
                   Cancelar
                 </button>
@@ -557,13 +557,13 @@ export default function ConfiguracionClient({
       {/* Modal Estación */}
       {isStationModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="bg-white  rounded-3xl max-w-md w-full p-6 border border-slate-200  shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-slate-900 ">
               {editingStationId ? 'Editar Estación' : 'Nueva Estación de Cocina'}
             </h3>
             <form onSubmit={handleSaveStation} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-700  uppercase tracking-wider mb-1.5">
                   Nombre de la Estación
                 </label>
                 <input
@@ -572,12 +572,12 @@ export default function ConfiguracionClient({
                   onChange={(e) => setStationName(e.target.value)}
                   required
                   placeholder="Ej. Cocina Caliente, Barra..."
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none"
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50  border border-slate-200  rounded-xl outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-700  uppercase tracking-wider mb-1.5">
                   Color Identificador
                 </label>
                 <div className="flex items-center gap-3">
@@ -591,13 +591,13 @@ export default function ConfiguracionClient({
                     type="text"
                     value={stationColor}
                     onChange={(e) => setStationColor(e.target.value)}
-                    className="flex-1 px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono"
+                    className="flex-1 px-3 py-2 text-sm bg-slate-50  border border-slate-200  rounded-xl font-mono"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-700  uppercase tracking-wider mb-1.5">
                   IP Impresora Térmica ESC/POS (Opcional)
                 </label>
                 <input
@@ -605,7 +605,7 @@ export default function ConfiguracionClient({
                   value={stationPrinterIp}
                   onChange={(e) => setStationPrinterIp(e.target.value)}
                   placeholder="Ej. 192.168.1.200:9100"
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none"
+                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50  border border-slate-200  rounded-xl outline-none"
                 />
               </div>
 
@@ -613,7 +613,7 @@ export default function ConfiguracionClient({
                 <button
                   type="button"
                   onClick={() => setIsStationModalOpen(false)}
-                  className="flex-1 py-2.5 text-sm font-medium bg-slate-100 dark:bg-slate-800 rounded-xl"
+                  className="flex-1 py-2.5 text-sm font-medium bg-slate-100  rounded-xl"
                 >
                   Cancelar
                 </button>

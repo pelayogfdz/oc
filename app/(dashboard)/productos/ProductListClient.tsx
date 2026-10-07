@@ -55,6 +55,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
   const [filterBrand, setFilterBrand] = useState('ALL');
   const [filterType, setFilterType] = useState('ALL');
   const [filterMeli, setFilterMeli] = useState('ALL');
+  const [filterRestockable, setFilterRestockable] = useState('ALL');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
 
@@ -112,6 +113,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       const persistedBrand = sessionStorage.getItem('products_filterBrand');
       const persistedType = sessionStorage.getItem('products_filterType');
       const persistedMeli = sessionStorage.getItem('products_filterMeli');
+      const persistedRestockable = sessionStorage.getItem('products_filterRestockable');
       const persistedMinPrice = sessionStorage.getItem('products_minPrice');
       const persistedMaxPrice = sessionStorage.getItem('products_maxPrice');
       const persistedPage = sessionStorage.getItem('products_currentPage');
@@ -127,6 +129,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       if (persistedBrand !== null) setFilterBrand(persistedBrand);
       if (persistedType !== null) setFilterType(persistedType);
       if (persistedMeli !== null) setFilterMeli(persistedMeli);
+      if (persistedRestockable !== null) setFilterRestockable(persistedRestockable);
       if (persistedMinPrice !== null) setMinPrice(persistedMinPrice);
       if (persistedMaxPrice !== null) setMaxPrice(persistedMaxPrice);
       if (persistedPageSize !== null) setPageSize(Number(persistedPageSize));
@@ -149,6 +152,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       sessionStorage.setItem('products_filterBrand', filterBrand);
       sessionStorage.setItem('products_filterType', filterType);
       sessionStorage.setItem('products_filterMeli', filterMeli);
+      sessionStorage.setItem('products_filterRestockable', filterRestockable);
       sessionStorage.setItem('products_minPrice', minPrice);
       sessionStorage.setItem('products_maxPrice', maxPrice);
       sessionStorage.setItem('products_currentPage', String(currentPage));
@@ -156,7 +160,9 @@ export default function ProductListClient({ initialProducts, branchId, categorie
       sessionStorage.setItem('products_sortBy', sortBy);
       sessionStorage.setItem('products_sortOrder', sortOrder);
     }
-  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, filterMeli, minPrice, maxPrice, currentPage, pageSize, sortBy, sortOrder, isInitialized]);
+  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, filterMeli,
+    filterRestockable,
+    minPrice, maxPrice, currentPage, pageSize, sortBy, sortOrder, isInitialized]);
 
   useEffect(() => {
     setDisplayedProducts(initialProducts);
@@ -206,6 +212,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             brand: filterBrand,
             type: filterType,
             meliStatus: filterMeli,
+            restockable: filterRestockable,
             minPrice: parsedMin,
             maxPrice: parsedMax,
             sortBy,
@@ -248,6 +255,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     filterBrand,
     filterType,
     filterMeli,
+    filterRestockable,
     minPrice,
     maxPrice,
     sortBy,
@@ -294,6 +302,10 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     if (filterMeli === 'PUBLISHED' && !isMeliPublished) return false;
     if (filterMeli === 'NOT_PUBLISHED' && isMeliPublished) return false;
 
+    // Restockable Filter
+    if (filterRestockable === 'RESTOCKABLE' && p.isNonRestockable) return false;
+    if (filterRestockable === 'NON_RESTOCKABLE' && !p.isNonRestockable) return false;
+
     // Price Range Filter
     const pPrice = Number(p.price) || 0;
     if (minPrice !== '' && !isNaN(Number(minPrice))) {
@@ -304,7 +316,9 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     }
 
     return true;
-  }), [displayedProducts, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, filterMeli, minPrice, maxPrice]);
+  }), [displayedProducts, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, filterMeli,
+    filterRestockable,
+    minPrice, maxPrice]);
 
   const sortedProducts = useMemo(() => {
     const products = [...filteredProducts];
@@ -341,7 +355,9 @@ export default function ProductListClient({ initialProducts, branchId, categorie
     if (isInitialized) {
       setCurrentPage(1);
     }
-  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, filterMeli, minPrice, maxPrice, sortBy, sortOrder, isInitialized]);
+  }, [searchTerm, filterCategory, filterStatus, filterStock, filterImage, filterBrand, filterType, filterMeli,
+    filterRestockable,
+    minPrice, maxPrice, sortBy, sortOrder, isInitialized]);
 
   const totalPages = Math.ceil(sortedProducts.length / pageSize) || 1;
   const startRange = sortedProducts.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
@@ -601,6 +617,7 @@ export default function ProductListClient({ initialProducts, branchId, categorie
             if (filterBrand !== 'ALL') count++;
             if (filterType !== 'ALL') count++;
             if (filterMeli !== 'ALL') count++;
+            if (filterRestockable !== 'ALL') count++;
             if (minPrice !== '' || maxPrice !== '') count++;
 
             return (
@@ -697,6 +714,27 @@ export default function ProductListClient({ initialProducts, branchId, categorie
               <option value="ALL">Productos y Servicios</option>
               <option value="PRODUCT">Solo Productos</option>
               <option value="SERVICE">Solo Servicios</option>
+            </select>
+          </div>
+          {/* Resurtible Filter */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Resurtido</label>
+            <select 
+              value={filterRestockable} 
+              onChange={e => setFilterRestockable(e.target.value)} 
+              style={{ 
+                padding: '0.5rem', 
+                borderRadius: '6px', 
+                border: `1px solid ${filterRestockable !== 'ALL' ? 'var(--caanma-primary)' : '#e2e8f0'}`, 
+                minWidth: '160px',
+                backgroundColor: filterRestockable !== 'ALL' ? '#eff6ff' : 'white',
+                fontWeight: filterRestockable !== 'ALL' ? '600' : 'normal',
+                color: filterRestockable !== 'ALL' ? 'var(--caanma-primary)' : 'inherit'
+              }}
+            >
+              <option value="ALL">Todos los artículos</option>
+              <option value="RESTOCKABLE">✅ Solo Resurtibles</option>
+              <option value="NON_RESTOCKABLE">🚫 No Resurtibles</option>
             </select>
           </div>
           {/* Mercado Libre Filter */}

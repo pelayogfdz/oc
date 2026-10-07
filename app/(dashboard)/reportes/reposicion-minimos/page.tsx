@@ -51,6 +51,7 @@ export default async function ReposicionMinimosPage() {
     stock: p.stock,
     minStock: p.minStock,
     cost: p.cost,
+    isNonRestockable: p.isNonRestockable || false,
     branch: {
       id: p.branch.id,
       name: p.branch.name

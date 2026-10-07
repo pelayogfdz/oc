@@ -331,6 +331,7 @@ model Product {
   isProductionInput   Boolean              @default(false)
   isRestaurantAvailable Boolean            @default(false)
   isService           Boolean              @default(false)
+  isNonRestockable    Boolean              @default(false)
   unit                String               @default("Pza")
   stock               Int                  @default(0)
   minStock            Int                  @default(0)
