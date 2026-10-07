@@ -7,37 +7,50 @@ export const dynamic = "force-dynamic";
 function extractBase64FromMessageBody(body: string): { data: string; mimetype: string; filename: string } | null {
   if (!body) return null;
 
-  // 1. Data URI format (data:image/jpeg;base64,...)
+  // Extract filename if present in bracket tag [Documento: nombre.pdf]
+  let tagFilename = '';
+  const tagFnMatch = body.match(/\[(?:Documento|Archivo|Imagen|Video|Audio):\s*([^\]]+)\]/i);
+  if (tagFnMatch) {
+    tagFilename = tagFnMatch[1].trim();
+  }
+
+  // 1. Data URI format (data:image/jpeg;base64,... or data:application/pdf;base64,...)
   const dataUriMatch = body.match(/data:([a-zA-Z0-9/+-]+);base64,([A-Za-z0-9+/=]+)/);
   if (dataUriMatch) {
     const mimetype = dataUriMatch[1];
     const data = dataUriMatch[2];
-    const ext = mimetype.includes('/') ? mimetype.split('/')[1] : 'jpg';
-    return { data, mimetype, filename: `imagen.${ext}` };
+    const ext = mimetype.includes('pdf') ? 'pdf' : (mimetype.includes('/') ? mimetype.split('/')[1] : 'dat');
+    return { data, mimetype, filename: tagFilename || `archivo.${ext}` };
   }
 
-  // 2. JPEG Base64 signature (/9j/...)
-  const jpegMatch = body.match(/(\/9j\/[A-Za-z0-9+/=]{40,})/);
-  if (jpegMatch) {
-    return { data: jpegMatch[1], mimetype: 'image/jpeg', filename: 'imagen.jpg' };
-  }
-
-  // 3. PNG Base64 signature (iVBORw0KGgo...)
-  const pngMatch = body.match(/(iVBORw0KGgo[A-Za-z0-9+/=]{40,})/);
-  if (pngMatch) {
-    return { data: pngMatch[1], mimetype: 'image/png', filename: 'imagen.png' };
-  }
-
-  // 4. Base64 block inside bracket tags: [Imagen]: BASE64 or [Documento]: BASE64
-  const prefixMatch = body.match(/(?:\[(?:Imagen|Archivo|Documento)[^\]]*\]):\s*([A-Za-z0-9+/=]{60,})/);
+  // 2. Base64 block inside bracket tags: [Imagen]: BASE64 or [Documento: file.pdf]: BASE64
+  const prefixMatch = body.match(/(?:\[(?:Imagen|Archivo|Documento|Video|Audio)[^\]]*\]):?\s*([A-Za-z0-9+/=]{60,})/i);
   if (prefixMatch) {
     const raw = prefixMatch[1];
     const isJpeg = raw.startsWith('/9j/');
     const isPng = raw.startsWith('iVBORw');
     const isPdf = raw.startsWith('JVBERi0');
-    const mimetype = isJpeg ? 'image/jpeg' : isPng ? 'image/png' : isPdf ? 'application/pdf' : 'image/jpeg';
-    const filename = isPdf ? 'documento.pdf' : isPng ? 'imagen.png' : 'imagen.jpg';
-    return { data: raw, mimetype, filename };
+    const mimetype = isPdf ? 'application/pdf' : isPng ? 'image/png' : isJpeg ? 'image/jpeg' : (tagFilename.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream');
+    const defaultName = isPdf ? 'documento.pdf' : isPng ? 'imagen.png' : isJpeg ? 'imagen.jpg' : 'archivo';
+    return { data: raw, mimetype, filename: tagFilename || defaultName };
+  }
+
+  // 3. PDF Base64 signature (JVBERi0...)
+  const pdfMatch = body.match(/(JVBERi0[A-Za-z0-9+/=]{40,})/);
+  if (pdfMatch) {
+    return { data: pdfMatch[1], mimetype: 'application/pdf', filename: tagFilename || 'documento.pdf' };
+  }
+
+  // 4. JPEG Base64 signature (/9j/...)
+  const jpegMatch = body.match(/(\/9j\/[A-Za-z0-9+/=]{40,})/);
+  if (jpegMatch) {
+    return { data: jpegMatch[1], mimetype: 'image/jpeg', filename: tagFilename || 'imagen.jpg' };
+  }
+
+  // 5. PNG Base64 signature (iVBORw0KGgo...)
+  const pngMatch = body.match(/(iVBORw0KGgo[A-Za-z0-9+/=]{40,})/);
+  if (pngMatch) {
+    return { data: pngMatch[1], mimetype: 'image/png', filename: tagFilename || 'imagen.png' };
   }
 
   return null;
@@ -100,10 +113,13 @@ export async function GET(
     });
 
     if (mediaRequest && mediaRequest.status === "COMPLETED" && mediaRequest.data) {
+      const isPdf = (mediaRequest.filename && mediaRequest.filename.toLowerCase().endsWith('.pdf')) || mediaRequest.mimetype?.includes('pdf') || mediaRequest.data.startsWith('JVBERi0');
+      const mimetype = mediaRequest.mimetype || (isPdf ? 'application/pdf' : 'image/jpeg');
+      const filename = mediaRequest.filename || (isPdf ? 'documento.pdf' : 'archivo');
       const res = NextResponse.json({
-        mimetype: mediaRequest.mimetype || "image/jpeg",
+        mimetype,
         data: mediaRequest.data,
-        filename: mediaRequest.filename || "archivo"
+        filename
       });
       res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       res.headers.set('Pragma', 'no-cache');
@@ -150,10 +166,13 @@ export async function GET(
 
     // 3. If successfully completed by whatsapp-service, return the FULL HIGH-RESOLUTION file!
     if (mediaRequest && mediaRequest.status === "COMPLETED" && mediaRequest.data) {
+      const isPdf = (mediaRequest.filename && mediaRequest.filename.toLowerCase().endsWith('.pdf')) || mediaRequest.mimetype?.includes('pdf') || mediaRequest.data.startsWith('JVBERi0');
+      const mimetype = mediaRequest.mimetype || (isPdf ? 'application/pdf' : 'image/jpeg');
+      const filename = mediaRequest.filename || (isPdf ? 'documento.pdf' : 'archivo');
       const res = NextResponse.json({
-        mimetype: mediaRequest.mimetype || "image/jpeg",
+        mimetype,
         data: mediaRequest.data,
-        filename: mediaRequest.filename || "archivo"
+        filename
       });
       res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       res.headers.set('Pragma', 'no-cache');

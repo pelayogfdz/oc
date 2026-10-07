@@ -27,9 +27,10 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
   const [downloadedMedia, setDownloadedMedia] = useState<Record<string, { data: string; mimetype: string; filename: string }>>({});
   const [loadingMedia, setLoadingMedia] = useState<Record<string, boolean>>({});
   const [previewModalImage, setPreviewModalImage] = useState<string | null>(null);
+  const [previewModalPdf, setPreviewModalPdf] = useState<{ url: string; filename: string; rawData?: string } | null>(null);
 
   const parseMediaMsg = (body: string) => {
-    if (!body) return { isMedia: false, type: "", caption: "", filename: "", base64Data: "" };
+    if (!body) return { isMedia: false, type: "", caption: "", filename: "", base64Data: "", isPdf: false };
 
     let raw = body.trim();
     let type = "";
@@ -37,7 +38,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
     let isMedia = false;
     let filename = "";
 
-    // 1. Check for standard tags: 📎 [Tipo], 📷 [Tipo], 🖼️ [Tipo], 📄 [Tipo], etc.
+    // 1. Check for standard tags: 📎 [Tipo: filename], 📷 [Tipo], 🖼️ [Tipo], 📄 [Tipo], etc.
     const tagMatch = raw.match(/^(?:📎|📷|🖼️|📄|🎥|🎵|📇)?\s*\[(Imagen|Video|Audio|Documento|Archivo|Sticker|Nota de voz)(?::\s*([^\]]*))?\](?::?\s*([\s\S]*))?$/i);
 
     if (tagMatch) {
@@ -70,36 +71,57 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
     let cleanCaption = rest;
 
     const textToCheck = rest || raw;
-    const dataUriMatch = textToCheck.match(/data:image\/[a-zA-Z0-9+.-]+;base64,([A-Za-z0-9+/=]{40,})/);
+    const dataUriMatch = textToCheck.match(/data:([a-zA-Z0-9/+-]+);base64,([A-Za-z0-9+/=]{40,})/);
     if (dataUriMatch) {
       isMedia = true;
-      if (!type) type = 'Imagen';
-      base64Data = dataUriMatch[1];
+      const mime = dataUriMatch[1];
+      if (!type) {
+        type = mime.includes('pdf') ? 'Documento' : mime.startsWith('image/') ? 'Imagen' : mime.startsWith('video/') ? 'Video' : mime.startsWith('audio/') ? 'Audio' : 'Archivo';
+      }
+      base64Data = dataUriMatch[2];
       cleanCaption = cleanCaption.replace(dataUriMatch[0], '').trim();
     } else {
-      const b64Match = textToCheck.match(/(\/9j\/[A-Za-z0-9+/=]{40,}|iVBORw0KGgo[A-Za-z0-9+/=]{40,}|[A-Za-z0-9+/]{100,}={0,2})/);
+      const b64Match = textToCheck.match(/(JVBERi0[A-Za-z0-9+/=]{40,}|\/9j\/[A-Za-z0-9+/=]{40,}|iVBORw0KGgo[A-Za-z0-9+/=]{40,}|[A-Za-z0-9+/]{100,}={0,2})/);
       if (b64Match) {
         isMedia = true;
-        if (!type) type = 'Imagen';
-        base64Data = b64Match[1];
+        const b64 = b64Match[1];
+        if (!type) {
+          if (b64.startsWith('JVBERi0')) type = 'Documento';
+          else if (b64.startsWith('/9j/') || b64.startsWith('iVBORw')) type = 'Imagen';
+          else type = 'Archivo';
+        }
+        base64Data = b64;
         cleanCaption = cleanCaption.replace(b64Match[0], '').trim();
       }
     }
 
     if (cleanCaption.startsWith(':')) cleanCaption = cleanCaption.substring(1).trim();
+
+    // If rest text looks like a filename (e.g. "cotizacion.pdf") and filename was empty
+    if (!filename && cleanCaption && /^[a-zA-Z0-9_\-\s()]+\.[a-zA-Z0-9]{2,5}$/.test(cleanCaption)) {
+      filename = cleanCaption;
+      cleanCaption = "";
+    }
+
     if (cleanCaption === filename) cleanCaption = "";
 
+    const isPdf = (type && type.toLowerCase() === 'documento') || (filename && filename.toLowerCase().endsWith('.pdf')) || (base64Data ? base64Data.startsWith('JVBERi0') : false);
+
     if (isMedia) {
+      if (!filename) {
+        filename = isPdf ? 'documento.pdf' : (type === 'Imagen' ? 'imagen.jpg' : 'archivo');
+      }
       return {
         isMedia: true,
-        type: type || "Archivo",
+        type: type || (isPdf ? "Documento" : "Archivo"),
         caption: cleanCaption,
-        filename: filename || (type === "Imagen" ? "imagen.jpg" : "archivo"),
-        base64Data
+        filename,
+        base64Data,
+        isPdf
       };
     }
 
-    return { isMedia: false, type: "", caption: "", filename: "", base64Data: "" };
+    return { isMedia: false, type: "", caption: "", filename: "", base64Data: "", isPdf: false };
   };
 
   const formatChatDisplayBody = (body: string) => {
@@ -166,14 +188,38 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
     return filename;
   };
 
-  const handleDownloadMedia = async (messageId: string, filename: string, directBase64?: string, directMime?: string) => {
+  // Helper to trigger direct file download from base64
+  const triggerBrowserDownload = (base64Data: string, filename: string, mimetype: string) => {
+    let cleanB64 = base64Data;
+    if (cleanB64.includes(';base64,')) {
+      cleanB64 = cleanB64.split(';base64,')[1];
+    }
+    const byteCharacters = atob(cleanB64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: mimetype });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = ensureExtension(filename || 'archivo', mimetype);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  // Handler to view media (opens PDF in viewer/modal or image in lightbox)
+  const handleViewMedia = async (messageId: string, filename: string, directBase64?: string, directMime?: string) => {
     if (!messageId && !directBase64) return;
 
-    // 1. If already downloaded in high resolution (in downloadedMedia), download instantly
-    if (messageId && downloadedMedia[messageId]?.data) {
-      const media = downloadedMedia[messageId];
+    const isPdfFile = filename.toLowerCase().endsWith('.pdf') || directMime?.includes('pdf');
+
+    const openBlobPreview = (data: string, mimetype: string, fname: string) => {
       try {
-        let cleanB64 = media.data;
+        let cleanB64 = data;
         if (cleanB64.includes(';base64,')) {
           cleanB64 = cleanB64.split(';base64,')[1];
         }
@@ -183,16 +229,82 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
           byteNumbers[i] = byteCharacters.charCodeAt(i);
         }
         const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: media.mimetype });
-        
+        const blob = new Blob([byteArray], { type: mimetype });
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = ensureExtension(media.filename || filename || 'archivo', media.mimetype);
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+        
+        if (mimetype.startsWith('image/')) {
+          setPreviewModalImage(url);
+        } else if (mimetype.includes('pdf') || fname.toLowerCase().endsWith('.pdf')) {
+          setPreviewModalPdf({ url, filename: fname, rawData: cleanB64 });
+        } else {
+          window.open(url, '_blank');
+        }
+      } catch (err) {
+        console.error("Error opening media blob:", err);
+      }
+    };
+
+    // 1. If already downloaded in memory
+    if (messageId && downloadedMedia[messageId]?.data) {
+      const media = downloadedMedia[messageId];
+      openBlobPreview(media.data, media.mimetype || directMime || (isPdfFile ? 'application/pdf' : 'application/octet-stream'), media.filename || filename);
+      return;
+    }
+
+    // 2. Fetch from server
+    if (messageId) {
+      if (loadingMedia[messageId]) return;
+      setLoadingMedia(prev => ({ ...prev, [messageId]: true }));
+      try {
+        const response = await fetch(`/api/whatsapp/media/${encodeURIComponent(messageId)}?t=${Date.now()}`);
+        if (!response.ok) {
+          const errJson = await response.json().catch(() => null);
+          throw new Error(errJson?.error || "Failed to download media");
+        }
+        const media = await response.json();
+        if (media.error) throw new Error(media.error);
+
+        const mime = media.mimetype || directMime || (isPdfFile ? 'application/pdf' : 'application/octet-stream');
+        const fname = ensureExtension(media.filename || filename || 'archivo', mime);
+
+        const fileToSave = {
+          data: media.data,
+          mimetype: mime,
+          filename: fname
+        };
+
+        setDownloadedMedia(prev => ({
+          ...prev,
+          [messageId]: fileToSave
+        }));
+
+        openBlobPreview(fileToSave.data, fileToSave.mimetype, fileToSave.filename);
+        return;
+      } catch (error: any) {
+        console.warn("Could not download media from server:", error);
+      } finally {
+        setLoadingMedia(prev => ({ ...prev, [messageId]: false }));
+      }
+    }
+
+    // 3. Fallback: if we have directBase64
+    if (directBase64) {
+      const mime = directMime || (isPdfFile ? 'application/pdf' : 'image/jpeg');
+      openBlobPreview(directBase64, mime, filename);
+    }
+  };
+
+  const handleDownloadMedia = async (messageId: string, filename: string, directBase64?: string, directMime?: string) => {
+    if (!messageId && !directBase64) return;
+
+    const isPdfFile = filename.toLowerCase().endsWith('.pdf') || directMime?.includes('pdf');
+    const defaultMime = isPdfFile ? 'application/pdf' : 'image/jpeg';
+
+    // 1. If already downloaded in high resolution (in downloadedMedia), download instantly
+    if (messageId && downloadedMedia[messageId]?.data) {
+      const media = downloadedMedia[messageId];
+      try {
+        triggerBrowserDownload(media.data, media.filename || filename, media.mimetype || defaultMime);
         return;
       } catch (err: any) {
         console.error("Local download failed:", err);
@@ -214,10 +326,11 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
           throw new Error(media.error);
         }
         
+        const mime = media.mimetype || directMime || defaultMime;
         const fileToSave = {
           data: media.data,
-          mimetype: media.mimetype || 'application/octet-stream',
-          filename: ensureExtension(media.filename || filename || 'archivo', media.mimetype || 'application/octet-stream')
+          mimetype: mime,
+          filename: ensureExtension(media.filename || filename || 'archivo', mime)
         };
 
         setDownloadedMedia(prev => ({
@@ -225,26 +338,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
           [messageId]: fileToSave
         }));
 
-        let cleanB64 = media.data;
-        if (cleanB64.includes(';base64,')) {
-          cleanB64 = cleanB64.split(';base64,')[1];
-        }
-        const byteCharacters = atob(cleanB64);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: fileToSave.mimetype });
-        
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileToSave.filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+        triggerBrowserDownload(fileToSave.data, fileToSave.filename, fileToSave.mimetype);
         return;
       } catch (error: any) {
         console.warn("Could not download high-res from server, checking fallback:", error);
@@ -256,26 +350,8 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
     // 3. Fallback: If server fetch failed and we have directBase64 (thumbnail), save thumbnail as fallback
     if (directBase64) {
       try {
-        let cleanB64 = directBase64;
-        if (cleanB64.includes(';base64,')) {
-          cleanB64 = cleanB64.split(';base64,')[1];
-        }
-        const byteCharacters = atob(cleanB64);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: directMime || 'image/jpeg' });
-        
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = ensureExtension(filename || 'imagen', directMime || 'image/jpeg');
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+        const mime = directMime || defaultMime;
+        triggerBrowserDownload(directBase64, filename, mime);
       } catch (e) {}
     }
   };
@@ -556,7 +632,8 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
     
     let bodyText = messageText;
     if (attachment) {
-      const mediaTag = attachment.type.startsWith('image/') ? '📎 [Imagen]' : '📎 [Archivo]';
+      const isPdf = attachment.type.includes('pdf') || attachment.name.toLowerCase().endsWith('.pdf');
+      const mediaTag = isPdf ? `📎 [Documento: ${attachment.name}]` : attachment.type.startsWith('image/') ? '📎 [Imagen]' : `📎 [Archivo: ${attachment.name}]`;
       bodyText = mediaTag + (messageText.trim() ? ": " + messageText.trim() : "");
     }
 
@@ -832,41 +909,62 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
                       const isLoading = !!loadingMedia[msg.messageId || msg.id];
                       const mediaData = downloadedMedia[msg.messageId || msg.id];
 
-                      const directBase64 = mediaInfo.base64Data || (mediaData?.mimetype?.startsWith('image/') ? mediaData.data : undefined);
+                      const directBase64 = mediaInfo.base64Data || (mediaData ? mediaData.data : undefined);
                       const isImage = mediaInfo.type === "Imagen" || (mediaData && mediaData.mimetype.startsWith('image/')) || !!mediaInfo.base64Data;
                       const imgSrc = mediaData ? `data:${mediaData.mimetype};base64,${mediaData.data}` : (mediaInfo.base64Data ? (mediaInfo.base64Data.startsWith('data:') ? mediaInfo.base64Data : `data:image/jpeg;base64,${mediaInfo.base64Data}`) : null);
+                      const isPdf = mediaInfo.isPdf || mediaInfo.type === "Documento" || mediaInfo.filename.toLowerCase().endsWith('.pdf') || (mediaData && mediaData.mimetype === 'application/pdf');
 
                       let mediaEmoji = "📎";
                       if (isImage) mediaEmoji = "🖼️";
                       else if (mediaInfo.type === "Video") mediaEmoji = "🎥";
                       else if (mediaInfo.type === "Audio") mediaEmoji = "🎵";
+                      else if (isPdf) mediaEmoji = "📄";
                       else if (mediaInfo.type === "Documento") mediaEmoji = "📄";
 
                       return (
                         <div 
                           style={{
-                            border: '1px solid #cbd5e1',
-                            borderRadius: '8px',
+                            border: isPdf ? '1px solid #fca5a5' : '1px solid #cbd5e1',
+                            borderRadius: '10px',
                             overflow: 'hidden',
-                            backgroundColor: '#f8fafc',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                            backgroundColor: isPdf ? '#fff8f8' : '#f8fafc',
+                            boxShadow: '0 2px 5px rgba(0,0,0,0.06)',
                             marginTop: '0.25rem',
                             width: '100%',
-                            minWidth: '240px',
-                            maxWidth: '280px',
+                            minWidth: '250px',
+                            maxWidth: '300px',
                             display: 'flex',
                             flexDirection: 'column',
                             transition: 'all 0.2s ease-in-out'
                           }}
                         >
                           <div style={{ padding: '0.65rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.65rem', borderBottom: (imgSrc || mediaInfo.caption) ? '1px solid #e2e8f0' : 'none' }}>
-                            <span style={{ fontSize: '1.5rem' }}>{mediaEmoji}</span>
+                            {isPdf ? (
+                              <div style={{
+                                width: '38px',
+                                height: '38px',
+                                borderRadius: '6px',
+                                backgroundColor: '#ef4444',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'white',
+                                fontWeight: 'bold',
+                                fontSize: '0.75rem',
+                                flexShrink: 0,
+                                boxShadow: '0 2px 4px rgba(239,68,68,0.3)'
+                              }}>
+                                PDF
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: '1.5rem' }}>{mediaEmoji}</span>
+                            )}
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                              <span style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {mediaInfo.filename ? mediaInfo.filename : `${mediaInfo.type} de WhatsApp`}
+                              <span style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={mediaInfo.filename}>
+                                {mediaInfo.filename ? mediaInfo.filename : (isPdf ? 'Documento.pdf' : `${mediaInfo.type} de WhatsApp`)}
                               </span>
                               <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                                {isLoading ? '⏳ Descargando...' : (isDownloaded || directBase64) ? '✅ Disponible para guardar' : '📥 Click para guardar en PC'}
+                                {isLoading ? '⏳ Descargando de WhatsApp...' : isPdf ? 'Documento PDF' : (isDownloaded || directBase64) ? '✅ Listo para ver/guardar' : '📥 Archivo multimedia'}
                               </span>
                             </div>
                           </div>
@@ -874,7 +972,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
                           {/* Render Image Thumbnail directly if available */}
                           {imgSrc && (
                             <div 
-                              onClick={() => setPreviewModalImage(imgSrc)}
+                              onClick={() => handleViewMedia(msg.messageId || msg.id, mediaInfo.filename || 'imagen.jpg', directBase64, 'image/jpeg')}
                               style={{ 
                                 width: '100%', 
                                 maxHeight: '220px', 
@@ -882,12 +980,12 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
                                 borderBottom: mediaInfo.caption ? '1px solid #e2e8f0' : 'none', 
                                 display: 'flex', 
                                 justifyContent: 'center', 
-                                alignItems: 'center',
+                                alignItems: 'center', 
                                 backgroundColor: '#0f172a',
                                 cursor: 'zoom-in',
                                 position: 'relative'
                               }}
-                              title="Click para ver en tamaño grande"
+                              title="Click para ver en pantalla grande"
                             >
                               <img 
                                 src={imgSrc} 
@@ -898,7 +996,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
                                 position: 'absolute',
                                 bottom: '6px',
                                 right: '6px',
-                                backgroundColor: 'rgba(0,0,0,0.6)',
+                                backgroundColor: 'rgba(0,0,0,0.7)',
                                 color: 'white',
                                 borderRadius: '4px',
                                 padding: '2px 6px',
@@ -907,7 +1005,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
                                 alignItems: 'center',
                                 gap: '3px'
                               }}>
-                                🔍 Ver
+                                🔍 Ver HD
                               </div>
                             </div>
                           )}
@@ -918,47 +1016,79 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
                             </div>
                           )}
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!isLoading) {
-                                handleDownloadMedia(
-                                  msg.messageId || msg.id, 
-                                  mediaInfo.filename || mediaInfo.type.toLowerCase(),
-                                  directBase64,
-                                  isImage ? 'image/jpeg' : undefined
-                                );
-                              }
-                            }}
-                            disabled={isLoading}
-                            style={{
-                              padding: '0.5rem',
-                              fontSize: '0.8rem',
-                              fontWeight: 'bold',
-                              color: isLoading ? '#94a3b8' : (isDownloaded || directBase64) ? '#16a34a' : '#2563eb',
-                              textAlign: 'center',
-                              width: '100%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '0.35rem',
-                              backgroundColor: '#f1f5f9',
-                              border: 'none',
-                              borderTop: (!imgSrc && !mediaInfo.caption) ? '1px solid #e2e8f0' : 'none',
-                              cursor: isLoading ? 'default' : 'pointer',
-                              transition: 'background-color 0.2s'
-                            }}
-                            onMouseEnter={e => { if (!isLoading) e.currentTarget.style.backgroundColor = '#e2e8f0'; }}
-                            onMouseLeave={e => { if (!isLoading) e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
-                          >
-                            {isLoading ? (
-                              <span>⏳ Descargando...</span>
-                            ) : (isDownloaded || directBase64) ? (
-                              <span>💾 Guardar en PC</span>
-                            ) : (
-                              <span>📥 Descargar y Guardar</span>
-                            )}
-                          </button>
+                          {/* Action Buttons: Dual Ver & Guardar for PDF and documents */}
+                          <div style={{ display: 'flex', borderTop: (!imgSrc && !mediaInfo.caption) ? '1px solid #e2e8f0' : 'none', backgroundColor: '#f1f5f9' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!isLoading) {
+                                  handleViewMedia(
+                                    msg.messageId || msg.id, 
+                                    mediaInfo.filename || (isPdf ? 'documento.pdf' : mediaInfo.type.toLowerCase()),
+                                    directBase64,
+                                    isPdf ? 'application/pdf' : (isImage ? 'image/jpeg' : undefined)
+                                  );
+                                }
+                              }}
+                              disabled={isLoading}
+                              style={{
+                                flex: 1,
+                                padding: '0.55rem 0.4rem',
+                                fontSize: '0.78rem',
+                                fontWeight: 'bold',
+                                color: isLoading ? '#94a3b8' : '#2563eb',
+                                textAlign: 'center',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.25rem',
+                                backgroundColor: 'transparent',
+                                border: 'none',
+                                borderRight: '1px solid #cbd5e1',
+                                cursor: isLoading ? 'default' : 'pointer',
+                                transition: 'background-color 0.2s'
+                              }}
+                              onMouseEnter={e => { if (!isLoading) e.currentTarget.style.backgroundColor = '#e2e8f0'; }}
+                              onMouseLeave={e => { if (!isLoading) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                            >
+                              👁️ Ver {isPdf ? 'PDF' : isImage ? 'HD' : 'archivo'}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!isLoading) {
+                                  handleDownloadMedia(
+                                    msg.messageId || msg.id, 
+                                    mediaInfo.filename || (isPdf ? 'documento.pdf' : mediaInfo.type.toLowerCase()),
+                                    directBase64,
+                                    isPdf ? 'application/pdf' : (isImage ? 'image/jpeg' : undefined)
+                                  );
+                                }
+                              }}
+                              disabled={isLoading}
+                              style={{
+                                flex: 1,
+                                padding: '0.55rem 0.4rem',
+                                fontSize: '0.78rem',
+                                fontWeight: 'bold',
+                                color: isLoading ? '#94a3b8' : '#16a34a',
+                                textAlign: 'center',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.25rem',
+                                backgroundColor: 'transparent',
+                                border: 'none',
+                                cursor: isLoading ? 'default' : 'pointer',
+                                transition: 'background-color 0.2s'
+                              }}
+                              onMouseEnter={e => { if (!isLoading) e.currentTarget.style.backgroundColor = '#e2e8f0'; }}
+                              onMouseLeave={e => { if (!isLoading) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                            >
+                              📥 Guardar
+                            </button>
+                          </div>
                         </div>
                       );
                     })()
@@ -1485,7 +1615,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
             }}
           >
             <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <span style={{ color: '#f8fafc', fontWeight: 'bold', fontSize: '0.9rem' }}>🖼️ Vista Previa de Imagen</span>
+              <span style={{ color: '#f8fafc', fontWeight: 'bold', fontSize: '0.9rem' }}>🖼️ Vista Previa de Imagen (HD)</span>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button
                   type="button"
@@ -1493,7 +1623,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
                     handleDownloadMedia("", "imagen_whatsapp.jpg", previewModalImage, "image/jpeg");
                   }}
                   style={{
-                    backgroundColor: '#3b82f6',
+                    backgroundColor: '#16a34a',
                     color: 'white',
                     border: 'none',
                     borderRadius: '6px',
@@ -1540,6 +1670,125 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
                 borderRadius: '8px'
               }}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Full-Screen PDF Viewer Modal */}
+      {previewModalPdf && (
+        <div 
+          onClick={() => setPreviewModalPdf(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            backdropFilter: 'blur(4px)'
+          }}
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '95vw',
+              maxWidth: '1100px',
+              height: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              backgroundColor: '#1e293b',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+            }}
+          >
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              padding: '0.75rem 1.25rem', 
+              backgroundColor: '#0f172a', 
+              borderBottom: '1px solid #334155' 
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: 0 }}>
+                <span style={{ fontSize: '1.25rem' }}>📄</span>
+                <span style={{ color: '#f8fafc', fontWeight: 'bold', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {previewModalPdf.filename}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleDownloadMedia("", previewModalPdf.filename, previewModalPdf.rawData, "application/pdf");
+                  }}
+                  style={{
+                    backgroundColor: '#16a34a',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '0.4rem 0.85rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem'
+                  }}
+                >
+                  📥 Guardar en PC
+                </button>
+                <a
+                  href={previewModalPdf.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    backgroundColor: '#2563eb',
+                    color: 'white',
+                    borderRadius: '6px',
+                    padding: '0.4rem 0.85rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 'bold',
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem'
+                  }}
+                >
+                  ↗️ Pestaña Nueva
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewModalPdf(null)}
+                  style={{
+                    backgroundColor: '#334155',
+                    color: '#f8fafc',
+                    border: 'none',
+                    borderRadius: '6px',
+                    width: '32px',
+                    height: '32px',
+                    fontSize: '1rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div style={{ flex: 1, width: '100%', height: '100%', backgroundColor: '#525659' }}>
+              <iframe 
+                src={previewModalPdf.url} 
+                title={previewModalPdf.filename}
+                style={{ width: '100%', height: '100%', border: 'none' }}
+              />
+            </div>
           </div>
         </div>
       )}

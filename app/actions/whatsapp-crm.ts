@@ -21,24 +21,51 @@ export async function getRecentQuotes(tenantId: string) {
 
 export async function searchCustomers(query: string, tenantId: string) {
   if (!tenantId) return [];
+  const cleanQuery = (query || "").trim();
+  if (!cleanQuery) {
+    return await prisma.customer.findMany({
+      where: { 
+        branch: { tenantId } 
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 15
+    });
+  }
   return await prisma.customer.findMany({
     where: {
       branch: { tenantId },
-      name: {
-        contains: query,
-        mode: 'insensitive'
-      }
+      OR: [
+        { name: { contains: cleanQuery, mode: 'insensitive' } },
+        { legalName: { contains: cleanQuery, mode: 'insensitive' } },
+        { taxId: { contains: cleanQuery, mode: 'insensitive' } },
+        { phone: { contains: cleanQuery, mode: 'insensitive' } },
+        { email: { contains: cleanQuery, mode: 'insensitive' } },
+      ]
     },
-    take: 5
+    orderBy: { updatedAt: 'desc' },
+    take: 15
   });
 }
 
-export async function assignCustomerToProspect(prospectId: string, customerId: string) {
-  await prisma.prospect.update({
-    where: { id: prospectId },
-    data: { customerId }
-  });
-  revalidatePath('/ventas/whatsapp');
-  revalidatePath(`/ventas/prospeccion`);
-  return { success: true };
+export async function assignCustomerToProspect(prospectId: string, customerId: string | null) {
+  try {
+    const updated = await prisma.prospect.update({
+      where: { id: prospectId },
+      data: { customerId: customerId || null },
+      include: {
+        customer: true,
+        assignedUser: true
+      }
+    });
+    try {
+      revalidatePath('/ventas/whatsapp');
+      revalidatePath(`/ventas/prospeccion`);
+    } catch (revErr) {
+      console.warn("revalidatePath warning:", revErr);
+    }
+    return { success: true, prospect: updated };
+  } catch (error: any) {
+    console.error("Error in assignCustomerToProspect:", error);
+    return { success: false, error: error?.message || "Error al asignar cliente" };
+  }
 }

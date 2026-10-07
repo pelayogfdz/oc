@@ -947,6 +947,8 @@ async function saveWhatsAppMessage(branchId, client, msg, fallbackContactName = 
             try {
                 const media = await downloadMediaForMessage(client, msg.id._serialized, otherPartyJid);
                 if (media && media.data) {
+                    const mime = media.mimetype || (msg.type === 'document' ? 'application/pdf' : 'image/jpeg');
+                    const fname = media.filename || msg.filename || (mime.includes('pdf') ? 'documento.pdf' : 'archivo');
                     for (const targetDb of targetClients) {
                         try {
                             await targetDb.whatsAppMediaRequest.upsert({
@@ -954,14 +956,14 @@ async function saveWhatsAppMessage(branchId, client, msg, fallbackContactName = 
                                 create: {
                                     messageId: msg.id._serialized,
                                     status: 'COMPLETED',
-                                    mimetype: media.mimetype || 'image/jpeg',
-                                    filename: media.filename || 'archivo',
+                                    mimetype: mime,
+                                    filename: fname,
                                     data: media.data
                                 },
                                 update: {
                                     status: 'COMPLETED',
-                                    mimetype: media.mimetype || 'image/jpeg',
-                                    filename: media.filename || 'archivo',
+                                    mimetype: mime,
+                                    filename: fname,
                                     data: media.data
                                 }
                             });
@@ -1791,8 +1793,38 @@ app.post('/api/send', async (req, res) => {
                     mediaTag = '📎 [Video]';
                 } else if (media.mimetype.startsWith('audio/')) {
                     mediaTag = '📎 [Audio]';
+                } else if (media.mimetype === 'application/pdf' || (media.filename && media.filename.toLowerCase().endsWith('.pdf'))) {
+                    mediaTag = media.filename ? `📎 [Documento: ${media.filename}]` : '📎 [Documento]';
+                } else if (media.filename) {
+                    mediaTag = `📎 [Documento: ${media.filename}]`;
                 }
                 bodyText = mediaTag + (message ? ": " + message : "");
+            }
+
+            // If media was sent, save it to WhatsAppMediaRequest so it can be viewed/downloaded instantly
+            if (media && media.data && media.mimetype) {
+                let cleanData = media.data;
+                if (cleanData.includes(';base64,')) cleanData = cleanData.split(';base64,')[1];
+                for (const { client: anyDb } of allDbs) {
+                    try {
+                        await anyDb.whatsAppMediaRequest.upsert({
+                            where: { messageId: messageIdSerialized },
+                            create: {
+                                messageId: messageIdSerialized,
+                                status: 'COMPLETED',
+                                mimetype: media.mimetype,
+                                filename: media.filename || (media.mimetype === 'application/pdf' ? 'documento.pdf' : 'archivo'),
+                                data: cleanData
+                            },
+                            update: {
+                                status: 'COMPLETED',
+                                mimetype: media.mimetype,
+                                filename: media.filename || (media.mimetype === 'application/pdf' ? 'documento.pdf' : 'archivo'),
+                                data: cleanData
+                            }
+                        });
+                    } catch (e) {}
+                }
             }
 
             // 1. If explicit pendingMessageId is passed from Next.js, update it across ALL DBs immediately!
@@ -1927,10 +1959,20 @@ async function downloadMediaForMessage(client, activeMessageId, chatId) {
     }
 
     let media = null;
-    if (msg && msg.hasMedia) {
+    if (msg && (msg.hasMedia || msg.type === 'document' || msg.type === 'image' || msg.type === 'video' || msg.type === 'audio' || msg.type === 'ptt' || msg.type === 'sticker')) {
         try {
             media = await msg.downloadMedia();
         } catch (e) {}
+    }
+
+    // Enhance media metadata if available from message
+    if (media && media.data) {
+        if (!media.filename) {
+            media.filename = msg?.filename || msg?._data?.filename || (media.mimetype?.includes('pdf') ? 'documento.pdf' : (media.mimetype?.startsWith('image/') ? 'imagen.jpg' : 'archivo'));
+        }
+        if (!media.mimetype) {
+            media.mimetype = msg?.mimetype || msg?._data?.mimetype || (media.filename?.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream');
+        }
     }
 
     // Fallback: evaluate in Puppeteer page to search Store and download directly
@@ -1956,11 +1998,25 @@ async function downloadMediaForMessage(client, activeMessageId, chatId) {
                         } catch (e) {}
                     }
 
-                    const bodyData = m.body || m._data?.body;
-                    const mimetype = m.mimetype || m._data?.mimetype || 'image/jpeg';
-                    const filename = m.filename || m._data?.filename || 'imagen.jpg';
+                    let bodyData = m.body || m._data?.body;
+                    let mimetype = m.mimetype || m._data?.mimetype;
+                    let filename = m.filename || m._data?.filename;
 
-                    if (bodyData && (bodyData.startsWith('/9j/') || bodyData.startsWith('data:image/') || bodyData.length > 50)) {
+                    if (!mimetype) {
+                        if (m.type === 'document' || (filename && filename.toLowerCase().endsWith('.pdf'))) {
+                            mimetype = 'application/pdf';
+                        } else if (m.type === 'image') {
+                            mimetype = 'image/jpeg';
+                        } else {
+                            mimetype = 'application/octet-stream';
+                        }
+                    }
+
+                    if (!filename) {
+                        filename = mimetype.includes('pdf') ? 'documento.pdf' : (mimetype.startsWith('image/') ? 'imagen.jpg' : 'archivo');
+                    }
+
+                    if (bodyData && (bodyData.startsWith('/9j/') || bodyData.startsWith('JVBERi0') || bodyData.startsWith('data:') || bodyData.length > 50)) {
                         let cleanData = bodyData;
                         if (cleanData.includes(';base64,')) {
                             cleanData = cleanData.split(';base64,')[1];

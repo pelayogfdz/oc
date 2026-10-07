@@ -1566,5 +1566,93 @@ export async function syncMeliPriceToPriceList(
   }
 }
 
+export async function saveUberEatsConfig(formData: FormData) {
+  const branch = await getActiveBranch();
+  const appId = (formData.get('appId') as string || '').trim();
+  const clientSecret = (formData.get('clientSecret') as string || '').trim();
+  const storeId = (formData.get('storeId') as string || '').trim();
+  const isSandbox = formData.get('isSandbox') === 'true';
+  const autoAcceptOrders = formData.get('autoAcceptOrders') !== 'false';
+  const autoSyncStock = formData.get('autoSyncStock') !== 'false';
 
+  if (!appId || !clientSecret) {
+    throw new Error('El Client ID y Client Secret de Uber Eats son obligatorios.');
+  }
 
+  const existing = await prisma.storeIntegration.findUnique({
+    where: { branchId_platform: { branchId: branch.id, platform: 'UBER_EATS' } }
+  });
+
+  const metadataObj = {
+    storeId,
+    isSandbox,
+    autoAcceptOrders,
+    autoSyncStock,
+    updatedAt: new Date().toISOString()
+  };
+
+  if (existing) {
+    await prisma.storeIntegration.update({
+      where: { id: existing.id },
+      data: {
+        appId,
+        clientSecret,
+        accessToken: storeId,
+        isActive: true,
+        metadata: JSON.stringify(metadataObj)
+      }
+    });
+  } else {
+    await prisma.storeIntegration.create({
+      data: {
+        branchId: branch.id,
+        platform: 'UBER_EATS',
+        appId,
+        clientSecret,
+        accessToken: storeId,
+        isActive: true,
+        metadata: JSON.stringify(metadataObj)
+      }
+    });
+  }
+
+  revalidatePath('/integraciones');
+  revalidatePath('/integraciones/ubereats');
+}
+
+export async function mapProductToUberEats(productId: string, externalId: string) {
+  if (!productId || !externalId) {
+    throw new Error('Producto e ID externo requeridos');
+  }
+
+  await prisma.externalProductMap.upsert({
+    where: {
+      platform_externalId: {
+        platform: 'UBER_EATS',
+        externalId: externalId.trim()
+      }
+    },
+    create: {
+      productId,
+      platform: 'UBER_EATS',
+      externalId: externalId.trim(),
+      syncStatus: 'SYNCED',
+      lastSync: new Date()
+    },
+    update: {
+      productId,
+      syncStatus: 'SYNCED',
+      lastSync: new Date()
+    }
+  });
+
+  revalidatePath('/integraciones/ubereats');
+}
+
+export async function unmapProductFromUberEats(mapId: string) {
+  await prisma.externalProductMap.delete({
+    where: { id: mapId }
+  });
+
+  revalidatePath('/integraciones/ubereats');
+}

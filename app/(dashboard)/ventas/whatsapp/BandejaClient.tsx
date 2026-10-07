@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import ChatInterface from "../prospeccion/chat/[id]/ChatInterface";
 import { getRecentQuotes, searchCustomers, assignCustomerToProspect } from "@/app/actions/whatsapp-crm";
 import { formatCurrency } from "@/lib/utils";
+import toast from "react-hot-toast";
 
 const officeCityLocations = [
   { name: "Corporativo Matriz (Guadalajara)", coords: "20.6766,-103.3475", desc: "Av. de las Américas 1500, Country Club, GDL" },
@@ -468,6 +469,8 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
   const [searchedCustomers, setSearchedCustomers] = useState<any[]>([]);
+  const [isSearchingCustomers, setIsSearchingCustomers] = useState(false);
+  const [linkingCustomerId, setLinkingCustomerId] = useState<string | null>(null);
 
   const handleCreateChat = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -510,6 +513,16 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
     }
     setIsEditingName(false);
   }, [selectedProspectId, selectedProspect]);
+
+  useEffect(() => {
+    if (showCustomerModal) {
+      if (customers && customers.length > 0 && searchedCustomers.length === 0) {
+        setSearchedCustomers(customers.slice(0, 15));
+      } else {
+        handleSearchCustomer(undefined, "");
+      }
+    }
+  }, [showCustomerModal]);
 
   const handleAssign = async (prospectId: string, userId: string) => {
     const finalUserId = userId === "" ? null : userId;
@@ -586,23 +599,72 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
     }
   };
 
-  const handleSearchCustomer = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearchCustomer = async (e?: React.FormEvent, customQuery?: string) => {
+    if (e) e.preventDefault();
     if (!selectedProspect) return;
-    const data = await searchCustomers(customerSearch, currentUser?.tenantId || "");
-    setSearchedCustomers(data);
+    const query = customQuery !== undefined ? customQuery : customerSearch;
+    setIsSearchingCustomers(true);
+    try {
+      const data = await searchCustomers(query, currentUser?.tenantId || "");
+      setSearchedCustomers(data || []);
+    } catch (err) {
+      console.error("Error al buscar clientes:", err);
+    } finally {
+      setIsSearchingCustomers(false);
+    }
   };
 
   const handleAssignCustomer = async (customerId: string) => {
-    if (!selectedProspect) return;
-    await assignCustomerToProspect(selectedProspect.id, customerId);
-    const matchedCustomer = customers.find((c: any) => c.id === customerId) || searchedCustomers.find((c: any) => c.id === customerId);
-    setProspects((prev: any) =>
-      prev.map((p: any) => p.id === selectedProspect.id ? { ...p, customerId, customer: matchedCustomer } : p)
-    );
-    setShowCustomerModal(false);
-    alert("Cliente asignado exitosamente.");
-    router.refresh();
+    if (!selectedProspect || linkingCustomerId) return;
+    setLinkingCustomerId(customerId);
+    try {
+      let updatedProspectObj: any = null;
+      // 1. Try PATCH via API
+      try {
+        const res = await fetch(`/api/prospects/${selectedProspect.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ customerId })
+        });
+        if (res.ok) {
+          updatedProspectObj = await res.json();
+        }
+      } catch (patchErr) {
+        console.warn("PATCH API error, trying Server Action fallback:", patchErr);
+      }
+
+      // 2. Fallback to Server Action if needed
+      if (!updatedProspectObj) {
+        const actionRes = await assignCustomerToProspect(selectedProspect.id, customerId);
+        if (actionRes?.success && actionRes?.prospect) {
+          updatedProspectObj = actionRes.prospect;
+        } else if (!actionRes?.success) {
+          throw new Error(actionRes?.error || "Error al vincular cliente.");
+        }
+      }
+
+      const matchedCustomer = updatedProspectObj?.customer ||
+        searchedCustomers.find((c: any) => c.id === customerId) ||
+        customers.find((c: any) => c.id === customerId) ||
+        { id: customerId, name: "Cliente Vinculado" };
+
+      setProspects((prev: any) =>
+        prev.map((p: any) => p.id === selectedProspect.id ? { 
+          ...p, 
+          customerId, 
+          customer: matchedCustomer 
+        } : p)
+      );
+
+      setShowCustomerModal(false);
+      toast.success("Cliente vinculado exitosamente");
+      router.refresh();
+    } catch (e: any) {
+      console.error("Error al vincular cliente:", e);
+      alert(e?.message || "No se pudo vincular el cliente. Por favor verifica tu conexión e intenta de nuevo.");
+    } finally {
+      setLinkingCustomerId(null);
+    }
   };
 
   const handleSaveName = async () => {
@@ -1170,29 +1232,83 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
 
           {/* Customer Modal */}
           {showCustomerModal && (
-            <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', width: '90%', maxWidth: '500px', maxHeight: '80%', overflowY: 'auto' }}>
+            <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', width: '90%', maxWidth: '520px', maxHeight: '80%', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Asignar a Cliente Existente</h3>
-                <button onClick={() => setShowCustomerModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 'bold', color: '#0f172a' }}>Asignar a Cliente Existente</h3>
+                  <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Vincula este chat de WhatsApp con un cliente del catálogo</p>
+                </div>
+                <button onClick={() => setShowCustomerModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#94a3b8' }}>✕</button>
               </div>
               <form onSubmit={handleSearchCustomer} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-                <input type="text" value={customerSearch} onChange={e => setCustomerSearch(e.target.value)} placeholder="Buscar nombre de cliente..." style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-                <button type="submit" style={{ backgroundColor: '#0f172a', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer' }}>Buscar</button>
+                <input 
+                  type="text" 
+                  value={customerSearch} 
+                  onChange={e => setCustomerSearch(e.target.value)} 
+                  placeholder="Buscar por nombre, RFC o teléfono..." 
+                  style={{ flex: 1, padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }} 
+                />
+                <button 
+                  type="submit" 
+                  disabled={isSearchingCustomers}
+                  style={{ backgroundColor: '#0f172a', color: 'white', border: 'none', padding: '0.6rem 1.1rem', borderRadius: '8px', cursor: isSearchingCustomers ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '0.875rem' }}
+                >
+                  {isSearchingCustomers ? 'Buscando...' : 'Buscar'}
+                </button>
               </form>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {searchedCustomers.length === 0 ? <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Busca un cliente para asignarlo.</p> : searchedCustomers.map(c => (
-                  <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                    <div>
-                      <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{c.name}</div>
-                      <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{c.phone || c.email || 'Sin datos de contacto'}</div>
-                    </div>
-                    <button 
-                      onClick={() => handleAssignCustomer(c.id)}
-                      style={{ backgroundColor: '#16a34a', color: 'white', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem' }}>
-                      Vincular
-                    </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxHeight: '350px', overflowY: 'auto' }}>
+                {isSearchingCustomers ? (
+                  <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#64748b' }}>
+                    <div style={{ width: '20px', height: '20px', border: '2px solid #cbd5e1', borderTop: '2px solid #0f172a', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 0.5rem auto' }} />
+                    <span style={{ fontSize: '0.875rem' }}>Buscando clientes...</span>
                   </div>
-                ))}
+                ) : searchedCustomers.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#64748b', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                    <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 500 }}>No se encontraron clientes</p>
+                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>Prueba con otro término de búsqueda o RFC</p>
+                  </div>
+                ) : searchedCustomers.map(c => {
+                  const isCurrentLinked = selectedProspect?.customerId === c.id;
+                  const isLinkingThis = linkingCustomerId === c.id;
+                  return (
+                    <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', border: isCurrentLinked ? '2px solid #16a34a' : '1px solid #e2e8f0', backgroundColor: isCurrentLinked ? '#f0fdf4' : 'white', borderRadius: '8px' }}>
+                      <div style={{ flex: 1, marginRight: '0.5rem' }}>
+                        <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#0f172a' }}>{c.name || c.legalName || 'Sin Nombre'}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.2rem' }}>
+                          {c.phone && <span>📞 {c.phone}</span>}
+                          {c.taxId && <span>🆔 {c.taxId}</span>}
+                          {c.email && <span>✉️ {c.email}</span>}
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => handleAssignCustomer(c.id)}
+                        disabled={isLinkingThis || isCurrentLinked}
+                        style={{ 
+                          backgroundColor: isCurrentLinked ? '#64748b' : isLinkingThis ? '#86efac' : '#16a34a', 
+                          color: 'white', 
+                          border: 'none', 
+                          padding: '0.45rem 0.9rem', 
+                          borderRadius: '6px', 
+                          cursor: (isLinkingThis || isCurrentLinked) ? 'default' : 'pointer', 
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          minWidth: '85px',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        {isLinkingThis ? (
+                          <>
+                            <span style={{ width: '12px', height: '12px', border: '2px solid rgba(255,255,255,0.4)', borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite', display: 'inline-block' }} />
+                            <span>...</span>
+                          </>
+                        ) : isCurrentLinked ? 'Vinculado' : 'Vincular'}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

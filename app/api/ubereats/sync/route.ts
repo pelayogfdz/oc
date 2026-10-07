@@ -1,174 +1,199 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getActiveBranch, getActiveUser } from '@/app/actions/auth';
+import {
+  getUberEatsAccessToken,
+  getUberStoreMenu,
+  updateUberItemSuspension,
+  processUberEatsOrder
+} from '@/lib/uberEatsService';
 
-export async function POST(req: Request) {
+/**
+ * GET: Test connection and fetch live store status / menu stats
+ */
+export async function GET(req: Request) {
   try {
     const branch = await getActiveBranch();
     if (!branch) {
-      return NextResponse.json({ error: 'No autorizado. Sucursal no activa o no configurada.' }, { status: 401 });
-    }
-
-    let user;
-    try {
-      user = await getActiveUser();
-    } catch (e) {
-      // Fallback to a user from the branch or tenant if session cannot be resolved
-      user = await prisma.user.findFirst({
-        where: {
-          OR: [
-            { branchId: branch.id },
-            { tenantId: branch.tenantId }
-          ]
-        }
-      });
-    }
-
-    if (!user) {
-      return NextResponse.json({ error: 'No se encontró ningún usuario configurado en esta sucursal para asociar la venta.' }, { status: 400 });
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     const integration = await prisma.storeIntegration.findUnique({
       where: { branchId_platform: { branchId: branch.id, platform: 'UBER_EATS' } }
     });
 
-    if (!integration || !integration.clientSecret) {
+    if (!integration || !integration.appId || !integration.clientSecret) {
+      return NextResponse.json({
+        connected: false,
+        message: 'No hay credenciales de Uber Eats configuradas para esta sucursal.'
+      });
+    }
+
+    const meta = integration.metadata ? JSON.parse(integration.metadata) : {};
+    const isSandbox = Boolean(meta.isSandbox);
+    const storeId = meta.storeId || integration.accessToken;
+
+    try {
+      const token = await getUberEatsAccessToken(integration.appId, integration.clientSecret, isSandbox);
+      let storeMenuStats = null;
+
+      if (storeId) {
+        try {
+          const menu = await getUberStoreMenu(storeId, token, isSandbox);
+          storeMenuStats = {
+            categoriesCount: menu.categories?.length || 0,
+            itemsCount: menu.items?.length || 0
+          };
+        } catch (mErr: any) {
+          storeMenuStats = { error: mErr.message };
+        }
+      }
+
+      return NextResponse.json({
+        connected: true,
+        isSandbox,
+        storeId: storeId || 'No asignado',
+        tokenValid: true,
+        menuStats: storeMenuStats
+      });
+
+    } catch (authErr: any) {
+      return NextResponse.json({
+        connected: false,
+        error: authErr.message
+      }, { status: 400 });
+    }
+
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+/**
+ * POST: Force manual synchronization (Sync stock and process recent/simulated orders)
+ */
+export async function POST(req: Request) {
+  try {
+    const branch = await getActiveBranch();
+    if (!branch) {
+      return NextResponse.json({ error: 'No autorizado. Sucursal no activa.' }, { status: 401 });
+    }
+
+    let user;
+    try {
+      user = await getActiveUser();
+    } catch (e) {
+      user = await prisma.user.findFirst({
+        where: {
+          OR: [{ branchId: branch.id }, { tenantId: branch.tenantId }]
+        }
+      });
+    }
+
+    if (!user) {
+      return NextResponse.json({ error: 'No se encontró ningún usuario configurado.' }, { status: 400 });
+    }
+
+    const integration = await prisma.storeIntegration.findUnique({
+      where: { branchId_platform: { branchId: branch.id, platform: 'UBER_EATS' } }
+    });
+
+    if (!integration || !integration.appId || !integration.clientSecret) {
       return NextResponse.json({ error: 'Configuración o credenciales de Uber Eats faltantes.' }, { status: 400 });
     }
 
-    // --- UBER EATS API SIMULATION ---
-    // 1. Pull recent orders from Uber Eats API
-    // We'll simulate 2 recent orders that occurred since the last sync
-    const simulatedOrders = [
-      {
-        orderId: `UBER-${Math.floor(Math.random() * 900000) + 100000}`,
-        customerName: 'Cliente Uber Eats #1',
-        items: [
-          { sku: 'SKU-001', qty: 2, price: 120.00 },
-          { sku: 'SKU-EXT-002', qty: 1, price: 85.00 }
-        ]
-      }
-    ];
+    const meta = integration.metadata ? JSON.parse(integration.metadata) : {};
+    const isSandbox = Boolean(meta.isSandbox);
+    const storeId = meta.storeId || integration.accessToken;
 
-    let salesCreated = 0;
-    let itemsSubtracted = 0;
+    let itemsSuspendedCount = 0;
+    let itemsActiveCount = 0;
+    let token = null;
 
-    // Resolve or create a general customer for Uber Eats in this branch
-    let uberCustomer = await prisma.customer.findFirst({
-      where: { name: 'Cliente General Uber Eats', branchId: branch.id }
-    });
-    if (!uberCustomer) {
-      uberCustomer = await prisma.customer.create({
-        data: {
-          name: 'Cliente General Uber Eats',
-          email: 'ubereats@caanma.com',
-          phone: '0000000000',
-          branchId: branch.id
-        }
-      });
+    // 1. Authenticate with Uber Eats
+    try {
+      token = await getUberEatsAccessToken(integration.appId, integration.clientSecret, isSandbox);
+    } catch (authErr: any) {
+      console.warn('[Uber Eats Sync] Error getting token:', authErr.message);
     }
 
-    for (const order of simulatedOrders) {
-      // Check if we already processed this order (to prevent duplication)
-      const existingSale = await prisma.sale.findFirst({
-        where: { notes: { contains: order.orderId }, branchId: branch.id }
+    // 2. Synchronize stock availability to Uber Eats
+    if (token && storeId) {
+      // Find all mapped products for this branch
+      const mappedProducts = await prisma.externalProductMap.findMany({
+        where: { platform: 'UBER_EATS', product: { branchId: branch.id } },
+        include: { product: true }
       });
-      if (existingSale) continue;
 
-      const saleItemsToCreate = [];
-      let totalAmount = 0;
-
-      for (const item of order.items) {
-        // Find local product by SKU
-        const localProduct = await prisma.product.findFirst({
-          where: { sku: item.sku, branchId: branch.id }
-        });
-
-        if (localProduct) {
-          saleItemsToCreate.push({
-            productId: localProduct.id,
-            quantity: item.qty,
-            price: item.price
-          });
-          totalAmount += item.qty * item.price;
-
-          // Decrement stock in database
-          await prisma.product.update({
-            where: { id: localProduct.id },
-            data: { stock: { decrement: item.qty } }
-          });
-
-          // Create inventory movement
-          await prisma.inventoryMovement.create({
-            data: {
-              productId: localProduct.id,
-              type: 'OUT',
-              quantity: -item.qty,
-              reason: `Venta Uber Eats - Pedido #${order.orderId}`,
-              userId: user.id
-            }
-          });
-          itemsSubtracted += item.qty;
-        }
-      }
-
-      if (saleItemsToCreate.length > 0) {
-        // Create the Sale record
-        await prisma.sale.create({
-          data: {
-            folio: `UB-${order.orderId.split('-')[1]}`,
-            total: totalAmount,
-            status: 'COMPLETED',
-            paymentMethod: 'CARD',
-            customerId: uberCustomer.id,
-            branchId: branch.id,
-            userId: user.id,
-            notes: `Pedido de Uber Eats importado automáticamente. ID: ${order.orderId}`,
-            items: {
-              create: saleItemsToCreate.map(item => ({
-                quantity: item.quantity,
-                price: item.price,
-                productId: item.productId
-              }))
-            }
+      for (const map of mappedProducts) {
+        if (!map.product) continue;
+        const isOutOfStock = map.product.stock <= 0;
+        try {
+          await updateUberItemSuspension(storeId, map.externalId, isOutOfStock, token, isSandbox);
+          if (isOutOfStock) {
+            itemsSuspendedCount++;
+          } else {
+            itemsActiveCount++;
           }
-        });
-        salesCreated++;
+          await prisma.externalProductMap.update({
+            where: { id: map.id },
+            data: { lastSync: new Date(), syncStatus: isOutOfStock ? 'SUSPENDED_OUT_OF_STOCK' : 'SYNCED' }
+          });
+        } catch (syncErr: any) {
+          console.warn(`[Uber Eats Sync] Could not update item ${map.externalId}:`, syncErr.message);
+        }
       }
     }
 
-    // 2. Inventory Synchronization (Push local stock to Uber Eats Menu)
-    // Find all products that have an External Product Map for Uber Eats
-    const mappedProducts = await prisma.externalProductMap.findMany({
-      where: { platform: 'UBER_EATS', product: { branchId: branch.id } },
-      include: { product: true }
-    });
+    // 3. Optional order simulation test if requested in body (useful for verifying POS workflow)
+    let body = {};
+    try {
+      body = await req.json();
+    } catch (e) {}
 
-    let inventorySyncedCount = 0;
-    for (const map of mappedProducts) {
-      // Here we would call: PUT https://api.uber.com/v2/eats/stores/{store_id}/menus/items/{item_id}
-      // with payload: { "price": map.product.price, "suspended": map.product.stock <= 0, "stock": map.product.stock }
-      
-      // Update last sync timestamp locally
-      await prisma.externalProductMap.update({
-        where: { id: map.id },
-        data: { lastSync: new Date() }
-      });
-      inventorySyncedCount++;
+    let simulatedSale = null;
+    if ((body as any)?.simulateTestOrder) {
+      const simulatedPayload = {
+        id: `UB-${Math.floor(Math.random() * 900000) + 100000}`,
+        display_id: String(Math.floor(Math.random() * 9000) + 1000),
+        eater: {
+          first_name: 'Cliente Prueba',
+          last_name: 'Uber Eats',
+          phone: '4421234567',
+          delivery: {
+            location: { formatted_address: 'Av. Constituyentes 100, Querétaro' }
+          }
+        },
+        cart: {
+          items: [
+            {
+              id: 'ITEM-TEST-1',
+              title: 'Pastel / Postre Uber Test',
+              quantity: 1,
+              price: { unit_price: { amount: 15000 } }
+            }
+          ]
+        },
+        payment: {
+          charges: { total: { amount: 15000 } }
+        }
+      };
+
+      simulatedSale = await processUberEatsOrder(simulatedPayload, branch.id, user.id);
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Sincronización completa con Uber Eats.',
-      stats: {
-        salesCreated,
-        itemsSubtracted,
-        inventorySyncedCount
-      }
+      message: 'Sincronización con Uber Eats completada con éxito.',
+      stockSummary: {
+        suspendedOutOfStock: itemsSuspendedCount,
+        activeInStock: itemsActiveCount
+      },
+      simulatedSale
     });
 
-  } catch (error) {
-    console.error('Uber Eats Sync Error:', error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+  } catch (error: any) {
+    console.error('[Uber Eats Sync] Error:', error);
+    return NextResponse.json({ error: error.message || 'Error en sincronización' }, { status: 500 });
   }
 }
