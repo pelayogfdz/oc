@@ -92,23 +92,26 @@ export async function GET(
       return res;
     }
 
-    // Immediate check: If the message body already contains embedded base64 image or file data, return it instantly!
-    const directMedia = extractBase64FromMessageBody(message.body);
-    if (directMedia) {
-      const res = NextResponse.json(directMedia);
+    const activeMessageId = message.messageId || messageId;
+
+    // 1. Check if we already have the full-resolution file cached in WhatsAppMediaRequest
+    let mediaRequest = await prisma.whatsAppMediaRequest.findUnique({
+      where: { messageId: activeMessageId }
+    });
+
+    if (mediaRequest && mediaRequest.status === "COMPLETED" && mediaRequest.data) {
+      const res = NextResponse.json({
+        mimetype: mediaRequest.mimetype || "image/jpeg",
+        data: mediaRequest.data,
+        filename: mediaRequest.filename || "archivo"
+      });
       res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       res.headers.set('Pragma', 'no-cache');
       res.headers.set('Expires', '0');
       return res;
     }
 
-    const activeMessageId = message.messageId || messageId;
-
-    // Database-driven Media Request Queue
-    let mediaRequest = await prisma.whatsAppMediaRequest.findUnique({
-      where: { messageId: activeMessageId }
-    });
-
+    // 2. If not already completed, queue the request for whatsapp-service to download high-res from WhatsApp
     if (!mediaRequest) {
       try {
         mediaRequest = await prisma.whatsAppMediaRequest.create({
@@ -118,15 +121,11 @@ export async function GET(
           }
         });
       } catch (err) {
-        // Handle race conditions if another request created it simultaneously
         mediaRequest = await prisma.whatsAppMediaRequest.findUnique({
           where: { messageId: activeMessageId }
         });
       }
-    }
-
-    // If already failed or completed without data, reset it back to PENDING to retry
-    if (mediaRequest && (mediaRequest.status === "FAILED" || (!mediaRequest.data && mediaRequest.status === "COMPLETED"))) {
+    } else if (mediaRequest.status === "FAILED" || !mediaRequest.data) {
       mediaRequest = await prisma.whatsAppMediaRequest.update({
         where: { messageId: activeMessageId },
         data: {
@@ -138,9 +137,9 @@ export async function GET(
       });
     }
 
-    // Wait and poll database for status changes (up to 15 seconds)
+    // Wait and poll database for high-res download (up to 12 seconds)
     let attempts = 0;
-    const maxAttempts = 15;
+    const maxAttempts = 12;
     while (mediaRequest && mediaRequest.status === "PENDING" && attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 1000));
       mediaRequest = await prisma.whatsAppMediaRequest.findUnique({
@@ -149,27 +148,31 @@ export async function GET(
       attempts++;
     }
 
-    if (!mediaRequest || mediaRequest.status === "PENDING") {
-      const res = NextResponse.json({ error: "Media download request timed out on VPS" }, { status: 504 });
+    // 3. If successfully completed by whatsapp-service, return the FULL HIGH-RESOLUTION file!
+    if (mediaRequest && mediaRequest.status === "COMPLETED" && mediaRequest.data) {
+      const res = NextResponse.json({
+        mimetype: mediaRequest.mimetype || "image/jpeg",
+        data: mediaRequest.data,
+        filename: mediaRequest.filename || "archivo"
+      });
       res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.headers.set('Pragma', 'no-cache');
+      res.headers.set('Expires', '0');
       return res;
     }
 
-    if (mediaRequest.status === "FAILED") {
-      const res = NextResponse.json({ error: "No se pudo obtener el archivo multimedia desde WhatsApp" }, { status: 500 });
+    // 4. Fallback: If full-res download failed or timed out, fallback to embedded thumbnail in message body
+    const directMedia = extractBase64FromMessageBody(message.body);
+    if (directMedia) {
+      const res = NextResponse.json(directMedia);
       res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.headers.set('Pragma', 'no-cache');
+      res.headers.set('Expires', '0');
       return res;
     }
 
-    // Successfully completed! Return the file payload
-    const res = NextResponse.json({
-      mimetype: mediaRequest.mimetype || "application/octet-stream",
-      data: mediaRequest.data,
-      filename: mediaRequest.filename || "archivo"
-    });
+    const res = NextResponse.json({ error: "No se pudo obtener el archivo multimedia desde WhatsApp" }, { status: 500 });
     res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.headers.set('Pragma', 'no-cache');
-    res.headers.set('Expires', '0');
     return res;
   } catch (error: any) {
     console.error("Error in Next.js WhatsApp media proxy:", error);

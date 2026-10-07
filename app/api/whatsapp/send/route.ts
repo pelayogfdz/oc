@@ -30,17 +30,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Access denied to this prospect" }, { status: 403 });
     }
 
-    // Deduplication check: if an identical message was queued for this prospect in the last 4 seconds, reuse it
+    // Deduplication check: if an identical message was queued for this prospect in the last 10 seconds, reuse it
     const recentDuplicate = await prisma.whatsAppMessage.findFirst({
       where: {
         prospectId,
         body: message,
         isFromMe: true,
-        timestamp: {
-          gte: new Date(Date.now() - 4000)
+        createdAt: {
+          gte: new Date(Date.now() - 10000)
         }
       },
-      orderBy: { timestamp: 'desc' }
+      orderBy: { createdAt: 'desc' }
     });
 
     if (recentDuplicate) {

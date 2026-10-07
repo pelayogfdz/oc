@@ -314,6 +314,38 @@ async function safeSendMessage(client, chatId, content, options = {}) {
         };
     }
 
+    // Ensure window.WWebJS.getMessageModel is safely patched to prevent
+    // 'TypeError: message.serialize is not a function' in whatsapp-web.js
+    if (client.pupPage) {
+        try {
+            await client.pupPage.evaluate(() => {
+                if (window.WWebJS && !window.WWebJS._serializePatched) {
+                    const origGetModel = window.WWebJS.getMessageModel;
+                    window.WWebJS.getMessageModel = (message) => {
+                        if (!message) return null;
+                        if (typeof message.serialize === 'function') {
+                            try {
+                                return origGetModel(message);
+                            } catch (e) {}
+                        }
+                        const id = message.id ? (message.id._serialized ? message.id : { _serialized: String(message.id) }) : null;
+                        return {
+                            id: id,
+                            body: message.body || (message.caption || ''),
+                            type: message.type || 'chat',
+                            t: message.t || Math.floor(Date.now() / 1000),
+                            from: message.from,
+                            to: message.to,
+                            ack: message.ack || 0,
+                            fromMe: true
+                        };
+                    };
+                    window.WWebJS._serializePatched = true;
+                }
+            });
+        } catch (patchErr) {}
+    }
+
     let sentMsg = null;
     try {
         sentMsg = await client.sendMessage(chatId, content, options);
@@ -329,10 +361,10 @@ async function safeSendMessage(client, chatId, content, options = {}) {
             };
         }
     } catch (e) {
-        console.warn(`[WHATSAPP] client.sendMessage failed (${e.message || e}), attempting direct browser action...`);
+        console.warn(`[WHATSAPP] client.sendMessage threw error (${e.message || e}). Inspecting chat before fallback...`);
     }
 
-    // Direct Browser Native Dispatch
+    // Direct Browser Native Dispatch with anti-duplicate inspection
     const textMsg = (typeof content === 'string') ? content : (options?.caption || '');
     const fallbackResult = await client.pupPage.evaluate(async (targetChatId, text) => {
         try {
@@ -369,6 +401,27 @@ async function safeSendMessage(client, chatId, content, options = {}) {
             }
 
             const nowUnix = Math.floor(Date.now() / 1000);
+
+            // 0. Double-send check: did client.sendMessage already send this message to the chat?
+            if (chat.msgs && chat.msgs._models && chat.msgs._models.length > 0) {
+                const existing = chat.msgs._models.slice(-10).reverse().find(m => {
+                    const isFromMe = m.id && (m.id.fromMe || m.fromMe);
+                    const sameBody = (m.body === text) || (m.caption === text);
+                    const isRecent = m.t && ((nowUnix - m.t) < 15);
+                    return isFromMe && sameBody && isRecent;
+                });
+                if (existing && existing.id) {
+                    const existingKey = existing.id._serialized || String(existing.id);
+                    return {
+                        success: true,
+                        messageId: existingKey,
+                        to: chat.id._serialized,
+                        timestamp: existing.t || nowUnix,
+                        dedupReused: true
+                    };
+                }
+            }
+
             let serializedKey = null;
 
             // 1. If text message, prefer official SendTextAction
@@ -808,28 +861,60 @@ async function saveWhatsAppMessage(branchId, client, msg, fallbackContactName = 
             // If fromMe, see if there is a pending message we can link to
             let linkedPending = false;
             if (msg.fromMe) {
-                const pendingMsg = await targetDb.whatsAppMessage.findFirst({
+                // Strict DB dedup: check if an outgoing message with the same body already exists within 15 seconds
+                const recentDuplicate = await targetDb.whatsAppMessage.findFirst({
                     where: {
                         prospectId: prospect.id,
-                        messageId: null,
-                        isFromMe: true
+                        body: bodyText,
+                        isFromMe: true,
+                        createdAt: {
+                            gte: new Date(Date.now() - 15000)
+                        }
                     },
-                    orderBy: {
-                        timestamp: 'asc'
-                    }
+                    orderBy: { createdAt: 'desc' }
                 });
 
-                if (pendingMsg) {
-                    await targetDb.whatsAppMessage.update({
-                        where: { id: pendingMsg.id },
-                        data: {
-                            messageId: msg.id._serialized,
-                            body: bodyText,
-                            status: initialStatus,
-                            timestamp: new Date(msg.timestamp * 1000)
-                        }
-                    }).catch(() => {});
+                if (recentDuplicate) {
+                    if (!recentDuplicate.messageId || recentDuplicate.messageId.startsWith('WA_')) {
+                        await targetDb.whatsAppMessage.update({
+                            where: { id: recentDuplicate.id },
+                            data: {
+                                messageId: msg.id._serialized,
+                                status: initialStatus,
+                                timestamp: new Date(msg.timestamp * 1000)
+                            }
+                        }).catch(() => {});
+                        console.log(`[WHATSAPP] saveWhatsAppMessage: Linked incoming WhatsApp ID ${msg.id._serialized} to existing pending row ${recentDuplicate.id}`);
+                    } else {
+                        console.log(`[WHATSAPP] saveWhatsAppMessage: Suppressed duplicate outgoing message for prospect ${prospect.id} in DB (already saved as ${recentDuplicate.messageId})`);
+                    }
                     linkedPending = true;
+                }
+
+                if (!linkedPending) {
+                    const pendingMsg = await targetDb.whatsAppMessage.findFirst({
+                        where: {
+                            prospectId: prospect.id,
+                            messageId: null,
+                            isFromMe: true
+                        },
+                        orderBy: {
+                            timestamp: 'asc'
+                        }
+                    });
+
+                    if (pendingMsg) {
+                        await targetDb.whatsAppMessage.update({
+                            where: { id: pendingMsg.id },
+                            data: {
+                                messageId: msg.id._serialized,
+                                body: bodyText,
+                                status: initialStatus,
+                                timestamp: new Date(msg.timestamp * 1000)
+                            }
+                        }).catch(() => {});
+                        linkedPending = true;
+                    }
                 }
             }
 
@@ -854,6 +939,37 @@ async function saveWhatsAppMessage(branchId, client, msg, fallbackContactName = 
         } catch (dbErr) {
             console.error(`[WHATSAPP] Error saving message event for branch ${branchId}:`, dbErr.message);
         }
+    }
+
+    // If message contains media, download and store full resolution file in background immediately
+    if (msg.hasMedia || ['image', 'video', 'audio', 'ptt', 'document', 'sticker'].includes(msg.type)) {
+        (async () => {
+            try {
+                const media = await downloadMediaForMessage(client, msg.id._serialized, otherPartyJid);
+                if (media && media.data) {
+                    for (const targetDb of targetClients) {
+                        try {
+                            await targetDb.whatsAppMediaRequest.upsert({
+                                where: { messageId: msg.id._serialized },
+                                create: {
+                                    messageId: msg.id._serialized,
+                                    status: 'COMPLETED',
+                                    mimetype: media.mimetype || 'image/jpeg',
+                                    filename: media.filename || 'archivo',
+                                    data: media.data
+                                },
+                                update: {
+                                    status: 'COMPLETED',
+                                    mimetype: media.mimetype || 'image/jpeg',
+                                    filename: media.filename || 'archivo',
+                                    data: media.data
+                                }
+                            });
+                        } catch (e) {}
+                    }
+                }
+            } catch (e) {}
+        })();
     }
 }
 
@@ -1498,7 +1614,7 @@ async function getClientForBranch(originalBranchId, forceRecreate = false) {
         await saveWhatsAppMessage(branchId, client, msg);
     };
 
-    client.on('message', handleIncomingOrCreateMessage);
+    // Listen to message_create which covers both incoming and outgoing messages
     client.on('message_create', handleIncomingOrCreateMessage);
 
     client.on('message_ack', async (msg, ack) => {

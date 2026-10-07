@@ -393,13 +393,11 @@ export default function FloatingWhatsappWidget() {
   const handleDownloadMedia = async (messageId: string, filename: string, directBase64?: string, directMime?: string) => {
     if (!messageId && !directBase64) return;
 
-    const base64ToUse = directBase64 || downloadedMedia[messageId]?.data;
-    const mimeToUse = directMime || downloadedMedia[messageId]?.mimetype || 'image/jpeg';
-    const filenameToUse = ensureExtension(filename || downloadedMedia[messageId]?.filename || 'archivo', mimeToUse);
-
-    if (base64ToUse) {
+    // 1. If already downloaded in high resolution (in downloadedMedia), download instantly
+    if (messageId && downloadedMedia[messageId]?.data) {
+      const media = downloadedMedia[messageId];
       try {
-        let cleanB64 = base64ToUse;
+        let cleanB64 = media.data;
         if (cleanB64.includes(';base64,')) {
           cleanB64 = cleanB64.split(';base64,')[1];
         }
@@ -409,78 +407,100 @@ export default function FloatingWhatsappWidget() {
           byteNumbers[i] = byteCharacters.charCodeAt(i);
         }
         const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: mimeToUse });
+        const blob = new Blob([byteArray], { type: media.mimetype });
         
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = filenameToUse;
+        a.download = ensureExtension(media.filename || filename || 'archivo', media.mimetype);
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
-
-        if (messageId && !downloadedMedia[messageId]) {
-          setDownloadedMedia(prev => ({
-            ...prev,
-            [messageId]: { data: cleanB64, mimetype: mimeToUse, filename: filenameToUse }
-          }));
-        }
         return;
       } catch (err: any) {
         console.error("Local download failed:", err);
       }
     }
 
-    if (loadingMedia[messageId]) return;
-    setLoadingMedia(prev => ({ ...prev, [messageId]: true }));
-    try {
-      const response = await fetch(`/api/whatsapp/media/${encodeURIComponent(messageId)}?t=${Date.now()}`);
-      if (!response.ok) {
-        const errJson = await response.json().catch(() => null);
-        throw new Error(errJson?.error || "Failed to download media");
-      }
-      const media = await response.json();
-      if (media.error) {
-        throw new Error(media.error);
-      }
-      
-      const fileToSave = {
-        data: media.data,
-        mimetype: media.mimetype || 'application/octet-stream',
-        filename: ensureExtension(media.filename || filename || 'archivo', media.mimetype || 'application/octet-stream')
-      };
+    // 2. Fetch full high-resolution original media from server
+    if (messageId) {
+      if (loadingMedia[messageId]) return;
+      setLoadingMedia(prev => ({ ...prev, [messageId]: true }));
+      try {
+        const response = await fetch(`/api/whatsapp/media/${encodeURIComponent(messageId)}?t=${Date.now()}`);
+        if (!response.ok) {
+          const errJson = await response.json().catch(() => null);
+          throw new Error(errJson?.error || "Failed to download media");
+        }
+        const media = await response.json();
+        if (media.error) {
+          throw new Error(media.error);
+        }
+        
+        const fileToSave = {
+          data: media.data,
+          mimetype: media.mimetype || 'application/octet-stream',
+          filename: ensureExtension(media.filename || filename || 'archivo', media.mimetype || 'application/octet-stream')
+        };
 
-      setDownloadedMedia(prev => ({
-        ...prev,
-        [messageId]: fileToSave
-      }));
+        setDownloadedMedia(prev => ({
+          ...prev,
+          [messageId]: fileToSave
+        }));
 
-      let cleanB64 = media.data;
-      if (cleanB64.includes(';base64,')) {
-        cleanB64 = cleanB64.split(';base64,')[1];
+        let cleanB64 = media.data;
+        if (cleanB64.includes(';base64,')) {
+          cleanB64 = cleanB64.split(';base64,')[1];
+        }
+        const byteCharacters = atob(cleanB64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: fileToSave.mimetype });
+        
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileToSave.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        return;
+      } catch (error: any) {
+        console.warn("Could not download high-res from server, checking fallback:", error);
+      } finally {
+        setLoadingMedia(prev => ({ ...prev, [messageId]: false }));
       }
-      const byteCharacters = atob(cleanB64);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: fileToSave.mimetype });
-      
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileToSave.filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch (error: any) {
-      console.error("Error downloading media:", error);
-      alert("No se pudo descargar el archivo: " + (error.message || "error de conexión"));
-    } finally {
-      setLoadingMedia(prev => ({ ...prev, [messageId]: false }));
+    }
+
+    // 3. Fallback: If server fetch failed and we have directBase64 (thumbnail), save thumbnail as fallback
+    if (directBase64) {
+      try {
+        let cleanB64 = directBase64;
+        if (cleanB64.includes(';base64,')) {
+          cleanB64 = cleanB64.split(';base64,')[1];
+        }
+        const byteCharacters = atob(cleanB64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: directMime || 'image/jpeg' });
+        
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = ensureExtension(filename || 'imagen', directMime || 'image/jpeg');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } catch (e) {}
     }
   };
 
