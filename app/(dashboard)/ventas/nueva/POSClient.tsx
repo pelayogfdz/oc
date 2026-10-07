@@ -1210,6 +1210,7 @@ export default function POSClient({
   const [successSelectedProspectId, setSuccessSelectedProspectId] = useState<string>('');
   const [successIsLoadingProspects, setSuccessIsLoadingProspects] = useState(false);
   const [successIsSending, setSuccessIsSending] = useState(false);
+  const successIsSendingRef = useRef(false);
   const [successSendSuccess, setSuccessSendSuccess] = useState(false);
   const [successSendError, setSuccessSendError] = useState<string | null>(null);
 
@@ -1272,10 +1273,12 @@ export default function POSClient({
   };
 
   const handleSuccessSendViaCaanma = async () => {
+    if (successIsSendingRef.current || successIsSending) return;
     if (!successSelectedProspectId) return;
     const selectedProspect = successProspects.find((p) => p.id === successSelectedProspectId);
     if (!selectedProspect) return;
 
+    successIsSendingRef.current = true;
     setSuccessIsSending(true);
     setSuccessSendError(null);
 
@@ -1305,6 +1308,7 @@ export default function POSClient({
       console.error(err);
       setSuccessSendError(err.message || 'Error de red o microservicio desconectado.');
     } finally {
+      successIsSendingRef.current = false;
       setSuccessIsSending(false);
     }
   };

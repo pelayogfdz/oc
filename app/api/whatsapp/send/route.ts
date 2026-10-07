@@ -30,6 +30,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Access denied to this prospect" }, { status: 403 });
     }
 
+    // Deduplication check: if an identical message was queued for this prospect in the last 4 seconds, reuse it
+    const recentDuplicate = await prisma.whatsAppMessage.findFirst({
+      where: {
+        prospectId,
+        body: message,
+        isFromMe: true,
+        timestamp: {
+          gte: new Date(Date.now() - 4000)
+        }
+      },
+      orderBy: { timestamp: 'desc' }
+    });
+
+    if (recentDuplicate) {
+      console.log(`[WHATSAPP PROXY] Ignored duplicate message submission for prospect ${prospectId}`);
+      return NextResponse.json({ success: true, messageId: recentDuplicate.id, duplicatePrevented: true });
+    }
+
     // we insert the message into the database with messageId = null.
     // The microservice will poll the database for these pending messages and send them.
     const newMessage = await prisma.whatsAppMessage.create({
@@ -59,9 +77,12 @@ export async function POST(request: Request) {
         phone: prospect.phone,
         message: message,
         pendingMessageId: newMessage.id,
+        tenantId: user.tenantId,
         media: data.media
       })
-    }).catch(() => {});
+    }).catch((err) => {
+      console.error("[WHATSAPP PROXY] Immediate send error:", err);
+    });
 
     return NextResponse.json({ success: true, messageId: newMessage.id });
   } catch (error) {

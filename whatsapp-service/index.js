@@ -272,12 +272,56 @@ function formatWhatsAppJid(phoneOrJid, whatsappId) {
     return `${digits}@c.us`;
 }
 
+// In-memory deduplication cache to prevent sending duplicate messages within 15 seconds
+const recentSentCache = new Map(); // key: `${chatId}:::${signature}` -> { messageId, timestamp }
+
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, val] of recentSentCache.entries()) {
+        if (now - val.timestamp > 30000) {
+            recentSentCache.delete(key);
+        }
+    }
+}, 30000);
+
+function getMessageSignature(content, options = {}) {
+    if (typeof content === 'string') {
+        return content.trim();
+    }
+    if (content && typeof content === 'object') {
+        const mime = content.mimetype || '';
+        const filename = content.filename || '';
+        const snippet = content.data ? content.data.substring(0, 100) : '';
+        const cap = options?.caption || '';
+        return `${mime}:::${filename}:::${snippet}:::${cap}`;
+    }
+    return '';
+}
+
 // Helper to send messages reliably with direct Puppeteer browser fallback
 async function safeSendMessage(client, chatId, content, options = {}) {
+    const signature = getMessageSignature(content, options);
+    const cacheKey = `${chatId}:::${signature}`;
+    const cached = recentSentCache.get(cacheKey);
+
+    if (cached && (Date.now() - cached.timestamp < 15000)) {
+        console.log(`[WHATSAPP DEDUP] Blocked duplicate send to ${chatId} within 15s window (reusing msgId: ${cached.messageId})`);
+        return {
+            id: { _serialized: cached.messageId },
+            to: chatId,
+            timestamp: Math.floor(cached.timestamp / 1000),
+            isDuplicatePrevented: true
+        };
+    }
+
     let sentMsg = null;
     try {
         sentMsg = await client.sendMessage(chatId, content, options);
         if (sentMsg && sentMsg.id && sentMsg.id._serialized) {
+            recentSentCache.set(cacheKey, {
+                messageId: sentMsg.id._serialized,
+                timestamp: Date.now()
+            });
             return {
                 id: { _serialized: sentMsg.id._serialized },
                 to: sentMsg.to || chatId,
@@ -392,6 +436,10 @@ async function safeSendMessage(client, chatId, content, options = {}) {
     }, chatId, textMsg);
 
     if (fallbackResult && fallbackResult.success) {
+        recentSentCache.set(cacheKey, {
+            messageId: fallbackResult.messageId,
+            timestamp: Date.now()
+        });
         return {
             id: { _serialized: fallbackResult.messageId },
             to: fallbackResult.to || chatId,
@@ -1498,7 +1546,7 @@ async function getClientForBranch(originalBranchId, forceRecreate = false) {
 }
 
 app.post('/api/send', async (req, res) => {
-    const { phone, message, prospectId, media, branchId, pendingMessageId } = req.body;
+    const { phone, message, prospectId, media, branchId, pendingMessageId, tenantId } = req.body;
     
     if (!phone && !prospectId) {
         return res.status(400).json({ error: 'Phone or prospectId is required' });
@@ -1509,8 +1557,17 @@ app.post('/api/send', async (req, res) => {
         let foundProspect = null;
         let prospectDbClient = masterPrisma;
 
+        const allDbs = getAllPrismaClients();
+        const prioritizedDbs = [...allDbs].sort((a, b) => {
+            if (tenantId && a.tenantId === tenantId) return -1;
+            if (tenantId && b.tenantId === tenantId) return 1;
+            if (a.name === 'master') return 1;
+            if (b.name === 'master') return -1;
+            return 0;
+        });
+
         if (prospectId) {
-            for (const { client: dbClient } of getAllPrismaClients()) {
+            for (const { client: dbClient } of prioritizedDbs) {
                 try {
                     const pr = await dbClient.prospect.findUnique({
                         where: { id: prospectId }
@@ -1622,26 +1679,50 @@ app.post('/api/send', async (req, res) => {
                 bodyText = mediaTag + (message ? ": " + message : "");
             }
 
+            // 1. If explicit pendingMessageId is passed from Next.js, update it across ALL DBs immediately!
+            if (pendingMessageId) {
+                for (const { client: anyDb, name: dbName } of allDbs) {
+                    try {
+                        const updated = await anyDb.whatsAppMessage.updateMany({
+                            where: { id: pendingMessageId },
+                            data: {
+                                messageId: messageIdSerialized,
+                                body: bodyText,
+                                status: 1,
+                                timestamp: msgTimestamp
+                            }
+                        });
+                        if (updated && updated.count > 0) {
+                            console.log(`[WHATSAPP] Successfully linked and updated pendingMessageId ${pendingMessageId} in DB: ${dbName}`);
+                        }
+                    } catch (e) {}
+                }
+            }
+
             const targetDbs = [prospectDbClient];
             if (prospectDbClient !== masterPrisma) targetDbs.push(masterPrisma);
+            if (tenantId && tenantPrismaMap.has(tenantId)) {
+                const tClient = tenantPrismaMap.get(tenantId);
+                if (!targetDbs.includes(tClient)) targetDbs.push(tClient);
+            }
+            try {
+                const branchPrisma = await getPrismaForBranch(resolvedBranchId);
+                if (branchPrisma && branchPrisma.client && !targetDbs.includes(branchPrisma.client)) {
+                    targetDbs.push(branchPrisma.client);
+                }
+            } catch (e) {}
 
             for (const tDb of targetDbs) {
                 try {
                     let linkedPending = false;
 
-                    // 1. If explicit pendingMessageId is passed from Next.js, link and update it
+                    // 1. If explicit pendingMessageId is passed, verify if already linked
                     if (pendingMessageId) {
                         try {
-                            const updated = await tDb.whatsAppMessage.updateMany({
-                                where: { id: pendingMessageId },
-                                data: {
-                                    messageId: messageIdSerialized,
-                                    body: bodyText,
-                                    status: 1,
-                                    timestamp: msgTimestamp
-                                }
+                            const check = await tDb.whatsAppMessage.findUnique({
+                                where: { id: pendingMessageId }
                             });
-                            if (updated && updated.count > 0) {
+                            if (check && check.messageId === messageIdSerialized) {
                                 linkedPending = true;
                             }
                         } catch (e) {}
@@ -2522,6 +2603,12 @@ setInterval(async () => {
                 });
                 if (!stillPending || stillPending.messageId) continue;
 
+                // Transiently claim message to prevent duplicate polling cycles from sending twice
+                await dbClient.whatsAppMessage.update({
+                    where: { id: msg.id },
+                    data: { messageId: `CLAIMED_${Date.now()}` }
+                }).catch(() => {});
+
                 if (!msg.prospect) {
                     console.warn(`[WHATSAPP] Pending message ${msg.id} has no prospect.`);
                     continue;
@@ -2532,12 +2619,23 @@ setInterval(async () => {
                 let client = clients.get(resolvedBranchId);
                 
                 if (!client || !client.info) {
+                    // Release claim so it can be picked up when client is ready
+                    await dbClient.whatsAppMessage.update({
+                        where: { id: msg.id },
+                        data: { messageId: null }
+                    }).catch(() => {});
                     continue;
                 }
 
                 try {
                     let chatId = formatWhatsAppJid(msg.prospect.phone, msg.prospect.whatsappId);
-                    if (!chatId) continue;
+                    if (!chatId) {
+                        await dbClient.whatsAppMessage.update({
+                            where: { id: msg.id },
+                            data: { messageId: 'FAILED_NO_CHAT_ID' }
+                        }).catch(() => {});
+                        continue;
+                    }
 
                     // Validate or refine JID with getNumberId if it is a standard @c.us contact (protected with timeout)
                     if (chatId.endsWith('@c.us')) {
@@ -2589,7 +2687,7 @@ setInterval(async () => {
                             where: { id: msg.id }
                         });
 
-                        if (checkAgain && (checkAgain.messageId === null || checkAgain.messageId.startsWith('FAILED_'))) {
+                        if (checkAgain && (checkAgain.messageId === null || checkAgain.messageId.startsWith('CLAIMED_') || checkAgain.messageId.startsWith('FAILED_'))) {
                             await dbClient.whatsAppMessage.update({
                                 where: { id: msg.id },
                                 data: {

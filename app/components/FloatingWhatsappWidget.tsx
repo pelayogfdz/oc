@@ -253,6 +253,7 @@ export default function FloatingWhatsappWidget() {
   const [floatingActiveChatId, setFloatingActiveChatId] = useState<string | null>(null);
   const [floatingReplyText, setFloatingReplyText] = useState("");
   const [isSendingFloatingReply, setIsSendingFloatingReply] = useState(false);
+  const isSendingFloatingReplyRef = useRef(false);
   const [showNotificationToast, setShowNotificationToast] = useState(false);
   const [latestIncomingChat, setLatestIncomingChat] = useState<any | null>(null);
 
@@ -597,10 +598,12 @@ export default function FloatingWhatsappWidget() {
 
     if (!bodyText.trim() && !floatingAttachment) return;
     if (!floatingActiveChatId) return;
+    if (isSendingFloatingReplyRef.current || isSendingFloatingReply) return;
 
     const activeChat = prospects.find((p: any) => p.id === floatingActiveChatId);
     if (!activeChat) return;
 
+    isSendingFloatingReplyRef.current = true;
     setIsSendingFloatingReply(true);
     const tempMsgId = `temp-${Date.now()}`;
     
@@ -724,6 +727,7 @@ export default function FloatingWhatsappWidget() {
         })
       );
     } finally {
+      isSendingFloatingReplyRef.current = false;
       setIsSendingFloatingReply(false);
     }
   };

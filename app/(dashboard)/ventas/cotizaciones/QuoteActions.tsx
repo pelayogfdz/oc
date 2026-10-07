@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Printer, Send, Share2, Loader2, CheckCircle, ArrowRight, Pencil, Mail, Download, X, Copy } from 'lucide-react';
 import { sendQuoteByEmail } from '@/app/actions/quote';
@@ -23,6 +23,7 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
   const [selectedProspectId, setSelectedProspectId] = useState<string>('');
   const [isLoadingProspects, setIsLoadingProspects] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const isSendingRef = useRef(false);
   const [sendSuccess, setSendSuccess] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
@@ -99,10 +100,12 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
   };
 
   const handleSendViaCaanma = async () => {
+    if (isSendingRef.current || isSending) return;
     if (!selectedProspectId) return;
     const selectedProspect = prospects.find((p) => p.id === selectedProspectId);
     if (!selectedProspect) return;
 
+    isSendingRef.current = true;
     setIsSending(true);
     setSendError(null);
 
@@ -131,6 +134,7 @@ export default function QuoteActions({ quoteId, quoteFolio, status, customerPhon
       console.error(err);
       setSendError(err.message || 'Error de red o de microservicio de WhatsApp desconectado.');
     } finally {
+      isSendingRef.current = false;
       setIsSending(false);
     }
   };

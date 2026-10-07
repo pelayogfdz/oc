@@ -42,6 +42,7 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
   const [isSyncing, setIsSyncing] = useState(false);
   const [readStatus, setReadStatus] = useState<Record<string, number>>({});
   const [filterTab, setFilterTab] = useState<'all' | 'read' | 'unread'>('all');
+  const isSendingQuoteRef = useRef(false);
 
   // Cargar estado de lectura desde localStorage
   useEffect(() => {
@@ -542,10 +543,12 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
   };
 
   const handleSendQuote = async (quoteId: string) => {
+    if (isSendingQuoteRef.current) return;
     if (!selectedProspect) return;
     const link = `${window.location.origin}/ventas/detalle/${quoteId}/imprimir-cotizacion`;
     const msg = `¡Hola! Aquí tienes el enlace a tu cotización solicitada: \n${link}`;
     
+    isSendingQuoteRef.current = true;
     try {
       const res = await fetch("/api/whatsapp/send", {
         method: "POST",
@@ -578,6 +581,8 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      isSendingQuoteRef.current = false;
     }
   };
 

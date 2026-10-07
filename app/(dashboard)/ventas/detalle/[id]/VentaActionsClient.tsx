@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Share2, AlertTriangle, Send, Loader2, CheckCircle, Edit3, FileText, CheckSquare, Square, DollarSign, Truck, MapPin, Trash2, User } from 'lucide-react';
 import { cancelSale, updateSale, confirmSalePayment } from '@/app/actions/sale';
@@ -62,6 +62,7 @@ export default function VentaActionsClient({
   const [selectedProspectId, setSelectedProspectId] = useState<string>('');
   const [isLoadingProspects, setIsLoadingProspects] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const isSendingRef = useRef(false);
   const [sendSuccess, setSendSuccess] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
@@ -304,10 +305,12 @@ export default function VentaActionsClient({
   };
 
   const handleSendViaCaanma = async () => {
+    if (isSendingRef.current || isSending) return;
     if (!selectedProspectId) return;
     const selectedProspect = prospects.find((p) => p.id === selectedProspectId);
     if (!selectedProspect) return;
 
+    isSendingRef.current = true;
     setIsSending(true);
     setSendError(null);
 
@@ -336,6 +339,7 @@ export default function VentaActionsClient({
       console.error(err);
       setSendError(err.message || 'Error de red o microservicio desconectado.');
     } finally {
+      isSendingRef.current = false;
       setIsSending(false);
     }
   };

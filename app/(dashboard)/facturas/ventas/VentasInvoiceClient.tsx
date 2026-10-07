@@ -97,6 +97,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
   const [selectedProspectId, setSelectedProspectId] = useState<string>('');
   const [isLoadingProspects, setIsLoadingProspects] = useState(false);
   const [isSendingWhatsapp, setIsSendingWhatsapp] = useState(false);
+  const isSendingWhatsappRef = useRef(false);
   const [whatsappSuccess, setWhatsappSuccess] = useState(false);
   const [whatsappError, setWhatsappError] = useState<string | null>(null);
 
@@ -170,10 +171,12 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
   };
 
   const handleSendViaCaanma = async () => {
+    if (isSendingWhatsappRef.current || isSendingWhatsapp) return;
     if (!selectedProspectId || !activeSale) return;
     const selectedProspect = prospects.find((p) => p.id === selectedProspectId);
     if (!selectedProspect) return;
 
+    isSendingWhatsappRef.current = true;
     setIsSendingWhatsapp(true);
     setWhatsappError(null);
 
@@ -202,6 +205,7 @@ export default function VentasInvoiceClient({ initialSales, initialCustomers }: 
       console.error(err);
       setWhatsappError(err.message || 'Error de red o de microservicio de WhatsApp desconectado.');
     } finally {
+      isSendingWhatsappRef.current = false;
       setIsSendingWhatsapp(false);
     }
   };

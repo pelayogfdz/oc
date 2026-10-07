@@ -17,6 +17,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
   const [messages, setMessages] = useState<any[]>(prospect.messages || []);
   const [inputText, setInputText] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const isSendingRef = useRef(false);
   const [whatsappStatus, setWhatsappStatus] = useState<string>("CONNECTED");
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -521,6 +522,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
 
   const sendMessage = async (e?: React.FormEvent, customText?: string) => {
     if (e) e.preventDefault();
+    if (isSendingRef.current || isSending) return;
     const messageText = customText || inputText;
     
     let bodyText = messageText;
@@ -531,6 +533,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
 
     if (!bodyText.trim() && !attachment) return;
 
+    isSendingRef.current = true;
     setIsSending(true);
     const tempMsgId = `temp-${Date.now()}`;
     const tempMsg = {
@@ -603,6 +606,7 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
       alert("Error de conexión con el microservicio.");
       setMessages(prev => prev.filter(m => m.id !== tempMsgId));
     } finally {
+      isSendingRef.current = false;
       setIsSending(false);
       // Staggered refocus intervals to survive DOM swapping during router.refresh()
       const focusIntervals = [50, 150, 300, 500];
