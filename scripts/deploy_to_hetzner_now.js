@@ -28,10 +28,13 @@ conn.on('ready', () => {
       process.exit(1);
     }
 
-    const readStream = fs.createReadStream(tarPath);
-    const writeStream = sftp.createWriteStream('/root/fast_update.tar.gz');
+    sftp.fastPut(tarPath, '/root/fast_update.tar.gz', (uploadErr) => {
+      if (uploadErr) {
+        console.error('Upload Error:', uploadErr);
+        conn.end();
+        process.exit(1);
+      }
 
-    writeStream.on('close', () => {
       console.log('3. Archive uploaded! Extracting, rebuilding and restarting container...');
       if (fs.existsSync(tarPath)) fs.unlinkSync(tarPath);
 
@@ -64,8 +67,6 @@ conn.on('ready', () => {
         });
       });
     });
-
-    readStream.pipe(writeStream);
   });
 }).connect({
   host,

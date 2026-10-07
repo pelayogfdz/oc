@@ -218,11 +218,19 @@ async function handleSync(onlyStock = false) {
                       }
 
                       const cancelReason = order.cancel_detail?.description || order.cancel_detail?.code || 'Cancelación detectada en sincronización Mercado Libre';
+                      const reqBy = order.cancel_detail?.requested_by || order.cancel_detail?.group || '';
+                      const meliCancelStatus = reqBy === 'buyer' ? 'Cancelada por el comprador' : reqBy === 'seller' ? 'Cancelada por el vendedor' : 'Cancelada';
+                      let updatedNotes = `${existingSale.notes || ''}\n[CANCELACIÓN AUTOMÁTICA MERCADO LIBRE: ${cancelReason} - ${new Date().toLocaleString('es-MX')}]`;
+                      if (updatedNotes.includes('[MELI_STATUS:')) {
+                        updatedNotes = updatedNotes.replace(/\[MELI_STATUS:[^\]]+\]/, `[MELI_STATUS: ${meliCancelStatus}]`);
+                      } else {
+                        updatedNotes = `${updatedNotes} [MELI_STATUS: ${meliCancelStatus}]`;
+                      }
                       await tenantClient.sale.update({
                         where: { id: existingSale.id },
                         data: {
                           status: 'CANCELLED',
-                          notes: `${existingSale.notes || ''}\n[CANCELACIÓN AUTOMÁTICA MERCADO LIBRE: ${cancelReason} - ${new Date().toLocaleString('es-MX')}]`
+                          notes: updatedNotes
                         }
                       });
                       console.log(`[MELI DAILY CRON] Venta ${existingSale.folio || existingSale.id} actualizada a CANCELLED.`);
@@ -335,7 +343,7 @@ async function handleSync(onlyStock = false) {
                     paymentMethod: 'CARD',
                     branchId: detectedBranchId,
                     userId: onlineUser.id,
-                    notes: `${checkNote}. Guía de Envío: ${shippingLabelUrl || 'No disponible'}. Comprador: ${order.buyer?.nickname || 'Mercado Libre Client'}`,
+                    notes: `${checkNote}. Guía de Envío: ${shippingLabelUrl || 'No disponible'}. Comprador: ${order.buyer?.nickname || 'Mercado Libre Client'}. [MELI_STATUS: Para enviar hoy]`,
                     createdAt: order.date_created ? new Date(order.date_created) : new Date(),
                     updatedAt: order.date_created ? new Date(order.date_created) : new Date()
                   }

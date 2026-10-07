@@ -7,6 +7,8 @@ import Link from "next/link";
 import { Printer, ArrowLeft, Receipt } from "lucide-react";
 import VentaActionsClient from "./VentaActionsClient";
 import BackButton from "@/app/components/ui/BackButton";
+import { getMeliStatusBadgeConfig, extractMeliStatus, calculateMeliStatus } from "@/app/utils/meliStatus";
+import { getOrRefreshMeliToken } from "@/app/utils/meliToken";
 
 export default async function VentaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -89,6 +91,45 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
     } catch (e) {}
   }
 
+  const isMeli = (sale.notes && sale.notes.includes('Mercado Libre')) || (sale.folio && sale.folio.startsWith('ML-'));
+  let meliStatus = extractMeliStatus(sale.notes);
+
+  if (isMeli && (!meliStatus || (!meliStatus.includes('Entregada') && !meliStatus.includes('Cancelada')))) {
+    try {
+      const matchShip = sale.notes?.match(/shipments\/(\d+)/);
+      const matchOrder = sale.notes?.match(/Mercado Libre Orden\s+(\d+)/) || sale.notes?.match(/\[Mercado Libre Orden:\s*(\d+)\]/);
+      const shipmentId = matchShip ? matchShip[1] : null;
+      const orderId = matchOrder ? matchOrder[1] : null;
+
+      if (shipmentId || orderId) {
+        const token = sale.branchId ? await getOrRefreshMeliToken(sale.branchId) : null;
+        if (token) {
+          let shipData = null;
+          let slaData = null;
+          let orderData = null;
+
+          if (shipmentId) {
+            const [sRes, slaRes] = await Promise.all([
+              fetch(`https://api.mercadolibre.com/shipments/${shipmentId}`, { headers: { Authorization: `Bearer ${token}` } }),
+              fetch(`https://api.mercadolibre.com/shipments/${shipmentId}/sla`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null)
+            ]);
+            if (sRes.ok) shipData = await sRes.json();
+            if (slaRes && slaRes.ok) slaData = await slaRes.json();
+          }
+
+          if (orderId && (shipData?.status === 'cancelled' || sale.status === 'CANCELLED' || !shipmentId)) {
+            const ordRes = await fetch(`https://api.mercadolibre.com/orders/${orderId}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
+            if (ordRes && ordRes.ok) orderData = await ordRes.json();
+          }
+
+          meliStatus = calculateMeliStatus({ shipData, orderData, slaData, notes: sale.notes, saleStatus: sale.status });
+        }
+      }
+    } catch (e) {
+      // Non-blocking fallback
+    }
+  }
+
   return (
     <div style={{ maxWidth: '1100px', width: '100%', margin: '0 auto', fontFamily: 'sans-serif', color: 'black', boxSizing: 'border-box' }} className="px-2 sm:px-4">
       
@@ -166,9 +207,49 @@ export default async function VentaDetailPage({ params }: { params: Promise<{ id
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-slate-800 m-0 mb-1">Resumen de Venta</h2>
             <div style={{ fontSize: '1.1rem', color: '#64748b' }}>Folio: #{sale.folio || sale.id.slice(0, 8).toUpperCase()}</div>
-            <div style={{ display: 'inline-block', marginTop: '0.5rem', padding: '0.25rem 0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold', backgroundColor: sale.status === 'COMPLETED' ? '#dcfce7' : sale.status === 'CANCELLED' ? '#fee2e2' : '#fef3c7', color: sale.status === 'COMPLETED' ? '#166534' : sale.status === 'CANCELLED' ? '#991b1b' : '#b45309' }}>
-              {sale.status === 'COMPLETED' ? 'Venta Concluida' : sale.status === 'CANCELLED' ? 'Cancelada' : sale.status === 'PENDING' ? 'Pendiente' : sale.status}
-            </div>
+            {isMeli ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                {(() => {
+                  const badge = getMeliStatusBadgeConfig(meliStatus || (sale.status === 'CANCELLED' ? 'Cancelada' : 'Mercado Libre'));
+                  return (
+                    <div style={{ 
+                      display: 'inline-flex', 
+                      alignItems: 'center', 
+                      gap: '0.35rem', 
+                      padding: '0.3rem 0.75rem', 
+                      borderRadius: '16px', 
+                      fontSize: '0.85rem', 
+                      fontWeight: 'bold', 
+                      backgroundColor: badge.bgColor, 
+                      color: badge.color, 
+                      border: `1px solid ${badge.borderColor}`,
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                    }}>
+                      <span>{badge.icon}</span>
+                      <span>{badge.label}</span>
+                    </div>
+                  );
+                })()}
+                <div style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '0.25rem', 
+                  padding: '0.3rem 0.65rem', 
+                  borderRadius: '16px', 
+                  fontSize: '0.78rem', 
+                  fontWeight: '700', 
+                  backgroundColor: '#fffbeb', 
+                  color: '#854d0e', 
+                  border: '1px solid #fef08a' 
+                }}>
+                  🛒 Mercado Libre
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'inline-block', marginTop: '0.5rem', padding: '0.25rem 0.75rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold', backgroundColor: sale.status === 'COMPLETED' ? '#dcfce7' : sale.status === 'CANCELLED' ? '#fee2e2' : '#fef3c7', color: sale.status === 'COMPLETED' ? '#166534' : sale.status === 'CANCELLED' ? '#991b1b' : '#b45309' }}>
+                {sale.status === 'COMPLETED' ? 'Venta Concluida' : sale.status === 'CANCELLED' ? 'Cancelada' : sale.status === 'PENDING' ? 'Pendiente' : sale.status}
+              </div>
+            )}
           </div>
 
 

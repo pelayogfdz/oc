@@ -1709,6 +1709,78 @@ app.post('/api/send', async (req, res) => {
     }
 });
 
+// Helper to download media with fallback to Puppeteer Store and base64 thumbnail
+async function downloadMediaForMessage(client, activeMessageId, chatId) {
+    let msg = null;
+
+    if (chatId) {
+        try {
+            const chat = await client.getChatById(chatId);
+            if (chat) {
+                const messages = await chat.fetchMessages({ limit: 100 });
+                msg = messages.find(m => m.id._serialized === activeMessageId);
+            }
+        } catch (e) {}
+    }
+
+    if (!msg) {
+        try {
+            msg = await client.getMessageById(activeMessageId);
+        } catch (e) {}
+    }
+
+    let media = null;
+    if (msg && msg.hasMedia) {
+        try {
+            media = await msg.downloadMedia();
+        } catch (e) {}
+    }
+
+    // Fallback: evaluate in Puppeteer page to search Store and download directly
+    if ((!media || !media.data) && client.pupPage) {
+        try {
+            media = await client.pupPage.evaluate(async (msgId) => {
+                try {
+                    let m = window.Store?.Msg?.get(msgId);
+                    if (!m && window.Store?.Chat?.models) {
+                        for (const c of window.Store.Chat.models) {
+                            if (c.msgs && c.msgs.get(msgId)) {
+                                m = c.msgs.get(msgId);
+                                break;
+                            }
+                        }
+                    }
+                    if (!m) return null;
+
+                    if (window.WWebJS && typeof window.WWebJS.downloadMedia === 'function') {
+                        try {
+                            const res = await window.WWebJS.downloadMedia(msgId);
+                            if (res && res.data) return res;
+                        } catch (e) {}
+                    }
+
+                    const bodyData = m.body || m._data?.body;
+                    const mimetype = m.mimetype || m._data?.mimetype || 'image/jpeg';
+                    const filename = m.filename || m._data?.filename || 'imagen.jpg';
+
+                    if (bodyData && (bodyData.startsWith('/9j/') || bodyData.startsWith('data:image/') || bodyData.length > 50)) {
+                        let cleanData = bodyData;
+                        if (cleanData.includes(';base64,')) {
+                            cleanData = cleanData.split(';base64,')[1];
+                        }
+                        return { data: cleanData, mimetype, filename };
+                    }
+                    return null;
+                } catch (e) {
+                    return null;
+                }
+            }, activeMessageId);
+        } catch (e) {}
+    }
+
+    return media;
+}
+
 // Express GET endpoint to retrieve and download media on-demand
 app.get('/api/media/:messageId', async (req, res) => {
     const { messageId } = req.params;
@@ -1737,6 +1809,18 @@ app.get('/api/media/:messageId', async (req, res) => {
             return res.status(404).json({ error: 'Message not found in database' });
         }
 
+        // Check if DB body already has embedded base64 data
+        if (dbMsg.body) {
+            const jpegMatch = dbMsg.body.match(/(\/9j\/[A-Za-z0-9+/=]{40,})/);
+            if (jpegMatch) {
+                return res.json({
+                    mimetype: 'image/jpeg',
+                    data: jpegMatch[1],
+                    filename: 'imagen.jpg'
+                });
+            }
+        }
+
         const activeMessageId = dbMsg.messageId || messageId;
 
         const prospect = await foundDbClient.prospect.findUnique({
@@ -1758,44 +1842,15 @@ app.get('/api/media/:messageId', async (req, res) => {
         }
 
         let chatId = formatWhatsAppJid(prospect.phone, prospect.whatsappId);
-        if (!chatId) {
-            return res.status(400).json({ error: 'Prospect has no valid phone or WhatsApp ID' });
-        }
-
         console.log(`[WHATSAPP] Fetching media for message ${activeMessageId} in chat ${chatId} using client for branch ${branchId}`);
 
-        const chat = await client.getChatById(chatId);
-        if (!chat) {
-            return res.status(404).json({ error: 'Chat not found' });
-        }
-
-        const messages = await chat.fetchMessages({ limit: 100 });
-        let msg = messages.find(m => m.id._serialized === activeMessageId);
-
-        if (!msg) {
-            console.log(`[WHATSAPP] Message not found in last 100 messages, trying client.getMessageById`);
-            try {
-                msg = await client.getMessageById(activeMessageId);
-            } catch (err) {
-                console.warn('[WHATSAPP] client.getMessageById failed:', err.message);
-            }
-        }
-
-        if (!msg) {
-            return res.status(404).json({ error: 'Message not found on WhatsApp Web client' });
-        }
-
-        if (!msg.hasMedia) {
-            return res.status(400).json({ error: 'Message does not contain media' });
-        }
-
-        const media = await msg.downloadMedia();
-        if (!media) {
+        const media = await downloadMediaForMessage(client, activeMessageId, chatId);
+        if (!media || !media.data) {
             return res.status(500).json({ error: 'Failed to download media from WhatsApp CDN' });
         }
 
         res.json({
-            mimetype: media.mimetype,
+            mimetype: media.mimetype || 'image/jpeg',
             data: media.data,
             filename: media.filename || 'archivo'
         });
@@ -2300,41 +2355,25 @@ setInterval(async () => {
                         continue;
                     }
 
-                    console.log(`[MEDIA POLL] Fetching chat ${chatId} using client info: ${client.info.wid.user}`);
-                    const chat = await client.getChatById(chatId);
-                    if (!chat) {
-                        console.error(`[MEDIA POLL] Chat not found for message ${req.messageId}`);
-                        await dbClient.whatsAppMediaRequest.update({
-                            where: { id: req.id },
-                            data: { status: 'FAILED' }
-                        });
-                        continue;
-                    }
-
-                    const messages = await chat.fetchMessages({ limit: 100 });
-                    let msg = messages.find(m => m.id._serialized === activeMessageId);
-
-                    if (!msg) {
-                        console.log(`[MEDIA POLL] Message not found in last 100, trying client.getMessageById`);
-                        try {
-                            msg = await client.getMessageById(activeMessageId);
-                        } catch (err) {
-                            console.warn('[MEDIA POLL] client.getMessageById failed:', err.message);
+                    // 1. Direct check if dbMsg body has embedded base64
+                    let media = null;
+                    if (dbMsg.body) {
+                        const jpegMatch = dbMsg.body.match(/(\/9j\/[A-Za-z0-9+/=]{40,})/);
+                        if (jpegMatch) {
+                            media = {
+                                mimetype: 'image/jpeg',
+                                data: jpegMatch[1],
+                                filename: 'imagen.jpg'
+                            };
                         }
                     }
 
-                    if (!msg || !msg.hasMedia) {
-                        console.error(`[MEDIA POLL] Message not found on WA or has no media`);
-                        await dbClient.whatsAppMediaRequest.update({
-                            where: { id: req.id },
-                            data: { status: 'FAILED' }
-                        });
-                        continue;
+                    if (!media) {
+                        media = await downloadMediaForMessage(client, activeMessageId, chatId);
                     }
 
-                    const media = await msg.downloadMedia();
-                    if (!media) {
-                        console.error(`[MEDIA POLL] Failed downloadMedia() from WA CDN`);
+                    if (!media || !media.data) {
+                        console.error(`[MEDIA POLL] Failed downloadMedia() from WA CDN for message ${req.messageId}`);
                         await dbClient.whatsAppMediaRequest.update({
                             where: { id: req.id },
                             data: { status: 'FAILED' }
@@ -2347,7 +2386,7 @@ setInterval(async () => {
                         where: { id: req.id },
                         data: {
                             status: 'COMPLETED',
-                            mimetype: media.mimetype,
+                            mimetype: media.mimetype || 'image/jpeg',
                             filename: media.filename || 'archivo',
                             data: media.data
                         }

@@ -25,31 +25,80 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
 
   const [downloadedMedia, setDownloadedMedia] = useState<Record<string, { data: string; mimetype: string; filename: string }>>({});
   const [loadingMedia, setLoadingMedia] = useState<Record<string, boolean>>({});
+  const [previewModalImage, setPreviewModalImage] = useState<string | null>(null);
 
   const parseMediaMsg = (body: string) => {
-    if (!body) return { isMedia: false, type: "", caption: "" };
-    const match = body.match(/^📎 \[(Imagen|Video|Audio|Archivo)\](?::\s*([\s\S]*))?$/);
-    if (match) {
-      return {
-        isMedia: true,
-        type: match[1],
-        caption: match[2] || ""
-      };
-    }
-    if (body.startsWith('📎 [')) {
-      const endBracketIdx = body.indexOf(']');
-      if (endBracketIdx > 2) {
-        const type = body.substring(4, endBracketIdx);
-        const rest = body.substring(endBracketIdx + 1);
-        const caption = rest.startsWith(':') ? rest.substring(1).trim() : rest.trim();
-        return {
-          isMedia: true,
-          type: type,
-          caption: caption
-        };
+    if (!body) return { isMedia: false, type: "", caption: "", filename: "", base64Data: "" };
+
+    let raw = body.trim();
+    let type = "";
+    let rest = "";
+    let isMedia = false;
+    let filename = "";
+
+    // 1. Check for standard tags: 📎 [Tipo], 📷 [Tipo], 🖼️ [Tipo], 📄 [Tipo], etc.
+    const tagMatch = raw.match(/^(?:📎|📷|🖼️|📄|🎥|🎵|📇)?\s*\[(Imagen|Video|Audio|Documento|Archivo|Sticker|Nota de voz)(?::\s*([^\]]*))?\](?::?\s*([\s\S]*))?$/i);
+
+    if (tagMatch) {
+      isMedia = true;
+      type = tagMatch[1];
+      filename = tagMatch[2]?.trim() || "";
+      rest = tagMatch[3]?.trim() || "";
+      if (type.toLowerCase() === 'nota de voz') type = 'Audio';
+    } else if (raw.startsWith('📎') || raw.startsWith('📷') || raw.startsWith('🖼️') || raw.startsWith('📄')) {
+      const bracketOpen = raw.indexOf('[');
+      const bracketClose = raw.indexOf(']');
+      if (bracketOpen !== -1 && bracketClose > bracketOpen) {
+        const inside = raw.substring(bracketOpen + 1, bracketClose).trim();
+        const after = raw.substring(bracketClose + 1).trim();
+        if (inside.toLowerCase().startsWith('documento:')) {
+          isMedia = true;
+          type = 'Documento';
+          filename = inside.substring(10).trim();
+          rest = after.startsWith(':') ? after.substring(1).trim() : after;
+        } else if (['imagen', 'video', 'audio', 'documento', 'archivo', 'sticker', 'nota de voz'].includes(inside.toLowerCase())) {
+          isMedia = true;
+          type = inside.charAt(0).toUpperCase() + inside.slice(1);
+          rest = after.startsWith(':') ? after.substring(1).trim() : after;
+        }
       }
     }
-    return { isMedia: false, type: "", caption: "" };
+
+    // 2. Extract embedded base64 data (if any)
+    let base64Data: string | undefined = undefined;
+    let cleanCaption = rest;
+
+    const textToCheck = rest || raw;
+    const dataUriMatch = textToCheck.match(/data:image\/[a-zA-Z0-9+.-]+;base64,([A-Za-z0-9+/=]{40,})/);
+    if (dataUriMatch) {
+      isMedia = true;
+      if (!type) type = 'Imagen';
+      base64Data = dataUriMatch[1];
+      cleanCaption = cleanCaption.replace(dataUriMatch[0], '').trim();
+    } else {
+      const b64Match = textToCheck.match(/(\/9j\/[A-Za-z0-9+/=]{40,}|iVBORw0KGgo[A-Za-z0-9+/=]{40,}|[A-Za-z0-9+/]{100,}={0,2})/);
+      if (b64Match) {
+        isMedia = true;
+        if (!type) type = 'Imagen';
+        base64Data = b64Match[1];
+        cleanCaption = cleanCaption.replace(b64Match[0], '').trim();
+      }
+    }
+
+    if (cleanCaption.startsWith(':')) cleanCaption = cleanCaption.substring(1).trim();
+    if (cleanCaption === filename) cleanCaption = "";
+
+    if (isMedia) {
+      return {
+        isMedia: true,
+        type: type || "Archivo",
+        caption: cleanCaption,
+        filename: filename || (type === "Imagen" ? "imagen.jpg" : "archivo"),
+        base64Data
+      };
+    }
+
+    return { isMedia: false, type: "", caption: "", filename: "", base64Data: "" };
   };
 
   const formatChatDisplayBody = (body: string) => {
@@ -116,33 +165,47 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
     return filename;
   };
 
-  const handleDownloadMedia = async (messageId: string, filename: string) => {
-    if (!messageId) return;
+  const handleDownloadMedia = async (messageId: string, filename: string, directBase64?: string, directMime?: string) => {
+    if (!messageId && !directBase64) return;
 
-    // 1. If already downloaded, immediately download from cache without server request
-    if (downloadedMedia[messageId]) {
-      const media = downloadedMedia[messageId];
+    const base64ToUse = directBase64 || downloadedMedia[messageId]?.data;
+    const mimeToUse = directMime || downloadedMedia[messageId]?.mimetype || 'image/jpeg';
+    const filenameToUse = ensureExtension(filename || downloadedMedia[messageId]?.filename || 'archivo', mimeToUse);
+
+    // 1. Direct local download from existing base64 payload (Instant with zero network latency)
+    if (base64ToUse) {
       try {
-        const byteCharacters = atob(media.data);
+        let cleanB64 = base64ToUse;
+        if (cleanB64.includes(';base64,')) {
+          cleanB64 = cleanB64.split(';base64,')[1];
+        }
+        const byteCharacters = atob(cleanB64);
         const byteNumbers = new Array(byteCharacters.length);
         for (let i = 0; i < byteCharacters.length; i++) {
           byteNumbers[i] = byteCharacters.charCodeAt(i);
         }
         const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: media.mimetype });
+        const blob = new Blob([byteArray], { type: mimeToUse });
         
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = ensureExtension(media.filename, media.mimetype);
+        a.download = filenameToUse;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
+
+        if (messageId && !downloadedMedia[messageId]) {
+          setDownloadedMedia(prev => ({
+            ...prev,
+            [messageId]: { data: cleanB64, mimetype: mimeToUse, filename: filenameToUse }
+          }));
+        }
+        return;
       } catch (err: any) {
-        console.error("Local download failed:", err);
+        console.error("Local direct base64 download failed:", err);
       }
-      return;
     }
 
     if (loadingMedia[messageId]) return;
@@ -150,7 +213,8 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
     try {
       const response = await fetch(`/api/whatsapp/media/${encodeURIComponent(messageId)}?t=${Date.now()}`);
       if (!response.ok) {
-        throw new Error("Failed to download media");
+        const errJson = await response.json().catch(() => null);
+        throw new Error(errJson?.error || "Failed to download media");
       }
       const media = await response.json();
       if (media.error) {
@@ -159,8 +223,8 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
       
       const fileToSave = {
         data: media.data,
-        mimetype: media.mimetype,
-        filename: ensureExtension(media.filename || filename || 'archivo', media.mimetype)
+        mimetype: media.mimetype || 'application/octet-stream',
+        filename: ensureExtension(media.filename || filename || 'archivo', media.mimetype || 'application/octet-stream')
       };
 
       setDownloadedMedia(prev => ({
@@ -168,14 +232,18 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
         [messageId]: fileToSave
       }));
 
-      // 2. Automatically trigger browser download for ALL media types
-      const byteCharacters = atob(media.data);
+      // Automatically trigger browser download
+      let cleanB64 = media.data;
+      if (cleanB64.includes(';base64,')) {
+        cleanB64 = cleanB64.split(';base64,')[1];
+      }
+      const byteCharacters = atob(cleanB64);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
         byteNumbers[i] = byteCharacters.charCodeAt(i);
       }
       const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: media.mimetype });
+      const blob = new Blob([byteArray], { type: fileToSave.mimetype });
       
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -731,18 +799,18 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
                       const isLoading = !!loadingMedia[msg.messageId || msg.id];
                       const mediaData = downloadedMedia[msg.messageId || msg.id];
 
+                      const directBase64 = mediaInfo.base64Data || (mediaData?.mimetype?.startsWith('image/') ? mediaData.data : undefined);
+                      const isImage = mediaInfo.type === "Imagen" || (mediaData && mediaData.mimetype.startsWith('image/')) || !!mediaInfo.base64Data;
+                      const imgSrc = mediaData ? `data:${mediaData.mimetype};base64,${mediaData.data}` : (mediaInfo.base64Data ? (mediaInfo.base64Data.startsWith('data:') ? mediaInfo.base64Data : `data:image/jpeg;base64,${mediaInfo.base64Data}`) : null);
+
                       let mediaEmoji = "📎";
-                      if (mediaInfo.type === "Imagen") mediaEmoji = "🖼️";
+                      if (isImage) mediaEmoji = "🖼️";
                       else if (mediaInfo.type === "Video") mediaEmoji = "🎥";
                       else if (mediaInfo.type === "Audio") mediaEmoji = "🎵";
+                      else if (mediaInfo.type === "Documento") mediaEmoji = "📄";
 
                       return (
                         <div 
-                          onClick={() => {
-                            if (!isLoading) {
-                              handleDownloadMedia(msg.messageId || msg.id, mediaInfo.type.toLowerCase());
-                            }
-                          }}
                           style={{
                             border: '1px solid #cbd5e1',
                             borderRadius: '8px',
@@ -755,41 +823,59 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
                             maxWidth: '280px',
                             display: 'flex',
                             flexDirection: 'column',
-                            cursor: isLoading ? 'default' : 'pointer',
                             transition: 'all 0.2s ease-in-out'
                           }}
-                          onMouseOver={evt => {
-                            if (!isLoading) {
-                              evt.currentTarget.style.borderColor = '#3b82f6';
-                              evt.currentTarget.style.boxShadow = '0 4px 12px rgba(59,130,246,0.15)';
-                              evt.currentTarget.style.transform = 'translateY(-1px)';
-                            }
-                          }}
-                          onMouseOut={evt => {
-                            evt.currentTarget.style.borderColor = '#cbd5e1';
-                            evt.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
-                            evt.currentTarget.style.transform = 'none';
-                          }}
                         >
-                          <div style={{ padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: (mediaInfo.caption || isDownloaded) ? '1px solid #e2e8f0' : 'none' }}>
-                            <span style={{ fontSize: '1.75rem' }}>{mediaEmoji}</span>
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                              <span style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#334155' }}>
-                                {mediaInfo.type} de WhatsApp
+                          <div style={{ padding: '0.65rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.65rem', borderBottom: (imgSrc || mediaInfo.caption) ? '1px solid #e2e8f0' : 'none' }}>
+                            <span style={{ fontSize: '1.5rem' }}>{mediaEmoji}</span>
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                              <span style={{ fontSize: '0.825rem', fontWeight: 'bold', color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {mediaInfo.filename ? mediaInfo.filename : `${mediaInfo.type} de WhatsApp`}
                               </span>
                               <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                                {isLoading ? '⏳ Descargando...' : isDownloaded ? '✅ Descargado (Click para guardar)' : '📥 Click para guardar en PC'}
+                                {isLoading ? '⏳ Descargando...' : (isDownloaded || directBase64) ? '✅ Disponible para guardar' : '📥 Click para guardar en PC'}
                               </span>
                             </div>
                           </div>
 
-                          {isDownloaded && mediaData.mimetype.startsWith('image/') && (
-                            <div style={{ width: '100%', maxHeight: '200px', overflow: 'hidden', borderBottom: mediaInfo.caption ? '1px solid #e2e8f0' : 'none', display: 'flex', justifyContent: 'center', backgroundColor: '#f1f5f9' }}>
+                          {/* Render Image Thumbnail directly if available */}
+                          {imgSrc && (
+                            <div 
+                              onClick={() => setPreviewModalImage(imgSrc)}
+                              style={{ 
+                                width: '100%', 
+                                maxHeight: '220px', 
+                                overflow: 'hidden', 
+                                borderBottom: mediaInfo.caption ? '1px solid #e2e8f0' : 'none', 
+                                display: 'flex', 
+                                justifyContent: 'center', 
+                                alignItems: 'center',
+                                backgroundColor: '#0f172a',
+                                cursor: 'zoom-in',
+                                position: 'relative'
+                              }}
+                              title="Click para ver en tamaño grande"
+                            >
                               <img 
-                                src={`data:${mediaData.mimetype};base64,${mediaData.data}`} 
-                                alt={mediaData.filename} 
-                                style={{ width: '100%', objectFit: 'contain', maxHeight: '200px' }} 
+                                src={imgSrc} 
+                                alt={mediaInfo.filename || 'Imagen de WhatsApp'} 
+                                style={{ width: '100%', objectFit: 'contain', maxHeight: '220px' }} 
                               />
+                              <div style={{
+                                position: 'absolute',
+                                bottom: '6px',
+                                right: '6px',
+                                backgroundColor: 'rgba(0,0,0,0.6)',
+                                color: 'white',
+                                borderRadius: '4px',
+                                padding: '2px 6px',
+                                fontSize: '0.65rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '3px'
+                              }}>
+                                🔍 Ver
+                              </div>
                             </div>
                           )}
 
@@ -799,30 +885,47 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
                             </div>
                           )}
 
-                          <div
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!isLoading) {
+                                handleDownloadMedia(
+                                  msg.messageId || msg.id, 
+                                  mediaInfo.filename || mediaInfo.type.toLowerCase(),
+                                  directBase64,
+                                  isImage ? 'image/jpeg' : undefined
+                                );
+                              }
+                            }}
+                            disabled={isLoading}
                             style={{
                               padding: '0.5rem',
                               fontSize: '0.8rem',
                               fontWeight: 'bold',
-                              color: isLoading ? '#94a3b8' : isDownloaded ? '#16a34a' : '#2563eb',
+                              color: isLoading ? '#94a3b8' : (isDownloaded || directBase64) ? '#16a34a' : '#2563eb',
                               textAlign: 'center',
                               width: '100%',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '0.25rem',
+                              gap: '0.35rem',
                               backgroundColor: '#f1f5f9',
-                              userSelect: 'none'
+                              border: 'none',
+                              borderTop: (!imgSrc && !mediaInfo.caption) ? '1px solid #e2e8f0' : 'none',
+                              cursor: isLoading ? 'default' : 'pointer',
+                              transition: 'background-color 0.2s'
                             }}
+                            onMouseEnter={e => { if (!isLoading) e.currentTarget.style.backgroundColor = '#e2e8f0'; }}
+                            onMouseLeave={e => { if (!isLoading) e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
                           >
                             {isLoading ? (
                               <span>⏳ Descargando...</span>
-                            ) : isDownloaded ? (
-                              <span>💾 Guardar de nuevo</span>
+                            ) : (isDownloaded || directBase64) ? (
+                              <span>💾 Guardar en PC</span>
                             ) : (
                               <span>📥 Descargar y Guardar</span>
                             )}
-                          </div>
+                          </button>
                         </div>
                       );
                     })()
@@ -1315,6 +1418,98 @@ export default function ChatInterface({ prospect }: { prospect: any }) {
           </button>
         </form>
       </div>
+
+      {/* Full-Screen Image Lightbox Preview Modal */}
+      {previewModalImage && (
+        <div 
+          onClick={() => setPreviewModalImage(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.5rem',
+            backdropFilter: 'blur(4px)'
+          }}
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              backgroundColor: '#0f172a',
+              borderRadius: '12px',
+              padding: '1rem',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+            }}
+          >
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <span style={{ color: '#f8fafc', fontWeight: 'bold', fontSize: '0.9rem' }}>🖼️ Vista Previa de Imagen</span>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleDownloadMedia("", "imagen_whatsapp.jpg", previewModalImage, "image/jpeg");
+                  }}
+                  style={{
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '0.4rem 0.85rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem'
+                  }}
+                >
+                  📥 Guardar en PC
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewModalImage(null)}
+                  style={{
+                    backgroundColor: '#334155',
+                    color: '#f8fafc',
+                    border: 'none',
+                    borderRadius: '6px',
+                    width: '32px',
+                    height: '32px',
+                    fontSize: '1rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <img 
+              src={previewModalImage} 
+              alt="Vista previa" 
+              style={{
+                maxWidth: '85vw',
+                maxHeight: '80vh',
+                objectFit: 'contain',
+                borderRadius: '8px'
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

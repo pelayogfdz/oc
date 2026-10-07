@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveBranch, getSession } from "@/app/actions/auth";
 import VentasHistoryClient from "./VentasHistoryClient";
 import { getUtcDateFromLocal } from "@/app/lib/timezone";
+import { extractMeliStatus } from "@/app/utils/meliStatus";
 
 export default async function VentasPage(props: { searchParams: Promise<any> }) {
   const branch = await getActiveBranch();
@@ -186,6 +187,8 @@ export default async function VentasPage(props: { searchParams: Promise<any> }) 
     paymentMethod: s.paymentMethod,
     invoiceId: s.invoiceId,
     invoiceFolio: s.invoiceFolio,
+    notes: s.notes,
+    meliStatus: extractMeliStatus(s.notes),
     cancellationStatus: s.cancellationStatus,
     deliveryOrder: s.deliveryOrder ? {
       id: s.deliveryOrder.id,

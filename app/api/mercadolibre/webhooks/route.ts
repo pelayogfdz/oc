@@ -122,11 +122,19 @@ export async function POST(req: Request) {
 
             // 2. Marcar venta como CANCELLED
             const cancelReason = orderData.cancel_detail?.description || orderData.cancel_detail?.code || 'Cancelación notificada por Mercado Libre';
+            const reqBy = orderData.cancel_detail?.requested_by || orderData.cancel_detail?.group || '';
+            const meliCancelStatus = reqBy === 'buyer' ? 'Cancelada por el comprador' : reqBy === 'seller' ? 'Cancelada por el vendedor' : 'Cancelada';
+            let updatedNotes = `${existingSale.notes || ''}\n[CANCELACIÓN AUTOMÁTICA MERCADO LIBRE: ${cancelReason} - ${new Date().toLocaleString('es-MX')}]`;
+            if (updatedNotes.includes('[MELI_STATUS:')) {
+              updatedNotes = updatedNotes.replace(/\[MELI_STATUS:[^\]]+\]/, `[MELI_STATUS: ${meliCancelStatus}]`);
+            } else {
+              updatedNotes = `${updatedNotes} [MELI_STATUS: ${meliCancelStatus}]`;
+            }
             await tenantClient.sale.update({
               where: { id: existingSale.id },
               data: {
                 status: 'CANCELLED',
-                notes: `${existingSale.notes || ''}\n[CANCELACIÓN AUTOMÁTICA MERCADO LIBRE: ${cancelReason} - ${new Date().toLocaleString('es-MX')}]`
+                notes: updatedNotes
               }
             });
 
@@ -311,7 +319,7 @@ export async function POST(req: Request) {
             paymentMethod: 'MERCADO_PAGO',
             branchId: saleBranchId,
             userId: defaultUser.id,
-            notes: `Venta automática registrada desde Mercado Libre [Mercado Libre Orden: ${orderIdStr}]. Guía de Envío: ${shippingLabelUrl || 'No disponible'}. Comprador: ${orderData.buyer?.nickname || 'Desconocido'}.`,
+            notes: `Venta automática registrada desde Mercado Libre [Mercado Libre Orden: ${orderIdStr}]. Guía de Envío: ${shippingLabelUrl || 'No disponible'}. Comprador: ${orderData.buyer?.nickname || 'Desconocido'}. [MELI_STATUS: Para enviar hoy]`,
             createdAt: orderData.date_created ? new Date(orderData.date_created) : new Date(),
             updatedAt: orderData.date_created ? new Date(orderData.date_created) : new Date(),
             items: {

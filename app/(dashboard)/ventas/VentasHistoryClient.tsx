@@ -10,6 +10,7 @@ import { formatCurrency } from '@/lib/utils';
 import { exportToExcel } from '@/lib/exportExcel';
 import { checkDocumentSatStatus } from '@/app/actions/facturacion';
 import { useOfflineSync } from '@/app/components/OfflineSyncProvider';
+import { getMeliStatusBadgeConfig, extractMeliStatus } from '@/app/utils/meliStatus';
 
 const getPaymentMethodLabel = (method: string) => {
   const mapping: Record<string, string> = {
@@ -297,6 +298,72 @@ export default function VentasHistoryClient({
   const [isOfflineCancelling, setIsOfflineCancelling] = useState(false);
 
   const [sales, setSales] = useState<any[]>(initialSales);
+
+  const [meliStatuses, setMeliStatuses] = useState<Record<string, { meliStatus: string; badge: any }>>(() => {
+    const initialMap: Record<string, { meliStatus: string; badge: any }> = {};
+    if (Array.isArray(initialSales)) {
+      for (const s of initialSales) {
+        const statusText = s.meliStatus || extractMeliStatus(s.notes);
+        if (statusText) {
+          initialMap[s.id] = {
+            meliStatus: statusText,
+            badge: getMeliStatusBadgeConfig(statusText)
+          };
+        }
+      }
+    }
+    return initialMap;
+  });
+
+  useEffect(() => {
+    if (!isOnline || !Array.isArray(sales)) return;
+
+    const meliSalesToFetch = sales.filter(s => {
+      const isMeli = (s.notes && s.notes.includes('Mercado Libre')) || s.meliStatus || (s.folio && s.folio.startsWith('ML-'));
+      if (!isMeli) return false;
+      const currentStatus = meliStatuses[s.id]?.meliStatus || s.meliStatus || extractMeliStatus(s.notes);
+      if (currentStatus === 'Entregada' || (currentStatus && currentStatus.includes('Cancelada'))) {
+        return false;
+      }
+      return true;
+    });
+
+    if (meliSalesToFetch.length === 0) return;
+
+    const fetchStatuses = async () => {
+      try {
+        const payload = {
+          branchId: currentBranch?.id && currentBranch.id !== 'GLOBAL' ? currentBranch.id : undefined,
+          sales: meliSalesToFetch.map(s => ({
+            id: s.id,
+            branchId: s.branchId,
+            notes: s.notes,
+            status: s.status
+          }))
+        };
+
+        const res = await fetch('/api/mercadolibre/shipment-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.statuses && Object.keys(data.statuses).length > 0) {
+            setMeliStatuses(prev => ({
+              ...prev,
+              ...data.statuses
+            }));
+          }
+        }
+      } catch (err) {
+        console.warn('[VentasHistoryClient] Error fetching MELI statuses:', err);
+      }
+    };
+
+    fetchStatuses();
+  }, [sales, isOnline, currentBranch?.id]);
 
   useEffect(() => {
     if (!isOnline) {
@@ -1013,7 +1080,9 @@ export default function VentasHistoryClient({
         "Total",
         "Estado"
       ];
-      const rows = res.sales.map(sale => {
+      const rows = res.sales.map((sale: any) => {
+        const meliCached = extractMeliStatus(sale.notes);
+        const meliLabel = meliCached ? `${meliCached} (Mercado Libre)` : (sale.notes?.includes('Mercado Libre') ? 'Mercado Libre' : null);
         return [
           sale.folio || sale.id.slice(0, 8).toUpperCase(),
           formatDateCompact(sale.createdAt, timezone),
@@ -1023,7 +1092,7 @@ export default function VentasHistoryClient({
           sale.user ? sale.user.name : '-',
           getPaymentMethodLabel(sale.paymentMethod),
           sale.total,
-          sale.status === 'COMPLETED' ? 'Completado' : sale.status === 'CANCELLED' ? 'Cancelado' : sale.status
+          meliLabel || (sale.status === 'COMPLETED' ? 'Completado' : sale.status === 'CANCELLED' ? 'Cancelado' : sale.status)
         ];
       });
       exportToExcel(headers, rows, 'Historial_de_Ventas');
@@ -1522,17 +1591,65 @@ export default function VentasHistoryClient({
                   </td>
                   <td data-label="Estado" style={{ padding: '0.3rem 0.45rem', textAlign: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ 
-                        padding: '0.15rem 0.35rem', 
-                        borderRadius: '12px', 
-                        fontSize: '0.7rem',
-                        fontWeight: 'bold',
-                        backgroundColor: sale.isOffline ? '#fef3c7' : sale.status === 'COMPLETED' ? '#dcfce7' : sale.status === 'CANCELLED' ? '#fee2e2' : '#f1f5f9',
-                        color: sale.isOffline ? '#92400e' : sale.status === 'COMPLETED' ? '#166534' : sale.status === 'CANCELLED' ? '#991b1b' : '#334155',
-                        border: sale.isOffline ? '1px solid #fde68a' : 'none'
-                      }}>
-                        {sale.isOffline ? '⚡ Offline (En cola)' : sale.status === 'COMPLETED' ? 'Completado' : sale.status === 'CANCELLED' ? 'Cancelado' : sale.status}
-                      </span>
+                      {(() => {
+                        const isMeli = (sale.notes && sale.notes.includes('Mercado Libre')) || sale.meliStatus || (sale.folio && sale.folio.startsWith('ML-'));
+                        
+                        if (isMeli) {
+                          const meliInfo = meliStatuses[sale.id] || (sale.meliStatus ? { meliStatus: sale.meliStatus, badge: getMeliStatusBadgeConfig(sale.meliStatus) } : (extractMeliStatus(sale.notes) ? { meliStatus: extractMeliStatus(sale.notes)!, badge: getMeliStatusBadgeConfig(extractMeliStatus(sale.notes)!) } : null));
+                          const badge = meliInfo?.badge || getMeliStatusBadgeConfig(meliInfo?.meliStatus || (sale.status === 'CANCELLED' ? 'Cancelada' : 'Mercado Libre'));
+                          
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', alignItems: 'center' }}>
+                              <span style={{ 
+                                padding: '0.15rem 0.45rem', 
+                                borderRadius: '12px', 
+                                fontSize: '0.72rem',
+                                fontWeight: 'bold',
+                                backgroundColor: badge.bgColor,
+                                color: badge.color,
+                                border: `1px solid ${badge.borderColor}`,
+                                whiteSpace: 'nowrap',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                              }}>
+                                <span>{badge.icon}</span>
+                                <span>{badge.label}</span>
+                              </span>
+                              <span style={{
+                                fontSize: '0.62rem',
+                                color: '#475569',
+                                fontWeight: '700',
+                                backgroundColor: '#fffbeb',
+                                border: '1px solid #fef08a',
+                                padding: '0.05rem 0.35rem',
+                                borderRadius: '6px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.15rem',
+                                lineHeight: '1.2'
+                              }}>
+                                🛒 Mercado Libre
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <span style={{ 
+                            padding: '0.15rem 0.35rem', 
+                            borderRadius: '12px', 
+                            fontSize: '0.7rem',
+                            fontWeight: 'bold',
+                            backgroundColor: sale.isOffline ? '#fef3c7' : sale.status === 'COMPLETED' ? '#dcfce7' : sale.status === 'CANCELLED' ? '#fee2e2' : '#f1f5f9',
+                            color: sale.isOffline ? '#92400e' : sale.status === 'COMPLETED' ? '#166534' : sale.status === 'CANCELLED' ? '#991b1b' : '#334155',
+                            border: sale.isOffline ? '1px solid #fde68a' : 'none'
+                          }}>
+                            {sale.isOffline ? '⚡ Offline (En cola)' : sale.status === 'COMPLETED' ? 'Completado' : sale.status === 'CANCELLED' ? 'Cancelado' : sale.status}
+                          </span>
+                        );
+                      })()}
                       {sale.cancellationStatus === 'pending' && (
                         <span style={{ 
                           padding: '0.1rem 0.3rem', 

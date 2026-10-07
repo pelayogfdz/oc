@@ -1174,6 +1174,7 @@ export async function getSalesForExport(params: {
         paymentMethod: s.paymentMethod,
         invoiceId: s.invoiceId,
         invoiceFolio: s.invoiceFolio,
+        notes: s.notes,
         customer: s.customer ? { name: s.customer.name } : null,
         user: s.user ? { name: s.user.name } : null,
         branch: s.branch ? { name: s.branch.name } : null

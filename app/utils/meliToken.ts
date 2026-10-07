@@ -1,22 +1,27 @@
 import { prisma, masterClient, getClientForTenant } from '@/lib/prisma';
 
-export async function getOrRefreshMeliToken(branchId: string): Promise<string | null> {
+export async function getOrRefreshMeliToken(branchId?: string): Promise<string | null> {
   // Resolve correct tenant client dynamically based on branchId
   let dbClient = prisma;
-  try {
-    const branchRecord = await masterClient.branch.findUnique({
-      where: { id: branchId }
-    });
-    if (branchRecord?.tenantId) {
-      dbClient = getClientForTenant(branchRecord.tenantId);
+  if (branchId) {
+    try {
+      const branchRecord = await masterClient.branch.findUnique({
+        where: { id: branchId }
+      });
+      if (branchRecord?.tenantId) {
+        dbClient = getClientForTenant(branchRecord.tenantId);
+      }
+    } catch (e) {
+      console.error('[MELI TOKEN HELPER] Error resolving tenant client:', e);
     }
-  } catch (e) {
-    console.error('[MELI TOKEN HELPER] Error resolving tenant client:', e);
   }
 
-  let integration = await dbClient.storeIntegration.findUnique({
-    where: { branchId_platform: { branchId, platform: 'MERCADO_LIBRE' } }
-  });
+  let integration = null;
+  if (branchId) {
+    integration = await dbClient.storeIntegration.findUnique({
+      where: { branchId_platform: { branchId, platform: 'MERCADO_LIBRE' } }
+    });
+  }
 
   if (!integration || !integration.accessToken) {
     // Fallback: search for any active StoreIntegration for MERCADO_LIBRE in the current tenant

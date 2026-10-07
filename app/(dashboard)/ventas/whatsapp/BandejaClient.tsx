@@ -121,29 +121,100 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
   const [loadingMedia, setLoadingMedia] = useState<Record<string, boolean>>({});
 
   const parseMediaMsg = (body: string) => {
-    if (!body) return { isMedia: false, type: "", caption: "" };
-    const match = body.match(/^📎 \[(Imagen|Video|Audio|Archivo)\](?::\s*([\s\S]*))?$/);
-    if (match) {
-      return {
-        isMedia: true,
-        type: match[1],
-        caption: match[2] || ""
-      };
-    }
-    if (body.startsWith('📎 [')) {
-      const endBracketIdx = body.indexOf(']');
-      if (endBracketIdx > 2) {
-        const type = body.substring(4, endBracketIdx);
-        const rest = body.substring(endBracketIdx + 1);
-        const caption = rest.startsWith(':') ? rest.substring(1).trim() : rest.trim();
-        return {
-          isMedia: true,
-          type: type,
-          caption: caption
-        };
+    if (!body) return { isMedia: false, type: "", caption: "", filename: "", base64Data: "" };
+
+    let raw = body.trim();
+    let type = "";
+    let rest = "";
+    let isMedia = false;
+    let filename = "";
+
+    const tagMatch = raw.match(/^(?:📎|📷|🖼️|📄|🎥|🎵|📇)?\s*\[(Imagen|Video|Audio|Documento|Archivo|Sticker|Nota de voz)(?::\s*([^\]]*))?\](?::?\s*([\s\S]*))?$/i);
+
+    if (tagMatch) {
+      isMedia = true;
+      type = tagMatch[1];
+      filename = tagMatch[2]?.trim() || "";
+      rest = tagMatch[3]?.trim() || "";
+      if (type.toLowerCase() === 'nota de voz') type = 'Audio';
+    } else if (raw.startsWith('📎') || raw.startsWith('📷') || raw.startsWith('🖼️') || raw.startsWith('📄')) {
+      const bracketOpen = raw.indexOf('[');
+      const bracketClose = raw.indexOf(']');
+      if (bracketOpen !== -1 && bracketClose > bracketOpen) {
+        const inside = raw.substring(bracketOpen + 1, bracketClose).trim();
+        const after = raw.substring(bracketClose + 1).trim();
+        if (inside.toLowerCase().startsWith('documento:')) {
+          isMedia = true;
+          type = 'Documento';
+          filename = inside.substring(10).trim();
+          rest = after.startsWith(':') ? after.substring(1).trim() : after;
+        } else if (['imagen', 'video', 'audio', 'documento', 'archivo', 'sticker', 'nota de voz'].includes(inside.toLowerCase())) {
+          isMedia = true;
+          type = inside.charAt(0).toUpperCase() + inside.slice(1);
+          rest = after.startsWith(':') ? after.substring(1).trim() : after;
+        }
       }
     }
-    return { isMedia: false, type: "", caption: "" };
+
+    let base64Data: string | undefined = undefined;
+    let cleanCaption = rest;
+
+    const textToCheck = rest || raw;
+    const dataUriMatch = textToCheck.match(/data:image\/[a-zA-Z0-9+.-]+;base64,([A-Za-z0-9+/=]{40,})/);
+    if (dataUriMatch) {
+      isMedia = true;
+      if (!type) type = 'Imagen';
+      base64Data = dataUriMatch[1];
+      cleanCaption = cleanCaption.replace(dataUriMatch[0], '').trim();
+    } else {
+      const b64Match = textToCheck.match(/(\/9j\/[A-Za-z0-9+/=]{40,}|iVBORw0KGgo[A-Za-z0-9+/=]{40,}|[A-Za-z0-9+/]{100,}={0,2})/);
+      if (b64Match) {
+        isMedia = true;
+        if (!type) type = 'Imagen';
+        base64Data = b64Match[1];
+        cleanCaption = cleanCaption.replace(b64Match[0], '').trim();
+      }
+    }
+
+    if (cleanCaption.startsWith(':')) cleanCaption = cleanCaption.substring(1).trim();
+    if (cleanCaption === filename) cleanCaption = "";
+
+    if (isMedia) {
+      return {
+        isMedia: true,
+        type: type || "Archivo",
+        caption: cleanCaption,
+        filename: filename || (type === "Imagen" ? "imagen.jpg" : "archivo"),
+        base64Data
+      };
+    }
+
+    return { isMedia: false, type: "", caption: "", filename: "", base64Data: "" };
+  };
+
+  const formatSidebarLastMessage = (body: string): string => {
+    if (!body) return '';
+    const clean = body.trim();
+    const media = parseMediaMsg(clean);
+    if (media.isMedia) {
+      if (media.type === 'Imagen') {
+        return media.caption ? `📷 Imagen: ${media.caption}` : '📷 Imagen';
+      }
+      if (media.type === 'Documento') {
+        return media.filename ? `📄 Documento: ${media.filename}` : '📄 Documento';
+      }
+      if (media.type === 'Video') {
+        return media.caption ? `🎥 Video: ${media.caption}` : '🎥 Video';
+      }
+      if (media.type === 'Audio') {
+        return '🎵 Audio';
+      }
+      return `📎 ${media.filename || media.type}`;
+    }
+    if (clean.includes('👤 *Tarjeta de Contacto')) return '👤 Tarjeta de Contacto';
+    if (clean.includes('🗺️') || clean.includes('📍 [Ubicación]')) return '📍 Ubicación compartida';
+    if (clean.startsWith('[Mensaje tipo:')) return '💬 Mensaje de WhatsApp';
+    return clean;
   };
 
   const getExtensionFromMimetype = (mimetype: string): string => {
@@ -1360,7 +1431,7 @@ export default function BandejaClient({ initialProspects, users, currentUser, cu
                       textOverflow: 'ellipsis',
                       flex: 1
                     }}>
-                      {lastMessage.isFromMe ? "Tú: " : ""}{lastMessage.body}
+                      {lastMessage.isFromMe ? "Tú: " : ""}{formatSidebarLastMessage(lastMessage.body)}
                     </div>
                   ) : (
                     <div style={{ fontSize: '0.825rem', color: '#94a3b8', fontStyle: 'italic' }}>
